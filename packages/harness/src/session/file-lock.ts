@@ -277,6 +277,8 @@ class Hold implements LockHandle {
   #renewing: Promise<void> | undefined;
   readonly #path: string;
   readonly #options: HoldOptions;
+  // Each hold's own id, so a hold that loses its lock never cancels the wake of a newer hold on the same session.
+  readonly #wakeId: string;
   readonly #stopListening: () => void;
   // The time of the renewal wake this hold is waiting for. A duplicate of a delivered wake carries an older time.
   #armedAt = 0;
@@ -285,8 +287,9 @@ class Hold implements LockHandle {
     this.token = token;
     this.#path = path;
     this.#options = options;
+    this.#wakeId = `${options.leaseId}/${token}`;
     this.#stopListening = options.scheduler.onWake((id, at) => {
-      if (id !== options.leaseId || at.getTime() !== this.#armedAt || !this.#held) return;
+      if (id !== this.#wakeId || at.getTime() !== this.#armedAt || !this.#held) return;
       this.#arm();
       void this.#tick();
     });
@@ -296,9 +299,11 @@ class Hold implements LockHandle {
   /** Asks the scheduler for the next renewal. The scheduler may wake twice, so a wake only counts at the time asked for. */
   #arm(): void {
     // Each ask has its own time, even when the clock has not moved, so a wake delivered twice is told from the next.
-    const at = new Date(Math.max(Date.now() + this.#options.renewMs, this.#armedAt + 1));
+    const { scheduler, renewMs } = this.#options;
+    const at = new Date(Math.max(scheduler.now() + renewMs, this.#armedAt + 1));
     this.#armedAt = at.getTime();
-    void this.#options.scheduler.wake(at, this.#options.leaseId);
+    // A scheduler that refuses the wake leaves no renewal coming, so the hold reports itself lost and the writer stops.
+    scheduler.wake(at, this.#wakeId).catch(() => this.#lose());
   }
 
   held(): boolean {
@@ -341,7 +346,7 @@ class Hold implements LockHandle {
   #lose(): void {
     this.#held = false;
     this.#stopListening();
-    void this.#options.scheduler.cancel(this.#options.leaseId);
+    this.#options.scheduler.cancel(this.#wakeId).catch(() => undefined);
   }
 
   async release(): Promise<void> {

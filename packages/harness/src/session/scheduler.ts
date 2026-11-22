@@ -25,8 +25,10 @@ export type WakeHandler = (sessionId: string, at: Date) => void | Promise<void>;
 
 /** A scheduler that delivers its wakes in this process, to handlers registered with `onWake()`. */
 export interface ProcessScheduler extends Scheduler {
-  /** Calls `handler` for every wake, in the order they come due. The returned function stops it. */
+  /** Calls `handler` for every wake as it comes due. The returned function stops it. */
   onWake(handler: WakeHandler): () => void;
+  /** This scheduler's clock in milliseconds since the epoch. A caller that asks for a wake reads its time here, so both agree. */
+  now(): number;
 }
 
 /** The options of `processScheduler()`. A test sets all three to drive time by hand. */
@@ -74,7 +76,11 @@ export function processScheduler(options: ProcessSchedulerOptions = {}): Process
       try {
         await handler(id, new Date(at));
       } catch (error) {
-        options.onError?.(error, id);
+        try {
+          options.onError?.(error, id);
+        } catch {
+          // A reporter that throws must not stop the handlers after it.
+        }
       }
     }
   };
@@ -113,6 +119,7 @@ export function processScheduler(options: ProcessSchedulerOptions = {}): Process
       }
       return Promise.resolve();
     },
+    now,
     onWake(handler) {
       handlers.add(handler);
       return () => {

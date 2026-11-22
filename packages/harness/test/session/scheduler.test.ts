@@ -216,6 +216,7 @@ function manualScheduler() {
       cancels.push(id);
       return Promise.resolve();
     },
+    now: () => Date.now(),
     onWake: (handler) => {
       handlers.add(handler);
       return () => handlers.delete(handler);
@@ -245,10 +246,10 @@ test("a hold asks the scheduler for its renewal, renews when woken and asks agai
   assert.notEqual(handle, "would_block");
   if (handle === "would_block") return;
   assert.equal(sched.wakes.length, 1);
-  assert.equal(
-    sched.wakes[0]?.id,
-    "lease:ada/s1",
-    "the id is prefixed so a host's own wakes for the session stay apart",
+  assert.match(
+    sched.wakes[0]?.id ?? "",
+    /^lease:ada\/s1\/[0-9a-f-]{36}$/,
+    "the id is prefixed so a host's own wakes for the session stay apart, and holds on one session never share one",
   );
   const before = leaseUntil(dir);
   time += 3_000;
@@ -280,7 +281,7 @@ test("a wake for another id is ignored, and a release cancels the renewal and st
   if (handle === "would_block") return;
   assert.equal(sched.listeners(), 1);
   await handle.release();
-  assert.deepEqual(sched.cancels, ["lease:ada/s1"]);
+  assert.deepEqual(sched.cancels, [sched.wakes[0]?.id]);
   assert.equal(sched.listeners(), 0);
   assert.deepEqual(readdirSync(join(dir, "ada")), []);
 });
@@ -304,4 +305,83 @@ test("no setInterval remains in src/session", () => {
     const text = readFileSync(new URL(name, dir), "utf8");
     assert.doesNotMatch(text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""), /setInterval/, `${name} uses setInterval`);
   }
+});
+
+test("a hold that loses its lock never cancels the renewal of a newer hold on the same session", async () => {
+  const dir = tempDir();
+  const sched = manualScheduler();
+  const lock = fileLock({ dir, leaseMs: 5_000, renewMs: 1_000, scheduler: sched.scheduler });
+  const first = await lock.acquire(KEY);
+  if (first === "would_block") throw new Error("expected the lock");
+  // Another process removes the lock, as `session unlock --force` does, and a new hold takes the session.
+  rmSync(join(dir, "ada", "s1.lock"));
+  const second = await lock.acquire(KEY);
+  if (second === "would_block") throw new Error("expected the lock to be free");
+  // The first hold renews, finds the second's token and gives up.
+  await sched.deliver(0);
+  assert.equal(first.held(), false);
+  const firstId = sched.wakes[0]?.id;
+  const secondId = sched.wakes[1]?.id;
+  assert.notEqual(firstId, secondId);
+  assert.deepEqual(sched.cancels, [firstId], "only the hold that lost cancelled, and only its own wake");
+  const before = leaseUntil(dir);
+  await sched.deliver(1);
+  assert.equal(second.held(), true);
+  assert.ok(leaseUntil(dir) >= before, "the newer hold still renews");
+  await second.release();
+});
+
+test("a scheduler that refuses a wake makes the hold report itself lost, and a refused cancel is harmless", async () => {
+  const dir = tempDir();
+  const sched = manualScheduler();
+  const failing: ProcessScheduler = {
+    ...sched.scheduler,
+    wake: () => Promise.reject(new Error("no alarms")),
+    cancel: () => Promise.reject(new Error("no alarms")),
+  };
+  const lock = fileLock({ dir, leaseMs: 5_000, renewMs: 1_000, scheduler: failing });
+  const handle = await lock.acquire(KEY);
+  if (handle === "would_block") throw new Error("expected the lock");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(handle.held(), false, "with no renewal coming the writer must stop");
+  await handle.release();
+});
+
+test("a hold asks for its wake on the scheduler's clock, not the wall clock", () => {
+  const dir = tempDir();
+  const sched = manualScheduler();
+  const behind: ProcessScheduler = { ...sched.scheduler, now: () => START };
+  return fileLock({ dir, leaseMs: 5_000, renewMs: 1_000, scheduler: behind })
+    .acquire(KEY)
+    .then(async (handle) => {
+      if (handle === "would_block") throw new Error("expected the lock");
+      assert.equal(sched.wakes[0]?.at.getTime(), START + 1_000);
+      await handle.release();
+    });
+});
+
+test("an onError that throws does not stop the handlers after it", async () => {
+  const clock = manualTime();
+  const scheduler = processScheduler({
+    ...clock,
+    onError: () => {
+      throw new Error("logger down");
+    },
+  });
+  const seen: string[] = [];
+  scheduler.onWake(() => {
+    throw new Error("first");
+  });
+  scheduler.onWake((id) => {
+    seen.push(id);
+  });
+  await scheduler.wake(new Date(START + 1), "s1");
+  await clock.advanceTo(START + 2);
+  await Promise.resolve();
+  assert.deepEqual(seen, ["s1"]);
+});
+
+test("a scheduler's clock is the one its wakes are measured on", () => {
+  const clock = manualTime();
+  assert.equal(processScheduler(clock).now(), START);
 });
