@@ -302,5 +302,13 @@
     "chapter": "the-session-log-and-context",
     "illustration": null,
     "breaks": "A model writes the recap and can drop facts, so the original entries stay in the log and the harness can put any of them back in front of the model."
+  },
+  {
+    "id": "reference-librarian",
+    "concept": "retrieval",
+    "analogy": "a reference librarian who fetches the few books you need",
+    "chapter": "retrieval-and-long-term-memory",
+    "illustration": "reference-librarian",
+    "breaks": "The librarian's choice is a search ranking, and a wrong ranking looks just as confident: a planted or off-topic document reaches the desk with the same authority as the right one."
   }
 ]

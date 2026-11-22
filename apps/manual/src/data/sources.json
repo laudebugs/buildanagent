@@ -1104,5 +1104,15 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "modarressi-nolima",
+    "title": "NoLiMa: Long-Context Evaluation Beyond Literal Matching",
+    "publisher": "Ali Modarressi et al., LMU Munich and Adobe Research (arXiv:2502.05167)",
+    "url": "https://arxiv.org/abs/2502.05167",
+    "kind": "paper",
+    "version": "v3",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
   }
 ]

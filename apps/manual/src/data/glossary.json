@@ -230,5 +230,11 @@
     "term": "writer lock",
     "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
     "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "retrieval",
+    "term": "retrieval",
+    "definition": "Fetching text into a model request only when a step needs it, through a tool call or a search the harness runs, instead of carrying the text in every request. A search ranks the candidates, and only the top results reach the model.",
+    "sources": ["anthropic-effective-context-engineering"]
   }
 ]
