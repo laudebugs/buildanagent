@@ -158,7 +158,7 @@
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -185,7 +185,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -201,19 +201,19 @@
     },
     {
       "kind": "check",
-      "line": 153,
+      "line": 154,
       "message": "a well-formed pass is parsed into its score and grade",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 154,
+      "line": 155,
       "message": "the verdict keeps the judge's reason",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 1,
       "messages": [
@@ -231,7 +231,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -247,13 +247,13 @@
     },
     {
       "kind": "check",
-      "line": 156,
+      "line": 157,
       "message": "a well-formed fail is parsed too",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 1,
       "messages": [
@@ -271,7 +271,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -287,25 +287,25 @@
     },
     {
       "kind": "check",
-      "line": 158,
+      "line": 159,
       "message": "a score exactly at the pass mark passes",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 160,
+      "line": 161,
       "message": "the judge receives the rubric as its instructions",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 161,
+      "line": 162,
       "message": "and the answer it grades",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 2,
       "messages": [],
@@ -313,7 +313,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -329,13 +329,13 @@
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 166,
       "message": "the judge's output is rejected for not JSON",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 2,
       "messages": [],
@@ -343,7 +343,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -359,13 +359,13 @@
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 166,
       "message": "the judge's output is rejected for a score above 1",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 2,
       "messages": [],
@@ -373,7 +373,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -389,13 +389,13 @@
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 166,
       "message": "the judge's output is rejected for a grade that is not pass or fail",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 2,
       "messages": [],
@@ -403,7 +403,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -419,13 +419,13 @@
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 166,
       "message": "the judge's output is rejected for a missing reason",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 2,
       "messages": [],
@@ -433,7 +433,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -449,13 +449,13 @@
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 166,
       "message": "the judge's output is rejected for a pass below the mark",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "repeated": 2,
       "messages": [],
@@ -463,7 +463,7 @@
     },
     {
       "kind": "response",
-      "line": 122,
+      "line": 123,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -479,13 +479,13 @@
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 166,
       "message": "the judge's output is rejected for a fail at the mark",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 170,
+      "line": 171,
       "message": "every scripted judge answer was used",
       "pass": true
     }

@@ -111,7 +111,8 @@ function parseVerdict(text: string): Verdict {
     const issue = parsed.error.issues[0];
     throw new JudgeOutputError(`the verdict is malformed at ${issue?.path.join(".")}: ${issue?.message}`);
   }
-  if (parsed.data.score >= PASS_MARK !== (parsed.data.grade === "pass")) {
+  const passesMark = parsed.data.score >= PASS_MARK;
+  if (passesMark !== (parsed.data.grade === "pass")) {
     throw new JudgeOutputError(`the grade ${parsed.data.grade} contradicts the score ${parsed.data.score}`);
   }
   return parsed.data;
