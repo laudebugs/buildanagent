@@ -2,7 +2,7 @@
 title: "Use the least autonomy that works: a call, a workflow, then a loop"
 summary: Three support requests need three shapes of program, one model call, a fixed workflow and an agent loop, and one question picks between them. Who decides the next step, your code or the model?
 opening: scenario
-sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works, openai-practical-guide-to-building-agents, ai-sdk-testing]
+sources: [anthropic-building-effective-agents, ai-sdk-generate-text, adk-sequential-agents, anthropic-how-tool-use-works, pi-how-pi-works, openai-practical-guide-to-building-agents, ai-sdk-testing, buildanagent-sdk-readme]
 glossary: [agent, workflow, agent-loop, stop-condition, harness, mock-model]
 switchTo: [B11]
 ---
@@ -15,15 +15,24 @@ You have called a model API before, so the tempting plan is one agent that handl
 
 The summary request needs exactly one model call. Your code sends the ticket and an instruction, the model sends back a line of text, and your code stores it. Nothing in the task waits on a result the model has not seen, so no second step exists for anyone to decide. Anthropic's advice for building with models starts at this point: find "the simplest solution possible", and add complexity only when the task needs it [@anthropic-building-effective-agents]. For many applications, the same post says, "optimizing single LLM calls with retrieval and in-context examples is usually enough". Retrieval can be as plain as your code looking up the customer's plan and pasting it into the prompt. The program still makes one call.
 
-[[lst:one-call]] makes that call with the Vercel AI SDK's `generateText`. Read it as a request and a reply.
+Five of this chapter's six listings come in two tabs. The first tab runs on our own packages, `@buildanagent/gateway` and `@buildanagent/sdk`, and the second runs the same step on an established SDK, so you can see what changes between SDKs and what stays. The sixth listing, Pi's harness, keeps a single tab until our own harness can keep a session. As of November 2026 our packages are `0.1.0` alpha releases, so their names may still change.
 
-:::listing[One model call: your code sends one request and reads one answer]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
+[[lst:one-call-ours]] and [[lst:one-call]] make the summary's one call, the first through our gateway and the second with the Vercel AI SDK's `generateText`. Read each as a request and a reply: your code sends one request and reads one answer.
+
+::::tabs
+:::listing[Our SDK]{#one-call-ours file="packages/sdk/examples/01-one-call.ts" region="call" replay}
+::note[`scripted` puts our SDK's test model, `ScriptedModel`, behind the gateway's `createModel()`. The model plays back the answer written here, so the call needs no key and sends nothing over the network. The box [How these examples run without a key](#how-these-examples-run-without-a-key), near the end of this chapter, explains how.]{#mock}
+::note[One request: the `system` prompt, the `messages` so far and the `tools` the model may call, which here are none.]{#request}
+::note[`answer.stopReason` is `"stop"`: the model ended its answer on its own instead of asking for anything.]{#finish}
+:::
+:::listing[AI SDK]{#one-call file="verify/vercel-ai-sdk/examples/01-generate-text.ts" region="call" replay}
 ::note[`scripted` builds a mock model that plays back the answer written here, so the call needs no key and sends nothing over the network. The box [How these examples run without a key](#how-these-examples-run-without-a-key), near the end of this chapter, explains how.]{#mock}
 ::note[One request: `instructions` reach the model as the system message and `prompt` as the user's message.]{#request}
 ::note[`result.finishReason` is `"stop"`: the model ended its answer on its own instead of asking for anything.]{#finish}
 :::
+::::
 
-The answer comes back as `result.text`, and `result.steps` holds one step, because one request went out and one answer came back [@ai-sdk-generate-text]. Step through the replay beside the listing and you see the whole exchange. A system message and a user message go out together, the text "Hello from the mock." comes back, and the example's checks pass one by one.
+The two tabs hand back the answer in different shapes. Our gateway's `complete()` returns the model's message itself, with its `content` and its `stopReason`. The AI SDK's `generateText` returns a result instead: the answer comes back as `result.text`, and `result.steps` holds one step, because one request went out and one answer came back [@ai-sdk-generate-text]. Step through either replay beside its listing and you see the whole exchange. A system message and a user message go out together, the text "Hello from the mock." comes back, and the example's checks pass one by one.
 
 Who decided anything in that program? Your code did, before it ran: it chose the instruction, the prompt and what to do with the answer. The model wrote words and nothing else. In our view that limit is also the call's strength, since a program with one step has one place to fail, one bill to read and one output to test. Its weakness shows as soon as the work has a second step. When the reply must be drafted and then reviewed, or the answer needs a fact that only a lookup can supply, one call has nowhere to put the extra step.
 
@@ -33,13 +42,23 @@ The second request has two steps, and you know both before the first ticket arri
 
 A workflow is that line in code. Anthropic defines workflows as "systems where LLMs and tools are orchestrated through predefined code paths" [@anthropic-building-effective-agents]. The same post names five workflow patterns: prompt chaining, routing, parallelization, orchestrator-workers and evaluator-optimizer. Draft-then-review is the first pattern on that list, a prompt chain, in which "each LLM call processes the output of the previous one". Anthropic recommends a chain when the task "can be easily and cleanly decomposed into fixed subtasks". In a chain your code makes the first model call, takes its output and hands it to the second, so the order of the steps lives in your program, never in a model's answer.
 
-:::listing[A fixed workflow: a writer, then a reviewer, in an order the code sets]{#workflow file="verify/google-adk/examples/02-workflow-agents.ts" region="sequential" replay}
+Both tabs below build that chain: a writer, then a reviewer, in an order the code sets.
+
+::::tabs
+:::listing[Our SDK]{#workflow-ours file="packages/sdk/examples/02-workflow.ts" region="sequential" replay}
+::note[The writer's answer becomes `draft`, a plain variable in your code.]{#writer}
+::note[The code pastes `draft` into the reviewer's instruction. This call runs second because its line comes second: the order of these lines is the workflow.]{#reviewer}
+:::
+:::listing[Google ADK]{#workflow file="verify/google-adk/examples/02-workflow-agents.ts" region="sequential" replay}
 ::note[The writer's answer goes into session state under the key `"draft"`, because its `outputKey` says so.]{#writer}
 ::note[The reviewer's instruction reads that state back: ADK replaces `{draft}` with the writer's text before the reviewer's model call.]{#reviewer}
 ::note[`SequentialAgent` runs its `subAgents` in the order of this list, every time.]{#order}
 :::
+::::
 
-[[lst:workflow]] builds that chain with Google's Agent Development Kit (ADK). Each station is an `LlmAgent` with its own model, and a `SequentialAgent` bolts them together. ADK's documentation says a sequential agent "executes its sub-agents in the order they are specified in a list", and that its execution "is not controlled by an AI model" [@adk-sequential-agents]. The replay shows what that means on the wire. Two model calls go out, one per station. The writer's call carries the instruction "Write." and comes back with a draft; the reviewer's call carries "Review this: DRAFT-TEXT", the writer's output pasted into its instruction, and comes back with "LGTM". ADK also passes the writer's reply along in the reviewer's messages, as context. The writer's model, by contrast, never learns that a reviewer exists.
+Our SDK has no workflow class, and [[lst:workflow-ours]] needs none: two `complete()` calls, one after the other, are the whole workflow. Each station is a model call, and your code carries the writer's `draft` to the reviewer itself. [[lst:workflow]] builds the same chain with Google's Agent Development Kit (ADK). Each station is an `LlmAgent` with its own model, and a `SequentialAgent` bolts them together. ADK's documentation says a sequential agent "executes its sub-agents in the order they are specified in a list", and that its execution "is not controlled by an AI model" [@adk-sequential-agents].
+
+The two replays show what that means on the wire. In each, two model calls go out, one per station. The writer's call carries the instruction "Write." and comes back with a draft; the reviewer's call carries "Review this: DRAFT-TEXT", the writer's output pasted into its instruction, and comes back with "LGTM". ADK also passes the writer's reply along in the reviewer's messages, as context, while our tab sends the reviewer only the user's request. In both tabs, the writer's model never learns that a reviewer exists.
 
 The analogy breaks at the stations. A station on a real line bends the same bracket every time, but each station here is a model call, and a model call can hand on something unexpected: a reviewer that answers "LGTM" to a rude draft, or a writer whose draft is empty. The line still runs in order, yet nothing inspects the part unless your code does. Anthropic's answer is to add "programmatic checks" between the steps of a chain, a gate in your code that stops a bad draft before it reaches the next station [@anthropic-building-effective-agents].
 
@@ -65,7 +84,7 @@ The mechanism under the analogy is a short, strict exchange. A model never runs 
 4. Your code appends the model's tool call and the results to the context and sends the whole context back.
 5. The cycle repeats while the model keeps asking for tools. It ends when the model stops asking, which normally means it has answered with text.
 
-That cycle is the agent loop. [[fig:loop-bench]] lays it out as a bench you can step through, one lit part per step, with the labels the steps use: the context, the model call, the tool, the `tool_result`{checked=row-28} it produces, the append that adds it to the context, and the final answer.
+That cycle is the agent loop. [[fig:loop-bench]] lays it out as a bench you can step through, one lit part per step, with the labels the steps use: the context, the model call, the tool, the `tool_result`{checked=row-28} it produces, the append that adds it to the context, and the final answer. Both loop replays later in this section move through the bench's six parts in the same order.
 
 :::figure[The agent loop's bench: the context goes to a model call, the tool's result is appended, and the loop runs until the model answers]{#loop-bench}
 ::viewer{alt="An isometric bench. At the back stands a rack of upright message cards labelled context, with one more card in the rack's last slot labelled append. Beside it sits a round unit labelled model call, then a block labelled tool. On the front row, two trays each hold one card: one labelled answer, in front of the model call, and one labelled tool_result, in front of the tool. The lamp on the context rack is lit, and the readout says 1 of 6, context to model call. Stepping lights, in turn, the model call, the tool, the tool_result card, the appended card, and the answer card."}
@@ -73,23 +92,35 @@ That cycle is the agent loop. [[fig:loop-bench]] lays it out as a bench you can 
 
 The kitchen stops matching the loop at memory, and that difference teaches the most important fact in this chapter. A cook remembers yesterday's orders and what the pantry said a minute ago. A model remembers nothing between calls: each model call sees only what that request carries. The append in step 4 is therefore the loop's whole memory. Anthropic's documentation has your code send "the original messages, the assistant's response, and a user message with the `tool_result`{checked=row-28} blocks" on each turn [@anthropic-how-tool-use-works]. A result your code forgets to append is a result the model never saw.
 
-[[lst:weather-tool]] gives the loop something to call. It is a weather tool in the Vercel AI SDK: a description and an input schema, which the model sees, and an `execute` function, which runs in your process and which the model never sees.
+[[lst:weather-tool-ours]] and [[lst:weather-tool]] give the loop something to call: a weather tool, defined with our SDK's `defineTool()` and with the Vercel AI SDK's `tool()`. In both, a description and an input schema go to the model, and an `execute` function runs in your process, where the model never sees it. Our tool also carries its own `name`, while the AI SDK takes a tool's name from the key you pass it under, as `tools: { weather }` in [[lst:tool-loop]] does.
 
-::listing[A tool: a description and a schema for the model, and a function for your code]{#weather-tool file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="tool"}
+:::tabs
+::listing[Our SDK]{#weather-tool-ours file="packages/sdk/examples/03-tool-loop.ts" region="tool"}
+::listing[AI SDK]{#weather-tool file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="tool"}
+:::
 
-:::listing[The loop runs until the model answers with text]{#tool-loop file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="loop" replay}
+[[lst:tool-loop-ours]] and [[lst:tool-loop]] then run the loop with that tool until the model answers with text.
+
+::::tabs
+:::listing[Our SDK]{#tool-loop-ours file="packages/sdk/examples/03-tool-loop.ts" region="loop" replay}
+::note[The script plays two answers: first a call to `weather` for Lisbon, then the text "It is 21C in Lisbon."]{#script}
+::note[The tools the model may call. `run()` runs them for you and appends their results.]{#tools}
+::note[The stop condition: at most five model calls. Without it, a run may make 20.]{#cap}
+:::
+:::listing[AI SDK]{#tool-loop file="verify/vercel-ai-sdk/examples/02-tool-loop.ts" region="loop" replay}
 ::note[The mock plays two turns: first a call to `weather` for Lisbon, then the text "It is 21C in Lisbon."]{#script}
 ::note[The tools the model may call. `generateText` runs them for you and appends their results.]{#tools}
 ::note[The stop condition: at most five steps. Without it, the loop would stop after the first step.]{#cap}
 :::
+::::
 
-Step through the replay of [[lst:tool-loop]] and you can watch the five steps happen. The first request carries the user's question and the tool list. The model answers with a tool call, `weather` with the city Lisbon, and finishes with `"tool-calls"` instead of `"stop"`. `generateText` runs the tool, whose schema fills in the default unit, and the second request carries the model's call and the tool result: Lisbon, 21 degrees, Celsius. The model then answers in text, finishes with `"stop"`, and the loop ends after two model calls.
+Step through either replay and you can watch the five steps happen. The first request carries the user's question and the tool list; in our tab it also carries the system prompt, because `run()` takes a `system` prompt on every run. The model answers with a tool call, `weather` with the city Lisbon, and finishes with a tool-call reason instead of `"stop"`: `"tool_calls"` in our tab and `"tool-calls"` in the AI SDK's. The loop runs the tool, whose schema fills in the default unit, and the second request carries the tool result: Lisbon, 21 degrees, Celsius. The model then answers in text, finishes with `"stop"`, and the loop ends after two model calls.
 
-A loop needs a way to end that does not depend on the model alone, and the AI SDK's default shows why. `stopWhen` sets the stop condition, and `isStepCount(5)` stops the loop after five steps even if the model keeps asking for tools [@ai-sdk-generate-text]. Leave `stopWhen` out, and `generateText` uses its default, `isStepCount(1)`. The same example shows what that default does: the tool still runs in the first step, but no second model call follows, so the model never reads the weather and the final text is empty. We recommend that every loop state its own cap rather than trust a default, because the defaults differ from one SDK to the next, as [[ch:stopping-and-structured-output]] shows. With a cap in place the loop is sure to end: if the model never stops asking for tools, the cap stops it.
+A loop needs a way to end that does not depend on the model alone, and the two SDKs' defaults show why. In our SDK, `maxSteps` caps the model calls a run makes, at 20 unless you set it, and a run that reaches the cap ends with its own stop reason, `max_steps`{checked=row-125}, instead of an answer [@buildanagent-sdk-readme]. In the AI SDK, `stopWhen` sets the stop condition, and `isStepCount(5)` stops the loop after five steps even if the model keeps asking for tools [@ai-sdk-generate-text]. Leave `stopWhen` out, and `generateText` uses its default, `isStepCount(1)`. The AI SDK example shows what that default does: the tool still runs in the first step, but no second model call follows, so the model never reads the weather and the final text is empty. Our example's run with `maxSteps: 1` ends the same way, after one model call that ran the tool but brought no answer. We recommend that every loop state its own cap rather than trust a default, because the defaults differ from one SDK to the next, 20 model calls in ours and one step in the AI SDK, as [[ch:stopping-and-structured-output]] shows. With a cap in place the loop is sure to end: if the model never stops asking for tools, the cap stops it.
 
 ## A harness keeps the session and brings its own tools
 
-`generateText` already ran the loop behind one call, so a harness has to add something else. Look at what [[lst:tool-loop]] took from you: the instructions, the tool and its `execute` function all came from your code. Once the call returned, the run lived on only in what your code kept. A harness is the program around a model that runs the loop for you, calls the tools and keeps the session. Pi is one, and its documentation opens on the difference: Pi "coordinates model requests, tool execution, context assembly, and session storage" [@pi-how-pi-works]. Three things set Pi apart from `generateText`, and each is a job your code would otherwise do itself, as it did in [[lst:tool-loop]]:
+`run()` and `generateText` already ran the loop behind one call, so a harness has to add something else. Look at what [[lst:tool-loop-ours]] and [[lst:tool-loop]] took from you: the instructions, the tool and its `execute` function all came from your code. Once the call returned, the run lived on only in what your code kept. A harness is the program around a model that runs the loop for you, calls the tools and keeps the session. Pi is one, and its documentation opens on the difference: Pi "coordinates model requests, tool execution, context assembly, and session storage" [@pi-how-pi-works]. Three things set Pi apart from `run()` and `generateText`, and each is a job your code would otherwise do itself, as it did in the tool loop's two tabs:
 
 - **It assembles the context.** Pi writes the system prompt itself, "from its base instructions and discovered context files", and every request "also carries tool definitions".
 - **It brings its own tools.** A Pi session starts with tools of its own, so the model can read and change files although your code defined no tool.
@@ -103,9 +134,9 @@ Inside, the loop is the one you already know. Pi builds a model request from the
 ::note[The session starts with four tools active: `read`, `bash`, `edit` and `write`.]{#tools}
 :::
 
-The replay of [[lst:pi-hello]] shows the first two of those jobs in its single request. The example wrote no system prompt and defined no tool. Yet next to the user's "Say hello.", the request carries a system prompt that Pi assembled from six sections, from a preamble to the working directory, and the four tools `read`, `bash`, `edit` and `write`. Compare the replay of [[lst:one-call]], whose request held only the two messages your code wrote. The scripted model answers with text at once, so the loop ends after one model request, and the example's checks confirm it. Pi also reports its progress as events, in order: `message_update` and `message_end` while the answer streams, then `agent_settled` once Pi has nothing left to do.
+The replay of [[lst:pi-hello]] shows the first two of those jobs in its single request. The example wrote no system prompt and defined no tool. Yet next to the user's "Say hello.", the request carries a system prompt that Pi assembled from six sections, from a preamble to the working directory, and the four tools `read`, `bash`, `edit` and `write`. Compare the replays of [[lst:one-call-ours]] and [[lst:one-call]], whose requests held only the two messages your code wrote. The scripted model answers with text at once, so the loop ends after one model request, and the example's checks confirm it. Pi also reports its progress as events, in order: `message_update` and `message_end` while the answer streams, then `agent_settled` once Pi has nothing left to do.
 
-Those four tools deserve a second look. As of November 2026 they are the tools a Pi session starts with by default, and two of them, `bash` and `write`, can run commands and change files on the machine that runs the agent. The mock in this listing never calls them. A real model could. When you hand the model the next step, you also hand it whatever its tools can reach, and [[ch:approvals-guardrails-and-injection]] and [[ch:permissions-sandboxes-and-credentials]] show how to fence that in. In Pi, as in [[lst:tool-loop]], the model decides the next step; the harness only runs the steps the model chooses.
+Those four tools deserve a second look. As of November 2026 they are the tools a Pi session starts with by default, and two of them, `bash` and `write`, can run commands and change files on the machine that runs the agent. The mock in this listing never calls them. A real model could. When you hand the model the next step, you also hand it whatever its tools can reach, and [[ch:approvals-guardrails-and-injection]] and [[ch:permissions-sandboxes-and-credentials]] show how to fence that in. In Pi, as in [[lst:tool-loop-ours]] and [[lst:tool-loop]], the model decides the next step; the harness only runs the steps the model chooses.
 
 ## Choose the shape by asking who decides the next step
 
@@ -131,15 +162,25 @@ OpenAI's guide to building agents asks a different question, and it uses one of 
 
 The shapes also combine, and we recommend combining them. A real order-status feature need not be a loop from end to end. Your code can check who is asking and load their orders before any model call, run one capped loop for the part where the next lookup depends on the last, and send the reply itself once the loop ends. Everything that must happen the same way every time stays in code, and the model decides only the steps that no one could write down in advance. That split is the least autonomy that works, and it is the habit this book builds on from here.
 
-:::box[How these examples run without a key]{#how-these-examples-run-without-a-key top}
-Every listing in this book runs against a mock model, so you can run each one yourself with no API key and no bill. A pilot practises an engine fire in :analogy[a flight simulator]{#flight-simulator}, where the fire breaks out exactly when the instructor scripted it and nobody gets hurt. A mock model plays the same part for code: it stands in for the provider and plays back answers written in advance. The AI SDK's testing guide names the problem it solves, "Testing language models can be challenging, because they are non-deterministic and calling them is slow and expensive", and the SDK ships mock models for it, `MockLanguageModelV4` among them [@ai-sdk-testing].
+:::::box[How these examples run without a key]{#how-these-examples-run-without-a-key top}
+Every listing in this book runs against a mock model, so you can run each one yourself with no API key and no bill. A pilot practises an engine fire in :analogy[a flight simulator]{#flight-simulator}, where the fire breaks out exactly when the instructor scripted it and nobody gets hurt. A mock model plays the same part for code: it stands in for the provider and plays back answers written in advance. The AI SDK's testing guide names the problem it solves, "Testing language models can be challenging, because they are non-deterministic and calling them is slow and expensive", and the SDK ships mock models for it, `MockLanguageModelV4` among them [@ai-sdk-testing]. Our SDK ships its own, `ScriptedModel`, which plays back one scripted answer per model call [@buildanagent-sdk-readme].
 
-::listing[The scripted mock behind this chapter's AI SDK listings]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
+::::tabs
+:::listing[Our SDK]{#scripted-mock-ours file="packages/sdk/examples/04-scripted-model.ts" region="scripted"}
+::note[The script holds one answer, a call to `weather`, and the run will ask for a second.]{#steps}
+::note[`createModel()` binds the scripted adapter to a model id, as it binds a real provider's adapter.]{#gateway}
+::note[The second model call finds no scripted answer, so the run ends with the stop reason `"error"` instead of throwing.]{#strict}
+::note[`calls` holds a frozen copy of each request the script answered.]{#calls}
+:::
+::listing[AI SDK]{#scripted-mock file="verify/vercel-ai-sdk/examples/lib/check.ts" region="scripted"}
+::::
 
-[[lst:scripted-mock]] wraps that mock model in a helper of our own. `scripted` takes a list of turns, each either text or a set of tool calls, plays them back in order, and records every request the code sends in `requests`. When the loop asks for a turn the script lacks, the helper throws, so an example fails if its loop makes more model calls than you planned. The other harnesses follow the same plan with their own parts: the ADK listing's `ScriptedLlm`{checked=row-68} subclasses ADK's model class, because ADK 2.5.0 ships no test model, and Pi's listing runs on pi-ai's own faux provider. Each of these three harnesses also records every example's run, and CI fails when a recording no longer matches its code, so the replays in this chapter show what the code really does today.
+[[lst:scripted-mock-ours]] uses `ScriptedModel` on its own, and shows that it is strict. When a run asks for an answer the script lacks, the run ends with an error, and `assertComplete()` throws, so a test that calls it fails whenever its loop makes more model calls than you planned. This chapter's other examples on our SDK reach the same model through a short helper, `scripted`, that puts it behind `createModel()`.
+
+The AI SDK's examples use a helper of the same name, and [[lst:scripted-mock]] shows it wrapping the AI SDK's mock model. That `scripted` takes a list of turns, each either text or a set of tool calls, plays them back in order, and records every request the code sends in `requests`. When the loop asks for a turn the script lacks, the helper throws, so an example fails if its loop makes more model calls than you planned. The other harnesses follow the same plan with their own parts: the ADK listing's `ScriptedLlm`{checked=row-68} subclasses ADK's model class, because ADK 2.5.0 ships no test model, and Pi's listing runs on pi-ai's own faux provider. Our package and each of these three harnesses also record every example's run, and CI fails when a recording no longer matches its code, so the replays in this chapter show what the code really does today.
 
 Mocks part company with simulators where a simulator is at its best. A flight simulator models the aircraft and answers whatever the pilot does, but a scripted mock can give only the answers someone wrote for it in advance. A passing example therefore proves that your code handles the answers you scripted; it cannot prove that a real model will give them. [[ch:testing-offline-and-a-first-agent]] covers what such tests can and cannot show.
-:::
+:::::
 
 ## Exercises
 

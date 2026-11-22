@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
 import { listingContext, resolveListing } from "../src/book/listings.js";
 import { loadBook, renderDependencies } from "../src/book/load.js";
 import { ProblemList } from "../src/book/problems.js";
+import { readTranscript } from "../src/book/transcripts.js";
 import { inWorkspace, tscProjects } from "../src/book/typecheck-coverage.js";
 import { highlightListing } from "../src/markdown/highlight.js";
 import {
@@ -208,8 +210,8 @@ test("a workspace package matches a pnpm-workspace.yaml glob and no ! glob", () 
   assert.ok(!inWorkspace("verify/pi", ["./verify/*", "!./verify/pi"]));
 });
 
-// The real harnesses: every region marked in a verify/ example resolves, with the pin its harness's package.json
-// holds, so a chapter can list any of them.
+// The real harnesses: every region marked in a harness's example resolves, with the pin its harness's package.json
+// holds, so a chapter can list any of them. A harness is a verify/ directory or one of our own packages.
 const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const real = listingContext(
   repoRoot,
@@ -218,21 +220,97 @@ const real = listingContext(
   new ProblemList(),
 );
 
-test("the harness table names every verify/ harness and a main package its package.json pins", () => {
-  const harnesses = readdirSync(join(repoRoot, "verify"), { withFileTypes: true })
+/** The caption's pin for a real harness: the exact dependency of a verify/ harness, or our own package's version. */
+function realPin(harness: string): string {
+  const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
+  const name = real.harnesses.harnesses.get(harness) ?? "";
+  return `${name}@${manifest.name === name ? manifest.version : manifest.dependencies[name]}`;
+}
+
+test("the harness table names every verify/ harness, then our packages with book examples, each with an exact pin", () => {
+  const verify = readdirSync(join(repoRoot, "verify"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => `verify/${entry.name}`);
-  assert.deepEqual([...real.harnesses.harnesses.keys()].sort(), harnesses.sort());
+  const keys = [...real.harnesses.harnesses.keys()];
+  assert.deepEqual(keys.filter((key) => key.startsWith("verify/")).sort(), verify.sort());
+  assert.deepEqual(
+    keys.filter((key) => !key.startsWith("verify/")),
+    ["packages/sdk"],
+  );
   for (const [harness, name] of real.harnesses.harnesses) {
     const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
-    assert.match(manifest.dependencies?.[name] ?? "", /^\d+\.\d+\.\d+$/, `${harness} pins ${name} exactly`);
+    if (harness.startsWith("packages/")) {
+      assert.equal(manifest.name, name, `${harness} is its own main package`);
+      assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, `${harness} declares an exact version`);
+    } else {
+      assert.match(manifest.dependencies?.[name] ?? "", /^\d+\.\d+\.\d+$/, `${harness} pins ${name} exactly`);
+    }
   }
+});
+
+test("a listing from packages/sdk/examples shows the package's own version and replays its workspace transcript", () => {
+  const listing = resolveListing(
+    { id: "x", file: "packages/sdk/examples/01-one-call.ts", region: "call", replay: "" },
+    real,
+  );
+  assert.ok(!("message" in listing), "message" in listing ? listing.message : "");
+  assert.equal(listing.harness, "packages/sdk");
+  assert.equal(listing.pin, realPin("packages/sdk"));
+  assert.equal(listing.recordedPin, "@buildanagent/sdk@workspace");
+  assert.equal(listing.replay?.path, "packages/sdk/results/transcripts/01-one-call.json");
+  assert.equal(listing.replay?.transcript.pin, "@buildanagent/sdk@workspace");
+});
+
+test("a file in a package that the harness table does not list has no pin", () => {
+  const listing = resolveListing({ id: "x", file: "packages/gateway/src/complete.ts" }, real);
+  assert.ok("message" in listing);
+  assert.match(listing.message, /packages\/gateway\/src\/complete\.ts is in no harness that harnesses\.json lists/);
+});
+
+test("one of our packages' replay needs a transcript recorded at workspace, not at the version number", () => {
+  const root = mkdtempSync(join(tmpdir(), "workspace-pin-"));
+  try {
+    mkdirSync(join(root, "packages/demo/results/transcripts"), { recursive: true });
+    writeFileSync(join(root, "packages/demo/package.json"), JSON.stringify({ name: "demo", version: "0.1.0-alpha.3" }));
+    const listing = {
+      path: "packages/demo/examples/01-call.ts",
+      harness: "packages/demo",
+      recordedPin: "demo@workspace",
+    };
+    const write = (pin: string) =>
+      writeFileSync(
+        join(root, "packages/demo/results/transcripts/01-call.json"),
+        JSON.stringify({
+          format: 1,
+          example: "01-call",
+          file: listing.path,
+          harness: listing.harness,
+          pin,
+          mock: pin,
+          events: [{ kind: "check", message: "ran", pass: true }],
+        }),
+      );
+    write("demo@workspace");
+    assert.ok(!("message" in readTranscript(root, listing)));
+    write("demo@0.1.0-alpha.3");
+    const stale = readTranscript(root, listing);
+    assert.ok("message" in stale);
+    assert.match(stale.message, /was recorded with demo@0\.1\.0-alpha\.3 .* but the harness pins demo@workspace/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a file in no workspace package is no listing", () => {
+  const listing = resolveListing({ id: "x", file: "scripts/transcripts/events.ts" }, real);
+  assert.ok("message" in listing);
+  assert.match(listing.message, /scripts\/transcripts\/events\.ts/);
 });
 
 // Slow by design: the first listing in each harness runs that harness's real `tsc -p <config> --listFilesOnly` to
 // check that its typecheck covers the file. The test takes about 2 seconds on an idle machine, and it ran past
 // Vitest's 5-second default under the parallel `pnpm test`, so this one test gets 30 seconds.
-test("every region marked in a verify/ example resolves to a listing with its harness's pin", {
+test("every region marked in a harness's example resolves to a listing with its harness's pin", {
   timeout: 30_000,
 }, () => {
   let regions = 0;
@@ -244,12 +322,10 @@ test("every region marked in a verify/ example resolves to a listing with its ha
       for (const [, region] of text.matchAll(/^\s*\/\/\s*#region\s+(\S+)/gm)) {
         const listing = resolveListing({ id: "x", file: path, region }, real);
         assert.ok(!("message" in listing), "message" in listing ? listing.message : "");
-        const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
-        const name = real.harnesses.harnesses.get(harness) ?? "";
-        assert.equal(listing.pin, `${name}@${manifest.dependencies[name]}`);
+        assert.equal(listing.pin, realPin(harness));
         regions++;
       }
     }
   }
-  assert.ok(regions > 0, "the verify/ examples mark regions");
+  assert.ok(regions > 0, "the harnesses' examples mark regions");
 });

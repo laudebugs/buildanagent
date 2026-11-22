@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import { extname, join } from "node:path";
 import type ts from "typescript-api";
@@ -32,6 +32,16 @@ function compilerOptions(): ts.CompilerOptions {
     types: [],
   };
 }
+
+/**
+ * The scope of our own workspace packages. Their `package.json` points `types` at a `dist/` that exists only after a
+ * build, so the check reads them through their `source` condition, as their tests and type-checks do (ADR 0050). Only
+ * our scope gets the condition: a third-party package may declare `source` for files its tarball leaves out.
+ */
+const WORKSPACE_SCOPE = "@buildanagent/";
+
+/** The compiler options for a specifier or an entry: the shared ones, plus `source` for our own packages. */
+const withSource = (options: ts.CompilerOptions): ts.CompilerOptions => ({ ...options, customConditions: ["source"] });
 
 /** The extensions a resolved import may have for its exports to be read: declarations, or TypeScript source. */
 const TYPED = new Set([".d.ts", ".d.mts", ".d.cts", ".ts", ".mts", ".cts", ".tsx"]);
@@ -192,6 +202,12 @@ export class CodeNames {
         }
         return this.#declarations.get(fileName);
       };
+      // Each import resolves with the options its specifier needs, so a program read from our packages' source
+      // reaches our other packages through `source` and every third-party package through its usual entry.
+      host.resolveModuleNames = (names, containingFile) =>
+        names.map(
+          (name) => typescript().resolveModuleName(name, containingFile, this.#optionsFor(name), host).resolvedModule,
+        );
       this.#host = host;
     }
     return this.#host;
@@ -225,6 +241,37 @@ export class CodeNames {
       }
     }
     return [...labels].sort();
+  }
+
+  /**
+   * The source files of our own packages, for the render inputs, when a listing's import resolves into one of them.
+   * Their label is `name@version`, which an edit to their source leaves unchanged, so the files themselves must be
+   * hashed: our packages re-export one another, so every package's `src/` counts.
+   */
+  workspaceSources(written: Iterable<WrittenChapter>): string[] {
+    const packagesDir = join(this.#repoRoot, "packages");
+    // The compiler reports resolved files by their real paths, so the comparison uses the real path too.
+    const realPackagesDir = existsSync(packagesDir) ? realpathSync(packagesDir) : packagesDir;
+    let reached = false;
+    for (const chapter of written) {
+      for (const { source } of chapter.blocks) {
+        if (source === undefined || reached) continue;
+        for (const specifier of packageImports(this.#sourceFile(source.path))) {
+          const found = this.#resolve(source, specifier);
+          if (typeof found !== "string" && found.entry.startsWith(`${realPackagesDir}/`)) reached = true;
+        }
+      }
+    }
+    if (!reached || !existsSync(packagesDir)) return [];
+    const files: string[] = [];
+    for (const name of readdirSync(packagesDir).sort()) {
+      const src = join(packagesDir, name, "src");
+      if (!existsSync(src)) continue;
+      for (const file of readdirSync(src, { recursive: true, encoding: "utf8" }).sort()) {
+        if (file.endsWith(".ts")) files.push(join(src, file));
+      }
+    }
+    return files;
   }
 
   #chapterNames(written: WrittenChapter): ChapterNames | string {
@@ -291,6 +338,11 @@ export class CodeNames {
     return { label: resolved.label, names };
   }
 
+  /** The compiler options an import of `specifier` resolves with: `source` for our own packages alone. */
+  #optionsFor(specifier: string): ts.CompilerOptions {
+    return specifier.startsWith(WORKSPACE_SCOPE) ? withSource(this.#compilerOptions) : this.#compilerOptions;
+  }
+
   /** The `.d.ts` entry a package import resolves to from the listed file, and its label, or why it has none. */
   #resolve(source: ListingSource, specifier: string): { readonly label: string; readonly entry: string } | string {
     const key = `${source.harness}\0${specifier}`;
@@ -298,7 +350,7 @@ export class CodeNames {
     if (found === undefined) {
       const listed = join(this.#repoRoot, source.path);
       const ts = typescript();
-      const resolved = ts.resolveModuleName(specifier, listed, this.#compilerOptions, ts.sys).resolvedModule;
+      const resolved = ts.resolveModuleName(specifier, listed, this.#optionsFor(specifier), ts.sys).resolvedModule;
       if (resolved === undefined || !TYPED.has(resolved.extension)) {
         found =
           `${source.path} imports ${specifier}, whose .d.ts cannot be found from ${source.harness}; ` +
@@ -314,7 +366,10 @@ export class CodeNames {
     return found;
   }
 
-  /** The names a module's entry exports, or undefined when the entry is no module, such as an ambient declaration. */
+  /**
+   * The names a module's entry exports, or undefined when the entry is no module, such as an ambient declaration. The
+   * shared host resolves each import as `#optionsFor()` says, so our source reads our other packages through `source`.
+   */
   #exportsOf(entry: string): ReadonlySet<string> | undefined {
     if (!this.#exports.has(entry)) {
       const program = typescript().createProgram({

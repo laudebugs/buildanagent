@@ -93,6 +93,40 @@ test("a tab heading sits one level below the heading the tabs follow", async () 
   );
 });
 
+test("a tab can hold a listing with notes and a replay, which keeps its notes and its replay in its panel", async () => {
+  const tabbed = mutatedFixture((copy) =>
+    edit(copy, "chapters/second.md", (text) =>
+      text.replace(
+        /^(::listing\[Greeting.*)$/m,
+        [
+          "$1",
+          "",
+          "::::tabs",
+          ':::listing[demo-sdk]{#noted-tab file="verify/demo-sdk/examples/02-notes.ts" region="steps" replay}',
+          "::note[The first step names the reader.]{#name}",
+          "::note[The second greets them.]{#greet}",
+          "::note[The third prints the greeting.]{#print}",
+          ":::",
+          '::listing[other-sdk]{#other-tab file="verify/other-sdk/examples/01-other.ts" region="call"}',
+          "::::",
+        ].join("\n"),
+      ),
+    ),
+  );
+  const page = await renderLikeAstro(loadBook(fixtureInputs(tabbed)), "second");
+  removeFixture(tabbed);
+  const panel = page.slice(
+    page.indexOf('<section class="tabs__panel" id="lst-noted-tab-panel">'),
+    page.indexOf('<section class="tabs__panel" id="lst-other-tab-panel">'),
+  );
+  assert.match(panel, /<h2 class="tabs__heading" id="lst-noted-tab-heading">demo-sdk<\/h2>/);
+  assert.match(panel, /<div class="listing-replay"><figure id="lst-noted-tab"/);
+  assert.match(panel, /aria-labelledby="lst-noted-tab-heading lst-noted-tab-caption"/);
+  assert.equal([...panel.matchAll(/id="lst-noted-tab-note-[a-z]+"/g)].length, 3, "the panel holds the three notes");
+  assert.match(panel, /id="lst-noted-tab-replay"/);
+  assert.match(page, /<section class="tabs__panel" id="lst-other-tab-panel"><h2 class="tabs__heading"/);
+});
+
 test("without JavaScript a replay lists every event and says where each came from", () => {
   const replay = between('<section class="replay panel" id="lst-noted-replay"', "</section>");
   assert.match(replay, /data-steps="cumulative"[^>]* data-listing="lst-noted"/);

@@ -20,10 +20,14 @@ import {
 } from "../transcripts/write.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
-const committed = execFileSync("git", ["ls-files", "--", "verify/*/results/transcripts/*.json"], {
-  cwd: root,
-  encoding: "utf8",
-})
+const committed = execFileSync(
+  "git",
+  ["ls-files", "--", "verify/*/results/transcripts/*.json", "packages/*/results/transcripts/*.json"],
+  {
+    cwd: root,
+    encoding: "utf8",
+  },
+)
   .split("\n")
   .filter(Boolean);
 
@@ -55,7 +59,17 @@ function machinePatterns() {
 }
 
 test("the harnesses commit transcripts", () => {
-  assert.ok(committed.length > 0, "no committed transcript under verify/*/results/transcripts/");
+  assert.ok(
+    committed.length > 0,
+    "no committed transcript under verify/*/results/transcripts/ or packages/*/results/transcripts/",
+  );
+});
+
+test("one of our own packages records itself at `workspace`, so a release's version bump keeps its transcripts", () => {
+  const sdk = join(root, "packages/sdk");
+  assert.equal(pinOf(sdk), "@buildanagent/sdk@workspace");
+  assert.equal(mockOf(sdk), "@buildanagent/sdk@workspace");
+  assert.ok(committed.some((file) => file.startsWith("packages/sdk/results/transcripts/")));
 });
 
 for (const file of committed) {
@@ -64,7 +78,7 @@ for (const file of committed) {
     const transcript = JSON.parse(text);
     assert.deepEqual(transcriptProblems(transcript), []);
     assert.equal(serialise(transcript), text, "the file is not written as serialise() writes it");
-    const [, harness, example] = /^(verify\/[^/]+)\/results\/transcripts\/(.+)\.json$/.exec(file);
+    const [, harness, example] = /^((?:verify|packages)\/[^/]+)\/results\/transcripts\/(.+)\.json$/.exec(file);
     assert.equal(transcript.harness, harness);
     assert.equal(transcript.example, example);
     assert.ok(existsSync(join(root, transcript.file)), `${transcript.file} does not exist`);

@@ -18,5 +18,5 @@
 
 - ADR 0052's listings rule no longer applies; the rest of ADR 0052 stands. ADR 0052 keeps its text, as an accepted record must, and its status line names this record.
 - Each chapter's `switchTo` lists the todos whose code its listings will gain as tabs. `book:switch-report` names a chapter ready for tabs on our own packages once those todos are done.
-- [T50](../todos/ready/T50-chapter-call-workflow-loop-on-our-sdk.md) adds our tabs to Chapter 1 first. Every other chapter gains its tabs in a follow-up todo opened when its `switchTo` todos are done.
+- [T50](../todos/done/T50-chapter-call-workflow-loop-on-our-sdk.md) adds our tabs to Chapter 1 first. Every other chapter gains its tabs in a follow-up todo opened when its `switchTo` todos are done.
 - Readers see the loop in the code the rest of the book builds on, and still see how two other SDKs write it.

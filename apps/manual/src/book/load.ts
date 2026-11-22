@@ -282,7 +282,8 @@ export function renderDependencies(book: Book): string {
 /**
  * The files the inline-code check reads that no listing shows, from the repository root: each written chapter's
  * fact-check log, each listed example's transcript, which a listing without `replay` still offers, and the nearest
- * tsconfig.json above each listed file, whose `lib` and `types` pick the standard library. Only the files
+ * tsconfig.json above each listed file, whose `lib` and `types` pick the standard library. When a listing imports one
+ * of our own packages, whose exports the check reads from source, every source file of our packages counts too. Only the files
  * that exist are named. `astro.config.mjs` hashes them with its other render inputs and watches them under
  * `astro dev`.
  */
@@ -296,6 +297,7 @@ export function checkedCodeFiles(book: Book): string[] {
     const config = nearestTsconfig(join(book.inputs.repoRoot, block.source.path), book.inputs.repoRoot);
     if (config !== undefined) files.add(config);
   }
+  for (const file of book.code.workspaceSources(book.index.written.values())) files.add(file);
   return [...files].filter((file) => existsSync(file)).sort();
 }
 

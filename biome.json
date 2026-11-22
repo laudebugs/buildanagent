@@ -10,6 +10,7 @@
       "**",
       "!**/docs/reference/*/source",
       "!**/verify/*/results",
+      "!**/packages/*/results",
       "!**/verify/*/fixtures",
       "!**/pnpm-lock.yaml",
       "!packages/*/schema",
