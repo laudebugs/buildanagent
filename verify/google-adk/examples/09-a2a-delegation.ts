@@ -9,17 +9,19 @@
 // Three details differ from what the typings and the docs suggest:
 //   - The typings document the basePath default as "a2a", but the code mounts at the root, so the example
 //     sets basePath itself.
-//   - RemoteA2AAgent's agentCard string is the card's base URL. ADK appends /.well-known/agent-card.json, so
-//     a full card URL fails with a 404 on a doubled path.
-//   - ADK's default client sends no credentials, so a server behind a token needs a client factory whose
-//     fetch adds the header.
+//   - RemoteA2AAgent's agentCard string is a base URL that the SDK resolves .well-known/agent-card.json
+//     against like a relative URL. A full card URL fails with a 404 on a doubled path, and a base without a
+//     trailing slash loses its last segment, so a server under basePath "/a2a" needs "http://host/a2a/".
+//   - ADK's default client sends no credentials on either transport, so a server behind a token needs a
+//     client factory whose JSON-RPC and HTTP+JSON transports both use a fetch that adds the header. Such a
+//     factory also drops ADK's trace-propagating fetch.
 //
 // The two behaviours that rested on compiled code both held when run: the remote reply arrives as an ordinary
 // event of the parent's run, and a long-running tool ends the remote turn in the A2A state input-required.
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { AgentCard } from "@a2a-js/sdk";
-import { ClientFactory, ClientFactoryOptions, JsonRpcTransportFactory } from "@a2a-js/sdk/client";
+import { ClientFactory, ClientFactoryOptions, JsonRpcTransportFactory, RestTransportFactory } from "@a2a-js/sdk/client";
 import {
   bearerTokenUserBuilder,
   FunctionTool,
@@ -72,28 +74,37 @@ const billing = new LlmAgent({
 });
 // #endregion
 
-/** A loopback port that was free a moment ago: the card must name its own address before the server listens. */
-const freePort = () =>
-  new Promise<number>((resolve) => {
-    const probe = createServer().listen(0, HOST, () => {
-      const { port } = probe.address() as AddressInfo;
-      probe.close(() => resolve(port));
+/**
+ * Serves the billing agent behind the bearer token on a loopback port. The card must name its own address before
+ * the server listens, so the port comes from a probe that closes first; a port taken in between is retried.
+ */
+async function serve(basePath: string) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const probe = createServer();
+    const port = await new Promise<number>((resolve, reject) => {
+      probe.once("error", reject);
+      probe.listen(0, HOST, () => resolve((probe.address() as AddressInfo).port));
     });
-  });
+    await new Promise((resolve) => probe.close(resolve));
+    // #region serve
+    const app = await toA2a(billing, {
+      host: HOST,
+      port,
+      basePath, // set it: the typings say "a2a" but the code mounts at the root when it is empty // book:note base-path
+      authentication: bearerTokenUserBuilder(TOKEN), // book:note auth
+    });
+    // #endregion
+    const server = await new Promise<Server | undefined>((resolve) => {
+      const listening = app.listen(port, HOST, () => resolve(listening));
+      listening.once("error", () => resolve(undefined));
+    });
+    if (server) return { server, origin: `http://${HOST}:${port}` };
+  }
+  throw new Error("no free loopback port after 5 attempts");
+}
 
-const port = await freePort();
-const origin = `http://${HOST}:${port}`;
-// #region serve
-const app = await toA2a(billing, {
-  host: HOST,
-  port,
-  basePath: "", // set it: the typings say "a2a" but the code mounts at the root // book:note base-path
-  authentication: bearerTokenUserBuilder(TOKEN), // book:note auth
-});
-const server: Server = await new Promise((resolve) => {
-  const listening = app.listen(port, HOST, () => resolve(listening));
-});
-// #endregion
+const { server, origin } = await serve("");
+const prefixed = await serve("/a2a");
 
 try {
   // Check 1: the card.
@@ -105,12 +116,13 @@ try {
     "the card offers JSON-RPC and HTTP+JSON on the loopback origin",
   );
 
-  // The client side: the card is public, but ADK's default client sends no token, so give it one.
+  // The client side: the card is public, but ADK's default client sends no token on either transport, so give
+  // both transports one. (A custom factory also drops ADK's trace-propagating fetch.)
   const authed: typeof fetch = (input, init) =>
     fetch(input, { ...init, headers: { ...init?.headers, authorization: `Bearer ${TOKEN}` } });
   const clientFactory = new ClientFactory(
     ClientFactoryOptions.createFrom(ClientFactoryOptions.default, {
-      transports: [new JsonRpcTransportFactory({ fetchImpl: authed })],
+      transports: [new JsonRpcTransportFactory({ fetchImpl: authed }), new RestTransportFactory({ fetchImpl: authed })],
     }),
   );
   const states: string[] = [];
@@ -118,7 +130,7 @@ try {
   const remoteBilling = new RemoteA2AAgent({
     name: "billing",
     description: "Answers questions about invoices.",
-    agentCard: origin, // the card's base URL: ADK appends /.well-known/agent-card.json itself // book:note card
+    agentCard: origin, // a base URL: the SDK resolves .well-known/agent-card.json against it // book:note card
     clientFactory,
     afterRequestCallbacks: [(_ctx, event) => void states.push(`${event.kind}:${(event as any).status?.state ?? ""}`)],
   });
@@ -165,6 +177,51 @@ try {
     `the A2A task ends in input-required (saw ${states.join(", ")})`,
   );
 
+  // The card string is resolved like a relative URL: a base without a trailing slash loses its last segment.
+  const delegate = (agentCard: string) => {
+    const remote = new RemoteA2AAgent({ name: "billing", description: "Invoices.", agentCard, clientFactory });
+    const root = new LlmAgent({ name: "support", model: parentModel, instruction: "Hand off.", subAgents: [remote] });
+    const run = new InMemoryRunner({ agent: root, appName: "support" });
+    return run.sessionService
+      .createSession({ appName: "support", userId: "u1" })
+      .then((created) => turn(run, created.id, "Is invoice inv-7 paid?"));
+  };
+  const slashless = await delegate(`${prefixed.origin}/a2a`);
+  check(
+    slashless.some((e) => e.errorMessage?.includes("404")),
+    "under basePath /a2a, a card base URL without the trailing slash fails with a 404",
+  );
+  const slashed = await delegate(`${prefixed.origin}/a2a/`);
+  check(
+    slashed.some((e) => e.author === "billing" && texts([e]).includes("Invoice inv-7 is overdue.")),
+    "with the trailing slash it reaches the card and delegates",
+  );
+
+  // The REST transport is authenticated by the same factory, and is unauthenticated without it.
+  const restOnly = (fetchImpl: typeof fetch) =>
+    new ClientFactory({ transports: [new RestTransportFactory({ fetchImpl })] }).createFromAgentCard({
+      ...card,
+      preferredTransport: "HTTP+JSON",
+      url: `${origin}/rest`,
+    });
+  const message = {
+    message: {
+      kind: "message" as const,
+      messageId: "r1",
+      role: "user" as const,
+      parts: [{ kind: "text" as const, text: "hi" }],
+    },
+  };
+  check(
+    (await (await restOnly(authed)).sendMessage(message)) !== undefined,
+    "a client on the HTTP+JSON transport with the token is served",
+  );
+  const rejected = await (await restOnly(fetch)).sendMessage(message).then(
+    () => "served",
+    () => "rejected",
+  );
+  check(rejected === "rejected", "the HTTP+JSON transport without the token is rejected");
+
   // Check 3: a request without the token never reaches the agent.
   const before = billingModel.requests.length;
   const send = (headers: Record<string, string>) =>
@@ -208,7 +265,7 @@ try {
   check(billingModel.requests.length > before, "the same request with the token does reach it");
 
   // Check 4: no authentication, no server.
-  const refusal = await toA2a(billing, { host: HOST, port, basePath: "" }).then(
+  const refusal = await toA2a(billing, { host: HOST, port: 1, basePath: "" }).then(
     () => "mounted",
     (e: Error) => e.message,
   );
@@ -217,5 +274,5 @@ try {
     "toA2a refuses to mount without authentication unless allowUnauthenticated is true",
   );
 } finally {
-  await new Promise((resolve) => server.close(resolve)); // book:note close
+  await Promise.all([server, prefixed.server].map((s) => new Promise((resolve) => s.close(resolve)))); // book:note close
 }

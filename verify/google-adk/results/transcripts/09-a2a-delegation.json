@@ -8,19 +8,19 @@
   "events": [
     {
       "kind": "check",
-      "line": 101,
+      "line": 112,
       "message": "the card says protocol 0.3.0, not 1.0",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 102,
+      "line": 113,
       "message": "the card offers JSON-RPC and HTTP+JSON on the loopback origin",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 137,
+      "line": 149,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -49,7 +49,7 @@
     },
     {
       "kind": "response",
-      "line": 137,
+      "line": 149,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -171,37 +171,37 @@
     },
     {
       "kind": "check",
-      "line": 138,
+      "line": 150,
       "message": "the parent transfers to the remote agent by name, as it would to a local subagent",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 142,
+      "line": 154,
       "message": "the remote agent's reply is an event of the parent's run, authored by it",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 146,
+      "line": 158,
       "message": "the remote agent ran its own tool and model on the other end of the socket",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 151,
+      "line": 163,
       "message": "an ordinary remote turn ends in the A2A state completed",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 152,
+      "line": 164,
       "message": "the parent's model was asked once, to choose the transfer",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 156,
+      "line": 168,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -221,7 +221,7 @@
     },
     {
       "kind": "response",
-      "line": 156,
+      "line": 168,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -332,19 +332,19 @@
     },
     {
       "kind": "check",
-      "line": 157,
+      "line": 169,
       "message": "the remote agent called its long-running tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 159,
+      "line": 171,
       "message": "the parent's run carries the pending call, marked long-running, for the caller to answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 163,
+      "line": 175,
       "message": "the A2A task ends in input-required (saw task:submitted, status-update:working, artifact-update:, artifact-update:, artifact-update:, status-update:input-required)",
       "pass": true
     },
@@ -398,33 +398,38 @@
     },
     {
       "kind": "check",
-      "line": 196,
-      "message": "a request without the token fails as HTTP 500, not 401 (got 500)",
+      "line": 190,
+      "message": "under basePath /a2a, a card base URL without the trailing slash fails with a 404",
       "pass": true
     },
     {
-      "kind": "check",
-      "line": 197,
-      "message": "a wrong token fails the same way",
-      "pass": true
+      "kind": "request",
+      "line": 194,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [],
+      "tools": [
+        "transfer_to_agent"
+      ]
     },
     {
-      "kind": "check",
-      "line": 198,
-      "message": "the server logged the rejections",
-      "pass": true
-    },
-    {
-      "kind": "check",
-      "line": 202,
-      "message": "a RemoteA2AAgent with no clientFactory sends no token, and its delegation ends in the 500",
-      "pass": true
-    },
-    {
-      "kind": "check",
-      "line": 206,
-      "message": "neither refused request reached the agent's model",
-      "pass": true
+      "kind": "response",
+      "line": 194,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-6",
+            "name": "transfer_to_agent",
+            "input": {
+              "agent_name": "billing"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
     },
     {
       "kind": "request",
@@ -436,7 +441,23 @@
           "parts": [
             {
               "type": "text",
-              "text": "hi"
+              "text": "Is invoice inv-7 paid?"
+            },
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[support] called tool transfer_to_agent with parameters: {\"agent_name\":\"billing\"}"
+            },
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[support] transfer_to_agent tool returned result: {\"result\":\"Transfer queued\"}"
             }
           ]
         }
@@ -454,7 +475,7 @@
         "parts": [
           {
             "type": "tool-call",
-            "id": "call-6",
+            "id": "call-7",
             "name": "lookup_invoice",
             "input": {
               "invoiceId": "inv-7"
@@ -474,7 +495,7 @@
           "parts": [
             {
               "type": "tool-result",
-              "id": "call-6",
+              "id": "call-7",
               "name": "lookup_invoice",
               "output": {
                 "invoiceId": "inv-7",
@@ -506,13 +527,236 @@
     },
     {
       "kind": "check",
-      "line": 208,
+      "line": 195,
+      "message": "with the trailing slash it reaches the card and delegates",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hi"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-8",
+            "name": "lookup_invoice",
+            "input": {
+              "invoiceId": "inv-7"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-8",
+              "name": "lookup_invoice",
+              "output": {
+                "invoiceId": "inv-7",
+                "amount": 120,
+                "status": "overdue"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Invoice inv-7 is overdue."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 215,
+      "message": "a client on the HTTP+JSON transport with the token is served",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 223,
+      "message": "the HTTP+JSON transport without the token is rejected",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 246,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [],
+      "tools": [
+        "transfer_to_agent"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 246,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-9",
+            "name": "transfer_to_agent",
+            "input": {
+              "agent_name": "billing"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "check",
+      "line": 253,
+      "message": "a request without the token fails as HTTP 500, not 401 (got 500)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 254,
+      "message": "a wrong token fails the same way",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 255,
+      "message": "the server logged the rejections",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 259,
+      "message": "a RemoteA2AAgent with no clientFactory sends no token, and its delegation ends in the 500",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 263,
+      "message": "neither refused request reached the agent's model",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-10",
+            "name": "lookup_invoice",
+            "input": {
+              "invoiceId": "inv-7"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-10",
+              "name": "lookup_invoice",
+              "output": {
+                "invoiceId": "inv-7",
+                "amount": 120,
+                "status": "overdue"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Invoice inv-7 is overdue."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 265,
       "message": "the same request with the token does reach it",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 215,
+      "line": 272,
       "message": "toA2a refuses to mount without authentication unless allowUnauthenticated is true",
       "pass": true
     }
