@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N13` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N12](../done/N12-permission-pipeline.md), [N7](../done/N7-rebuild-resume-replay.md) |
