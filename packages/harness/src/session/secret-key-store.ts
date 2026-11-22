@@ -2,7 +2,7 @@
  * `secretKeyStore()`: a read-only `KeyStore` over a secret the host can read but not write, such as a Worker secret, a
  * Secrets Manager value or a secret environment variable. The platform's own tooling rotates the secret, so the store
  * has `load()` only (ADR 0035). `rotateKeys()` and `pruneKeys()` call a store's optional methods and, for a read-only
- * store, reject with an error that names the tooling to use instead. Nothing here needs Node, so it runs on every target.
+ * store, reject with an error that names the tooling to use instead. This file imports no Node module.
  */
 import { hmacSigner, type KeyRing, type KeyStore, parseKeyRing } from "@buildanagent/agent-safety";
 import { HarnessError } from "../errors.js";
@@ -87,9 +87,9 @@ export async function rotateKeys(store: KeyStore, options?: KeyChangeOptions): P
 }
 
 /**
- * Calls `store.prune(inUse)` and returns the ids it removed. The store removes the keys not in `inUse` and keeps its
- * current key; this helper adds no check of its own, and `keyStoreConformanceCases()` tests a store for both. Pass
- * every key id that an unresolved pause names, or that pause fails closed. Rejects with a `HarnessError`, code
+ * Calls `store.prune(inUse)` and returns the ids it removed. Pass every key id that an unresolved pause names, or that
+ * pause fails closed. The store removes the keys not in `inUse` and keeps its current key; this helper adds no check of
+ * its own, and `keyStoreConformanceCases()` tests a store for both. Rejects with a `HarnessError`, code
  * `key_store_read_only`, when the store has no `prune()`, with a message that names the platform tool to remove keys
  * with instead. An error the store's `prune()` throws, even synchronously, becomes a rejection too.
  */
