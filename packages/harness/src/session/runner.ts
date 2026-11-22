@@ -350,6 +350,17 @@ class EventRecorder {
   }
 }
 
+/** What the layers that write inside a run are given: the turn's writer, and a way to wait for the run's entries. */
+function attachment(writer: EntryWriter, recorder: EventRecorder) {
+  return {
+    append: (origin: Origin, body: Body) => writer.write(origin, body),
+    settle: async () => {
+      recorder.flush();
+      await writer.settled();
+    },
+  };
+}
+
 /** The turn's context layers, when the harness has a policy. */
 function contextFor<H>(
   harness: Harness<H>,
@@ -524,9 +535,19 @@ function turnPlumbing(session: Session, options: { signal?: AbortSignal; clock?:
  * Runs one turn on a session and writes it to the log. The session must be open with a lock. The first turn of a new
  * session writes its header and `env_stamp`; a turn whose model or tools differ from the last recorded ones writes a
  * `loadout` first; the input blocks follow, and the run's events after them. The returned result is the SDK's, with the
- * session id and the id of the last entry the turn wrote.
+ * session id and the id of the last entry the turn wrote. When the harness has a context policy and the run ends because
+ * the provider said the request was too large, the policy compacts once and the turn goes on from the rebuilt context;
+ * a second overflow ends the turn with that error.
  */
 export async function runTurn<H = unknown>(
+  session: Session,
+  harness: Harness<H>,
+  options: TurnOptions<H>,
+): Promise<TurnResult> {
+  return retryAfterOverflow(session, harness, options, await runTurnOnce(session, harness, options));
+}
+
+async function runTurnOnce<H = unknown>(
   session: Session,
   harness: Harness<H>,
   options: TurnOptions<H>,
@@ -564,6 +585,7 @@ export async function runTurn<H = unknown>(
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId, "run", turnContext?.spillOf);
+  turnContext?.attach(attachment(writer, recorder));
   const observer: Observer = (event) => recorder.handle(event);
   const handle = run({
     model,
@@ -700,6 +722,7 @@ export async function resumeTurn<H = unknown>(
     "continue",
     turnContext?.spillOf,
   );
+  turnContext?.attach(attachment(writer, recorder));
   const handle = continueRun(context, {
     model,
     tools,
@@ -709,6 +732,56 @@ export async function resumeTurn<H = unknown>(
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
     observers: [(event: AgentEvent) => recorder.handle(event), ...afterWrites(harness.observers, writer)],
+    ...optionalRunOptions(options, harness, []),
+  });
+  options.onRun?.(handle);
+  return settleTurn(handle, writer, session);
+}
+
+/**
+ * Layer 5: after a run that ended because the request was too large, asks the context policy to compact once and
+ * goes on from the rebuilt context with `continueRun()`, which asks the model again because the gateway leaves the
+ * failed response out of the request. Only one retry is made, so a second overflow is the turn's result.
+ */
+async function retryAfterOverflow<H>(
+  session: Session,
+  harness: Harness<H>,
+  options: TurnOptions<H>,
+  first: TurnResult,
+): Promise<TurnResult> {
+  if (first.stopReason !== "error" || first.error.kind !== "overflow" || options.history !== undefined) return first;
+  const model = options.model ?? harness.model;
+  const turnContext = contextFor(harness, session, model, options);
+  if (turnContext === undefined) return first;
+  const { signal, newId, writer } = turnPlumbing(session, options);
+  const compacted = await turnContext.onOverflow({
+    path: await session.path(),
+    signal,
+    append: (origin, body) => writer.write(origin, body),
+  });
+  await writer.settled();
+  if (!compacted) return first;
+  const context = contextOf(await session.path());
+  const recorder = new EventRecorder(
+    writer,
+    harness as Harness<unknown>,
+    context.system,
+    newId,
+    "continue",
+    turnContext.spillOf,
+  );
+  turnContext.attach(attachment(writer, recorder));
+  const handle = continueRun(context, {
+    model,
+    tools: toolsOf(harness, options),
+    resolutions: [],
+    signal,
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
+    observers: [
+      (event: AgentEvent) => recorder.handle(event),
+      ...afterWrites(harness.observers, writer),
+      ...afterWrites(options.observers, writer),
+    ],
     ...optionalRunOptions(options, harness, []),
   });
   options.onRun?.(handle);
