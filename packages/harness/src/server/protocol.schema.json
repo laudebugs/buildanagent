@@ -1282,7 +1282,7 @@
           "$ref": "#/$defs/shape-edc9ba2d47"
         },
         {
-          "$ref": "#/$defs/shape-c9a3564bb4"
+          "$ref": "#/$defs/shape-bd3038f936"
         },
         {
           "$ref": "#/$defs/shape-16c3a65781"
@@ -2151,7 +2151,7 @@
       "required": ["id", "parentId", "seq", "timestamp", "origin", "type", "name", "path"],
       "additionalProperties": false
     },
-    "shape-c9a3564bb4": {
+    "shape-bd3038f936": {
       "type": "object",
       "properties": {
         "id": {
@@ -2182,6 +2182,27 @@
         },
         "contentHash": {
           "type": "string"
+        },
+        "mcp": {
+          "type": "object",
+          "properties": {
+            "transport": {
+              "type": "string",
+              "enum": ["stdio", "in_process"]
+            },
+            "commandHash": {
+              "type": "string"
+            },
+            "era": {
+              "type": "string",
+              "enum": ["2026-07-28", "legacy"]
+            },
+            "toolsHash": {
+              "type": "string"
+            }
+          },
+          "required": ["transport", "era", "toolsHash"],
+          "additionalProperties": false
         }
       },
       "required": ["id", "parentId", "seq", "timestamp", "origin", "type", "name", "tier", "contentHash"],
