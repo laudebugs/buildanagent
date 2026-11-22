@@ -1,6 +1,6 @@
 // Content-hash pins: a changed, added or unlisted extension is refused.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
@@ -97,5 +97,67 @@ describe("the lock file", () => {
       readLock(file),
       (error: unknown) => isHarnessError(error) && error.code === "invalid_extension",
     );
+  });
+
+  test("a refused project runs none of its extensions: every folder is checked before any is imported", async () => {
+    const root = project();
+    const marker = `__ran_${Math.random().toString(36).slice(2)}`;
+    const second = join(root, ".agents", "extensions", "zeta");
+    mkdirSync(second);
+    writeFileSync(join(second, "index.mjs"), 'export default { name: "zeta", version: "1.0.0" };\n');
+    // `audit` sorts first and would set the marker when imported.
+    writeFileSync(
+      join(folderOf(root), "index.mjs"),
+      `globalThis.${marker} = true;\nexport default { name: "audit", version: "1.0.0" };\n`,
+    );
+    await pinProjectExtensions(root);
+    writeFileSync(join(second, "index.mjs"), 'export default { name: "zeta", version: "evil" };\n');
+    await assert.rejects(load(root), mismatch);
+    assert.equal((globalThis as Record<string, unknown>)[marker], undefined);
+  });
+
+  test("a pinned extension whose folder is gone is refused", async () => {
+    const root = project();
+    await pinProjectExtensions(root);
+    rmSync(folderOf(root), { recursive: true });
+    await assert.rejects(load(root), mismatch);
+  });
+
+  test("an extension folder with a symlink in it cannot be hashed", async () => {
+    const root = project();
+    symlinkSync("/etc/hostname", join(folderOf(root), "lib", "link.mjs"));
+    await assert.rejects(
+      hashExtensionDir(folderOf(root)),
+      (error: unknown) => isHarnessError(error) && error.code === "invalid_extension",
+    );
+  });
+
+  test("a folder that changed after this process loaded it is refused, because Node would run the cached code", async () => {
+    const root = project();
+    await pinProjectExtensions(root);
+    assert.equal((await load(root)).extensions[0]?.version, "1.0.0");
+    assert.equal((await load(root)).extensions[0]?.version, "1.0.0");
+    writeFileSync(join(folderOf(root), "lib", "v.mjs"), 'export const v = "2.0.0";\n');
+    await pinProjectExtensions(root);
+    await assert.rejects(load(root), mismatch);
+  });
+
+  test("a lock file that is not an object, or not JSON, is refused as invalid_extension", async () => {
+    const root = project();
+    const file = join(root, ".agents", "extensions.lock.json");
+    for (const text of ["null", "{ not json", "[1]"]) {
+      writeFileSync(file, text);
+      await assert.rejects(
+        readLock(file),
+        (error: unknown) => isHarnessError(error) && error.code === "invalid_extension",
+      );
+    }
+  });
+
+  test("pinning creates the lock file's folder", async () => {
+    const root = project();
+    const lockFile = join(root, "locks", "deep", "extensions.lock.json");
+    await pinProjectExtensions(root, { lockFile });
+    assert.ok(existsSync(lockFile));
   });
 });

@@ -1,8 +1,9 @@
 // Project trust gates loading: untrusted and headless runs skip with a notice, a trusted one loads.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { isHarnessError } from "@buildanagent/harness";
 import { memoryTrustStore } from "@buildanagent/harness/extensions";
 import { fileTrustStore, loadProjectExtensions } from "@buildanagent/harness/extensions/node";
 import { afterAll, describe, test } from "vitest";
@@ -96,5 +97,27 @@ describe("fileTrustStore", () => {
     assert.equal(await store.isTrusted("/work/other"), false);
     assert.deepEqual(JSON.parse(readFileSync(file, "utf8")), { trusted: ["/work/app"] });
     assert.equal(statSync(file).mode & 0o077, 0);
+  });
+
+  test("a symlinked root and its target are one project", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "harness-trust-"));
+    dirs.push(dir);
+    const real = join(dir, "real");
+    mkdirSync(real);
+    symlinkSync(real, join(dir, "link"));
+    const store = fileTrustStore(join(dir, "trust.json"));
+    await store.trust(real);
+    assert.equal(await store.isTrusted(join(dir, "link")), true);
+  });
+
+  test("a trust file that is not valid JSON is refused as invalid_extension", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "harness-trust-"));
+    dirs.push(dir);
+    const file = join(dir, "trust.json");
+    writeFileSync(file, "{ nope");
+    await assert.rejects(
+      fileTrustStore(file).isTrusted("/work"),
+      (error: unknown) => isHarnessError(error) && error.code === "invalid_extension",
+    );
   });
 });

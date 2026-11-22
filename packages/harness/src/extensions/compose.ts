@@ -29,7 +29,10 @@ export function composeExtensions(extensions: readonly Extension[]): {
 } {
   checkNames(extensions);
   return {
-    interceptors: composeInterceptors(...extensions.map((extension) => extension.interceptors ?? {})),
+    // Only the extensions that have interceptors join: an empty set counts as fail-closed and would undo the others' `continue`.
+    interceptors: composeInterceptors(
+      ...extensions.flatMap((extension) => (extension.interceptors === undefined ? [] : [extension.interceptors])),
+    ),
     observers: extensions.flatMap((extension) => extension.observers ?? []),
   };
 }
@@ -59,7 +62,7 @@ export async function recordsOf(extensions: readonly Extension[]): Promise<Exten
   );
 }
 
-/** A trust store in memory, for tests and for a host that decides trust itself. */
+/** A trust store in memory, for tests and for a host that decides trust itself. It compares paths as given: the loader passes the real path of the project. */
 export function memoryTrustStore(trusted: readonly string[] = []): TrustStore {
   const roots = new Set(trusted);
   return {

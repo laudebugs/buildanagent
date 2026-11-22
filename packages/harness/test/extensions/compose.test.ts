@@ -85,6 +85,14 @@ describe("composeExtensions", () => {
     assert.deepEqual(seen, ["a", "b"]);
   });
 
+  test("a tools-only extension does not turn another's lenient onFailure back into fail-closed", () => {
+    const { interceptors } = composeExtensions([
+      extension("lenient", { interceptors: { ...gate("allow"), onFailure: "continue" } }),
+      extension("tools-only", { tools: [] }),
+    ]);
+    assert.equal(interceptors.onFailure, "continue");
+  });
+
   test("an extension with no name, or a name another one has, is refused", () => {
     for (const bad of [[extension("")], [extension("same"), extension("same")]]) {
       assert.throws(

@@ -4,8 +4,8 @@
  * file, `extensions.lock.json`, holds one hash per extension folder. Node-only: it reads and writes files.
  */
 import { createHash } from "node:crypto";
-import { readdir, readFile, rename, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { HarnessError } from "../errors.js";
 
 const LOCK_VERSION = 1;
@@ -18,6 +18,12 @@ async function filesUnder(dir: string, prefix = ""): Promise<string[]> {
     const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     if (entry.isDirectory()) found.push(...(await filesUnder(dir, relative)));
     else if (entry.isFile()) found.push(relative);
+    // A link or a device file is not hashed but would still be followed by an import, so it cannot be pinned.
+    else
+      throw new HarnessError(
+        "invalid_extension",
+        `${join(dir, relative)} is a link or a special file, which an extension may not contain`,
+      );
   }
   return found;
 }
@@ -34,6 +40,20 @@ export async function hashExtensionDir(dir: string): Promise<string> {
   return `sha256:${total.digest("hex")}`;
 }
 
+/** Parses JSON that must be an object, or throws `invalid_extension` naming the file. */
+export function parseObject(text: string, file: string): Record<string, unknown> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new HarnessError("invalid_extension", `${file} is not valid JSON`);
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new HarnessError("invalid_extension", `${file} is not a JSON object`);
+  }
+  return parsed as Record<string, unknown>;
+}
+
 /** The pins in a lock file, by extension folder name, or `undefined` when there is no lock file. */
 export async function readLock(file: string): Promise<ReadonlyMap<string, string> | undefined> {
   let text: string;
@@ -43,7 +63,7 @@ export async function readLock(file: string): Promise<ReadonlyMap<string, string
     if ((error as { code?: string }).code === "ENOENT") return undefined;
     throw error;
   }
-  const parsed = JSON.parse(text) as { version?: unknown; extensions?: Record<string, unknown> };
+  const parsed = parseObject(text, file) as { version?: unknown; extensions?: Record<string, unknown> };
   if (parsed.version !== LOCK_VERSION || typeof parsed.extensions !== "object" || parsed.extensions === null) {
     throw new HarnessError("invalid_extension", `the lock file ${file} is not an extensions.lock.json of version 1`);
   }
@@ -62,7 +82,13 @@ export async function writeLock(file: string, pins: ReadonlyMap<string, string>)
     version: LOCK_VERSION,
     extensions: Object.fromEntries([...pins].sort(([a], [b]) => (a < b ? -1 : 1))),
   };
+  await mkdir(dirname(file), { recursive: true });
   const temp = `${file}.${globalThis.crypto.randomUUID()}.tmp`;
-  await writeFile(temp, `${JSON.stringify(body, null, 2)}\n`);
-  await rename(temp, file);
+  try {
+    await writeFile(temp, `${JSON.stringify(body, null, 2)}\n`);
+    await rename(temp, file);
+  } catch (error) {
+    await rm(temp, { force: true });
+    throw error;
+  }
 }
