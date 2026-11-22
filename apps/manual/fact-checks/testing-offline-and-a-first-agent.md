@@ -66,3 +66,12 @@ The paper is [Zhu et al., Establishing Best Practices for Building Rigorous Agen
 | 36 | Five of the eight capstones set no step cap in the file: OpenAI, ADK, Cloudflare, Copilot and Pi | § A complete agent (table) | ✅ | A search of the eight files for `maxTurns`, `recursionLimit`, `stopWhen`, `maxSteps` and `maxBudget` finds them only in the AI SDK, LangChain and Claude capstones |
 | 37 | A pause needs somewhere to keep the paused run, which the previous chapter covered, and a denial needs none | § A complete agent | ✅ | the [approvals chapter](../src/content/chapters/approvals-guardrails-and-injection.md), § An approval is a pause that your code saves; a denial returns a result at once, with nothing left pending (Claude and Pi capstones, row 34) |
 | 38 | A scripted model never loops, and a real one can | § A complete agent | ⚠️ | Our reading: a scripted mock plays a fixed number of turns (row 14, where an extra call fails), so it cannot loop; that a real model can loop is the reason caps exist (see the [stopping chapter](../src/content/chapters/stopping-and-structured-output.md)) but no source here measures how often |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 35 |
+| ✏️ corrected | 0 |
+| ⚠️ unverified, an illustration or our reading, marked as ours in the text | 3 (rows 2, 25 and 38) |
+| Total | 38 |
