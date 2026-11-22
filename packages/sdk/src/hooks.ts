@@ -113,6 +113,23 @@ export interface ModelCallPatch {
   readonly model?: Model;
   /** Replaces the options of this call. */
   readonly options?: CallOptions;
+  /** Never set on a patch: a stop is returned alone, as a `ModelCallStop`. */
+  readonly stop?: never;
+}
+
+/**
+ * What `beforeModelCall` returns to end the run before a call: nothing is sent to the model, and the run ends
+ * `stopped` with `stop` as `stoppedBy`. It works for the first call too, so a hook can refuse a conversation it does
+ * not trust, such as a user message that matches a pattern you screen for, before any model sees it. A hook decides
+ * what it checks and how well, so a screen for prompt injection is one defence and not a complete one. A stop on a
+ * turn retry ends the run `stopped` after the `retry` event, and the failed response stays out of the transcript.
+ * Return it alone: with another field it throws an `SdkError` with code `invalid_hook_result`, as does text that is
+ * blank or reads `hook` or `no_progress`, which `shouldStop` already uses. `composeInterceptors()` ends the run on the
+ * first hook that returns one and does not call the hooks after it.
+ */
+export interface ModelCallStop {
+  /** The text the run's `stoppedBy` carries. */
+  readonly stop: string;
 }
 
 /**
@@ -159,8 +176,8 @@ export interface Interceptors {
    * the full history. Each call emits a `context_transformed` event with the message counts.
    */
   readonly transformContext?: (e: ContextEvent) => MaybePromise<readonly Message[]>;
-  /** Changes the request about to be sent. Return nothing to leave it as it is. */
-  readonly beforeModelCall?: (e: ModelCallEvent) => MaybePromise<OrNothing<ModelCallPatch>>;
+  /** Changes the request about to be sent, or ends the run before it with `{ stop }`. Return nothing to leave it as it is. */
+  readonly beforeModelCall?: (e: ModelCallEvent) => MaybePromise<OrNothing<ModelCallPatch | ModelCallStop>>;
   /**
    * Replaces the model's response. The transcript and the `model_call_end` event hold the replacement, and its tool
    * calls are the ones that run. The call's usage and cost stay those of the model's own response. If it throws

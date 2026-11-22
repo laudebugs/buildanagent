@@ -29,7 +29,7 @@ import {
   checkStopDecision,
   type StopVerdict,
 } from "./hook-checks.js";
-import type { CallOptions, GateDecision, HookEventBase, Interceptors, ModelCallPatch } from "./hooks.js";
+import type { CallOptions, GateDecision, HookEventBase, Interceptors, ModelCallPatch, ModelCallStop } from "./hooks.js";
 import { type ApprovalHandler, blockingHandlerOf, signPause } from "./pauses.js";
 import type { Clock } from "./testing/determinism.js";
 import { preparedSchemaOf } from "./tools/define.js";
@@ -248,7 +248,10 @@ export class HookRunner {
   }
 
   /** What `beforeModelCall` changed, if anything. */
-  async beforeModelCall(input: { context: ModelContext; options: CallOptions }): Promise<ModelCallPatch | undefined> {
+  async beforeModelCall(input: {
+    context: ModelContext;
+    options: CallOptions;
+  }): Promise<ModelCallPatch | ModelCallStop | undefined> {
     const hook = this.#hooks.beforeModelCall;
     if (hook === undefined) return undefined;
     const event = this.#event(input);
