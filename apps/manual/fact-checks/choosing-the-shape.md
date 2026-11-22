@@ -128,12 +128,13 @@ The claims log for [`choosing-the-shape.md`](../src/content/chapters/choosing-th
 | 92 | After the first code review: in a handoff, the `handoffs` list fixes which agents the model can reach, and its prompt and the specialists' descriptions decide which one it picks | § Closing paragraph | ✅ | Re-check of row 66: the Handoffs page and the Agents guide, `handoffs` and `handoffDescription`; wording only, and `isEnabled` can hide one, which the text does not need to say |
 | 93 | After the first code review: the first table row reads "Buy the Claude Agent SDK, if Claude-only models are acceptable", and the harness study's benchmark is named as SWE-bench Verified | § Who owns the loop | ✅ | Re-check of rows 15 and 20: the main report's condition, and row 20's §3 Tasks quote |
 | 94 | After the first code review: the intro names three exercises, and the main report says the harness study covers seven models | § Who owns the loop | ✅ | Re-check of row 22: the paper's v2 lists seven models; the report line `docs/research/agent-sdks-and-harness-design.md` is corrected in place |
+| 95 | After the medium review: the 13% is a median across the study's model and harness setups, not a count of tasks | § Who owns the loop | ✅ | Re-check of rows 20 and 21: wording only; the paper reports the figure as a median, so 13% of 45 need not be a whole number |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 77 |
+| ✅ confirmed | 78 |
 | ✏️ corrected | 1 (rows 22) |
 | ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 16 |
-| Total | 94 |
+| Total | 95 |
