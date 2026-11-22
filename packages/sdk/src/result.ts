@@ -124,9 +124,9 @@ export interface ErrorResult extends ResultBase {
 
 /**
  * A run that stopped before it finished, because a `shouldStop` hook ended it after a step or a `beforeModelCall` hook
- * ended it before a call with `{ stop }`. `stoppedBy` is the text the hook gave, or `"hook"` when `shouldStop` returned
- * `true`. It does not say which hook stopped the run, so give each hook a reason of its own; `steps` and the events
- * show whether a model call came first.
+ * ended it before a call with `{ stop }`. `stoppedBy` is the reason the hook gave, or `"hook"` when `shouldStop`
+ * returned `true`. It does not say which hook stopped the run, so give each hook its own reason. To tell a stop before
+ * a call from one after a step, compare the last `model_call_start` event with its `model_call_end`.
  */
 export interface StoppedResult extends ResultBase {
   readonly stopReason: "stopped";
