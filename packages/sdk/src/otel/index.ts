@@ -1,6 +1,8 @@
 /**
  * `@buildanagent/sdk/otel`: the OpenTelemetry observer. `otelObserver()` projects a run's events onto `gen_ai.*`
  * spans, with content off unless the caller turns it on, and exports only to the tracer the caller passes.
+ *
+ * @module @buildanagent/sdk/otel
  */
 export {
   GEN_AI_ATTRIBUTES,

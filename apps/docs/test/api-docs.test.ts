@@ -35,8 +35,8 @@ describe("the undocumented-export check", { timeout: 120_000 }, () => {
 
 /** The same rules the packages are held to, for a fixture that has no `exports` map. */
 function fixtureRules() {
-  const { validation, requiredToBeDocumented, treatWarningsAsErrors } = typeDocOptions(API_PACKAGES[0] as never);
-  return { validation, requiredToBeDocumented, treatWarningsAsErrors };
+  const { validation, requiredToBeDocumented } = typeDocOptions(API_PACKAGES[0] as never);
+  return { validation, requiredToBeDocumented };
 }
 
 describe("the built reference", { timeout: 180_000 }, () => {
@@ -81,9 +81,19 @@ describe("the built reference", { timeout: 180_000 }, () => {
       const exports = await listExports(typeDocOptions(pkg));
       assert.ok(exports.length > 20, "the package has exports");
       const missing = exports.filter((entry) => {
+        // A module is named for its import path, and Astro drops the leading @ from a page's address.
         const folder = FOLDER[entry.kind];
         if (folder === undefined) return true;
-        return !existsSync(join(out, pkg.output, entry.module, folder, entry.name.toLowerCase(), "index.html"));
+        return !existsSync(
+          join(
+            out,
+            pkg.output,
+            entry.module.replace(/^@/, "").toLowerCase(),
+            folder,
+            entry.name.toLowerCase(),
+            "index.html",
+          ),
+        );
       });
       assert.deepEqual(
         missing.map((entry) => `${entry.module}/${entry.name} (${entry.kind})`),

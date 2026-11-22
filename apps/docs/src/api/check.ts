@@ -3,7 +3,7 @@
  * (function, class, interface, type alias, variable or enum) without TSDoc, an unresolved `{@link}`, or an error from
  * the TypeScript compiler. TypeDoc 0.28 reads TypeScript up to 6.0, so the docs app pins that release for TypeDoc.
  */
-import { Application, LogLevel, ReflectionKind, type TypeDocOptions } from "typedoc";
+import { Application, Logger, LogLevel, ReflectionKind, type TypeDocOptions } from "typedoc";
 
 /** What the check found: every message TypeDoc logged at warning level or above. */
 export interface ApiCheckResult {
@@ -14,8 +14,10 @@ export interface ApiCheckResult {
 export async function checkApiDocs(options: Partial<TypeDocOptions>): Promise<ApiCheckResult> {
   const problems: string[] = [];
   const app = await Application.bootstrap({ ...options, emit: "none", logLevel: "Warn" });
-  // The logger passes each message to `log` before it counts it, so a custom logger collects them without printing.
+  // The base logger's `log` counts each message, which TypeDoc's own checks read, so the override calls it and does not
+  // print: it only collects the warnings and errors.
   app.logger.log = (message, level) => {
+    Logger.prototype.log.call(app.logger, message, level);
     if (level === LogLevel.Warn || level === LogLevel.Error) problems.push(message);
   };
   const project = await app.convert();

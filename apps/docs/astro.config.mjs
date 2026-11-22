@@ -39,8 +39,9 @@ const api = API_PACKAGES.map((pkg) => {
       tsconfig: tsconfigOf(pkg),
       output: pkg.output,
       sidebar: { label: pkg.label, collapsed: true },
-      // The root entry's exports are the package's main page, so the module list leads with them.
-      typeDoc: { ...typeDoc, entryModule: "index", entryFileName: "index" },
+      // The package's root entry is its main page, so the module list leads with its exports. Each module is named for
+      // its import path by an `@module` tag in the entry file.
+      typeDoc: { ...typeDoc, entryModule: pkg.name, entryFileName: "index" },
     }),
     sidebarGroup,
   };

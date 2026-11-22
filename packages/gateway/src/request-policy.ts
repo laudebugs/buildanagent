@@ -16,7 +16,7 @@ export function setModelRequestsAllowed(allowed: boolean): void {
   modelRequestsAllowed = allowed;
 }
 
-/** Whether real model requests are on for this process. They are on until `setModelRequestsAllowed(false)` turns them off. */
+/** Whether real model requests are on for this process. They are on until `allowModelRequests(false)`, from `@buildanagent/gateway/testing`, turns them off. */
 export function modelRequestsAreAllowed(): boolean {
   return modelRequestsAllowed;
 }

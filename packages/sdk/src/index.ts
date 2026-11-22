@@ -7,6 +7,8 @@
  * tool that asks the user a question, ends the run with a signed pending request, which `continueRun()` resumes with
  * resolutions, in this process or another; `blockingApprovals()` answers approvals inside the run instead. The
  * signers, the input hash, the pending record and its check are the safety package's, re-exported unchanged.
+ *
+ * @module @buildanagent/sdk
  */
 // Re-exported so a caller that calls `Model.complete()` outside the loop projects a cost with the loop's own formula.
 export { projectCallCost } from "@buildanagent/gateway";

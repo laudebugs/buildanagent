@@ -233,7 +233,7 @@ export class ScriptedModel implements ModelAdapter {
     }
   }
 
-  /** Plays the next scripted answer as a stream of events, or throws for a call past the script. */
+  /** Plays the next scripted answer as a stream of events. A call past the script returns a stream that throws when it is read. */
   stream(model: ModelRef, context: ModelContext, options: StreamOptions): AsyncIterable<ModelEvent> {
     const callNumber = this.#used + 1;
     const step = this.#steps[this.#used];

@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest run",
     "check:api-docs": "tsx scripts/check-api-docs.ts"
   },
