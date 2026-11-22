@@ -12,7 +12,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tokens": "tsx scripts/generate-tokens.ts",
+    "figures:build": "tsx figures/build.ts"
   },
   "dependencies": {
     "astro": "7.4.11"

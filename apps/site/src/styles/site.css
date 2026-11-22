@@ -1,0 +1,432 @@
+/* The site's styles. Every colour, font and size is a custom property from tokens.css, which is generated from
+   docs/design/book-tokens.json, so light and dark follow the tokens. No colour is written out here. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--size-text);
+  line-height: var(--line-height-body);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+a {
+  color: var(--color-link);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* One column, 16 px from each edge on a phone and 24 px from 760 px up. */
+.wrap {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+}
+
+@media (min-width: 760px) {
+  .wrap {
+    padding-inline: 24px;
+  }
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* ---- Header ---- */
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 18px;
+  padding-block: 8px;
+}
+
+.site-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  margin-right: auto;
+  color: var(--color-text);
+  font: 400 22px / 1 var(--font-display);
+  text-decoration: none;
+}
+
+.site-header .mark {
+  width: 28px;
+  height: 28px;
+  flex: none;
+}
+
+.site-header .mark path,
+.site-header .mark rect {
+  vector-effect: non-scaling-stroke;
+}
+
+.wordmark i {
+  color: var(--color-accent);
+  font-style: normal;
+}
+
+.site-header nav {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.site-header nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 9px;
+  color: var(--color-text);
+  font: 13px / 1 var(--font-code);
+  text-decoration: none;
+}
+
+.site-header nav a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+/* ---- Footer ---- */
+
+.site-footer {
+  margin-top: 48px;
+  padding-block: 18px 32px;
+  border-top: 1px solid var(--color-rule);
+  color: var(--color-text-muted);
+  font: 12px / 1.6 var(--font-code);
+}
+
+.site-footer p {
+  margin: 0 0 6px;
+}
+
+.site-footer p > span + span {
+  margin-left: 16px;
+}
+
+.site-footer a {
+  color: inherit;
+}
+
+/* ---- Package pages (Markdown) ---- */
+
+body.page main {
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+body.page .back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  font: 13px / 1 var(--font-code);
+}
+
+body.page h1 {
+  margin: 8px 0 16px;
+  font: 400 clamp(2.25rem, 5.8vw, 3.5rem) / 1.05 var(--font-display);
+}
+
+body.page h2 {
+  margin: 32px 0 8px;
+  font: 400 1.75rem / 1.15 var(--font-display);
+}
+
+body.page pre {
+  overflow-x: auto;
+  padding: 12px 16px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-background);
+  color: var(--panel-text);
+  font: var(--size-listing) / 1.6 var(--font-code);
+}
+
+body.page code {
+  font-family: var(--font-code);
+  font-size: 0.92em;
+}
+
+body.page pre code {
+  font-size: inherit;
+}
+
+/* ---- Landing page ---- */
+
+/* The mock's names for the tokens, set once so the figure's custom properties (--cell, --bg, --a) resolve. */
+body.landing {
+  --bg: var(--color-background);
+  --a: var(--color-accent);
+  --line: var(--color-text);
+  --cell: var(--panel-background);
+  --hair: var(--color-rule);
+  --soft: var(--color-text-muted);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--a);
+  font: 12px / 1 var(--font-code);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero {
+  padding: 40px 0 16px;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 14px 0;
+  font: 400 clamp(2.25rem, 5.8vw, 4rem) / 1 var(--font-display);
+}
+
+.hero h1 em {
+  color: var(--a);
+}
+
+.hero .lead {
+  max-width: 46ch;
+  margin: 0 auto 22px;
+  color: var(--soft);
+  font-size: var(--size-text);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid currentColor;
+  color: var(--color-text);
+  font: 600 13px / 1 var(--font-code);
+  text-decoration: none;
+}
+
+.btn.primary {
+  border-color: var(--a);
+  background: var(--a);
+  color: var(--bg);
+}
+
+.btn:hover {
+  text-decoration: underline;
+}
+
+.install {
+  max-width: 100%;
+  margin: 22px auto 0;
+}
+
+.install p {
+  margin: 0 0 6px;
+  color: var(--soft);
+  font: 12px / 1.4 var(--font-code);
+}
+
+.install pre {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--hair);
+  background: var(--cell);
+  font: 13px / 1.6 var(--font-code);
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 760px) {
+  .install pre {
+    display: inline-block;
+  }
+}
+
+/* The figure: both drawings are inline and named for screen readers, and the stylesheet shows one. The wide drawing's
+   labels are 13 px in 900 units, and the figure box has the viewport less 48 px of page padding, 2 px of border and 36
+   px of padding, so at 940 px it shows 854 units, a scale of 0.949 and 12.3 px labels (12.1 px with a 15 px scrollbar).
+   Below 940 px the narrow drawing takes over: it is 300 units wide and keeps 12 px labels down to a 320 px viewport. */
+.layers {
+  margin: 10px 0 26px;
+  padding: 12px 0;
+  border: 1px solid var(--line);
+  background: var(--cell);
+}
+
+.layers svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.layers .layers-wide {
+  display: none;
+}
+
+.layers .layers-narrow {
+  max-width: 440px;
+  margin-inline: auto;
+}
+
+.layers figcaption {
+  padding: 8px 12px 0;
+  color: var(--soft);
+  font: 12px / 1.4 var(--font-code);
+}
+
+@media (min-width: 940px) {
+  .layers {
+    padding: 18px;
+  }
+
+  .layers .layers-wide {
+    display: block;
+  }
+
+  .layers .layers-narrow {
+    display: none;
+  }
+
+  .layers figcaption {
+    padding: 8px 0 0;
+  }
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.cell {
+  padding: 20px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.cell:first-child {
+  border-top: 0;
+}
+
+.cell p {
+  margin: 0;
+  color: var(--soft);
+  font-size: var(--size-note);
+  line-height: 1.5;
+}
+
+.cell .label {
+  color: var(--a);
+  font: 11px / 1 var(--font-code);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cell h2 {
+  margin: 8px 0 6px;
+  font: 400 24px / 1.1 var(--font-display);
+}
+
+@media (min-width: 760px) {
+  .cells {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cell {
+    padding: 20px 22px;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+  }
+
+  .cell:first-child {
+    border-left: 0;
+  }
+}
+
+.packages {
+  padding-block: 30px 0;
+}
+
+.packages h2 {
+  margin: 0 0 14px;
+  font: 400 28px / 1.1 var(--font-display);
+}
+
+.pkgs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) {
+  .pkgs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 940px) {
+  .pkgs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.pkg {
+  display: block;
+  min-height: 44px;
+  height: 100%;
+  padding: 14px;
+  border: 1px solid var(--hair);
+  background: var(--cell);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.pkg:hover {
+  border-color: var(--a);
+}
+
+.pkg b {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--color-link);
+  font: 600 13px / 1.3 var(--font-code);
+  overflow-wrap: anywhere;
+}
+
+.pkg:hover b {
+  text-decoration: underline;
+}
+
+.pkg span {
+  display: block;
+  color: var(--soft);
+  font-size: 14px;
+  line-height: 1.5;
+}

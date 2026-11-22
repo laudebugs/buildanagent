@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Build An Agent</title>
+  <style>
+    .f { stroke: #2A1E16 } .a { stroke: #B04E29 }
+    @media (prefers-color-scheme: dark) { .f { stroke: #F4EADC } .a { stroke: #E8A27C } }
+  </style>
+  <!-- Heavier strokes than the full mark, so it survives at 16 pixels. -->
+  <rect x="6" y="6" width="52" height="52" rx="12" fill="none" class="f" stroke-width="8"/>
+  <path d="M20 22L34 32L20 42" fill="none" class="f" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M38 44H49" fill="none" class="a" stroke-width="8" stroke-linecap="round"/>
+</svg>
