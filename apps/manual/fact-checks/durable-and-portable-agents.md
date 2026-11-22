@@ -46,3 +46,29 @@ The claims log for [`durable-and-portable-agents.md`](../src/content/chapters/du
 | 25 | An engine holds one step for each call that continues a run and never the inner loop, because model output varies between calls; steps carry entry ids, not transcripts, since Workflows caps an event payload and a step result at 1 MiB | § Seven seams | ✅ | Storage-and-wake note, rule 2; [Workflows limits](https://developers.cloudflare.com/workflows/reference/limits/), [storage-and-wake log row 12](../../../docs/research/deployment/fact-check-storage-and-wake.md): "Maximum event payload size 1MiB" and "Maximum non-stream step result per step 1MiB" |
 | 26 | Only a lapsed lease marks a lock as stale off the host, because no process can check another host's process | § Seven seams | ✅ | Storage-and-wake note, rule 3; ADR 0033: "Off-host `SessionLock` implementations treat a lapsed lease as the only staleness signal" |
 | 27 | Containers fit any ship, crane and truck, and each port needs its own crane | § Seven seams | ✅ | The analogy's own claim, vetted: its "where it breaks" entry states that a seam that fits is proved by a conformance suite |
+
+## "Every trigger carries an id from its sender, and a repeat starts nothing"
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 28 | 12-factor agents says users should be able to trigger agents "from slack, email, sms, or whatever other channel they want", and that non-humans trigger them too, "events, crons, outages" | § Every trigger | ✅ | [Factor 11](https://github.com/humanlayer/12-factor-agents/blob/d20c728368bf9c189d6d7aab704744decb6ec0cc/content/factor-11-trigger-from-anywhere.md), read 2026-11-22: "Enable users to trigger agents from slack, email, sms, or whatever other channel they want" and "triggered by non-humans, e.g. events, crons, outages" (pinned commit d20c728) |
+| 29 | GitHub says to use the `X-GitHub-Delivery` header to ensure each delivery is unique per event, and a redelivery carries the same header as the original | § Every trigger | ✅ | [Best practices for using webhooks](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks), "Use the X-GitHub-Delivery header", read 2026-11-22: "to ensure that each delivery is unique per event" and the note "If you request a redelivery, the X-GitHub-Delivery header will be the same as in the original delivery" |
+| 30 | A receiver that made up its own id for each arrival would treat a redelivery as new | § Every trigger | ✅ | Reasoning from row 29, stated as such |
+| 31 | Cloudflare's alarms run at least once | § Every trigger | ✅ | Row 10 |
+| 32 | Our 12-factor report searched the agent plan and its todos for "webhook", "cron" and "idempot" on 2026-11-18 and found none | § Every trigger | ✅ | [12-factor fact-check, row 61](../../../docs/research/external-designs/fact-check-twelve-factor-agents.md): `grep` over `docs/plans/build-agent.md` and `docs/todos/ready/A*.md`, no match |
+| 33 | The coding agent plan makes every trigger a task request with a stable id, drops a second request with the same id, starts with a CLI command and a GitHub issue label or comment accepted only from the owner, and strips hidden HTML | § Every trigger | ✅ | [Coding agent plan, CA7](../../../docs/plans/build-coding-agent.md) (decided) |
+| 34 | The control plane (W5) is a ready todo, not code, as of November 2026 | § Every trigger | ✅ | `docs/todos/ready/W5-control-plane-ingress.md` on 2026-11-22 |
+| 35 | The example writes the id to a table with `INSERT OR IGNORE`, reads the changed-row count, and starts a task only when the id was new | § Every trigger | ✅ | `verify/cloudflare-agents/examples/11-trigger-dedup.ts`, the `accept` region |
+| 36 | The same id sent twice starts one task; a different id starts its own; a redelivery after eviction is still dropped, and the evicted agent still holds two tasks | § Every trigger | ✅ | The example's five checks, all passed in `pnpm test` on 2026-11-22 |
+| 37 | The example compares the id and nothing else, so a repeat with different content is dropped and the first content stands | § Every trigger | ✅ | The `accept` code: `INSERT OR IGNORE` on the id, no comparison of `goal`; the chapter says what a stricter design would do. Also covers the exercise's references to `Reminders` and the in-memory field in `10-durable-wake.ts` (the `durable-agent` region) |
+| 38 | The Cloudflare Agents SDK has no ingress layer; the pattern uses only `this.sql`; and the same stamp can live in DynamoDB with a conditional write or in Postgres with `ON CONFLICT DO NOTHING` | § Every trigger | ⚠️ | The first part is an absence in the docs read (the example's header comment and the Cloudflare README say the pattern is ours); the DynamoDB and Postgres forms follow `packages/agent-safety/README.md` ("In SQL, `INSERT ... ON CONFLICT DO NOTHING`…" and conditional writes), which describes the effect store, not a trigger stamp |
+| 39 | A mailroom stamps each letter's number and bins duplicates, and invents no numbers | § Every trigger | ✅ | The analogy's own claim and its "where it breaks" entry |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 37 |
+| ✏️ corrected | 0 |
+| ⚠️ unverified, our inference or an absence, marked as ours in the text | 2 |
+| Total | 39 |
