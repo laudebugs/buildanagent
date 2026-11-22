@@ -82,6 +82,43 @@ test("a listing written in the chapter goes through the file listings' highlight
   }
 });
 
+test("an inline listing in an unknown language, or none, shows as plain text in the panel", async () => {
+  for (const fence of ["```toString", "```nonsense-lang", "```"]) {
+    const dir = mutatedFixture((fixture) =>
+      edit(fixture, "chapters/second.md", (text) =>
+        text.replace(
+          "## Exercises",
+          `:::listing[A plain snippet]{#plain}\n${fence}\nhello world\n\`\`\`\n:::\n\n## Exercises`,
+        ),
+      ),
+    );
+    try {
+      const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
+      const figure = html.slice(html.indexOf('<figure id="lst-plain"'));
+      assert.match(figure, /<span class="line__number" aria-hidden="true">1<\/span>hello world<\/span>/, fence);
+      assert.doesNotMatch(figure.slice(0, figure.indexOf("</figure>")), /tok-/, fence);
+    } finally {
+      removeFixture(dir);
+    }
+  }
+});
+
+test("a :::listing written in the chapter holds one code block", async () => {
+  const dir = mutatedFixture((fixture) =>
+    edit(fixture, "chapters/second.md", (text) =>
+      text.replace(
+        "## Exercises",
+        ":::listing[Two blocks]{#two}\n```json\n{}\n```\n\n```json\n[]\n```\n:::\n\n## Exercises",
+      ),
+    ),
+  );
+  try {
+    await assert.rejects(renderLikeAstro(loadBook(fixtureInputs(dir)), "second"), /holds one code block/);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
 test("a listing's lines keep their numbers in the file and lose the markers of regions nested in them", () => {
   // The fixture's chapter also holds an inline listing, which numbers its lines from 1; this test reads the file's.
   const fileListing = second.slice(second.indexOf('<figure id="lst-greet"'));

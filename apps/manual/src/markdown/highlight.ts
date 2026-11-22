@@ -31,7 +31,7 @@ export async function highlightInline(code: string, lang: string | null | undefi
   const lines = code.split("\n").map((text, index) => ({ number: index + 1, text }));
   return highlightLines(
     lines,
-    lang !== null && lang !== undefined && lang in bundledLanguages ? (lang as BundledLanguage) : "text",
+    lang !== null && lang !== undefined && Object.hasOwn(bundledLanguages, lang) ? (lang as BundledLanguage) : "text",
   );
 }
 

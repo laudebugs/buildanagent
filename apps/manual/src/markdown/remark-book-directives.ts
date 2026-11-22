@@ -31,7 +31,9 @@ type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
  * numbering plugin fills in. `::listing[Caption]{#id file="…" region="…"}` shows a region of a real file, which the
  * book index has already cut and checked, highlighted with Shiki, under a caption with its number, path, line range
  * and pin; written as a `:::listing` container, it holds `::note[Text]{#id}` notes for the lines marked
- * `// book:note <id>`, and with `replay` it adds the recorded run of its example. `:::tabs` holds file listings from
+ * `// book:note <id>`, and with `replay` it adds the recorded run of its example. A `:::listing` with a fenced code block
+ * and no `file` shows that code in the same panel, highlighted and numbered from 1, with no path, line range or pin.
+ * `:::tabs` holds file listings from
  * different harnesses, one tab each. `:::box[Title]{#id}` sets a passage apart as an `<aside>` under its own heading.
  * `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive
  * fails, except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which
@@ -142,6 +144,38 @@ function numbered(node: ContainerDirective, kind: NumberedKind, file: VFile): Co
   };
 }
 
+/** The caption element of a listing's figure, which the panel's CSS selects; file and inline listings share it. */
+const listingCaptionData = (domId: string): Paragraph["data"] => ({
+  hName: "figcaption",
+  hProperties: { className: ["listing__caption"], id: `${domId}-caption` },
+});
+
+/** The empty number that the numbering plugin fills in, as a file listing's and an inline listing's caption begin. */
+const listingNumber = (): PhrasingContent => ({
+  type: "text",
+  value: "",
+  data: { hName: "span", hProperties: { className: ["listing__number", "number"] } },
+});
+
+/** A listing's title in its caption, set apart from the path, line range and pin that may follow. */
+const listingTitle = (children: PhrasingContent[]): PhrasingContent => ({
+  type: "emphasis",
+  data: { hName: "span", hProperties: { className: ["listing__title"] } },
+  children,
+});
+
+/** The figure element of a listing, named by the elements whose ids `labelledBy` lists. */
+const listingFigureData = (id: string, domId: string, labelledBy: string[]): ContainerDirective["data"] => ({
+  hName: "figure",
+  hProperties: {
+    id: domId,
+    className: ["numbered", "listing", "panel"],
+    dataNumbered: "listing",
+    dataNumberedId: id,
+    ariaLabelledBy: labelledBy,
+  },
+});
+
 /**
  * A listing written in the chapter, with no file: the same figure as any numbered listing, but its fenced code goes
  * through the highlighter and the code panel that file listings use, so it shows line numbers and token colours. It has
@@ -153,6 +187,13 @@ function inlineListing(
   slug: string,
   file: VFile,
 ): { readonly figure: ContainerDirective; readonly code: Promise<void> } {
+  if (node.children.filter((child) => child.type === "code").length > 1) {
+    return failAt(
+      file,
+      "a :::listing written in the chapter holds one code block, so split it into two listings",
+      node,
+    );
+  }
   const figure = numbered(node, "listing", file);
   const id = node.attributes?.id ?? "";
   const block = book.index.written.get(slug)?.blocks.find((found) => found.kind === "listing" && found.id === id);
@@ -164,24 +205,11 @@ function inlineListing(
   const html: Html = { type: "html", value: "" };
   figure.children[index] = html;
   const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
-  // The classes a file listing's figure and caption carry, which the panel's CSS selects.
   const caption = figure.children[0] as Paragraph;
-  const [numberSpan, , ...title] = caption.children;
-  caption.data = { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } };
-  caption.children = [
-    { ...numberSpan, data: { hName: "span", hProperties: { className: ["listing__number", "number"] } } },
-    { type: "emphasis", data: { hName: "span", hProperties: { className: ["listing__title"] } }, children: title },
-  ] as PhrasingContent[];
-  figure.data = {
-    hName: "figure",
-    hProperties: {
-      id: domId,
-      className: ["numbered", "listing", "panel"],
-      dataNumbered: "listing",
-      dataNumberedId: id,
-      ariaLabelledBy: [`${domId}-caption`],
-    },
-  };
+  const [, , ...title] = caption.children;
+  caption.data = listingCaptionData(domId);
+  caption.children = [listingNumber(), listingTitle(title)];
+  figure.data = listingFigureData(id, domId, [`${domId}-caption`]);
   const code = highlightInline(fenced.value, fenced.lang).then((lines) => {
     html.value = listingCodeHtml(domId, block.number, lines, new Map());
   });
@@ -448,19 +476,11 @@ function fileListing(
   const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
   const caption: Paragraph = {
     type: "paragraph",
-    data: { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } },
+    data: listingCaptionData(domId),
     children: [
-      { type: "text", value: "", data: { hName: "span", hProperties: { className: ["listing__number", "number"] } } },
+      listingNumber(),
       // In a tab, the tab's heading is the caption, so the caption does not repeat it.
-      ...(tabbed.has(node)
-        ? []
-        : [
-            {
-              type: "emphasis",
-              data: { hName: "span", hProperties: { className: ["listing__title"] } },
-              children: label,
-            } satisfies PhrasingContent,
-          ]),
+      ...(tabbed.has(node) ? [] : [listingTitle(label)]),
       ...captionParts(source.path, source.lines, source.pin, !book.live.compared.has(source.path)).map(
         ({ className, text }): PhrasingContent => ({
           type: "text",
@@ -478,16 +498,11 @@ function fileListing(
     name: "listing",
     attributes: node.attributes ?? {},
     children: numbers.size === 0 ? [caption, html] : [caption, html, notesList(domId, numbers, notes)],
-    data: {
-      hName: "figure",
-      hProperties: {
-        id: domId,
-        className: ["numbered", "listing", "panel"],
-        dataNumbered: "listing",
-        dataNumberedId: id,
-        ariaLabelledBy: tabbed.has(node) ? [`${domId}-heading`, `${domId}-caption`] : [`${domId}-caption`],
-      },
-    },
+    data: listingFigureData(
+      id,
+      domId,
+      tabbed.has(node) ? [`${domId}-heading`, `${domId}-caption`] : [`${domId}-caption`],
+    ),
     ...(node.position ? { position: node.position } : {}),
   };
   const code = highlighted(html, source, number, domId, numbers);
