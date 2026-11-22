@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T44` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [U18](../done/U18-research-retrieval-and-long-term-memory.md) |
@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T36's todo, [T36](T36-chapter-retrieval-and-long-term-memory.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T36's todo, [T36](../ready/T36-chapter-retrieval-and-long-term-memory.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 - [U18's report](../../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process): context blocks are per chat and experimental
@@ -39,20 +39,20 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 ## Tasks
 
-- [ ] Name the example `10-context-memory.ts`, the next free number in `verify/cloudflare-agents/examples/`.
-- [ ] Declare one writable memory block and one FTS5 search block, and script the mock model to call `set_context` and then `search_context`.
-- [ ] Evict the Durable Object, and assert with `check()` that the block's content and the search result both survive.
-- [ ] Address a second agent name, and assert that it sees neither the block nor the search result.
-- [ ] Record in the example's header whether FTS5 ran in local workerd, and that the APIs are experimental as of November 2026.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Name the example `11-context-memory.ts`: `10-durable-wake.ts` (T33) took number 10 first, so 11 is the next free number in `verify/cloudflare-agents/examples/`.
+- [x] Declare one writable memory block and one FTS5 search block, and script the mock model to call `set_context` and then `search_context`.
+- [x] Evict the Durable Object, and assert with `check()` that the block's content and the search result both survive.
+- [x] Address a second agent name, and assert that it sees neither the block nor the search result.
+- [x] Record in the example's header whether FTS5 ran in local workerd, and that the APIs are experimental as of November 2026.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
 - [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] No mock model in the example calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] No mock model in the example calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -68,11 +68,15 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 - The SDK may not support the behaviour offline; record the limit in the chapter todo and the harness README instead of writing an example that only pretends.
 - FTS5 may not work in local workerd. If it fails, record the limit in the harness README and in Chapter T36's todo, and keep the writable-block half of the example.
 
+## Outcome
+
+`verify/cloudflare-agents/examples/11-context-memory.ts` runs a plain `Agent` with two `agents/context` blocks, a writable `memory` block and an FTS5 `notes` block, behind `ContextBlocks.tools()`. A scripted model writes through `set_context`, the harness evicts the Durable Object, and a new instance's scripted model finds the note through `search_context`. Its checks pass offline. The fact is a row in `cf_agents_context_blocks` and the note a row of an FTS5 table, and the new instance renders the fact into its system prompt, which the first prompt lacked. A query with other word forms finds the note, and a second agent name sees neither block, finds nothing and holds no rows. Only `set_context` and `search_context` are offered to the model. FTS5 ran in local workerd, so no limit needed recording. The search is keyword search with Porter stemming and no semantic matching, because Vectorize and Workers AI have no local simulation. The example's verdict joins `results/run-examples.json`, and its transcript is `results/transcripts/11-context-memory.json`; two runs wrote it byte for byte. The claims are logged in [the example's fact-check log](../../plans/reviews/fact-check-context-memory-example.md), rows T44-1 to T44-12. The writing review is left for the pull request, after the code reviews.
+
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
