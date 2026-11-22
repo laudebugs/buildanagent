@@ -31,6 +31,8 @@ export interface Fixture {
   readonly model: Model;
   /** The tool names of each request the model received, in order. */
   toolNames(): string[][];
+  /** The system prompt of each request the model received, in order, as the provider got it. */
+  systemPrompts(): string[];
   /** Throws if a turn went unplayed or the run asked for more turns than the script has. */
   assertComplete(): void;
 }
@@ -65,6 +67,7 @@ export const scriptedBackend: Backend = {
     return {
       model: createModel({ adapter, id: "claude-opus-5-5", retries: 0 }),
       toolNames: () => adapter.calls.map((call) => call.context.tools.map((tool) => tool.name)),
+      systemPrompts: () => adapter.calls.map((call) => call.context.system ?? ""),
       assertComplete: () => adapter.assertComplete(),
     };
   },
@@ -152,6 +155,7 @@ function wireBackend(
   body: (turn: Turn, t: number, idBase: string) => string,
   adapterAndId: (transport: ReturnType<typeof mockTransport>) => { model: Model },
   namesOf: (request: unknown) => string[],
+  systemOf: (request: unknown) => string,
 ): Backend {
   return {
     name,
@@ -161,6 +165,7 @@ function wireBackend(
       return {
         model: adapterAndId(transport).model,
         toolNames: () => transport.requests.map((request) => namesOf(request.body)),
+        systemPrompts: () => transport.requests.map((request) => systemOf(request.body)),
         assertComplete() {
           if (transport.requests.length !== script.length) {
             throw new Error(`${name}: ${transport.requests.length} requests for a script of ${script.length} turns`);
@@ -178,6 +183,22 @@ interface WireTools {
 const namesIn = (request: unknown): string[] =>
   ((request as WireTools).tools ?? []).map((tool) => tool.function?.name ?? tool.name ?? "");
 
+/** Joins the text of a message's `content`, which a provider takes as a string or a list of text parts. */
+function textOf(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.map((part: { text?: string }) => part.text ?? "").join("");
+}
+
+/** The Messages API takes the system prompt as a top-level `system` field. */
+const anthropicSystemIn = (request: unknown): string => textOf((request as { system?: unknown }).system);
+
+/** Chat Completions takes it as the leading `system` or `developer` message. */
+const chatSystemIn = (request: unknown): string => {
+  const { messages = [] } = request as { messages?: { role: string; content: unknown }[] };
+  return textOf(messages.find((message) => message.role === "system" || message.role === "developer")?.content);
+};
+
 /** The Anthropic adapter over its mock transport. */
 export const anthropicBackend: Backend = wireBackend(
   "Anthropic mock transport",
@@ -187,6 +208,7 @@ export const anthropicBackend: Backend = wireBackend(
     model: createModel({ adapter: anthropic({ apiKey: KEY, transport }), id: "claude-opus-5-5", retries: 0 }),
   }),
   namesIn,
+  anthropicSystemIn,
 );
 
 /** The Chat Completions adapter over its mock transport. */
@@ -198,4 +220,5 @@ export const chatBackend: Backend = wireBackend(
     model: createModel({ adapter: openaiChat({ apiKey: KEY, transport }), id: "gpt-5.4-mini", retries: 0 }),
   }),
   namesIn,
+  chatSystemIn,
 );

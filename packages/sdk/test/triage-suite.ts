@@ -183,6 +183,43 @@ function changedInput(loop: Loop, backend: Backend) {
   });
 }
 
+function systemPromptReachesModel(loop: Loop, backend: Backend) {
+  test(`${backend.name}: the system prompt reaches the model on every request`, async () => {
+    const { result, fixture } = await start(loop, backend, [{ calls: [LOOKUP] }, { calls: [submit(BUG)] }]);
+    fixture.assertComplete();
+    assert.equal(result.stopReason, "done");
+    const prompts = fixture.systemPrompts();
+    assert.equal(prompts.length, 2, "the run made two requests");
+    for (const prompt of prompts) assert.equal(prompt, SYSTEM_PROMPT);
+  });
+}
+
+/** Tools that a coding or shell agent offers, which a triage agent never defines. */
+const HOST_TOOLS: readonly ScriptedCall[] = [
+  { name: "bash", input: { command: "cat /etc/passwd" } },
+  { name: "read_file", input: { path: "/etc/passwd" } },
+  { name: "write_file", input: { path: "/tmp/x", content: "x" } },
+];
+
+function hostToolsDenied(loop: Loop, backend: Backend) {
+  test(`${backend.name}: a call to a host tool the agent never offered runs nothing and the model recovers`, async () => {
+    const { result, fixture, process } = await start(loop, backend, [
+      { calls: HOST_TOOLS },
+      { calls: [LOOKUP] },
+      { calls: [submit(BUG)] },
+    ]);
+    fixture.assertComplete();
+    assert.equal(result.stopReason, "done");
+    assert.deepEqual(outputOf(result), BUG);
+    const denied = result.messages.filter((m) => m.role === "tool" && m.isError);
+    assert.equal(denied.length, HOST_TOOLS.length, "each host tool call came back as an error result");
+    for (const [i, tool] of HOST_TOOLS.entries()) assert.match(JSON.stringify(denied[i]), new RegExp(tool.name));
+    assert.deepEqual(process.seen.lookups, ["user@example.com"], "only the agent's own lookup ran");
+    assert.deepEqual(process.seen.escalations, []);
+    assertSurface(fixture);
+  });
+}
+
 function stepCapAndBudget(loop: Loop, backend: Backend) {
   test(`${backend.name}: the step cap ends a run that never submits`, async () => {
     const turns = Array.from({ length: MAX_STEPS }, () => ({ calls: [LOOKUP] }));
@@ -212,5 +249,7 @@ export function triageSuite(loop: Loop, backends: readonly Backend[]): void {
     forgedSignature(loop, backend);
     changedInput(loop, backend);
     stepCapAndBudget(loop, backend);
+    systemPromptReachesModel(loop, backend);
+    hostToolsDenied(loop, backend);
   }
 }
