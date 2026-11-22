@@ -193,6 +193,11 @@ interface SessionFile {
   live?: string;
   /** The archived copy, when there is one. */
   archived?: string;
+  /**
+   * A live file with no complete line beside the archived copy. The store reads past it to the archive, a purge removes
+   * it with the archive, and an archive leaves it alone.
+   */
+  stub?: string;
   readonly contents: Contents;
 }
 
@@ -235,8 +240,11 @@ async function readCopy(path: string, archived: boolean): Promise<Contents | "em
   return contentsOf(bytes) ?? "empty";
 }
 
-/** Adds one copy of a file to the scan: a name the store would not write is skipped, and a gone file is left out. */
-async function addCopy(found: Scan, hidden: Set<string>, folder: string, name: string, archived: boolean) {
+/**
+ * Adds one copy of a file to the scan: a name the store would not write is skipped, and a gone file is left out. `stubs`
+ * holds the live files with no complete line, by file id, so the archived copy read after them can take them along.
+ */
+async function addCopy(found: Scan, stubs: Map<string, string>, folder: string, name: string, archived: boolean) {
   const path = join(folder, name);
   const id = idOf(name, archived ? ARCHIVE_EXTENSION : LIVE_EXTENSION);
   if (id === undefined) {
@@ -244,23 +252,26 @@ async function addCopy(found: Scan, hidden: Set<string>, folder: string, name: s
     return;
   }
   const known = found.files.get(id);
-  if (hidden.has(id) || known !== undefined) {
+  if (known !== undefined) {
     // The live copy, read first, decides what the file holds, but a purge removes both copies.
-    if (known !== undefined) known.archived = path;
+    known.archived = path;
     return;
   }
   const contents = await readCopy(path, archived);
   if (contents === "gone") return;
   if (contents === "empty") {
-    // A live file with nothing in it is what the store reads, so its archive is not the file either.
-    if (!archived) hidden.add(id);
+    // A file with no complete line holds nothing. A live one is kept in mind, as its archive, if any, is the file.
+    if (!archived) stubs.set(id, path);
     return;
   }
   if (contents.kind === "opaque") {
     found.opaque = true;
     found.skipped.push(path);
   }
-  found.files.set(id, archived ? { id, archived: path, contents } : { id, live: path, contents });
+  const stub = archived ? stubs.get(id) : undefined;
+  if (!archived) found.files.set(id, { id, live: path, contents });
+  else
+    found.files.set(id, stub === undefined ? { id, archived: path, contents } : { id, archived: path, stub, contents });
 }
 
 async function readPointer(path: string): Promise<{ file: string | undefined } | undefined> {
@@ -278,12 +289,12 @@ async function readPointer(path: string): Promise<{ file: string | undefined } |
 async function scan(userDir: string, archiveDir: string): Promise<Scan> {
   const found: Scan = { files: new Map(), pointers: new Map(), skipped: [], opaque: false };
   const names = await listFolder(userDir);
-  const hidden = new Set<string>();
+  const stubs = new Map<string, string>();
   for (const name of names.filter((entry) => entry.endsWith(LIVE_EXTENSION))) {
-    await addCopy(found, hidden, userDir, name, false);
+    await addCopy(found, stubs, userDir, name, false);
   }
   for (const name of (await listFolder(archiveDir)).filter((entry) => entry.endsWith(ARCHIVE_EXTENSION))) {
-    await addCopy(found, hidden, archiveDir, name, true);
+    await addCopy(found, stubs, archiveDir, name, true);
   }
   for (const name of names.filter((entry) => entry.endsWith(POINTER_EXTENSION))) {
     const id = idOf(name, POINTER_EXTENSION);
@@ -561,9 +572,20 @@ async function purgeAll(run: Run): Promise<void> {
 async function purgeSession(run: Run, session: Session): Promise<void> {
   for (const file of session.files) {
     if (file.live !== undefined) await rm(file.live, { force: true });
+    if (file.stub !== undefined) await removeStub(file.stub);
     if (file.archived !== undefined) await rm(file.archived, { force: true });
   }
   if (session.pointer) await rm(join(run.userDir, `${encodeName(session.id)}${POINTER_EXTENSION}`), { force: true });
+}
+
+/** Removes a live file that held no complete line when the run read it, and keeps it if a line has landed since. */
+async function removeStub(path: string): Promise<void> {
+  const bytes = await readIfThere(path);
+  if (bytes === undefined) return;
+  if (bytes.includes(0x0a)) {
+    throw new HarnessError("session_conflict", `${path} was written during the run, so the session was kept`);
+  }
+  await rm(path, { force: true });
 }
 
 async function archiveSession(run: Run, sessionId: string): Promise<void> {

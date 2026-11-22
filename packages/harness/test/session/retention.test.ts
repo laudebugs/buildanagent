@@ -194,6 +194,39 @@ describe("archive", () => {
     assert.deepEqual(again.archived, [], "the session was written today, so it is not expired");
   });
 
+  test("a live file with no complete line hides no archive from list, load, loadRaw or the next append", async () => {
+    const { dir } = await setup();
+    await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "archive" }, now: NOW });
+    // A torn first line, as a crash in the middle of a write leaves.
+    await writeFile(join(dir, "ada", "old.jsonl"), '{"id":"torn"');
+    const store = jsonlStore({ dir });
+    const listed = await all(store.list("ada"));
+    assert.deepEqual(listed.map((summary) => [summary.sessionId, summary.entryCount]).sort(), [
+      ["fresh", 2],
+      ["old", 3],
+    ]);
+    assert.equal((await all(store.load(OLD))).length, 3);
+    assert.ok(store.loadRaw);
+    assert.equal((await all(store.loadRaw(OLD))).length, 3);
+    await store.append(OLD, [{ ...record("r3", "r2"), timestamp: TODAY }], { expectedLastId: "r2" });
+    assert.deepEqual(files(dir, ARCHIVE, "ada"), [], "the append brought the archive back");
+    assert.deepEqual(
+      (await all(store.load(OLD))).map((entry) => entry.id),
+      ["h1", "r1", "r2", "r3"],
+    );
+  });
+
+  test("an archive leaves a live file with no complete line, and its archive, as they are", async () => {
+    const { dir } = await setup();
+    const options = { dir, userId: "ada", retention: { days: 30, action: "archive" as const }, now: NOW };
+    await pruneSessions(options);
+    const packed = await readFile(join(dir, ARCHIVE, "ada", "old.jsonl.gz"));
+    await writeFile(join(dir, "ada", "old.jsonl"), '{"id":"torn"');
+    assert.deepEqual(await pruneSessions(options), EMPTY);
+    assert.deepEqual(await readFile(join(dir, ARCHIVE, "ada", "old.jsonl.gz")), packed);
+    assert.equal(await readFile(join(dir, "ada", "old.jsonl"), "utf8"), '{"id":"torn"');
+  });
+
   test("a session archives with the files a revert made, and a second run does nothing more", async () => {
     const { dir, store, index } = await withRevert();
     const options = { dir, userId: "ada", retention: { days: 30, action: "archive" as const }, now: NOW };
@@ -364,6 +397,41 @@ describe("purge", () => {
     assert.deepEqual(result.purged, ["old"]);
     assert.deepEqual(files(dir, ARCHIVE, "ada"), []);
     assert.deepEqual(files(dir, "ada"), [], "the pointer went too");
+  });
+
+  test("a purge removes an archived session and the live file with no complete line beside it", async () => {
+    const { dir } = await setup();
+    await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "archive" }, now: NOW });
+    await writeFile(join(dir, "ada", "old.jsonl"), '{"id":"torn"');
+    // A file with no complete line and no archive holds nothing to date, so it stays.
+    await writeFile(join(dir, "ada", "stray.jsonl"), '{"id":"torn"');
+    const result = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" }, now: NOW });
+    assert.deepEqual(result, { ...EMPTY, purged: ["old"] });
+    assert.deepEqual(files(dir, ARCHIVE, "ada"), []);
+    assert.deepEqual(files(dir, "ada"), ["fresh.jsonl", "stray.jsonl"]);
+  });
+
+  test("a live file with no complete line that gets one during the purge keeps the session", async () => {
+    const { dir } = await setup();
+    await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "archive" }, now: NOW });
+    const live = join(dir, "ada", "old.jsonl");
+    await writeFile(live, '{"id":"torn"');
+    const held = gate();
+    const running = pruneSessions({
+      dir,
+      userId: "ada",
+      retention: { days: 30, action: "purge" },
+      now: NOW,
+      lock: heldLock([], held),
+    });
+    await held.arrived;
+    await writeFile(live, `${JSON.stringify({ ...header(), timestamp: TODAY })}\n`);
+    held.open();
+    const result = await running;
+    assert.deepEqual(result.purged, []);
+    assert.deepEqual(result.kept, [{ sessionId: "old", reason: "error" }]);
+    assert.ok(existsSync(live));
+    assert.deepEqual(files(dir, ARCHIVE, "ada"), ["old.jsonl.gz"]);
   });
 
   test("an archived fork that survives keeps its live parent", async () => {

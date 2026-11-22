@@ -213,12 +213,15 @@ class JsonlStore implements SessionStore {
     }
   }
 
-  /** The log in the live file, or else in its archive. */
+  /**
+   * The log in the live file, or else in its archive. A live file with no complete line holds nothing that was
+   * acknowledged, so it counts as missing.
+   */
   async #readAny(key: SessionKey, path: string): Promise<ReadLog | undefined> {
     const live = await readLog(path);
-    if (live !== undefined) return live;
+    if (live !== undefined && live.goodBytes > 0) return live;
     const archived = await readArchive(archivePath(this.#dir, key.userId, key.sessionId));
-    return archived === undefined ? undefined : parseLog(archived, path);
+    return archived === undefined ? live : parseLog(archived, path);
   }
 
   #userDir(userId: string): string {
@@ -267,8 +270,9 @@ class JsonlStore implements SessionStore {
   async #appendNow(key: SessionKey, inputs: readonly EntryInput[], options: AppendOptions | undefined) {
     const path = this.#pathOf(key);
     let read = await this.#read(path);
-    // Writing an archived session brings its file back, so the log grows where the store looks for it.
-    if (!read.exists && (await restoreArchive(this.#dir, key.userId, key.sessionId, path)))
+    // Writing an archived session brings its file back, so the log grows where the store looks for it. A live file with
+    // no complete line holds nothing that was acknowledged, so the archive replaces it.
+    if ((!read.exists || read.size === 0) && (await restoreArchive(this.#dir, key.userId, key.sessionId, path)))
       read = await this.#read(path);
     const { state, size, torn, exists } = read;
     const plan = planAppend(state, inputs, options, this.#maxBytes);
@@ -321,10 +325,12 @@ class JsonlStore implements SessionStore {
     const path = this.#pathOf(key);
     const buffer = await this.#queued(path, async () => {
       await this.#expire(key.userId);
-      return readFile(path).catch((error: NodeJS.ErrnoException) => {
+      const live = await readFile(path).catch((error: NodeJS.ErrnoException) => {
         if (error.code !== "ENOENT") throw error;
-        return readArchive(archivePath(this.#dir, key.userId, key.sessionId));
+        return undefined;
       });
+      if (live?.includes(0x0a)) return live;
+      return (await readArchive(archivePath(this.#dir, key.userId, key.sessionId))) ?? live;
     });
     if (buffer === undefined) return;
     const complete = buffer
@@ -368,14 +374,19 @@ class JsonlStore implements SessionStore {
 
   /**
    * One file's summary, or `undefined` for a file the store didn't write or can't read, so one bad file hides no other.
-   * A session that is both live and archived is mid-move, and the live file, which is read first, is whole.
+   * A session that is both live and archived is mid-move, and the live file, which is read first, is whole. A live file
+   * with no complete line, or one that went after the folder was read, hides no archive, as `load()` reads past it too.
    */
   async #summary(path: string, extension: string, seen: Set<string>): Promise<SessionSummary | undefined> {
     try {
       const sessionId = decodeURIComponent(basename(path).slice(0, -extension.length));
       if (seen.has(sessionId)) return undefined;
       seen.add(sessionId);
-      if (extension === EXTENSION) return summaryOf(sessionId, (await readLog(path))?.entries ?? []);
+      if (extension === EXTENSION) {
+        const log = await readLog(path);
+        if (log === undefined || log.goodBytes === 0) seen.delete(sessionId);
+        return summaryOf(sessionId, log?.entries ?? []);
+      }
       return await this.#archivedSummary(sessionId, path);
     } catch {
       return undefined;
