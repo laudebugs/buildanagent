@@ -69,23 +69,39 @@ function fileRef(data: unknown, mediaType: string, filename: string | undefined)
   return undefined;
 }
 
+// A size past these is no file a provider takes, and counting it would build blocks without end, so it counts as
+// unknown and the call is refused.
+const MAX_BYTES = 2 ** 40;
+const MAX_PAGES = 100_000;
+// Text counts by characters, so a large size becomes blocks that share one string, never one huge string.
+const CHUNK = " ".repeat(2 ** 20);
+
 /** The blocks that a known size stands for: the base64 characters of its bytes, or one image for each page. */
 function sizedBlocks(size: FileSize): ContentBlock[] {
-  if ("bytes" in size) return [{ type: "text", text: " ".repeat(Math.ceil(size.bytes / 3) * 4) }];
-  return Array.from({ length: size.pages }, () => IMAGE);
+  if ("pages" in size) return Array.from({ length: size.pages }, () => IMAGE);
+  let chars = Math.ceil(size.bytes / 3) * 4;
+  const blocks: ContentBlock[] = [];
+  for (; chars >= CHUNK.length; chars -= CHUNK.length) blocks.push({ type: "text", text: CHUNK });
+  return [...blocks, { type: "text", text: CHUNK.slice(0, chars) }];
 }
 
-/** Whether a caller's size is a usable one: a whole number of bytes or pages, 0 or more. */
-function validSize(size: FileSize | undefined): size is FileSize {
-  if (size === undefined) return false;
-  const n = "bytes" in size ? size.bytes : size.pages;
-  return Number.isSafeInteger(n) && n >= 0;
+/** A caller's size if it is a usable one, a whole number of bytes or pages within bounds; `undefined` otherwise. */
+function usableSize(size: unknown): FileSize | undefined {
+  if (typeof size !== "object" || size === null) return undefined;
+  const { bytes, pages } = size as { bytes?: unknown; pages?: unknown };
+  if (typeof bytes === "number" && pages === undefined && Number.isSafeInteger(bytes)) {
+    return bytes >= 0 && bytes <= MAX_BYTES ? { bytes } : undefined;
+  }
+  if (typeof pages === "number" && bytes === undefined && Number.isSafeInteger(pages)) {
+    return pages >= 0 && pages <= MAX_PAGES ? { pages } : undefined;
+  }
+  return undefined;
 }
 
 /**
  * The blocks a file counts as. An image becomes an image block, which the gateway counts at the largest per-image size
  * a provider documents; other files count their data's characters. A file sent by URL or by provider reference has no
- * data here, so it counts by the size `sizes` holds for it, and as one image when none is known; `unsizedFiles()`
+ * data here, so it counts by the size `sizes` holds for it, and as one image when none is known; `sizeFiles()`
  * lets a caller refuse such a request first.
  */
 function fileBlocks(data: unknown, mediaType: string, filename: string | undefined, sizes: SizeTable): ContentBlock[] {
@@ -126,24 +142,60 @@ function fileParts(prompt: Prompt): FilePart[] {
   );
 }
 
+// The sizes a guard remembers, so a tool loop doesn't ask for a file's size on every step.
+const REMEMBERED_SIZES = 256;
+
 /**
  * What the guard knows of a prompt's files: the sizes `sizeOf` gave for the files it points at by URL or reference,
- * and the first such file with no usable size, which the caller refuses to send under a cap.
+ * and the first such file with no usable size, which the caller refuses to send under a cap. A size `sizeOf` gave is
+ * kept in `remembered`, so it is asked once for each file while the guard remembers it; a file with no size is asked
+ * for again on the next call.
  */
 export async function sizeFiles(
   prompt: Prompt,
   sizeOf: FileSizer | undefined,
+  remembered: Map<string, FileSize>,
 ): Promise<{ readonly sizes: SizeTable; readonly unsized: FileRef | undefined }> {
   const sizes = new Map<string, FileSize>();
   let unsized: FileRef | undefined;
   for (const { data, mediaType, filename } of fileParts(prompt)) {
     const ref = fileRef(data, mediaType, filename);
     if (ref === undefined || sizes.has(sizeKey(ref))) continue;
-    const size = await sizeOf?.(ref);
-    if (validSize(size)) sizes.set(sizeKey(ref), size);
-    else unsized ??= ref;
+    const key = sizeKey(ref);
+    const size = remembered.get(key) ?? usableSize(await sizeOf?.(ref));
+    if (size === undefined) {
+      unsized ??= ref;
+      continue;
+    }
+    sizes.set(key, size);
+    if (remembered.size >= REMEMBERED_SIZES && !remembered.has(key)) {
+      remembered.delete(remembered.keys().next().value as string);
+    }
+    remembered.set(key, size);
   }
   return { sizes, unsized };
+}
+
+/**
+ * A file's name for a message: its `filename`, else its URL without the query and fragment, which may hold a
+ * signature, else the providers its reference names. The full source never reaches an error.
+ */
+export function describeFile(file: FileRef): string {
+  if (file.filename !== undefined) return file.filename;
+  if (file.kind === "reference") {
+    try {
+      const providers = Object.keys(JSON.parse(file.source) as Record<string, unknown>);
+      return `a provider reference (${providers.join(", ")})`;
+    } catch {
+      return "a provider reference";
+    }
+  }
+  try {
+    const url = new URL(file.source);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return "a file URL";
+  }
 }
 
 type ToolResult = Extract<Part, { type: "tool-result" }>;

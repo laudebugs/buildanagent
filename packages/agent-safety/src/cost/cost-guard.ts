@@ -19,6 +19,8 @@ import { SafetyError } from "../errors.js";
 import type { CallOptions, InnerModel, ModelUsage, Prompt, StreamPart } from "./ai-types.js";
 import { BudgetExceeded, type BudgetRefusalCode } from "./budget-exceeded.js";
 import {
+  describeFile,
+  type FileSize,
   type FileSizer,
   gatewayContext,
   gatewayUsage,
@@ -29,8 +31,6 @@ import {
   sizeFiles,
   toolsKey,
 } from "./estimate.js";
-
-export type { FileRef, FileSize, FileSizer } from "./estimate.js";
 
 import type { Spend } from "./spend.js";
 
@@ -66,8 +66,10 @@ export interface CostGuardOptions {
    * The size of a file a request points at by URL or by provider reference, which holds none of its bytes: `{ bytes }`
    * or `{ pages }`, or `undefined` when you don't know it. Bytes count as the base64 characters of the file, and
    * each page as one image; the text a provider reads from a page isn't counted, so give bytes when you have them.
-   * A file that is not an image and has no size is refused with `unknown_price`, because the guard can't tell what it
-   * costs. An image needs no size, because it counts at the largest per-image size a provider documents.
+   * A file that is not an image and has no usable size is refused with `unknown_price`, because the guard can't tell
+   * what it costs. A usable size is a whole number, up to 2 ** 40 bytes or 100,000 pages. The guard remembers the
+   * sizes it was given, so a tool loop asks once for each file, not on every step. An image needs no size, because it
+   * counts at the largest per-image size a provider documents.
    */
   readonly fileSize?: FileSizer;
   /** Called after each call the guard let through, once its cost is known. */
@@ -141,6 +143,7 @@ class Ledger {
   private addedUsd = 0;
   private unknown: string | undefined;
   private readonly recent: Recorded[] = [];
+  private readonly fileSizes = new Map<string, FileSize>();
   private readonly options: CostGuardOptions;
 
   constructor(options: CostGuardOptions) {
@@ -206,10 +209,9 @@ class Ledger {
       const message = `the price of ${id} is unknown, so a call under a USD cap can't be checked; add the model to the catalog`;
       this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
     }
-    const { sizes, unsized } = await sizeFiles(params.prompt, this.options.fileSize);
+    const { sizes, unsized } = await sizeFiles(params.prompt, this.options.fileSize, this.fileSizes);
     if (unsized !== undefined) {
-      const name = unsized.filename ?? unsized.source;
-      const message = `${id} was not called: the request points at ${name} (${unsized.mediaType}) by ${unsized.kind} and its size is unknown, so a call under a USD cap can't be checked; set fileSize on costGuard() to size it`;
+      const message = `${id} was not called: the request points at ${describeFile(unsized)} (${unsized.mediaType}) by ${unsized.kind} and its size is unknown or out of range, so a call under a USD cap can't be checked; set fileSize on costGuard() to size it`;
       this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
     }
     const prompt = messageKeys(params.prompt);

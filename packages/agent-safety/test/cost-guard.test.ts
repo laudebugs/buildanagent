@@ -897,13 +897,13 @@ const pdfTurn = (data: unknown): CallPrompt => [
   { role: "user", content: [{ type: "file", mediaType: "application/pdf", filename: "report.pdf", data } as never] },
 ];
 // A PDF of no bytes, the baseline that a sized file's extra cost is measured from.
-const NO_PDF = projectionOf(pdfTurn({ type: "url", url: new URL(PDF_URL) }), () => ({ bytes: 0 }));
+const noPdf = () => projectionOf(pdfTurn({ type: "url", url: new URL(PDF_URL) }), () => ({ bytes: 0 }));
 
 test("a PDF sent by URL counts by the bytes fileSize gives, as the base64 characters it would take inline", async () => {
   const withBytes = await projectionOf(pdfTurn({ type: "url", url: new URL(PDF_URL) }), () => ({ bytes: 300_000 }));
   // 300,000 bytes are 400,000 base64 characters, at the gateway's 2.5 characters a token.
   const expected = ((400_000 / 2.5) * DEAREST_INPUT_RATE) / 1_000_000;
-  assert.ok(Math.abs(withBytes - (await NO_PDF) - expected) < 1e-6, `added ${withBytes - (await NO_PDF)}`);
+  assert.ok(Math.abs(withBytes - (await noPdf()) - expected) < 1e-6, `added ${withBytes - (await noPdf())}`);
 });
 
 test("a PDF sent by provider reference counts by its pages, each as one image", async () => {
@@ -911,8 +911,8 @@ test("a PDF sent by provider reference counts by its pages, each as one image", 
     pages: 10,
   }));
   assert.ok(
-    Math.abs(withPages - (await NO_PDF) - (10 * 4784 * DEAREST_INPUT_RATE) / 1_000_000) < 1e-6,
-    `added ${withPages - (await NO_PDF)}`,
+    Math.abs(withPages - (await noPdf()) - (10 * 4784 * DEAREST_INPUT_RATE) / 1_000_000) < 1e-6,
+    `added ${withPages - (await noPdf())}`,
   );
 });
 
@@ -940,21 +940,26 @@ test("a file the guard can't size is refused before the call, whether it is sent
     { type: "url", url: new URL(PDF_URL) },
     { type: "reference", reference: { openai: "file-abc" } },
   ];
-  const unusable = [
-    undefined,
-    { bytes: -1 },
-    { bytes: 1.5 },
-    { pages: Number.NaN },
-    { pages: Number.POSITIVE_INFINITY },
+  // What a `fileSize` can return that the guard can't use, and no `fileSize` at all.
+  const unusable: [string, Partial<CostGuardOptions>][] = [
+    ["no fileSize", {}],
+    ...[undefined, null, "10", 5, { bytes: -1 }, { bytes: 1.5 }, { bytes: 2 ** 40 + 3 }].map(
+      (size): [string, Partial<CostGuardOptions>] => [
+        JSON.stringify(size) ?? "undefined",
+        { fileSize: () => size as never },
+      ],
+    ),
+    ...[{ pages: Number.NaN }, { pages: Number.POSITIVE_INFINITY }, { pages: 100_001 }, { bytes: 1, pages: 1 }].map(
+      (size): [string, Partial<CostGuardOptions>] => [JSON.stringify(size), { fileSize: () => size as never }],
+    ),
   ];
   for (const data of refs) {
-    for (const size of [undefined, ...unusable]) {
+    for (const [label, fileSize] of unusable) {
       const { model, requests } = answering();
       const spend = memorySpend();
-      const fileSize = size === undefined ? {} : { fileSize: () => size as never };
       const guard = costGuard({ capUsd: 100, spend, catalog: CATALOG, ...fileSize });
       const refused = refusal(await failure(guardedModel(model, guard).doGenerate({ prompt: pdfTurn(data) })));
-      assert.equal(refused.code, "unknown_price", JSON.stringify([data, size]));
+      assert.equal(refused.code, "unknown_price", `${data.type} with ${label}`);
       assert.equal(refused.projectedUsd, null);
       assert.match(refused.message, /report\.pdf/);
       assert.match(refused.message, /fileSize/);
@@ -962,6 +967,50 @@ test("a file the guard can't size is refused before the call, whether it is sent
       assert.equal(await spend.get(), 0, "a refused call adds nothing to the spend");
     }
   }
+});
+
+test("a size far beyond a cap is counted without building the file, and refuses as budget_exceeded", async () => {
+  const { model, requests } = answering();
+  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG, fileSize: () => ({ bytes: 5e9 }) });
+  const refused = refusal(
+    await failure(guardedModel(model, guard).doGenerate({ prompt: pdfTurn({ type: "url", url: new URL(PDF_URL) }) })),
+  );
+  assert.equal(refused.code, "budget_exceeded");
+  assert.equal(requests.length, 0);
+});
+
+test("a refusal names a file without its URL's query, which may hold a signature", async () => {
+  const signed = "https://bucket.test/reports/q3.pdf?X-Amz-Signature=secret123#frag";
+  const prompt: CallPrompt = [
+    {
+      role: "user",
+      content: [{ type: "file", mediaType: "application/pdf", data: { type: "url", url: new URL(signed) } } as never],
+    },
+  ];
+  const guard = costGuard({ capUsd: 100, spend: memorySpend(), catalog: CATALOG });
+  const refused = refusal(await failure(guardedModel(answering().model, guard).doGenerate({ prompt })));
+  assert.match(refused.message, /https:\/\/bucket\.test\/reports\/q3\.pdf /);
+  assert.doesNotMatch(refused.message, /secret123|X-Amz|frag/);
+});
+
+test("a size is asked for once for each file across calls, and a file with no size is asked for again", async () => {
+  const asked: string[] = [];
+  const answers = [undefined, { bytes: 10 }];
+  const guard = costGuard({
+    capUsd: 100,
+    spend: memorySpend(),
+    catalog: CATALOG,
+    fileSize: (file) => {
+      asked.push(file.source);
+      return answers.shift() as never;
+    },
+  });
+  const model = guardedModel(answering().model, guard);
+  const prompt = pdfTurn({ type: "url", url: new URL(PDF_URL) });
+  await failure(model.doGenerate({ prompt }));
+  await model.doGenerate({ prompt });
+  await model.doGenerate({ prompt });
+  assert.deepEqual(asked, [PDF_URL, PDF_URL], "asked again after the first call had no size, then remembered");
 });
 
 test("a file a tool returns by URL is refused when it has no size, and counted when it has one", async () => {
@@ -1014,7 +1063,7 @@ test("an image sent by URL needs no size, and a file sent inline is counted by i
   });
   assert.deepEqual(asked, [], "an image is never sized");
   const inline = await projectionOf(pdfTurn({ type: "data", data: "A".repeat(40_000) }));
-  assert.ok(inline > (await NO_PDF));
+  assert.ok(inline > (await noPdf()));
 });
 
 test("a projection the catalog can't price is refused as unknown_price", async () => {
