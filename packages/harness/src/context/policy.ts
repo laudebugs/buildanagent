@@ -5,12 +5,12 @@
  * changes only the view.
  */
 
-import type { ContentBlock, ModelContent } from "@buildanagent/gateway";
+import type { ContentBlock, Message, ModelContent } from "@buildanagent/gateway";
 import { totalInput } from "@buildanagent/gateway";
 import { HarnessError } from "../errors.js";
+import { capResult } from "./cap.js";
 import { maskMessages } from "./mask.js";
 import type { ContextFill, ContextPolicy, ContextPolicyOptions, TurnContext, TurnContextOptions } from "./types.js";
-import { byteLength, capNotice, ENTRY_RESERVE_BYTES, escapedBytes, fitHead, textOf } from "./write-cap.js";
 
 const DEFAULT_CAP_BYTES = 64 * 1024;
 const DEFAULT_MASK = { keepChars: 500, stepMessages: 8 };
@@ -27,6 +27,9 @@ function checked(options: ContextPolicyOptions) {
     throw bad("mask.keepChars must be a whole number, 0 or more");
   if (!Number.isInteger(mask.stepMessages) || mask.stepMessages < 1)
     throw bad("mask.stepMessages must be a whole number, 1 or more");
+  if (options.budgetTokens !== undefined && (!Number.isInteger(options.budgetTokens) || options.budgetTokens < 1)) {
+    throw bad("budgetTokens must be a positive whole number");
+  }
   const writeCap = options.layers?.write_cap !== false;
   if (writeCap && options.spill === undefined) {
     throw bad(
@@ -36,26 +39,40 @@ function checked(options: ContextPolicyOptions) {
   return { cap, mask, writeCap, masking: options.layers?.mask !== false };
 }
 
-/** The token estimate for a request view: the last response's usage when there is one, otherwise characters over four. */
+const charsOf = (message: { content: readonly ContentBlock[] | readonly ModelContent[] }): number =>
+  JSON.stringify(message.content).length;
+
+/**
+ * The token estimate for a request view. With the last response's usage it is that call's input and output, plus a
+ * character estimate of what the view added since; without it, a character estimate of the whole view.
+ */
 function estimate(
   system: string,
-  messages: readonly { content: readonly ContentBlock[] | readonly ModelContent[] }[],
+  messages: readonly Message[],
   last?: Parameters<typeof totalInput>[0] & { output: number },
 ): number {
-  if (last !== undefined) return totalInput(last) + last.output;
-  const chars = messages.reduce((sum, message) => sum + JSON.stringify(message.content).length, system.length);
-  return Math.ceil(chars / CHARS_PER_TOKEN);
+  if (last === undefined) {
+    return Math.ceil(messages.reduce((sum, message) => sum + charsOf(message), system.length) / CHARS_PER_TOKEN);
+  }
+  const lastAssistant = messages.findLastIndex((message) => message.role === "assistant");
+  const added = messages.slice(lastAssistant + 1).reduce((sum, message) => sum + charsOf(message), 0);
+  return totalInput(last) + last.output + Math.ceil(added / CHARS_PER_TOKEN);
 }
+
+type Spill = { path: string; bytes: number };
+const NO_SPILL: Spill = { path: "", bytes: 0 };
 
 /** Creates a context policy. A layer left out of `layers` is on. */
 export function createContextPolicy(options: ContextPolicyOptions = {}): ContextPolicy {
   const { cap, mask, writeCap, masking } = checked(options);
   return {
     forTurn({ session, model, onFill }: TurnContextOptions): TurnContext {
-      const spills = new Map<string, { path: string; bytes: number }>();
+      // Every spill of a call id, in log order: a provider may reuse an id, so a masked result is told apart by its place.
+      const spills = new Map<string, Spill[]>();
+      const remember = (callId: string, spill: Spill) => spills.set(callId, [...(spills.get(callId) ?? []), spill]);
       let loaded = false;
       const window = model.caps.contextWindow;
-      const budget = options.budgetTokens ?? Math.min(window - RESERVE_TOKENS, MAX_BUDGET_TOKENS);
+      const budget = options.budgetTokens ?? Math.max(1, Math.min(window - RESERVE_TOKENS, MAX_BUDGET_TOKENS));
       let fill: ContextFill = { tokens: 0, budget, window };
 
       /** The spills of earlier turns, read from the log once, so a masked result can name its file. */
@@ -63,33 +80,33 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
         if (loaded) return;
         loaded = true;
         for (const entry of await session.path()) {
-          if (entry.type === "tool_result" && entry.spill !== undefined && !spills.has(entry.callId)) {
-            spills.set(entry.callId, entry.spill);
-          }
+          if (entry.type !== "tool_result") continue;
+          // A result with no spill still takes its place in the list, so the nth result of an id finds its own spill.
+          remember(entry.callId, entry.spill ?? NO_SPILL);
         }
       }
 
       const afterToolCall: NonNullable<TurnContext["interceptors"]["afterToolCall"]> = async (event) => {
-        if (!writeCap) return undefined;
-        const text = textOf(event.result.content);
-        // The cap counts the log's bytes plus room for the entry's own fields, so a capped entry always fits the store.
-        const room = cap - Math.min(ENTRY_RESERVE_BYTES, cap >> 2);
-        if (escapedBytes(text) <= room) return undefined;
-        const bytes = byteLength(text);
-        const path = await (options.spill as NonNullable<typeof options.spill>).write(session.key, event.callId, text);
-        spills.set(event.callId, { path, bytes });
-        const noticeBytes = escapedBytes(capNotice(room, bytes, path)) + 1;
-        const head = fitHead(text, room - noticeBytes);
-        const images = event.result.content.filter((block) => block.type === "image");
-        const notice = capNotice(byteLength(head), bytes, path);
-        return { content: [{ type: "text", text: `${head}\n${notice}` }, ...images] };
+        const capped = writeCap
+          ? await capResult({
+              content: event.result.content,
+              details: event.result.details,
+              cap,
+              name: `${event.runId}.${event.callId}`,
+              // The call id alone can repeat across turns, so the file is named by the run too.
+              write: (name, text) =>
+                (options.spill as NonNullable<typeof options.spill>).write(session.key, name, text),
+            })
+          : undefined;
+        remember(event.callId, capped?.spill ?? NO_SPILL);
+        return capped?.patch;
       };
 
       const transformContext: NonNullable<TurnContext["interceptors"]["transformContext"]> = async (event) => {
         await learn();
-        const where = (callId: string) => {
-          const spill = spills.get(callId);
-          return spill === undefined
+        const where = (callId: string, occurrence: number) => {
+          const spill = spills.get(callId)?.[occurrence];
+          return spill === undefined || spill.path === ""
             ? `the full text is in the session log, call ${callId}`
             : `the full text is in ${spill.path}`;
         };
@@ -101,7 +118,10 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
 
       return {
         interceptors: { afterToolCall, transformContext },
-        spillOf: (callId) => spills.get(callId),
+        spillOf: (callId) => {
+          const latest = spills.get(callId)?.at(-1);
+          return latest === undefined || latest.path === "" ? undefined : latest;
+        },
         fill: () => fill,
       };
     },

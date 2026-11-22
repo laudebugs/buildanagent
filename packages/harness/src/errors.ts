@@ -26,6 +26,7 @@ export type HarnessErrorCode =
   | "unsupported_format"
   | "invalid_turn_options"
   | "invalid_context_options"
+  | "spill_unavailable"
   | "approval_not_pending"
   | "approval_unavailable"
   | "sticky_refused"
@@ -57,7 +58,7 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * `entry_not_found`: an entry id is in no file of the session. `unsupported_format`: a session file's format can't be
  * read or migrated, its header names none, or the store can't read it as written. `invalid_turn_options`: a turn's
  * options can't be used, such as a tool allowlist that names a tool the registry lacks, or a hook that changed the
- * model inside a turn. `invalid_context_options`: a context policy's setting can't be used, such as a write cap with no spill store or a mask step of zero. `approval_not_pending`: a resolution names a request that is not waiting.
+ * model inside a turn. `invalid_context_options`: a context policy's setting can't be used, such as a write cap with no spill store or a mask step of zero. `spill_unavailable`: a spill store can't write, such as the file store on a runtime without Node's file system. `approval_not_pending`: a resolution names a request that is not waiting.
  * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky
  * allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids
  * a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `invalid_key_store`: a key

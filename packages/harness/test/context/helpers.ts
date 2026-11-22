@@ -15,13 +15,16 @@ export const call = (callId: string, size: number) => ({
 });
 
 /** A tool that returns `size` characters, a different letter per call so a mask or cap is visible in the text. */
-function blobTool(fill: (callId: string, size: number) => string) {
+function blobTool(fill: (callId: string, size: number) => string, details?: unknown) {
   return defineTool({
     name: "blob",
     description: "Returns a text of the given size.",
     inputSchema: { type: "object", properties: { size: { type: "number" } }, required: ["size"] },
     async execute(input: { size: number }, ctx) {
-      return { content: [{ type: "text", text: fill(ctx.callId, input.size) }] };
+      return {
+        content: [{ type: "text", text: fill(ctx.callId, input.size) }],
+        ...(details === undefined ? {} : { details }),
+      };
     },
   });
 }
@@ -30,11 +33,12 @@ export async function runScripted(
   steps: Steps,
   context: ContextPolicy | undefined,
   fill: (callId: string, size: number) => string = (_id, size) => "x".repeat(size),
+  details?: unknown,
 ) {
   const adapter = new ScriptedModel(steps);
   const model = createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
   const registry = createToolRegistry();
-  registry.register({ name: "blob", source: "builtin", definition: blobTool(fill) as never });
+  registry.register({ name: "blob", source: "builtin", definition: blobTool(fill, details) as never });
   const harness = createHarness({
     registry,
     model,

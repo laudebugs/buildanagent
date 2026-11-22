@@ -99,4 +99,32 @@ describe("the write cap", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  test("the spill file is named by the run, so a reused call id keeps both results", async () => {
+    const spill = memorySpillStore();
+    const { entries } = await runScripted([call("c1", 100 * KIB), done], createContextPolicy({ spill }));
+    const start = entries.find((e) => e.type === "turn_start");
+    const entry = entries.find((e) => e.type === "tool_result");
+    assert.ok(start?.type === "turn_start" && entry?.type === "tool_result" && entry.spill !== undefined);
+    assert.ok(entry.spill.path.includes(start.runId));
+  });
+
+  test("details that would crowd out the text are replaced by a note, so the entry still fits", async () => {
+    const { entries } = await runScripted(
+      [call("c1", 40 * KIB), done],
+      createContextPolicy({ spill: memorySpillStore() }),
+      (_id, size) => "x".repeat(size),
+      { big: "d".repeat(30 * KIB) },
+    );
+    const entry = entries.find((e) => e.type === "tool_result");
+    assert.ok(entry?.type === "tool_result" && entry.spill !== undefined);
+    assert.deepEqual(entry.details, { omitted: "the result's details were over the entry bound" });
+  });
+
+  test("a budget that is not a positive whole number is refused", () => {
+    assert.throws(
+      () => createContextPolicy({ spill: memorySpillStore(), budgetTokens: 0 }),
+      (error: unknown) => isHarnessError(error) && error.code === "invalid_context_options",
+    );
+  });
 });

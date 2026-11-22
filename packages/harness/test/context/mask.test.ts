@@ -96,7 +96,7 @@ describe("masking", () => {
     assert.ok(toolTexts(adapter.calls.at(-1)?.context.messages ?? []).every((text) => text.length === 2000));
   });
 
-  test("signed thinking after the first masked message is dropped from the view, and nothing before it", () => {
+  test("signed thinking before the loop in progress is dropped after the first masked result, and the loop's own stays", () => {
     const signed = (n: number): Message =>
       assistant(
         [
@@ -105,46 +105,91 @@ describe("masking", () => {
         ],
         "anthropic-messages",
       );
+    const result = (n: number, size: number): Message => ({
+      role: "tool",
+      callId: `c${n}`,
+      content: [{ type: "text", text: "y".repeat(size) }],
+      isError: false,
+    });
     const messages: Message[] = [{ role: "user", content: [{ type: "text", text: "go" }] }];
-    for (let i = 0; i < 9; i++) {
-      messages.push(signed(i), {
-        role: "tool",
-        callId: `c${i}`,
-        content: [{ type: "text", text: "y".repeat(2000) }],
-        isError: false,
-      });
-    }
+    for (let i = 0; i < 9; i++) messages.push(signed(i), result(i, 2000));
+    messages.push({ role: "user", content: [{ type: "text", text: "and again" }] }, signed(9), result(9, 10));
     const view = maskMessages(messages, { keepChars: 500, stepMessages: 8 }, () => "x");
     const reasoning = view.flatMap((m, i) =>
       m.role === "assistant" ? m.content.filter((b) => b.type === "reasoning").map(() => i) : [],
     );
-    // The first masked result is the tool message at index 2, so the thinking of step 0 (index 1) stays and the rest go.
-    assert.deepEqual(reasoning, [1]);
+    // The first masked result is at index 2, so step 0's thinking (index 1) stays and the rest before the loop go; the
+    // loop's own thinking (index 20) stays, because it was generated under this view.
+    assert.deepEqual(reasoning, [1, 20]);
   });
 
-  test("when the cutoff moves, the request a model receives carries no signed thinking after the first masked result", async () => {
+  test("inside a thinking loop nothing is masked, so the loop's thinking goes back with the tool results", () => {
+    const messages: Message[] = [{ role: "user", content: [{ type: "text", text: "go" }] }];
+    for (let i = 0; i < 12; i++) {
+      messages.push(
+        assistant(
+          [
+            { type: "reasoning", text: "t", signature: `sig${i}` as never },
+            { type: "tool_call", callId: `c${i}`, name: "blob", input: { size: 2000 } },
+          ],
+          "anthropic-messages",
+        ),
+        { role: "tool", callId: `c${i}`, content: [{ type: "text", text: "y".repeat(2000) }], isError: false },
+      );
+    }
+    assert.equal(
+      maskMessages(messages, { keepChars: 500, stepMessages: 8 }, () => "x"),
+      messages,
+    );
+  });
+
+  test("a cut never leaves half of a surrogate pair", () => {
+    const text = `${"a".repeat(499)}😀${"b".repeat(1500)}`;
+    const messages: Message[] = [
+      { role: "user", content: [{ type: "text", text: "go" }] },
+      ...Array.from({ length: 9 }, (_, i): Message[] => [
+        assistant([{ type: "tool_call", callId: `c${i}`, name: "blob", input: {} }]),
+        { role: "tool", callId: `c${i}`, content: [{ type: "text", text }], isError: false },
+      ]).flat(),
+    ];
+    const view = maskMessages(messages, { keepChars: 500, stepMessages: 8 }, () => "x");
+    const first = toolTexts(view)[0] ?? "";
+    assert.ok(!/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(first));
+  });
+
+  test("the pointer for a call id a provider reused names that result's own spill", () => {
+    const messages: Message[] = [{ role: "user", content: [{ type: "text", text: "go" }] }];
+    for (let i = 0; i < 5; i++) {
+      messages.push(assistant([{ type: "tool_call", callId: "dup", name: "blob", input: {} }]), {
+        role: "tool",
+        callId: "dup",
+        content: [{ type: "text", text: `${i}`.repeat(2000) }],
+        isError: false,
+      });
+    }
+    const asked: number[] = [];
+    maskMessages(messages, { keepChars: 500, stepMessages: 2 }, (_id, occurrence) => {
+      asked.push(occurrence);
+      return `spill ${occurrence}`;
+    });
+    assert.deepEqual(asked, [0, 1, 2]);
+  });
+
+  test("in a tool loop with signed thinking, every request carries the loop's thinking whole", async () => {
     const thinking = (i: number) => ({
       content: [
         { type: "reasoning" as const, text: `thought ${i}`, signature: `sig${i}` as never },
         { type: "tool_call" as const, callId: `c${i}`, name: "blob", input: { size: 2000 } },
       ],
     });
-    const { adapter } = await runScripted([...Array.from({ length: 9 }, (_, i) => thinking(i)), done], policy());
+    const { adapter } = await runScripted([...Array.from({ length: 12 }, (_, i) => thinking(i)), done], policy());
     const signedIn = (messages: readonly Message[]) =>
-      messages.flatMap((m, i) =>
-        m.role === "assistant"
-          ? m.content.filter((b) => b.type === "reasoning" && b.signature !== undefined).map(() => i)
-          : [],
-      );
-    const requests = adapter.calls.map((c) => c.context.messages);
-    // Before the cutoff first moves, every signed block goes back as it came.
-    assert.equal(signedIn(requests[7] ?? []).length, 7);
-    // After it, only the blocks before the first masked result remain.
-    const last = requests.at(-1) ?? [];
-    const firstMasked = last.findIndex(
-      (m) => m.role === "tool" && m.content.some((b) => b.type === "text" && b.text.includes("masked")),
-    );
-    assert.ok(firstMasked > 0);
-    assert.ok(signedIn(last).every((index) => index < firstMasked));
+      messages.filter(
+        (m) => m.role === "assistant" && m.content.some((b) => b.type === "reasoning" && b.signature !== undefined),
+      ).length;
+    for (const [index, request] of adapter.calls.entries()) {
+      assert.equal(signedIn(request.context.messages), index, `request ${index}`);
+      assert.ok(toolTexts(request.context.messages).every((text) => text.length === 2000));
+    }
   });
 });
