@@ -25,7 +25,6 @@ const adapter: ModelAdapter = {
   provider: "scripted",
   defaultCaps: { contextWindow: 10_000, maxOutputTokens: 1_000, images: false, reasoning: false },
   async *stream(ref): AsyncGenerator<ModelEvent> {
-    // book:note one-method
     const block = { type: "text" as const, text: "Refunds take five days." };
     const cost = { total: null, basis: "unknown" as const, currency: "USD" as const };
     const message: AssistantMessage = {
@@ -36,7 +35,7 @@ const adapter: ModelAdapter = {
       usage: unreportedUsage(),
       cost,
     };
-    yield { type: "start" };
+    yield { type: "start" }; // book:note one-method
     yield { type: "text_start", index: 0 };
     yield { type: "text_delta", index: 0, delta: block.text };
     yield { type: "text_end", index: 0, block };

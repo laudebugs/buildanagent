@@ -597,7 +597,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T55](../todos/done/T55-book-transcript-usage-and-model-id.md) | Record token usage and the model id in the book's transcripts, at the mock layer and deterministically | T5 | M |
 | [T56](../todos/ready/T56-example-langchain-thread-owner.md) | Example: a LangChain server that refuses another user's thread with the same "not found" as a missing one | T5, T15 | S |
 | [T57](../todos/done/T57-chapter-events-and-hooks-on-our-sdk.md) | Add our own SDK to Chapter 10's hook, steering and event listings as tabs (BK8) | T19, B13, B16, B17, T50 | M |
-| [T58](../todos/ongoing/T58-chapter-the-model-gateway-on-our-packages.md) | Add our own gateway and SDK to Chapter 9's listings as tabs (BK8) | T18, B4, B5, B8, B9, T50, T51 | M |
+| [T58](../todos/done/T58-chapter-the-model-gateway-on-our-packages.md) | Add our own gateway and SDK to Chapter 9's listings as tabs (BK8) | T18, B4, B5, B8, B9, T50, T51 | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
