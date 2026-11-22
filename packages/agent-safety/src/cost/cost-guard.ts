@@ -64,12 +64,14 @@ export interface CostGuardOptions {
   readonly maxOutputTokens?: number;
   /**
    * The size of a file a request points at by URL or by provider reference, which holds none of its bytes: `{ bytes }`
-   * or `{ pages }`, or `undefined` when you don't know it. Bytes count as the base64 characters of the file, and
-   * each page as one image; the text a provider reads from a page isn't counted, so give bytes when you have them.
-   * A file that is not an image and has no usable size is refused with `unknown_price`, because the guard can't tell
-   * what it costs. A usable size is a whole number, up to 2 ** 32 bytes or 100,000 pages. A `fileSize` that throws gives no size. The guard remembers the
-   * sizes it was given, so a tool loop asks once for each file, not on every step. An image needs no size, because it
-   * counts at the largest per-image size a provider documents.
+   * or `{ pages }`, or `undefined` when you don't know it. Bytes count as the base64 characters of the file, and each
+   * page as one image; the text a provider reads from a page isn't counted, so give bytes when you have them. A usable
+   * size is a whole number, up to 2 ** 32 bytes or 100,000 pages. The guard remembers each size it was given, so a
+   * tool loop asks once for each file.
+   *
+   * A file that is not an image and has no usable size, one whose `fileSize` throws included, is refused with
+   * `unknown_price`, because the guard can't tell what it costs. An image needs no size, because it counts at the
+   * largest per-image size a provider documents.
    */
   readonly fileSize?: FileSizer;
   /** Called after each call the guard let through, once its cost is known. */
