@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N15` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N1](../done/N1-harness-workspace-scaffold.md) |
