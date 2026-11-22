@@ -1,7 +1,7 @@
 {
   "format": 2,
-  "example": "12-voice-pipeline",
-  "file": "verify/cloudflare-agents/examples/12-voice-pipeline.ts",
+  "example": "13-voice-pipeline",
+  "file": "verify/cloudflare-agents/examples/13-voice-pipeline.ts",
   "harness": "verify/cloudflare-agents",
   "pin": "agents@0.33.0",
   "mock": "ai@7.0.162",

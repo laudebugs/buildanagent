@@ -1,6 +1,6 @@
 # Fact-check: the Cloudflare voice pipeline example
 
-This log checks the claims that `verify/cloudflare-agents/examples/12-voice-pipeline.ts`, its header comment and its README section make on 2026-11-22 (todo T47), against the pinned `agents` 0.33.0 (`dist/voice/index.d.ts`, `dist/voice/index.js`, `dist/types-_Faxb570.d.ts`), the mirrored voice doc at the `agents` release tag and the run itself.
+This log checks the claims that `verify/cloudflare-agents/examples/13-voice-pipeline.ts`, its header comment and its README section make on 2026-11-22 (todo T47), against the pinned `agents` 0.33.0 (`dist/voice/index.d.ts`, `dist/voice/index.js`, `dist/types-_Faxb570.d.ts`), the mirrored voice doc at the `agents` release tag and the run itself.
 
 Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
 

@@ -71,7 +71,7 @@ The book's build and `check:book` in the CI `book` job.
 
 - U20 judged that the topic fits one section, and the owner agreed on 2026-11-19, so the risk that it needs a chapter is closed.
 - T46's approval check and all of T47 were untested when this scope was set. If either records a limit, teach that behaviour from the SDK's docs and say so.
-- T47's example is `verify/cloudflare-agents/examples/12-voice-pipeline.ts`, with regions `voice-agent`, `book:note` markers `hold`, `signal` and `stream`, and a transcript. It ran in local workerd with fake speech stages; Workers AI's speech models have no local simulation, and `agents/voice` is experimental at 0.33.0 as of November 2026. In our harness, audio frames reached the client as `Blob`s until it set `binaryType = "arraybuffer"`; this is not checked against workerd's source.
+- T47's example is `verify/cloudflare-agents/examples/13-voice-pipeline.ts`, with regions `voice-agent`, `book:note` markers `hold`, `signal` and `stream`, and a transcript. It ran in local workerd with fake speech stages; Workers AI's speech models have no local simulation, and `agents/voice` is experimental at 0.33.0 as of November 2026. In our harness, audio frames reached the client as `Blob`s until it set `binaryType = "arraybuffer"`; this is not checked against workerd's source.
 
 ## Definition of done
 
