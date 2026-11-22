@@ -70,27 +70,45 @@ export function readPurgeMarks(files: MemoryFiles): Promise<PurgeMark[]> {
   return readJson<PurgeMark[]>(files, PURGE_FILE, [], (value) => Array.isArray(value) && value.every(isMark));
 }
 
-/** Removes `marks` from the purge list, once the purges have removed their entries from every session that held them. */
-export async function clearPurgeMarks(files: MemoryFiles, marks: readonly PurgeMark[]): Promise<void> {
-  const held = await readPurgeMarks(files);
-  const left = held.filter((mark) => !marks.some((done) => sameMark(done, mark)));
-  if (left.length !== held.length) await files.write(PURGE_FILE, JSON.stringify(left));
+// One queue per file store, shared by every `RecordStore` over it and by `clearPurgeMarks()`, so a clear never
+// interleaves its read and write of the purge list with a delete that adds to it.
+const queues = new WeakMap<MemoryFiles, Promise<unknown>>();
+
+/** Runs `task` after every task queued on `files` before it, whether they succeeded or not. */
+function exclusiveOn<T>(files: MemoryFiles, task: () => Promise<T>): Promise<T> {
+  const run = (queues.get(files) ?? Promise.resolve()).then(task, task);
+  queues.set(
+    files,
+    run.catch(() => undefined),
+  );
+  return run;
+}
+
+/**
+ * Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session
+ * that held them. It waits for the memory calls of any extension in this process over the same `files` object, so a
+ * delete that runs meanwhile keeps the marks it adds; `fileMemoryFiles()` gives one object per root. Nothing
+ * coordinates two processes, so run it where no session over the same folder is running in another process.
+ */
+export function clearPurgeMarks(files: MemoryFiles, marks: readonly PurgeMark[]): Promise<void> {
+  return exclusiveOn(files, async () => {
+    const held = await readPurgeMarks(files);
+    const left = held.filter((mark) => !marks.some((done) => sameMark(done, mark)));
+    if (left.length !== held.length) await files.write(PURGE_FILE, JSON.stringify(left));
+  });
 }
 
 /** The records of one memory folder, with the calls that touched them. */
 export class RecordStore {
   readonly files: MemoryFiles;
-  #queue: Promise<unknown> = Promise.resolve();
 
   constructor(files: MemoryFiles) {
     this.files = files;
   }
 
-  /** Runs `task` after every task queued before it, whether they succeeded or not. */
+  /** Runs `task` after every task queued on the same file store before it, whether they succeeded or not. */
   exclusive<T>(task: () => Promise<T>): Promise<T> {
-    const run = this.#queue.then(task, task);
-    this.#queue = run.catch(() => undefined);
-    return run;
+    return exclusiveOn(this.files, task);
   }
 
   /** The record files: names under the folder that the tool may name and that end in `.md`. */

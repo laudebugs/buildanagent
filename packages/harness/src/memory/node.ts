@@ -137,6 +137,7 @@ async function writeNoFollow(path: string, text: string): Promise<void> {
  * opened without following links, and is renamed over it. A record longer than `MEMORY_RECORD_MAX_BYTES` is not read.
  * The walk and the open are two steps, so a link swapped in between them by another process is not caught: the check
  * is against the model's mistakes and against links already in a cloned project, not against a process racing it.
+ * Every call with the same `root` returns the same object, so `clearPurgeMarks()` waits for the extension's calls.
  * Throws a `HarnessError` with code `memory_path_refused` for a link, a name that is not a memory name or a file that
  * is too long, and with code `invalid_memory_options` for a `root` that is not absolute.
  */
@@ -144,6 +145,18 @@ export function fileMemoryFiles(root: string): MemoryFiles {
   if (typeof root !== "string" || !isAbsolute(root)) {
     throw new HarnessError("invalid_memory_options", "fileMemoryFiles() needs an absolute project root");
   }
+  // One object per root, so the extension and a later `clearPurgeMarks()` share the queue that keeps their writes of
+  // the purge list apart.
+  const held = stores.get(root);
+  if (held !== undefined) return held;
+  const files = diskFiles(root);
+  stores.set(root, files);
+  return files;
+}
+
+const stores = new Map<string, MemoryFiles>();
+
+function diskFiles(root: string): MemoryFiles {
   return {
     async list() {
       const dir = await walk(root, [], false);
