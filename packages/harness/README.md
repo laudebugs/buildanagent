@@ -57,12 +57,12 @@ Bad input is an error, not a result. A working directory that isn't an existing 
 
 `srtSandbox()` from `./sandbox/srt` runs each command under `srt`, Anthropic's sandbox runtime. It pins `@anthropic-ai/sandbox-runtime` 0.0.83 under the Apache-2.0 license. The package calls itself a "Beta Research Preview", and says its APIs and configuration formats may evolve (as of November 2026). `provision()` writes the settings file, so `./sandbox/srt` is the one place that knows that format.
 
-The backend claims `mistakes` and `exfiltration` on Linux and nowhere else, because Linux is the only platform it is tested on. It needs `bwrap` (bubblewrap) and `socat` on the `PATH`. `provision()` starts `srt` once with a command that does nothing, so a missing program, an unsupported platform or a host where `srt` can't start a command throws `SandboxUnavailableError` and runs nothing.
+The backend claims `mistakes` and `exfiltration` on Linux and nowhere else, because Linux is the only platform it is tested on. It needs `bwrap` (bubblewrap) and `socat` on the `PATH`. `provision()` starts `srt` once with a command that does nothing. A missing program, an unsupported platform or a host where `srt` can't start a command therefore throws `SandboxUnavailableError`, and nothing runs.
 
 The policy maps to `srt`'s settings like this:
 
 - **Reads.** `srt` denies every read, then allows the read roots, the write roots, the system folders a program needs to start (`/usr`, `/bin`, `/lib`, `/etc` and a few more) and `srt`'s own helper folders. Anything else, such as `/home`, is out of reach. `extraReadRoots` adds folders, such as a toolchain's.
-- **Writes.** Only the write roots are writable. `denyWrite` keeps a folder read-only inside a write root, which is how the session's own log folder stays out of the agent's reach.
+- **Writes.** Only the write roots are writable. `denyWrite` keeps a folder read-only inside a write root, which is how the session's own log folder stays out of the agent's reach. `writeFile` refuses the same folders, and the files `srt` protects, such as `.bashrc`, `.claude` and `.git/hooks`.
 - **Network.** The command has no network of its own. Its traffic goes through a proxy that allows only the policy's hosts. `parentProxy` sends allowed traffic through an upstream proxy for a host that sits behind one.
 
 Every path is passed as a literal, so a folder named like a pattern is never read as one. The settings file and a run folder for `srt`'s proxy sockets live in a private folder that `dispose()` removes. A command can read the run folder and nothing else in it, so it can't read the settings file, which may hold a proxy address.
@@ -73,8 +73,8 @@ Four limits are worth knowing:
 
 - **Shared kernel.** The sandbox is a set of Linux namespaces, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
 - **No TLS inspection.** The proxy allows or refuses a host by name and does not read what a command sends it.
-- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path, so a symlink that leads out is refused, and they check the opened file again through `/proc`. `writeFile` also refuses what the sandbox keeps read-only: a `denyWrite` folder and the files `srt` protects, such as `.bashrc`, `.claude` and `.git/hooks`. A hostile process could still win a race. They don't run under `srt`, because two `srt` processes in one workspace can disturb each other: each makes and removes empty protected files there, such as `.bashrc` and `.claude`. Commands that run at the same time in one workspace share that risk.
-- **A kill leaves nothing behind only if `srt` can clean up.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
+- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path, so a symlink that leads out is refused. They check the opened file again through `/proc`, though a hostile process could still win that race. They don't run under `srt`, because two `srt` processes in one workspace can disturb each other: each makes and removes empty protected files there. Commands that run at the same time in one workspace share that risk.
+- **Cleanup depends on `srt`.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
 
 `pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the escape cases against the real `srt`. It is opt-in because it starts bubblewrap, and it fails on a skipped case instead of skipping. Without `srt`, the rest of `pnpm test` checks the settings and the unavailable paths.
 
