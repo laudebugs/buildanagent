@@ -1,10 +1,10 @@
-// A subagent as a tool: the orchestrator calls a research agent through `agent.asTool()`, and the research agent
-// reads its sources in a nested run. The orchestrator gets back only the summary, as the tool call's output. Each
-// run's model responses carry its own token usage, and the orchestrator's run usage adds the subagent's tokens to its
-// own. The nested run shares the orchestrator's run context, so the subagent's `state.usage` is that shared running
-// total, not the subagent's own count. The scripted token counts are chosen to show the multiplier; they are not
-// measurements.
-// Docs: guides/tools.mdx "Agents as tools", guides/agents.mdx, guides/results.mdx
+// A subagent as a tool: the orchestrator calls a research subagent through `agent.asTool()`, and the subagent reads
+// its sources in a nested run of its own. Its tool calls and the source text stay in that run, so the orchestrator
+// receives only the subagent's summary, as the tool call's output. Each run's model responses report that run's own
+// tokens, and the orchestrator's run usage adds the subagent's tokens to its own. Because the nested run shares the
+// orchestrator's run context, the subagent's `state.usage` holds that shared running total rather than its own count.
+// The token counts are scripted to show the cost a subagent adds; no model measured them.
+// Docs: guides/tools.mdx "Agents as tools", guides/context.mdx, guides/results.mdx "Usage"
 import { Agent, type ModelResponse, tool, Usage } from "@openai/agents";
 import { assistantMessage, functionCall, modelResponse, ScriptedModel } from "@openai/agents/testing";
 import { z } from "zod";
