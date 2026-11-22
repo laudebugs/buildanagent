@@ -161,9 +161,9 @@ The table's cells were checked against the two SDK notes' file and line citation
 
 | # | Where | Claim | Source checked | Verdict |
 | --- | --- | --- | --- | --- |
-| 99 | Teach ¶1 | T38 asks whether the topic "needs a chapter after all" | [T38](../../todos/ready/T38-section-voice-and-realtime.md), Risks | ✅ "The research may show the topic needs a chapter after all; if so, propose it to the owner" |
+| 99 | Teach ¶1 | T38 asks whether the topic "needs a chapter after all" | [T38](../../todos/done/T38-section-voice-and-realtime.md), Risks | ✅ "The research may show the topic needs a chapter after all; if so, propose it to the owner" |
 | 100 | Teach ¶1 | The evidence fits one section; the four teaching points and their numbers | Rows 3, 22, 24, 37, 44–45, 5 | ⚠️ (inferred) The scope judgement is ours, and the report labels it so (row 125). Each number repeats a checked row: 208 ms (3), 500 ms (22), 2.7 s to 1.5 s (24), `audio_end_ms` (37), 0.23 s and 93% (44, 45), 85% against 31–51% (5) |
-| 101 | Teach ¶2 | T38's planned analogy and break note, quoted | [T38](../../todos/ready/T38-section-voice-and-realtime.md), Analogy | ✅ Both quoted verbatim |
+| 101 | Teach ¶2 | T38's planned analogy and break note, quoted | [T38](../../todos/done/T38-section-voice-and-realtime.md), Analogy | ✅ Both quoted verbatim |
 | 102 | Teach ¶2 | Overlap occurs in "over 40% of turns" of natural dialogue | [arXiv 2507.23159v4](https://arxiv.org/abs/2507.23159), introduction | ✏️ The draft said FDB v1.5 "counts" the overlap; the paper cites three earlier studies for it. **Now:** "the Full-Duplex-Bench v1.5 authors, citing earlier studies, put overlap at" |
 | 103 | Teach ¶2 | Gemini cancels pending calls while GPT-Live keeps backend work running | Rows 39 and 41 | ✅ Repeats checked rows |
 | 104 | Teach ¶2 | The proposed break-note wording | Rows 36–43 | ⚠️ (design) Our wording, proposed to the owner as change 3; the report labels it as our proposal (row 128) |
