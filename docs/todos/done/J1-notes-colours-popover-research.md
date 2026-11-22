@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `J1` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan BK24](../../plans/build-book.md#bk24-a-readers-notes-stay-in-their-browser-proposed) |
 | Round / milestone | Round T (textbook), notes follow-up |
 | Depends on | None |
@@ -35,21 +35,21 @@ Decide how the notes script draws four highlight colours, opens a popover on a c
 
 ## Tasks
 
-- [ ] Research how to draw several named highlights with the CSS Custom Highlight API, how to hit-test a click on a highlight, and how to draw a note marker that does not depend on the highlight's underline.
-- [ ] Compare what "share" can mean on a static site with local-only notes, recommend one, and state what leaves the browser.
-- [ ] Specify the stored value's migration: existing notes without a colour, and a value written by a newer version is never overwritten.
-- [ ] Specify the accessibility behaviour and the contrast numbers for four colours in both themes.
-- [ ] Fact-check every browser-support claim as of November 2026 against MDN, caniuse or the specification.
-- [ ] Update BK24 in the book plan.
+- [x] Research how to draw several named highlights with the CSS Custom Highlight API, how to hit-test a click on a highlight, and how to draw a note marker that does not depend on the highlight's underline.
+- [x] Compare what "share" can mean on a static site with local-only notes, recommend one, and state what leaves the browser.
+- [x] Specify the stored value's migration: existing notes without a colour, and a value written by a newer version is never overwritten.
+- [x] Specify the accessibility behaviour and the contrast numbers for four colours in both themes.
+- [x] Fact-check every browser-support claim as of November 2026 against MDN, caniuse or the specification.
+- [x] Update BK24 in the book plan.
 - [ ] Run `/anthropic-skills:writing-review` on the report and the pull request description.
 
 ## Acceptance criteria
 
-- [ ] The report recommends one design for colours, the popover, the note marker and share, and each recommendation cites a source
-- [ ] Every browser-support claim carries "as of November 2026" and a ✅, ✏️ or ⚠️ row in the fact-check file
-- [ ] The report says what leaves the browser: nothing
-- [ ] BK24 in the book plan matches the report
-- [ ] `pnpm check` and `pnpm test` pass
+- [x] The report recommends one design for colours, the popover, the note marker and share, and each recommendation cites a source
+- [x] Every browser-support claim carries "as of November 2026" and a ✅, ✏️ or ⚠️ row in the fact-check file
+- [x] The report says what leaves the browser: nothing
+- [x] BK24 in the book plan matches the report
+- [x] `pnpm check` and `pnpm test` pass
 
 ## Tests
 
@@ -66,9 +66,9 @@ The book plan's BK24.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Report drafted with `/anthropic-skills:writing`, and every claim fact-checked against its source
-- [ ] `pnpm check` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit
+- [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
+- [x] Report drafted with `/anthropic-skills:writing`, and every claim fact-checked against its source
+- [x] `pnpm check` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained
 - [ ] Copy reviewed with `/anthropic-skills:writing-review`, with its findings fixed and the rubric scores in the pull request description

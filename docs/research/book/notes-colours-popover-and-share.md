@@ -1,0 +1,69 @@
+# The book's notes need one highlight name per colour, a marker drawn outside the text and a copied link for sharing
+
+The book's highlights and notes can take four colours, a popover and a visible note marker without changing a chapter's markup or sending anything anywhere. This report recommends one design for each of the owner's three requests and for "share", and it gives the numbers the implementation (todo J2) must meet. Browser support is stated as of November 2026, from MDN's compatibility data and the specifications; the fact-check file [fact-check-notes-colours-popover-and-share.md](fact-check-notes-colours-popover-and-share.md) logs every claim.
+
+## The recommendations in one table
+
+| Question | Recommendation | Why |
+| --- | --- | --- |
+| Colours | Four: amber (today's), green, blue and pink. Each colour has two `::highlight()` names, one for a plain highlight and one for a noted one, so every range carries one name | The specification advises one name per highlight, because styles from several names stack in an order the author cannot control |
+| Finding the highlight under a click | Test the click's point against `Range.getClientRects()` of each stored range, and take the shortest quote on a tie | It works in every browser that runs the notes script, and it is the test the specification itself uses for `highlightsFromPoint()`, which Safari may not ship yet |
+| The note marker | A small marker element, drawn outside the chapter's text at the end of the range's last line box, plus a dashed underline from the highlight where the browser draws one | Firefox 140 to 145 draws no underline from a highlight, and a marker inside the article would change the text the script searches |
+| The popover | A native `popover` element with the colour buttons, Share and Remove. The notes panel offers the same actions, and it is the keyboard and screen-reader path | The Popover API gives light dismiss and Escape for free, and a highlight cannot take focus |
+| Share | One Share button that copies the quote and a text-fragment link to the clipboard. The note is never included | Web Share is behind a flag in desktop Firefox, and the book keeps notes private |
+| Stored value | Version 2 adds a `color` to each highlight. The script reads version 1 as amber, writes version 2 only on the first change, and refuses any version it does not know | An older copy of the script drops fields it does not know, but it refuses a version it cannot read |
+
+## Four colours need eight highlight names and three new tokens
+
+The CSS Custom Highlight API draws each name in the registry with the styles of its `::highlight()` rule. A range can sit in several highlights, but the specification warns that doing so gives it several sets of styles "without a way to control the stacking order of conflicting styles", and advises one name per highlight ([CSS Custom Highlight API Module Level 1](https://drafts.csswg.org/css-highlight-api-1/)). The notes script therefore registers eight names, `manual-hl-amber` to `manual-hl-pink` for plain highlights and `manual-note-amber` to `manual-note-pink` for noted ones. A noted highlight's rule adds a dashed `text-decoration` in the accent colour to its background. Where two highlights overlap, the one with the higher `priority` paints on top, and equal priorities fall back to the order of registration ([CSS Custom Highlight API Module Level 1](https://drafts.csswg.org/css-highlight-api-1/)). The script sets `priority` to 1 for noted names and 0 for plain ones, and registers the colours in one fixed order.
+
+The tokens file keeps `highlight` as the amber and adds three values beside it, in both modes. The table below lists them with their measured contrast. A highlight draws its text in `--color-text`, which must reach 4.5:1 on the colour, and its accent underline and marker must reach 3:1 (WCAG 1.4.11) ([WCAG 2.2 SC 1.4.11](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)). The numbers below come from the WCAG formula, and amber's agree with the values already in the tokens file.
+
+| Colour | Light value | Text on it | Accent on it | Dark value | Text on it | Accent on it |
+| --- | --- | --- | --- | --- | --- | --- |
+| Amber | `#F5DF9E` | 12.30 | 4.02 | `#4F3B1C` | 8.94 | 5.01 |
+| Green | `#CFE3B4` | 11.81 | 3.86 | `#34472B` | 8.48 | 4.75 |
+| Blue | `#BFDCEF` | 11.34 | 3.70 | `#2B4559` | 8.41 | 4.71 |
+| Pink | `#F4C9D2` | 10.91 | 3.56 | `#5C3441` | 8.73 | 4.89 |
+
+Every colour stays below 1.7:1 against its page, so the background is decoration and the underline and marker carry the meaning, as BK24 already says for the single colour. Pale colours of one lightness sit close together for a reader with a colour-vision deficiency. Simulated with Machado's matrices, the closest pairs are amber and pink in light mode under tritanopia (ΔE 8.5) and amber and green in dark mode under protanopia (ΔE 6.4). The reader chooses the colour as a personal label, so the book never relies on it alone (WCAG 1.4.1) ([WCAG 2.2 SC 1.4.1](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html)): the popover and the panel name each colour in text, and a swatch alone is never the only cue.
+
+## A click finds its highlight by testing the range's rectangles
+
+Custom highlights have no events: the specification's section on them is still marked "TBD" ([CSS Custom Highlight API Module Level 1](https://drafts.csswg.org/css-highlight-api-1/)). Three ways to find the highlight under a click exist. `HighlightRegistry.highlightsFromPoint()` returns the hits directly, but MDN lists it from Chrome 140, Firefox 150 and Safari 27.3, and the Safari release is not one this report could confirm. `caretPositionFromPoint()` returns a caret position to compare with each range, but Safari has it only from 26.2 and Firefox has `caretRangeFromPoint()` only from 150. The third is `Range.getClientRects()`, in every engine since Chrome 4, Firefox 4 and Safari 5, and the specification defines `highlightsFromPoint()` as exactly this test: a point hits a range when it falls inside one of the range's rectangles ([CSS Custom Highlight API Module Level 1 §6](https://drafts.csswg.org/css-highlight-api-1/); [MDN browser-compat-data](https://github.com/mdn/browser-compat-data)).
+
+The script therefore tests rectangles. On a `click` inside the article it does nothing when the selection is not collapsed (a drag selects text) or when the target is a link, button or form control, so a link inside a highlight still follows its link and its actions stay in the panel. Otherwise it tests the point, with two pixels of slack, against every stored range and every note marker, and opens the popover for the match with the shortest quote. A check in Chromium 157 confirmed the rectangle test and `highlightsFromPoint()` agree on a highlight's hit. A tap on a phone arrives as a `click` with the same coordinates.
+
+## A note's marker is a drawn element outside the chapter's text
+
+BK24 records that Firefox 140 to 145 draws a highlight's background but no underline, so a noted highlight looks like a plain one there. MDN's data says why: `text-decoration` in `::highlight()` arrives in Firefox 146 and `text-shadow` in 149 ([MDN browser-compat-data](https://github.com/mdn/browser-compat-data)). Three other drawings were considered. An element inside the article would change the text the script indexes, the clipboard text and the search index. CSS anchor positioning needs an element to anchor to, and a highlight is only a range. A second background colour for notes was rejected in BK24 and adds two tokens for nothing.
+
+The marker is therefore its own element. The script keeps one container, marked `data-pagefind-ignore`, as the last child of `body`, outside the article and out of the print stylesheet. It holds one `span` per noted highlight, placed with `position: absolute` at the end of the range's last client rectangle, in document coordinates: `left` is the rectangle's right edge plus the horizontal scroll, `top` its top edge plus the vertical scroll, with the span's glyph about 16 pixels wide inside a 24 by 24 pixel hit area (WCAG 2.5.8) ([WCAG 2.2 SC 2.5.8](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)). The glyph is an outline in `--color-accent` on the page colour, so it reaches the accent's 4.8:1 on the page whichever colour sits under it. The script sets `left` and `top` through the element's style object. The book's content security policy forbids a `style` attribute but allows that, which Chromium 157 confirmed with a policy of `style-src 'self'`. It recomputes every position when the article's size changes (a `ResizeObserver`, in all browsers since Chrome 64, Firefox 69 and Safari 13.1), when fonts finish loading and whenever it redraws the highlights. The marker is `aria-hidden`, since the panel lists the same note for assistive technology.
+
+## The popover is native, and the panel stays the keyboard path
+
+The `popover` attribute is in Chrome 114, Firefox 125 and Safari 17 ([MDN browser-compat-data](https://github.com/mdn/browser-compat-data)). A `popover="auto"` element dismisses on a click outside and on Escape, and Chromium 157 confirmed both. The popover holds four colour buttons with `aria-pressed`, a Share button and a Remove button, each at least 44 pixels high on touch screens, above WCAG's 24-pixel minimum. The script places it with its style object under the same content security policy, next to the highlight's first line, and moves focus to the first button when it opens.
+
+A highlight cannot take focus, so the keyboard and screen-reader path stays the notes panel. Each row there gains the same colour buttons and Share, beside the Edit note and Delete it has today, and both surfaces call one function per action, so they cannot drift. The popover is the pointer's shortcut to those actions.
+
+## Share copies a quote and a link, and nothing leaves the browser
+
+| Candidate | What it does | Verdict |
+| --- | --- | --- |
+| Copy a text-fragment link | Copies a URL ending `#<section>:~:text=…` that scrolls to the passage | Recommended, as part of one block |
+| Web Share API | Opens the device's share sheet with the text and URL | Rejected for now: desktop Firefox keeps it behind `dom.webshare.enabled`, and it needs a secure context and a fresh user action |
+| Copy the passage and note as Markdown | Copies a Markdown quotation and the note | The panel's export already does it for a whole chapter; a share must not carry a private note |
+
+Share writes one block of plain text to the clipboard with `navigator.clipboard.writeText()`, in every browser since Chrome 66, Firefox 63 and Safari 13.1 and in secure contexts only: the passage in quotation marks, the chapter's title, and the link. The link is the page's address followed by the section heading's id and then the text directive, so a browser without text-fragment support lands on the right section. Text fragments work in Chrome 80, Firefox 131 and Safari 16.1 and only on a navigation the user started. The directive carries the quote percent-encoded, with `-`, `&` and `,` encoded too. A passage of 120 characters or fewer, inside one block, goes in whole. A longer or multi-block passage takes the `start,end` form with about 40 characters each, cut at word boundaries, because each term must sit inside one block-level element while the whole match may span several. The stored prefix and suffix join as `prefix-` and `-suffix` when the quote occurs more than once in the chapter. If the clipboard call fails, the script shows the block in a read-only field with its text selected, as the export already does.
+
+Nothing leaves the browser. The script sends no request, and the clipboard text goes anywhere only when the reader pastes it. A URL fragment is never sent to a server, so a pasted link does not reveal the passage to the book's Worker either ([MDN, URI fragment](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Fragment)).
+
+## The stored value moves to version 2 on the first change
+
+Today's script reads only `"v":1`, rebuilds each highlight from the fields it knows, and treats any other version as a value it must not overwrite. Adding an optional `color` to version 1 would therefore be lost the next time an older copy of the script, still cached in an open tab, saved. Version 2 avoids that. An older script sees `"v":2`, calls it unreadable and refuses to write, which is the behaviour BK24 asks for. The new script reads version 1 with every highlight as amber and changes no bytes on load, so a reader who only reads leaves the stored value as it was. The first colour change, note, highlight or removal writes version 2. A `color` the script does not know, written by a later version, is kept as stored and drawn as amber until the reader picks a colour. A version above 2 is refused as today, and the panel exports it as stored.
+
+## What J2 must show
+
+J2 passes when the Vitest tests in a DOM environment cover the colour migration, the unknown colour and the refused version, and a Playwright run in the pre-installed Chromium shows a click opening the popover, a colour change, Remove, and a Share that writes the block to the clipboard and loads a link that scrolls to its passage. The pull request carries screenshots of a noted highlight and its marker at a desktop width and a phone width, at a device scale factor of 2. The script makes no network call.
+
+Two risks remain. A passage that crosses a block may not match through a text fragment, and the fallback is the section heading. Where two highlights overlap, the one with the higher priority hides the other's colour, and the panel still lists both.
