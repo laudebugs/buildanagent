@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N10` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 2](../../plans/build-harness.md#42-stage-2-adds-the-five-context-layers-cheapest-first) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N9](N9-summary-layer.md), [N7](../done/N7-rebuild-resume-replay.md) |

@@ -718,7 +718,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N8](../todos/done/N8-write-cap-masking.md) | Layers 1 and 2: write cap with spill, and stepped masking | N6 | M |
 | [N9](../todos/done/N9-summary-layer.md) | Layer 3: recall-first summary between turns, with hooks and a focus hint | N8, B5, B14 | M |
-| [N10](../todos/ready/N10-mid-turn-overflow.md) | Layers 4 and 5: mid-turn compaction and the overflow retry | N9, N7 | M |
+| [N10](../todos/ongoing/N10-mid-turn-overflow.md) | Layers 4 and 5: mid-turn compaction and the overflow retry | N9, N7 | M |
 
 ### 4.3 Stage 3 adds the registry, the permission pipeline, signed approvals and code-initiated calls
 
