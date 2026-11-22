@@ -117,6 +117,22 @@ The claims log for [`choosing-the-shape.md`](../src/content/chapters/choosing-th
 | 86 | The example's two sources are surveys of teams, the 2024 survey with 61% and the 2025 follow-up with 74% logging every tool call | § Opening | ✅ | `12-subagent-as-tool.ts`, the `SOURCES` table and `SUMMARY` |
 | 87 | The figure shows a lead and two reading rooms, each with a researcher and two sources, a question arrow in and a summary arrow out | § Opening | ✅ | `apps/manual/figures/choosing-the-shape/reading-rooms.ts`, drawn by the kit; the figure is illustrative, and the example has one researcher and two sources |
 
+## Our SDK's tabs
+
+Checked on 2026-11-22 against `@buildanagent/sdk` 0.1.0-alpha.26 in this repository: `packages/sdk/README.md`, `packages/sdk/src/` and the examples under `packages/sdk/examples/`. The package is alpha, so each row names the file it reads.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 97 | In our SDK two `complete()` calls in order are the whole writer-then-reviewer workflow, and the code carries the draft in a variable from one to the other | § Code, a classifier or the model | ✅ | `packages/sdk/examples/02-workflow.ts`, region `sequential`: two `model.complete()` calls, the second with the first's text in its system prompt; its checks confirm the order and the pasted draft. Row 53 covers ADK's state key |
+| 98 | Our SDK's router tab is an ordinary conditional that calls a plain function for a digit and a run, one model call, for any other input; the same input takes the same branch every time | § Code, a classifier or the model | ✅ | `packages/sdk/examples/11-route-by-code.ts`, region `routing`, and its checks: the digit input made no model call, the other made one, and a repeat of the digit input took the digit branch. The absence of a router class is row 104 |
+| 99 | Our SDK has no handoff: no `handoffs` option and no transfer tool | § Code, a classifier or the model | ⚠️ | An absence, as of alpha.26: `grep -ri handoff` over `packages/sdk/src`, `packages/gateway/src` and `packages/sdk/README.md` finds nothing. Marked as ours in the text, and the neighbouring claim that building one takes a stop on a transfer tool and a second run is our reasoning from `shouldStop`, `outputTool()` and `run()` in the README |
+| 100 | In our SDK a tool's `execute` starts a nested `run()`, and `nestedRunDepth(ctx)` counts the child as one level down | § A subagent keeps its reading out | ✅ | `packages/sdk/README.md`, "`depth` and `maxDepth` stop a tree of agents", which shows this tool; `packages/sdk/src/run.ts`, `nestedRunDepth`, returns `depth: ctx.depth + 1`, `maxDepth` and `parentRun`. The absence of `asTool()` is row 105 |
+| 101 | In our SDK each run's `result.usage` covers only its own model calls, a parent's `budgetUsd` counts only the parent's own calls, and the README advises giving each child a budget of its own, and our example leaves it out | § A subagent keeps its reading out | ✅ | `packages/sdk/src/result.ts`, `ResultBase.usage`: "The tokens of every model call, summed", per run; the README's depth section: "The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own", whose example sets `budgetUsd: 0.5` on the child run. The `subagent` region of `12-subagent-as-tool.ts` sets none: a budgeted run needs a priced model, and the scripted one has no price, so a `budgetUsd` there ended the child run in an error (tried 2026-11-22), so the text says the README advises it and the example leaves it out. The example's checks confirm 800 tokens for the orchestrator and 2,400 for the subagent |
+| 102 | Both examples print `orchestrator 800, subagent 2400, run 3200 tokens`, and the totals are scripted | § A subagent keeps its reading out | ✅ | `packages/sdk/examples/12-subagent-as-tool.ts` scripts the counts through `answer()` (300+20, 800+20, 1200+60 for the subagent; 300+40, 380+80 for the orchestrator) and checks the 4x total; `verify/openai-agents-sdk/examples/12-subagent-as-tool.ts` prints the same line (row 75) |
+| 103 | In our subagent example only the summary string enters the orchestrator's request, and neither the subagent's tool calls nor the sources it read do | § A subagent keeps its reading out | ✅ | `12-subagent-as-tool.ts`'s checks on the orchestrator's second request, and on the subagent's third request, which holds both sources. Mechanism as in row 70 for OpenAI's version |
+| 104 | `packages/sdk/src/index.ts` exports no router | § Code, a classifier or the model | ⚠️ | An absence, as of alpha.26: reading the exports of `packages/sdk/src/index.ts` finds no router. Split from row 98 |
+| 105 | No `asTool` appears in `packages/sdk/src` | § A subagent keeps its reading out | ⚠️ | An absence, as of alpha.26: `grep -ri astool packages/sdk/src` finds nothing. Split from row 100 |
+
 ## Exercises
 
 | # | Claim | Where | Verdict | Source and reason |
@@ -135,7 +151,7 @@ The claims log for [`choosing-the-shape.md`](../src/content/chapters/choosing-th
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 79 |
+| ✅ confirmed | 85 |
 | ✏️ corrected | 1 (rows 22) |
-| ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 16 |
-| Total | 96 |
+| ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 19 |
+| Total | 105 |
