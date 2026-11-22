@@ -231,7 +231,8 @@ describe("the dispatcher", () => {
     assert.deepEqual(await client.request("turn/interrupt", { session }), { interrupted: true });
     await settled(seen);
     const settledMessage = seen.find((m) => "method" in m && m.method === "turn/settled");
-    assert.ok(settledMessage !== undefined);
+    assert.ok(settledMessage !== undefined && "method" in settledMessage && settledMessage.method === "turn/settled");
+    assert.equal(settledMessage.params.result.stopReason, "aborted");
   });
 
   test("a client that did not open a session cannot drive it, and a closed dispatcher refuses new turns", async () => {

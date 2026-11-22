@@ -310,10 +310,9 @@ class HarnessDispatcher<H> implements Dispatcher {
   ): Promise<ClientResultMap["session/open"]> {
     const id = params.session ?? "";
     // A session this dispatcher created has no file until its first turn, but a second client may still open it.
-    const created = this.#opened.has(id);
-    if (id === "" || !(created || (await this.#exists(id))))
+    const exists = id !== "" && (await this.#exists(id));
+    if (id === "" || !(exists || this.#opened.has(id)))
       throw failure(ErrorCodes.InvalidParams, `no session ${JSON.stringify(id)}`);
-    const exists = await this.#exists(id);
     const reader = exists
       ? await openSession({ store: this.#options.store, index: this.#options.index, key: this.key(id) })
       : undefined;
@@ -517,8 +516,9 @@ class HarnessDispatcher<H> implements Dispatcher {
     opened: Opened,
   ): Promise<ClientResultMap["session/fork"]> {
     const { session, entryId } = command.params;
+    // A checkout is announced under its own session; a fork's entries belong to the new session, nobody watches yet.
     const handle = await openSession({
-      store: this.#options.store,
+      store: command.method === "session/checkout" ? this.#storeFor(session) : this.#options.store,
       index: this.#options.index,
       lock: this.#options.lock,
       key: this.key(session),
@@ -535,10 +535,11 @@ class HarnessDispatcher<H> implements Dispatcher {
         connection.watch(id);
         return { session: id, head: forked.head() as string };
       } finally {
-        await forked.close();
+        // The change has landed; a lock that will not release must not turn it into an error.
+        await forked.close().catch(() => undefined);
       }
     } finally {
-      await handle.close();
+      await handle.close().catch(() => undefined);
     }
   }
 }
