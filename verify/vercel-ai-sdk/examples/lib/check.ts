@@ -8,8 +8,8 @@ import "./transcript.ts";
 
 // #region check
 export function check(cond: unknown, msg: string): asserts cond {
-  if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
-  console.log(`ok - ${msg}`);
+  if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`); // book:note fail
+  console.log(`ok - ${msg}`); // book:note ok
 }
 // #endregion
 

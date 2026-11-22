@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 35,
+      "line": 37,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -28,7 +28,7 @@
     },
     {
       "kind": "response",
-      "line": 35,
+      "line": 37,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -54,19 +54,19 @@
     },
     {
       "kind": "check",
-      "line": 37,
+      "line": 39,
       "message": "approve: the run interrupts with the execute_sql action request",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 40,
       "message": "approve: the tool has not run before the decision",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 39,
+      "line": 41,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -120,7 +120,7 @@
     },
     {
       "kind": "response",
-      "line": 39,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -135,19 +135,19 @@
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 48,
       "message": "approve: the tool runs exactly once after resuming",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 47,
+      "line": 49,
       "message": "approve: the model then answers",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 35,
+      "line": 37,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -170,7 +170,7 @@
     },
     {
       "kind": "response",
-      "line": 35,
+      "line": 37,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -196,19 +196,19 @@
     },
     {
       "kind": "check",
-      "line": 37,
+      "line": 39,
       "message": "reject: the run interrupts with the execute_sql action request",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 40,
       "message": "reject: the tool has not run before the decision",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 39,
+      "line": 41,
       "model": "model-2",
       "repeated": 2,
       "messages": [
@@ -231,7 +231,7 @@
     },
     {
       "kind": "response",
-      "line": 39,
+      "line": 41,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -246,13 +246,13 @@
     },
     {
       "kind": "check",
-      "line": 51,
+      "line": 53,
       "message": "reject: the tool never runs",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 53,
+      "line": 55,
       "message": "reject: the model receives a tool message about the rejection",
       "pass": true
     }

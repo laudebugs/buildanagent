@@ -31,16 +31,18 @@ const lookupCustomer = new FunctionTool({
   },
 });
 // #endregion lookup-customer
+// #region gate
 const escalateToHuman = new FunctionTool({
   name: "escalate_to_human",
   description: "Escalate the ticket to a human agent.",
   parameters: z.object({ reason: z.string() }),
-  requireConfirmation: true,
+  requireConfirmation: true, // book:note gate
   execute: ({ reason }, ctx?: Context) => {
     escalations.push(`${ctx?.state.get("user:customer_id")}: ${reason}`);
     return { status: "escalated", queue: "tier-2" };
   },
 });
+// #endregion
 const TriageResult = z.object({
   category: z.enum(["billing", "bug", "account", "other"]),
   priority: z.number().int().min(1).max(4),
