@@ -45,7 +45,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 ## Acceptance criteria
 
 - [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [x] No mock model in the example calls a tool that touches the host
+- [x] No mock model in the example calls a tool that touches the host beyond loopback and one effect log in a temp folder that the example makes and removes (the crash needs a log that outlives a process)
 - [x] The results-drift check passes after the committed results update
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
@@ -75,8 +75,8 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 `verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts` shows a write tool that persists an idempotency key before it calls the server, reports an outcome, and survives a crash between the server's write and its result.
 
-- **Three outcomes are shown.** A normal write reports `applied`, a write the fake server declines reports `not_applied`, and a key with no recorded outcome reads `unknown`. The type names all five outcomes, taken from the safety package's `OutcomeKind`.
+- **Three outcomes are shown.** A normal write reports `applied`, a repeat of it is answered from the log with no request, a write the fake server declines with a 402 reports `not_applied`, and a key whose last log entry is a start reads `unknown`. Any other failure, such as a 503, stays `unknown`. The type names all five outcomes, taken from the safety package's `OutcomeKind`.
 - **The crash is real.** A child process runs the same tool and sends itself `SIGKILL` after the server replied and before it logged the outcome. The example asserts the exit signal, then that the log holds the key and nothing else.
-- **The resume writes nothing twice.** A fresh run reads the log, asks the server, reports `applied` with `reconciled: true`, and the server holds exactly one write for the order.
+- **The resume writes nothing twice.** A fresh run reads the log, asks the server, reports `applied` with `reconciled: true`, and the server received exactly one write request for the order, counted apart from its deduplicated writes.
 - **The effect log is the example's own.** It is a JSON-lines file with two helpers. The AI SDK has no idempotency feature (row T32-2 in `docs/plans/reviews/fact-check-vercel-write-crash-example.md`), so the example shows what the tool must do around the SDK, and the chapter's switch todos replace the log with the safety package's.
 - **The transcript holds the parent's calls only.** The child runs without `TRANSCRIPT_FILE`, so the recorder stays off there.

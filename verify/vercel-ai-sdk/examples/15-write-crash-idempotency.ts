@@ -1,6 +1,8 @@
 // A write tool that can fail halfway: it persists an idempotency key before it calls the server, reports an outcome,
 // and after a crash between the server's write and the result it finds the key, reports `unknown`, asks the server
-// instead of writing again, and the server sees one write. The effect log is a small file here; a package replaces it.
+// instead of writing again, and the server sees one write. The effect log is a small file in a temp folder that the
+// example makes and removes, the only file the tool writes; a package replaces it. It survives a killed process, not a
+// power cut: nothing is synced to disk before the call.
 // Docs: ai-sdk-core/tools-and-tool-calling.mdx
 import { type ChildProcess, spawn } from "node:child_process";
 import { appendFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -17,36 +19,50 @@ type Outcome = "applied" | "not_applied" | "compensated" | "partial" | "unknown"
 type Entry = { key: string; state: "started" | "done"; outcome?: Outcome };
 
 // #region effect-log
-/** The state of one operation, read from its log: `unknown` when it started and nothing says how it ended. */
+/** The state of one operation: its last log entry's outcome, or `unknown` when the last entry is a start. */
 function stateOf(logFile: string, key: string): "none" | Outcome {
   const entries = readFileSync(logFile, "utf8")
     .split("\n")
     .filter(Boolean)
-    .map((line) => JSON.parse(line) as Entry);
-  const mine = entries.filter((entry) => entry.key === key);
-  const done = mine.find((entry) => entry.state === "done");
-  if (done) return done.outcome ?? "applied";
-  return mine.length > 0 ? "unknown" : "none";
+    .flatMap((line) => {
+      // A kill during a write can leave a torn last line, which says nothing, so it is skipped.
+      try {
+        return [JSON.parse(line) as Entry];
+      } catch {
+        return [];
+      }
+    })
+    .filter((entry) => entry.key === key);
+  const last = entries.at(-1);
+  if (last === undefined) return "none";
+  return last.state === "done" ? (last.outcome ?? "applied") : "unknown";
 }
 const record = (logFile: string, entry: Entry) => appendFileSync(logFile, `${JSON.stringify(entry)}\n`);
 // #endregion
 
-/** A fake payment server: it writes once for each idempotency key, declines order 13, and answers lookups. */
+/**
+ * A fake payment server. It writes once for each idempotency key and declines order 13 with a 402. `posts` counts every
+ * request a key sent, apart from `writes`, which holds each key once, so a second request cannot hide.
+ */
 function fakeServer() {
   const writes: string[] = [];
+  const posts: string[] = [];
   const server: Server = createServer((request, response) => {
     const key = String(request.headers["idempotency-key"] ?? "");
     if (request.method === "GET") {
       response.statusCode = writes.includes(request.url?.slice(1) ?? "") ? 200 : 404;
-    } else if (key.endsWith(":13")) {
-      response.statusCode = 402;
     } else {
-      if (!writes.includes(key)) writes.push(key);
-      response.statusCode = 200;
+      posts.push(key);
+      if (key === "charge:13") {
+        response.statusCode = 402;
+      } else {
+        if (!writes.includes(key)) writes.push(key);
+        response.statusCode = 200;
+      }
     }
     response.end();
   });
-  return { server, writes };
+  return { server, writes, posts };
 }
 
 // #region write-tool
@@ -57,16 +73,22 @@ function chargeTool(base: string, logFile: string, crashAfterWrite = false) {
     inputSchema: z.object({ order: z.number() }),
     execute: async ({ order }) => {
       const key = `charge:${order}`; // book:note key
-      if (stateOf(logFile, key) === "unknown") {
+      const state = stateOf(logFile, key);
+      // A write that was applied is never sent again: the log answers.
+      if (state === "applied") return { outcome: state, replayed: true };
+      if (state === "unknown") {
         // A previous attempt started and never finished: ask the server before writing again.
         const found = await fetch(`${base}/${key}`); // book:note reconcile
-        record(logFile, { key, state: "done", outcome: found.ok ? "applied" : "not_applied" });
-        return { outcome: found.ok ? "applied" : "not_applied", reconciled: true };
+        if (found.status !== 200 && found.status !== 404) return { outcome: "unknown" as Outcome };
+        const outcome: Outcome = found.ok ? "applied" : "not_applied";
+        record(logFile, { key, state: "done", outcome });
+        return { outcome, reconciled: true };
       }
       record(logFile, { key, state: "started" }); // book:note persist
       const response = await fetch(base, { method: "POST", headers: { "idempotency-key": key } });
       if (crashAfterWrite) process.kill(process.pid, "SIGKILL"); // book:note crash
-      const outcome: Outcome = response.ok ? "applied" : "not_applied";
+      // Only a definite decline is `not_applied`. Any other failure leaves the write `unknown`.
+      const outcome: Outcome = response.ok ? "applied" : response.status === 402 ? "not_applied" : "unknown";
       record(logFile, { key, state: "done", outcome });
       return { outcome };
     },
@@ -90,67 +112,83 @@ if (process.argv[2] === "child") {
   process.exit(0);
 }
 
-const { server, writes } = fakeServer();
-/** How many writes the server has made; a function, so each check reads the current count. */
+const { server, writes, posts } = fakeServer();
+/** How many writes the server has made, and how many requests a key sent; functions, so each check reads them anew. */
 const written = () => writes.length;
+const postsFor = (key: string) => posts.filter((posted) => posted === key).length;
 await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
 const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 const folder = mkdtempSync(join(tmpdir(), "effect-log-"));
 const logFile = join(folder, "effects.jsonl");
 appendFileSync(logFile, "");
 
-// The write that works: the key is logged, the server writes once, and the outcome is `applied`.
-{
-  const result = await run(base, logFile, 7);
-  check(JSON.stringify(result.toolResults[0]?.output) === '{"outcome":"applied"}', "a normal write reports applied");
+try {
+  // The write that works: the key is logged, the server writes once, and the outcome is `applied`.
+  {
+    const result = await run(base, logFile, 7);
+    check(JSON.stringify(result.toolResults[0]?.output) === '{"outcome":"applied"}', "a normal write reports applied");
+    check(
+      written() === 1 && stateOf(logFile, "charge:7") === "applied",
+      "the server wrote once and the log says applied",
+    );
+  }
+  // A repeat of a write that was applied is answered from the log: the server gets no second request.
+  {
+    const result = await run(base, logFile, 7);
+    check(
+      JSON.stringify(result.toolResults[0]?.output) === '{"outcome":"applied","replayed":true}' &&
+        postsFor("charge:7") === 1,
+      "a repeated write is answered from the log and sends no request",
+    );
+  }
+  // The write the server declines: nothing was written, and the outcome says so.
+  {
+    const result = await run(base, logFile, 13);
+    check(
+      JSON.stringify(result.toolResults[0]?.output) === '{"outcome":"not_applied"}',
+      "a declined write reports not_applied",
+    );
+    check(written() === 1, "a declined write is not a write");
+  }
+
+  // #region crash
+  // A child process writes through the same tool and is killed after the server's reply, before it logs the outcome.
+  const env = {
+    PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
+    HOME: folder,
+    TMPDIR: tmpdir(),
+    LANG: "C.UTF-8",
+    NODE_NO_WARNINGS: "1",
+    BASE: base,
+    LOG: logFile,
+  };
+  const child: ChildProcess = spawn(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url), "child"], {
+    env,
+    stdio: ["ignore", "ignore", "pipe"],
+  });
+  let childErrors = "";
+  child.stderr?.on("data", (chunk) => {
+    childErrors += chunk;
+  });
+  const signal = await new Promise((done, fail) => {
+    child.on("error", fail);
+    child.on("exit", (_code, killedBy) => done(killedBy));
+  });
+  check(signal === "SIGKILL", `the child process was killed mid-write ${childErrors.trim()}`);
+  check(written() === 2 && postsFor("charge:42") === 1, "the server had already written once for order 42");
+  check(stateOf(logFile, "charge:42") === "unknown", "the log has the key and no outcome, so the state is unknown"); // book:note unknown
+  // #endregion
+
+  // #region resume
+  // A fresh run of the same tool reads the log, sees the unknown state and asks the server, so nothing is written twice.
+  const resumed = await run(base, logFile, 42);
   check(
-    written() === 1 && stateOf(logFile, "charge:7") === "applied",
-    "the server wrote once and the log says applied",
+    JSON.stringify(resumed.toolResults[0]?.output) === '{"outcome":"applied","reconciled":true}',
+    "the resume reconciles to applied",
   );
+  check(postsFor("charge:42") === 1, "the server received exactly one write request for order 42"); // book:note once
+  // #endregion
+} finally {
+  server.close();
+  rmSync(folder, { recursive: true, force: true });
 }
-// The write the server declines: nothing was written, and the outcome says so.
-{
-  const result = await run(base, logFile, 13);
-  check(
-    JSON.stringify(result.toolResults[0]?.output) === '{"outcome":"not_applied"}',
-    "a declined write reports not_applied",
-  );
-  check(written() === 1, "a declined write is not a write");
-}
-
-// #region crash
-// A child process writes through the same tool and is killed after the server's reply, before it logs the outcome.
-const env = {
-  PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-  HOME: folder,
-  TMPDIR: tmpdir(),
-  LANG: "C.UTF-8",
-  NODE_NO_WARNINGS: "1",
-  BASE: base,
-  LOG: logFile,
-};
-const child: ChildProcess = spawn(process.execPath, [...process.execArgv, fileURLToPath(import.meta.url), "child"], {
-  env,
-  stdio: "ignore",
-});
-const signal = await new Promise((done) => child.on("exit", (_code, killedBy) => done(killedBy)));
-check(signal === "SIGKILL", "the child process was killed mid-write");
-check(written() === 2, "the server had already written once for order 42");
-check(stateOf(logFile, "charge:42") === "unknown", "the log has the key and no outcome, so the state is unknown"); // book:note unknown
-// #endregion
-
-// #region resume
-// A fresh run of the same tool reads the log, sees the unknown state and asks the server, so nothing is written twice.
-const resumed = await run(base, logFile, 42);
-check(
-  JSON.stringify(resumed.toolResults[0]?.output) === '{"outcome":"applied","reconciled":true}',
-  "the resume reconciles to applied",
-);
-check(
-  written() === 2 && writes.filter((key) => key === "charge:42").length === 1,
-  "the server saw exactly one write for order 42",
-); // book:note once
-// #endregion
-
-server.close();
-rmSync(folder, { recursive: true, force: true });

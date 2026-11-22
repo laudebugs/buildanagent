@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 104,
+      "line": 128,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -28,7 +28,7 @@
     },
     {
       "kind": "response",
-      "line": 104,
+      "line": 128,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -47,7 +47,7 @@
     },
     {
       "kind": "request",
-      "line": 104,
+      "line": 128,
       "model": "model-1",
       "repeated": 2,
       "messages": [
@@ -71,7 +71,7 @@
     },
     {
       "kind": "response",
-      "line": 104,
+      "line": 128,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -86,20 +86,105 @@
     },
     {
       "kind": "check",
-      "line": 105,
+      "line": 129,
       "message": "a normal write reports applied",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 106,
+      "line": 130,
       "message": "the server wrote once and the log says applied",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 113,
+      "line": 137,
       "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 7"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 137,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "charge",
+            "input": {
+              "order": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 137,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "charge",
+              "output": {
+                "outcome": "applied",
+                "replayed": true
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 137,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 138,
+      "message": "a repeated write is answered from the log and sends no request",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 146,
+      "model": "model-3",
       "repeated": 0,
       "messages": [
         {
@@ -118,14 +203,14 @@
     },
     {
       "kind": "response",
-      "line": 113,
-      "model": "model-2",
+      "line": 146,
+      "model": "model-3",
       "message": {
         "role": "assistant",
         "parts": [
           {
             "type": "tool-call",
-            "id": "call_2",
+            "id": "call_3",
             "name": "charge",
             "input": {
               "order": 13
@@ -137,8 +222,8 @@
     },
     {
       "kind": "request",
-      "line": 113,
-      "model": "model-2",
+      "line": 146,
+      "model": "model-3",
       "repeated": 2,
       "messages": [
         {
@@ -146,7 +231,7 @@
           "parts": [
             {
               "type": "tool-result",
-              "id": "call_2",
+              "id": "call_3",
               "name": "charge",
               "output": {
                 "outcome": "not_applied"
@@ -161,8 +246,8 @@
     },
     {
       "kind": "response",
-      "line": 113,
-      "model": "model-2",
+      "line": 146,
+      "model": "model-3",
       "message": {
         "role": "assistant",
         "parts": [
@@ -176,38 +261,38 @@
     },
     {
       "kind": "check",
-      "line": 114,
+      "line": 147,
       "message": "a declined write reports not_applied",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 118,
+      "line": 151,
       "message": "a declined write is not a write",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 137,
-      "message": "the child process was killed mid-write",
+      "line": 177,
+      "message": "the child process was killed mid-write ",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 138,
+      "line": 178,
       "message": "the server had already written once for order 42",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 139,
+      "line": 179,
       "message": "the log has the key and no outcome, so the state is unknown",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 144,
-      "model": "model-3",
+      "line": 184,
+      "model": "model-4",
       "repeated": 0,
       "messages": [
         {
@@ -226,14 +311,14 @@
     },
     {
       "kind": "response",
-      "line": 144,
-      "model": "model-3",
+      "line": 184,
+      "model": "model-4",
       "message": {
         "role": "assistant",
         "parts": [
           {
             "type": "tool-call",
-            "id": "call_3",
+            "id": "call_4",
             "name": "charge",
             "input": {
               "order": 42
@@ -245,8 +330,8 @@
     },
     {
       "kind": "request",
-      "line": 144,
-      "model": "model-3",
+      "line": 184,
+      "model": "model-4",
       "repeated": 2,
       "messages": [
         {
@@ -254,7 +339,7 @@
           "parts": [
             {
               "type": "tool-result",
-              "id": "call_3",
+              "id": "call_4",
               "name": "charge",
               "output": {
                 "outcome": "applied",
@@ -270,8 +355,8 @@
     },
     {
       "kind": "response",
-      "line": 144,
-      "model": "model-3",
+      "line": 184,
+      "model": "model-4",
       "message": {
         "role": "assistant",
         "parts": [
@@ -285,14 +370,14 @@
     },
     {
       "kind": "check",
-      "line": 145,
+      "line": 185,
       "message": "the resume reconciles to applied",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 149,
-      "message": "the server saw exactly one write for order 42",
+      "line": 189,
+      "message": "the server received exactly one write request for order 42",
       "pass": true
     }
   ]
