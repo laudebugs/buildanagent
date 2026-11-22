@@ -6,7 +6,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
 const book = getBook();
 
-// Every glossary entry, in alphabetical order. Each anchor is the id a chapter's first use of the term links to.
+// Every glossary entry, in alphabetical order. Each anchor is the id a chapter's term links point at.
 const entries = [...book.glossary.values()].sort((a, b) => a.term.localeCompare(b.term, "en"));
 ---
 
@@ -14,7 +14,7 @@ const entries = [...book.glossary.values()].sort((a, b) => a.term.localeCompare(
   <div class="page page--single">
     <ChapterHead
       title="Glossary"
-      lede="Each term means one thing in every chapter, and a chapter links its first use of a term here."
+      lede="Each term means one thing in every chapter, and a chapter links a term here once in each paragraph that uses it."
     />
     <div class="article">
       <dl>

@@ -86,9 +86,10 @@ const {
 </BaseLayout>
 
 <script>
-  // A chapter's tabs, replays and isometric figures come from its Markdown, so the layout loads their scripts; each
-  // does nothing on a page without them, and Astro serves them as same-origin files.
+  // A chapter's tabs, replays, isometric figures and glossary terms come from its Markdown, so the layout loads their
+  // scripts; each does nothing on a page without them, and Astro serves them as same-origin files.
   import "../scripts/tabs.ts";
   import "../scripts/steps.ts";
   import "../scripts/iso-figures.ts";
+  import "../scripts/glossary.ts";
 </script>

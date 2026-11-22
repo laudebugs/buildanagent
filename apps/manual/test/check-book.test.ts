@@ -809,6 +809,19 @@ const cases: readonly Case[] = [
     message: /glossary tags harness, but the chapter's text never uses it$/,
   },
   {
+    rule: "a tagged glossary term that appears only in a heading, a link or code fails",
+    change: firstChapter((t) =>
+      t
+        .replace("glossary: [agent-loop, mcp]", "glossary: [agent-loop, mcp, harness]")
+        .replace(
+          "## Exercises",
+          "## The harness\n\nSee [the harness](https://example.com/) and `harness`.\n\n## Exercises",
+        ),
+    ),
+    file: FIRST,
+    message: /glossary tags harness, but the chapter's text never uses it$/,
+  },
+  {
     rule: "a chapter that does not end with Exercises fails",
     change: firstChapter((t) => `${t}\n## Further reading\n\nMore.\n`),
     file: `${FIRST}:40`,

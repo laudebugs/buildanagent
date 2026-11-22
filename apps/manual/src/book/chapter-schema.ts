@@ -24,7 +24,7 @@ export const chapterSchema = z.strictObject({
   opening: z.enum(OPENING_TYPES),
   /** The register ids the chapter relies on, in the order its source list shows them. */
   sources: z.array(z.string().regex(KEBAB_ID, "source ids are kebab-case")).min(1, "a chapter lists its sources"),
-  /** The glossary ids whose first use the chapter links. */
+  /** The glossary ids the chapter links, once in each paragraph that uses them. */
   glossary: z.array(z.string().regex(KEBAB_ID, "glossary ids are kebab-case")),
   /** The todos whose code this chapter's `verify/` listings will gain as tabs, while the listings stay (BK8). */
   switchTo: z.array(z.string().regex(TODO_ID, "todo ids look like B11, E4a or N46b")),

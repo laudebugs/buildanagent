@@ -27,6 +27,9 @@ export function textInside(tree: Root, types: ReadonlySet<string>): Set<Text> {
   return inside;
 }
 
+const rendersAsElement = (node: Text): boolean =>
+  node.data?.hName !== undefined || node.data?.hProperties !== undefined;
+
 /** One piece of a text node to replace: where it starts, how long it is and what replaces it. */
 export interface TextPiece {
   readonly index: number;
@@ -37,7 +40,8 @@ export interface TextPiece {
 /**
  * Replaces each text node not in `skip` with the pieces `split(value, node)` returns, in order. Text between them stays
  * text. Returning an empty list leaves the node as it is. Every new node gets the position of the characters it
- * replaces, so a later plugin's error inside it still names the right line.
+ * replaces, so a later plugin's error inside it still names the right line. A text node that another plugin renders
+ * as an element of its own, through `hName` or `hProperties`, is never split.
  */
 export function splitText(
   tree: Root,
@@ -45,7 +49,9 @@ export function splitText(
   split: (value: string, node: Text) => readonly TextPiece[],
 ): void {
   visit(tree, "text", (node, index, parent) => {
-    if (!parent || index === undefined || skip.has(node)) return;
+    // Such a node is one a plugin made, such as a listing caption's verified line: its data renders it as its own
+    // element, a <span> with a class, and the plain text nodes a split makes would drop that element.
+    if (!parent || index === undefined || skip.has(node) || rendersAsElement(node)) return;
     const value = node.value;
     const text = (from: number, to: number): Text => {
       const position = slicePosition(node.position, value, from, to);
