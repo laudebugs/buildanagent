@@ -601,7 +601,7 @@ Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 �
 3. [B23](../todos/done/B23-tool-context-app-data.md), in the [SDK plan](build-sdk.md), gives our SDK's `ToolContext` typed app data for trusted facts such as the signed-in user, and T52's identity tab reads it (T12's second open question).
 4. [T55](../todos/done/T55-book-transcript-usage-and-model-id.md) records token usage and the model id in the transcripts before T18, the model gateway chapter, is written.
 5. [T49](../todos/done/T49-book-http-mock-transcripts.md) gains replays for Chapter 4's `#cap-claude` and Chapter 5's `#resume-claude` once the Claude Agent SDK's transcripts exist.
-6. [N3](../todos/ready/N3-session-store.md), in the [harness plan](build-harness.md), keys every session lookup by user and session id, as ADK's `getSession` does, so no caller can forget the owner check; and [T56](../todos/ready/T56-example-langchain-thread-owner.md) adds a LangChain example that refuses another user's thread, for Chapter 5's ownership section.
+6. [N3](../todos/done/N3-session-store.md), in the [harness plan](build-harness.md), keys every session lookup by user and session id, as ADK's `getSession` does, so no caller can forget the owner check; and [T56](../todos/ready/T56-example-langchain-thread-owner.md) adds a LangChain example that refuses another user's thread, for Chapter 5's ownership section.
 
 
 ## 6. Ten risks, each with the todo that handles it

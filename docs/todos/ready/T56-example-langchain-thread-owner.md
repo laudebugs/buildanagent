@@ -19,7 +19,7 @@ Add a small example to `verify/langchain` that shows Chapter 5's ownership rules
 - `verify/langchain/examples/05-thread-memory.ts`: the existing thread example, whose `MemorySaver`, `fakeModel()` and `thread_id` config this example reuses.
 - [T15's Outcome](../done/T15-chapter-memory-and-sessions.md#outcome): how the chapter was written and checked.
 - `apps/manual/README.md`, "A listing shows a region of a real file" and "Notes, SDK tabs and replays make a listing interactive": regions, notes and replays.
-- [N3](N3-session-store.md): our own session store. By the owner's decision of the same day it takes the user on every lookup, so our harness builds in the check this example writes by hand.
+- [N3](../done/N3-session-store.md): our own session store. By the owner's decision of the same day it takes the user on every lookup, so our harness builds in the check this example writes by hand.
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): examples run offline against a mock model and touch nothing on the host.
 
 ## Scope
@@ -33,7 +33,7 @@ Add a small example to `verify/langchain` that shows Chapter 5's ownership rules
 
 **Out of scope** (and which todo covers it)
 
-- Ownership in our own harness's session store: [N3](N3-session-store.md)
+- Ownership in our own harness's session store: [N3](../done/N3-session-store.md)
 - Generating thread ids on the server and keeping transcripts per user, the chapter's first and fourth rules: the example may show the first in passing, but needs neither
 
 ## Tasks

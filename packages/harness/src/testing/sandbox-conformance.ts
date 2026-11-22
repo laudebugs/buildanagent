@@ -4,8 +4,10 @@
  * Docker backend passes them all. A backend that can't start makes every case skip with its reason, never fail. The cases
  * import no test runner and no Node module, so any runner can call them, in workerd too.
  */
+
 import { isHarnessError } from "../errors.js";
 import type { ExecResult, Sandbox, SandboxClient, SandboxDenial, SandboxPolicy } from "../sandbox/types.js";
+import { type CaseReport, type RunnableCase, runCases } from "./run-cases.js";
 
 /** What a factory returns: the backend, and the absolute folder to use as the workspace root. */
 export interface SandboxUnderTest {
@@ -46,19 +48,9 @@ export interface SandboxConformanceOptions {
   };
 }
 
-/** One conformance case: a name a test runner can show, and a check that rejects if the backend breaks the rule. */
-export interface SandboxCase {
-  readonly name: string;
-  /** Runs the check. It resolves with `{ skipped }` and a reason when the case doesn't apply to this backend. */
-  run(): Promise<{ readonly skipped: string } | undefined>;
-}
+export type SandboxCase = RunnableCase;
 
-/** The outcome of `runSandboxConformance()`. */
-export interface SandboxConformanceReport {
-  readonly passed: readonly string[];
-  readonly skipped: readonly { readonly name: string; readonly reason: string }[];
-  readonly failed: readonly { readonly name: string; readonly error: string }[];
-}
+export type SandboxConformanceReport = CaseReport;
 
 const STOPS = ["mistakes", "exfiltration", "hostile_process"];
 const ALLOWED_HOST = "allowed.test";
@@ -468,17 +460,5 @@ export async function runSandboxConformance(
   factory: SandboxFactory,
   options: SandboxConformanceOptions = {},
 ): Promise<SandboxConformanceReport> {
-  const passed: string[] = [];
-  const skipped: { name: string; reason: string }[] = [];
-  const failed: { name: string; error: string }[] = [];
-  for (const conformance of sandboxConformanceCases(factory, options)) {
-    try {
-      const outcome = await conformance.run();
-      if (outcome === undefined) passed.push(conformance.name);
-      else skipped.push({ name: conformance.name, reason: outcome.skipped });
-    } catch (error) {
-      failed.push({ name: conformance.name, error: error instanceof Error ? error.message : String(error) });
-    }
-  }
-  return { passed, skipped, failed };
+  return runCases(sandboxConformanceCases(factory, options));
 }

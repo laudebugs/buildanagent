@@ -10,6 +10,7 @@ const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.
 const PLANNED_ENTRIES = [
   ".",
   "./session",
+  "./session/jsonl",
   "./context",
   "./tools",
   "./mcp",

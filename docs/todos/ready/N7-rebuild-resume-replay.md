@@ -15,6 +15,7 @@ Make the log the only state: rebuild the SDK `Context` from entries in any proce
 
 ## Context
 
+- [N3](../done/N3-session-store.md): the store is keyed by `{ userId, sessionId }`, so pass the session's key on every `load`
 - [harness guide §2](../../guides/agent-harness.md#2-the-session-log-should-be-one-append-only-tree-of-typed-entries-with-head-a-writer-lock-and-pauses-as-entries): playback versus re-run; replay needs model id and loadout
 - [build-harness.md §3.6](../../plans/build-harness.md#36-needs-from-the-sdk-plan): need 6 (constructible `Context`)
 - [SDK D10](../../plans/build-sdk.md#d10-a-discriminated-result-union-plus-runorthrow-for-callers-who-want-exceptions): the resumable context on every result
