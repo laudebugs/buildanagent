@@ -245,7 +245,10 @@ async function replace(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContex
 async function remove(deps: MemoryToolDeps, input: MemoryInput): Promise<ToolResult> {
   const name = nameOf(deps, input.path, true);
   if (typeof name !== "string") return name;
-  if ((await deps.store.get(name)) === undefined) return error(`There is no record at ${shownPath(name)}.`);
+  const existing = await deps.store.get(name);
+  if (existing === undefined) return error(`There is no record at ${shownPath(name)}.`);
+  if (existing === "invalid")
+    return error(`${shownPath(name)} exists and is not a memory record, so it was left alone.`);
   await deps.store.forget(name);
   await deps.store.files.remove(name);
   return text(`Deleted ${shownPath(name)}. The log entries that held it are marked for a purge.`);

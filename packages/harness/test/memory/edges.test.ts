@@ -44,6 +44,18 @@ describe("endSession()", () => {
   });
 });
 
+describe("delete", () => {
+  test("a hand-written file that is not a memory record is not deleted and no purge marks are written", async () => {
+    const setup = setupOf();
+    await setup.files.write("notes.md", "Just my own notes.\n");
+    const call = { command: "delete", path: ".agents/memory/notes.md" };
+    const run = await turn(setup, key("s1"), [{ name: "memory", input: call }]);
+    assert.match(results(run.model).get("c1")?.text ?? "", /not a memory record, so it was left alone/);
+    assert.equal(readFileSync(join(setup.root, ".agents/memory/notes.md"), "utf8"), "Just my own notes.\n");
+    assert.deepEqual(await readPurgeMarks(setup.files), []);
+  });
+});
+
 describe("a task record's session", () => {
   test("a renewal in another session keeps the session that wrote it, whose end still expires it", async () => {
     const setup = setupOf();
