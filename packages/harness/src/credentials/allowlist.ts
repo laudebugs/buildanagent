@@ -4,6 +4,7 @@
  */
 import { HarnessError } from "../errors.js";
 import { isAddressLiteral } from "./addresses.js";
+import { checkGitFilter, type GitRouteFilter } from "./git-route.js";
 
 /** A host the proxy may reach on one port. A `*.` name matches every name under it, and never the name itself. */
 export interface AllowEntry {
@@ -24,6 +25,12 @@ export interface CredentialRoute {
   readonly header: string;
   /** The real secret, read at each request so a rotated key is used at once. It never enters the sandbox. */
   readonly secret: () => Promise<string>;
+  /**
+   * Makes the route a git route: only git's smart HTTP requests for the listed repositories pass, a push only to the
+   * listed branches, and the secret goes in HTTP Basic as the password of `username`. Its `header` must be
+   * `authorization` and its `methods` `GET` and `POST`. The sandbox's git sends the route's sentinel as its password.
+   */
+  readonly git?: GitRouteFilter;
 }
 
 /** A route with its host and port split, its method and header names normalised, and its sentinel. */
@@ -34,6 +41,7 @@ export interface ParsedRoute {
   readonly methods: ReadonlySet<string>;
   readonly header: string;
   readonly secret: () => Promise<string>;
+  readonly git?: GitRouteFilter;
 }
 
 const HOST_NAME = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/;
@@ -97,18 +105,41 @@ export function parseRoutes(routes: readonly CredentialRoute[]): ParsedRoute[] {
     if (!ROUTE_NAME.test(route.route)) throw invalid(`the route name ${JSON.stringify(route.route)} is not usable`);
     if (seen.has(route.route)) throw invalid(`two routes are named ${route.route}`);
     seen.add(route.route);
-    const { name, port } = splitHost(route.host, "the route host");
-    if (!HOST_NAME.test(name) || isAddressLiteral(name))
-      throw invalid(`the route host ${route.host} must be a host name`);
-    const methods = route.methods.map((method) => method.toUpperCase());
-    if (methods.length === 0 || !methods.every((method) => METHOD.test(method)) || methods.includes("CONNECT")) {
-      throw invalid(`the route ${route.route} needs a list of methods, such as ["GET"]`);
-    }
-    const header = route.header.toLowerCase();
-    if (!HEADER_NAME.test(header) || RESERVED_HEADERS.has(header)) {
-      throw invalid(`the route ${route.route} can't carry its credential in the header ${route.header}`);
-    }
-    if (typeof route.secret !== "function") throw invalid(`the route ${route.route} needs a secret function`);
-    return { route: route.route, hostname: name, port, methods: new Set(methods), header, secret: route.secret };
+    return parseRoute(route);
   });
+}
+
+/** Parses and checks one route's host, methods, header, secret and git filter. */
+function parseRoute(route: CredentialRoute): ParsedRoute {
+  const { name, port } = splitHost(route.host, "the route host");
+  if (!HOST_NAME.test(name) || isAddressLiteral(name))
+    throw invalid(`the route host ${route.host} must be a host name`);
+  const methods = route.methods.map((method) => method.toUpperCase());
+  if (methods.length === 0 || !methods.every((method) => METHOD.test(method)) || methods.includes("CONNECT")) {
+    throw invalid(`the route ${route.route} needs a list of methods, such as ["GET"]`);
+  }
+  const header = route.header.toLowerCase();
+  if (!HEADER_NAME.test(header) || RESERVED_HEADERS.has(header)) {
+    throw invalid(`the route ${route.route} can't carry its credential in the header ${route.header}`);
+  }
+  if (typeof route.secret !== "function") throw invalid(`the route ${route.route} needs a secret function`);
+  if (route.git !== undefined) checkGitRoute(route.git, methods, header);
+  return {
+    route: route.route,
+    hostname: name,
+    port,
+    methods: new Set(methods),
+    header,
+    secret: route.secret,
+    ...(route.git === undefined ? {} : { git: route.git }),
+  };
+}
+
+/** Throws unless a git route carries its credential in `authorization` and takes exactly `GET` and `POST`. */
+function checkGitRoute(filter: GitRouteFilter, methods: readonly string[], header: string): void {
+  checkGitFilter(filter);
+  if (header !== "authorization") throw invalid("a git route carries its credential in the authorization header");
+  if (new Set(methods).size !== 2 || !methods.includes("GET") || !methods.includes("POST")) {
+    throw invalid("a git route takes the methods GET and POST");
+  }
 }

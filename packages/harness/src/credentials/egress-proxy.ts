@@ -16,6 +16,7 @@ import {
   parseAllow,
   parseRoutes,
 } from "./allowlist.js";
+import { basicCarries, basicHeader, type GitRouteFilter, gitEndpoint, pushVerdict } from "./git-route.js";
 
 export type { CredentialRoute } from "./allowlist.js";
 
@@ -144,6 +145,28 @@ const refusal = (status: number, reason: string): RouteReply => ({
   body: undefined,
   reason,
 });
+
+/**
+ * The answer to a git request whose credential is missing or wrong, or `undefined` when its HTTP Basic password is the
+ * route's sentinel. A missing one gets 401 with a Basic challenge, so git asks its credential helper.
+ */
+function gitCredentialRefusal(presented: string | string[] | undefined, sentinel: string): RouteReply | undefined {
+  if (presented === undefined) {
+    return { ...refusal(401, "git_credential_missing"), headers: { "www-authenticate": 'Basic realm="egress"' } };
+  }
+  return typeof presented === "string" && basicCarries(presented, sentinel) ? undefined : refusal(403, "bad_sentinel");
+}
+
+/** The chunks joined into one array. */
+function concat(chunks: readonly Uint8Array[]): Uint8Array {
+  const joined = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
+  let at = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, at);
+    at += chunk.length;
+  }
+  return joined;
+}
 
 class EgressGate {
   private readonly modules: Modules;
@@ -381,20 +404,114 @@ class EgressGate {
     };
     if (route === undefined || match === null) return { reply: refusal(403, "unknown_route"), base };
     if (!route.methods.has(method.toUpperCase())) return { reply: refusal(405, "method_not_allowed"), base };
+    const target = { path: match[2] ?? "/", query: match[3] ?? "" };
+    const reply =
+      route.git === undefined
+        ? await this.headerRequest(route, method, target, headers, body, signal)
+        : await this.gitRequest(route, route.git, method, target, headers, body, signal);
+    return { reply, base };
+  }
+
+  /** Resolves a request on a header route: it swaps the sentinel in the route's header for the secret. */
+  private async headerRequest(
+    route: ParsedRoute,
+    method: string,
+    target: { readonly path: string; readonly query: string },
+    headers: Record<string, string | string[] | undefined>,
+    body: import("node:stream").Readable | Uint8Array | undefined,
+    signal?: AbortSignal,
+  ): Promise<RouteReply> {
     const presented = headers[route.header];
     const sentinel = this.sentinels[route.route] ?? "";
     if (typeof presented !== "string" || sentinel === "" || !presented.includes(sentinel)) {
-      return { reply: refusal(403, "bad_sentinel"), base };
+      return refusal(403, "bad_sentinel");
     }
     const secret = await route.secret().catch(() => "");
-    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return { reply: refusal(502, "secret_unavailable"), base };
+    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return refusal(502, "secret_unavailable");
     const outgoing = this.outgoingHeaders(
       headers,
       route,
       presented.replaceAll(sentinel, () => secret),
     );
-    const reply = await this.forward(route, method, `${match[2] ?? "/"}${match[3] ?? ""}`, outgoing, body, signal);
-    return { reply, base };
+    return this.forward(route, method, `${target.path}${target.query}`, outgoing, body, signal);
+  }
+
+  /**
+   * Resolves a request on a git route. The endpoint and repository are checked first, then the sentinel in HTTP Basic,
+   * then a push's command list, and only then is the secret read and the request forwarded with it. A missing
+   * credential gets 401 with a Basic challenge, so git asks its credential helper for the sentinel.
+   */
+  private async gitRequest(
+    route: ParsedRoute,
+    filter: GitRouteFilter,
+    method: string,
+    target: { readonly path: string; readonly query: string },
+    headers: Record<string, string | string[] | undefined>,
+    body: import("node:stream").Readable | Uint8Array | undefined,
+    signal?: AbortSignal,
+  ): Promise<RouteReply> {
+    const endpoint = gitEndpoint(filter, method, target.path, target.query);
+    if ("refused" in endpoint) return refusal(403, endpoint.refused);
+    const unauthorized = gitCredentialRefusal(headers.authorization, this.sentinels[route.route] ?? "");
+    if (unauthorized !== undefined) return unauthorized;
+    let forwarded = body;
+    if (endpoint.service === "git-receive-pack" && endpoint.phase === "rpc") {
+      const encoding = headers["content-encoding"];
+      if (encoding !== undefined && encoding !== "identity") return refusal(403, "git_encoded_push");
+      const checked = await this.checkPush(body, filter);
+      if ("refused" in checked) return refusal(403, checked.refused);
+      forwarded = checked.body;
+    }
+    const secret = await route.secret().catch(() => "");
+    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return refusal(502, "secret_unavailable");
+    const outgoing = this.outgoingHeaders(headers, route, basicHeader(filter.username, secret));
+    return this.forward(route, method, `${target.path}${target.query}`, outgoing, forwarded, signal);
+  }
+
+  /** Reads a push's command list and checks it, then hands back a body that starts with what was read. */
+  private checkPush(
+    body: import("node:stream").Readable | Uint8Array | undefined,
+    filter: GitRouteFilter,
+  ): Promise<{ readonly refused: string } | { readonly body: import("node:stream").Readable | Uint8Array }> {
+    if (body === undefined) return Promise.resolve({ refused: "git_bad_pkt_line" });
+    if (body instanceof Uint8Array) {
+      const verdict = pushVerdict(body, filter, true);
+      return Promise.resolve(verdict === "allowed" ? { body } : { refused: (verdict as { refused: string }).refused });
+    }
+    return new Promise((resolve) => {
+      const chunks: Uint8Array[] = [];
+      const timer = setTimeout(() => settle({ refused: "git_timeout" }), this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS);
+      const settle = (outcome: { refused: string } | { body: import("node:stream").Readable }) => {
+        clearTimeout(timer);
+        body.off("data", onData);
+        body.off("end", onEnd);
+        body.off("error", onError);
+        resolve(outcome);
+      };
+      const judge = (ended: boolean) => {
+        const read = concat(chunks);
+        const verdict = pushVerdict(read, filter, ended);
+        if (verdict === "incomplete") return;
+        if (verdict !== "allowed") {
+          settle(verdict);
+          return;
+        }
+        const rest = new this.modules.stream.PassThrough();
+        rest.write(read);
+        settle({ body: rest });
+        if (ended) rest.end();
+        else body.pipe(rest);
+      };
+      const onData = (chunk: Uint8Array) => {
+        chunks.push(chunk);
+        judge(false);
+      };
+      const onEnd = () => judge(true);
+      const onError = () => settle({ refused: "request_failed" });
+      body.on("data", onData);
+      body.once("end", onEnd);
+      body.once("error", onError);
+    });
   }
 
   private outgoingHeaders(
