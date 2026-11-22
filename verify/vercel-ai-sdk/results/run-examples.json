@@ -142,5 +142,14 @@
     "ms": 710,
     "modelCalls": 0,
     "tail": "ok - and the answer it grades\nok - the judge's output is rejected for not JSON\nok - the judge's output is rejected for a score above 1\nok - the judge's output is rejected for a grade that is not pass or fail\nok - the judge's output is rejected for a missing reason\nok - the judge's output is rejected for a pass below the mark\nok - the judge's output is rejected for a fail at the mark\nok - every scripted judge answer was used"
+  },
+  {
+    "id": "17-keyword-retrieval",
+    "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/17-keyword-retrieval.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1029,
+    "modelCalls": 0,
+    "tail": "ok - unfiltered, both tenants' E4021 documents match\nok - a globex search returns kb-06 and no acme document\nok - an acme search never returns kb-06, the globex document\nok - each tenant's answer comes from its own document\nok - the planted document ranks first for the question\nok - the scripted answer follows the planted document's instruction\nok - with the planted document removed, the same question gets kb-01's answer\nok - every model request offered only the search_docs function tool"
   }
 ]
