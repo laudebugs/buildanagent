@@ -1,13 +1,13 @@
 # LangChain.js reference
 
-TypeScript reference for [LangChain.js](https://github.com/langchain-ai/langchainjs) v1 agents, pinned to **`langchain@1.6.1`** with `@langchain/core@1.3.4`, `@langchain/langgraph@1.6.0`, `@langchain/anthropic@1.6.0` and `@langchain/openai@1.8.0`: the newest releases at least two weeks old on 2026-11-18. The owner added LangChain as the fifth SDK on 2026-11-18.
+TypeScript reference for [LangChain.js](https://github.com/langchain-ai/langchainjs) v1 agents, pinned to **`langchain@1.6.6`** with `@langchain/core@1.4.1`, `@langchain/langgraph@1.7.4`, `@langchain/anthropic@1.6.5` and `@langchain/openai@1.8.4`: the newest releases at least a week old on 2026-11-22. The owner added LangChain as the fifth SDK on 2026-11-18 at `langchain@1.6.1`; the [update section](fact-check.md#update-to-langchain166-2026-11-22) records the bump.
 
 | File | What it is |
 |---|---|
 | [guide.md](guide.md) | Our reference: `createAgent` and its graph, model ids, tools, middleware, human approval, structured output, threads and stores, the recursion limit, streaming, testing with `fakeModel()`, a production checklist and the triage-agent capstone |
 | [fact-check.md](fact-check.md) | How accurate the JS docs are: type-checks of 713 blocks, offline runs, an API-surface diff and behavioral tests |
 | [`source/`](source/) | Mirror of 44 pages and the 97 snippets they import, with the MIT `LICENSE`, from `langchain-ai/docs` at commit `9d9747d` (2026-11-17). The docs repo has no release tags, so the mirror records a commit; `_manifest.json` lists every file |
-| [../../../verify/langchain/](../../../verify/langchain/) | Verification harness, scripted-model runner, and our 10 verified examples |
+| [../../../verify/langchain/](../../../verify/langchain/) | Verification harness, scripted-model runner, and our 11 verified examples |
 
 ## Regenerate the mirror and re-verify
 

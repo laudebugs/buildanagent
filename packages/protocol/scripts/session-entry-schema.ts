@@ -190,8 +190,9 @@ export const SessionEntry = z.discriminatedUnion("type", [
     contentHash: z.string(),
     mcp: z
       .strictObject({
-        transport: z.enum(["stdio", "in_process"]),
+        transport: z.enum(["stdio", "in_process", "http", "sse"]),
         commandHash: z.string().optional(),
+        urlHash: z.string().optional(),
         era: z.enum(["2026-07-28", "legacy"]),
         toolsHash: z.string(),
       })

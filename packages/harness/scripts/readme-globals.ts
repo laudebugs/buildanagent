@@ -9,6 +9,7 @@ import type * as extensionsNode from "@buildanagent/harness/extensions/node";
 import type * as mcp from "@buildanagent/harness/mcp";
 import type * as memory from "@buildanagent/harness/memory";
 import type * as memoryNode from "@buildanagent/harness/memory/node";
+import type * as permissions from "@buildanagent/harness/permissions";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
 import type * as sessions from "@buildanagent/harness/session";
@@ -18,6 +19,7 @@ import type * as sdk from "@buildanagent/sdk";
 
 declare global {
   type AgentEvent = sdk.AgentEvent;
+  type McpEgressFetch = mcp.McpEgressFetch;
   type Extension = extensions.Extension;
   type Log = { store: sessions.SessionStore; index: sessions.SessionIndex; lock: sessions.SessionLock };
   type Model = gateway.Model;
@@ -42,6 +44,8 @@ declare global {
   const builtinTools: typeof tools.builtinTools;
   const createContextPolicy: typeof context.createContextPolicy;
   const createMcpManager: typeof mcp.createMcpManager;
+  const memoryMcpPinStore: typeof mcp.memoryMcpPinStore;
+  const createPermissionPipeline: typeof permissions.createPermissionPipeline;
   const createDispatcher: typeof server.createDispatcher;
   const createHarness: typeof server.createHarness;
   const createToolRegistry: typeof tools.createToolRegistry;

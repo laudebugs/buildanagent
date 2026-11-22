@@ -43,6 +43,9 @@ The sections of README.md and every public export, generated from this package's
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
 - [MCP servers connect side by side, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-side-by-side-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
+- [A remote server is reached over HTTPS to a public address, and every byte it sends is bounded](README.md#a-remote-server-is-reached-over-https-to-a-public-address-and-every-byte-it-sends-is-bounded)
+- [Servers connect in the background, and the first turn waits only for `direct` servers](README.md#servers-connect-in-the-background-and-the-first-turn-waits-only-for-direct-servers)
+- [A tool runs only while its definition matches its pin, and a change waits for the next turn](README.md#a-tool-runs-only-while-its-definition-matches-its-pin-and-a-change-waits-for-the-next-turn)
 - [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
 - [Long-term memory is an extension of sourced records that expire, and a delete reaches the log](README.md#long-term-memory-is-an-extension-of-sourced-records-that-expire-and-a-delete-reaches-the-log)
@@ -241,6 +244,7 @@ The sections of README.md and every public export, generated from this package's
 - `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools.
 - `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
 - `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
+- `interface TurnBoundary`: A component that changes a session's tools only between turns, such as the MCP client.
 
 ## Exports from `@buildanagent/harness/mcp`
 
@@ -251,15 +255,24 @@ The sections of README.md and every public export, generated from this package's
 - `interface McpCallResult`: What one tool call returned.
 - `interface McpChannel`: A message channel to a server in this process, such as an `InMemoryTransport` from `@modelcontextprotocol/server`.
 - `interface McpConnection`: One connected server.
+- `interface McpEgressFetch`: The part of an egress proxy a remote server's requests go through: `startEgressProxy()` returns one.
 - `type McpEra`: The protocol era a server speaks: the 2026-07-28 revision, or `legacy` for the 2025 revisions and their `initialize`.
 - `class McpError`: Thrown for a server that could not connect (`mcp_connect_failed`), a tool list the harness refuses (`mcp_tool_list_refused`) and a tool call that ended with no result (`mcp_call_failed`, with `failure` saying why).
+- `interface McpHttpTransport`: A server reached over MCP's streamable HTTP transport: each message is a `POST`, and the answer is JSON or a server-sent event stream.
 - `interface McpInProcessTransport`: A server in this process, reached through a channel the host built.
 - `interface McpManager`: The MCP client as one removable component: it connects the servers and registers their tools.
 - `interface McpManagerOptions`: What `createMcpManager()` takes.
+- `interface McpPendingTool`: A tool whose current definition has no matching pin, so it waits for a person's approval.
+- `interface McpPinStore`: Where the approved definitions of each server's tools are kept: for each server, its tool names and the hash of each one's definition.
+- `interface McpRemoteSettings`: The settings a remote server shares, over streamable HTTP or legacy SSE.
 - `interface McpServerConfig`: One MCP server the harness connects to.
 - `type McpServerStatus`: How one server's connection went.
+- `interface McpSseTransport`: A server reached over the HTTP+SSE transport of the 2024-11-05 revision, which MCP has deprecated since 2025-03-26.
 - `interface McpStdioTransport`: A server the harness starts as a child process and speaks to over its standard input and output, one JSON message per line.
+- `interface McpTimers`: The timers the MCP client waits with, so a test can run its waits on a clock of its own.
 - `interface McpTool`: A tool as a server lists it.
+- `type McpToolState`: How a server's current definition of a tool compares with its pin.
+- `memoryMcpPinStore()`: A pin store in memory, for a host that keeps approvals for the life of the process, and for tests.
 
 ## Exports from `@buildanagent/harness/permissions`
 
@@ -406,6 +419,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface DiscoveredSkills`: The skills found, what to record about them, and why any were left out.
 - `discoverSkills()`: Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and every folder above it up to the repository root (the first folder with a `.git`).
 - `interface DiscoverSkillsOptions`: The settings of `discoverSkills()`.
+- `fileMcpPinStore()`: A pin store over the lock file at `lockFile`, such as `.agents/extensions.lock.json`.
 - `fileTrustStore()`: A trust store in the file at `file`, created on the first `trust()`.
 - `interface FoundContextFiles`: The context files found, and why any were skipped.
 - `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
@@ -414,9 +428,11 @@ The sections of README.md and every public export, generated from this package's
 - `pinProjectExtensions()`: Writes the lock file for every extension folder as it is now.
 - `planFileSource()`: A plan source that reads `.agents/plan.md` and `.agents/progress.json` under `root` each time it is called.
 - `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
-- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file.
+- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file or it pins no extension, because it holds MCP pins alone.
+- `readMcpPins()`: The MCP pins of one server in a lock file, by tool name, or `undefined` when it holds none for the server.
 - `realPathTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself, that resolves each folder to its real path when the store is built and when `trust()` adds it.
-- `writeLock()`: Writes the lock file for these pins, replacing the old one in one step.
+- `writeLock()`: Writes the lock file for these extension pins, keeping its MCP pins, and replaces the old file in one step.
+- `writeMcpPins()`: Replaces the MCP pins of one server in a lock file, keeping every other member.
 
 ## Exports from `@buildanagent/harness/memory`
 

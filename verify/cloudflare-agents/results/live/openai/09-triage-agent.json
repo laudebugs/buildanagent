@@ -115,7 +115,7 @@
             "name": "escalate",
             "input": {
               "customerId": "C-9",
-              "reason": "Customer reports a full outage. Customer is on enterprise plan and has 3 open tickets. Immediate on-call attention requested."
+              "reason": "Enterprise customer reports full outage; openTickets=3. Immediate on-call attention required."
             }
           }
         ]
@@ -125,7 +125,7 @@
         "uncachedInput": 246,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 49,
+        "output": 42,
         "reasoning": 0
       }
     },
@@ -193,16 +193,16 @@
         "parts": [
           {
             "type": "text",
-            "text": "I looked up customer C-9: they’re on the enterprise plan and already have 3 open tickets.\n\nI escalated the outage to the on-call team. Escalation ticket: ESC-1."
+            "text": "I looked up customer C-9: they’re on the enterprise plan and already have 3 open tickets.\n\nI escalated the full outage to on-call. Escalation ticket: ESC-1."
           }
         ]
       },
       "finish": "stop",
       "usage": {
-        "uncachedInput": 314,
+        "uncachedInput": 307,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 46,
+        "output": 45,
         "reasoning": 0
       }
     },
@@ -241,16 +241,16 @@
         "parts": [
           {
             "type": "text",
-            "text": "{\"customerId\":\"C-9\",\"priority\":\"p1\",\"escalated\":true,\"summary\":\"Enterprise customer with 3 open tickets reported a full outage; escalated to on-call as ESC-1.\"}"
+            "text": "{\"customerId\":\"C-9\",\"priority\":\"p1\",\"escalated\":true,\"summary\":\"Enterprise customer with a reported full outage and 3 open tickets; escalated to on-call as ESC-1.\"}"
           }
         ]
       },
       "finish": "stop",
       "usage": {
-        "uncachedInput": 362,
+        "uncachedInput": 354,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 51,
+        "output": 52,
         "reasoning": 0
       }
     },

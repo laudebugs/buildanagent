@@ -271,12 +271,19 @@ async function writeInput(
   writer: EntryWriter,
   options: { input: string | ContentBlock[]; inputOrigin?: "user" | "operator" },
   newId: () => string,
+  notices: readonly string[] = [],
 ) {
   const blocks: ContentBlock[] =
     typeof options.input === "string" ? [{ type: "text", text: options.input }] : options.input;
   const messageId = newId();
-  for (const [index, block] of blocks.entries()) {
-    await writer.write(options.inputOrigin ?? "user", {
+  // A boundary's notice goes first, in the same user message, with the harness as its origin: the gateway's transcript
+  // has no system role, so this is how an append-only log tells the model that tools changed (HD3).
+  const all = [
+    ...notices.map((text) => ({ origin: "harness" as const, block: { type: "text" as const, text } })),
+    ...blocks.map((block) => ({ origin: options.inputOrigin ?? "user", block })),
+  ];
+  for (const [index, { origin, block }] of all.entries()) {
+    await writer.write(origin, {
       type: "message_block",
       messageId,
       role: "user",
@@ -285,6 +292,24 @@ async function writeInput(
       delivery: "input",
     });
   }
+}
+
+/** The turn's input with the boundaries' notices in front, as the log holds it. */
+function withNotices(input: string | ContentBlock[], notices: readonly string[]): string | ContentBlock[] {
+  if (notices.length === 0) return input;
+  const blocks: ContentBlock[] = typeof input === "string" ? [{ type: "text", text: input }] : input;
+  return [...notices.map((text): ContentBlock => ({ type: "text", text })), ...blocks];
+}
+
+/** Runs every turn boundary in order and gathers their notices, before the turn builds its tools. */
+async function crossBoundaries<H>(harness: Harness<H>, signal: AbortSignal): Promise<string[]> {
+  const notices: string[] = [];
+  for (const boundary of harness.turnBoundaries ?? []) {
+    for (const notice of await boundary.beginTurn(signal)) {
+      if (typeof notice === "string" && notice !== "") notices.push(notice);
+    }
+  }
+  return notices;
 }
 
 type ModelMessage = Extract<AgentEvent, { type: "model_call_end" }>["message"];
@@ -689,8 +714,11 @@ async function runTurnOnce<H = unknown>(
 ): Promise<TurnResult> {
   const model = options.model ?? harness.model;
   const system = options.system ?? harness.system;
-  const tools = toolsOf(harness, options);
   const { signal, newId, writer } = turnPlumbing(session, options);
+  // Tools change only here, between turns: a boundary registers what arrived since the last turn before the tools
+  // are built, so nothing it does lands inside the run.
+  const notices = await crossBoundaries(harness, signal);
+  const tools = toolsOf(harness, options);
   // What a crash left open is settled first, so the log reads as a whole and the context has no call without a result.
   let path = await session.path();
   const wrote = await settleOpenCalls(
@@ -718,14 +746,18 @@ async function runTurnOnce<H = unknown>(
     path = await session.path();
   }
   const history = options.history ?? contextOf(path).messages;
-  await writeInput(writer, options, newId);
+  await writeInput(writer, options, newId, notices);
+  // A notice counts as told only once it is in the log; a turn that failed before here tells it again next time.
+  await writer.settled();
+  if (writer.failure() === undefined) for (const boundary of harness.turnBoundaries ?? []) boundary.commitNotices?.();
+  const input = withNotices(options.input, notices);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId, "run", turnContext?.spillOf);
   turnContext?.attach(attachment(writer, recorder));
   const observer: Observer = (event) => recorder.handle(event);
   const handle = run({
     model,
     system,
-    input: options.input,
+    input,
     tools,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),

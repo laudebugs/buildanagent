@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/harness",
-  "version": "0.1.0-alpha.30",
+  "version": "0.1.0-alpha.31",
   "description": "The buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -226,6 +226,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/server": "2.4.0",
-    "json-rpc-2.0": "1.8.1"
+    "json-rpc-2.0": "1.8.1",
+    "miniflare": "5.20261103.0-beta"
   }
 }
