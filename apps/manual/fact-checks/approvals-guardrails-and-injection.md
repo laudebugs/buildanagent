@@ -133,12 +133,13 @@ The new examples are `packages/sdk/examples/11-approval-resume.ts` and `12-appro
 | 79 | Our SDK does the first of the four things and offers the second through `recheck`, and leaves the last two to the application | § A saved approval | ⚠️ | Our reading of the four-item list against row 73's facts: the first is signed binding, the second needs the application to pass `recheck`, and the last two are the application's. The chapter says "offers" for the second |
 | 80 | A stored record rewritten to say Z-9 in both its input and its hash fails with `signature_invalid`, because only the holder of the key can sign | § A saved approval | ✅ | `12-approval-tamper.ts` check "a record rewritten to Z-9, hash included, fails the signature", which fails when the hash is left at A-1 (the cause is then `input_changed`); `verifyResolution` checks the signature before the input |
 | 81 | Our SDK signs over the call id, tool and input hash, and has a `recheck` option that runs current policy before an approved call runs; it does not verify who answered; `recheck` runs only when the application passes it (README: "Without `recheck`, a verified approval runs, so check policy before you resolve"); it refuses two answers for one request inside one `continueRun()` call as `replayed`, and leaves single use across processes to the store | § A saved approval | ✅ | `resume.ts` `resolutionsOf` (`replayed`) and `policyBlock`; `run.ts` `ContinueOptions.recheck`; README, "A request is meant to be answered once, but the SDK can't see your other processes, so single use is your store's job"; `test/resume.test.ts` lines 190 (`replayed`) and 230 (`recheck`). Corrects row 73. The facts are confirmed; the mapping onto the four-item list is our reading, row 79 |
+| 82 | The writing review's fixes keep the claims of rows 70, 72, 74 and 81: the run rejected the answer to the edited call with `input_changed` (not that the edit "failed the check"); the transcript-only edit is covered by the example's checks but does not fail, since the signed input runs; our SDK's request is signed over the call id, tool name and input hash; within one `continueRun()` call it refuses two answers for one request (`replayed`); our SDK has no edit decision and a gate's `ask` may carry an `input` the request signs | § A saved approval | ✅ | Rows 70, 72, 74 and 81 and their sources. The old wording said the example's other checks "show two more edits that fail", which was wrong for the transcript-only edit, so the sentence now says they "cover" two more edits. No claim about what our SDK enforces changed |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 71 |
+| ✅ confirmed | 72 |
 | ✏️ corrected | 4 (rows 57, 58, 71 and 73, correcting rows 35, 26, and themselves by rows 80 and 81) |
 | ⚠️ unverified, an illustration or our reading, marked as ours in the text | 6 (rows 26, 27, 31, 41, 53 and 79) |
-| Total | 81 |
+| Total | 82 |
