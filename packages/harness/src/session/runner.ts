@@ -5,7 +5,7 @@
  * turn's end. Every write goes through one queue, so the permission pipeline's entries and the observer's never race for
  * the same parent.
  */
-import type { ContentBlock, Message, Model, ModelRef } from "@buildanagent/gateway";
+import { addCost, addUsage, type ContentBlock, type Message, type Model, type ModelRef } from "@buildanagent/gateway";
 import { FORMAT_VERSION, type Origin, type SessionEntry } from "@buildanagent/protocol";
 import {
   type AgentEvent,
@@ -366,11 +366,12 @@ function contextFor<H>(
   harness: Harness<H>,
   session: Session,
   model: Model,
-  options: { readonly onContextFill?: (fill: ContextFill) => void },
+  options: { readonly onContextFill?: (fill: ContextFill) => void; readonly history?: readonly Message[] },
 ): TurnContext | undefined {
   return harness.context?.forTurn({
     session,
     model,
+    ownHistory: options.history !== undefined,
     ...(options.onContextFill === undefined ? {} : { onFill: options.onContextFill }),
   });
 }
@@ -394,7 +395,8 @@ function interceptorsOf<H>(
   });
   const gate =
     pipelineGate === undefined ? undefined : withStickyAllowances(pipelineGate, harness, session, writer, recorder);
-  const composed = composeInterceptors(harness.interceptors ?? {}, turnContext?.interceptors ?? {}, gate ?? {});
+  // The context policy runs first, so it reads and indexes the run's own transcript, and the harness's hooks see its view.
+  const composed = composeInterceptors(turnContext?.interceptors ?? {}, harness.interceptors ?? {}, gate ?? {});
   const inner = composed.beforeModelCall;
   return {
     ...composed,
@@ -753,12 +755,22 @@ async function retryAfterOverflow<H>(
   const model = options.model ?? harness.model;
   const turnContext = contextFor(harness, session, model, options);
   if (turnContext === undefined) return first;
+  // The retry has what the first attempt left of `maxSteps`; with none left there is nothing to retry into.
+  const stepsLeft = options.maxSteps === undefined ? undefined : options.maxSteps - first.steps;
+  if (stepsLeft !== undefined && stepsLeft < 1) return first;
   const { signal, newId, writer } = turnPlumbing(session, options);
-  const compacted = await turnContext.onOverflow({
-    path: await session.path(),
-    signal,
-    append: (origin, body) => writer.write(origin, body),
-  });
+  let compacted: boolean;
+  try {
+    compacted = await turnContext.onOverflow({
+      path: await session.path(),
+      signal,
+      append: (origin, body) => writer.write(origin, body),
+    });
+  } catch (error) {
+    // An abort during the summary call ends the turn as aborted, not as the overflow it was trying to cure.
+    if (signal.aborted) return { ...withoutError(first), stopReason: "aborted" };
+    throw error;
+  }
   await writer.settled();
   if (!compacted) return first;
   const context = contextOf(await session.path());
@@ -782,8 +794,21 @@ async function retryAfterOverflow<H>(
       ...afterWrites(harness.observers, writer),
       ...afterWrites(options.observers, writer),
     ],
-    ...optionalRunOptions(options, harness, []),
+    ...optionalRunOptions(stepsLeft === undefined ? options : { ...options, maxSteps: stepsLeft }, harness, []),
   });
   options.onRun?.(handle);
-  return settleTurn(handle, writer, session);
+  const retried = await settleTurn(handle, writer, session);
+  // The turn's result counts both attempts: what the first one spent and the steps it took.
+  return {
+    ...retried,
+    steps: first.steps + retried.steps,
+    usage: addUsage(first.usage, retried.usage),
+    cost: addCost(first.cost, retried.cost),
+  };
+}
+
+/** A result without its `error`, for a turn that was cut short before the error mattered. */
+function withoutError(result: TurnResult): TurnResult {
+  const { error: _error, ...rest } = result as TurnResult & { error?: unknown };
+  return rest as TurnResult;
 }

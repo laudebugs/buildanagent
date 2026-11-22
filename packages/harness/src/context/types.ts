@@ -104,6 +104,8 @@ export interface TurnContextOptions {
   readonly model: Model;
   /** Called with the fill after each request view is built. */
   readonly onFill?: (fill: ContextFill) => void;
+  /** True when the caller supplied the turn's history, so the log's entries do not describe the context. */
+  readonly ownHistory?: boolean;
 }
 
 /** The policy's hooks and state for one turn. */

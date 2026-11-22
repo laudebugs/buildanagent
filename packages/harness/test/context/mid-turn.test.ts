@@ -1,6 +1,7 @@
 // Layer 4: inside a turn, the first model call that would push the context past 90% of the window compacts once.
 import assert from "node:assert/strict";
 import { createModel, type Message, type Model } from "@buildanagent/gateway";
+import { isHarnessError } from "@buildanagent/harness";
 import { type CompactionRecord, createContextPolicy, memorySpillStore } from "@buildanagent/harness/context";
 import { createHarness } from "@buildanagent/harness/server";
 import { openSession, runTurn, type SessionEntry } from "@buildanagent/harness/session";
@@ -40,8 +41,9 @@ function registry() {
   return tools;
 }
 
-async function run(window: number, layers: Record<string, boolean> = {}) {
-  const main = new ScriptedModel([call("c1", 20), call("c2", 1050), call("c3", 2080), call("c4", 1200), done], {
+async function run(window: number, layers: Record<string, boolean> = {}, inputs = [20, 1050, 2080, 1200]) {
+  const [i1, i2, i3, i4] = inputs as [number, number, number, number];
+  const main = new ScriptedModel([call("c1", i1), call("c2", i2), call("c3", i3), call("c4", i4), done], {
     caps: caps(window),
   });
   const summary = new ScriptedModel([{ usage: {}, content: [{ type: "text", text: "## Goal\nRead the blobs" }] }]);
@@ -84,6 +86,46 @@ describe("mid-turn compaction", () => {
     const last = main.calls.at(-1)?.context.messages ?? [];
     assert.ok(text(last[0]).includes("summarized to save space"));
     assert.ok(!last.some((m) => text(m).includes("c1: x")), "the first result is in the summary's span");
+  });
+
+  test("a 100,000-token window compacts mid-turn once when the context crosses 90%", async () => {
+    // The last response before the crossing reports 89,500 tokens; the new result takes it past 90,000.
+    const { summary, entries } = await run(100_000, {}, [20, 30_000, 89_500, 1200]);
+    assert.equal(summary.calls.length, 1);
+    assert.equal(entries.filter((e) => e.type === "compaction").length, 1);
+  });
+
+  test("a midTurnRatio that is not between 0 and 1 is refused", () => {
+    for (const midTurnRatio of [0, 1, -0.5, Number.NaN]) {
+      assert.throws(
+        () => createContextPolicy({ spill: memorySpillStore(), midTurnRatio }),
+        (error: unknown) => isHarnessError(error) && error.code === "invalid_context_options",
+      );
+    }
+  });
+
+  test("a turn given its own history does not compact mid-turn", async () => {
+    const main = new ScriptedModel([call("c1", 20), call("c2", 1050), call("c3", 2080), call("c4", 1200), done], {
+      caps: caps(3000),
+    });
+    const summary = new ScriptedModel([{ usage: {}, content: [{ type: "text", text: "never" }] }]);
+    const harness = createHarness({
+      registry: registry(),
+      model: model(main, "main-model"),
+      system: "You read blobs.",
+      context: createContextPolicy({
+        spill: memorySpillStore(),
+        layers: { mask: false },
+        summarize: { tailTokens: 1100, model: model(summary, "summary-model") },
+      }),
+    });
+    const backend = memoryBackend();
+    const session = await openSession({ store: backend.store, index: backend.index, lock: backend.lock, key: KEY });
+    await runTurn(session, harness, {
+      input: "Read them all.",
+      history: [{ role: "user", content: [{ type: "text", text: "earlier" }] }],
+    });
+    assert.equal(summary.calls.length, 0);
   });
 
   test("a 1M-token window does not compact mid-turn by default", async () => {

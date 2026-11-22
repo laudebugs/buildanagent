@@ -52,6 +52,7 @@ export class MidTurn {
   #bindings: MidTurnBindings | undefined;
   #applied: Applied | undefined;
   #tried = false;
+  #appliedAtStep = 0;
 
   constructor(options: {
     session: Session;
@@ -74,6 +75,14 @@ export class MidTurn {
   /** Whether this turn has compacted, so the caller drops the last response's usage from its estimates. */
   get applied(): boolean {
     return this.#applied !== undefined;
+  }
+
+  /**
+   * The last response's usage when it still describes this view. A compaction in this turn makes the usage of the calls
+   * before it describe the old context, so it counts again only from the first response made under the new view.
+   */
+  usageFor(event: ContextEvent): ContextEvent["lastUsage"] {
+    return this.#applied !== undefined && event.stepIndex <= this.#appliedAtStep ? undefined : event.lastUsage;
   }
 
   /** The messages the next model call starts from: the run's own, or the compacted view of them. */
@@ -104,6 +113,7 @@ export class MidTurn {
     });
     if (done === undefined) return false;
     this.#applied = { ...done, length: event.messages.length };
+    this.#appliedAtStep = event.stepIndex;
     return true;
   }
 }

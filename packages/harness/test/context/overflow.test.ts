@@ -65,6 +65,12 @@ describe("the overflow retry", () => {
     assert.ok(!(main.calls[1]?.context.messages ?? []).some((m) => text(m).includes("summarized")));
   });
 
+  test("the turn's result adds the first attempt's steps and cost to the retry's", async () => {
+    const { result } = await run([first, tooBig, recovered]);
+    // The second turn's first attempt made one failed call, the retry one answer: two steps in all.
+    assert.equal(result.steps, 2);
+  });
+
   test("a second overflow ends the turn with an error and no second compaction", async () => {
     const { summary, entries, result } = await run([first, tooBig, tooBig]);
     assert.equal(result.stopReason, "error");

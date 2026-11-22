@@ -22,6 +22,12 @@ const DEFAULT_SUMMARY_OUTPUT_TOKENS = 4_096;
 const RESERVE_TOKENS = 16_384;
 const MAX_BUDGET_TOKENS = 200_000;
 
+function checkRatio(ratio: number | undefined): void {
+  if (ratio !== undefined && !(Number.isFinite(ratio) && ratio > 0 && ratio < 1)) {
+    throw new HarnessError("invalid_context_options", "midTurnRatio must be a number above 0 and below 1");
+  }
+}
+
 function checked(options: ContextPolicyOptions) {
   const cap = options.writeCapBytes ?? DEFAULT_CAP_BYTES;
   const mask = options.mask ?? DEFAULT_MASK;
@@ -34,6 +40,7 @@ function checked(options: ContextPolicyOptions) {
   if (options.budgetTokens !== undefined && (!Number.isInteger(options.budgetTokens) || options.budgetTokens < 1)) {
     throw bad("budgetTokens must be a positive whole number");
   }
+  checkRatio(options.midTurnRatio);
   const writeCap = options.layers?.write_cap !== false;
   if (writeCap && options.spill === undefined) {
     throw bad(
@@ -105,7 +112,7 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
   const summarizing = options.layers?.summarize !== false;
   const overflowRetry = options.layers?.overflow_retry !== false;
   return {
-    forTurn({ session, model, onFill }: TurnContextOptions): TurnContext {
+    forTurn({ session, model, onFill, ownHistory }: TurnContextOptions): TurnContext {
       const ledger = new SpillLedger(session);
       const window = model.caps.contextWindow;
       const budget = options.budgetTokens ?? Math.max(1, Math.min(window - RESERVE_TOKENS, MAX_BUDGET_TOKENS));
@@ -114,7 +121,8 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
         compact({ ...input, model, settings, budgetTokens: budget, hooks: options.hooks ?? {}, log: options.log });
       const midTurn = new MidTurn({
         session,
-        enabled: options.layers?.mid_turn ?? window < MID_TURN_WINDOW,
+        // A caller-supplied history is not what the log rebuilds, so a summary of it could not be written as an entry.
+        enabled: ownHistory !== true && (options.layers?.mid_turn ?? window < MID_TURN_WINDOW),
         limitTokens: Math.floor((options.midTurnRatio ?? MID_TURN_RATIO) * window),
         compact: runCompaction,
         log: options.log,
@@ -128,7 +136,7 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
         if (!compactedBefore && midTurn.applied) await ledger.reload();
         const view = masking ? maskMessages(base, mask, (id, nth) => ledger.where(id, nth)) : base;
         // After a compaction the last response's usage describes the context before it, so it no longer counts.
-        fill = { tokens: estimate(event.system, view, midTurn.applied ? undefined : event.lastUsage), budget, window };
+        fill = { tokens: estimate(event.system, view, midTurn.usageFor(event)), budget, window };
         onFill?.(fill);
         return [...view];
       };
