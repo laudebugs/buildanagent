@@ -4,9 +4,10 @@
  * and each compensation is a guarded write under a key of its own. Once the pivot has run, nothing is undone: the
  * remaining steps run forward, and a step that can't finish is handed to a person.
  *
- * The compensation log is the step records themselves. Each step's key is fixed by the plan id and the step id, so
- * the records of an interrupted plan, read in plan order, say which steps ran, and a resumed plan compensates exactly
- * those, in reverse, once each. The one extra record is the plan's decision to compensate, which a resume reads first,
+ * The compensation log is the step records themselves. A step's key is fixed by the plan id and the step id, or by its
+ * business key alone when it has one, and each record names the plan and step of the call that wrote it. So the
+ * records of an interrupted plan, read in plan order, say which steps this plan ran, and a resumed plan compensates
+ * exactly those, in reverse, once each. A step that another plan applied under the same business key is not undone. The one extra record is the plan's decision to compensate, which a resume reads first,
  * so a step that failed is never retried while its plan is half undone.
  *
  * The rules are our synthesis of the sagas report in docs/research/reversible-actions, not a vendor design.
@@ -114,6 +115,9 @@ export type PlanOutcome =
       readonly failedStep: string;
       readonly reason: PlanFailureReason;
       readonly undone: readonly string[];
+      /** The steps that took effect and still hold. */
+      readonly held: readonly string[];
+      /** What a person must finish or undo: the stopped step, the steps not run, and any step not undone. */
       readonly outstanding: readonly string[];
       readonly avoid: string;
     }
@@ -280,7 +284,12 @@ async function unwind(run: Run, stop: Stop, undo: boolean): Promise<PlanOutcome>
   const ran: PlanStepImpl[] = [];
   for (const impl of steps.slice(0, stop.index)) {
     const record = await run.options.store.get(await forwardKey(run, impl));
-    if (record?.state === "settled" && record.outcome?.kind === "applied") ran.push(impl);
+    // Only a step this plan ran is undone. With a business key, a step may have been applied by another plan, whose
+    // record this plan reads, and undoing that effect is not this plan's to do.
+    const own = record?.scope.toolCallId === stepScope(run, impl.step.id, "run").toolCallId;
+    if (own && record?.state === "settled" && record.outcome?.kind === "applied" && impl.compensate !== undefined) {
+      ran.push(impl);
+    }
   }
   const undone: string[] = [];
   const left: string[] = [];
@@ -291,6 +300,8 @@ async function unwind(run: Run, stop: Stop, undo: boolean): Promise<PlanOutcome>
       continue;
     }
     const outcome = await write(run, impl, "compensate");
+    // Another process is undoing this step right now, so the unwind waits for it instead of failing.
+    if (outcome.reason === "IN_PROGRESS") return pending(run, impl, "running");
     if (outcome.kind === "applied") {
       undone.push(label(impl));
       continue;
@@ -317,6 +328,7 @@ async function unwind(run: Run, stop: Stop, undo: boolean): Promise<PlanOutcome>
     failedStep: failed.step.id,
     reason,
     undone,
+    held: left,
     outstanding,
     avoid:
       "Do not say that the plan completed or failed cleanly, do not run any of its steps again, and do not undo anything yourself.",
@@ -359,27 +371,36 @@ function pending(run: Run, impl: PlanStepImpl, phase: "running" | "pivot_unknown
   return { status: "pending", planId: run.approval.planId, phase, stepId: impl.step.id };
 }
 
-/** The outcome of a failed or unfinished step after the pivot, where nothing can be undone. */
-function afterPivot(run: Run, index: number, state: StepState, outcome: WriteOutcome): PlanOutcome {
+/** Hands a plan to a person from `index` on: the steps before it hold, and it and the steps after it are theirs. */
+function handedOver(run: Run, index: number, reason: PlanFailureReason, maybeApplied: boolean): PlanOutcome {
   const { steps } = run.options;
-  const impl = steps[index] as PlanStepImpl;
-  const retry = state.kind === "failed" && (outcome.retry === "same_key" || outcome.retry === "reconcile_first");
-  if (retry || (state.kind === "unknown" && state.inProgress)) return pending(run, impl, "running");
   const outstanding = steps
     .slice(index)
     .map((later, offset) =>
-      offset === 0 && state.kind !== "failed" ? `${label(later)} (may have taken effect)` : `${label(later)} (not run)`,
+      offset === 0 && maybeApplied ? `${label(later)} (may have taken effect)` : `${label(later)} (not run)`,
     );
   return {
     status: "failed_needs_human",
     planId: run.approval.planId,
-    failedStep: impl.step.id,
-    reason: state.kind === "partial" ? "STEP_PARTIAL" : state.kind === "unknown" ? "STEP_UNKNOWN" : "RETRY_REFUSED",
+    failedStep: (steps[index] as PlanStepImpl).step.id,
+    reason,
     undone: [],
+    held: steps.slice(0, index).map(label),
     outstanding,
     avoid:
       "Do not say that the plan completed, do not undo the steps that ran, and do not run these steps again as a new request.",
   };
+}
+
+/** The outcome of a failed or unfinished step after the pivot, where nothing can be undone. */
+function afterPivot(run: Run, index: number, state: StepState, outcome: WriteOutcome): PlanOutcome {
+  const impl = run.options.steps[index] as PlanStepImpl;
+  // A step that may still succeed, or whose result a check can settle, is tried again by the next call.
+  const retry = state.kind !== "partial" && (outcome.retry === "same_key" || outcome.retry === "reconcile_first");
+  if (retry || (state.kind === "unknown" && state.inProgress)) return pending(run, impl, "running");
+  const reason =
+    state.kind === "partial" ? "STEP_PARTIAL" : state.kind === "unknown" ? "STEP_UNKNOWN" : "RETRY_REFUSED";
+  return handedOver(run, index, reason, state.kind !== "failed");
 }
 
 /** What a step that ran or was already recorded came to. */
@@ -439,8 +460,10 @@ const canUndo = (run: Run, stop: Stop): boolean =>
   !(stop.leftEffects && run.options.steps[stop.index]?.step.class === "pivot");
 
 /** A step the approval's checks or a cancel refused: nothing ran if it is the first, else the plan unwinds. */
-async function halted(run: Run, halt: Halt, ranAny: boolean): Promise<PlanOutcome> {
+async function halted(run: Run, halt: Halt, ranAny: boolean, pivotIndex: number): Promise<PlanOutcome> {
   if (!ranAny && halt.check !== undefined) return notRun(run, halt.check);
+  // After the pivot nothing is undone, so a step the approval refuses there goes to a person with the rest.
+  if (pivotIndex >= 0 && halt.stop.index > pivotIndex) return handedOver(run, halt.stop.index, halt.stop.reason, false);
   return unwind(run, await writeDecision(run, halt.stop), true);
 }
 
@@ -464,7 +487,7 @@ async function runForward(run: Run): Promise<PlanOutcome> {
   let ranAny = false;
   for (const index of steps.keys()) {
     const result = await forward(run, index, pivotIndex);
-    if ("stop" in result) return halted(run, result, ranAny);
+    if ("stop" in result) return halted(run, result, ranAny, pivotIndex);
     if (result.state.kind !== "applied") return notApplied(run, index, pivotIndex, result);
     ranAny = true;
   }
@@ -528,11 +551,11 @@ export function planWriteOutcome(outcome: PlanOutcome): WriteOutcome {
       return writeOutcome({
         kind: "partial",
         operation,
-        applied: outcome.outstanding,
+        applied: outcome.held,
         reverted: outcome.undone,
         reason: outcome.reason,
         retry: "never",
-        currentState: `The plan stopped at step ${outcome.failedStep}, and the steps listed as applied are still in effect.`,
+        currentState: `The plan stopped at step ${outcome.failedStep}. A person must handle: ${outcome.outstanding.join("; ")}.`,
         next: "Tell the user a person must finish or undo the plan, and say which steps are still in effect.",
         avoid: outcome.avoid,
       });

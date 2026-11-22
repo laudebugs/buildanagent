@@ -70,7 +70,8 @@ type Behaviour = (key: string) => Promise<WriteOutcome>;
 function fake() {
   const requests: { op: string; key: string }[] = [];
   const answers = new Map<string, Behaviour>();
-  const state: unknown[] = STATE.map((entry) => entry.value);
+  // The plan lists the first value only. The second, such as an order's balance, is one its arguments came from.
+  const state: unknown[] = [...STATE.map((entry) => entry.value), 2500];
   const reconcile = new Map<string, () => Promise<WriteOutcome | "not_found">>();
   const impl = (field: (typeof FIELDS.steps)[number], signed: PlanApproval["steps"][number]): PlanStepImpl => {
     const base = { step: signed, input: field.input, dedupe: "idempotency_key" as const };
@@ -384,15 +385,82 @@ test("a cancel before the pivot undoes the steps that ran, and a cancel after th
 });
 
 test("a value the plan's state leaves out is a known miss: a change to it is not caught, and the plan completes", async () => {
-  const { system, run } = await setup();
-  // The plan lists one value. Another one that its arguments were computed from, such as an order's balance, changes.
-  const unlisted = { balance: 2500 };
+  const { system, approval, run } = await setup();
+  assert.equal(approval.stateReads.length, 1, "the plan lists one value");
   system.answer("a", async () => {
-    unlisted.balance = 0;
+    system.state[1] = 0;
     return applied("do_a");
   });
   status(await run(), "completed");
-  assert.equal(unlisted.balance, 0, "nothing in the plan or the approval can see the change");
+  assert.equal(system.state[1], 0, "the unlisted value changed, and nothing in the plan or the approval saw it");
+  // The same change to the listed value is caught, so the miss is the omission and not the check.
+  const listed = await setup();
+  listed.system.answer("a", async () => {
+    listed.system.state[0] = 0;
+    return applied("do_a");
+  });
+  assert.equal(status(await listed.run(), "failed_compensated").reason, "STALE_APPROVAL");
+});
+
+test("a step after the pivot that the approval refuses is handed over, and the pivot is never undone", async () => {
+  const { system, approval, run } = await setup();
+  const steps = system.steps(approval);
+  steps[4] = { ...(steps[4] as PlanStepImpl), input: { id: "r", extra: true } };
+  const outcome = status(await run({ steps }), "failed_needs_human");
+  assert.equal(outcome.reason, "NOT_VERIFIED");
+  assert.deepEqual(outcome.held, ["a: Do a", "b: Do b", "c: Do c", "p: Do p"]);
+  assert.deepEqual(outcome.outstanding, ["r: Do r (not run)", "s: Do s (not run)"]);
+  assert.deepEqual(system.ops(), ["a", "b", "c", "p"], "nothing was undone and no step after the pivot ran");
+  const read = planWriteOutcome(outcome);
+  assert.deepEqual(read.applied, outcome.held, "the model reads the steps that still hold as applied");
+});
+
+test("a step after the pivot that times out is pending, and the next call reconciles it", async () => {
+  const { system, run } = await setup();
+  system.answer("r", async () => {
+    throw new Error("timeout");
+  });
+  system.reconcile("r", async () => applied("do_r"));
+  const waiting = status(await run(), "pending");
+  assert.deepEqual([waiting.phase, waiting.stepId], ["running", "r"]);
+  status(await run(), "completed");
+  assert.deepEqual(system.ops(), ["a", "b", "c", "p", "r", "s"], "r was sent once");
+});
+
+test("a compensation that another process is still running makes the plan pending, not failed", async () => {
+  const { system, run } = await setup();
+  system.answer("c", async () => notApplied("do_c"));
+  system.answer("undo_b", async () =>
+    writeOutcome({
+      kind: "unknown",
+      operation: "undo_b",
+      reason: "IN_PROGRESS",
+      retry: "same_key",
+      effectKey: "k",
+      next: "Wait.",
+    }),
+  );
+  const waiting = status(await run(), "pending");
+  assert.deepEqual([waiting.phase, waiting.stepId], ["running", "b"]);
+});
+
+test("a plan undoes only the steps it ran: one that another plan applied under the same business key is left alone", async () => {
+  const first = await setup();
+  status(await first.run(), "completed");
+  // A second plan shares every business key but b's, so a, c and the rest return the first plan's stored outcomes.
+  const fields: PlanFields = {
+    ...FIELDS,
+    steps: FIELDS.steps.map((step) => (step.id === "b" ? { ...step, businessKey: "biz:b2" } : step)),
+  };
+  const second = await signPlan(fields, first.signer, { generateId: () => "plan_2", now: () => APPROVED_AT });
+  first.system.answer("b", async () => notApplied("do_b"));
+  const outcome = status(
+    await first.run({ approval: second, steps: first.system.steps(second) }),
+    "failed_compensated",
+  );
+  assert.equal(outcome.failedStep, "b");
+  assert.deepEqual(outcome.undone, [], "a was applied by the first plan, so the second does not undo it");
+  assert.ok(!first.system.ops().includes("undo_a"));
 });
 
 test("a forged approval, or a step whose input differs from the signed one, runs nothing", async () => {
@@ -454,6 +522,7 @@ test("each plan outcome maps onto the write outcome kind it stands for, and rend
         failedStep: "c",
         reason: "COMPENSATION_FAILED",
         undone: [],
+        held: ["a: Do a"],
         outstanding: ["a: Do a"],
         avoid: "Do not retry.",
       },
