@@ -13,7 +13,15 @@ import { assertModelRequestAllowed } from "../request-policy.js";
 import type { Transport } from "../runtime-types.js";
 import type { ModelEvent, StreamOptions } from "../spec.js";
 import { readServerSentEvents, type ServerSentEvent } from "../sse.js";
-import type { AssistantMessage, ContentBlock, ModelErrorCode, ModelRef, Usage } from "../types.js";
+import type {
+  AssistantMessage,
+  ContentBlock,
+  Message,
+  ModelContext,
+  ModelErrorCode,
+  ModelRef,
+  Usage,
+} from "../types.js";
 import { emptyUsage, unreportedUsage } from "../usage.js";
 
 /** A JSON object as the adapters read it off the wire. */
@@ -166,6 +174,30 @@ export function retryAfterMs(headers: Headers): number | undefined {
   const sent = httpDate(headers.get("date"));
   if (Number.isNaN(until) || Number.isNaN(sent)) return undefined;
   return Math.max(0, until - sent);
+}
+
+/**
+ * Reads a failed HTTP response's error body and its retry-after hint into a failure; a body that is not JSON keeps its
+ * text as the message. `readFailure` is the adapter's reader of the provider's error object.
+ */
+export async function failureFromResponse(
+  response: Response,
+  readFailure: (body: unknown, status: number | undefined, fallback: string) => WireFailure,
+): Promise<WireFailure> {
+  const { body, text } = await readErrorBody(response);
+  const wait = retryAfterMs(response.headers);
+  return {
+    ...readFailure(body, response.status, text || `HTTP ${response.status}`),
+    ...(wait === undefined ? {} : { retryAfterMs: wait }),
+  };
+}
+
+/** The names of the tools a request offers and the tools its messages already called, for the tool-name map. */
+export function toolNames(context: ModelContext, messages: readonly Message[]): string[] {
+  const called = messages.flatMap((message) =>
+    message.role === "assistant" ? message.content.flatMap((b) => (b.type === "tool_call" ? [b.name] : [])) : [],
+  );
+  return [...context.tools.map((tool) => tool.name), ...called];
 }
 
 /** A failed response's body, parsed as JSON when it is JSON, and its text. */

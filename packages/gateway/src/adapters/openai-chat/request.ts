@@ -19,7 +19,7 @@ import type { ModelEvent, StreamOptions } from "../../spec.js";
 import { transformMessages } from "../../transform-messages.js";
 import type { ContentBlock, Message, ModelCaps, ModelContext, ModelRef, WireTool } from "../../types.js";
 import { lowerToStrict, type StrictDialect } from "../strict-schema.js";
-import { isObject, type Json } from "../wire.js";
+import { isObject, type Json, toolNames } from "../wire.js";
 import type { ResolvedCompat } from "./compat.js";
 
 type Warning = Extract<ModelEvent, { type: "warning" }>;
@@ -202,13 +202,6 @@ function encodeTools(tools: readonly WireTool[], names: ToolNameMap, compat: Res
 }
 
 // The body -----------------------------------------------------------------------------------------------------------
-
-function toolNames(context: ModelContext, messages: readonly Message[]): string[] {
-  const called = messages.flatMap((message) =>
-    message.role === "assistant" ? message.content.flatMap((b) => (b.type === "tool_call" ? [b.name] : [])) : [],
-  );
-  return [...context.tools.map((tool) => tool.name), ...called];
-}
 
 function warning(message: string): Warning {
   return { type: "warning", code: "unsupported_option", message };

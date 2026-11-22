@@ -22,8 +22,7 @@ import {
   failureTerminal,
   isObject,
   type PartialReply,
-  readErrorBody,
-  retryAfterMs,
+  failureFromResponse as readResponseFailure,
   type WireFailure,
 } from "../wire.js";
 
@@ -51,18 +50,9 @@ export function failureFrom(body: unknown, status: number | undefined, fallback:
   };
 }
 
-/**
- * Reads a failed HTTP response's error body and its retry-after hint; a body that is not JSON keeps its text as the
- * message.
- */
-export async function failureFromResponse(response: Response): Promise<WireFailure> {
-  const { body, text } = await readErrorBody(response);
-  const wait = retryAfterMs(response.headers);
-  return {
-    ...failureFrom(body, response.status, text || `HTTP ${response.status}`),
-    ...(wait === undefined ? {} : { retryAfterMs: wait }),
-  };
-}
+/** Reads a failed HTTP response's error body and its retry-after hint. */
+export const failureFromResponse = (response: Response): Promise<WireFailure> =>
+  readResponseFailure(response, failureFrom);
 
 /** The `error` terminal for a failure, with any partial content and usage the attempt reached. */
 export function failureEvent(

@@ -1,0 +1,44 @@
+{
+  "forbidden": [
+    {
+      "name": "no-circular",
+      "comment": "An import cycle makes the modules in it one module that can only change together.",
+      "severity": "error",
+      "from": {},
+      "to": {
+        "circular": true
+      }
+    },
+    {
+      "name": "no-relative-import-between-packages",
+      "comment": "A package reaches another through its name and its entry points, never through its files (maintainability.md, 'Every concept has one home').",
+      "severity": "error",
+      "from": {
+        "path": "^packages/([^/]+)/"
+      },
+      "to": {
+        "dependencyTypes": ["local"],
+        "path": "^packages/([^/]+)/",
+        "pathNot": "^packages/$1/"
+      }
+    }
+  ],
+  "options": {
+    "doNotFollow": {
+      "path": "node_modules"
+    },
+    "exclude": {
+      "path": "(^|/)(dist|node_modules|\\.tmp)/"
+    },
+    "tsConfig": {
+      "fileName": "tsconfig.base.json"
+    },
+    "moduleSystems": ["es6", "cjs"],
+    "enhancedResolveOptions": {
+      "exportsFields": ["exports"],
+      "conditionNames": ["source", "import", "node", "default"],
+      "extensions": [".ts", ".mts", ".js", ".mjs", ".json"]
+    },
+    "parser": "swc"
+  }
+}

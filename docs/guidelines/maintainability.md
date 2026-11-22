@@ -27,3 +27,19 @@ These rules keep `packages/` easy to change as the SDK and harness grow. They ad
 
 - **MUST:** when a test fails, find out why. Fix the product if it is wrong. If the test checks something that doesn't make sense, change or remove it, and say why in the commit message.
 - **SHOULD:** a regression test for a review finding fails on the code before the fix.
+
+## How it's checked
+
+Four root scripts check the rules that a tool can, and `ci.yml` runs each one on every push. A rule that no script covers stays a reviewer's call in each `/code-review` round.
+
+| Script | Tool and config | Fails on |
+| --- | --- | --- |
+| `pnpm check:deps` | dependency-cruiser, `.dependency-cruiser.json` | An import cycle in `packages/`, or a relative import from one package into another's files. An import by package name, such as `@buildanagent/gateway`, is the one public path and is never flagged |
+| `pnpm check:duplicates` | jscpd, `.jscpd.json` | A block of 10 lines or more repeated in any package's `src/`. Import lists are skipped, because two files that need the same names must list them, and `src/vendor/` is skipped, because the SDK's copies of the safety package are identical by design ([Known gaps](README.md#known-gaps)) |
+| `pnpm check:unused` | knip, `knip.jsonc` | An unused file, export or dependency in `packages/`. Each package's entry points come from its `exports` map. An export that only its own file uses is left to review, and the config names the few files that a path in a config or test loads |
+| `pnpm check:ids` | `scripts/ci/todo-ids.mjs` | A todo id, such as `B4` or `E2a`, in a comment under `packages/*/src`. The ids come from the file names in `docs/todos/`, so a new todo is covered at once and a string such as `T00:00:00Z` never counts |
+
+Run a check locally before you push, since a violation fails CI and not only the review. Fix the code rather than widening the config. A new ignore in `knip.jsonc`, `.jscpd.json` or `.dependency-cruiser.json` needs a comment that says why the file is outside the rule, and a reviewer may refuse it.
+
+The tools are exact-pinned dev dependencies of the root package, as the other tools are. dependency-cruiser reads TypeScript through `@swc/core`, because it supports TypeScript up to 6 and the repo uses 7; without a parser it passes after reading a handful of files, so `check:deps` prints the number of modules it cruised, which should be in the hundreds.
+

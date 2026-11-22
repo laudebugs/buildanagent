@@ -1,0 +1,21 @@
+{
+  "path": [
+    "packages/gateway/src",
+    "packages/sdk/src",
+    "packages/agent-safety/src",
+    "packages/protocol/src",
+    "packages/harness/src",
+    "packages/cli/src",
+    "packages/evals/src"
+  ],
+  "format": ["typescript"],
+  "minLines": 10,
+  "minTokens": 50,
+  "threshold": 0,
+  "ignore": ["**/vendor/**", "**/*.d.ts"],
+  "reporters": ["console"],
+  "gitignore": true,
+  "absolute": false,
+  "silent": false,
+  "ignorePattern": ["import\\s+(?:type\\s+)?[^;]*?\\sfrom\\s+[\"'][^\"']+[\"'];"]
+}
