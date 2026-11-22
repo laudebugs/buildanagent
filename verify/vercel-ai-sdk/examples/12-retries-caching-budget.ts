@@ -53,16 +53,16 @@ function withBudget(inner: LanguageModelV4) {
           noCache: tokensIn(restOf(params)),
           cacheRead: 0,
           cacheWrite: tokensIn(prefixOf(params)),
-          output: params.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
+          output: params.maxOutputTokens ?? MAX_OUTPUT_TOKENS, // book:note project
         });
-        if (ledger.spent + ledger.projected > BUDGET_NANOS) throw new BudgetExceededError(ledger.projected);
+        if (ledger.spent + ledger.projected > BUDGET_NANOS) throw new BudgetExceededError(ledger.projected); // book:note refuse-before
         const result = await doGenerate();
         const u = result.usage;
         ledger.spent += costNanos(SONNET_5_5, {
           noCache: u.inputTokens.noCache ?? 0,
           cacheRead: u.inputTokens.cacheRead ?? 0,
           cacheWrite: u.inputTokens.cacheWrite ?? 0,
-          output: u.outputTokens.total ?? 0,
+          output: u.outputTokens.total ?? 0, // book:note record-actual
         });
         return result;
       },

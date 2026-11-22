@@ -609,7 +609,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T14](../todos/done/T14-chapter-approvals-guardrails-and-injection.md) | Chapter: Asking before acting: approvals, guardrails and prompt injection | T5, T6, T26 | M |
 | [T16](../todos/done/T16-chapter-testing-offline-and-a-first-agent.md) | Chapter: Testing offline, and a first complete agent | T5, T6, T26 | M |
 | [T17](../todos/ready/T17-chapter-choosing-the-shape.md) | Chapter: Choosing the shape: buy, adopt or build, how to plan, and when subagents pay | T5, T6, T26, T42 | M |
-| [T18](../todos/ongoing/T18-chapter-the-model-gateway.md) | Chapter: The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost | T5, T6, T26, T29, T55 | M |
+| [T18](../todos/done/T18-chapter-the-model-gateway.md) | Chapter: The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost | T5, T6, T26, T29, T55 | M |
 | [T19](../todos/done/T19-chapter-events-and-hooks.md) | Chapter: Events and hooks: one event union, interceptors and observers | T5, T6, T26 | M |
 | [T20](../todos/done/T20-chapter-the-session-log-and-context.md) | Chapter: The session log and context policy | T5, T7, T26 | M |
 | [T36](../todos/ready/T36-chapter-retrieval-and-long-term-memory.md) | Chapter: Retrieval and long-term memory | U18, T5, T6, T26, T41, T43, T44 | M |

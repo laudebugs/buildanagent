@@ -60,12 +60,12 @@ export function scripted(
     ({ unified: typeof turn === "string" ? "stop" : "tool-calls", raw: undefined }) as const;
   const model = new MockLanguageModelV4({
     ...(options.modelId === undefined ? {} : { modelId: options.modelId }),
-    doGenerate: async (options) => { // book:note do-generate
-      const turn = next(options);
+    doGenerate: async (options) => {
+      const turn = next(options); // book:note do-generate
       return { content: content(turn), finishReason: finish(turn), usage, warnings: [] };
     },
-    doStream: async (options) => { // book:note do-stream
-      const turn = next(options);
+    doStream: async (options) => {
+      const turn = next(options); // book:note do-stream
       const parts: any[] =
         typeof turn === "string"
           ? [
