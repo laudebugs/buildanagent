@@ -57,7 +57,7 @@ The other SDKs agree on the moments and differ in how many they offer. LangChain
 :::listing[Our SDK]{#block-ours file="packages/sdk/examples/09-gate-and-redact.ts" region="hooks" replay}
 ::note[Returning a `deny` decision blocks the call, and the model reads the `reason`. The example's checks confirm that the denied tool's function never ran.]{#deny}
 ::note[A gate must return a decision, so a call that passes returns an explicit `allow`. Returning nothing would throw.]{#allow}
-::note[Returning a patch whose `content` replaces what the model reads, so the raw ticket body never reaches it. Returning nothing keeps the result.]{#replace}
+::note[A returned patch whose `content` is set replaces what the model reads, so the raw ticket body never reaches it. Returning nothing keeps the result.]{#replace}
 :::
 :::listing[Copilot SDK]{#block-copilot file="verify/copilot-sdk/examples/08-hooks.ts" region="hooks" replay}
 ::note[Returning a decision of `deny` blocks the call, and the example's checks confirm that the model reads the reason.]{#deny}
@@ -107,7 +107,7 @@ Interceptors are written before a run starts, but sometimes a person must change
 
 ::::tabs
 :::listing[Our SDK]{#steer-ours file="packages/sdk/examples/10-steering.ts" region="steer" replay}
-::note[`steer()` queues a message for the run in progress, and the first model call is still streaming when it arrives. The example does not wait for the promise it returns, which settles with a receipt once the message is in the transcript.]{#steer}
+::note[`steer()` queues a message for the run in progress, and the first model call is still streaming when it arrives. The loop does not wait for the promise it returns, which settles with a receipt once the message is in the transcript, and the example awaits the receipts after the stream ends. A receipt rejects with `undelivered_message`{checked=row-99} if the run ends first, so code on a real model handles that rejection.]{#steer}
 ::note[`followUp()` queues a message for after the run would otherwise end.]{#follow-up}
 ::note[Each queued message comes back as a `steer_applied` event, whose receipt names the kind and the step at which the run added it.]{#applied}
 :::

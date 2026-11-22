@@ -136,7 +136,7 @@
     {
       "kind": "check",
       "line": 76,
-      "message": "both calls are gated before either runs, and afterToolCall skips the denied call, which never ran",
+      "message": "beforeToolCall ran for both calls, and afterToolCall ran only for the call that executed",
       "pass": true
     },
     {

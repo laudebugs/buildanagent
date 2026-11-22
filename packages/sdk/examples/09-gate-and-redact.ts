@@ -75,7 +75,7 @@ check(
 );
 check(
   hooked.join() === "before:close_ticket,before:read_ticket,after:read_ticket",
-  "both calls are gated before either runs, and afterToolCall skips the denied call, which never ran",
+  "beforeToolCall ran for both calls, and afterToolCall ran only for the call that executed",
 );
 check(
   ended.length === 2 && ended[0]?.isError === true && ended[1]?.isError === false,

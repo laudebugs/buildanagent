@@ -25,7 +25,7 @@ check(
   "the observer hears the text deltas, then the finished text, then the finished model call",
 );
 check(
-  types.indexOf("text_delta") < types.indexOf("text_end") &&
+  types.lastIndexOf("text_delta") < types.indexOf("text_end") &&
     types.indexOf("text_end") < types.indexOf("model_call_end"),
   "the deltas come before the end events that carry the finished item",
 );
