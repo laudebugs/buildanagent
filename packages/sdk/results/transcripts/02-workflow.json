@@ -1,0 +1,118 @@
+{
+  "format": 1,
+  "example": "02-workflow",
+  "file": "packages/sdk/examples/02-workflow.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 19,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Write."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Write a haiku."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 19,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "DRAFT-TEXT"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 20,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Review this: DRAFT-TEXT"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Write a haiku."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 20,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "LGTM"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 22,
+      "message": "the writer's answer is the draft",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 23,
+      "message": "the writer's call carries its own instruction only",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 24,
+      "message": "the code pastes the draft into the reviewer's instruction",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 28,
+      "message": "the reviewer answers last, because the code calls it second",
+      "pass": true
+    }
+  ]
+}

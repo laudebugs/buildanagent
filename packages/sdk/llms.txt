@@ -60,7 +60,7 @@ The sections of README.md and every public export, generated from this package's
 - `AGENT_EVENT_TYPES`: Every `AgentEvent` type.
 - `type AgentEvent`: One event of a run.
 - `type AgentEventBody`: The body of each event, without the fields of `EventBase`.
-- `type AppRequired`: Makes `app` required once the run's tools declare a type for it, which `A` then is.
+- `type AppFor`: What `run()` and `continueRun()` require of `app`, from the tools' declared types alone: nothing when no tool declares one, and otherwise an `app` that has every declared type at once, so a typed tool beside an untyped one still needs it, and `null` or another type is refused.
 - `interface ApprovalDetails`: What a blocking approval handler receives besides the request: the input it signs, and the run's abort signal.
 - `type ApprovalHandler`: Answers one approval request while the run waits: return `{ requestId: request.id, decision }`.
 - `interface ApprovalSigner`: Signs and verifies the payload of a pending request.

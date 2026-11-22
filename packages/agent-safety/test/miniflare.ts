@@ -30,14 +30,19 @@ const nodeBuiltins: Plugin = {
 const workspaceSource: Plugin = {
   name: "workspace-source",
   setup(b) {
-    b.onResolve({ filter: /^@buildanagent\/gateway(\/|$)/ }, (args) => {
-      const dir = fileURLToPath(new URL("../../gateway/", import.meta.url));
-      const manifest = JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
-        exports: Record<string, { source?: string }>;
-      };
-      const source = manifest.exports[`.${args.path.slice("@buildanagent/gateway".length)}`]?.source;
-      return source === undefined ? undefined : { path: join(dir, source) };
-    });
+    for (const [name, dir] of [
+      ["@buildanagent/gateway", "../../gateway/"],
+      ["@buildanagent/agent-safety", "../"],
+    ] as const) {
+      b.onResolve({ filter: new RegExp(`^${name}(/|$)`) }, (args) => {
+        const root = fileURLToPath(new URL(dir, import.meta.url));
+        const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+          exports: Record<string, { source?: string }>;
+        };
+        const source = manifest.exports[`.${args.path.slice(name.length)}`]?.source;
+        return source === undefined ? undefined : { path: join(root, source) };
+      });
+    }
   },
 };
 
@@ -51,15 +56,19 @@ export interface TestWorker {
   dispose(): Promise<void>;
 }
 
-/** Bundles `entry` and starts it in workerd, with each class in `durableObjects` as a SQLite Durable Object. */
+/**
+ * Bundles `entry` and starts it in workerd, with each class in `durableObjects` as a SQLite Durable Object. `alias`
+ * maps a module name to a file for the bundle, as the suite's runner stands in for "vitest".
+ */
 export async function startWorker(
   entry: string,
   durableObjects: readonly string[],
   bindings: Record<string, string> = {},
+  alias: Record<string, string> = {},
 ): Promise<TestWorker> {
   const outDir = mkdtempSync(join(tmpdir(), "agent-safety-workerd-"));
   try {
-    return await start(entry, durableObjects, bindings, outDir);
+    return await start(entry, durableObjects, bindings, outDir, alias);
   } catch (error) {
     // Nothing returned a dispose() yet, so the bundle's folder would outlive a failed build or startup.
     rmSync(outDir, { recursive: true, force: true });
@@ -72,6 +81,7 @@ async function start(
   durableObjects: readonly string[],
   bindings: Record<string, string>,
   outDir: string,
+  alias: Record<string, string>,
 ): Promise<TestWorker> {
   const outfile = join(outDir, "worker.mjs");
   await build({
@@ -84,6 +94,10 @@ async function start(
     conditions: ["workerd", "worker", "browser"],
     mainFields: ["browser", "module", "main"],
     external: ["cloudflare:*", "node:*"],
+    alias,
+    // The package says `sideEffects: false`, which esbuild would honour by dropping a test file imported only for
+    // the tests it registers as it loads.
+    ignoreAnnotations: true,
     plugins: [nodeBuiltins, workspaceSource],
     logLevel: "silent",
   });

@@ -3,9 +3,18 @@ import { join } from "node:path";
 import { z } from "astro/zod";
 import type { ProblemList } from "./problems.js";
 
-/** One entry of `src/data/harnesses.json`: a harness directory and the package whose pin its listings show. */
+/**
+ * One entry of `src/data/harnesses.json`: a harness directory and the package whose pin its listings show. A harness
+ * is a `verify/` directory, whose main package is a pinned dependency, or one of our own packages, such as
+ * `packages/sdk`, which is its own main package.
+ */
 const harnessSchema = z.tuple([
-  z.string().regex(/^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/, "a harness is a directory path such as verify/vercel-ai-sdk"),
+  z
+    .string()
+    .regex(
+      /^[a-z0-9-]+(?:\/[a-z0-9-]+)+$/,
+      "a harness is a directory path such as verify/vercel-ai-sdk or packages/sdk",
+    ),
   z.string().trim().min(1, "a harness needs its main package's name"),
 ]);
 
@@ -43,14 +52,45 @@ export function readHarnesses(file: string, name: string, problems: ProblemList)
 }
 
 /**
- * The harness a repository path sits in and its main package's exact pin, as `name@version`, read from the harness's
- * `package.json`, or why there is none.
+ * The version a transcript records for one of our own workspace packages in place of its version number, as
+ * `scripts/transcripts/write.mjs` writes it: such a harness runs the package's source as it stands, whatever its
+ * version says.
+ */
+export const WORKSPACE_VERSION = "workspace";
+
+/** A harness's `package.json`, as far as the pin needs it. */
+interface Manifest {
+  readonly name?: string;
+  readonly version?: string;
+  readonly dependencies?: Record<string, string>;
+  readonly devDependencies?: Record<string, string>;
+}
+
+/**
+ * The version that a harness's `package.json` gives `name`: its exact pin, or, when the harness is the package
+ * itself, as one of our own packages under `packages/` is, the version the package declares.
+ */
+export function manifestVersion(
+  manifest: Manifest,
+  name: string,
+): { readonly version?: string; readonly self: boolean } {
+  const self = manifest.name === name;
+  const version = self ? manifest.version : (manifest.dependencies?.[name] ?? manifest.devDependencies?.[name]);
+  return version === undefined ? { self } : { version, self };
+}
+
+/**
+ * The harness a repository path sits in, its main package's exact version as `name@version`, and the pin its
+ * transcripts record, read from the harness's `package.json`; or why there is none. A `verify/` harness pins its
+ * main package as a dependency, and its transcripts record that pin. One of our own packages is its own main
+ * package: the caption shows the version it declares, such as `@buildanagent/sdk@0.1.0-alpha.19`, and its transcripts
+ * record `@buildanagent/sdk@workspace`, so a release's version bump leaves them current.
  */
 export function pinOf(
   path: string,
   table: HarnessTable,
   repoRoot: string,
-): { readonly harness: string; readonly pin: string } | { readonly message: string } {
+): { readonly harness: string; readonly pin: string; readonly recordedPin: string } | { readonly message: string } {
   const harness = [...table.harnesses.keys()].find((dir) => path.startsWith(`${dir}/`));
   if (harness === undefined) {
     return { message: `${path} is in no harness that ${table.name} lists, so its listing has no pin` };
@@ -59,16 +99,16 @@ export function pinOf(
   const manifest = join(repoRoot, harness, "package.json");
   const where = `${harness}/package.json`;
   if (!existsSync(manifest)) return { message: `${where} does not exist, so ${name} has no pin` };
-  const { dependencies = {}, devDependencies = {} } = JSON.parse(readFileSync(manifest, "utf8")) as {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-  };
-  const version = dependencies[name] ?? devDependencies[name];
+  const { version, self } = manifestVersion(JSON.parse(readFileSync(manifest, "utf8")) as Manifest, name);
   if (version === undefined) {
-    return { message: `${where} does not depend on ${name}, the main package ${table.name} names for it` };
+    return {
+      message: self
+        ? `${where} declares no version, so ${name} has no pin`
+        : `${where} does not depend on ${name}, the main package ${table.name} names for it`,
+    };
   }
   if (!EXACT_VERSION.test(version)) {
     return { message: `${where} pins ${name} as "${version}", not an exact version, so the caption cannot show it` };
   }
-  return { harness, pin: `${name}@${version}` };
+  return { harness, pin: `${name}@${version}`, recordedPin: `${name}@${self ? WORKSPACE_VERSION : version}` };
 }

@@ -1,0 +1,95 @@
+{
+  "format": 1,
+  "example": "04-scripted-model",
+  "file": "packages/sdk/examples/04-scripted-model.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You report the weather."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Weather in Lisbon?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "weather",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "weather",
+              "output": "21C in Lisbon"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "weather"
+      ]
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "a call past the script ends the run with an error",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "calls holds the one request the script answered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "assertComplete() reports the call past the script",
+      "pass": true
+    }
+  ]
+}

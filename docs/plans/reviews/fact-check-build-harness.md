@@ -96,4 +96,15 @@ On 2026-11-19 the owner approved every change the A2A report (U19) and the voice
 | N15-5 | `none` stops nothing, `os` shares the host's kernel, and no backend claims `hostile_process` | README | ⚠️ | Our own design from [HD4](../build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted) and [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both); the claims for `srt` and Docker are plans, which N16 and N17 will measure |
 | N15-6 | A shell reports a command that a signal killed as exit status 128 plus the signal's number | `none.ts`, harness README | ⚠️ | The convention of POSIX shells (§2.8.2 says a status above 128 for a signalled command, from memory of the page); not re-read verbatim. Node's `close` event gives `code` null and the signal name, and `os.constants.signals` maps it to the number, which the test pins for SIGTERM (143) |
 
-**Totals:** 49 claims: 36 ✅, 3 ✏️, 10 ⚠️.
+
+## N2: the session entry union, its JSON Schema and the stable fields (2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| N2-1 | TypeScript 7's programmatic API is marked unstable, so a type-based JSON Schema generator that needs the stable compiler API can't run on this repo | `packages/protocol/README.md` | ✅ | The installed `typescript@7.0.2` has no `lib/typescript.js`; its `package.json` `exports` map lists only `./unstable/sync` and `./unstable/async` for programmatic use, and the repo pins `typescript` 7.0.2 in the root `package.json`. |
+| N2-2 | The generated schema is JSON Schema draft 2020-12 | `packages/protocol/README.md` | ✅ | The generated file's `$schema` is `https://json-schema.org/draft/2020-12/schema`, from zod 4.6.7's `toJSONSchema` with `target: "draft-2020-12"`; `test/schema.test.ts` validates every fixture with `@cfworker/json-schema` 4.1.6 under draft 2020-12. |
+| N2-3 | The stable surface is the base fields, the entry type names and `formatVersion` | `packages/protocol/README.md`, `src/entries.ts` | ✅ | [HD11](../build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-accepted): "The stable surface is `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion`." `test/entries.test.ts` checks each carries `@stable`. |
+| N2-4 | The log holds eighteen entry types, because the approval entries and `code_call` come later | `packages/harness/README.md` | ✅ | [§3.2](../build-harness.md#32-session-log-api) lists twenty-one entry types. N2's scope leaves out `approval_requested` and `approval_resolved` (N13) and `code_call` (N40), which leaves eighteen, and the `SESSION_ENTRY_TYPES` test pins that count. |
+| N2-5 | `turn_end.stopReason` takes the SDK's `RunResult` stop reasons | `src/entries.ts`, `scripts/session-entry-schema.ts` | ✅ | `packages/sdk/src/result.ts` declares nine `stopReason` values: `done`, `max_steps`, `aborted`, `no_progress`, `budget`, `error`, `stopped`, `awaiting_approval` and `clarification_requested`; the zod list matches, and the field's type is `RunResult<unknown>["stopReason"]`, so a drift fails the type check of the fixtures. |
+
+**Totals:** 54 claims: 41 ✅, 3 ✏️, 10 ⚠️.

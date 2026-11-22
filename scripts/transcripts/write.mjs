@@ -1,8 +1,9 @@
 // Turns the raw events that record.mjs saved for one example into its committed transcript,
-// verify/<sdk>/results/transcripts/<example>.json, and checks a transcript's shape. Each harness's
-// scripts/run-examples.mjs calls transcriptRun() before an example runs and its write() after the process exits; the
-// book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed transcript differs from the one
-// a run writes. The shapes themselves live in events.ts.
+// <harness>/results/transcripts/<example>.json, and checks a transcript's shape. A harness is a verify/<sdk> directory
+// or one of our own packages, such as packages/sdk. Each verify harness's scripts/run-examples.mjs, and
+// packages/sdk/test/book-examples.test.ts, call transcriptRun() before an example runs and its write() after the
+// process exits. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed transcript
+// differs from the one a run writes. The shapes themselves live in events.ts.
 //
 // Two runs on two machines must write the same bytes, so the file holds no absolute path, temporary directory or
 // environment value, and every id, timestamp and duration that the SDK generates is replaced by a placeholder. What an
@@ -23,6 +24,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
  * to the mock layer's package shows as a change to the transcript.
  */
 export const MOCK_PACKAGES = {
+  "packages/sdk": "@buildanagent/sdk",
   "verify/cloudflare-agents": "ai",
   "verify/google-adk": "@google/adk",
   "verify/langchain": "@langchain/core",
@@ -40,9 +42,20 @@ export const liveTranscriptPath = (harnessDir, example) => join(harnessDir, "res
 const toPosix = (path) => path.split(sep).join("/");
 const harnessOf = (harnessDir) => toPosix(relative(REPO_ROOT, harnessDir));
 
-/** A package's exact version in a harness's `package.json`, as `name@version`. */
+/**
+ * The version a transcript records for one of our own workspace packages: `workspace`, never the version number. A
+ * run of our package's examples runs its source as it stands, and the release job's version commit may change only
+ * the version itself (scripts/ci/version-pr.mjs), so a transcript that named the number would go stale at each release.
+ */
+export const WORKSPACE_VERSION = "workspace";
+
+/**
+ * A package's exact version in a harness's `package.json`, as `name@version`. In one of our own packages, the package
+ * itself is recorded as `name@workspace`.
+ */
 function versionOf(harnessDir, name) {
   const manifest = JSON.parse(readFileSync(join(harnessDir, "package.json"), "utf8"));
+  if (manifest.name === name) return `${name}@${WORKSPACE_VERSION}`;
   const version = manifest.dependencies?.[name] ?? manifest.devDependencies?.[name];
   if (version === undefined) throw new Error(`${harnessOf(harnessDir)}/package.json does not depend on ${name}`);
   return `${name}@${version}`;

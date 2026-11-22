@@ -111,3 +111,37 @@ test("fails on a committed transcript whose example no longer exists", () => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /01-call\.json \(no example verify\/demo\/examples\/01-call\.ts\)/);
 });
+
+/** A repository with one of our own packages, whose example and transcript are committed and no run results. */
+function committedPackage() {
+  committedHarness();
+  write("packages/sdk/examples/01-call.ts", "// an example\n");
+  write("packages/sdk/results/transcripts/01-call.json", transcript("Hello."));
+  git("add", ".");
+  git("commit", "--quiet", "-m", "package transcript");
+}
+
+test("fails when one of our own packages' transcripts changed", () => {
+  committedPackage();
+  write("packages/sdk/results/transcripts/01-call.json", transcript("Hello there."));
+  const run = drift();
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /packages\/sdk\/results\/transcripts\/01-call\.json: \/events\/1\/message\/parts\/0\/text/);
+});
+
+test("fails on a transcript one of our packages wrote that is not committed", () => {
+  committedPackage();
+  write("packages/sdk/results/transcripts/02-loop.json", transcript("Loop."));
+  const run = drift();
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /packages\/sdk\/results\/transcripts\/02-loop\.json \(untracked\)/);
+});
+
+test("fails on a package transcript whose example no longer exists", () => {
+  committedPackage();
+  git("rm", "--quiet", "packages/sdk/examples/01-call.ts");
+  git("commit", "--quiet", "-m", "remove the example");
+  const run = drift();
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /01-call\.json \(no example packages\/sdk\/examples\/01-call\.ts\)/);
+});

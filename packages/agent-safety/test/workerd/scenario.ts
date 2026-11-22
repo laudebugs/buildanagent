@@ -60,3 +60,9 @@ export interface Capped {
   /** The projection and cost of each call the guard let through. */
   readonly calls: { readonly projectedUsd: number; readonly costUsd: number | null }[];
 }
+
+/** What the stores Worker reports for one conformance case: its name and, if it failed, why. */
+export interface CaseResult {
+  readonly name: string;
+  readonly error?: string;
+}
