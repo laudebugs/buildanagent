@@ -100,7 +100,7 @@ The AI SDK's reference tables are exact. Every documented option exists, the def
 
 ## Update to `ai@7.0.173` (2026-11-22)
 
-The weekly SDK sweep moved the pin from `ai@7.0.162` to `ai@7.0.173`, with `@ai-sdk/anthropic` 4.0.105, `@ai-sdk/harness` 1.0.184, `@ai-sdk/mcp` 2.0.99, `@ai-sdk/openai` 4.0.118, `@ai-sdk/otel` 1.0.173, `@ai-sdk/provider` 4.0.38 and `@ai-sdk/provider-utils` 5.0.81. I re-fetched the mirror at tag `ai@7.0.173` (commit `0e8e054`), reran `pnpm run verify` and compared every result with the first round's. The page count stayed at 74. The mirror changed on 25 pages, adding about 1,480 lines and removing 120, most of them new provider options and security notes.
+The weekly SDK sweep moved the pin from `ai@7.0.162` to `ai@7.0.173`, with `@ai-sdk/anthropic` 4.0.105, `@ai-sdk/harness` 1.0.184, `@ai-sdk/mcp` 2.0.99, `@ai-sdk/openai` 4.0.118, `@ai-sdk/otel` 1.0.173, `@ai-sdk/provider` 4.0.38 and `@ai-sdk/provider-utils` 5.0.81. I re-fetched the mirror at tag `ai@7.0.173` (commit `0e8e054`), reran `pnpm run verify` and compared every result with the first round's. The page count stayed at 74. The mirror changed on 25 pages, adding 1,479 lines and removing 117, most of them new provider options and security notes.
 
 | Check | `ai@7.0.162` | `ai@7.0.173` |
 |---|---|---|
@@ -110,9 +110,9 @@ The weekly SDK sweep moved the pin from `ai@7.0.162` to `ai@7.0.173`, with `@ai-
 | Documented options missing from the package (Tier 3) | 0 | 0 |
 | Behavioral claims that held (Tier 4) | 14 of 14 | 14 of 14 |
 
-- **No example regressed.** The 24 new blocks are nine passes and fifteen fragments, on the OpenAI, Anthropic, workflow-agent, loop-control, memory, MCP and tools pages. Page by page, the counts of `api-mismatch`, `syntax` and `other` blocks are unchanged, and the twelve `api-mismatch` blocks carry the same errors, so F1 to F8 stand. Only their line numbers moved, and the findings above carry the new ones.
+- **No example regressed.** The 24 new blocks are nine passes and fifteen fragments, on the OpenAI, Anthropic, workflow-agent, loop-control, memory, MCP and tools pages. One old block, `testing` page block 05, moved from fragment to pass (see the harness fix below). Page by page, the counts of `api-mismatch`, `syntax` and `other` blocks are unchanged, and the twelve `api-mismatch` blocks carry the same errors, so F1 to F8 stand. Only their line numbers moved, and the findings above carry the new ones.
 - **The Tier 3 counts are identical.** `generateText` 51 of 60, `streamText` 57 of 66, `ToolLoopAgent` 45 of 54 and `tool()` 21 of 21 match the first round, and the default step cap is still 20.
-- **One harness fix, no docs change.** A page's vitest test file (`testing` page, 05) imports `vitest`, which the workspace now resolves. The runner therefore tried it and failed, because `it()` throws outside the runner. That was our harness's mistake, not the docs'. `scripts/run-examples.mjs` now skips a file that imports `vitest`, so the error count is one, the OpenAI example of F2.
+- **One harness fix, no docs change.** Block 05 of the `testing` page is a vitest test file. Tier 1 now compiles it, because the workspace resolves `vitest`, so Tier 2 tried to run it and failed: `it()` throws outside the vitest runner. That was our harness's mistake, not the docs'. `scripts/run-examples.mjs` now skips a file that imports `vitest`, so the error count is one, the OpenAI example of F2.
 - **Our own examples are unaffected.** All 17 pass, and their transcripts reproduce byte for byte.
 
 The docs moved on these points, none of which changes a finding:
