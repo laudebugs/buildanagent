@@ -19,6 +19,7 @@ export const PENDING = {
   tool: "escalate",
   inputHash: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
   policyVersion: "p1",
+  appHash: "bWFj",
   reason: "Escalating a ticket tells the customer.",
   keyId: "k1",
   signature: "c2lnbmF0dXJl",
@@ -49,6 +50,25 @@ export const COMMANDS = [
   { jsonrpc: "2.0", id: 6, method: "turn/start", params: { session: "s1", input: [...INPUT] } },
   { jsonrpc: "2.0", id: 7, method: "turn/steer", params: { session: "s1", input: [...INPUT] } },
   { jsonrpc: "2.0", id: 8, method: "turn/followUp", params: { session: "s1", input: [...INPUT] } },
+  // Every kind of content block, so the schema's fields for each are used.
+  {
+    jsonrpc: "2.0",
+    id: 13,
+    method: "turn/steer",
+    params: {
+      session: "s1",
+      input: [
+        { type: "text", text: "See the screenshot." },
+        { type: "image", mediaType: "image/png", data: "iVBORw0KGgo=" },
+        {
+          type: "reasoning",
+          text: "The ticket is about billing.",
+          signature: { api: "anthropic-messages", provider: "anthropic", model: "claude-opus-5-5", value: "c2ln" },
+        },
+        { type: "tool_call", callId: "call-1", name: "lookup", input: { id: 1 } },
+      ],
+    },
+  },
   { jsonrpc: "2.0", id: 9, method: "turn/interrupt", params: { session: "s1", reason: "the person cut in" } },
   { jsonrpc: "2.0", id: 10, method: "approval/list", params: { session: "s1" } },
   { jsonrpc: "2.0", id: 11, method: "session/checkout", params: { session: "s1", entryId: "e3" } },
@@ -83,7 +103,12 @@ export const RESULTS = {
 
 /** The answer a client gives to each server request. */
 export const SERVER_RESULTS = {
-  "approval/request": { resolutions: [{ requestId: "req-1", decision: "allow", by: "ada" }] },
+  "approval/request": {
+    resolutions: [
+      { requestId: "req-1", decision: "allow", by: "ada" },
+      { requestId: "req-3", decision: "deny", reason: "Not for this customer." },
+    ],
+  },
   "clarification/request": { resolutions: [{ requestId: "req-2", answer: "Customer 88." }] },
   "tool/call": { content: [{ type: "text", text: "file contents" }], isError: false },
 } as const satisfies ServerResultMap;

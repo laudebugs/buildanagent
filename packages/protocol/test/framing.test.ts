@@ -171,3 +171,57 @@ test("the error codes are the standard ones and our three server codes", () => {
     NotOptedIn: -32003,
   });
 });
+
+test("the framer keeps its own copy of a half line, so a transport that reuses its buffer can't change it", () => {
+  const line = bytes('{"message":"split across two reads"}\n');
+  const reused = Buffer.alloc(line.length);
+  const framer = new JsonlFramer();
+  reused.set(line.subarray(0, 10));
+  const first = framer.push(reused.subarray(0, 10));
+  reused.fill(0x58);
+  reused.set(line.subarray(10));
+  const second = framer.push(reused.subarray(0, line.length - 10));
+  assert.deepEqual(first, []);
+  assert.deepEqual(values(second), [{ message: "split across two reads" }]);
+});
+
+test("the line bound doesn't count a trailing carriage return, so CRLF and LF lines of one length behave alike", () => {
+  const body = '{"a":"xxxx"}';
+  for (const ending of ["\n", "\r\n"]) {
+    const out = new JsonlFramer({ maxLineBytes: body.length }).push(bytes(`${body}${ending}`));
+    assert.deepEqual(values(out), [{ a: "xxxx" }], JSON.stringify(ending));
+  }
+  const over = new JsonlFramer({ maxLineBytes: body.length }).push(bytes(`${body}x\r\n`));
+  assert.ok(over[0] && !over[0].ok && over[0].error.code === "line_too_long");
+});
+
+test("a stream that ends after only whitespace was not cut, and one that ends after part of a message was", () => {
+  for (const tail of ["  ", "\r", " \t\r"]) {
+    const framer = new JsonlFramer();
+    framer.push(bytes(`{"a":1}\n${tail}`));
+    assert.deepEqual(framer.end(), [], JSON.stringify(tail));
+  }
+  const cut = new JsonlFramer();
+  cut.push(bytes('{"a":1}\n  {"b"'));
+  assert.equal(cut.end().length, 1);
+});
+
+test("encode refuses a response with no result, and says so as a ProtocolError for what JSON can't hold", () => {
+  assert.throws(
+    () => encode({ jsonrpc: "2.0", id: 4, result: undefined } as never),
+    (error) =>
+      isProtocolError(error) &&
+      error.code === "invalid_request" &&
+      error.rpcCode === ErrorCodes.InvalidRequest &&
+      error.requestId === 4,
+  );
+  assert.doesNotThrow(() => encode({ jsonrpc: "2.0", id: 4, result: null } as never), "null is a result");
+  const circular: Record<string, unknown> = {};
+  circular.self = circular;
+  for (const params of [{ size: 10n }, circular]) {
+    assert.throws(
+      () => encode({ jsonrpc: "2.0", id: 1, method: "x", params }),
+      (error) => isProtocolError(error) && error.rpcCode === ErrorCodes.InternalError,
+    );
+  }
+});

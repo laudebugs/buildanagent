@@ -7,6 +7,7 @@ import {
   EXPERIMENTAL_METHODS,
   SERVER_NOTIFICATION_METHODS,
   SERVER_REQUEST_METHODS,
+  SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
 import { AGENT_EVENT_TYPES } from "@buildanagent/sdk";
 import { Validator } from "@cfworker/json-schema";
@@ -90,15 +91,67 @@ test("the schema names exactly the methods the constants list", () => {
   assert.ok(EXPERIMENTAL_METHODS.every((method) => CLIENT_METHODS.includes(method)));
 });
 
-test("the fixtures cover every method, and every experimental method is behind the gate", () => {
+test("the fixtures cover every method, and each experimental method is a client method", () => {
   const used = new Set(
     [...COMMANDS, ...SERVER_REQUESTS, ...NOTIFICATIONS].map((message) => ("method" in message ? message.method : "")),
   );
   for (const method of [...CLIENT_METHODS, ...SERVER_REQUEST_METHODS, ...SERVER_NOTIFICATION_METHODS]) {
     assert.ok(used.has(method), `no fixture for ${method}`);
   }
+  for (const method of EXPERIMENTAL_METHODS)
+    assert.ok(CLIENT_METHODS.includes(method), `${method} is not a client method`);
 });
 
 test("the schema's SDK event types are the SDK's own", () => {
   assert.deepEqual([...AGENT_EVENT_TYPE_NAMES].sort(), [...AGENT_EVENT_TYPES].sort());
+});
+
+const isEntryType = (type: unknown): boolean => SESSION_ENTRY_TYPES.includes(type as never);
+
+/** Every property name a schema lists, and every key a value uses, so an optional field only one side has shows up. */
+function schemaProperties(node: unknown, found = new Set<string>()): Set<string> {
+  if (Array.isArray(node)) for (const item of node) schemaProperties(item, found);
+  else if (typeof node === "object" && node !== null) {
+    const record = node as Record<string, unknown>;
+    const properties = record.properties as Record<string, unknown> | undefined;
+    // A session entry's own fields are covered by the entry schema's test, not repeated here.
+    if (isEntryType((properties?.type as { const?: string } | undefined)?.const)) return found;
+    for (const name of Object.keys(properties ?? {})) found.add(name);
+    for (const value of Object.values(record)) schemaProperties(value, found);
+  }
+  return found;
+}
+
+function usedKeys(value: unknown, found = new Set<string>(), skip = false): Set<string> {
+  if (Array.isArray(value)) for (const item of value) usedKeys(item, found, skip);
+  else if (typeof value === "object" && value !== null) {
+    const record = value as Record<string, unknown>;
+    const isEntry = isEntryType(record.type) && "parentId" in record;
+    if (!isEntry && !skip) for (const key of Object.keys(record)) found.add(key);
+    for (const child of Object.values(record)) usedKeys(child, found, skip || isEntry);
+  }
+  return found;
+}
+
+test("every property the schema lists, optional ones included, is used by a fixture, and no fixture uses one it lacks", () => {
+  const listed = schemaProperties(JSON.parse(committed));
+  const used = usedKeys(MESSAGES);
+  // Outside the schema by design: the SDK's event fields beyond its base fields, which the loose mirror lets through, and
+  // the contents of a tool's free-form input.
+  const sdkEventFields = new Set(["index", "delta", "path"]);
+  assert.deepEqual([...listed].filter((name) => !used.has(name)).sort(), [], "a field no fixture uses");
+  assert.deepEqual(
+    [...used].filter((name) => !listed.has(name) && !sdkEventFields.has(name)).sort(),
+    [],
+    "a field the schema lacks",
+  );
+});
+
+test("the schema's shared shapes have names that don't depend on the order they were found in", () => {
+  const defs = Object.keys((JSON.parse(committed) as { $defs: Record<string, unknown> }).$defs);
+  assert.ok(defs.length > 0);
+  for (const name of defs) assert.doesNotMatch(name, /^__schema\d+$/, name);
+  for (const name of ["Id", "ContentBlock", "SessionEntry", "SignedPendingRequest", "Resolution", "RpcError"]) {
+    assert.ok(defs.includes(name), `${name} is a named shape`);
+  }
 });

@@ -6,8 +6,9 @@
 // One thing is mirrored loosely on purpose: an SDK `AgentEvent` in an `event` notification. The schema checks its `type`
 // and the base fields every event has, and lets the other fields through, because the SDK owns the event contract and
 // its 29 event types would be a second copy to keep in step. A test compares the schema's type list with the SDK's.
+import { createHash } from "node:crypto";
 import { z } from "zod";
-import { ContentBlock, ModelContent, SessionEntry } from "./session-entry-schema.js";
+import { ContentBlock as Content, SessionEntry as Entry, ModelContent as ModelPart } from "./session-entry-schema.js";
 
 /** The SDK's event types, as `AGENT_EVENT_TYPES` lists them. A test checks this list against the SDK's own. */
 export const AGENT_EVENT_TYPE_NAMES = [
@@ -42,33 +43,43 @@ export const AGENT_EVENT_TYPE_NAMES = [
   "run_end",
 ] as const;
 
-const Id = z.union([z.number(), z.string()]);
+// Shapes the schema uses more than once get a name of their own, so each is defined once under `$defs` and its name
+// doesn't change when another shape is added.
+const ContentBlock = Content.meta({ id: "ContentBlock" });
+const ModelContent = ModelPart.meta({ id: "ModelContent" });
+const SessionEntry = Entry.meta({ id: "SessionEntry" });
+
+const Id = z.union([z.number(), z.string()]).meta({ id: "Id" });
 const rpc = z.literal("2.0");
 
-const SignedPendingRequest = z.strictObject({
-  id: z.string(),
-  kind: z.enum(["approval", "clarification"]),
-  callId: z.string(),
-  tool: z.string(),
-  inputHash: z.string(),
-  policyVersion: z.string().optional(),
-  appHash: z.string().optional(),
-  question: z.string().optional(),
-  reason: z.string().optional(),
-  keyId: z.string(),
-  signature: z.string(),
-  createdAt: z.string(),
-});
-
-const Resolution = z.union([
-  z.strictObject({
-    requestId: z.string(),
-    decision: z.enum(["allow", "deny"]),
+const SignedPendingRequest = z
+  .strictObject({
+    id: z.string(),
+    kind: z.enum(["approval", "clarification"]),
+    callId: z.string(),
+    tool: z.string(),
+    inputHash: z.string(),
+    policyVersion: z.string().optional(),
+    appHash: z.string().optional(),
+    question: z.string().optional(),
     reason: z.string().optional(),
-    by: z.string().optional(),
-  }),
-  z.strictObject({ requestId: z.string(), answer: z.string(), by: z.string().optional() }),
-]);
+    keyId: z.string(),
+    signature: z.string(),
+    createdAt: z.string(),
+  })
+  .meta({ id: "SignedPendingRequest" });
+
+const Resolution = z
+  .union([
+    z.strictObject({
+      requestId: z.string(),
+      decision: z.enum(["allow", "deny"]),
+      reason: z.string().optional(),
+      by: z.string().optional(),
+    }),
+    z.strictObject({ requestId: z.string(), answer: z.string(), by: z.string().optional() }),
+  ])
+  .meta({ id: "Resolution" });
 
 const command = <M extends string, P extends z.ZodRawShape>(method: M | M[], params: P, extra: z.ZodRawShape = {}) =>
   z.strictObject({
@@ -144,7 +155,9 @@ const ServerResult = z.union([
   z.strictObject({ content: z.array(ModelContent), isError: z.boolean() }),
 ]);
 
-const RpcError = z.strictObject({ code: z.number().int(), message: z.string(), data: z.unknown().optional() });
+const RpcError = z
+  .strictObject({ code: z.number().int(), message: z.string(), data: z.unknown().optional() })
+  .meta({ id: "RpcError" });
 
 const response = <R extends z.ZodType>(result: R) =>
   z.union([
@@ -237,12 +250,63 @@ const ProtocolMessage = z.union([
 /** What the zod mirror infers, for the type test that compares it with `ProtocolMessage`. */
 export type MirroredMessage = z.infer<typeof ProtocolMessage>;
 
+const AUTO_NAME = /^__schema\d+$/;
+
+/** The `$ref` names a JSON value mentions. */
+function refsOf(value: unknown, found = new Set<string>()): Set<string> {
+  if (Array.isArray(value)) for (const item of value) refsOf(item, found);
+  else if (typeof value === "object" && value !== null) {
+    for (const [key, child] of Object.entries(value)) {
+      if (key === "$ref" && typeof child === "string") found.add(child.replace("#/$defs/", ""));
+      else refsOf(child, found);
+    }
+  }
+  return found;
+}
+
+const renameRefs = (value: unknown, names: ReadonlyMap<string, string>): unknown => {
+  if (Array.isArray(value)) return value.map((item) => renameRefs(item, names));
+  if (typeof value !== "object" || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]) => {
+      const renamed =
+        key === "$ref" && typeof child === "string" ? names.get(child.replace("#/$defs/", "")) : undefined;
+      return [key, renamed === undefined ? renameRefs(child, names) : `#/$defs/${renamed}`];
+    }),
+  );
+};
+
+/**
+ * Renames the shapes zod numbers in order (`__schema7`) after a hash of their content, so adding a shape doesn't renumber
+ * the others and a `$ref` a client pinned keeps its meaning. A shape is named once every shape it refers to has been.
+ */
+function stabilizeNames(schema: Record<string, unknown>): Record<string, unknown> {
+  const defs = (schema.$defs ?? {}) as Record<string, unknown>;
+  const names = new Map<string, string>();
+  const pending = Object.keys(defs).filter((name) => AUTO_NAME.test(name));
+  while (pending.length > 0) {
+    const ready = pending.filter((name) =>
+      [...refsOf(defs[name])].every((ref) => !AUTO_NAME.test(ref) || names.has(ref)),
+    );
+    if (ready.length === 0) throw new Error("the schema's shared shapes refer to each other in a cycle");
+    for (const name of ready) {
+      const text = JSON.stringify(renameRefs(defs[name], names));
+      names.set(name, `shape-${createHash("sha256").update(text).digest("hex").slice(0, 10)}`);
+      pending.splice(pending.indexOf(name), 1);
+    }
+  }
+  const renamedDefs = Object.fromEntries(
+    Object.entries(defs).map(([name, def]) => [names.get(name) ?? name, renameRefs(def, names)]),
+  );
+  return { ...(renameRefs({ ...schema, $defs: undefined }, names) as Record<string, unknown>), $defs: renamedDefs };
+}
+
 /** The JSON Schema (draft 2020-12) of one protocol message, as generated from the mirror. */
 export function buildProtocolSchema(): Record<string, unknown> {
   // Shared shapes, such as a session entry, are defined once under `$defs` and referenced, so the file stays readable.
   const schema = z.toJSONSchema(ProtocolMessage, { target: "draft-2020-12", io: "output", reused: "ref" });
   return {
-    ...schema,
+    ...stabilizeNames(schema as Record<string, unknown>),
     title: "ProtocolMessage",
     description:
       'One line of the buildanagent harness protocol: a JSON-RPC 2.0 message, in either direction. Every message carries "jsonrpc": "2.0". An SDK event in an "event" notification is checked for its type and base fields only.',

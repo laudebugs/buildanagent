@@ -61,7 +61,10 @@ export class JsonlFramer {
   /** Ends the stream. An unfinished last line comes back as an error, because its writer may have died mid-message. */
   end(): FramedMessage[] {
     const out: FramedMessage[] = [];
-    if (this.#bytes > 0 && !this.#skipping) {
+    const leftover = join(this.#parts, this.#bytes);
+    // Spaces, tabs and a \r are not a message, so a stream that ends after them was not cut.
+    const blank = leftover.every((byte) => byte === 0x20 || byte === 0x09 || byte === 0x0d);
+    if (this.#bytes > 0 && !blank && !this.#skipping) {
       out.push({
         ok: false,
         error: new ProtocolError("unterminated_line", "the stream ended in the middle of a line", {
@@ -76,22 +79,29 @@ export class JsonlFramer {
     return out;
   }
 
+  #tooLong(): FramedMessage {
+    return {
+      ok: false,
+      error: new ProtocolError("line_too_long", `a line went over the bound of ${this.#maxLineBytes} bytes`, {
+        rpcCode: ErrorCodes.InvalidRequest,
+        requestId: null,
+      }),
+    };
+  }
+
   #add(part: Uint8Array, out: FramedMessage[]): void {
     if (part.length === 0 || this.#skipping) return;
-    if (this.#bytes + part.length > this.#maxLineBytes) {
-      out.push({
-        ok: false,
-        error: new ProtocolError("line_too_long", `a line went over the bound of ${this.#maxLineBytes} bytes`, {
-          rpcCode: ErrorCodes.InvalidRequest,
-          requestId: null,
-        }),
-      });
+    // One byte over the bound is let in for a trailing \r, which the bound does not count; the whole line is checked again
+    // once it is complete.
+    if (this.#bytes + part.length > this.#maxLineBytes + 1) {
+      out.push(this.#tooLong());
       this.#parts = [];
       this.#bytes = 0;
       this.#skipping = true;
       return;
     }
-    this.#parts.push(part.slice());
+    // A copy, because a Buffer's slice() is a view, and a transport may reuse the memory of the chunk it passed.
+    this.#parts.push(new Uint8Array(part));
     this.#bytes += part.length;
   }
 
@@ -105,7 +115,7 @@ export class JsonlFramer {
     const end = bytes.at(-1) === 0x0d ? bytes.length - 1 : bytes.length;
     const line = bytes.subarray(0, end);
     if (line.every((byte) => byte === 0x20 || byte === 0x09)) return;
-    out.push(parseLine(line));
+    out.push(line.length > this.#maxLineBytes ? this.#tooLong() : parseLine(line));
   }
 }
 

@@ -74,13 +74,15 @@ function checkError(error: unknown, id: Id | null): void {
 
 /** A request or notification has a method and no result or error; a response has exactly one of the last two. */
 function checkShape(value: Record<string, unknown>, id: Id | null): void {
-  const hasMethod = "method" in value;
-  const answers = ("result" in value ? 1 : 0) + ("error" in value ? 1 : 0);
+  // A member counts only when it has a value, because JSON.stringify drops one that is undefined.
+  const has = (name: string) => value[name] !== undefined;
+  const hasMethod = has("method");
+  const answers = (has("result") ? 1 : 0) + (has("error") ? 1 : 0);
   if (hasMethod && answers > 0) invalid("a message with a method can't also carry a result or an error", id);
   if (!hasMethod && answers !== 1) invalid("a response must carry exactly one of result and error", id);
   if (hasMethod && (typeof value.method !== "string" || value.method === "")) invalid("a method must be a string", id);
   if (!hasMethod && value.id === undefined) invalid("a response needs an id", null);
-  if ("error" in value) checkError(value.error, value.id as Id | null);
+  if (has("error")) checkError(value.error, value.id as Id | null);
 }
 
 function checkEnvelope(value: Record<string, unknown>): void {
@@ -129,7 +131,17 @@ export function decode(input: unknown): JsonRpcMessage {
  */
 export function encode(message: ProtocolMessage | JsonRpcMessage): string {
   checkEnvelope(message as unknown as Record<string, unknown>);
-  const text = JSON.stringify(message);
-  if (text === undefined) invalid("a message must be JSON");
-  return `${text}\n`;
+  try {
+    const text = JSON.stringify(message);
+    if (text === undefined) invalid("a message must be JSON");
+    return `${text}\n`;
+  } catch (cause) {
+    if (cause instanceof ProtocolError) throw cause;
+    // A bigint or a circular value in params or result. It is the sender's bug, so it is an internal error.
+    throw new ProtocolError("invalid_request", "a message can't be written as JSON", {
+      cause,
+      rpcCode: ErrorCodes.InternalError,
+      requestId: null,
+    });
+  }
 }

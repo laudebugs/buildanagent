@@ -50,7 +50,7 @@ Define the harness protocol once, as a discriminated TypeScript union with stric
 
 ## Tests
 
-`packages/protocol/test/framing.test.ts`, `schema.test.ts`, `fixtures.test.ts`.
+`packages/protocol/test/framing.test.ts`, `protocol-schema.test.ts` and `package.test.ts`, with the fixtures in `protocol-fixtures.ts`.
 
 ## Docs to update
 
@@ -80,8 +80,9 @@ None open. P4 moved the entry union into this package (R2), so the protocol neve
 
 **Behavior.**
 - `encode()` and `decode()` check the JSON-RPC envelope: the exact `jsonrpc` value, an id that is a number or a string (null only in an error response), a method string, an object for params, and exactly one of `result` and `error` in a response. A failure carries `rpcCode` `-32600` and the request's id when it could be read.
-- `JsonlFramer.push()` splits bytes on `0x0A` only and decodes a line when it is whole. A bad line, a line over the bound and an unfinished last line come back as errors in order, and the stream goes on.
-- The type check `schema-check/protocol-types.ts` compares the messages with the mirror in both directions, and the mutation of any one mirrored field makes it fail.
+- `JsonlFramer.push()` splits bytes on `0x0A` only and decodes a line when it is whole. A bad line, a line over the bound and an unfinished last line come back as errors in order, and the stream goes on. The bound doesn't count a trailing `\r`, the framer keeps its own copy of a half line, and a stream that ends after only whitespace isn't reported as cut.
+- `encode()` refuses a response whose `result` is `undefined`, which `JSON.stringify` would drop, and turns a bigint or a circular value into a `ProtocolError` with the internal-error code.
+- The type check `schema-check/protocol-types.ts` compares the messages with the mirror in both directions, and changing one mirrored field makes it fail. It can't see an optional field that only one side has, so a test also requires every property the schema lists to be used by a fixture and every key a fixture uses to be in the schema.
 
 **Decisions.**
 - **`push()` returns `FramedMessage[]`,** each `{ ok: true, value }` or `{ ok: false, error }`, and not the sketch's `unknown[]`. A throwing `push()` would lose the good lines after a bad one in the same chunk.
@@ -90,6 +91,7 @@ None open. P4 moved the entry union into this package (R2), so the protocol neve
 - **`TurnResultSummary` is `{ stopReason, steps, costUsd, error? }`.** The plan named the type without defining it.
 - **The SDK's `AgentEvent` is mirrored loosely in the schema.** Its 29 event types would be a second copy to keep in step with the SDK, so the schema checks `type` and the base fields, and a test compares the type list with the SDK's `AGENT_EVENT_TYPES`.
 - **The `dist/` scan builds to a temporary folder,** with `--customConditions source`, because the packages it takes types from may not be built when the tests run.
+- **The schema's shared shapes are named by a hash of their content,** after the generator's own `__schema7` names, which renumber when a shape is added. A shape zod can name by id (`Id`, `ContentBlock`, `SessionEntry`, `SignedPendingRequest`, `Resolution`, `RpcError`) keeps that name.
 - **No batch support.** JSON-RPC allows an array of messages. The framing puts one message on each line, so a batch is an `invalid_request`.
 
 **Left out.** The dispatcher, queues and transports (N27 to N29).
