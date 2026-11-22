@@ -229,6 +229,6 @@
     "analogy": "a mailroom that stamps each letter's number and bins duplicates",
     "chapter": "durable-and-portable-agents",
     "illustration": null,
-    "breaks": "The mailroom invents no numbers: the id must come from the sender, such as a webhook's delivery id, or two different letters can share a stamp."
+    "breaks": "The mailroom invents no numbers: the id must come from the sender, such as a webhook's delivery id, or a repeat would get a fresh stamp and slip through."
   }
 ]
