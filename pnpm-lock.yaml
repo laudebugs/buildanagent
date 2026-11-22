@@ -217,13 +217,18 @@ importers:
 
   packages/cli:
     dependencies:
-      '@buildanagent/harness':
-        specifier: workspace:*
-        version: link:../harness
-    devDependencies:
       '@buildanagent/gateway':
         specifier: workspace:*
         version: link:../gateway
+      '@buildanagent/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@buildanagent/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@buildanagent/sdk':
+        specifier: workspace:*
+        version: link:../sdk
 
   packages/evals:
     devDependencies:
