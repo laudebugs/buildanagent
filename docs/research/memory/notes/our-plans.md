@@ -44,8 +44,8 @@ Chapter T36 has four planned sections and two existing examples; T41 is to add o
 
 ### Cited Findings
 - T36's sections: "Just-in-time retrieval through tools versus pre-loaded context; Vector and keyword search, and their failure modes (OWASP LLM08); Long-term memory across runs: what to store, when to recall, when to forget; When to buy a memory service (main report) and when a file is enough" — [book plan §4.2, row 12](../../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders)
-- T36's exercise: "Store a fact in one run, recall it in the next, then expire it and show it is gone." — [T36](../../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md)
-- T36's analogies: reference librarian (retrieval), card file (long-term memory), office shredding schedule (forgetting), with the break for forgetting: "deleting a fact from memory does not delete it from logs or caches unless the harness does" — [T36](../../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md)
+- T36's exercise: "Store a fact in one run, recall it in the next, then expire it and show it is gone." — [T36](../../../todos/ongoing/T36-chapter-retrieval-and-long-term-memory.md)
+- T36's analogies: reference librarian (retrieval), card file (long-term memory), office shredding schedule (forgetting), with the break for forgetting: "deleting a fact from memory does not delete it from logs or caches unless the harness does" — [T36](../../../todos/ongoing/T36-chapter-retrieval-and-long-term-memory.md)
 - T41: "keyword search or a vector index with deterministic embeddings"; "use no embedding API and no new dependency unless the owner approves one"; a scripted turn where "the top result is wrong" — [T41](../../../todos/done/T41-example-retrieval.md)
 - T41 notes that the `search` tools in `claude-agent-sdk/04-max-turns.ts` and `openai-agents-sdk/08-max-turns.ts` "return a fixed '3 hits' to test a turn cap" — [T41](../../../todos/done/T41-example-retrieval.md)
 - T36's switch todo is N23 — [book plan §4.2, row 12](../../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders)

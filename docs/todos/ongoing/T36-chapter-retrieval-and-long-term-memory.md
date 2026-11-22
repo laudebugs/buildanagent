@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T36` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [U18](../done/U18-research-retrieval-and-long-term-memory.md), [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T41](../done/T41-example-retrieval.md), [T43](../done/T43-example-store-recall-expire.md), [T44](../done/T44-example-context-memory.md) |
@@ -96,7 +96,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated

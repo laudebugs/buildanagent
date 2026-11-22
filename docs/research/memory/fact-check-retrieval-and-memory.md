@@ -191,8 +191,8 @@ Every typings claim below was read in the installed package under `verify/<sdk>/
 | 126 | Teach ¶1 | The plan gives T36 four sections: just-in-time retrieval, keyword and vector search with failure modes, long-term memory across runs, buying a service | [book plan §4.2, row 12](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) | ✅ |
 | 127 | Teach ¶1 | A placeholder link to the book plan was left in the draft | The same paragraph | ✏️ **Now:** links to `build-book.md#42-part-ii-in-depth-for-experienced-builders` |
 | 128 | Teach ¶1, item 2 | The plan's rationale promises evaluation, and no section names it | [book plan §4.3](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written): "spans retrieval design, stores, failure modes and evaluation"; row 12's sections | ✅ |
-| 129 | Teach ¶2 | The three analogy breaks, quoted | [T36](../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md), analogy table | ✅ All three verbatim |
-| 130 | Teach ¶3 | The exercise, quoted | [T36](../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md), Scope | ✅ Verbatim |
+| 129 | Teach ¶2 | The three analogy breaks, quoted | [T36](../../todos/ongoing/T36-chapter-retrieval-and-long-term-memory.md), analogy table | ✅ All three verbatim |
+| 130 | Teach ¶3 | The exercise, quoted | [T36](../../todos/ongoing/T36-chapter-retrieval-and-long-term-memory.md), Scope | ✅ Verbatim |
 | 131 | Teach ¶4 | The Mem0 and Zep figures for the same system differ by 17 points | Rows 96–97: 75.14% against 58.44% | ✅ 16.7 points, rounded |
 | 132 | Examples ¶1 | T41 asks for "keyword search or a vector index with deterministic embeddings" and no new dependency without approval | [T41](../../todos/done/T41-example-retrieval.md) | ✅ Both verbatim |
 | 133 | Examples ¶1 | BM25 fits in a few dozen lines of TypeScript | Our estimate from the formula in Robertson and Zaragoza ([DOI 10.1561/1500000019](https://doi.org/10.1561/1500000019)) and SQLite's statement of it | ⚠️ (inferred) An estimate, to be confirmed when T41 is written |
