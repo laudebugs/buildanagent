@@ -152,5 +152,23 @@
     "term": "checkpointer",
     "definition": "LangGraph's store for a thread's state. It saves a snapshot of the graph's state under the run's thread_id at each step, so a later call with the same thread_id carries on from the last snapshot.",
     "sources": ["langgraph-checkpointers"]
+  },
+  {
+    "id": "context-window",
+    "term": "context window",
+    "definition": "The most text, counted in tokens, that a model can read in one request: the system prompt, the messages and the tool results together. Whatever the harness leaves out of the request, the model does not see.",
+    "sources": ["anthropic-effective-context-engineering"]
+  },
+  {
+    "id": "compaction",
+    "term": "compaction",
+    "definition": "Shortening a conversation that nears the context window by having a model summarize its older part and sending the summary in place of those messages. In a harness that keeps a session log, the summary is one more entry, and the older entries stay in the log.",
+    "sources": ["anthropic-effective-context-engineering", "pi-compaction"]
+  },
+  {
+    "id": "writer-lock",
+    "term": "writer lock",
+    "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
+    "sources": ["buildanagent-harness-readme"]
   }
 ]
