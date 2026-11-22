@@ -25,9 +25,9 @@ Code from the garment engineering textbook: Apache-2.0 only
 
 Documentation: CC BY 4.0
   The documents under docs/, the book's prose and figures (apps/manual/), the
-  docs pages (apps/docs/src/content/docs/), the READMEs, the prose of the agent skills (.agents/skills/) and AGENTS.md are
-  licensed under the Creative Commons Attribution 4.0 International licence
-  (LICENSE-DOCS).
+  docs pages (apps/docs/src/content/docs/), the READMEs, the prose of the agent
+  skills (.agents/skills/) and AGENTS.md are licensed under the Creative Commons
+  Attribution 4.0 International licence (LICENSE-DOCS).
 
   SPDX-License-Identifier: CC-BY-4.0
 
