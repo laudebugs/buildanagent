@@ -1,0 +1,302 @@
+{
+  "format": 2,
+  "example": "13-voice-pipeline",
+  "file": "verify/cloudflare-agents/examples/13-voice-pipeline.ts",
+  "harness": "verify/cloudflare-agents",
+  "pin": "agents@0.33.0",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "check",
+      "message": "a client connects to the voice agent over WebSocket",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the server sent a welcome message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the server opens with a welcome message that carries protocol version 1",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "start_call brought the status to listening",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "start_call is answered with an audio_config message, mp3 by default",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are a voice assistant. Keep answers to one or two sentences."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "what is the weather in Paris"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_forecast"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "get_forecast",
+            "input": {
+              "city": "Paris"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "get_forecast",
+              "output": {
+                "city": "Paris",
+                "tempC": 21,
+                "sky": "sunny"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_forecast"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "It is 21 degrees and sunny in Paris."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "turn 1 ended with a turn_metrics message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "an interim transcript arrives, with the text the fake transcriber gave",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "a final transcript arrives for the user, with the utterance's text",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the interim transcript comes before the final one",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the transcriber received exactly the one audio frame the client sent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the tool ran inside the turn, after onTurn started and before the reply was synthesized: onTurn:what is the weather in Paris | tool:Paris | tts:It is 21 degrees and sunny in Paris.",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the model's second step in the same turn saw the tool result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "one audio frame followed the reply",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the audio frame holds the fake TTS provider's bytes",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "turn_metrics reports a completed turn that began as speech, with a total duration",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "turn_metrics holds the final-input-to-first-audio latency, which a sent audio frame makes measurable",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the signal onTurn received stayed live while the turn completed",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the status returned to listening after the reply",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "assistant",
+          "parts": [
+            {
+              "type": "text",
+              "text": "It is 21 degrees and sunny in Paris."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "and what about tomorrow"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_forecast"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Tomorrow looks dry across the region. Rain is due on Friday."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "turn 2 reached the speaking status",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the TTS call for the held sentence started",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the first sentence of turn 2 reached the client as audio while it was speaking",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "before the interrupt, no turn signal is aborted and onInterrupt has not run",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the interrupt brought a new listening status",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the interrupted turn ended with its own turn_metrics message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the interrupt aborted turn 2's context.signal and left turn 1's alone",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the TTS call that was speaking saw the same abort",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the signal passed to streamText reached the model call: aborted for turn 2, live for turn 1",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "onInterrupt ran once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the status returned to listening after the interrupt",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the interrupted turn closed with a turn_metrics outcome of aborted",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "turn 2's model request holds no tool message from turn 1",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "and no tool result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the stored history is text only: [{\"role\":\"user\",\"content\":\"what is the weather in Paris\"},{\"role\":\"assistant\",\"content\":\"It is 21 degrees and sunny in Paris.\"},{\"role\":\"user\",\"content\":\"and what about tomorrow\"}]",
+      "pass": true
+    }
+  ]
+}

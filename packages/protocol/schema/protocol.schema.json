@@ -1472,7 +1472,7 @@
           "$ref": "#/$defs/shape-0372685c9f"
         },
         {
-          "$ref": "#/$defs/shape-9b94157c3d"
+          "$ref": "#/$defs/shape-ef77d5988f"
         },
         {
           "$ref": "#/$defs/shape-0ae3e72e7c"
@@ -2656,7 +2656,7 @@
       ],
       "additionalProperties": false
     },
-    "shape-9b94157c3d": {
+    "shape-ef77d5988f": {
       "type": "object",
       "properties": {
         "id": {
@@ -2680,6 +2680,44 @@
         },
         "resolution": {
           "$ref": "#/$defs/shape-90890766e5"
+        },
+        "sticky": {
+          "type": "string",
+          "enum": [
+            "run",
+            "session"
+          ]
+        },
+        "allowance": {
+          "type": "object",
+          "properties": {
+            "tool": {
+              "type": "string"
+            },
+            "inputHash": {
+              "type": "string"
+            },
+            "commandPrefix": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "policyVersion": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tool"
+          ],
+          "additionalProperties": false
+        },
+        "groupId": {
+          "type": "string"
+        },
+        "quorum": {
+          "type": "string",
+          "const": "pending"
         }
       },
       "required": [

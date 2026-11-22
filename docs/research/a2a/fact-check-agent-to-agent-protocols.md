@@ -147,11 +147,11 @@ All arXiv versions below are the latest listed on the abstract page, fetched 202
 
 | # | Where | Claim | Source checked | Verdict |
 | --- | --- | --- | --- | --- |
-| 95 | Teach ¶1 | The book plan places A2A in T21 because "it belongs in the chapter that already explains MCP"; T37 asks to propose a chapter only if needed | [Book plan](../../plans/build-book.md), line 449; [T37](../../todos/ready/T37-section-a2a.md), Risks | ✅ |
+| 95 | Teach ¶1 | The book plan places A2A in T21 because "it belongs in the chapter that already explains MCP"; T37 asks to propose a chapter only if needed | [Book plan](../../plans/build-book.md), line 449; [T37](../../todos/done/T37-section-a2a.md), Risks | ✅ |
 | 96 | Teach ¶1 | None of our plans builds on A2A; ADK is the only one of our SDKs that ships it | [our-plans notes](notes/our-plans.md); rows 62–63 | ✏️ The draft said "None of our SDKs or plans builds on A2A", which contradicts ADK. **Now:** plans and SDKs stated apart |
 | 97 | Teach ¶1, step 2 | Chapter T21's MCP section already teaches `input_required` | [T21](../../todos/done/T21-chapter-tools-at-scale.md), Scope: "multi round-trip requests (`input_required`)" | ✅ |
 | 98 | Teach, steps 1–5 | The five steps | Rows 1–94 | ⚠️ (design) Our recommendation for T37, built from checked claims |
-| 99 | Teach ¶2 | T37's break note: an A2A task "can stream updates and ask for more input, which a purchase order never does" | [T37](../../todos/ready/T37-section-a2a.md), Analogy | ✅ Verbatim |
+| 99 | Teach ¶2 | T37's break note: an A2A task "can stream updates and ask for more input, which a purchase order never does" | [T37](../../todos/done/T37-section-a2a.md), Analogy | ✅ Verbatim |
 | 100 | Teach ¶2 | Nine judges' recall as low as 25.8% | Row 85 | ✏️ (citation) The draft cited a row number of this log, which changes on renumbering. **Now:** the paper itself |
 | 101 | Teach ¶3 | A listing from Cloudflare's example or OpenAI's branch would teach code no pinned package of ours exercises | Rows 64–65 | ✏️ (design) The draft promised "roughly twenty lines of TypeScript" with no basis. **Now:** "from code that runs offline in CI" |
 | 102 | Examples ¶1 | `bearerTokenUserBuilder` exists; `check()` is the harness's assertion helper; `toA2a` refuses to mount without authentication | Installed `dist/types/a2a/index.d.ts` line 18; `verify/google-adk/examples/lib/check.ts` line 8; `agent_to_a2a.js` line 71 ("toA2a: refusing to mount the A2A server without authentication") | ✅ |

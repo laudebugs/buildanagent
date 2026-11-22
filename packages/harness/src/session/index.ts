@@ -39,7 +39,16 @@ export {
   parseEntry,
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
-export { type Approvals, createApprovals, type ResolveOptions } from "./approvals.js";
+export {
+  type Approvals,
+  type ApprovalsOptions,
+  createApprovals,
+  oneResolution,
+  type QuorumPolicy,
+  type QuorumVerdict,
+  quorumOf,
+  type ResolveOptions,
+} from "./approvals.js";
 export { effectScope } from "./effect-scope.js";
 export { ConflictError, EntryTooLargeError } from "./errors.js";
 export type { LockHandle, SessionLock } from "./lock.js";

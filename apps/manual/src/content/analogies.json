@@ -342,5 +342,13 @@
     "chapter": "evals-observability-and-release",
     "illustration": null,
     "breaks": "A breaker cuts the current and loses what was in flight; the switch must stop new side effects without losing the log of those already begun."
+  },
+  {
+    "id": "purchase-order",
+    "concept": "agent-to-agent protocol",
+    "analogy": "firms that contract through a standard purchase order",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "A purchase order is filed and forgotten, while an A2A task can stream updates and ask for more input; and a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that the calling model reads as prose."
   }
 ]
