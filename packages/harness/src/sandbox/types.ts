@@ -47,11 +47,12 @@ export interface SandboxDenial {
 /**
  * What a command did: its exit status and output, or the denial that stopped it. A failing command is a result.
  * `exitCode` is 124 for a timeout, 127 for a program that can't be found, and 128 plus the signal's number for a
- * command that a signal killed, with `signal` naming it. `truncated` is `true` when the output passed the cap and the
- * rest was dropped.
+ * command that a signal killed, with `signal` naming it. `timedOut` is `true` only when the sandbox stopped the command
+ * at its timeout, so a command that exits with 124 itself can be told apart. `truncated` is `true` when the output
+ * passed the cap and the rest was dropped.
  */
 export type ExecResult =
-  | { exitCode: number; stdout: string; stderr: string; signal?: string; truncated?: boolean }
+  | { exitCode: number; stdout: string; stderr: string; signal?: string; timedOut?: boolean; truncated?: boolean }
   | { denied: SandboxDenial };
 
 /** The options of `Sandbox.exec()`. */

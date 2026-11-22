@@ -169,7 +169,7 @@ async function exec(
   });
 }
 
-function finished(result: ExecResult): { exitCode: number; stdout: string; stderr: string } {
+function finished(result: ExecResult): Extract<ExecResult, { exitCode: number }> {
   check(!("denied" in result), "a command inside the workspace must not be denied");
   return result;
 }
@@ -263,11 +263,12 @@ function workspaceCases(sandboxed: Sandboxed): readonly SandboxCase[] {
       }),
     },
     {
-      name: "a command that runs past its timeout is stopped with exit code 124",
+      name: "a command that runs past its timeout is stopped with exit code 124 and timedOut",
       run: sandboxed(async (sandbox) => {
         const started = Date.now();
         const result = finished(await exec(sandbox, ["sleep", "10"], { timeoutMs: 200 }));
         check(result.exitCode === 124, `a timed out command must exit with 124, not ${result.exitCode}`);
+        check(result.timedOut === true, "a timed out command's result must say timedOut: true");
         check(Date.now() - started < 5000, "the command must be stopped at the timeout");
         return undefined;
       }),

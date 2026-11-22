@@ -11,7 +11,8 @@ import type { SpillStore } from "./types.js";
 export interface FileSpillStore extends SpillStore {
   /**
    * The text spilled to `path` for the session `key`, or `undefined` when `path` is not a spill file of that session.
-   * A path outside the session's folder, including one that leads out through a symlink, is never read.
+   * `path` must be absolute, as `write()` returns it. A relative path, a path outside the session's folder, and one
+   * that leads out through a symlink are never read.
    */
   read(key: SessionKey, path: string): Promise<string | undefined>;
 }
@@ -38,6 +39,8 @@ export function fileSpillStore(options: { readonly dir: string }): FileSpillStor
     },
     async read(key: SessionKey, file: string): Promise<string | undefined> {
       const { fs, path } = nodeModules();
+      // A relative path would resolve against the spill folder, so a workspace file's name could open a spill.
+      if (!path.isAbsolute(file)) return undefined;
       // Both sides are real paths, so a link inside the folder that points out of it is caught.
       const folder = await fs.realpath(folderOf(key)).catch(() => undefined);
       const real = await fs.realpath(path.resolve(folderOf(key), file)).catch(() => undefined);

@@ -44,9 +44,13 @@ export interface FakeSandboxClient extends SandboxClient {
  * environment it was given as `NAME=value` lines, `cat <path>` prints a file, `write <path> <text>` writes one,
  * `true` and `false` exit with 0 and 1, `sleep <seconds>` waits and honours the timeout and the signal, and
  * `net-probe <host>` reaches a host only if the policy allows it. `find <dir>` lists the files under a folder, one per
- * line or ending in NUL with `-print0`, and leaves out every folder named by a `-name` when the command has `-prune`.
- * `grep [-i] -e <pattern> -- <file>...` prints each matching line as `file:line:text`, reading the pattern as a
- * JavaScript regular expression and skipping a file that holds a NUL byte, and exits with 1 when nothing matches.
+ * line or ending in NUL with `-print0`, and leaves out every folder named by a `-name` when the command has `-prune`,
+ * the starting folder included unless `! -path <start>` exempts it. It exits with 0 and prints nothing for a folder
+ * with no files, and with 1 for a path that does not exist. `grep [-i] -e <pattern> -- <file>...` prints each
+ * matching line as `file:line:text`, reading the pattern as a JavaScript regular expression and skipping a file that
+ * holds a NUL byte. It exits with 1 when nothing matches, and with 2 after a missing file or a pattern it can't read,
+ * as grep does. A command that runs past its timeout exits with 124 and `timedOut: true`, and each stream keeps at
+ * most `maxOutputBytes`, with `truncated: true` when more was dropped.
  * `bash -c <script>` and `sh -c <script>` split the script on whitespace and run its words as one of these commands,
  * with no shell syntax. Any other command exits with 127.
  */
@@ -67,6 +71,8 @@ export const FAKE_COMMANDS: readonly string[] = [
 
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
+// What a real backend keeps of each stream when the caller names no cap.
+const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 
 function normalize(path: string): string {
   const parts: string[] = [];
@@ -82,6 +88,29 @@ function normalize(path: string): string {
 function matchingLines(file: string, text: string, pattern: RegExp): string {
   const lines = text.endsWith("\n") ? text.slice(0, -1).split("\n") : text.split("\n");
   return lines.map((line, index) => (pattern.test(line) ? `${file}:${index + 1}:${line}\n` : "")).join("");
+}
+
+/** A `find -path` pattern with its backslash escapes removed, as the literal path it names. */
+const literalOf = (pattern: string | undefined): string | undefined => pattern?.replace(/\\(.)/g, "$1");
+
+/** `text` cut to its first `bytes` UTF-8 bytes, never splitting a character, and whether anything was cut. */
+function capped(text: string, bytes: number): { text: string; cut: boolean } {
+  const encoded = ENCODER.encode(text);
+  if (encoded.length <= bytes) return { text, cut: false };
+  let end = bytes;
+  while (end > 0 && ((encoded[end] as number) & 0b1100_0000) === 0b1000_0000) end -= 1;
+  return { text: DECODER.decode(encoded.subarray(0, end)), cut: true };
+}
+
+/** The pattern of a `grep` command's flags, or the result grep gives for a pattern it can't read. */
+function patternOf(flags: readonly string[]): RegExp | ExecResult {
+  const at = flags.indexOf("-e");
+  try {
+    return new RegExp(at < 0 ? "" : (flags[at + 1] ?? ""), flags.includes("-i") ? "i" : "");
+  } catch (error) {
+    // grep reports a pattern it can't read on standard error and exits with 2, before it reads any file.
+    return { exitCode: 2, stdout: "", stderr: `grep: ${(error as Error).message}\n` };
+  }
 }
 
 const within = (path: string, root: string): boolean => {
@@ -169,7 +198,14 @@ class FakeSandbox implements Sandbox {
     if (denial) return { denied: denial };
     this.log.push({ command: [...command], cwd: options.cwd, env: { ...options.env }, timeoutMs: options.timeoutMs });
     const [name = "", ...args] = command;
-    return this.run(name, args, options);
+    const result = await this.run(name, args, options);
+    if ("denied" in result) return result;
+    // Each stream keeps at most `maxOutputBytes`, as a real backend's does.
+    const limit = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+    const stdout = capped(result.stdout, limit);
+    const stderr = capped(result.stderr, limit);
+    if (!stdout.cut && !stderr.cut) return result;
+    return { ...result, stdout: stdout.text, stderr: stderr.text, truncated: true };
   }
 
   private async run(name: string, args: string[], options: ExecOptions): Promise<ExecResult> {
@@ -227,12 +263,29 @@ class FakeSandbox implements Sandbox {
     return this.run(name, rest, options);
   }
 
+  /** Whether `path` is a folder: the root, a folder above it, or a folder that holds a file. */
+  private isFolder(path: string): boolean {
+    if (within(this.root, path)) return true;
+    const prefix = path === "/" ? "/" : `${path}/`;
+    return [...this.store.keys()].some((file) => file.startsWith(prefix));
+  }
+
   private find(args: string[]): ExecResult {
     const start = this.resolve(args[0] ?? ".");
     const denial = this.readDenial(start);
     if (denial) return { denied: denial };
+    if (!this.store.has(start) && !this.isFolder(start)) {
+      return { exitCode: 1, stdout: "", stderr: `find: '${args[0] ?? "."}': No such file or directory\n` };
+    }
     const named = args.flatMap((arg, index) => (arg === "-name" ? [args[index + 1] ?? ""] : []));
     const pruned = new Set(args.includes("-prune") ? named : []);
+    // `! -path <start>` exempts the starting point from the prune, as it does for find; without it the prune tests
+    // the starting point's own name too, so a search that starts in a pruned folder finds nothing.
+    const exempt = args.some(
+      (arg, index) => arg === "!" && args[index + 1] === "-path" && literalOf(args[index + 2]) === start,
+    );
+    const ownName = start.split("/").at(-1) ?? "";
+    if (!exempt && ownName !== "" && pruned.has(ownName)) return { exitCode: 0, stdout: "", stderr: "" };
     const files = [...this.store.keys()]
       .filter((path) => path === start || path.startsWith(`${start === "/" ? "" : start}/`))
       .filter(
@@ -243,7 +296,6 @@ class FakeSandbox implements Sandbox {
             .some((part) => pruned.has(part)),
       )
       .sort();
-    if (files.length === 0) return { exitCode: 1, stdout: "", stderr: `find: ${start}: No such file or directory\n` };
     const end = args.includes("-print0") ? "\0" : "\n";
     return { exitCode: 0, stdout: files.map((path) => `${path}${end}`).join(""), stderr: "" };
   }
@@ -252,8 +304,8 @@ class FakeSandbox implements Sandbox {
     const split = args.indexOf("--");
     const flags = split < 0 ? args : args.slice(0, split);
     const files = split < 0 ? [] : args.slice(split + 1);
-    const at = flags.indexOf("-e");
-    const pattern = new RegExp(at < 0 ? "" : (flags[at + 1] ?? ""), flags.includes("-i") ? "i" : "");
+    const pattern = patternOf(flags);
+    if (!(pattern instanceof RegExp)) return pattern;
     let stdout = "";
     let stderr = "";
     for (const file of files) {
@@ -264,7 +316,8 @@ class FakeSandbox implements Sandbox {
       if (data === undefined) stderr += `grep: ${file}: No such file or directory\n`;
       else if (!data.includes(0)) stdout += matchingLines(file, DECODER.decode(data), pattern);
     }
-    return { exitCode: stdout === "" ? (stderr === "" ? 1 : 2) : 0, stdout, stderr };
+    // grep exits with 2 after any error, even when other files matched.
+    return { exitCode: stderr !== "" ? 2 : stdout === "" ? 1 : 0, stdout, stderr };
   }
 
   private writeCommand(path: string, text: string): ExecResult {
@@ -297,7 +350,11 @@ class FakeSandbox implements Sandbox {
       const stopAt = options.timeoutMs !== undefined && options.timeoutMs < ms ? options.timeoutMs : ms;
       const timer = setTimeout(() => {
         const timedOut = stopAt < ms;
-        done({ exitCode: timedOut ? 124 : 0, stdout: "", stderr: timedOut ? `timed out after ${stopAt} ms\n` : "" });
+        done(
+          timedOut
+            ? { exitCode: 124, stdout: "", stderr: `timed out after ${stopAt} ms\n`, timedOut: true }
+            : { exitCode: 0, stdout: "", stderr: "" },
+        );
       }, stopAt);
       options.signal.addEventListener("abort", aborted, { once: true });
     });

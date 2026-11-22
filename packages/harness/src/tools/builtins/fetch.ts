@@ -6,7 +6,7 @@
  */
 import { defineTool, type ToolDefinition, type ToolResult } from "@buildanagent/sdk";
 import type { EgressProxy } from "../../credentials/egress-proxy.js";
-import { scrubString } from "../../credentials/scrub.js";
+import { scrubCutString, scrubString } from "../../credentials/scrub.js";
 import { BUILTIN_TOOL_DEFAULTS } from "./descriptions.js";
 import { errorResult, failureResult, textResult } from "./results.js";
 
@@ -33,7 +33,11 @@ async function readBody(response: Response, limit: number): Promise<{ bytes: Uin
     size += value.length;
     if (size > limit) {
       await reader.cancel();
-      return { bytes: join(chunks, size).subarray(0, limit), cut: true };
+      const all = join(chunks, size);
+      // Cut before the character the limit splits, so the kept bytes still decode as UTF-8.
+      let end = limit;
+      while (end > 0 && ((all[end] as number) & 0b1100_0000) === 0b1000_0000) end -= 1;
+      return { bytes: all.subarray(0, end), cut: true };
     }
   }
 }
@@ -48,7 +52,25 @@ function join(chunks: readonly Uint8Array[], size: number): Uint8Array {
   return bytes;
 }
 
-async function describe(response: Response, url: URL): Promise<string> {
+// A NUL byte in the first part of a body marks it as binary, as the file tools decide.
+const BINARY_PROBE_BYTES = 8000;
+const STRICT_DECODER = new TextDecoder("utf-8", { fatal: true });
+
+/** The body as text, or `undefined` when it holds a NUL byte or is not UTF-8, as a binary body does. */
+function sniffedText(bytes: Uint8Array): string | undefined {
+  if (bytes.subarray(0, BINARY_PROBE_BYTES).includes(0)) return undefined;
+  try {
+    return STRICT_DECODER.decode(bytes);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The text the model reads for a response, with every known secret removed. The secrets are removed from the body
+ * before the cut notice is added, and a cut body also loses any start of a secret the cut left at its end.
+ */
+async function describe(response: Response, url: URL, secrets: readonly string[]): Promise<string> {
   const { maxBodyBytes } = BUILTIN_TOOL_DEFAULTS.fetch;
   const type = response.headers.get("content-type") ?? "";
   const location = response.headers.get("location");
@@ -59,11 +81,19 @@ async function describe(response: Response, url: URL): Promise<string> {
     ...(location === null ? [] : [`location: ${location}`]),
   ].join("\n");
   const { bytes, cut } = await readBody(response, maxBodyBytes);
-  if (type !== "" && !TEXT_TYPE.test(type)) {
-    return `${head}\n\n[a ${type} body${cut ? ` of more than ${maxBodyBytes}` : ` of ${bytes.length}`} bytes was left out]`;
+  const size = cut ? ` of more than ${maxBodyBytes}` : ` of ${bytes.length}`;
+  if (type !== "" && !TEXT_TYPE.test(type))
+    return scrubString(`${head}\n\n[a ${type} body${size} bytes was left out]`, secrets);
+  // With no content type, only a body that reads as text is shown.
+  const text = type === "" ? sniffedText(bytes) : new TextDecoder().decode(bytes);
+  if (text === undefined) {
+    return scrubString(
+      `${head}\n\n[a body${size} bytes with no content type was left out, because it is not text]`,
+      secrets,
+    );
   }
-  const body = new TextDecoder().decode(bytes);
-  return `${head}\n\n${body}${cut ? `\n[the body was cut at ${maxBodyBytes} bytes]` : ""}`;
+  const body = cut ? scrubCutString(text, secrets) : scrubString(text, secrets);
+  return `${scrubString(head, secrets)}\n\n${body}${cut ? `\n[the body was cut at ${maxBodyBytes} bytes]` : ""}`;
 }
 
 async function fetchUrl(proxy: FetchProxy, input: FetchInput, signal: AbortSignal): Promise<ToolResult> {
@@ -78,8 +108,8 @@ async function fetchUrl(proxy: FetchProxy, input: FetchInput, signal: AbortSigna
   const timeout = AbortSignal.timeout(timeoutMs);
   try {
     const response = await proxy.fetch(url, { method: "GET", signal: AbortSignal.any([signal, timeout]) });
-    const text = await describe(response, url);
-    return textResult(scrubString(text, await proxy.knownSecrets()), { status: response.status });
+    const text = await describe(response, url, await proxy.knownSecrets());
+    return textResult(text, { status: response.status });
   } catch (error) {
     if (timeout.aborted && !signal.aborted) return errorResult(`The request to ${url.host} took over ${timeoutMs} ms.`);
     return failureResult(error);

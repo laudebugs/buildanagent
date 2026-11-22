@@ -42,11 +42,23 @@ export function boundsOf(root: string, policy: SandboxPolicy): Bounds {
   return { root: absolute(root, "the workspace root"), read, write };
 }
 
+/**
+ * Why `path` can't name a file, or `undefined` when it can. A backslash is refused because the workspace is a POSIX
+ * one, where `\` is part of a name, while the permission rules' matcher reads it as a separator: refusing it keeps the
+ * path a rule checked, the path the skill loader matches and the file the sandbox opens the same.
+ */
+export function unusablePath(path: string): string | undefined {
+  if (path === "" || path.includes("\u0000")) return `The path ${JSON.stringify(path)} is not a usable path.`;
+  if (path.includes("\\")) {
+    return `The path ${path} holds a backslash; separate folders with \`/\`, because \`\\\` is not a separator here.`;
+  }
+  return undefined;
+}
+
 /** The absolute form of `path` against the root, or a refusal when it is outside the roots for `access`. */
 export function checkPath(bounds: Bounds, path: string, access: "read" | "write"): Checked {
-  if (path === "" || path.includes("\u0000")) {
-    return { refused: `The path ${JSON.stringify(path)} is not a usable path.` };
-  }
+  const unusable = unusablePath(path);
+  if (unusable !== undefined) return { refused: unusable };
   const resolved = normalizePath(path.startsWith("/") ? path : `${bounds.root}/${path}`);
   const roots = access === "write" ? bounds.write : bounds.read;
   if (roots.some((root) => within(resolved, root))) return { path: resolved };

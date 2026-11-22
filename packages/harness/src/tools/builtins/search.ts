@@ -14,38 +14,68 @@ import { deniedResult, errorResult, failureResult, textResult } from "./results.
 
 type AnyTool = ToolDefinition<unknown, unknown, unknown>;
 
+const ENCODER = new TextEncoder();
+const DECODER = new TextDecoder();
+
 /** What the search tools share with the file tools, plus the environment their commands run with. */
 export interface SearchDeps extends FileDeps {
   readonly env: Readonly<Record<string, string>>;
 }
 
-/** The files under `base`, or the result that ends the call: a refusal, a denial or a failed listing. */
-type Listing = { readonly files: readonly string[]; readonly cut: boolean } | { readonly result: ToolResult };
+/**
+ * The files under `base`, with a warning when `find` could not read part of the tree, or the result that ends the call:
+ * a refusal, a denial or a listing that produced nothing.
+ */
+type Listing =
+  | { readonly files: readonly string[]; readonly cut: boolean; readonly warning: string }
+  | { readonly result: ToolResult };
 
-async function exec(deps: SearchDeps, command: string[], timeoutMs: number, signal: AbortSignal): Promise<ExecResult> {
-  return deps.sandbox.exec(command, { env: deps.env, signal, timeoutMs });
+// The most bytes of a command's standard error a warning quotes, so many unreadable files can't flood the result.
+const WARNING_BYTES = 2048;
+
+/** The line that tells the model a command failed on part of its input, quoting its first lines of standard error. */
+function warningOf(what: string, result: { exitCode: number; stderr: string }): string {
+  const stderr = result.stderr.trim();
+  const quoted = stderr.length > WARNING_BYTES ? `${stderr.slice(0, WARNING_BYTES)}...` : stderr;
+  return `\n[${what} exited with ${result.exitCode}, so some files may be missing: ${quoted}]`;
 }
+
+async function exec(
+  deps: SearchDeps,
+  command: string[],
+  options: { readonly timeoutMs: number; readonly maxOutputBytes?: number },
+  signal: AbortSignal,
+): Promise<ExecResult> {
+  return deps.sandbox.exec(command, { env: deps.env, signal, ...options });
+}
+
+/** `path` as a `find -path` pattern that matches only itself. */
+const literalPattern = (path: string): string => path.replace(/[\\*?[\]]/g, "\\$&");
 
 /** Lists the regular files under `base` inside the sandbox, skipping the folders search never enters. */
 async function listFiles(deps: SearchDeps, base: string, timeoutMs: number, signal: AbortSignal): Promise<Listing> {
   const skipped = BUILTIN_TOOL_DEFAULTS.search.skippedFolders.flatMap((name, index) =>
     index === 0 ? ["-name", name] : ["-o", "-name", name],
   );
-  const command = ["find", base, "(", ...skipped, ")", "-prune", "-o", "-type", "f", "-print0"];
+  // The starting point is exempt from the prune, so a search of `node_modules` itself still lists its files.
+  const prune = ["(", "!", "-path", literalPattern(base), "(", ...skipped, ")", "-prune", ")"];
+  const command = ["find", base, ...prune, "-o", "-type", "f", "-print0"];
   let result: ExecResult;
   try {
-    result = await exec(deps, command, timeoutMs, signal);
+    result = await exec(deps, command, { timeoutMs }, signal);
   } catch (error) {
     return { result: failureResult(error) };
   }
   if ("denied" in result) return { result: deniedResult(result.denied) };
-  if (result.exitCode !== 0) {
-    return { result: errorResult(`Listing ${base} failed with exit code ${result.exitCode}: ${result.stderr.trim()}`) };
-  }
   const names = result.stdout.split("\u0000");
   // The last name is empty after a whole listing, and only part of a path when the output was cut.
   names.pop();
-  return { files: names, cut: result.truncated === true };
+  // find exits with 1 when it could not read part of the tree, and still prints what it could: keep that.
+  if (result.exitCode !== 0 && names.length === 0) {
+    return { result: errorResult(`Listing ${base} failed with exit code ${result.exitCode}: ${result.stderr.trim()}`) };
+  }
+  const warning = result.exitCode === 0 ? "" : warningOf("find", result);
+  return { files: names, cut: result.truncated === true, warning };
 }
 
 const relativeTo = (base: string, path: string): string =>
@@ -71,7 +101,7 @@ async function globFiles(deps: SearchDeps, input: GlobInput, signal: AbortSignal
   if ("result" in listing) return listing.result;
   const matches = matcher(input.pattern, checked.path, false);
   const found = listing.files.filter(matches).sort();
-  const cut = listing.cut ? "\n[the file listing was cut, so some matches may be missing]" : "";
+  const cut = `${listing.cut ? "\n[the file listing was cut, so some matches may be missing]" : ""}${listing.warning}`;
   if (found.length === 0) return textResult(`No file under ${checked.path} matches ${input.pattern}.${cut}`);
   return textResult(`${found.join("\n")}${cut}`, { files: found.length });
 }
@@ -104,30 +134,73 @@ interface GrepInput {
   readonly ignore_case?: boolean;
 }
 
-/** Runs `grep` over `files` in batches, and returns the matching lines, or the result that ends the call. */
+/** What the grep commands found: the matching lines, and the notices that say what they may have missed. */
+interface Found {
+  readonly lines: string;
+  readonly notes: string;
+}
+
+/** The longest start of `text` that ends a line and fits in `bytes` UTF-8 bytes. */
+function wholeLines(text: string, bytes: number): string {
+  const encoded = ENCODER.encode(text);
+  if (encoded.length <= bytes) return text.endsWith("\n") ? text : text.slice(0, text.lastIndexOf("\n") + 1);
+  const end = encoded.subarray(0, bytes).lastIndexOf(10);
+  return DECODER.decode(encoded.subarray(0, end + 1));
+}
+
+/** Runs one `grep` command over `batch`, and returns what it did, or the result that ends the call. */
+async function grepBatch(
+  deps: SearchDeps,
+  flags: readonly string[],
+  batch: readonly string[],
+  signal: AbortSignal,
+): Promise<Extract<ExecResult, { exitCode: number }> | { readonly result: ToolResult }> {
+  const { timeoutMs, maxOutputBytes } = BUILTIN_TOOL_DEFAULTS.grep;
+  let result: ExecResult;
+  try {
+    result = await exec(deps, ["grep", ...flags, "--", ...batch], { timeoutMs, maxOutputBytes }, signal);
+  } catch (error) {
+    return { result: failureResult(error) };
+  }
+  return "denied" in result ? { result: deniedResult(result.denied) } : result;
+}
+
+const CUT_NOTICE =
+  `\n[the matches passed ${BUILTIN_TOOL_DEFAULTS.grep.maxOutputBytes} bytes, so the rest were dropped and some files ` +
+  "were not searched; narrow the pattern, path or glob to see them]";
+
+/**
+ * Runs `grep` over `files` in batches, and returns the matching lines, or the result that ends the call. The lines stop
+ * at the tool's output cap, across all the batches, and a batch with a file grep could not read keeps its matches and
+ * adds a warning. The call fails only when no batch matched and one failed, as an unreadable pattern makes every one.
+ */
 async function grepFiles(
   deps: SearchDeps,
   input: GrepInput,
   files: readonly string[],
   signal: AbortSignal,
-): Promise<{ readonly lines: string } | { readonly result: ToolResult }> {
+): Promise<Found | { readonly result: ToolResult }> {
   const { filesPerCommand } = BUILTIN_TOOL_DEFAULTS.search;
+  const { maxOutputBytes } = BUILTIN_TOOL_DEFAULTS.grep;
   const flags = ["-n", "-H", "-I", "-E", ...(input.ignore_case === true ? ["-i"] : []), "-e", input.pattern];
   let lines = "";
+  let size = 0;
+  let failed: Extract<ExecResult, { exitCode: number }> | undefined;
+  const warning = () => (failed === undefined ? "" : warningOf("grep", failed));
   for (let at = 0; at < files.length; at += filesPerCommand) {
-    const batch = files.slice(at, at + filesPerCommand);
-    let result: ExecResult;
-    try {
-      result = await exec(deps, ["grep", ...flags, "--", ...batch], BUILTIN_TOOL_DEFAULTS.grep.timeoutMs, signal);
-    } catch (error) {
-      return { result: failureResult(error) };
-    }
-    if ("denied" in result) return { result: deniedResult(result.denied) };
-    // grep exits with 1 when nothing matched, and with 2 for an error such as a pattern it can't read.
-    if (result.exitCode > 1) return { result: errorResult(`grep failed: ${result.stderr.trim()}`) };
-    lines += result.stdout;
+    const result = await grepBatch(deps, flags, files.slice(at, at + filesPerCommand), signal);
+    if ("result" in result) return result;
+    // grep exits with 1 when nothing matched, and with 2 for an error, such as a file it can't read or a bad pattern.
+    if (result.exitCode > 1) failed ??= result;
+    // A cut stream ends part way through a line, so only its whole lines are kept.
+    const kept = wholeLines(result.stdout, maxOutputBytes - size);
+    lines += kept;
+    size += ENCODER.encode(kept).length;
+    if (result.truncated === true || kept.length < result.stdout.length)
+      return { lines, notes: `${CUT_NOTICE}${warning()}` };
   }
-  return { lines };
+  if (failed !== undefined && lines === "") return { result: errorResult(`grep failed: ${failed.stderr.trim()}`) };
+  return { lines, notes: warning() };
 }
 
 async function grep(deps: SearchDeps, input: GrepInput, signal: AbortSignal): Promise<ToolResult> {
@@ -137,11 +210,12 @@ async function grep(deps: SearchDeps, input: GrepInput, signal: AbortSignal): Pr
   if ("result" in listing) return listing.result;
   const files =
     input.glob === undefined ? listing.files : listing.files.filter(matcher(input.glob, checked.path, true));
-  const found = files.length === 0 ? { lines: "" } : await grepFiles(deps, input, [...files].sort(), signal);
+  const found = files.length === 0 ? { lines: "", notes: "" } : await grepFiles(deps, input, [...files].sort(), signal);
   if ("result" in found) return found.result;
   const cut = listing.cut ? "\n[the file listing was cut, so some files were not searched]" : "";
-  if (found.lines === "") return textResult(`No line under ${checked.path} matches ${input.pattern}.${cut}`);
-  return textResult(`${found.lines.trimEnd()}${cut}`);
+  const notes = `${found.notes}${cut}${listing.warning}`;
+  if (found.lines === "") return textResult(`No line under ${checked.path} matches ${input.pattern}.${notes}`);
+  return textResult(`${found.lines.trimEnd()}${notes}`);
 }
 
 /** The `grep` tool. */

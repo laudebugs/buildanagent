@@ -13,22 +13,24 @@ interface BashInput {
   readonly timeout_ms?: number;
 }
 
-// The exit code a sandbox reports for a command that ran past its timeout.
-const TIMED_OUT = 124;
-
 /** The text the model reads for a command that ran: its output, its standard error and how it ended. */
 function report(result: Extract<ExecResult, { exitCode: number }>, timeoutMs: number): ToolResult {
   const { maxOutputBytes } = BUILTIN_TOOL_DEFAULTS.bash;
   const parts = [result.stdout];
   if (result.stderr !== "") parts.push(`[stderr]\n${result.stderr}`);
   if (result.truncated === true) parts.push(`[output past ${maxOutputBytes} bytes per stream was dropped]`);
-  const timedOut = result.exitCode === TIMED_OUT;
+  // Only the sandbox's flag means the timeout stopped it: a command may exit with 124 itself, as `timeout` does.
+  const timedOut = result.timedOut === true;
   const ending = timedOut
     ? `[timed out after ${timeoutMs} ms]`
     : `[exit code ${result.exitCode}${result.signal === undefined ? "" : `, killed by ${result.signal}`}]`;
   parts.push(ending);
   const text = parts.filter((part) => part !== "").join("\n");
-  const details = { exitCode: result.exitCode, ...(result.signal === undefined ? {} : { signal: result.signal }) };
+  const details = {
+    exitCode: result.exitCode,
+    ...(result.signal === undefined ? {} : { signal: result.signal }),
+    ...(timedOut ? { timedOut } : {}),
+  };
   return timedOut ? { ...errorResult(text), details } : textResult(text, details);
 }
 

@@ -74,6 +74,25 @@ export function scrubString(text: string, secrets: readonly string[]): string {
   return scrubText(text, forms(secrets));
 }
 
+/**
+ * `text`, the start of a longer text that was cut, with every form of each secret replaced and any start of one left at
+ * its end removed, so a secret that the cut split leaks none of its first characters.
+ */
+export function scrubCutString(text: string, secrets: readonly string[]): string {
+  const patterns = forms(secrets);
+  const scrubbed = scrubText(text, patterns);
+  let keep = scrubbed.length;
+  for (const pattern of patterns) {
+    for (let size = Math.min(pattern.length - 1, scrubbed.length); size > 0; size -= 1) {
+      if (scrubbed.endsWith(pattern.slice(0, size))) {
+        keep = Math.min(keep, scrubbed.length - size);
+        break;
+      }
+    }
+  }
+  return scrubbed.slice(0, keep);
+}
+
 function scrubValue(value: unknown, patterns: readonly string[]): unknown {
   if (typeof value === "string") return scrubText(value, patterns);
   if (Array.isArray(value)) return value.map((item) => scrubValue(item, patterns));

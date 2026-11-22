@@ -17,11 +17,17 @@ export const BUILTIN_TOOL_DEFAULTS = deepFreeze({
   read: {
     /** The most lines one call returns when it names no `limit`. */
     defaultLimit: 2000,
+    /**
+     * The most bytes of text one call returns, kept under the context policy's default write cap of 64 KiB, so a page
+     * reaches the model whole and reading a cut result's spill in pages returns all of it.
+     */
+    maxBytes: 32 * 1024,
     description:
       "Reads a text file. Pass `path` (or `file_path`), relative to the workspace root or absolute. It returns at " +
-      "most 2000 lines; pass `offset` (the first line to read, counting from 1) and `limit` (how many lines) to read a " +
-      "long file in parts. When a tool's output was cut for length, the notice names a file that holds the full " +
-      "text: read that path, in parts if it is long, to see the rest.",
+      "most 2000 lines and 32 KiB; pass `offset` (the first line to read, counting from 1) and `limit` (how many " +
+      "lines) to read a long file in parts. A line too long for one page is shown in parts: pass the `offset` and " +
+      "`column` the notice names to read on. When a tool's output was cut for length, the notice names a file that " +
+      "holds the full text: read that absolute path, in parts if it is long, to see the rest.",
   },
   write: {
     description:
@@ -61,12 +67,15 @@ export const BUILTIN_TOOL_DEFAULTS = deepFreeze({
   grep: {
     /** How long one search command may run. */
     timeoutMs: 30_000,
+    /** The most bytes of matching lines one call collects; past it the rest is dropped and the result says so. */
+    maxOutputBytes: 1024 * 1024,
     description:
       "Searches the contents of files for `pattern`, an extended regular expression as `grep -E` reads it, and " +
       "returns each matching line as `path:line:text`. `path` is the file or folder to search, by default the " +
       "workspace root. `glob` limits the files searched: a glob with no `/`, such as `*.ts`, matches the file name, " +
       "and any other matches the path below `path`. Set `ignore_case` to ignore case. Folders named `.git` and " +
-      "`node_modules` are skipped, and so are binary files.",
+      "`node_modules` are skipped, and so are binary files. When the matches pass 1 MiB the rest are dropped and the " +
+      "result says so: narrow `pattern`, `path` or `glob` to see them.",
   },
   glob: {
     /** How long the listing command may run. */
@@ -89,4 +98,4 @@ export const BUILTIN_TOOL_DEFAULTS = deepFreeze({
  * The SHA-256 of the canonical JSON of `BUILTIN_TOOL_DEFAULTS`. It changes whenever a built-in tool's description,
  * limit or default does, so two runs that record different hashes ran with different tools.
  */
-export const BUILTIN_TOOLS_HASH = "bdff7f2205bbcc4e25d9c20976d661700874980e16ce7939db4ea78ef717dd77";
+export const BUILTIN_TOOLS_HASH = "43b74930a545aafcbcdc4458d66a7c9579b74abc0404f68dbcf70ec57484b6d5";

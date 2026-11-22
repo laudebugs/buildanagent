@@ -11,7 +11,7 @@ import { isHarnessError } from "@buildanagent/harness";
 import { createContextPolicy, memorySpillStore } from "@buildanagent/harness/context";
 import { fileSpillStore } from "@buildanagent/harness/context/file";
 import { type EgressRecord, startEgressProxy } from "@buildanagent/harness/credentials";
-import type { Sandbox, SandboxPolicy } from "@buildanagent/harness/sandbox";
+import type { ExecResult, Sandbox, SandboxPolicy } from "@buildanagent/harness/sandbox";
 import { createHarness } from "@buildanagent/harness/server";
 import { openSession, runTurn, type SessionEntry } from "@buildanagent/harness/session";
 import { fakeSandbox } from "@buildanagent/harness/testing";
@@ -61,9 +61,13 @@ function counting(sandbox: Sandbox): Sandbox & { calls: string[] } {
   };
 }
 
-async function setup(options: Partial<BuiltinToolsOptions> = {}, proxy?: FetchProxy) {
+async function setup(
+  options: Partial<BuiltinToolsOptions> = {},
+  proxy?: FetchProxy,
+  files: Record<string, string | Uint8Array> = FILES,
+) {
   const client = fakeSandbox();
-  const sandbox = counting(await client.provision({ root: ROOT, files: FILES }, POLICY));
+  const sandbox = counting(await client.provision({ root: ROOT, files }, POLICY));
   const tools = builtinTools(sandbox, proxy, { root: ROOT, policy: POLICY, ...options });
   const tool = (name: string): ToolDefinition<unknown, unknown, unknown> => {
     const found = tools.find((entry) => entry.name === name);
@@ -142,8 +146,19 @@ describe("bash", () => {
     const { client, tool } = await setup();
     const result = await call(tool("bash"), { command: "sleep 5", timeout_ms: 20 });
     assert.equal(result.isError, true);
+    assert.deepEqual(result.details, { exitCode: 124, timedOut: true });
     assert.match(textOf(result), /\[timed out after 20 ms\]/);
     assert.equal(client.execs[0]?.timeoutMs, 20);
+  });
+
+  test("a command that exits with 124 itself is reported by its exit code, not as the harness's timeout", async () => {
+    const sandbox = await fakeSandbox().provision({ root: ROOT }, POLICY);
+    const own: Sandbox = { ...sandbox, exec: async () => ({ exitCode: 124, stdout: "slow\n", stderr: "" }) };
+    const [bash] = builtinTools(own, undefined, { root: ROOT, policy: POLICY }).filter((tool) => tool.name === "bash");
+    assert.ok(bash !== undefined);
+    const result = await call(bash.definition, { command: "timeout 1 sleep 5" });
+    assert.equal(result.isError, undefined);
+    assert.equal(textOf(result), "slow\n\n[exit code 124]");
   });
 
   test("a command the network policy stops returns the denial as an error result", async () => {
@@ -191,6 +206,29 @@ describe("edit", () => {
     assert.equal(fileText(client, "/work/notes.md"), "gamma\nbeta\ngamma beta\n");
   });
 
+  test("a byte order mark is kept, and a file that is not UTF-8 is refused and left unchanged", async () => {
+    const bom = new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode("a = 1\n")]);
+    const latin1 = new Uint8Array([...new TextEncoder().encode("caf"), 0xe9, ...new TextEncoder().encode(" = 1\n")]);
+    const { client, tool } = await setup({}, undefined, { "bom.txt": bom, "latin1.txt": latin1 });
+    const kept = await call(tool("edit"), { path: "bom.txt", old_string: "1", new_string: "2" });
+    assert.equal(kept.isError, undefined);
+    const written = client.files().get("/work/bom.txt");
+    assert.equal(new TextDecoder("utf-8", { ignoreBOM: true }).decode(written), "\ufeffa = 2\n");
+    const refused = await call(tool("edit"), { path: "latin1.txt", old_string: "1", new_string: "2" });
+    assert.equal(refused.isError, true);
+    assert.match(textOf(refused), /is not UTF-8 text/);
+    assert.deepEqual(client.files().get("/work/latin1.txt"), latin1);
+  });
+
+  test("a binary file is refused and left unchanged", async () => {
+    const blob = new Uint8Array([0x61, 0, 0x31]);
+    const { client, tool } = await setup({}, undefined, { "blob.bin": blob });
+    const result = await call(tool("edit"), { path: "blob.bin", old_string: "1", new_string: "2" });
+    assert.equal(result.isError, true);
+    assert.match(textOf(result), /is a binary file/);
+    assert.deepEqual(client.files().get("/work/blob.bin"), blob);
+  });
+
   test("a missing file is an error result", async () => {
     const { tool } = await setup();
     const result = await call(tool("edit"), { path: "absent.md", old_string: "a", new_string: "b" });
@@ -219,6 +257,24 @@ describe("write", () => {
       assert.deepEqual(client.files(), before);
     });
   }
+
+  test("a path with a backslash is refused before the sandbox is called, by every file tool", async () => {
+    const { client, sandbox, tool } = await setup();
+    const before = new Map(client.files());
+    const results = [
+      await call(tool("write"), { path: "logs\\run.txt", content: "x" }),
+      await call(tool("read"), { path: "src\\app.ts" }),
+      await call(tool("edit"), { path: "src\\app.ts", old_string: "42", new_string: "43" }),
+      await call(tool("grep"), { pattern: "answer", path: "src\\deep" }),
+      await call(tool("glob"), { pattern: "*.ts", path: "src\\deep" }),
+    ];
+    for (const result of results) {
+      assert.equal(result.isError, true);
+      assert.match(textOf(result), /holds a backslash/);
+    }
+    assert.deepEqual(sandbox.calls, []);
+    assert.deepEqual(client.files(), before);
+  });
 
   test("an edit outside the write roots is refused before the sandbox is called", async () => {
     const { sandbox, tool } = await setup();
@@ -284,6 +340,23 @@ describe("read", () => {
     assert.match(textOf(result), /\[lines 1 to 2000 of 2005; read on with offset 2001\]$/);
   });
 
+  test("a file larger than one page is returned in pages of at most maxBytes, and a long line in parts", async () => {
+    const { maxBytes } = BUILTIN_TOOL_DEFAULTS.read;
+    // Each é is two bytes, so the line is one and a half pages, and its second part fits in one.
+    const long = "é".repeat((maxBytes * 3) / 4);
+    const { tool } = await setup({}, undefined, { "wide.txt": `short\n${long}\nend\n` });
+    const first = await call(tool("read"), { path: "wide.txt" });
+    assert.equal(textOf(first), "short\n[lines 1 to 1 of 3; read on with offset 2]");
+    const part = await call(tool("read"), { path: "wide.txt", offset: 2 });
+    const [shown = "", notice = ""] = textOf(part).split("\n");
+    assert.ok(new TextEncoder().encode(shown).length < maxBytes);
+    assert.equal(notice, `[line 2 of 3 goes on; read on with offset 2 and column ${shown.length + 1}]`);
+    const rest = await call(tool("read"), { path: "wide.txt", offset: 2, column: shown.length + 1 });
+    assert.equal(textOf(rest), `${long.slice(shown.length)}\nend\n`);
+    const past = await call(tool("read"), { path: "wide.txt", offset: 1, column: 9 });
+    assert.equal(past.isError, true);
+  });
+
   test("two different paths, no path, and a binary file are error results", async () => {
     const { sandbox, tool } = await setup();
     assert.equal((await call(tool("read"), { path: "a", file_path: "b" })).isError, true);
@@ -333,6 +406,67 @@ describe("a big result passes the write cap, and read opens its spill", () => {
     const full = await call(read, { path: spillPath });
     assert.equal(textOf(full), spill.read(spillPath));
     assert.equal(textOf(full), `${big}\n[exit code 0]`);
+  });
+
+  test("a single line of 900 KB that the cap cut is read back from its spill, page by page, in full", async () => {
+    const line = Array.from({ length: 90_000 }, (_, index) => `${index % 10}abcdefghi`).join("");
+    const spill = memorySpillStore();
+    const client = fakeSandbox();
+    const sandbox = await client.provision({ root: ROOT, files: { "line.txt": line } }, POLICY);
+    const tools = builtinTools(sandbox, undefined, { root: ROOT, policy: POLICY, spills: (path) => spill.read(path) });
+    let spillPath = "";
+    const steps: ScriptStep[] = [
+      toolCall("bash", { command: "cat line.txt" }, "c1"),
+      (request) => {
+        spillPath = spillPathIn(request);
+        return toolCall("read", { path: spillPath }, "c2") as never;
+      },
+      done,
+    ];
+    const { entries } = await runTools(steps, tools, createContextPolicy({ spill }));
+    const [capped, firstPage] = results(entries);
+    assert.ok(capped?.spill !== undefined && firstPage !== undefined);
+    assert.equal(firstPage.spill, undefined, "a page of a spill fits under the write cap");
+    const read = tools.find((tool) => tool.name === "read")?.definition;
+    assert.ok(read !== undefined);
+    // Read every page, as the model would, following each notice, and join what the pages show.
+    let joined = "";
+    let next: Record<string, number> = {};
+    for (let pages = 0; pages < 100; pages += 1) {
+      const text = textOf(await call(read, { path: spillPath, ...next }));
+      const notice =
+        /\n\[(?:line \d+ of \d+ goes on|lines \d+ to \d+ of \d+); read on with offset (\d+)(?: and column (\d+))?\]$/.exec(
+          text,
+        );
+      if (notice === null) {
+        joined += text;
+        break;
+      }
+      const body = text.slice(0, notice.index);
+      joined += notice[2] === undefined ? `${body}\n` : body;
+      next = { offset: Number(notice[1]), ...(notice[2] === undefined ? {} : { column: Number(notice[2]) }) };
+    }
+    // The spill is the command's output and its exit line; a page always ends its last line.
+    assert.equal(joined, `${spill.read(spillPath)}\n`);
+    assert.equal(joined, `${line}\n[exit code 0]\n`);
+  });
+
+  test("a relative path reads the workspace file, even when a spill of the session has its name", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "builtin-spill-"));
+    try {
+      const store = fileSpillStore({ dir });
+      const spilled = await store.write(KEY, "c1", "the spilled text");
+      const spills = (path: string) => store.read(KEY, path);
+      const { tool } = await setup({ spills }, undefined, { "c1.txt": "the workspace file\n" });
+      assert.equal(textOf(await call(tool("read"), { path: "c1.txt" })), "the workspace file\n");
+      assert.equal(textOf(await call(tool("read"), { path: spilled })), "the spilled text");
+      assert.equal(await store.read(KEY, "c1.txt"), undefined);
+      // The tool asks no reader about a relative path, even one that would answer for any name.
+      const greedy = await setup({ spills: () => "a spill" }, undefined, { "c1.txt": "the workspace file\n" });
+      assert.equal(textOf(await call(greedy.tool("read"), { path: "c1.txt" })), "the workspace file\n");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("the file spill store reads back only its own session's spills", async () => {
@@ -402,6 +536,72 @@ describe("grep and glob", () => {
     });
   }
 
+  test("a search that starts in a skipped folder still searches it, and skips the ones inside it", async () => {
+    const files = { ...FILES, "node_modules/dep/node_modules/inner.ts": "export const answer = 1;\n" };
+    const { tool } = await setup({}, undefined, files);
+    const grep = await call(tool("grep"), { pattern: "answer", path: "node_modules" });
+    assert.equal(textOf(grep), "/work/node_modules/dep/index.ts:1:export const answer = 0;");
+    const glob = await call(tool("glob"), { pattern: "**/*.ts", path: "node_modules" });
+    assert.equal(textOf(glob), "/work/node_modules/dep/index.ts");
+  });
+
+  test("grep keeps at most its output cap of matching lines, across batches too, and says the rest were dropped", async () => {
+    const { maxOutputBytes } = BUILTIN_TOOL_DEFAULTS.grep;
+    const row = `match ${"x".repeat(94)}\n`;
+    const oneFile = { "big.log": row.repeat(Math.ceil((maxOutputBytes * 1.2) / row.length)) };
+    const perFile = row.repeat(Math.ceil((maxOutputBytes * 1.2) / row.length / 400));
+    const manyFiles = Object.fromEntries(Array.from({ length: 400 }, (_, index) => [`logs/${index}.log`, perFile]));
+    for (const files of [oneFile, manyFiles]) {
+      const { client, tool } = await setup({}, undefined, files);
+      const text = textOf(await call(tool("grep"), { pattern: "match" }));
+      const notice = text.indexOf("\n[the matches passed");
+      assert.ok(notice > 0, "the result says matches were dropped");
+      assert.ok(new TextEncoder().encode(text.slice(0, notice)).length <= maxOutputBytes);
+      assert.match(text.slice(notice), /narrow the pattern, path or glob/);
+      for (const line of text.slice(0, notice).split("\n")) assert.match(line, /^\/work\/[\w/.]+:\d+:match x{94}$/);
+      for (const exec of client.execs.filter((entry) => entry.command[0] === "grep")) {
+        assert.equal(exec.timeoutMs, BUILTIN_TOOL_DEFAULTS.grep.timeoutMs);
+      }
+    }
+  });
+
+  test("a grep or find that fails on part of the tree keeps what it found and warns", async () => {
+    const { sandbox: inner } = await setup();
+    const failing: Sandbox = {
+      ...inner,
+      async exec(command, options): Promise<ExecResult> {
+        const result = await inner.exec(command, options);
+        if ("denied" in result) return result;
+        if (command[0] === "grep") return { ...result, exitCode: 2, stderr: "grep: /work/secret: Permission denied\n" };
+        return { ...result, exitCode: 1, stderr: "find: '/work/locked': Permission denied\n" };
+      },
+    };
+    const tools = builtinTools(failing, undefined, { root: ROOT, policy: POLICY });
+    const tool = (name: string) =>
+      tools.find((entry) => entry.name === name)?.definition as ToolDefinition<unknown, unknown, unknown>;
+    const grep = await call(tool("grep"), { pattern: "answer" });
+    assert.equal(grep.isError, undefined);
+    assert.match(textOf(grep), /^\/work\/src\/app\.ts:1:export const answer = 42;\n/);
+    assert.match(
+      textOf(grep),
+      /\[grep exited with 2, so some files may be missing: grep: \/work\/secret: Permission denied\]/,
+    );
+    assert.match(textOf(grep), /\[find exited with 1, so some files may be missing: find: '\/work\/locked'/);
+    const glob = await call(tool("glob"), { pattern: "**/*.ts" });
+    assert.equal(glob.isError, undefined);
+    assert.match(textOf(glob), /^\/work\/src\/app\.ts\n\/work\/src\/deep\/util\.ts\n\[find exited with 1/);
+  });
+
+  test("a pattern grep can't read is an error result, and a folder that does not exist is too", async () => {
+    const { tool } = await setup();
+    const bad = await call(tool("grep"), { pattern: "(" });
+    assert.equal(bad.isError, true);
+    assert.match(textOf(bad), /^grep failed: grep: /);
+    const missing = await call(tool("glob"), { pattern: "*", path: "absent" });
+    assert.equal(missing.isError, true);
+    assert.match(textOf(missing), /Listing \/work\/absent failed with exit code 1/);
+  });
+
   test("a search through a symlink that leads out of the roots finds nothing outside them", async () => {
     const { client, tool } = await setup();
     client.symlink("/work/link", "/etc");
@@ -467,6 +667,40 @@ describe("fetch", () => {
     assert.doesNotMatch(echo, /sk-live-123/);
     const logo = textOf(await call(tool("fetch"), { url: "https://api.example.com/logo" }));
     assert.match(logo, /\[a image\/png body of 2 bytes was left out\]$/);
+  });
+
+  test("a secret that the body's cut splits leaks none of its characters", async () => {
+    const { maxBodyBytes } = BUILTIN_TOOL_DEFAULTS.fetch;
+    const secret = "sk-live-0123456789";
+    const body = `${"a".repeat(maxBodyBytes - 6)}${secret} and more`;
+    const proxy: FetchProxy = {
+      fetch: async () => new Response(body, { headers: { "content-type": "text/plain" } }),
+      knownSecrets: async () => [secret],
+    };
+    const { tool } = await setup({}, proxy);
+    const text = textOf(await call(tool("fetch"), { url: "https://api.example.com/long" }));
+    assert.match(text, /\[the body was cut at \d+ bytes\]$/);
+    // Every prefix of the secret, down to its first three characters, is gone from the end of the kept body.
+    assert.equal(text.includes("sk-"), false);
+    assert.match(text, /a\n\[the body was cut/);
+  });
+
+  test("a body with no content type is shown only when it reads as text", async () => {
+    const bodies: Record<string, () => Response> = {
+      "https://api.example.com/blob": () => new Response(new Uint8Array([0x89, 0x50, 0x00, 0x01])),
+      "https://api.example.com/latin1": () => new Response(new Uint8Array([0x63, 0x61, 0x66, 0xe9])),
+      "https://api.example.com/text": () => new Response(new TextEncoder().encode("plain words")),
+    };
+    const proxy: FetchProxy = {
+      fetch: async (input) => (bodies[String(input)] ?? (() => new Response("", { status: 404 })))(),
+      knownSecrets: async () => [],
+    };
+    const { tool } = await setup({}, proxy);
+    for (const name of ["blob", "latin1"]) {
+      const text = textOf(await call(tool("fetch"), { url: `https://api.example.com/${name}` }));
+      assert.match(text, /\[a body of 4 bytes with no content type was left out, because it is not text\]$/, name);
+    }
+    assert.match(textOf(await call(tool("fetch"), { url: "https://api.example.com/text" })), /\n\nplain words$/);
   });
 
   test("without a proxy there is no fetch tool", async () => {
