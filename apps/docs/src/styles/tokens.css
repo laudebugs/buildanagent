@@ -167,3 +167,38 @@
   --panel-grid: #251b14;
   --panel-border: #45352a;
 }
+
+@media print {
+  :root:not([data-theme="light"]),
+  [data-theme] {
+    color-scheme: light;
+    --color-background: #faf3e8;
+    --color-text: #2a1e16;
+    --color-text-soft: #4a3b2f;
+    --color-text-muted: #5e4e40;
+    --color-rule: #e4d6c2;
+    --color-accent: #b04e29;
+    --color-link: #8a3519;
+    --color-highlight: #f5df9e;
+    --color-highlight-green: #cfe3b4;
+    --color-highlight-blue: #bfdcef;
+    --color-highlight-pink: #f4c9d2;
+    --color-highlight-edge: #96740f;
+    --color-highlight-hover: #d7a716;
+    --color-highlight-edge-green: #608331;
+    --color-highlight-hover-green: #8bbc4b;
+    --color-highlight-edge-blue: #2d7fb4;
+    --color-highlight-hover-blue: #77b5dd;
+    --color-highlight-edge-pink: #d83f5f;
+    --color-highlight-hover-pink: #ea96a7;
+    --color-danger: #a3401c;
+    --panel-background: #f3eadb;
+    --panel-text: #2a1e16;
+    --panel-comment: #6b5b4d;
+    --panel-amber: #8a4f00;
+    --panel-olive: #4b5e1f;
+    --panel-terracotta: #a3401c;
+    --panel-grid: #eadfcc;
+    --panel-border: #e4d6c2;
+  }
+}

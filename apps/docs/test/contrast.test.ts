@@ -4,7 +4,13 @@ import { contrastRatio, NON_TEXT_MINIMUM, TEXT_MINIMUM } from "@buildanagent/man
 import { type ColorSet, colorProperty } from "@buildanagent/manual/design/tokens";
 import { test } from "vitest";
 import { STARLIGHT_PAIRS, type TokenName } from "../src/design/pairs.js";
-import { CODE_SCOPES, codeThemes, DOCS_TOKENS_CSS_URL } from "../src/design/theme.js";
+import {
+  CODE_SCOPES,
+  CODE_STYLE_OVERRIDES,
+  codeThemes,
+  DOCS_TOKENS_CSS_URL,
+  PRINT_SELECTOR,
+} from "../src/design/theme.js";
 
 // The ratios are computed from the colours the docs' tokens.css ships, so a stale or hand-edited file cannot hide a
 // failing pair.
@@ -21,8 +27,12 @@ const shipped = {
   light: block(':root,\n[data-theme="light"]'),
   dark: block('[data-theme="dark"]'),
   darkPreferred: block('  :root:not([data-theme="light"])'),
+  print: block(`  ${PRINT_SELECTOR}`),
 };
 const MODES = ["light", "dark"] as const;
+// Browsers leave out background colours when printing unless the reader asks for them, so printed text may sit on the
+// paper itself.
+const PAPER = "#ffffff";
 
 function color(name: TokenName, mode: "light" | "dark"): string {
   const [where, key = ""] = name.split(".") as ["page" | "panel", string];
@@ -73,4 +83,61 @@ test("each code theme takes its panel's colours, and every syntax colour reaches
 test("Expressive Code keeps the measured syntax colours instead of shifting them", () => {
   const config = readFileSync(new URL("../astro.config.mjs", import.meta.url), "utf8");
   assert.match(config, /minSyntaxHighlightingColorContrast: 0/);
+});
+
+test("printed, the page and the panel take the light colours, after every dark block", () => {
+  assert.deepEqual(shipped.print, shipped.light);
+  const print = css.indexOf(`@media print {\n  ${PRINT_SELECTOR} {\n    color-scheme: light;`);
+  assert.ok(print > css.lastIndexOf('[data-theme="dark"] {'), "the print block comes after the dark blocks");
+});
+
+test("printed text reaches 4.5:1 on its background and on bare paper", () => {
+  const printed = (name: TokenName): string => {
+    const [where, key = ""] = name.split(".") as ["page" | "panel", string];
+    const value = shipped.print.get(colorProperty(where === "page" ? "light" : "panelLight", key));
+    assert.ok(value, `the print block sets ${name}`);
+    return value;
+  };
+  const [, light] = codeThemes();
+  const syntax = light.tokenColors.map((entry) => entry.settings.foreground ?? "");
+  const pairs = STARLIGHT_PAIRS.filter((pair) => pair.kind === "text");
+  const onPaper = pairs.filter((pair) => pair.on === "page.background" || pair.on === "panel.background");
+  assert.ok(onPaper.length > 5);
+  const checks: [string, string, string][] = [
+    ...pairs.map((pair): [string, string, string] => [pair.role, printed(pair.color), printed(pair.on)]),
+    ...onPaper.map((pair): [string, string, string] => [`${pair.role} on paper`, printed(pair.color), PAPER]),
+    ...syntax.map((color): [string, string, string] => [`syntax ${color} on paper`, color, PAPER]),
+  ];
+  for (const [role, foreground, background] of checks) {
+    const ratio = contrastRatio(foreground, background);
+    assert.ok(ratio >= TEXT_MINIMUM, `${role}: ${foreground} on ${background} is ${ratio.toFixed(2)}:1`);
+  }
+});
+
+test("printed code takes the light theme's syntax colours, which Expressive Code numbers second", () => {
+  const [dark, light] = codeThemes();
+  assert.equal(dark.type, "dark");
+  assert.equal(light.type, "light");
+  const mapping = readFileSync(new URL("../src/styles/starlight.css", import.meta.url), "utf8");
+  assert.match(
+    mapping,
+    /@media print \{[^@]*\.expressive-code \.ec-line :where\(span\[style\^="--"\]:not\(\[class\]\)\) \{\s*color: var\(--1, inherit\);/,
+  );
+});
+
+test("marked, inserted and deleted code use the measured panel colours", () => {
+  const markers = CODE_STYLE_OVERRIDES.textMarkers;
+  for (const [kind, edge] of [
+    ["mark", "amber"],
+    ["ins", "olive"],
+    ["del", "terracotta"],
+  ] as const) {
+    assert.equal(markers[`${kind}Background`], "var(--panel-grid)");
+    assert.equal(markers[`${kind}BorderColor`], `var(--panel-${edge})`);
+    const pair = STARLIGHT_PAIRS.find((entry) => entry.color === `panel.${edge}` && entry.on === "panel.grid");
+    assert.ok(pair, `pairs.ts measures ${edge} on the marker background`);
+  }
+  assert.equal(markers.insDiffIndicatorColor, "var(--panel-olive)");
+  assert.equal(markers.delDiffIndicatorColor, "var(--panel-terracotta)");
+  assert.equal(markers.lineMarkerLabelColor, "var(--panel-background)");
 });

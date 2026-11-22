@@ -61,7 +61,9 @@ export default defineConfig({
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
       components: { Footer: "./src/components/Footer.astro", Head: "./src/components/Head.astro" },
       // The book's theme: its tokens, mapped onto Starlight's variables, and its code panels in both modes. The
-      // panel colours are measured at 4.5:1 or more, so Expressive Code must not shift them to its own minimum.
+      // panel colours are measured at 4.5:1 or more, so Expressive Code must not shift them to its own minimum. That
+      // also turns off its correction on marked, inserted and deleted lines, so the markers take measured panel colours
+      // too (CODE_STYLE_OVERRIDES.textMarkers).
       customCss: ["./src/styles/tokens.css", "./src/styles/starlight.css"],
       expressiveCode: {
         themes: codeThemes(),

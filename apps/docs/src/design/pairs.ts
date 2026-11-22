@@ -22,6 +22,15 @@ const ASIDES = [
   ["danger", "page.highlightPink", "page.highlightEdgePink"],
 ] as const;
 
+// Marked, inserted and deleted code: each kind's edge and sign, all on the panel's grid shade (CODE_STYLE_OVERRIDES).
+const MARKERS = [
+  ["marked", "panel.amber"],
+  ["inserted", "panel.olive"],
+  ["deleted", "panel.terracotta"],
+] as const;
+
+const SYNTAX = ["text", "comment", "amber", "olive", "terracotta"] as const;
+
 /** Every pair the mapping in starlight.css and the code panels' settings create. */
 export const STARLIGHT_PAIRS: readonly StarlightPair[] = [
   { role: "body text", color: "page.text", on: "page.background", kind: "text" },
@@ -38,6 +47,21 @@ export const STARLIGHT_PAIRS: readonly StarlightPair[] = [
   { role: "inline code", color: "panel.text", on: "panel.background", kind: "text" },
   { role: "a code block's title and copy button", color: "panel.text", on: "panel.background", kind: "text" },
   { role: "a muted line in a code panel", color: "page.textMuted", on: "panel.background", kind: "text" },
+  { role: "inline code in a link", color: "page.link", on: "panel.background", kind: "text" },
+  ...SYNTAX.map(
+    (key): StarlightPair => ({
+      role: `${key} code on a marker`,
+      color: `panel.${key}`,
+      on: "panel.grid",
+      kind: "text",
+    }),
+  ),
+  ...MARKERS.flatMap(([marker, edge]): StarlightPair[] => [
+    { role: `a ${marker} line's diff sign`, color: edge, on: "panel.grid", kind: "text" },
+    { role: `a ${marker} line marker's label`, color: "panel.background", on: edge, kind: "text" },
+    { role: `a ${marker} marker's edge on the marker`, color: edge, on: "panel.grid", kind: "nonText" },
+    { role: `a ${marker} inline marker's edge on the panel`, color: edge, on: "panel.background", kind: "nonText" },
+  ]),
   ...ASIDES.flatMap(([aside, background, edge]): StarlightPair[] => [
     { role: `a ${aside} aside's text and title`, color: "page.text", on: background, kind: "text" },
     { role: `a link in a ${aside} aside`, color: "page.link", on: background, kind: "text" },

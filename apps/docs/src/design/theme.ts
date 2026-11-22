@@ -2,7 +2,13 @@ import { cpSync, readdirSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { type BookTokens, readTokens, tokensCss } from "@buildanagent/manual/design/tokens";
+import {
+  type BookTokens,
+  type ColorSet,
+  colorProperty,
+  readTokens,
+  tokensCss,
+} from "@buildanagent/manual/design/tokens";
 
 // The docs site's theme is the book's: the same token file, the same generator and the same font files. This module
 // says where the docs keep their copies and builds the parts Starlight takes as configuration, not as CSS.
@@ -28,9 +34,32 @@ const HEADER = [
   "file and run `pnpm --filter @buildanagent/docs tokens`.",
 ];
 
-/** The docs site's tokens file: the book's custom properties, under the docs site's own header. */
+/** The colour sets a printed page takes: the light page and the light panel, whatever mode the reader chose. */
+export const PRINT_COLOR_SETS: readonly ColorSet[] = ["light", "panelLight"];
+
+/**
+ * The selector of the print block. Starlight's print stylesheet forces light colours by resetting its own variables,
+ * but the mapping in starlight.css points them back at the tokens, so the tokens themselves must turn light on paper.
+ * The two selectors match every element the dark blocks above match, at the same specificity, and come after them.
+ */
+export const PRINT_SELECTOR = ':root:not([data-theme="light"]),\n  [data-theme]';
+
+function printBlock(tokens: BookTokens): string[] {
+  const lines = ["@media print {", `  ${PRINT_SELECTOR} {`, "    color-scheme: light;"];
+  for (const set of PRINT_COLOR_SETS) {
+    for (const [key, value] of Object.entries(tokens.color[set].values)) {
+      lines.push(`    ${colorProperty(set, key)}: ${value.toLowerCase()};`);
+    }
+  }
+  return [...lines, "  }", "}", ""];
+}
+
+/**
+ * The docs site's tokens file: the book's custom properties, under the docs site's own header, then a print block
+ * that gives paper the light colours in either mode.
+ */
 export function docsTokensCss(tokens: BookTokens = readTokens()): string {
-  return tokensCss(tokens, { header: HEADER });
+  return [tokensCss(tokens, { header: HEADER }), ...printBlock(tokens)].join("\n");
 }
 
 /** Every file under a fonts folder, as paths relative to it with `/` separators, sorted. */
@@ -143,5 +172,20 @@ export const CODE_STYLE_OVERRIDES = {
     tooltipSuccessBackground: "var(--color-accent)",
     tooltipSuccessForeground: "var(--color-background)",
     frameBoxShadowCssValue: "none",
+  },
+  // Marked, inserted and deleted code sits on the panel's grid shade, which every syntax colour reaches 4.5:1 on in
+  // both modes; the kind shows in the edge and the diff sign, in the panel's amber, olive and terracotta, and a line
+  // marker's label is the panel background on that edge. Expressive Code's own marker colours are translucent and
+  // unmeasured, and its contrast correction is off (see astro.config.mjs), so every marker colour is a token here.
+  textMarkers: {
+    markBackground: "var(--panel-grid)",
+    markBorderColor: "var(--panel-amber)",
+    insBackground: "var(--panel-grid)",
+    insBorderColor: "var(--panel-olive)",
+    insDiffIndicatorColor: "var(--panel-olive)",
+    delBackground: "var(--panel-grid)",
+    delBorderColor: "var(--panel-terracotta)",
+    delDiffIndicatorColor: "var(--panel-terracotta)",
+    lineMarkerLabelColor: "var(--panel-background)",
   },
 } as const;

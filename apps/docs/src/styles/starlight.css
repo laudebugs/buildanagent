@@ -157,4 +157,15 @@ h6,
   starlight-file-tree .highlight {
     outline-color: var(--color-accent);
   }
+
+  /* Printed, the panel takes its light colours (tokens.css), so code takes the light theme's syntax colours too.
+     Expressive Code stores each theme's colour in a numbered variable on every token, in the order of the themes
+     list: --0 is the dark theme and --1 the light one. */
+  .expressive-code .ec-line :where(span[style^="--"]:not([class])) {
+    color: var(--1, inherit);
+    background-color: var(--1bg, transparent);
+    font-style: var(--1fs, inherit);
+    font-weight: var(--1fw, inherit);
+    text-decoration: var(--1td, inherit);
+  }
 }

@@ -12,7 +12,7 @@ test("the committed tokens.css is what the generator writes from book-tokens.jso
   );
 });
 
-test("the docs tokens are the book's, under the docs site's own header", () => {
+test("the docs tokens are the book's, under the docs site's own header, then the print block", () => {
   const docs = docsTokensCss();
   const book = tokensCss(readTokens());
   assert.match(
@@ -20,7 +20,9 @@ test("the docs tokens are the book's, under the docs site's own header", () => {
     /^\/\* Generated from docs\/design\/book-tokens\.json by apps\/docs\/scripts\/generate-tokens\.ts\./,
   );
   assert.match(docs, /pnpm --filter @buildanagent\/docs tokens/);
-  assert.equal(docs.slice(docs.indexOf("*/")), book.slice(book.indexOf("*/")));
+  const body = book.slice(book.indexOf("*/"));
+  assert.ok(docs.slice(docs.indexOf("*/")).startsWith(body), "the docs file starts with the book's tokens");
+  assert.match(docs.slice(docs.indexOf("*/") + body.length), /^\n@media print \{\n/);
 });
 
 test("Starlight loads the tokens before the stylesheet that maps them", () => {
