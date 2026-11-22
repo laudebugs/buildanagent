@@ -57,13 +57,13 @@ If a library needs a framing quirk, record it; do not change the protocol for it
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
 ## Outcome
 
-`stdioTransport(dispatcher, io, options)` in `@buildanagent/harness/server` serves one client over a pair of byte streams, one JSON-RPC 2.0 message per line. `io` is `{ input, output, log? }`: a Node `Readable` (`NodeInput`) or Web `ReadableStream` in, a Node `Writable` or Web `WritableStream` out, and a function for the transport's own diagnostics, which a host points at stderr. `options` is `{ maxLineBytes?, signal? }`. The promise resolves once the client is done. The code is `packages/harness/src/server/stdio.ts`, with the stream ends in `stdio-streams.ts`. The exports are `stdioTransport` and the types `StdioIo`, `StdioOptions`, `StdioInput`, `StdioOutput`, `NodeInput` and `NodeOutput`, and `Dispatcher.connect()` gained an `onClose` option (`ConnectOptions`). The tests are `packages/harness/test/server/stdio.test.ts` (8), `stdio-transport.test.ts` (11, in process) and `framing-interop.test.ts` (3). Their server runs in a child process (`stdio-server.ts`, spawned by `stdio-child.ts`) with a scripted model, the offline setup and `spawnEnv([])`.
+`stdioTransport(dispatcher, io, options)` in `@buildanagent/harness/server` serves one client over a pair of byte streams, one JSON-RPC 2.0 message per line. `io` is `{ input, output, log? }`: a Node `Readable` (`NodeInput`) or Web `ReadableStream` in, a Node `Writable` or Web `WritableStream` out, and a function for the transport's own diagnostics, which a host points at stderr. `options` is `{ maxLineBytes?, signal? }`. The promise resolves once the client is done. The code is `packages/harness/src/server/stdio.ts`, with the stream ends in `stdio-streams.ts`. The exports are `stdioTransport` and the types `StdioIo`, `StdioOptions`, `StdioInput`, `StdioOutput`, `NodeInput` and `NodeOutput`. `Dispatcher.connect()` also gained an `onClose` option, typed as the exported `ConnectOptions`. The tests are `packages/harness/test/server/stdio.test.ts` (8), `stdio-transport.test.ts` (15, in process) and `framing-interop.test.ts` (3). Their server runs in a child process (`stdio-server.ts`, spawned by `stdio-child.ts`) with a scripted model, the offline setup and `spawnEnv([])`.
 
 **Decisions.**
 

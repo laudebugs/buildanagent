@@ -2,10 +2,10 @@
  * The stdio transport: one client on a byte stream in each direction, one JSON-RPC message per line. It reads with the
  * protocol's `JsonlFramer`, which splits on `\n` only, checks each message's envelope with `decode()`, and hands it to
  * a dispatcher connection. What the server sends goes out through `encode()`. When the output is full, the connection's
- * queue waits for it to drain before it hands over the next message, so a client that stops reading slows the server
- * down instead of growing its memory: the queue bounds what waits, as `outbox.ts` says. The input goes on being read
- * meanwhile, and the connection's limit of 128 unanswered commands bounds what a client that sends without reading
- * costs.
+ * queue waits for it to drain before it hands over the next message. A client that stops reading therefore slows the
+ * server down instead of growing its memory, because the queue bounds what waits, as `outbox.ts` says. The input goes
+ * on being read meanwhile, and the connection's limit of 128 unanswered commands bounds what a client that sends
+ * without reading costs.
  *
  * The output carries protocol lines and nothing else. The transport's own diagnostics go to `log`, which a host points
  * at stderr. The file is portable: it takes Node or Web streams by their shape and imports no Node module, so a Worker
@@ -79,11 +79,11 @@ const encoder = new TextEncoder();
  * What the server sends waits for the output to take it, so a client that stops reading holds the server's queue, and
  * the dispatcher drops live events past the queue size instead of buffering them.
  *
- * The end of the input is the client's goodbye: the transport answers every command it has read, waits until each
+ * The end of the input is the client's goodbye. The transport answers every command it has read, waits until each
  * line already sent is written, then closes the connection and resolves. A turn the client started goes on in the
  * dispatcher, but its events have nowhere to go, so a client that wants `turn/settled` keeps its input open until that
  * arrives. An input that fails is logged and then treated as an end. The transport resolves without waiting, and logs
- * why, when the output fails or closes, when the dispatcher closes the connection, and when `signal` aborts. It never
+ * why, when the output fails or closes, when the dispatcher closes the connection or when `signal` aborts. It never
  * ends, closes or cancels either stream: it removes its listeners and releases its locks, and the host owns the rest.
  */
 export async function stdioTransport(dispatcher: Dispatcher, io: StdioIo, options: StdioOptions = {}): Promise<void> {

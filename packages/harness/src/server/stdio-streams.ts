@@ -1,8 +1,8 @@
 /**
  * The stream ends of the stdio transport: a reader and a writer for Node streams and for Web streams, and the stopper
- * they share. Every wait here subscribes to the stopper and unsubscribes when it settles, and a full output has one
- * shared wait for room, so a long session under backpressure adds no listener and no promise reaction that outlives
- * the wait. Releasing a reader or a writer removes the transport's listeners and locks and leaves the stream itself
+ * they share. Every wait here subscribes to the stopper and unsubscribes when it settles. A full output has one shared
+ * wait for room, so a long session under backpressure adds no listener and no promise reaction that outlives the
+ * wait. Releasing a reader or a writer removes the transport's listeners and locks and leaves the stream itself
  * open: the host owns it.
  */
 

@@ -99,8 +99,8 @@ export interface Connection {
 /** What `Dispatcher.connect()` takes besides `send`. */
 export interface ConnectOptions {
   /**
-   * Called once when the connection closes, whether its own `close()` closed it or the server did, as it does for a
-   * client that leaves 128 refusals unread. A transport uses it to stop serving a connection that is gone.
+   * Called once when the connection closes, whether the caller closed it with `close()` or the server did. The server
+   * closes a connection for a client that leaves 128 refusals unread. A transport uses it to stop serving a connection that is gone.
    */
   readonly onClose?: () => void;
 }
