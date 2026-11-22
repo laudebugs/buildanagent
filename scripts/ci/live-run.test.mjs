@@ -548,6 +548,11 @@ test("our SDK's triage agent runs live through our gateway's two adapters and ke
   for (const example of results.examples) {
     assert.equal(example.outcome, "ran", `${example.provider}\n${log}`);
     assert.equal(example.calls, 3, "the ledger holds each of the three calls");
+    // Our gateway's adapters cancel the body at message_stop or [DONE]; each call is still priced from the usage the
+    // stub streamed, 120 input and 30 output tokens, not at its projection.
+    const model = catalog.models.find((m) => m.provider === example.provider && m.id === example.model);
+    const streamed = priceUsage({ uncachedInput: 120, cacheRead: 0, cacheWrite: 0, output: 30 }, model);
+    assert.ok(close(example.spent, 3 * streamed), `${example.provider} spent ${example.spent}, not ${3 * streamed}`);
     assert.deepEqual(example.checks, { passed: 6, total: 6 });
     assert.equal(example.transcript, `packages/sdk/${example.provider}/13-triage-agent.json`);
   }
@@ -696,6 +701,22 @@ const post = (body, url = "https://api.anthropic.com/v1/messages") =>
     async (response) => ({ status: response.status, headers: [...response.headers.keys()], text: await response.text() }),
     (error) => error.message,
   );
+// Reads the answer as our gateway's adapters do: up to the event that until names, then cancels the body.
+const readUntil = (body, until) =>
+  transport(new Request("https://api.anthropic.com/v1/messages", { method: "POST", body: JSON.stringify(body) })).then(
+    async (response) => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      while (!text.includes(until)) {
+        const { done, value } = await reader.read();
+        if (done) return "ended";
+        text += decoder.decode(value, { stream: true });
+      }
+      await reader.cancel();
+      return "cancelled";
+    },
+  );
 const ok = { model: "claude-haiku-5-5", max_tokens: 1024, messages: [], tools: [{ name: "lookup_customer" }] };
 const results = {
   elsewhere: await post(ok, "https://example.com/v1/messages"),
@@ -705,9 +726,24 @@ const results = {
   allowance: await post({ ...ok, max_tokens: 4096 }),
   sentBefore: sent.length,
   ok: await post(ok),
+  afterFinal: await readUntil(ok, "message_stop"),
 };
-answer = () => new Response("overloaded", { status: 529 });
+// A body cancelled after message_start, before the final usage and message_stop, streams more than it reported.
+const started = sse([{ type: "message_start", message: { usage: { input_tokens: 40, output_tokens: 1 } } }]);
+answer = () => new Response(new ReadableStream({
+  start(controller) { controller.enqueue(new TextEncoder().encode(started)); },
+  pull: () => new Promise(() => {}),
+}), { headers: { "content-type": "text/event-stream" } });
+results.beforeFinal = await readUntil(ok, "message_start");
+answer = () => new Response("overloaded", { status: 529, headers: {
+  "retry-after": "7", "retry-after-ms": "7000", "request-id": "req_0123456789abcdef",
+  "anthropic-organization-id": "0d4b5ad1-3f0e-4c0a-9b1e-5f4e3d2c1b0a",
+} });
 results.failed = await post(ok);
+answer = () => new Response("rate limited", { status: 429, headers: {
+  "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT", "retry-after-ms": "soon",
+} });
+results.limited = await post(ok);
 const now = readLedger(ledger);
 writeLedger(ledger, { ...now, cap: now.spent + 0.0001 });
 results.overCap = await post(ok);
@@ -715,7 +751,15 @@ results.sent = sent.length;
 const read = usageReader("openai");
 const chunk = (text) => new TextEncoder().encode(text);
 const usage = 'data: {"choices":[],"usage":{"prompt_tokens":50,"completion_tokens":7,"prompt_tokens_details":{"cached_tokens":20}}}';
-results.split = [read(chunk(usage.slice(0, 30))), read(chunk(usage.slice(30) + "\\n\\ndata: [DONE]\\n\\n"))];
+results.split = [read.usageOf(chunk(usage.slice(0, 30)))];
+results.finishedEarly = read.isFinish();
+results.split.push(read.usageOf(chunk(usage.slice(30) + "\\n\\n")));
+results.finishedAtUsage = read.isFinish();
+const done = usageReader("openai");
+done.usageOf(chunk('data: {"choices":[{"delta":{"content":"hi"}}]}\\n\\n'));
+results.finishedAtText = done.isFinish();
+done.usageOf(chunk("data: [DONE]\\n\\n"));
+results.finishedAtDone = done.isFinish();
 console.log(JSON.stringify(results));
 `);
   assert.equal(code, 0, out);
@@ -728,18 +772,33 @@ console.log(JSON.stringify(results));
   assert.equal(r.sentBefore, 0, "nothing refused reached the provider");
   assert.equal(r.ok.status, 200);
   assert.deepEqual(r.ok.headers, ["content-type"], "the provider's headers stay behind");
+  assert.equal(r.afterFinal, "cancelled");
+  assert.equal(r.beforeFinal, "cancelled");
   assert.equal(r.failed.status, 529);
+  // A failed answer passes on its numeric retry delays, so the gateway waits as asked, and no other header.
+  assert.deepEqual(r.failed.headers.sort(), ["content-type", "retry-after", "retry-after-ms"]);
+  assert.equal(r.limited.status, 429);
+  assert.deepEqual(r.limited.headers, ["content-type"], "a delay that is not a plain number stays behind");
   assert.match(r.overCap, /would pass the \$\d\.\d{4} cap/);
-  assert.equal(r.sent, 2, "the call past the cap was refused before it was sent");
+  assert.equal(r.sent, 5, "the call past the cap was refused before it was sent");
   // JSON writes the first, unfinished event's missing usage as null.
   assert.deepEqual(r.split, [null, { uncachedInput: 30, cacheRead: 20, output: 7 }]);
-  // The answered call is priced from its streamed usage; the failed one at its projection, as it may be billed.
+  assert.equal(r.finishedEarly, false);
+  assert.equal(r.finishedAtUsage, true, "OpenAI's usage chunk carries the whole usage");
+  assert.equal(r.finishedAtText, false);
+  assert.equal(r.finishedAtDone, true);
+  // An answer read to its end, or cancelled after its final event as the gateway's adapters cancel it, is priced from
+  // its streamed usage. One cancelled before its final event, and the failed ones, at the projection, as they may be
+  // billed.
   assert.deepEqual(
     ledger.calls.map((call) => call.basis),
-    ["usage", "projection"],
+    ["usage", "usage", "projection", "projection", "projection"],
   );
   const haiku = catalog.models.find((m) => m.provider === "anthropic" && m.id === "claude-haiku-5-5");
-  assert.ok(close(ledger.calls[0].cost, priceUsage({ uncachedInput: 40, cacheRead: 10, output: 20 }, haiku)));
+  for (const call of ledger.calls.slice(0, 2)) {
+    assert.ok(close(call.cost, priceUsage({ uncachedInput: 40, cacheRead: 10, output: 20 }, haiku)));
+  }
+  assert.ok(close(ledger.calls[2].cost, ledger.calls[2].projected));
   assert.ok(ledger.aborted !== null);
 });
 
