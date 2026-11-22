@@ -158,6 +158,14 @@ Each row checks a claim about a third-party package or our gateway that E5's cod
 | fix/158-aig-authorization-3 | A key stored on the gateway is a different mode from a key sent in the request, and is not supported here | README, `explicit-provider.ts` | ✅ | Anthropic provider page: "AI Gateway uses an applicable stored BYOK key, or falls back to Unified Billing when allowed", and "Supplying a real key in `x-api-key` instead selects request-key authentication. This bypasses stored keys and Unified Billing." The package has no stored-key mode: it always sends `apiKey` (`explicit-provider.ts`, `checkApiKey()`), which is Cloudflare's request-key mode |
 | fix/158-aig-authorization-4 | Row E6-18's claim that the guard blocks an authenticated gateway no longer holds | README | ✏️ | Changed in this branch: `gatewayToken` lets exactly one `cf-aig-authorization` through; tests in `test/gateway-token.test.ts`. The row stays as the record of the earlier behaviour |
 
+## E4b build (2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| E4b-1 | A cancel before the pivot compensates, and a cancel after it is ignored while the plan runs forward to completion | README, `plan-run.ts` | ✅ | [Sagas report, "The agent needs five outcomes"](../../research/reversible-actions/sagas.md#the-agent-needs-five-outcomes-and-only-masstransit-tells-compensated-from-compensation-failed), last paragraph: "A cancel before the pivot compensates, and a cancel after it is ignored while the saga runs forward to `completed`." The report states it as our synthesis from MCP's cooperative cancel, not a vendor rule |
+| E4b-2 | A pivot whose result is not known stays pending and is reconciled before anything else runs, with no compensation and no retry under a fresh key | README, `plan-run.ts` | ✅ | Sagas report, same section: the `pivot_unknown` phase "covers the refund timeout and tells the model neither to retry nor to tell the customer the refund failed", and it stays in `working` "until the refund is reconciled" |
+| E4b-3 | A compensation that fails must be visible as its own outcome, and the engines other than MassTransit leave it to the author | README, `plan-run.ts` | ✅ | Sagas report, "Five of six engines leave compensation as code you write" and the section on five outcomes: "Only MassTransit separates 'compensated' from 'compensation failed'"; the stop at the first failed compensation is our rule, not the report's |
+
 ## E4a build (2026-11-20)
 
 Each row checks a claim that E4a's code, its comments, the package README or the changeset makes about a source outside the new code. E4a makes no claim about a third-party SDK's code; the saga terms and rules come from the sagas report, which its own [fact-check log](../../research/reversible-actions/fact-check-sagas.md) checked against the vendor pages. Rows were read against this branch on 2026-11-20. The plan-approval behaviour itself is confirmed offline by `packages/agent-safety/test/plan-approval.test.ts`.
@@ -187,4 +195,4 @@ Each row checks that a document records the owner's answer as given in this sess
 | 68 | The owner accepted SG2's ordering and put Round E on hold until the owner says go | Plan status and SG2, roadmap, every E todo | ✅ | Owner's answer, 2026-11-19: "Approve plan, don't start yet" |
 | 69 | With ADR 0043 accepted, B10 depends on E1, B15 on E3, N7 and N40 on E2, and N45 on E7, and the graph stays acyclic | Todo headers, roadmap | ✅ | E1 needs only B1 and E3 only E1, so no Round B or N todo is upstream of the E todos it now waits for |
 
-**Totals:** 130 claims: 117 ✅, 10 ✏️, 3 ⚠️.
+**Totals:** 133 claims: 120 ✅, 10 ✏️, 3 ⚠️.

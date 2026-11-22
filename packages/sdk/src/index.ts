@@ -68,6 +68,7 @@ export {
   type ContinueOptions,
   continueRun,
   nestedRunDepth,
+  type ParentRun,
   type Run,
   type RunInput,
   type RunOptions,

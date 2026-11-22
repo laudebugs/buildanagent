@@ -1,5 +1,11 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.20
+
+### Minor Changes
+
+- 5e87946: Breaking Changes: mockTransport() now records credential header values and URL keys as `[redacted]`, so `requests[n].headers["x-api-key"]` no longer holds the key an adapter sent. A test that needs it wraps the transport in a function that reads `request.headers` before passing the request on.
+
 ## 0.1.0-alpha.19
 
 No changes in this release.

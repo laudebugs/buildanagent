@@ -100,12 +100,13 @@ The sections of README.md and every public export, generated from this package's
 - `interface ModelCallPatch`: Changes to one model call's request.
 - `interface ModelCallRequest`: One model call's request as the loop sends it: the model, the context and the options.
 - `interface ModelResultEvent`: What `afterModelCall` receives: the model's finished response.
-- `nestedRunDepth()`: The `depth` and `maxDepth` options for a run that a tool starts: one level deeper than the tool's own run, under the same cap.
+- `nestedRunDepth()`: The `depth`, `maxDepth` and `parentRun` options for a run that a tool starts: one level deeper than the tool's own run, under the same cap, and named after the tool call that starts it.
 - `interface NoProgressResult`: A run that stopped making progress.
 - `type Observer`: Watches a run: called with each event, in order, and never able to change the run.
 - `type OrNothing`: A value, or nothing: what a hook that may change something returns.
 - `outputTool()`: Defines a tool whose input is the run's final answer.
 - `interface OutputToolOptions`: The options of `outputTool()`.
+- `interface ParentRun`: The run and tool call that start a nested run: `ToolContext`'s `runId` and `callId`.
 - `interface PendingCall`: The call a host is about to run, which a pending request must match before it runs.
 - `interface PendingRequestFields`: The fields of an approval request built outside a run: the call that waits, and why.
 - `interface ProgressPolicy`: The thresholds of the default progress policy.

@@ -84,6 +84,16 @@ export {
 } from "./plan-approval.js";
 export { type PlanCard, type PlanCardStep, planCard } from "./plan-card.js";
 export { memoryPlanLedger } from "./plan-ledger.js";
+export {
+  type PlanFailureReason,
+  type PlanOutcome,
+  type PlanScope,
+  type PlanStepImpl,
+  planWriteOutcome,
+  type RunPlanOptions,
+  renderPlanOutcome,
+  runPlan,
+} from "./plan-run.js";
 export { type OutcomePayload, type RenderedOutcome, renderOutcome } from "./render.js";
 export {
   type ApprovalSigner,
