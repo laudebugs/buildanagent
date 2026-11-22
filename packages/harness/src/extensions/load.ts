@@ -129,7 +129,7 @@ function checkLists(observers: unknown, tools: unknown, dir: string): void {
     throw badShape(dir, "has observers that are not a list of functions");
   }
   const wellFormed = (tool: { name?: unknown; definition?: unknown } | null) =>
-    typeof tool?.name === "string" && typeof tool.definition === "object";
+    typeof tool?.name === "string" && typeof tool.definition === "object" && tool.definition !== null;
   if (tools !== undefined && !(Array.isArray(tools) && tools.every(wellFormed))) {
     throw badShape(dir, "has tools that are not a list of { name, definition }");
   }

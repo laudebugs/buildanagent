@@ -191,6 +191,7 @@ describe("the lock file", () => {
       'export default { name: "x", version: "1", observers: "nope" };',
       'export default { name: "x", version: "1", interceptors: { beforeToolCall: 5 } };',
       'export default { name: "x", version: "1", tools: 5 };',
+      'export default { name: "x", version: "1", tools: [{ name: "t", definition: null }] };',
     ]) {
       const root = project();
       writeFileSync(join(folderOf(root), "index.mjs"), `${body}\n`);
