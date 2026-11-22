@@ -97,5 +97,14 @@
     "ms": 1420,
     "modelCalls": 0,
     "tail": "ok - the phrase the guardrail knows is blocked before any model call\nok - the same attack in other words passes and reaches the model"
+  },
+  {
+    "id": "12-subagent-as-tool",
+    "file": "/home/user/buildanagent/verify/openai-agents-sdk/examples/12-subagent-as-tool.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1134,
+    "modelCalls": 0,
+    "tail": "ok - the subagent read both sources in its own context\nok - both models are offered only the research and read_source function tools\norchestrator 800, subagent 2400, run 3200 tokens\nthe subagent multiplies the orchestrator's tokens by 4\nok - each run's responses report that run's own usage\nok - the orchestrator's run usage counts the subagent's tokens too\nok - the subagent's state.usage is the shared running total: the orchestrator's first call plus the subagent's calls\nok - the orchestrator answers from the summary"
   }
 ]
