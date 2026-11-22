@@ -379,10 +379,11 @@ function freshId(s: State): string {
 
 /** Signs a request for a person and holds it. The call has no result until `continueRun()` settles it. */
 async function pause(s: State, call: Call, input: unknown, reason?: string, policyVersion?: string): Promise<void> {
-  // A blank reason is display text only, so it is left out rather than failing the signature.
-  const optional = defined({ reason: reason || undefined, policyVersion });
-  const fields = { kind: "approval" as const, callId: call.callId, tool: call.name, input, ...optional };
   try {
+    // A blank reason is display text only, so it is left out rather than failing the signature.
+    const appHash = s.options.app === undefined ? undefined : await canonicalInputHash(s.options.app);
+    const optional = defined({ reason: reason || undefined, policyVersion, appHash });
+    const fields = { kind: "approval" as const, callId: call.callId, tool: call.name, input, ...optional };
     const request = await createPendingRequest(fields, s.signer, { generateId: () => freshId(s) });
     hold(s, request, input);
     emit(s, { type: "approval_request", request, input });
@@ -496,6 +497,8 @@ async function settleCall(s: State, call: Call, { context, resolutions }: Resume
     : undefined;
   const answer = resolutions.find((resolution) => resolution.requestId === request.id);
   const cause = await failedCheck(s, request, call, input, answer);
+  // Asking again would sign a new request for whoever resumed, so a mismatch of the app data ends the run.
+  if (cause === "app_mismatch") throw new SdkError("app_mismatch", `call "${call.callId}" is bound to other app data`);
   if (cause !== undefined) {
     emit(s, { type: "resolution_rejected", requestId: request.id, callId: call.callId, cause });
     // Nothing verified this call, so only a tool the model is sent may ask again, and the gate decides as for a new call.
@@ -525,7 +528,8 @@ function hold(s: State, request: SignedPendingRequest, input: unknown): void {
  */
 async function failedCheck(s: State, request: SignedPendingRequest, call: Call, input: unknown, answer?: Resolution) {
   const probe = answer ?? { requestId: request.id, decision: "deny" };
-  const options = { signer: s.signer, call: { callId: call.callId, tool: call.name, input } };
+  const appHash = s.options.app === undefined ? undefined : await canonicalInputHash(s.options.app).catch(() => "");
+  const options = { signer: s.signer, call: { callId: call.callId, tool: call.name, input }, ...defined({ appHash }) };
   // A custom signer whose verify() throws fails the check.
   const check = await verifyResolution(request, probe, options).catch(() => undefined);
   return check === undefined ? "error" : check.ok ? undefined : check.cause;

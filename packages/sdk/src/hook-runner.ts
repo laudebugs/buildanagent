@@ -90,6 +90,8 @@ export interface HookRunnerSetup {
   send(body: AgentEventBody): void;
   /** Signs the pending request a gate's `ask` writes. */
   readonly signer: ApprovalSigner;
+  /** The fingerprint of the run's app data, which each pending request binds; `undefined` without app data. */
+  readonly appFingerprint: () => Promise<string | undefined>;
   /** Makes each pending request's id. */
   readonly nextId: () => string;
 }
@@ -328,7 +330,8 @@ export class HookRunner {
     const { signer, clock } = this.#setup;
     let request: SignedPendingRequest;
     try {
-      request = await signPause(fields, signer, {
+      const appHash = await this.#setup.appFingerprint();
+      request = await signPause(appHash === undefined ? fields : { ...fields, appHash }, signer, {
         generateId: () => this.#requestId(),
         now: () => new Date(clock.now()),
       });
@@ -376,9 +379,11 @@ export class HookRunner {
     }
     let check: Awaited<ReturnType<typeof verifyResolution>>;
     try {
+      const appHash = await this.#setup.appFingerprint();
       check = await verifyResolution(request, answer as Resolution, {
         signer,
         call: { callId: call.callId, tool, input },
+        ...(appHash === undefined ? {} : { appHash }),
       });
     } catch {
       // A custom signer whose verify() throws fails the check; its message may hold anything, so it isn't passed on.

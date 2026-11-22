@@ -52,7 +52,7 @@ The sections of README.md and every public export, generated from this package's
 - [Scripted doubles stand in for the approver and an MCP server](README.md#scripted-doubles-stand-in-for-the-approver-and-an-mcp-server)
 - [Tests give the same result every run](README.md#tests-give-the-same-result-every-run)
 - [The support-triage capstone shows the whole SDK working in one agent](README.md#the-support-triage-capstone-shows-the-whole-sdk-working-in-one-agent)
-- [A reference loop shows the real loop's shape in under 400 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-under-400-lines)
+- [A reference loop shows the real loop's shape in about 400 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-about-400-lines)
 - [Build the SDK with its dependencies](README.md#build-the-sdk-with-its-dependencies)
 
 ## Exports from `@buildanagent/sdk`

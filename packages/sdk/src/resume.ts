@@ -204,6 +204,8 @@ function inputOf(inputs: Readonly<Record<string, unknown>>, id: string): unknown
 /** What the checks need from the run. */
 export interface JudgeContext {
   readonly signer: ApprovalSigner;
+  /** The fingerprint of the app data this resume received; `undefined` when it received none. */
+  readonly appFingerprint: () => Promise<string | undefined>;
   send(body: AgentEventBody): void;
 }
 
@@ -215,6 +217,8 @@ export async function judgeOpenCalls(resume: ResumeSetup, ctx: JudgeContext): Pr
   const reject = (requestId: string, callId: string | undefined, cause: ResolutionRejectionCause) =>
     ctx.send({ type: "resolution_rejected", requestId, ...(callId === undefined ? {} : { callId }), cause });
   for (const id of resume.unmatched) reject(id, undefined, "unknown_request");
+  // A fingerprint that can't be made, because the app has no canonical JSON form, matches no bound request.
+  const appHash = await ctx.appFingerprint().catch(() => undefined);
   const verdicts: Verdict[] = [];
   for (const { call, request } of resume.open) {
     if (resume.replayed.has(request.id)) {
@@ -224,7 +228,15 @@ export async function judgeOpenCalls(resume: ResumeSetup, ctx: JudgeContext): Pr
     }
     const input = inputOf(resume.inputs, request.id);
     const resolution = resume.resolutions.get(request.id);
-    const cause = await failedCheck(request, resolution ?? probeOf(request), call, input, ctx.signer);
+    const cause = await failedCheck(request, resolution ?? probeOf(request), call, input, ctx.signer, appHash);
+    if (cause === "app_mismatch") {
+      // The caller resumed as someone else. Asking again would sign a new request for that caller, so the run stops.
+      reject(request.id, call.callId, cause);
+      throw new SdkError(
+        "app_mismatch",
+        `the pending request for call ${call.callId} is bound to other app data than continueRun() received`,
+      );
+    }
     if (cause !== undefined) {
       reject(request.id, call.callId, cause);
       verdicts.push({ kind: "reissue", call });
@@ -244,11 +256,13 @@ async function failedCheck(
   call: ToolCall,
   input: unknown,
   signer: ApprovalSigner,
+  appHash: string | undefined,
 ): Promise<ResolutionRejectionCause | undefined> {
   try {
     const check = await verifyResolution(request, resolution, {
       signer,
       call: { callId: call.callId, tool: call.name, input },
+      ...(appHash === undefined ? {} : { appHash }),
     });
     return check.ok ? undefined : check.cause;
   } catch {

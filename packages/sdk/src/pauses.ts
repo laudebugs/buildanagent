@@ -28,6 +28,11 @@ export interface PendingRequestFields {
   readonly policyVersion?: string;
   /** Why the call needs a person, as shown to the approver. It is not signed. */
   readonly reason?: string;
+  /**
+   * `canonicalInputHash()` of the app data the call runs for. It is signed, so `continueRun()` resumes the call only
+   * when its `app` has the same canonical JSON. Leave it out for a request that binds no app data.
+   */
+  readonly appHash?: string;
 }
 
 /** The one call the SDK signs a pending request through, from the loop and from `createPendingRequest()`. */
@@ -71,7 +76,7 @@ export function createPendingRequest(
       new SdkError("invalid_run_options", "createPendingRequest() needs an ApprovalSigner, such as hmacSigner()"),
     );
   }
-  const { kind, callId, tool, input, policyVersion, reason } = fields;
+  const { kind, callId, tool, input, policyVersion, reason, appHash } = fields;
   return signPause(
     {
       kind,
@@ -80,6 +85,7 @@ export function createPendingRequest(
       input,
       ...(policyVersion === undefined ? {} : { policyVersion }),
       ...(reason === undefined ? {} : { reason }),
+      ...(appHash === undefined ? {} : { appHash }),
     },
     signer,
     options,

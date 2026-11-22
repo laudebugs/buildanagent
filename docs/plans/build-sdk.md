@@ -436,6 +436,7 @@ interface RunError {
 interface SignedPendingRequest {
   id: string; kind: "approval" | "clarification"; callId: string; tool: string;
   inputHash: string; policyVersion?: string; question?: string; reason?: string;
+  appHash?: string;                    // revision (B23 follow-up): canonicalInputHash() of RunOptions.app, signed; binds the call to the caller
   keyId: string; signature: string; createdAt: string;
 }
 type Resolution =

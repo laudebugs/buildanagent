@@ -60,9 +60,10 @@ test("the line counter counts code, not comments, and reads strings as code", ()
   assert.equal(codeLines(sample), 6);
 });
 
-test("the reference loop stays under 400 non-blank, non-comment lines", () => {
+// The cap was 400 until the loop began binding a pause to the run's app data, which takes about ten lines.
+test("the reference loop stays under 410 non-blank, non-comment lines", () => {
   const lines = codeLines(source);
-  assert.ok(lines < 400, `the reference loop has ${lines} code lines`);
+  assert.ok(lines < 410, `the reference loop has ${lines} code lines`);
 });
 
 test("the reference loop imports only the public exports of the gateway and the SDK", () => {

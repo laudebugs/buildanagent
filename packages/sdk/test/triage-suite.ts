@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import type { Message, Model } from "@buildanagent/gateway";
 import type { AgentEvent, Context, ContinueOptions, Resolution, RunInput, RunOptions } from "@buildanagent/sdk";
+import { isSdkError } from "@buildanagent/sdk";
 import { testSigner } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
 import {
@@ -40,13 +41,13 @@ export const BUG: Triage = { category: "bug", priority: "high", summary: "Checko
 const QUESTION: Triage = { category: "question", priority: "low", summary: "A pro customer asked about checkout." };
 export const submit = (input: unknown): ScriptedCall => ({ name: "submit_triage", input });
 
-/** One process's systems: what the tools did, and the audit trail. */
-export function world() {
+/** One process's systems: what the tools did, and the audit trail. `customerEmail` is its signed-in customer. */
+export function world(customerEmail = "user@example.com") {
   const seen = { lookups: [] as string[], escalations: [] as string[], audit: [] as string[] };
   const deps = (model: Model): TriageDeps => ({
     model,
     signer: testSigner(),
-    customerEmail: "user@example.com",
+    customerEmail,
     findCustomer: async (email) => {
       seen.lookups.push(email);
       return { plan: "pro", openTickets: 2 };
@@ -117,6 +118,22 @@ function approvedEscalation(loop: Loop, backend: Backend) {
     assert.deepEqual(second.process.seen.lookups, [], "the resume does not look the customer up again");
     assert.deepEqual(second.fixture.systemPrompts(), [SYSTEM_PROMPT], "the resumed run keeps the system prompt");
     assertSurface(first.fixture, second.fixture);
+  });
+}
+
+function resumeAsAnotherCustomer(loop: Loop, backend: Backend) {
+  test(`${backend.name}: a resume as another customer is refused, and the approved escalation never runs`, async () => {
+    const first = await pauseForEscalation(loop, backend);
+    const fixture = backend.fixture([], "b");
+    const process = world("lead@example.com");
+    const allow: Resolution = { requestId: first.request.id, decision: "allow", by: "on-call lead" };
+    const started = loop.continueRun(roundTrip(first.result.context), {
+      ...triageOptions(process.deps(fixture.model)),
+      resolutions: [allow],
+    });
+    await assert.rejects(started.result, (error) => isSdkError(error) && error.code === "app_mismatch");
+    assert.deepEqual(process.seen.escalations, []);
+    assert.deepEqual(fixture.toolNames(), [], "no model call was made");
   });
 }
 
@@ -268,6 +285,7 @@ function stepCapAndBudget(loop: Loop, backend: Backend) {
 export function triageSuite(loop: Loop, backends: readonly Backend[]): void {
   for (const backend of backends) {
     approvedEscalation(loop, backend);
+    resumeAsAnotherCustomer(loop, backend);
     rejectedEscalation(loop, backend);
     invalidResult(loop, backend);
     forgedSignature(loop, backend);

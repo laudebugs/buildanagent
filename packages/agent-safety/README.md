@@ -215,7 +215,7 @@ const messages = settleDeniedApprovals(this.messages, deniedCallIds);
 
 ## Sign and verify a pause without an SDK
 
-The adapter rests on two functions in the root entry, which any host can call. `signPending()` hashes a call's input and signs the pending request, and `verifyResolution()` checks a person's answer against it before the call runs. `verifyResolution()` never throws for bad input; it returns `ok: false` with the first check that failed.
+The adapter rests on two functions in the root entry, which any host can call. `signPending()` hashes a call's input and signs the pending request, and `verifyResolution()` checks a person's answer against it before the call runs. `verifyResolution()` never throws for bad input; it returns `ok: false` with the first check that failed. A host that runs a call for a particular caller can bind the request to that caller: pass `signPending()` an `appHash`, the `canonicalInputHash()` of the caller's data, and pass `verifyResolution()` the hash it has now. A bound request is refused with `app_mismatch` when the hash is missing or different. The hash joins the signed fields under a second signature layout, so a request without one keeps the first layout and a reader that doesn't know the field refuses a bound request.
 
 ## One signed approval covers a whole plan whose pivot can't be undone
 

@@ -27,6 +27,12 @@ export interface SignedPendingRequest {
   inputHash: string;
   /** The version of the policy that asked for the pause, if the host versions its policy. */
   policyVersion?: string;
+  /**
+   * `canonicalInputHash()` of the app data the run held when it paused, such as the signed-in customer, when it held
+   * any. The signature covers it, so the call runs only for the caller whose app data the host passes back. A request
+   * without it, such as one signed before this field existed, binds no app data.
+   */
+  appHash?: string;
   /** The question a clarification asks. */
   question?: string;
   /** Why the call needs a person, as shown to the approver. */
@@ -52,6 +58,8 @@ export interface PendingFields {
   /** The tool call's input. `signPending()` stores its `canonicalInputHash()`, never the input itself. */
   readonly input: unknown;
   readonly policyVersion?: string;
+  /** `canonicalInputHash()` of the caller's app data, which `signPending()` signs and stores as it is. */
+  readonly appHash?: string;
   readonly question?: string;
   readonly reason?: string;
 }
@@ -75,7 +83,8 @@ export interface PendingCall {
  * Why `verifyResolution()` refused. `malformed`: the stored request isn't a well-formed pending request.
  * `unknown_request`: the resolution names another request. `signature_invalid`: the signature is wrong, or its key id
  * isn't in the ring. `call_mismatch`: the call id or tool differs from the call about to run. `input_changed`: the
- * input differs from the one that was signed. `resolution_mismatch`: the resolution doesn't fit the request's kind.
+ * input differs from the one that was signed. `app_mismatch`: the request is bound to app data, and the host passed
+ * none or other data. `resolution_mismatch`: the resolution doesn't fit the request's kind.
  */
 export type RejectionCause =
   | "malformed"
@@ -83,6 +92,7 @@ export type RejectionCause =
   | "signature_invalid"
   | "call_mismatch"
   | "input_changed"
+  | "app_mismatch"
   | "resolution_mismatch";
 
 /** What `verifyResolution()` returns: the resolution, once every check passed, or why it refused. */
@@ -96,10 +106,19 @@ export interface VerifyResolutionOptions {
   readonly signer: ApprovalSigner;
   /** The call about to run, as the host has it now, not as the pending request records it. */
   readonly call: PendingCall;
+  /**
+   * `canonicalInputHash()` of the app data the host has now. A request that is bound to app data is refused with
+   * `app_mismatch` unless this equals the bound hash, so leaving it out refuses a bound request. A request that binds
+   * none ignores it.
+   */
+  readonly appHash?: string;
 }
 
-// Ties a signature to this record and its layout, so it can't verify as some other signed record of this package.
+// Ties a signature to this record and its layout, so it can't verify as some other signed record of this package. A
+// request with no app hash keeps the first layout, so every request signed before the hash existed still verifies; a
+// request with one signs a second layout that adds it, which a reader of the first layout refuses.
 const PAYLOAD_TAG = "buildanagent.pending.v1";
+const APP_PAYLOAD_TAG = "buildanagent.pending.v2";
 const KINDS: readonly string[] = ["approval", "clarification"];
 const INPUT_HASH = /^[0-9a-f]{64}$/;
 const ENCODER = new TextEncoder();
@@ -121,20 +140,24 @@ function isWellFormed(value: unknown): value is SignedPendingRequest {
     KINDS.includes(p.kind as string) &&
     typeof p.inputHash === "string" &&
     INPUT_HASH.test(p.inputHash) &&
-    [p.policyVersion, p.question, p.reason].every(isOptionalText)
+    [p.policyVersion, p.question, p.reason].every(isOptionalText) &&
+    (p.appHash === undefined || (typeof p.appHash === "string" && INPUT_HASH.test(p.appHash)))
   );
 }
 
 /**
  * The bytes a pending request's signature covers: a JSON array of a fixed tag, then the request id, kind, call id,
- * tool name, input hash and policy version, in that order, with `null` for an absent policy version. Every field is a well-formed string, so `JSON.stringify` writes the same bytes
- * on every runtime.
+ * tool name, input hash and policy version, in that order, with `null` for an absent policy version. A request bound
+ * to app data signs a second tag and adds the app hash last. Every field is a well-formed string, so `JSON.stringify`
+ * writes the same bytes on every runtime.
  */
 export function pendingPayload(
-  fields: Pick<SignedPendingRequest, "id" | "kind" | "callId" | "tool" | "inputHash" | "policyVersion">,
+  fields: Pick<SignedPendingRequest, "id" | "kind" | "callId" | "tool" | "inputHash" | "policyVersion" | "appHash">,
 ): Uint8Array {
-  const { id, kind, callId, tool, inputHash, policyVersion } = fields;
-  return ENCODER.encode(JSON.stringify([PAYLOAD_TAG, id, kind, callId, tool, inputHash, policyVersion ?? null]));
+  const { id, kind, callId, tool, inputHash, policyVersion, appHash } = fields;
+  const head = [id, kind, callId, tool, inputHash, policyVersion ?? null];
+  const payload = appHash === undefined ? [PAYLOAD_TAG, ...head] : [APP_PAYLOAD_TAG, ...head, appHash];
+  return ENCODER.encode(JSON.stringify(payload));
 }
 
 function checkFields(fields: PendingFields, id: unknown): void {
@@ -147,10 +170,13 @@ function checkFields(fields: PendingFields, id: unknown): void {
   for (const field of ["policyVersion", "question", "reason"] as const) {
     if (!isOptionalText(fields[field])) throw bad(`${field} must be a non-empty, well-formed string when it is set`);
   }
+  if (fields.appHash !== undefined && !(typeof fields.appHash === "string" && INPUT_HASH.test(fields.appHash))) {
+    throw bad("appHash must be 64 lowercase hex digits when it is set");
+  }
 }
 
 /**
- * Signs a pending request for a tool call. It hashes the input with `canonicalInputHash()`, signs the six fields
+ * Signs a pending request for a tool call. It hashes the input with `canonicalInputHash()`, signs the fields
  * `pendingPayload()` lists with the signer's current key, and returns the request to store. The input itself isn't stored.
  *
  * Throws a `SafetyError`, code `invalid_pending`, for a blank or malformed field, and code `invalid_input` for an
@@ -166,9 +192,10 @@ export async function signPending(
   const inputHash = await canonicalInputHash(fields.input);
   const signed = { id, kind: fields.kind, callId: fields.callId, tool: fields.tool, inputHash };
   const withPolicy = fields.policyVersion === undefined ? signed : { ...signed, policyVersion: fields.policyVersion };
-  const signature = await signer.sign(pendingPayload(withPolicy));
+  const bound = fields.appHash === undefined ? withPolicy : { ...withPolicy, appHash: fields.appHash };
+  const signature = await signer.sign(pendingPayload(bound));
   return {
-    ...withPolicy,
+    ...bound,
     ...(fields.question === undefined ? {} : { question: fields.question }),
     ...(fields.reason === undefined ? {} : { reason: fields.reason }),
     keyId: signer.keyId,
@@ -182,6 +209,12 @@ function fitsKind(pending: SignedPendingRequest, resolution: Resolution): boolea
     return "decision" in resolution && (resolution.decision === "allow" || resolution.decision === "deny");
   }
   return "answer" in resolution && typeof resolution.answer === "string";
+}
+
+/** A request bound to app data needs the host's app hash to equal it; a request that binds none accepts any. */
+function appMatches(pending: SignedPendingRequest, appHash: string | undefined): boolean {
+  if (pending.appHash === undefined) return true;
+  return appHash !== undefined && constantTimeEqual(ENCODER.encode(appHash), ENCODER.encode(pending.appHash));
 }
 
 async function inputMatches(pending: SignedPendingRequest, input: unknown): Promise<boolean> {
@@ -218,6 +251,7 @@ export async function verifyResolution(
   const { call } = options;
   if (call.callId !== pending.callId || call.tool !== pending.tool) return { ok: false, cause: "call_mismatch" };
   if (!(await inputMatches(pending, call.input))) return { ok: false, cause: "input_changed" };
+  if (!appMatches(pending, options.appHash)) return { ok: false, cause: "app_mismatch" };
   if (!fitsKind(pending, resolution)) return { ok: false, cause: "resolution_mismatch" };
   return { ok: true, resolution };
 }

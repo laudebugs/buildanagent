@@ -107,3 +107,5 @@ A caller can now pass trusted facts, such as the signed-in customer, to a run, a
 - **The harness follow-up** is recorded in the [harness plan](../../plans/build-harness.md): N6 and N11 pass `hostContext` as `RunOptions.app` instead of binding it in a wrapper.
 
 **Left out.** The book's T52 identity tab, which reads this field once its todo runs, and authorization, which stays with the tool.
+
+**Follow-up (2026-11-22): the pause binds the app.** The owner chose app-fingerprint binding. A pause now signs `appHash`, the `canonicalInputHash()` of `app`, and `continueRun()` refuses another `app`, or none, with `app_mismatch` before an approved call runs. A request signed without app data binds none, so a pause from before the field still resumes. The README and the pull request describe it.

@@ -11,6 +11,7 @@ import {
   type Model,
   type Sleep,
 } from "@buildanagent/gateway";
+import { fingerprintOf } from "./app-fingerprint.js";
 import { checkBudgetOption } from "./budget.js";
 import { CAPABILITIES } from "./capabilities.js";
 import { DEFAULTS_HASH, SDK_DEFAULTS } from "./defaults.js";
@@ -76,10 +77,12 @@ export interface RunOptions<S = unknown, A = unknown> {
   /**
    * App data for the tools, which each reads as `ctx.app`: facts the caller knows and the model must not choose, such as
    * the signed-in customer. Build it for each request from the authenticated session, never once at module level. It
-   * reaches no model request, event or saved `Context`, and a signed pending request does not bind it. Pass it again
-   * to every `continueRun()`, and take it from the original caller: store it, or a reference to it, beside the stored
-   * context, because an approved call runs with whatever `app` the resuming process passes, and the approver's own
-   * session would run it as the approver. A nested run a tool starts gets none unless the tool passes it on.
+   * reaches no model request, event or saved `Context`. A pause binds a fingerprint of it, the `canonicalInputHash()` of
+   * `app`, into the signed request, so pass the original caller's `app` again to `continueRun()`: store it, or a
+   * reference to it, beside the stored context. Another `app`, or none, ends the resume with an `SdkError` coded
+   * `app_mismatch` before any approved call runs. Two values are the same `app` when their RFC 8785 canonical JSON is
+   * the same, so key order does not matter, and an `app` with no canonical form cannot sign a pause. The fingerprint
+   * is not secret, so keep a secret out of `app`. A nested run a tool starts gets none unless the tool passes it on.
    *
    * Once a tool declares an app type, `app` is required and must have every declared type, which the compiler checks
    * only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass
@@ -601,6 +604,7 @@ function setupOf(
     maxDepth,
     ...parentRunOf(options),
     app: options.app,
+    appFingerprint: fingerprintOf(options.app),
     modelOptions: options.modelOptions ?? {},
     includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),
