@@ -22,7 +22,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { classifyChange } from "./changeset-gate.mjs";
-import { changesetPackages, isPendingChangeset, parsePreState } from "./release-plan.mjs";
+import { changesetPackages, isPendingChangeset, parsePreState, RELEASE_ORDER } from "./release-plan.mjs";
 
 /** The branch that holds release.yml's version commit, and the only head branch the guard lets auto-merge. */
 export const RELEASE_BRANCH = "changeset-release/main";
@@ -135,9 +135,12 @@ export function prTitle({ version, bumped }) {
  * `changesets` lists `{ name, text }`.
  */
 export function prBody({ version, bumped, distTag, changesets }) {
+  // Each folder in RELEASE_ORDER is its package's name after the scope, and the fixed group moves all of them.
+  const names = RELEASE_ORDER.map((dir) => `\`@buildanagent/${dir}\``);
+  const published = `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
   const lines = [
     bumped
-      ? `Merging this pull request publishes \`@buildanagent/gateway\` and \`@buildanagent/sdk\` ${version} to npm under the \`${distTag}\` dist-tag.`
+      ? `Merging this pull request publishes ${published} ${version} to npm under the \`${distTag}\` dist-tag, in that order.`
       : "Merging this pull request consumes changesets that bump no package, so it publishes nothing.",
     "",
     `release.yml keeps this pull request up to date: every changeset merged to \`${BASE_BRANCH}\` before it merges joins this release. Auto-merge is on, so GitHub squash-merges it once the required checks pass.`,

@@ -3,6 +3,12 @@
 // no third-party code, and must keep prereleases off `latest`, and the decisions
 // scripts/ci/release-plan.mjs makes, including the plan this checkout gives once it is on main. The plan
 // tests stub the registry, so nothing here touches the network. Run with `node --test scripts/ci/*.test.mjs`.
+//
+// RELEASE_WORKFLOW names another workflow file to check instead of .github/workflows/release.yml, relative to the repo
+// root. A Markdown file counts when it holds exactly one ```yaml block, which is read as the workflow. That is how a
+// proposed release.yml, written as a document because sessions don't edit .github/, is checked before the owner adds it:
+//
+//   RELEASE_WORKFLOW=docs/plans/reviews/release-yml-for-six-packages.md node --test scripts/ci/release.test.mjs
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -22,14 +28,30 @@ import {
   pendingChangesets,
   planRelease,
   preModeMismatch,
+  RELEASE_ORDER,
   readPreState,
   releaseNotes,
 } from "./release-plan.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
-const workflowText = readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+
+/** Returns the workflow text in `file`: the whole file, or a Markdown file's one ```yaml block. */
+function workflowSource(file) {
+  const text = readFileSync(file, "utf8");
+  if (!file.endsWith(".md")) return text;
+  const blocks = [...text.matchAll(/^```ya?ml\n([\s\S]*?)^```$/gm)];
+  if (blocks.length !== 1) throw new Error(`${file} holds ${blocks.length} yaml blocks, not one`);
+  return blocks[0][1];
+}
+
+const workflowFile = process.env.RELEASE_WORKFLOW ?? ".github/workflows/release.yml";
+const workflowText = workflowSource(path.join(root, workflowFile));
 const workflow = parse(workflowText);
 const { jobs } = workflow;
+// The package names the pack and publish loops must list, in order: RELEASE_ORDER's folders.
+const loop = `for pkg in ${RELEASE_ORDER.join(" ")}; do`;
+const loopMessage = `${workflowFile} must loop over RELEASE_ORDER (${RELEASE_ORDER.join(" ")}); while it doesn't, the owner \
+adds the release.yml from docs/plans/reviews/release-yml-for-six-packages.md`;
 
 describe("release.yml", () => {
   test("no job reads an npm token, and only the version-pr job's push step reads a secret", () => {
@@ -127,9 +149,9 @@ describe("release.yml", () => {
     assert.ok(upload.with["retention-days"] >= 30);
   });
 
-  test("the publish job publishes packed tarballs, gateway first", () => {
+  test("the publish job publishes packed tarballs in RELEASE_ORDER, gateway first", () => {
     const step = jobs.publish.steps.find((s) => s.name === "Publish each tarball, gateway first");
-    assert.match(step.run, /for pkg in gateway sdk; do/);
+    assert.ok(step.run.includes(loop), loopMessage);
     assert.match(
       step.run,
       /npm publish "\$RELEASE_DIR\/buildanagent-\$pkg-\$VERSION\.tgz" --tag "\$DIST_TAG" --access public --provenance/,
@@ -138,6 +160,42 @@ describe("release.yml", () => {
     const [first] = jobs.publish.steps;
     assert.match(first.run, /^echo "registry=https:\/\/registry\.npmjs\.org\/" > "\$RUNNER_TEMP\/npmrc"$/m);
     assert.match(first.run, /^ {2}echo "NPM_CONFIG_USERCONFIG=\$RUNNER_TEMP\/npmrc"$/m);
+  });
+
+  test("the pack job packs every package in RELEASE_ORDER and checks each tarball's name", () => {
+    const step = jobs.pack.steps.find((s) => s.name === "Pack the six packages, gateway first");
+    assert.ok(step, loopMessage);
+    assert.ok(step.run.includes(loop), loopMessage);
+    assert.match(step.run, /pnpm --dir "packages\/\$pkg" pack --pack-destination "\$RUNNER_TEMP\/release"/);
+    // The name the publish job uploads, from the package's own version, since a dry run may pack mixed versions.
+    assert.match(step.run, /version=\$\(node -p "require\('\.\/packages\/\$pkg\/package\.json'\)\.version"\)/);
+    assert.match(step.run, /if \[ ! -f "\$RUNNER_TEMP\/release\/buildanagent-\$pkg-\$version\.tgz" \]; then/);
+    assert.match(step.run, /^set -euo pipefail$/m);
+    // Every package's tests run before anything is packed.
+    const names = jobs.pack.steps.map((s) => s.run ?? s.name);
+    assert.ok(names.indexOf('pnpm --filter "./packages/*" test') < names.indexOf(step.run));
+  });
+
+  test("the pack job checks the CLI's binary in its tarball and runs it", () => {
+    const names = jobs.pack.steps.map((s) => s.name);
+    const index = names.indexOf("Check the CLI's binary");
+    assert.ok(index > names.indexOf("Pack the six packages, gateway first"), "the CLI check runs after the pack");
+    const { run } = jobs.pack.steps[index];
+    assert.match(run, /manifest\.bin\?\.buildanagent !== "\.\/dist\/bin\.js"/);
+    assert.match(run, /!= "#!\/usr\/bin\/env node"/);
+    assert.match(run, /^node packages\/cli\/dist\/bin\.js --help > \/dev\/null$/m);
+    // The check extracts outside the uploaded folder, so the artifact holds only the tarballs and the notes.
+    assert.doesNotMatch(run, /-C "\$RUNNER_TEMP\/release/);
+  });
+
+  test("every run step is valid bash", () => {
+    for (const [name, job] of Object.entries(jobs)) {
+      for (const step of job.steps ?? []) {
+        if (!step.run) continue;
+        const check = spawnSync("bash", ["-n"], { input: step.run, encoding: "utf8" });
+        assert.equal(check.status, 0, `${name}: ${step.name ?? step.run}: ${check.stderr}`);
+      }
+    }
   });
 
   test("the publish job gives npm separate user and global configs, and writes only the registry to them", () => {
@@ -306,12 +364,24 @@ describe("release-plan.mjs", () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  function fixture({ version = "0.1.0", private: isPrivate = false, changesets = [], docsDeploy = false, pre } = {}) {
+  // A checkout with the six packages of RELEASE_ORDER at `version`, except those `versions` names (folder to version).
+  function fixture({
+    version = "0.1.0",
+    versions = {},
+    private: isPrivate = false,
+    changesets = [],
+    docsDeploy = false,
+    pre,
+  } = {}) {
     const dir = mkdtempSync(path.join(tmpdir(), "release-plan-"));
     dirs.push(dir);
-    for (const pkg of ["gateway", "sdk"]) {
+    for (const pkg of RELEASE_ORDER) {
       mkdirSync(path.join(dir, "packages", pkg), { recursive: true });
-      const manifest = { name: `@buildanagent/${pkg}`, version, ...(isPrivate ? { private: true } : {}) };
+      const manifest = {
+        name: `@buildanagent/${pkg}`,
+        version: versions[pkg] ?? version,
+        ...(isPrivate ? { private: true } : {}),
+      };
       writeFileSync(path.join(dir, "packages", pkg, "package.json"), JSON.stringify(manifest));
       writeFileSync(
         path.join(dir, "packages", pkg, "CHANGELOG.md"),
@@ -334,6 +404,7 @@ describe("release-plan.mjs", () => {
   }
 
   const repo = "laudebugs/buildanagent";
+  const alpha = { mode: "pre", tag: "alpha" };
 
   // A registry and GitHub stub: `published` lists the package names npm holds at any version, `releases` the tags
   // GitHub has a release for, and `status` (or `githubStatus`) overrides every registry (or GitHub) answer.
@@ -366,10 +437,12 @@ describe("release-plan.mjs", () => {
     assert.match(plan.reason, /0\.0\.0/);
   });
 
+  const NAMES = RELEASE_ORDER.map((pkg) => `@buildanagent/${pkg}`);
+
   // These tests read this checkout's own package.json files. The first never skips: a `private` field that came back
   // would make every release plan skip with a green run, and a package without the guard would let `npm publish` in
   // its folder upload 0.0.0.
-  const manifests = ["gateway", "sdk"].map((pkg) => ({
+  const manifests = RELEASE_ORDER.map((pkg) => ({
     pkg,
     manifest: JSON.parse(readFileSync(path.join(root, "packages", pkg, "package.json"), "utf8")),
   }));
@@ -410,17 +483,17 @@ describe("release-plan.mjs", () => {
     assert.equal(plan.publish, true, plan.reason);
     assert.equal(plan.version, realVersion);
     assert.equal(plan.tag, `v${realVersion}`);
-    assert.deepEqual(plan.toPublish, ["@buildanagent/gateway", "@buildanagent/sdk"]);
+    assert.deepEqual(plan.toPublish, NAMES);
     assert.equal(plan.distTag, pre?.mode === "pre" ? pre.tag : "latest");
     assert.equal(plan.prerelease, pre?.mode === "pre");
-    assert.deepEqual(calls, [
-      `https://registry.npmjs.org/@buildanagent%2fgateway/${realVersion}`,
-      `https://registry.npmjs.org/@buildanagent%2fsdk/${realVersion}`,
-    ]);
+    assert.deepEqual(
+      calls,
+      RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/${realVersion}`),
+    );
     // Every version's notes hold a section per package. Only 0.1.0-alpha.0's hold the first-release text: in pre mode,
     // a later prerelease's notes hold only the changesets it consumed.
     const notes = releaseNotes({ root, version: realVersion });
-    for (const name of ["@buildanagent/gateway", "@buildanagent/sdk"]) {
+    for (const name of NAMES) {
       assert.match(notes, new RegExp(`^## ${name}\\n\\n\\S`, "m"), `the notes have no text for ${name}`);
     }
     if (realVersion === "0.1.0-alpha.0") assert.ok(notes.includes("First public release"));
@@ -435,25 +508,118 @@ describe("release-plan.mjs", () => {
     assert.equal(plan.pending, true);
   });
 
-  test("publishes what npm lacks, in order, and nothing once npm holds both", async () => {
+  test("publishes what npm lacks, in order, and nothing once npm holds all six", async () => {
     const root = fixture();
     const none = await planRelease({ root, fetchImpl: registry().fetchImpl });
     assert.equal(none.publish, true);
-    assert.deepEqual(none.toPublish, ["@buildanagent/gateway", "@buildanagent/sdk"]);
-    const partial = await planRelease({ root, fetchImpl: registry(["@buildanagent/gateway"]).fetchImpl });
-    assert.deepEqual(partial.toPublish, ["@buildanagent/sdk"]);
-    const both = await planRelease({
+    assert.deepEqual(none.toPublish, NAMES);
+    assert.match(
+      none.reason,
+      /^npm doesn't hold @buildanagent\/gateway, .*, @buildanagent\/harness and @buildanagent\/cli at/,
+    );
+    const partial = await planRelease({ root, fetchImpl: registry(NAMES.slice(0, 3)).fetchImpl });
+    assert.deepEqual(partial.toPublish, NAMES.slice(3));
+    const all = await planRelease({
       root,
       repo,
-      fetchImpl: registry(["@buildanagent/gateway", "@buildanagent/sdk"], undefined, { releases: ["v0.1.0"] })
-        .fetchImpl,
+      fetchImpl: registry(NAMES, undefined, { releases: ["v0.1.0"] }).fetchImpl,
     });
-    assert.equal(both.publish, false);
-    assert.match(both.reason, /release v0\.1\.0 exists/);
+    assert.equal(all.publish, false);
+    assert.match(all.reason, /release v0\.1\.0 exists/);
   });
 
-  test("still tags the release when npm holds both packages but the GitHub release is missing", async () => {
-    const { fetchImpl, calls } = registry(["@buildanagent/gateway", "@buildanagent/sdk"]);
+  test("six packages at one version publish in dependency order, each after the workspace packages it imports", async () => {
+    // The order is also the publish job's loop: a package must never reach npm before a workspace dependency.
+    assert.deepEqual(RELEASE_ORDER, ["gateway", "sdk", "agent-safety", "protocol", "harness", "cli"]);
+    for (const [index, pkg] of RELEASE_ORDER.entries()) {
+      const manifest = JSON.parse(readFileSync(path.join(root, "packages", pkg, "package.json"), "utf8"));
+      const workspace = Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }).filter((dep) =>
+        dep.startsWith("@buildanagent/"),
+      );
+      for (const dep of workspace) {
+        const at = RELEASE_ORDER.indexOf(dep.slice("@buildanagent/".length));
+        assert.ok(at !== -1 && at < index, `${manifest.name} depends on ${dep}, which RELEASE_ORDER puts after it`);
+      }
+    }
+    const { fetchImpl, calls } = registry();
+    const plan = await planRelease({ root: fixture({ version: "0.1.0-alpha.28", pre: alpha }), fetchImpl });
+    assert.equal(plan.publish, true, plan.reason);
+    assert.equal(plan.version, "0.1.0-alpha.28");
+    assert.deepEqual(plan.toPublish, NAMES);
+    assert.deepEqual(
+      calls,
+      RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/0.1.0-alpha.28`),
+    );
+  });
+
+  test("RELEASE_ORDER lists exactly the packages packages-pack.test.mjs says will publish", () => {
+    const text = readFileSync(path.join(root, "scripts", "ci", "packages-pack.test.mjs"), "utf8");
+    const list = /^const PUBLISHED = \[([^\]]*)\];$/m.exec(text);
+    assert.ok(list, "packages-pack.test.mjs has no PUBLISHED list");
+    assert.deepEqual(JSON.parse(`[${list[1].replace(/,\s*$/, "")}]`), NAMES);
+  });
+
+  // L11's merge: the four packages that have never been released sit at 0.0.0 beside the gateway's and SDK's alpha,
+  // with the changeset that names all six pending. The plan must wait for the version commit, which the fixed group
+  // brings to one version, rather than throw on the mixed versions and fail every push to main.
+  const NEVER_RELEASED = { "agent-safety": "0.0.0", protocol: "0.0.0", harness: "0.0.0", cli: "0.0.0" };
+
+  test("mixed versions with a changeset pending plan no publish and don't throw", async () => {
+    const { fetchImpl, calls } = registry();
+    const plan = await planRelease({
+      root: fixture({ version: "0.1.0-alpha.27", versions: NEVER_RELEASED, pre: alpha, changesets: ["six.md"] }),
+      fetchImpl,
+    });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.pending, true);
+    assert.equal(plan.needsVersion, true);
+    assert.match(plan.reason, /1 changeset\(s\) are pending/);
+    // The skip reports the gateway's version, which `notes` also reads, and asks no registry.
+    assert.equal(plan.version, "0.1.0-alpha.27");
+    assert.equal(plan.tag, "v0.1.0-alpha.27");
+    assert.match(formatOutputs(plan), /^publish=false$/m);
+    assert.equal(calls.length, 0);
+  });
+
+  test("mixed versions while pre mode is exiting, with nothing else pending, plan no publish and don't throw", async () => {
+    const { fetchImpl, calls } = registry();
+    const plan = await planRelease({
+      root: fixture({ version: "0.1.0-alpha.27", versions: NEVER_RELEASED, pre: { mode: "exit", tag: "alpha" } }),
+      fetchImpl,
+    });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.pending, false);
+    assert.match(plan.reason, /pre mode is exiting/);
+    assert.equal(plan.version, "0.1.0-alpha.27");
+    assert.equal(calls.length, 0);
+  });
+
+  test("mixed versions with nothing pending throw, even 0.0.0 beside an alpha, because a hand edit must stop the run", async () => {
+    const { fetchImpl, calls } = registry();
+    await assert.rejects(
+      planRelease({
+        root: fixture({ version: "0.1.0-alpha.3", versions: { cli: "0.1.0-alpha.4" }, pre: alpha }),
+        fetchImpl,
+      }),
+      /share one version, found .*@buildanagent\/cli@0\.1\.0-alpha\.4/,
+    );
+    await assert.rejects(
+      planRelease({ root: fixture({ version: "0.1.0-alpha.27", versions: NEVER_RELEASED, pre: alpha }), fetchImpl }),
+      /share one version, found @buildanagent\/gateway@0\.1\.0-alpha\.27,.*@buildanagent\/protocol@0\.0\.0/,
+    );
+    // The same-version check comes before the 0.0.0 refusal, so mixed 0.0.0 and alpha never reads as "still at 0.0.0".
+    await assert.rejects(
+      planRelease({
+        root: fixture({ version: "0.0.0", versions: { gateway: "0.1.0-alpha.27" }, pre: alpha }),
+        fetchImpl,
+      }),
+      /share one version/,
+    );
+    assert.equal(calls.length, 0);
+  });
+
+  test("still tags the release when npm holds every package but the GitHub release is missing", async () => {
+    const { fetchImpl, calls } = registry(NAMES);
     const plan = await planRelease({ root: fixture(), repo, token: "t", fetchImpl });
     assert.equal(plan.publish, true);
     assert.deepEqual(plan.toPublish, []);
@@ -463,7 +629,7 @@ describe("release-plan.mjs", () => {
   });
 
   test("fails on a GitHub error, or without a repository, instead of guessing whether the release exists", async () => {
-    const published = ["@buildanagent/gateway", "@buildanagent/sdk"];
+    const published = NAMES;
     await assert.rejects(
       planRelease({
         root: fixture(),
@@ -486,8 +652,6 @@ describe("release-plan.mjs", () => {
     await assert.rejects(planRelease({ root: fixture(), fetchImpl: registry([], 503).fetchImpl }), /answered 503/);
     await assert.rejects(isPublished("@buildanagent/sdk", "0.1.0", registry([], 429).fetchImpl), /answered 429/);
   });
-
-  const alpha = { mode: "pre", tag: "alpha" };
 
   test("in pre mode, publishes the prerelease under the pre tag and leaves the consumed changesets alone", async () => {
     const plan = await planRelease({
@@ -661,8 +825,8 @@ describe("release.yml's scripts, run for real", () => {
   };
 
   // A stand-in for `pnpm changeset version` in pre mode: it fails when any token reached it, moves every pending
-  // changeset into .changeset/pre/, and bumps both packages to the next prerelease, with a changelog section, when one
-  // of them names a package. With EVIL set, it also edits a package's source, as a compromised dependency might, and
+  // changeset into .changeset/pre/, and bumps every package to the next prerelease, with a changelog section, when one
+  // of them names a package, as the fixed group does. With EVIL set, it also edits a package's source, as a compromised dependency might, and
   // with EVIL=checker it also replaces the version-commit check with one that passes everything.
   const FAKE_PNPM = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -675,7 +839,7 @@ for (const name of fs.readdirSync(".changeset")) {
   if (fs.readFileSync(".changeset/" + name, "utf8").includes('"@buildanagent/')) bump = true;
   fs.renameSync(".changeset/" + name, ".changeset/pre/" + name);
 }
-if (bump) for (const pkg of ["gateway", "sdk"]) {
+if (bump) for (const pkg of fs.readdirSync("packages")) {
   const file = "packages/" + pkg + "/package.json";
   const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
   manifest.version = manifest.version.replace(/\\d+$/, (n) => String(Number(n) + 1));
@@ -696,7 +860,7 @@ if (process.env.EVIL === "checker") {
 }
 `;
 
-  // A repository whose main holds both packages at 0.1.0-alpha.0 in alpha pre mode, plus `changesets`, pushed to a
+  // A repository whose main holds the six packages at 0.1.0-alpha.0 in alpha pre mode, plus `changesets`, pushed to a
   // bare remote that the fake gh treats as the repository on GitHub.
   function setup({ changesets = {}, pre = { mode: "pre", tag: "alpha" } } = {}) {
     const dir = temp();
@@ -722,7 +886,7 @@ if (process.env.EVIL === "checker") {
       mkdirSync(path.dirname(path.join(work, file)), { recursive: true });
       writeFileSync(path.join(work, file), text);
     };
-    for (const pkg of ["gateway", "sdk"]) {
+    for (const pkg of RELEASE_ORDER) {
       write(
         `packages/${pkg}/package.json`,
         `${JSON.stringify({ name: `@buildanagent/${pkg}`, version: "0.1.0-alpha.0" })}\n`,
@@ -825,10 +989,13 @@ if (process.env.EVIL === "checker") {
     const [subject, parent] = repo.git(repo.remote, "log", "-1", "--format=%s%n%P", branch).trim().split("\n");
     assert.equal(subject, "chore(release): version packages to 0.1.0-alpha.1");
     assert.equal(parent, main);
-    assert.equal(
-      JSON.parse(repo.git(repo.remote, "show", `${branch}:packages/sdk/package.json`)).version,
-      "0.1.0-alpha.1",
-    );
+    for (const pkg of RELEASE_ORDER) {
+      assert.equal(
+        JSON.parse(repo.git(repo.remote, "show", `${branch}:packages/${pkg}/package.json`)).version,
+        "0.1.0-alpha.1",
+        pkg,
+      );
+    }
     // The commit is made on the staging branch, checked, and only then put on the release branch.
     const created = repo.git(repo.remote, "rev-parse", branch).trim();
     assert.deepEqual(apiCalls(run.gh), [
@@ -853,7 +1020,7 @@ if (process.env.EVIL === "checker") {
     const body = readFileSync(path.join(repo.dir, "runner", "pr", "body.md"), "utf8");
     assert.match(
       body,
-      /publishes `@buildanagent\/gateway` and `@buildanagent\/sdk` 0\.1\.0-alpha\.1 to npm under the `alpha` dist-tag/,
+      /publishes `@buildanagent\/gateway`, `@buildanagent\/sdk`, .* and `@buildanagent\/cli` 0\.1\.0-alpha\.1 to npm under the `alpha` dist-tag/,
     );
     assert.match(body, /- `brave-cats\.md` \("@buildanagent\/gateway": patch\): Fix a thing\./);
   });

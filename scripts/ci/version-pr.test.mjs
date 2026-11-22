@@ -25,6 +25,7 @@ import {
   pendingChangesets,
   planRelease,
   preModeMismatch,
+  RELEASE_ORDER,
   readPreState,
   versionedPackageNames,
 } from "./release-plan.mjs";
@@ -237,7 +238,16 @@ describe("version-pr.mjs", () => {
         { name: "b.md", text: "---\n---\n" },
       ],
     });
-    assert.match(body, /0\.1\.0-alpha\.1 to npm under the `alpha` dist-tag/);
+    // The body names every package RELEASE_ORDER lists, in its order, so it can't fall behind the release.
+    const names = RELEASE_ORDER.map((dir) => `\`@buildanagent/${dir}\``);
+    assert.ok(
+      body.startsWith(
+        `Merging this pull request publishes ${names.slice(0, -1).join(", ")} and ${names.at(-1)} 0.1.0-alpha.1`,
+      ),
+      body,
+    );
+    assert.match(body, /^Merging this pull request publishes `@buildanagent\/gateway`, `@buildanagent\/sdk`, /);
+    assert.match(body, /and `@buildanagent\/cli` 0\.1\.0-alpha\.1 to npm under the `alpha` dist-tag, in that order\./);
     assert.match(body, /^- `a\.md` \("@buildanagent\/gateway": minor\): Breaking Changes: x\.$/m);
     assert.match(body, /^- `b\.md` \(no package\): \(no summary\)$/m);
   });
@@ -415,9 +425,10 @@ describe("this checkout on main", () => {
     assert.match(release.jobs.publish.if, /needs\.pack\.result == 'success'/);
   });
 
-  test("versions only the public packages, never a private one such as agent-safety", () => {
+  test("versions the six packages RELEASE_ORDER lists, each named after its folder, and no private one", () => {
     const { packages } = gitChange(root, "HEAD", "HEAD");
-    assert.deepEqual(packages.map((pkg) => pkg.name).sort(), ["@buildanagent/gateway", "@buildanagent/sdk"]);
+    assert.deepEqual(packages.map((pkg) => pkg.name).sort(), RELEASE_ORDER.map((dir) => `@buildanagent/${dir}`).sort());
+    for (const { dir, name } of packages) assert.equal(name, `@buildanagent/${dir.slice("packages/".length)}`);
   });
 
   test("its real version commit passes the version-pr check and the changeset gate", { skip }, () => {
