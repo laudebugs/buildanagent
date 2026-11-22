@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "04-restrict-builtins",
   "file": "verify/copilot-sdk/examples/04-restrict-builtins.ts",
   "harness": "verify/copilot-sdk",

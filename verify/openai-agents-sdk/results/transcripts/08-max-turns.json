@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "08-max-turns",
   "file": "verify/openai-agents-sdk/examples/08-max-turns.ts",
   "harness": "verify/openai-agents-sdk",

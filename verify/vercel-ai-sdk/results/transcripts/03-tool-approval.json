@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "03-tool-approval",
   "file": "verify/vercel-ai-sdk/examples/03-tool-approval.ts",
   "harness": "verify/vercel-ai-sdk",

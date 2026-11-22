@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "06-structured-output",
   "file": "verify/google-adk/examples/06-structured-output.ts",
   "harness": "verify/google-adk",

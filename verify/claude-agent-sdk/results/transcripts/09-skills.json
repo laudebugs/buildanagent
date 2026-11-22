@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "09-skills",
   "file": "verify/claude-agent-sdk/examples/09-skills.ts",
   "harness": "verify/claude-agent-sdk",

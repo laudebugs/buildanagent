@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "01-hello-agent",
   "file": "verify/openai-agents-sdk/examples/01-hello-agent.ts",
   "harness": "verify/openai-agents-sdk",

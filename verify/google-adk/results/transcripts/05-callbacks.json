@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "05-callbacks",
   "file": "verify/google-adk/examples/05-callbacks.ts",
   "harness": "verify/google-adk",

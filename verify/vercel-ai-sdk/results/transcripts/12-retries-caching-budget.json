@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "12-retries-caching-budget",
   "file": "verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts",
   "harness": "verify/vercel-ai-sdk",
@@ -54,7 +54,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 14,
+        "cacheRead": 0,
+        "cacheWrite": 3973,
+        "output": 20
+      },
+      "modelId": "mock-sonnet"
     },
     {
       "kind": "check",
@@ -149,7 +156,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 12,
+        "cacheRead": 3973,
+        "cacheWrite": 0,
+        "output": 20
+      },
+      "modelId": "mock-sonnet"
     },
     {
       "kind": "check",
@@ -200,7 +214,14 @@
           }
         ]
       },
-      "finish": "stop"
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 8,
+        "cacheRead": 3973,
+        "cacheWrite": 0,
+        "output": 20
+      },
+      "modelId": "mock-sonnet"
     },
     {
       "kind": "check",

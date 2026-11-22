@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "01-hello-session",
   "file": "verify/copilot-sdk/examples/01-hello-session.ts",
   "harness": "verify/copilot-sdk",

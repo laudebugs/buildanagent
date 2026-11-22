@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "08-deferred-tools",
   "file": "verify/claude-agent-sdk/examples/08-deferred-tools.ts",
   "harness": "verify/claude-agent-sdk",

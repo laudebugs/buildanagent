@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "05-thread-memory",
   "file": "verify/langchain/examples/05-thread-memory.ts",
   "harness": "verify/langchain",

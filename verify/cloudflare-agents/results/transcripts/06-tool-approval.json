@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "06-tool-approval",
   "file": "verify/cloudflare-agents/examples/06-tool-approval.ts",
   "harness": "verify/cloudflare-agents",

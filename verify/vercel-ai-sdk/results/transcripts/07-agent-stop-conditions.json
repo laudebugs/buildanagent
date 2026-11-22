@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "07-agent-stop-conditions",
   "file": "verify/vercel-ai-sdk/examples/07-agent-stop-conditions.ts",
   "harness": "verify/vercel-ai-sdk",

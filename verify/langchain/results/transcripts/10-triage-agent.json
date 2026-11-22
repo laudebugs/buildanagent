@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "10-triage-agent",
   "file": "verify/langchain/examples/10-triage-agent.ts",
   "harness": "verify/langchain",
