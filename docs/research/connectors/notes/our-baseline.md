@@ -39,7 +39,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - **Out of scope: "OAuth flows beyond what the client library provides".**
   - Risk: "Remote servers hold their own credentials; the harness passes none unless a credential route names the host."
 
-  — `docs/todos/ready/N25-mcp-http-background.md#scope`, `#risks-and-open-questions`
+  — `docs/todos/ongoing/N25-mcp-http-background.md#scope`, `#risks-and-open-questions`
 - **Harness guide §4 rationale.**
   - Collisions are "the main MCP failure".
   - Deferred loading cut tool definitions from about 77K to 8.7K tokens, and one practitioner counted "Linear: 23 tools (~12,935 tokens)".

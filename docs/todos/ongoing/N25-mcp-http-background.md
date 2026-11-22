@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N25` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 5](../../plans/build-harness.md#45-stage-5-adds-extensions-skills-and-the-mcp-client) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N24](../done/N24-mcp-stdio.md) |

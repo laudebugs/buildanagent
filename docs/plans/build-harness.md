@@ -790,7 +790,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N22](../todos/done/N22-in-process-extensions.md) | In-process extensions: composition, project trust and content-hash pins | N11, N12 | M |
 | [N23](../todos/done/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
 | [N24](../todos/done/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
-| [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
+| [N25](../todos/ongoing/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
 | [N54](../todos/ready/N54-project-mcp-configs.md) | Project-supplied MCP server configs behind project trust (added 2026-11-22 from N24) | N24, N22 | M |
 | [N52](../todos/ready/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
 | [N53](../todos/ready/N53-stdio-identity-binding.md) | Bind a stdio client to a user so `Resolution.by` is checked, not trusted | N29, N30 | M |
