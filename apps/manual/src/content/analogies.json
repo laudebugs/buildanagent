@@ -142,5 +142,13 @@
     "chapter": "testing-offline-and-a-first-agent",
     "illustration": null,
     "breaks": "A check knows only the rules you wrote; a game can go wrong in ways no rule names, and a check that holds for the right behaviour may hold for no behaviour at all."
+  },
+  {
+    "id": "club-door-list",
+    "concept": "permission pipeline",
+    "analogy": "a club's door list read top to bottom",
+    "chapter": "permissions-sandboxes-and-credentials",
+    "illustration": null,
+    "breaks": "A doorman reads names; a pipeline's rules are code that runs in a fixed order and also read what a call asks to do, and the manager at the door is a callback or a person that the pipeline asks."
   }
 ]

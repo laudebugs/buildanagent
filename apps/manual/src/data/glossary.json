@@ -152,5 +152,11 @@
     "term": "checkpointer",
     "definition": "LangGraph's store for a thread's state. It saves a snapshot of the graph's state under the run's thread_id at each step, so a later call with the same thread_id carries on from the last snapshot.",
     "sources": ["langgraph-checkpointers"]
+  },
+  {
+    "id": "permission-pipeline",
+    "term": "permission pipeline",
+    "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
+    "sources": ["claude-agent-sdk-permissions"]
   }
 ]

@@ -546,5 +546,23 @@
     "asOf": "November 2026",
     "version": "v5",
     "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "claude-agent-sdk-permissions",
+    "title": "Configure permissions",
+    "publisher": "Anthropic, Claude Agent SDK",
+    "url": "https://code.claude.com/docs/en/agent-sdk/permissions.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/permissions-sandboxes-and-credentials.md"
+  },
+  {
+    "id": "pi-run-pi-safely",
+    "title": "Run Pi safely",
+    "publisher": "Earendil Works, Pi",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/security.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/permissions-sandboxes-and-credentials.md"
   }
 ]
