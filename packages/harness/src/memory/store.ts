@@ -3,7 +3,7 @@
  * and the purge list a delete adds them to. Every change runs in one queue, so two calls of one step never interleave
  * their read and write of the same bookkeeping file.
  */
-import { HarnessError } from "../errors.js";
+import { HarnessError, isHarnessError } from "../errors.js";
 import type { PurgeMark } from "../session/purge.js";
 import type { MemoryFiles } from "./files.js";
 import { isMemoryName } from "./paths.js";
@@ -13,6 +13,13 @@ import { isExpired, type MemoryRecord, parseRecord } from "./record.js";
 const CALLS_FILE = ".calls.json";
 /** The marks of the records deleted so far, which a purge reads. */
 const PURGE_FILE = ".purge.json";
+/** Where a calls file the extension can't read is set aside, so memory keeps working without it. */
+const UNREAD_CALLS_FILE = ".calls-unread.json";
+
+/** The most calls kept for one record; older ones go to the purge list. */
+const MAX_CALLS_PER_RECORD = 100;
+/** The most bytes the calls file is written with; past it, each record keeps fewer of its newest calls. */
+const MAX_CALLS_BYTES = 2 * 1024 * 1024;
 
 /** A record that parsed, with its name. */
 export interface NamedRecord {
@@ -50,7 +57,7 @@ async function readJson<T>(files: MemoryFiles, name: string, fallback: T, check:
   return value as T;
 }
 
-const readCalls = (files: MemoryFiles) =>
+const parseCalls = (files: MemoryFiles) =>
   readJson<Record<string, PurgeMark[]>>(
     files,
     CALLS_FILE,
@@ -61,6 +68,50 @@ const readCalls = (files: MemoryFiles) =>
       !Array.isArray(value) &&
       Object.values(value).every((marks) => Array.isArray(marks) && marks.every(isMark)),
   );
+
+/**
+ * The calls file, or no calls when it can't be read: too long, not what the extension wrote, or not a regular file.
+ * Such a file is moved to `UNREAD_CALLS_FILE` for a person to look at, replacing an earlier one, so memory keeps
+ * working; a later delete of a record no longer purges the calls it held. When even the move fails, the error stands.
+ */
+async function readCalls(files: MemoryFiles): Promise<Record<string, PurgeMark[]>> {
+  try {
+    return await parseCalls(files);
+  } catch (error) {
+    if (!isHarnessError(error)) throw error;
+    try {
+      await files.remove(UNREAD_CALLS_FILE);
+      await files.rename(CALLS_FILE, UNREAD_CALLS_FILE);
+    } catch {
+      throw error;
+    }
+    return {};
+  }
+}
+
+const byteLength = (text: string): number => new TextEncoder().encode(text).length;
+
+/**
+ * Bounds the calls before they are written: the calls of a record whose file is gone, other than `keep`, and each
+ * record's oldest calls past `MAX_CALLS_PER_RECORD`, or past a smaller count while the file would exceed
+ * `MAX_CALLS_BYTES`, leave the calls file. Returns them for the purge list, so no call that held a record is lost.
+ */
+function bounded(calls: Record<string, PurgeMark[]>, present: ReadonlySet<string>, keep: readonly string[]) {
+  const spilled: PurgeMark[] = [];
+  for (const [name, marks] of Object.entries(calls)) {
+    if (present.has(name) || keep.includes(name)) continue;
+    spilled.push(...marks);
+    delete calls[name];
+  }
+  let text = "";
+  for (let cap = MAX_CALLS_PER_RECORD; ; cap = Math.floor(cap / 2)) {
+    for (const marks of Object.values(calls))
+      if (marks.length > cap) spilled.push(...marks.splice(0, marks.length - cap));
+    text = JSON.stringify(calls);
+    if (cap <= 1 || byteLength(text) <= MAX_CALLS_BYTES) break;
+  }
+  return { text, spilled };
+}
 
 /**
  * The purge list: the marks of every call that wrote or returned a record deleted since the list was last cleared.
@@ -141,12 +192,24 @@ export class RecordStore {
     return (await this.present()).filter(({ record }) => !isExpired(record, now));
   }
 
+  /**
+   * Writes the calls file within its bounds. The calls that leave it go to the purge list first, so a crash between
+   * the two writes leaves a mark in both and never in neither. `keep` names records about to be written.
+   */
+  async #saveCalls(calls: Record<string, PurgeMark[]>, keep: readonly string[] = []): Promise<void> {
+    const { text, spilled } = bounded(calls, new Set(await this.names()), keep);
+    if (spilled.length > 0) {
+      await this.files.write(PURGE_FILE, JSON.stringify(addTo(await readPurgeMarks(this.files), spilled)));
+    }
+    await this.files.write(CALLS_FILE, text);
+  }
+
   /** Records that `mark`'s call wrote or returned the records at `names`. */
   async touched(names: readonly string[], mark: PurgeMark): Promise<void> {
     if (names.length === 0) return;
     const calls = await readCalls(this.files);
     for (const name of names) calls[name] = addTo(calls[name] ?? [], [mark]);
-    await this.files.write(CALLS_FILE, JSON.stringify(calls));
+    await this.#saveCalls(calls, names);
   }
 
   /** Moves the calls that touched `from` to `to`, for a rename. */
@@ -155,7 +218,7 @@ export class RecordStore {
     if (calls[from] === undefined) return;
     calls[to] = addTo(calls[to] ?? [], calls[from]);
     delete calls[from];
-    await this.files.write(CALLS_FILE, JSON.stringify(calls));
+    await this.#saveCalls(calls, [to]);
   }
 
   /**
@@ -169,6 +232,6 @@ export class RecordStore {
       await this.files.write(PURGE_FILE, JSON.stringify(addTo(await readPurgeMarks(this.files), marks)));
     if (calls[name] === undefined) return;
     delete calls[name];
-    await this.files.write(CALLS_FILE, JSON.stringify(calls));
+    await this.#saveCalls(calls);
   }
 }
