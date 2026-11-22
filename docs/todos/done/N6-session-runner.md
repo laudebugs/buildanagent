@@ -69,11 +69,11 @@ Turn one SDK run into log entries: write the user entry durably before the first
 ## Outcome
 
 - Every entry write goes through one serialized queue (`EntryWriter`), because the observer and the permission pipeline's gate both append and must not race for a parent. A failed write aborts the run and `runTurn()` rethrows it.
-- Observers don't block the run, so the user entries are written before `run()` and the header needed `SDK_VERSION`, which the SDK now exports.
+- Observers don't block the run, so `runTurn()` writes the user entries before `run()`. The session header records `SDK_VERSION`, so the SDK now exports it.
 - A child's header carries `parent` (its parent session and link entry) and the new protocol field `spawn` (`spawningCallId` or `stepId`). Its path doesn't cross into the parent, so the child starts fresh.
 - Added `onRun` (to steer a run), `turnRetries` and `history` to `TurnOptions`.
 - A turn-layer `retry` writes a `usage` entry only.
-- Parallel tool results are written in the order the SDK ends the calls, each with its own `callId`.
+- Parallel tool results are written in the order the calls end, which can differ from the order the model made them, and each carries its own `callId`.
 
 ## Risks and open questions
 
