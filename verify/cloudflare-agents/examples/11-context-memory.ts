@@ -1,7 +1,8 @@
 // Long-term memory in an agent's own SQLite: a writable block and a full-text search block from `agents/context`.
 // A scripted model writes a fact to each block through the set_context tool, the Durable Object is evicted, and on
-// the new instance a second scripted model finds the fact again through search_context and sees the other block's
-// text in its system prompt. A second agent name, which has its own database, sees none of it. FTS5 ran in local
+// the new instance the system prompt holds the fact from the memory block, and a second scripted model finds the note
+// in the search block through search_context. A second agent name, which has its own database, sees neither block's
+// content: both blocks render there with their headers and no text. FTS5 ran in local
 // workerd with `tokenize='porter unicode61'`, so a query with other word forms still matches. `agents/context` is
 // experimental as of November 2026: the docs say every export "may change between releases".
 // Docs: agents/docs/agents/context.md ("Providers", "Durable SQLite blocks", "Searchable blocks", "Tools").
@@ -92,7 +93,7 @@ export async function test(env: Env, h: Harness) {
   );
   check(first.offered.join() === "search_context,set_context", "the model is offered only the two context tools");
   check(first.calls.length === 2 && first.calls.every((c) => c.name === "set_context"), "it wrote through set_context");
-  check(first.outputs[0].startsWith("Written to memory."), `the writable block took the write: ${first.outputs[0]}`);
+  check(first.outputs[0]?.startsWith("Written to memory."), `the writable block took the write: ${first.outputs[0]}`);
   check(
     first.outputs[1] === 'Indexed "deploy-day" in notes.',
     `the search block indexed the note: ${first.outputs[1]}`,
@@ -119,17 +120,20 @@ export async function test(env: Env, h: Harness) {
     "the model searched through search_context",
   );
   check(
-    woke.outputs[0] === `[deploy-day]\n${NOTE}`,
+    woke.outputs.at(0) === `[deploy-day]\n${NOTE}`,
     "the search found the note, though the query used other word forms",
   );
 
   const other = await stub("other");
   const asked = await other.run(QUESTION, recall);
   check(
-    !asked.system.includes(FACT) && !asked.system.includes("entries indexed"),
-    "a second agent name sees neither block",
+    asked.system.includes("MEMORY (Facts about the user)") &&
+      asked.system.includes("NOTES (Notes to search later)") &&
+      !asked.system.includes(FACT) &&
+      !asked.system.includes("entries indexed"),
+    "a second agent name sees both block headers and neither block's content",
   );
-  check(asked.outputs[0] === "No results found.", "and the same query finds nothing there");
+  check(asked.outputs.at(0) === "No results found.", "and the same query finds nothing there");
   const otherRows = await other.rows();
   check(otherRows.blocks.length === 0 && otherRows.notes.length === 0, "its database holds no block row and no note");
 }

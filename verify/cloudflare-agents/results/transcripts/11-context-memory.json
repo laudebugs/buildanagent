@@ -333,7 +333,7 @@
     },
     {
       "kind": "check",
-      "message": "a second agent name sees neither block",
+      "message": "a second agent name sees both block headers and neither block's content",
       "pass": true
     },
     {
