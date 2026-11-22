@@ -1,7 +1,7 @@
-// The docs checks for our packages (agent-SDK guide §10; SDK plan D8): every TypeScript block in a package's README
-// type-checks against the packages, every export name the README documents is in the package's declaration files,
-// public unstable names carry `experimental_`, and the package's llms.txt is built from the same README and
-// declarations, so it can't describe another commit. Each package's scripts/docs-check.mjs configures these, and its
+// The docs checks for our packages (agent-SDK guide §10; SDK plan D8). Every TypeScript block in a package's README
+// type-checks against the packages, and every export name the README documents is in the package's declaration files.
+// Public unstable names carry `experimental_`. The package's llms.txt is built from the same README and declarations,
+// so it can't describe another commit. Each package's scripts/docs-check.mjs configures these checks, and its
 // test/docs-check.test.ts runs them under `pnpm test`.
 //
 // Everything here reads the working tree, never a branch or a published package, so the docs it checks and writes
@@ -271,7 +271,7 @@ export function missingNames({ documented, entries, notExports = {} }) {
  * Type-checks each block against the packages and returns the errors per block, with README line numbers. Each block
  * becomes a module of its own in a scratch folder inside the package, beside `globals`, a declaration file that
  * declares the names the README's blocks use without defining, such as `model` or `run`. A block's own imports and
- * declarations shadow those globals. `tsc` stands in for the pinned compiler's entry script in a test.
+ * declarations shadow those globals. A test passes its own `tsc` in place of the pinned compiler's entry script.
  */
 export function typecheckBlocks({ packageDir, blocks, globals, tsc = TSC }) {
   const dir = scratch(packageDir, "readme-");

@@ -1,4 +1,4 @@
-import type { Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
+import type { Code, Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
 import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import { isFileListing, isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
@@ -11,7 +11,7 @@ import { captionParts, listingCodeHtml, NOTES_LABEL } from "../components/listin
 import { replayHtml } from "../components/replay-html.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
-import { highlightListing } from "./highlight.js";
+import { highlightInline, highlightListing } from "./highlight.js";
 
 /** What each numbered kind must hold: a table, a fenced code block, or anything at all for a figure. */
 const REQUIRED_CONTENT: Record<NumberedKind, RootContent["type"] | undefined> = {
@@ -31,7 +31,9 @@ type LeafDirective = Extract<RootContent, { type: "leafDirective" }>;
  * numbering plugin fills in. `::listing[Caption]{#id file="…" region="…"}` shows a region of a real file, which the
  * book index has already cut and checked, highlighted with Shiki, under a caption with its number, path, line range
  * and pin; written as a `:::listing` container, it holds `::note[Text]{#id}` notes for the lines marked
- * `// book:note <id>`, and with `replay` it adds the recorded run of its example. `:::tabs` holds file listings from
+ * `// book:note <id>`, and with `replay` it adds the recorded run of its example. A `:::listing` with a fenced code block
+ * and no `file` shows that code in the same panel, highlighted and numbered from 1, with no path, line range or pin.
+ * `:::tabs` holds file listings from
  * different harnesses, one tab each. `:::box[Title]{#id}` sets a passage apart as an `<aside>` under its own heading.
  * `:analogy[label]{#id}` marks a use of a registered analogy. Any other directive
  * fails, except a bare text directive such as the `:Invent` in "re:Invent" or the `:tools` in `[[ch:tools]]`, which
@@ -48,6 +50,11 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
       if (node.type === "containerDirective" && node.data?.hName !== undefined) return undefined;
       if ((node.type === "leafDirective" || node.type === "containerDirective") && isFileListing(node)) {
         const { figure, code } = fileListing(node, book, outline.slug, file);
+        listings.push(code);
+        return figure;
+      }
+      if (node.type === "containerDirective" && node.name === "listing") {
+        const { figure, code } = inlineListing(node, book, outline.slug, file);
         listings.push(code);
         return figure;
       }
@@ -135,6 +142,78 @@ function numbered(node: ContainerDirective, kind: NumberedKind, file: VFile): Co
       },
     },
   };
+}
+
+/** The caption element of a listing's figure, which the panel's CSS selects; file and inline listings share it. */
+const listingCaptionData = (domId: string): Paragraph["data"] => ({
+  hName: "figcaption",
+  hProperties: { className: ["listing__caption"], id: `${domId}-caption` },
+});
+
+/** The empty number that the numbering plugin fills in, as a file listing's and an inline listing's caption begin. */
+const listingNumber = (): PhrasingContent => ({
+  type: "text",
+  value: "",
+  data: { hName: "span", hProperties: { className: ["listing__number", "number"] } },
+});
+
+/** A listing's title in its caption, set apart from the path, line range and pin that may follow. */
+const listingTitle = (children: PhrasingContent[]): PhrasingContent => ({
+  type: "emphasis",
+  data: { hName: "span", hProperties: { className: ["listing__title"] } },
+  children,
+});
+
+/** The figure element of a listing, named by the elements whose ids `labelledBy` lists. */
+const listingFigureData = (id: string, domId: string, labelledBy: string[]): ContainerDirective["data"] => ({
+  hName: "figure",
+  hProperties: {
+    id: domId,
+    className: ["numbered", "listing", "panel"],
+    dataNumbered: "listing",
+    dataNumberedId: id,
+    ariaLabelledBy: labelledBy,
+  },
+});
+
+/**
+ * A listing written in the chapter, with no file: the same figure as any numbered listing, but its fenced code goes
+ * through the highlighter and the code panel that file listings use, so it shows line numbers and token colours. It has
+ * no path, line range or pin to caption, because no file backs it.
+ */
+function inlineListing(
+  node: ContainerDirective,
+  book: Book,
+  slug: string,
+  file: VFile,
+): { readonly figure: ContainerDirective; readonly code: Promise<void> } {
+  if (node.children.filter((child) => child.type === "code").length > 1) {
+    return failAt(
+      file,
+      "a :::listing written in the chapter holds one code block, so split it into two listings",
+      node,
+    );
+  }
+  const figure = numbered(node, "listing", file);
+  const id = node.attributes?.id ?? "";
+  const block = book.index.written.get(slug)?.blocks.find((found) => found.kind === "listing" && found.id === id);
+  const index = figure.children.findIndex((child) => child.type === "code");
+  const fenced = figure.children[index] as Code | undefined;
+  if (block === undefined || fenced === undefined) {
+    return failAt(file, `the book index has no listing "${id}"; rerun the build`, node);
+  }
+  const html: Html = { type: "html", value: "" };
+  figure.children[index] = html;
+  const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
+  const caption = figure.children[0] as Paragraph;
+  const [, , ...title] = caption.children;
+  caption.data = listingCaptionData(domId);
+  caption.children = [listingNumber(), listingTitle(title)];
+  figure.data = listingFigureData(id, domId, [`${domId}-caption`]);
+  const code = highlightInline(fenced.value, fenced.lang).then((lines) => {
+    html.value = listingCodeHtml(domId, block.number, lines, new Map());
+  });
+  return { figure, code };
 }
 
 /**
@@ -397,19 +476,11 @@ function fileListing(
   const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
   const caption: Paragraph = {
     type: "paragraph",
-    data: { hName: "figcaption", hProperties: { className: ["listing__caption"], id: `${domId}-caption` } },
+    data: listingCaptionData(domId),
     children: [
-      { type: "text", value: "", data: { hName: "span", hProperties: { className: ["listing__number", "number"] } } },
+      listingNumber(),
       // In a tab, the tab's heading is the caption, so the caption does not repeat it.
-      ...(tabbed.has(node)
-        ? []
-        : [
-            {
-              type: "emphasis",
-              data: { hName: "span", hProperties: { className: ["listing__title"] } },
-              children: label,
-            } satisfies PhrasingContent,
-          ]),
+      ...(tabbed.has(node) ? [] : [listingTitle(label)]),
       ...captionParts(source.path, source.lines, source.pin, !book.live.compared.has(source.path)).map(
         ({ className, text }): PhrasingContent => ({
           type: "text",
@@ -427,16 +498,11 @@ function fileListing(
     name: "listing",
     attributes: node.attributes ?? {},
     children: numbers.size === 0 ? [caption, html] : [caption, html, notesList(domId, numbers, notes)],
-    data: {
-      hName: "figure",
-      hProperties: {
-        id: domId,
-        className: ["numbered", "listing", "panel"],
-        dataNumbered: "listing",
-        dataNumberedId: id,
-        ariaLabelledBy: tabbed.has(node) ? [`${domId}-heading`, `${domId}-caption`] : [`${domId}-caption`],
-      },
-    },
+    data: listingFigureData(
+      id,
+      domId,
+      tabbed.has(node) ? [`${domId}-heading`, `${domId}-caption`] : [`${domId}-caption`],
+    ),
     ...(node.position ? { position: node.position } : {}),
   };
   const code = highlighted(html, source, number, domId, numbers);

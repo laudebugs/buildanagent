@@ -1,7 +1,7 @@
 /**
  * Every default value, built-in prompt and tool description the SDK uses, in one frozen object, and the hash that
  * `run_start` carries for it (agent-SDK guide §10). A default that changes without notice looks to a user like a model
- * change, so each change must update `DEFAULTS_HASH` and ship with a changeset that releases the package:
+ * change. So each change must update `DEFAULTS_HASH` and ship with a changeset that releases the package.
  * test/defaults.test.ts fails while the hash is stale, and CI's changeset gate fails a hash change whose changesets
  * release nothing.
  *
@@ -151,9 +151,9 @@ function outcomeTexts(kind: OutcomeKind): string[] {
 }
 
 /**
- * What `DEFAULTS_HASH` hashes: `SDK_DEFAULTS`, and the write-outcome sentences and payloads for every kind and retry rule, with
- * `{op}`, `{next}` and `{key}` in place of a call's values. A `partial` outcome may list every effect, a current
- * state and what to avoid, so one more probe covers those sentences.
+ * What `DEFAULTS_HASH` hashes: `SDK_DEFAULTS`, and the write-outcome sentences and payloads for every kind and retry
+ * rule, with `{op}`, `{next}` and `{key}` in place of a call's values. A `partial` outcome may also list every effect,
+ * a current state and what to avoid, so one more sample outcome covers those sentences.
  */
 export function hashedDefaults(): unknown {
   const outcomes = Object.fromEntries(OUTCOME_KINDS.map((kind) => [kind, outcomeTexts(kind)]));

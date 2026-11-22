@@ -13,6 +13,11 @@ const site = fileURLToPath(new URL("./fixtures/site/", import.meta.url));
 const chapter = new URL("./fixtures/site/chapters/call-workflow-loop.md", import.meta.url);
 let rendered: { code: string; metadata: { headings: { depth: number; slug: string; text: string }[] } };
 
+// The hook loads astro.config.mjs, which imports Astro, Shiki's grammars and every Markdown plugin, then renders a
+// chapter through them: about 3 seconds on an idle machine. Running every package's tests at once pushed it past the
+// 10-second hook default, so it gets a longer limit. A time limit, not a timing assertion.
+const HOOK_TIMEOUT = 60_000;
+
 beforeAll(async () => {
   process.env.BOOK_FIXTURE_DIR = site;
   const { default: config } = (await import("../astro.config.mjs")) as { default: AstroUserConfig };
@@ -25,7 +30,7 @@ beforeAll(async () => {
   const renderer = await processor.createRenderer({ syntaxHighlight, shikiConfig });
   const { content, frontmatter } = parseFrontmatter(await readFile(chapter, "utf8"));
   rendered = await renderer.render(content.trim(), { frontmatter, fileURL: pathToFileURL(fileURLToPath(chapter)) });
-});
+}, HOOK_TIMEOUT);
 
 afterAll(() => {
   delete process.env.BOOK_FIXTURE_DIR;

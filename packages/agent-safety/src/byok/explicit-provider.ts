@@ -7,7 +7,7 @@
  */
 import { type AnthropicProvider, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI, type OpenAIProvider, type OpenAIProviderSettings } from "@ai-sdk/openai";
-import { type EgressCredential, egressGuard, egressGuardWebSocket } from "../egress.js";
+import { checkGatewayToken, type EgressCredential, egressGuard, egressGuardWebSocket } from "../egress.js";
 import { SafetyError } from "../errors.js";
 import { cloudflareProviderMismatch, isCloudflareAiGatewayHost, parseModelBaseUrl } from "../model-url.js";
 
@@ -25,6 +25,14 @@ export interface ExplicitProviderOptions<PROVIDER extends ExplicitProviderName =
    * use https, and it must not be Vercel AI Gateway.
    */
   readonly baseURL: string;
+  /**
+   * The token of a Cloudflare AI Gateway with authentication turned on. The guard sends it as `cf-aig-authorization`
+   * with every request, beside the provider key, and allows no other second credential. `baseURL` must then name one
+   * Cloudflare AI Gateway, `/v1/{account}/{gateway}/{provider}`, so the token can reach no other host or account. Left
+   * out, a request that carries `cf-aig-authorization` is refused. The package has no stored-key mode: `apiKey` is
+   * always sent, which Cloudflare treats as the request's own key.
+   */
+  readonly gatewayToken?: string;
   /** The `fetch` that sends a request once the guard allows it. Defaults to `globalThis.fetch`. */
   readonly fetch?: typeof fetch;
 }
@@ -77,10 +85,12 @@ export function explicitProvider(options: ExplicitProviderOptions): AnthropicPro
  * `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. It sends every request through `egressGuard()`, and every OpenAI
  * WebSocket handshake through the same checks, which refuse a request to another host or with another credential. A
  * request to Cloudflare AI Gateway also carries `cf-aig-no-wholesale: true`. A gateway with authentication turned on
- * needs a `cf-aig-authorization` header, which the guard refuses as a second credential, so it can't be used here.
+ * needs its token in a `cf-aig-authorization` header: pass it as `gatewayToken`, and the guard sends it and allows no
+ * other second credential and no other host.
  *
  * Throws a `SafetyError`, code `invalid_byok_config`, before any request when the key is missing, empty or padded with
- * whitespace, when the base URL is missing or breaks the guard's rules, or when it points at Vercel AI Gateway.
+ * whitespace, when the base URL is missing or breaks the guard's rules, when it points at Vercel AI Gateway, or when a
+ * `gatewayToken` is unusable or the base URL does not name one Cloudflare AI Gateway.
  */
 export function explicitProvider(options: ExplicitProviderOptions): AnthropicProvider | OpenAIProvider {
   const { provider } = options;
@@ -90,10 +100,20 @@ export function explicitProvider(options: ExplicitProviderOptions): AnthropicPro
   const apiKey = checkApiKey(options.apiKey, provider);
   const baseURL = checkBaseUrl(options.baseURL, provider);
   const credential = credentialFor(provider, apiKey);
-  const guard = egressGuard({ baseURL, credential, ...(options.fetch === undefined ? {} : { fetch: options.fetch }) });
+  // Checked here first, so a refusal names explicitProvider and not the guard beneath it.
+  checkGatewayToken(options.gatewayToken, baseURL, `explicitProvider(${provider})`);
+  const gateway = options.gatewayToken === undefined ? {} : { gatewayToken: options.gatewayToken };
+  const guard = egressGuard({
+    baseURL,
+    credential,
+    ...gateway,
+    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+  });
   if (provider === "anthropic") return createAnthropic({ apiKey, baseURL, fetch: guard });
   // OpenAI's realtime transcription and speech translation open a WebSocket instead of calling fetch, so the
   // handshake goes through the same checks.
-  const webSocket = egressGuardWebSocket({ baseURL, credential }) as NonNullable<OpenAIProviderSettings["webSocket"]>;
+  const webSocket = egressGuardWebSocket({ baseURL, credential, ...gateway }) as NonNullable<
+    OpenAIProviderSettings["webSocket"]
+  >;
   return createOpenAI({ apiKey, baseURL, fetch: guard, webSocket });
 }
