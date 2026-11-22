@@ -28,21 +28,22 @@ export function scripted(steps: ScriptStep[]): { adapter: ScriptedModel; model: 
 /**
  * A `SessionLock` that holds its locks in this process's memory. The harness ships only a file-backed lock, and a book
  * example writes no file, so this stands in for it: one writer per user and session, released by `session.close()`.
+ * Each hold has its own token, and a release frees the lock only while that token still holds it, so a second release
+ * never frees another writer's lock.
  */
 export function memoryLock(): SessionLock {
-  const held = new Set<string>();
+  const held = new Map<string, string>();
   return {
     async acquire(key: SessionKey): Promise<LockHandle | "would_block"> {
       const name = JSON.stringify([key.userId, key.sessionId]);
       if (held.has(name)) return "would_block";
-      held.add(name);
-      let live = true;
+      const token = globalThis.crypto.randomUUID();
+      held.set(name, token);
       return {
-        token: name,
-        held: () => live,
+        token,
+        held: () => held.get(name) === token,
         async release() {
-          live = false;
-          held.delete(name);
+          if (held.get(name) === token) held.delete(name);
         },
       };
     },

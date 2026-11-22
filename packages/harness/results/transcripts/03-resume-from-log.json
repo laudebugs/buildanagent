@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 19,
+      "line": 22,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -35,7 +35,7 @@
     },
     {
       "kind": "response",
-      "line": 19,
+      "line": 22,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -50,7 +50,7 @@
     },
     {
       "kind": "request",
-      "line": 19,
+      "line": 27,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -95,7 +95,7 @@
     },
     {
       "kind": "response",
-      "line": 19,
+      "line": 27,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -110,25 +110,25 @@
     },
     {
       "kind": "check",
-      "line": 27,
+      "line": 30,
       "message": "both turns finish",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 28,
-      "message": "the resumed turn keeps the same session key",
+      "line": 34,
+      "message": "the second turn's first entry follows the first turn's last",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 30,
+      "line": 36,
       "message": "the resumed request carries the first question and answer, then the new question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 32,
+      "line": 37,
       "message": "the earlier turn's codeword is in the request",
       "pass": true
     }

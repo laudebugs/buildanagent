@@ -14,16 +14,19 @@ const { adapter, model } = scripted([
 const harness = createHarness({ registry: createToolRegistry(), model, system: "You keep notes." });
 const key = { userId: "ada", sessionId: "chat-1" }; // book:note key
 const store = memoryStore(); // book:note store
-const session = await openSession({ store, index: memoryIndex(), lock: memoryLock(), key });
+const session = await openSession({ store, index: memoryIndex(), lock: memoryLock(), key }); // book:note lock
 
 await runTurn(session, harness, { input: "Remember the codeword PELICAN." });
 const first = adapter.calls[0]?.context.messages.length;
 await runTurn(session, harness, { input: "What was the codeword?" }); // book:note second
-const second = adapter.calls[1]?.context.messages;
+const second = adapter.calls[1]?.context.messages ?? [];
+const textOf = (message?: (typeof second)[number]) =>
+  message?.content.map((block) => (block.type === "text" ? block.text : "")).join("");
 
 check(first === 1, "the first request carries one message, the question"); // book:note first-run
-check(second?.length === 3, "the second request carries the first question and answer, then the new question");
-check(second?.[0]?.role === "user" && second[1]?.role === "assistant", "the first two are the first turn's");
+check(second.length === 3, "the second request carries the first question and answer, then the new question");
+check(textOf(second[0]) === "Remember the codeword PELICAN.", "the first message is the first turn's question");
+check(textOf(second[1]) === "Noted: PELICAN.", "the second message is the first turn's answer");
 const logged = [];
 for await (const entry of store.load(key)) logged.push(entry.type);
 check(

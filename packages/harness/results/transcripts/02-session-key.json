@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 29,
+      "line": 24,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -35,7 +35,7 @@
     },
     {
       "kind": "response",
-      "line": 29,
+      "line": 24,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -50,7 +50,7 @@
     },
     {
       "kind": "request",
-      "line": 29,
+      "line": 27,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -68,7 +68,7 @@
     },
     {
       "kind": "response",
-      "line": 29,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -83,7 +83,7 @@
     },
     {
       "kind": "request",
-      "line": 29,
+      "line": 30,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -101,7 +101,7 @@
     },
     {
       "kind": "response",
-      "line": 29,
+      "line": 30,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -116,7 +116,7 @@
     },
     {
       "kind": "request",
-      "line": 29,
+      "line": 34,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -134,7 +134,7 @@
     },
     {
       "kind": "response",
-      "line": 29,
+      "line": 34,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -149,31 +149,31 @@
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 38,
       "message": "the second call on ada's session a sees the first exchange and the new question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 39,
       "message": "ada's new session b starts empty: only the new question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 40,
       "message": "bob's session a starts empty: only the new question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 43,
+      "line": 41,
       "message": "bob's turn writes nothing to ada's log",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 44,
       "message": "bob's log holds his turn and none of ada's",
       "pass": true
     }

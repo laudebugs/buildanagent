@@ -83,25 +83,31 @@
     },
     {
       "kind": "check",
-      "line": 24,
+      "line": 26,
       "message": "the first request carries one message, the question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 25,
+      "line": 27,
       "message": "the second request carries the first question and answer, then the new question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 26,
-      "message": "the first two are the first turn's",
+      "line": 28,
+      "message": "the first message is the first turn's question",
       "pass": true
     },
     {
       "kind": "check",
       "line": 29,
+      "message": "the second message is the first turn's answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 32,
       "message": "the log holds both turns",
       "pass": true
     }
