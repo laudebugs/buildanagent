@@ -1,0 +1,234 @@
+{
+  "format": 2,
+  "example": "07-identity-tool",
+  "file": "packages/sdk/examples/07-identity-tool.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 36,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You help support customers."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Check bob@example.com too."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 36,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_customer",
+            "input": {
+              "customerId": "cust-7"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 36,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_customer",
+              "output": "{\"customerId\":\"cust-42\",\"name\":\"Ada\",\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 36,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Ada, you are on the pro plan."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 36,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You help support customers."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is my plan?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 36,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_customer",
+            "input": {
+              "customerId": "cust-42"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 36,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_customer",
+              "output": "{\"customerId\":\"cust-7\",\"name\":\"Bob\",\"plan\":\"team\",\"openTickets\":5}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 36,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Bob, you are on the team plan."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 58,
+      "message": "the model is offered a tool with no field in which to name a customer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 62,
+      "message": "the run answers after one lookup",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 63,
+      "message": "the lookup ran for the signed-in customer, and the id the model sent was dropped from its input",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "the result holds the signed-in customer's record",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "the other customer's record never reaches the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 71,
+      "message": "the next request's run read its own session's customer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "the first request's customer never reaches the second request",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 85,
+      "message": "the app data reaches none of Ada's requests",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 85,
+      "message": "the app data reaches none of Bob's requests",
+      "pass": true
+    }
+  ]
+}

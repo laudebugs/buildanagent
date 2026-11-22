@@ -33,6 +33,8 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "call-workflow-loop/loop-bench",
     "call-workflow-loop/ticket-rail",
     "call-workflow-loop/who-decides",
+    "choosing-the-shape/reading-rooms",
+    "choosing-the-shape/three-tiers",
     "durable-and-portable-agents/containers",
     "durable-and-portable-agents/seams",
     "evals-observability-and-release/bridge",

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T52` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T12](../done/T12-chapter-tools.md), [B10](../done/B10-tool-runtime.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
@@ -39,17 +39,17 @@ Give Chapter 3, "Tools: schemas, validation, errors the model can read, and iden
 
 ## Tasks
 
-- [ ] Write the examples for our tabs, with regions, notes and transcripts.
-- [ ] Turn each listing in the table into a tabs block with our tab first; add our rows to the two tables.
-- [ ] Fact-check every changed claim into `apps/manual/fact-checks/tools.md` as a new block, with corrections as their own rows, and update the tally.
+- [x] Write the examples for our tabs, with regions, notes and transcripts.
+- [x] Turn each listing in the table into a tabs block with our tab first; add our rows to the two tables.
+- [x] Fact-check every changed claim into `apps/manual/fact-checks/tools.md` as a new block, with corrections as their own rows, and update the tally.
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
-- [ ] Each listing in the table is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged
-- [ ] Every API identifier in the chapter's inline code resolves, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
-- [ ] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
+- [x] Each listing in the table is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged
+- [x] Every API identifier in the chapter's inline code resolves, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
+- [x] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
 
 ## Tests
 
@@ -70,9 +70,16 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **The examples.** Three files in `packages/sdk/examples/`: `05-order-status-tool.ts` (regions `tool` and `retry`, an order lookup and a call that breaks its schema), `06-tool-failures.ts` (a throwing function, with and without `redactErrors`, which backs a table row and is listed nowhere) and `07-identity-tool.ts` (region `lookup-customer`, a lookup that reads the customer from `ctx.app`, run for two requests with two sessions). `book-examples.test.ts` runs each offline and records its transcript in `packages/sdk/results/transcripts/`. The todo's table named two new examples; the failures example is a third, because the table row for a thrown error needed a run behind it. Our package code is unchanged.
+- **The chapter.** `#tool-ours`, `#adk-retry-ours` and `#adk-identity-ours` each come first in a tabs block, beside the listings the chapter showed before with their files, regions and notes unchanged. The retry and identity tabs replay our transcripts. The two tables gain our row first. `#weather-run` and `#claude-allowed` stay single listings, as the todo's scope says, and the chapter says why. The chapter cites the register's existing `buildanagent-sdk-hooks` entry, the README at tag `v0.1.0-alpha.26`, for the `app` section and the error text. `#claude-allowed` stays single because our SDK has no MCP client yet; only a test double, `scriptedMcpServer()`, exists.
+- **Fact-check.** Rows 105 to 145 of `apps/manual/fact-checks/tools.md`. Rows 108, 120, 125 and 134 were corrected while drafting and in the BK21 section checks, not by a code review, and each has a correction row (✏️). A later guard in the identity example made row 139 ✏️ too, with row 144 as its correction. The tally reads 130 ✅, 13 ✏️ and 2 ⚠️, 145 rows in all.
+- **Proposal for the owner.** The new examples keep their inline `check()` calls and tracking arrays, as the merged T50 examples do, because `docs/guidelines/examples.md` has no exception for book examples. If the owner wants one, a guideline change should say what a book example may inline.
