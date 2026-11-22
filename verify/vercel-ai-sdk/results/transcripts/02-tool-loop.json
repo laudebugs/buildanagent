@@ -3,8 +3,8 @@
   "example": "02-tool-loop",
   "file": "verify/vercel-ai-sdk/examples/02-tool-loop.ts",
   "harness": "verify/vercel-ai-sdk",
-  "pin": "ai@7.0.162",
-  "mock": "ai@7.0.162",
+  "pin": "ai@7.0.173",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "request",

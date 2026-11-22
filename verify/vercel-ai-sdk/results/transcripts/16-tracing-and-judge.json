@@ -3,8 +3,8 @@
   "example": "16-tracing-and-judge",
   "file": "verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts",
   "harness": "verify/vercel-ai-sdk",
-  "pin": "ai@7.0.162",
-  "mock": "ai@7.0.162",
+  "pin": "ai@7.0.173",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "request",

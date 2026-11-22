@@ -1,0 +1,183 @@
+{
+  "format": 2,
+  "example": "05-deferred-tools",
+  "file": "packages/harness/examples/05-deferred-tools.ts",
+  "harness": "packages/harness",
+  "pin": "@buildanagent/harness@workspace",
+  "mock": "@buildanagent/harness@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You use tools."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Use get_forecast for Lisbon."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "tool_search",
+        "mcp__weather-eager__get_forecast",
+        "mcp__weather-eager__lookup_station",
+        "mcp__weather-eager__set_units"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c1",
+            "name": "tool_search",
+            "input": {
+              "query": "forecast"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c1",
+              "name": "tool_search",
+              "output": "These tools are available on your next step:\n- mcp__weather__get_forecast (from mcp:weather; its own description comes with its definition)"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "tool_search",
+        "mcp__weather__get_forecast",
+        "mcp__weather-eager__get_forecast",
+        "mcp__weather-eager__lookup_station",
+        "mcp__weather-eager__set_units"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "c2",
+            "name": "mcp__weather__get_forecast",
+            "input": {
+              "city": "Lisbon"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "c2",
+              "name": "mcp__weather__get_forecast",
+              "output": "Lisbon: sunny, 24 C"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "tool_search",
+        "mcp__weather__get_forecast",
+        "mcp__weather-eager__get_forecast",
+        "mcp__weather-eager__lookup_station",
+        "mcp__weather-eager__set_units"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Sunny in Lisbon."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "the first request holds no deferred definition",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 60,
+      "message": "and does not name one either",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "the eager copy sent all three",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "tool search matched one tool by its words",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 66,
+      "message": "after the search, exactly one of the three is sent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "the other two definitions never reach the model",
+      "pass": true
+    }
+  ]
+}

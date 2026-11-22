@@ -3,8 +3,8 @@
   "example": "17-keyword-retrieval",
   "file": "verify/vercel-ai-sdk/examples/17-keyword-retrieval.ts",
   "harness": "verify/vercel-ai-sdk",
-  "pin": "ai@7.0.162",
-  "mock": "ai@7.0.162",
+  "pin": "ai@7.0.173",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "check",
