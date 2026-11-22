@@ -1,55 +1,55 @@
 [
   {
     "id": "ex:basic/prompt-id.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/basic/prompt-id.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/basic/prompt-id.ts",
     "pages": [
       "guides/models.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1240,
+    "ms": 1507,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/agents/agentWithContext.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/agents/agentWithContext.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/agents/agentWithContext.ts",
     "pages": [
       "guides/agents.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1155,
+    "ms": 1522,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/context/localContext.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/context/localContext.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/context/localContext.ts",
     "pages": [
       "guides/context.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1241,
+    "ms": 1627,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/custom-trace.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/custom-trace.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/custom-trace.ts",
     "pages": [
       "guides/tracing.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1195,
+    "ms": 1528,
     "modelCalls": 2,
     "tail": "Joke: Scripted model: hello from the offline model.\nRating: Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/extensions/ai-sdk-setup.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-setup.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-setup.ts",
     "pages": [
       "extensions/ai-sdk.mdx"
     ],
@@ -58,152 +58,152 @@
   },
   {
     "id": "ex:docs/extensions/ai-sdk-text-stream-response.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-text-stream-response.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-text-stream-response.ts",
     "pages": [
       "extensions/ai-sdk.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1300,
+    "ms": 1632,
     "modelCalls": 0,
     "tail": ""
   },
   {
     "id": "ex:docs/extensions/ai-sdk-ui-message-stream-response.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-ui-message-stream-response.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-ui-message-stream-response.ts",
     "pages": [
       "extensions/ai-sdk.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1330,
+    "ms": 1635,
     "modelCalls": 0,
     "tail": ""
   },
   {
     "id": "ex:docs/extensions/ai-sdk-ui-message-stream.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-ui-message-stream.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/extensions/ai-sdk-ui-message-stream.ts",
     "pages": [
       "extensions/ai-sdk.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1269,
+    "ms": 1593,
     "modelCalls": 0,
     "tail": ""
   },
   {
     "id": "ex:docs/guardrails/guardrails-input.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-input.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-input.ts",
     "pages": [
       "guides/guardrails.mdx"
     ],
     "outcome": "error",
     "exit": 1,
-    "ms": 1430,
+    "ms": 1434,
     "modelCalls": 2,
-    "tail": "Error: Expected the math homework guardrail to trip.\n    at main (/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-input.ts:41:11)"
+    "tail": "Error: Expected the math homework guardrail to trip.\n    at main (/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-input.ts:41:11)"
   },
   {
     "id": "ex:docs/guardrails/guardrails-output.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-output.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-output.ts",
     "pages": [
       "guides/guardrails.mdx"
     ],
     "outcome": "error",
     "exit": 1,
-    "ms": 1263,
+    "ms": 1488,
     "modelCalls": 2,
-    "tail": "Error: Expected the math output guardrail to trip.\n    at main (/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-output.ts:49:11)"
+    "tail": "Error: Expected the math output guardrail to trip.\n    at main (/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/guardrails/guardrails-output.ts:49:11)"
   },
   {
     "id": "ex:docs/hello-world-with-runner.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/hello-world-with-runner.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/hello-world-with-runner.ts",
     "pages": [
       "guides/running-agents.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1141,
+    "ms": 1530,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/hello-world.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/hello-world.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/hello-world.ts",
     "pages": [
       "guides/running-agents.mdx",
       "index.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1099,
+    "ms": 1473,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/human-in-the-loop/index.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/human-in-the-loop/index.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/human-in-the-loop/index.ts",
     "pages": [
       "guides/human-in-the-loop.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1223,
+    "ms": 1573,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/human-in-the-loop/server.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/human-in-the-loop/server.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/human-in-the-loop/server.ts",
     "pages": [
       "guides/human-in-the-loop.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1174,
+    "ms": 1467,
     "modelCalls": 0,
     "tail": ""
   },
   {
     "id": "ex:docs/mcp/hosted.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/mcp/hosted.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/mcp/hosted.ts",
     "pages": [
       "guides/mcp.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1194,
+    "ms": 1512,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/mcp/hostedHITL.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/mcp/hostedHITL.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/mcp/hostedHITL.ts",
     "pages": [
       "guides/mcp.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1099,
+    "ms": 1620,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/mcp/hostedStream.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/mcp/hostedStream.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/mcp/hostedStream.ts",
     "pages": [
       "guides/mcp.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1278,
+    "ms": 1540,
     "modelCalls": 1,
     "tail": "Done streaming; final result: Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/mcp/mcpServers.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/mcp/mcpServers.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/mcp/mcpServers.ts",
     "pages": [
       "guides/mcp.mdx"
     ],
@@ -212,7 +212,7 @@
   },
   {
     "id": "ex:docs/mcp/stdio.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/mcp/stdio.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/mcp/stdio.ts",
     "pages": [
       "guides/mcp.mdx"
     ],
@@ -221,7 +221,7 @@
   },
   {
     "id": "ex:docs/mcp/streamableHttp.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/mcp/streamableHttp.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/mcp/streamableHttp.ts",
     "pages": [
       "guides/mcp.mdx"
     ],
@@ -230,19 +230,19 @@
   },
   {
     "id": "ex:docs/models/gpt56RequestControls.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/models/gpt56RequestControls.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/models/gpt56RequestControls.ts",
     "pages": [
       "guides/models.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1251,
+    "ms": 1551,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/models/hostedMultiAgent.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/models/hostedMultiAgent.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/models/hostedMultiAgent.ts",
     "pages": [
       "guides/models.mdx"
     ],
@@ -251,140 +251,140 @@
   },
   {
     "id": "ex:docs/models/openaiProvider.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/models/openaiProvider.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/models/openaiProvider.ts",
     "pages": [],
     "outcome": "skipped",
     "reason": "explicit OpenAI client or model"
   },
   {
     "id": "ex:docs/models/retry.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/models/retry.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/models/retry.ts",
     "pages": [
       "guides/models.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1296,
+    "ms": 1484,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/quickstart/index.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/quickstart/index.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/quickstart/index.ts",
     "pages": [
       "guides/quickstart.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1138,
+    "ms": 1443,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/quickstart/runAgent.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/quickstart/runAgent.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/quickstart/runAgent.ts",
     "pages": [
       "guides/quickstart.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1135,
+    "ms": 1451,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/quickstart/runOrchestration.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/quickstart/runOrchestration.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/quickstart/runOrchestration.ts",
     "pages": [
       "guides/quickstart.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1166,
+    "ms": 1500,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/readme/readme-functions.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/readme/readme-functions.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/readme/readme-functions.ts",
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1383,
+    "ms": 1545,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/readme/readme-handoffs.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/readme/readme-handoffs.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/readme/readme-handoffs.ts",
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1180,
+    "ms": 1497,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/readme/readme-hello-world.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/readme/readme-hello-world.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/readme/readme-hello-world.ts",
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1162,
+    "ms": 1583,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/results/handoffFinalOutputTypes.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/results/handoffFinalOutputTypes.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/results/handoffFinalOutputTypes.ts",
     "pages": [
       "guides/results.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1241,
+    "ms": 1431,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/results/historyLoop.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/results/historyLoop.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/results/historyLoop.ts",
     "pages": [
       "guides/results.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1289,
+    "ms": 1624,
     "modelCalls": 10,
     "tail": ""
   },
   {
     "id": "ex:docs/results/usage.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/results/usage.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/results/usage.ts",
     "pages": [
       "guides/results.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1174,
+    "ms": 1479,
     "modelCalls": 1,
     "tail": "{ requests: 1, inputTokens: 0, outputTokens: 0, totalTokens: 0 }"
   },
   {
     "id": "ex:docs/running-agents/chatLoop.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/running-agents/chatLoop.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/running-agents/chatLoop.ts",
     "pages": [
       "guides/running-agents.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1303,
+    "ms": 1663,
     "modelCalls": 2,
     "tail": ""
   },
   {
     "id": "ex:docs/running-agents/conversationId.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/running-agents/conversationId.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/running-agents/conversationId.ts",
     "pages": [
       "guides/running-agents.mdx"
     ],
@@ -393,90 +393,90 @@
   },
   {
     "id": "ex:docs/running-agents/exceptions1.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/running-agents/exceptions1.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/running-agents/exceptions1.ts",
     "pages": [
       "guides/running-agents.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1242,
+    "ms": 1528,
     "modelCalls": 3,
     "tail": "Guardrail execution failed (input): GuardrailExecutionError: Input guardrail failed to complete: Error: Something is wrong!\nGuardrail execution failed (output): GuardrailExecutionError: Output guardrail failed to complete: Error: Output guardrail crashed."
   },
   {
     "id": "ex:docs/running-agents/exceptions2.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/running-agents/exceptions2.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/running-agents/exceptions2.ts",
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1399,
+    "ms": 1550,
     "modelCalls": 3,
     "tail": "Tool call failed: ToolCallError: Failed to run function tools: Error: Failed to get weather\nScripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/running-agents/previousResponseId.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/running-agents/previousResponseId.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/running-agents/previousResponseId.ts",
     "pages": [
       "guides/running-agents.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1324,
+    "ms": 1540,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model.\nScripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/sandbox-agents/basic.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/basic.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/basic.ts",
     "pages": [
       "guides/sandbox-agents.mdx",
       "guides/sandbox-agents/concepts.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1596,
+    "ms": 1816,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/sandbox-agents/conversation-identity.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/conversation-identity.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/conversation-identity.ts",
     "pages": [
       "guides/sandbox-agents/memory.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 3376,
+    "ms": 3844,
     "modelCalls": 6,
     "tail": ""
   },
   {
     "id": "ex:docs/sandbox-agents/developer-owned-lifecycle.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/developer-owned-lifecycle.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/developer-owned-lifecycle.ts",
     "pages": [
       "guides/sandbox-agents/concepts.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1309,
+    "ms": 1710,
     "modelCalls": 2,
     "tail": ""
   },
   {
     "id": "ex:docs/sandbox-agents/developer-owned-session.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/developer-owned-session.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/developer-owned-session.ts",
     "pages": [
       "guides/sandbox-agents/clients.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1363,
+    "ms": 1651,
     "modelCalls": 2,
     "tail": ""
   },
   {
     "id": "ex:docs/sandbox-agents/docker-client.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/docker-client.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/docker-client.ts",
     "pages": [
       "guides/sandbox-agents/clients.mdx"
     ],
@@ -485,31 +485,31 @@
   },
   {
     "id": "ex:docs/sandbox-agents/manifest-concurrency.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/manifest-concurrency.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/manifest-concurrency.ts",
     "pages": [
       "guides/sandbox-agents/clients.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1264,
+    "ms": 1649,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/sandbox-agents/sdk-owned-lifecycle.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/sdk-owned-lifecycle.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sandbox-agents/sdk-owned-lifecycle.ts",
     "pages": [
       "guides/sandbox-agents/concepts.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1264,
+    "ms": 1462,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/sessions/basicSession.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/basicSession.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/basicSession.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
@@ -518,43 +518,43 @@
   },
   {
     "id": "ex:docs/sessions/contextAwareSession.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/contextAwareSession.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/contextAwareSession.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1332,
+    "ms": 1457,
     "modelCalls": 2,
     "tail": ""
   },
   {
     "id": "ex:docs/sessions/customSession.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/customSession.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/customSession.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1109,
+    "ms": 1342,
     "modelCalls": 2,
     "tail": "Scripted model: hello from the offline model.\nScripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/sessions/memorySession.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/memorySession.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/memorySession.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1201,
+    "ms": 1398,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/sessions/responsesCompactionManualSession.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/responsesCompactionManualSession.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/responsesCompactionManualSession.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
@@ -563,7 +563,7 @@
   },
   {
     "id": "ex:docs/sessions/responsesCompactionSession.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/responsesCompactionSession.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/responsesCompactionSession.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
@@ -572,19 +572,19 @@
   },
   {
     "id": "ex:docs/sessions/resumableRun.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/resumableRun.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/resumableRun.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1115,
+    "ms": 1519,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/sessions/sessionInputCallback.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/sessions/sessionInputCallback.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/sessions/sessionInputCallback.ts",
     "pages": [
       "guides/sessions.mdx"
     ],
@@ -593,115 +593,115 @@
   },
   {
     "id": "ex:docs/streaming/basicStreaming.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/streaming/basicStreaming.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/streaming/basicStreaming.ts",
     "pages": [
       "guides/streaming.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1245,
+    "ms": 1600,
     "modelCalls": 1,
     "tail": ""
   },
   {
     "id": "ex:docs/streaming/handleAllEvents.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/streaming/handleAllEvents.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/streaming/handleAllEvents.ts",
     "pages": [
       "guides/streaming.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1328,
+    "ms": 1628,
     "modelCalls": 1,
     "tail": "    toolUseBehavior: 'run_llm_again',\n    resetToolChoice: true,\n    _toolsExplicitlyConfigured: false,\n    _modelSettingsExplicitlyConfigured: false,\n    [outputSchemaName]: [Getter]\n  },\n  [content]: [Getter]\n}"
   },
   {
     "id": "ex:docs/streaming/nodeTextStream.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/streaming/nodeTextStream.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/streaming/nodeTextStream.ts",
     "pages": [
       "guides/streaming.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1214,
+    "ms": 1566,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/streaming/streamedHITL.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/streaming/streamedHITL.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/streaming/streamedHITL.ts",
     "pages": [
       "guides/streaming.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 1306,
+    "ms": 1609,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/testing/fixedResponse.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/testing/fixedResponse.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/testing/fixedResponse.ts",
     "pages": [
       "guides/testing.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1286,
+    "ms": 1585,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 54.065337"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 72.731336"
   },
   {
     "id": "ex:docs/testing/requestAwareResponse.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/testing/requestAwareResponse.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/testing/requestAwareResponse.ts",
     "pages": [
       "guides/testing.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1209,
+    "ms": 1547,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 25.548466"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 55.756687"
   },
   {
     "id": "ex:docs/testing/sandboxWorkflow.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/testing/sandboxWorkflow.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/testing/sandboxWorkflow.ts",
     "pages": [
       "guides/testing.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1232,
+    "ms": 1605,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 72.307195"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 95.209546"
   },
   {
     "id": "ex:docs/testing/toolWorkflow.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/testing/toolWorkflow.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/testing/toolWorkflow.ts",
     "pages": [
       "guides/testing.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1215,
+    "ms": 1506,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 56.820564"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 76.930967"
   },
   {
     "id": "ex:docs/testing/workflowDrift.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/testing/workflowDrift.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/testing/workflowDrift.ts",
     "pages": [
       "guides/testing.mdx"
     ],
     "outcome": "ran-no-model",
     "exit": 0,
-    "ms": 1300,
+    "ms": 1578,
     "modelCalls": 0,
-    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 57.572526"
+    "tail": "# tests 1\n# suites 0\n# pass 1\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 57.167984"
   },
   {
     "id": "ex:docs/tools/codexRunContextThread.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/tools/codexRunContextThread.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/tools/codexRunContextThread.ts",
     "pages": [
       "guides/tools.mdx"
     ],
@@ -710,29 +710,29 @@
   },
   {
     "id": "ex:docs/toppage/sandboxAgent.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/toppage/sandboxAgent.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/toppage/sandboxAgent.ts",
     "pages": [
       "index.mdx"
     ],
     "outcome": "ran",
     "exit": 0,
-    "ms": 8295,
+    "ms": 5518,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/toppage/textAgent.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/toppage/textAgent.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/toppage/textAgent.ts",
     "pages": [],
     "outcome": "ran",
     "exit": 0,
-    "ms": 904,
+    "ms": 917,
     "modelCalls": 1,
     "tail": "Scripted model: hello from the offline model."
   },
   {
     "id": "ex:docs/tracing/run-with-tracing-api-key.ts",
-    "file": "/home/user/agent-speak/verify/openai-agents-sdk/extracted/examples/docs/tracing/run-with-tracing-api-key.ts",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/openai-agents-sdk/extracted/examples/docs/tracing/run-with-tracing-api-key.ts",
     "pages": [],
     "outcome": "skipped",
     "reason": "third-party credential"

@@ -7,7 +7,7 @@
 // runs only after `session.approve()`; and `session.interrupt()` reaches the transport, while a scripted
 // `audio_interrupted` reaches the session's own listener. On this transport neither causes the other: the session adds
 // no `audio_interrupted` of its own, and the scripted transport adds none when it records an interrupt.
-// Limits, as of `@openai/agents-realtime` 0.21.0 (November 2026). The testing guide's examples cover the history, tool
+// Limits, as of `@openai/agents-realtime` 0.22.0 (November 2026). The testing guide's examples cover the history, tool
 // and interruption checks, but none of them approves a tool call, so the approval check is our own. The scripted
 // transport's `interrupt()` only records the call. The real WebSocket transport also emits `audio_interrupted` itself
 // and sends a `conversation.item.truncate` event that cuts the reply to the audio the caller heard (unless the whole

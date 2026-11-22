@@ -104,7 +104,7 @@ What the model reads after a failure depends on the SDK, and the defaults differ
 | SDK | The arguments break the schema | The function throws |
 | --- | --- | --- |
 | Our SDK | `The arguments for tool "{tool}" are invalid:`, each failing field by its JSON Pointer path with the schema library's message, the arguments received, and a line that says not to substitute invented data | `Tool "{tool}" failed: {message}`, then the received arguments and the same line, marked as an error |
-| OpenAI Agents SDK | One fixed sentence: "An error occurred while running the tool. Please try again." | The same sentence |
+| OpenAI Agents SDK | One fixed sentence: "An error occurred while running the tool." | The same sentence |
 | Google ADK | An error field: "Error in tool '…'" and Zod's issues | An error field: "Error in tool '…'" and the thrown message |
 | Pi | "Validation failed for tool …", each failing field, and the arguments received | The thrown message, marked as an error |
 | Claude Agent SDK | An error result from the in-process MCP server, starting "MCP error -32602: Input validation error" | The raw exception message, marked as an error |
