@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 3](../../plans/build-harness.md#43-stage-3-adds-the-registry-the-permission-pipeline-signed-approvals-and-code-initiated-calls) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N13](../done/N13-signed-approvals.md), [N14](N14-sticky-grouped-quorum.md), [B15](../done/B15-signed-pauses.md), [E2](../done/E2-effect-identity-crash-rule.md) |
+| Depends on | [N13](../done/N13-signed-approvals.md), [N14](../done/N14-sticky-grouped-quorum.md), [B15](../done/B15-signed-pauses.md), [E2](../done/E2-effect-identity-crash-rule.md) |
 | Size | M |
 
 ## Goal

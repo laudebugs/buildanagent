@@ -316,7 +316,8 @@ type SessionEntry = EntryBase & (
       firstKeptEntryId: string; tokensBefore: number; tokensAfter: number; model: ModelRef;
       promptVersion: string; usageEntryId: string; focus?: string }
   | { type: "approval_requested"; request: SignedPendingRequest; input: unknown } // Revision: the SDK record, unchanged, and the input the resume needs
-  | { type: "approval_resolved"; resolution: Resolution; sticky?: "run" | "session"; groupId?: string }
+  | { type: "approval_resolved"; resolution: Resolution; sticky?: "run" | "session"; groupId?: string;
+      allowance?: { tool: string; inputHash?: string; commandPrefix?: string[] } }   // built in N14: what a sticky allowance matches
   | { type: "env_stamp"; cwd: string; permissionMode: PermissionMode; approvalPolicy: ApprovalPolicy;
       sandbox: SandboxClient["tier"]; model: ModelRef; effort?: string }
   | { type: "loadout"; tools: string[]; model?: ModelRef; effort?: string }   // tool-loadout and model changes
@@ -718,7 +719,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N11](../todos/done/N11-tool-registry.md) | Tool registry: canonical names, exposure, tool search and host tools | N1, B12 | M |
 | [N12](../todos/done/N12-permission-pipeline.md) | Permission pipeline: order, rules, modes and the no-match default | N11, B13 | M |
 | [N13](../todos/done/N13-signed-approvals.md) | Signed approvals in the log: key ring, pause, resume with re-evaluation | N12, N7 | M |
-| [N14](../todos/ready/N14-sticky-grouped-quorum.md) | Sticky allowances, grouped approvals and the quorum hook | N13 | M |
+| [N14](../todos/done/N14-sticky-grouped-quorum.md) | Sticky allowances, grouped approvals and the quorum hook | N13 | M |
 | [N40](../todos/ready/N40-code-initiated-calls.md) | Code-initiated tool calls: `Harness.invokeTool()` and the `code_call` entry | N13, N14, B15, E2 | M |
 
 ### 4.4 Stage 4 adds the sandbox backends and the credential proxy

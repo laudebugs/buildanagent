@@ -33,7 +33,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 **Out of scope** (and which todo covers it)
 
-- The chained pipeline and barge-in on Cloudflare: [T47](T47-example-voice-pipeline.md)
+- The chained pipeline and barge-in on Cloudflare: [T47](../done/T47-example-voice-pipeline.md)
 - Truncation of the reply to the heard audio, which needs the real transport; the section explains it in prose
 - Section T38's prose: [T38](T38-section-voice-and-realtime.md)
 - Voice sections in the SDK references: [S10](S10-voice-reference-sections.md)

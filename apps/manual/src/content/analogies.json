@@ -302,5 +302,53 @@
     "chapter": "the-session-log-and-context",
     "illustration": null,
     "breaks": "A model writes the recap and can drop facts, so the original entries stay in the log and the harness can put any of them back in front of the model."
+  },
+  {
+    "id": "bridge-every-crossing",
+    "concept": "pass^k",
+    "analogy": "a bridge that must hold every crossing",
+    "chapter": "evals-observability-and-release",
+    "illustration": "bridge",
+    "breaks": "A bridge's loads are roughly independent from one crossing to the next; an agent's failures are not independent across runs, because the same task, tool or prompt can fail the same way each time."
+  },
+  {
+    "id": "teaching-assistant-rubric",
+    "concept": "LLM judge",
+    "analogy": "a teaching assistant grading against a rubric",
+    "chapter": "evals-observability-and-release",
+    "illustration": null,
+    "breaks": "A judge can be wrong in systematic ways, such as favouring longer answers, so its grades are checked against a person's before they gate anything."
+  },
+  {
+    "id": "parcel-tracking",
+    "concept": "tracing",
+    "analogy": "a parcel's tracking history",
+    "chapter": "evals-observability-and-release",
+    "illustration": null,
+    "breaks": "A span also carries token counts and cost, which a tracking page does not, and a span tree nests steps inside steps where a parcel's history is a flat list."
+  },
+  {
+    "id": "preview-performances",
+    "concept": "staged rollout",
+    "analogy": "a play's preview performances before opening night",
+    "chapter": "evals-observability-and-release",
+    "illustration": null,
+    "breaks": "A preview audience knows it is a preview; real users are real from the first stage, so the first stage is shadow mode, where the agent proposes and nothing is applied."
+  },
+  {
+    "id": "circuit-breaker-settings",
+    "concept": "graded kill switch",
+    "analogy": "a circuit breaker with several settings",
+    "chapter": "evals-observability-and-release",
+    "illustration": null,
+    "breaks": "A breaker cuts the current and loses what was in flight; the switch must stop new side effects without losing the log of those already begun."
+  },
+  {
+    "id": "purchase-order",
+    "concept": "agent-to-agent protocol",
+    "analogy": "firms that contract through a standard purchase order",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "A purchase order is filed and forgotten, while an A2A task can stream updates and ask for more input; and a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that the calling model reads as prose."
   }
 ]

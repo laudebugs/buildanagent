@@ -88,6 +88,20 @@
     "sources": ["anthropic-model-context-protocol"]
   },
   {
+    "id": "a2a",
+    "term": "A2A",
+    "kind": "abbr",
+    "expansion": "Agent2Agent protocol",
+    "definition": "An open protocol for handing a task to an agent that someone else owns: the caller reads the agent's card, sends a message and follows a task that may stream or pause for input.",
+    "sources": ["a2a-spec"]
+  },
+  {
+    "id": "agent-card",
+    "term": "Agent Card",
+    "definition": "The JSON document in which an A2A server describes itself: its name, skills in prose, and the addresses and bindings it answers on. A caller reads it before sending a task, and nothing vets what it says.",
+    "sources": ["a2a-spec"]
+  },
+  {
     "id": "token",
     "term": "token",
     "definition": "The smallest unit a language model reads and writes, such as a word, part of a word or a character. Providers count a call's input and output in tokens and bill by the count.",
@@ -230,5 +244,17 @@
     "term": "writer lock",
     "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
     "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "pass-k",
+    "term": "pass^k",
+    "definition": "The share of tasks that an agent gets right on all k of k independent attempts. Unlike pass@k, which counts a task if any one attempt succeeds, pass^k measures consistency, and it falls as k grows.",
+    "sources": ["anthropic-demystifying-evals"]
+  },
+  {
+    "id": "llm-judge",
+    "term": "LLM judge",
+    "definition": "A model that grades another model's output against a written rubric, returning a score and a verdict. It scales to free-form answers that code cannot check, and its grades have to be checked against a person's.",
+    "sources": ["anthropic-multi-agent-research-system"]
   }
 ]
