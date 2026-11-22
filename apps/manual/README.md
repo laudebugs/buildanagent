@@ -105,7 +105,7 @@ const result = await generateText({ model, instructions: "You are terse.", promp
 // #endregion
 ```
 
-The build cuts the lines between the markers, drops any markers of regions nested inside, removes the indentation the lines share and highlights them with Shiki. The caption line shows the number, such as "Listing 1.1", then the caption you wrote, the file's path, the line range and the pinned version of the harness's main package, such as `ai@7.0.162` as of November 2026. Each code line also shows its own number in the file. Without `region`, the listing shows the whole file without its markers. References use the same id as any listing, `[[lst:one-call]]`.
+The build cuts the lines between the markers, drops any markers of regions nested inside, removes the indentation the lines share and highlights them with Shiki. The caption line shows the number, such as "Listing 1.1", then the caption you wrote, the file's path, the line range and the pinned version of the harness's main package, such as `ai@7.0.173` as of November 2026. Each code line also shows its own number in the file. Without `region`, the listing shows the whole file without its markers. References use the same id as any listing, `[[lst:one-call]]`.
 
 Region names are kebab-case and unique in their file, and an `// #endregion` may repeat its name (`// #endregion call`). The build finds markers line by line without parsing the code, so a line inside a template literal or a block comment that starts with `// #region` also counts as a marker.
 

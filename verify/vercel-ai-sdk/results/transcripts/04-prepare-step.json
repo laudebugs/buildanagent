@@ -3,8 +3,8 @@
   "example": "04-prepare-step",
   "file": "verify/vercel-ai-sdk/examples/04-prepare-step.ts",
   "harness": "verify/vercel-ai-sdk",
-  "pin": "ai@7.0.162",
-  "mock": "ai@7.0.162",
+  "pin": "ai@7.0.173",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "check",

@@ -7,7 +7,7 @@ glossary: [approval, guardrail, prompt-injection, lethal-trifecta]
 switchTo: [B15, E3]
 ---
 
-In November 2026 we paused a refund run, edited one order number in the saved copy and approved the pause. The pause had asked about order A-1, and the refund went to order Z-9. The edit worked on the OpenAI Agents SDK 0.22.0 and on the AI SDK 7.0.162, because the OpenAI SDK leaves the check to you and the AI SDK makes it only when you give it a secret. OpenAI's documentation states the gap directly: `RunState.fromString()` "does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop].
+In November 2026 we paused a refund run, edited one order number in the saved copy and approved the pause. The pause had asked about order A-1, and the refund went to order Z-9. The edit worked on the OpenAI Agents SDK 0.22.0 and on the AI SDK 7.0.173, because the OpenAI SDK leaves the check to you and the AI SDK makes it only when you give it a secret. OpenAI's documentation states the gap directly: `RunState.fromString()` "does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop].
 
 An approval is therefore more than a click. It is a pause saved as data, a decision that arrives later, and a rule for what that decision may cover. This chapter follows the pause from the model's request to the resumed run, shows what an edited call does at each step, and then places the approval among the other gates an agent needs: guardrails on what goes in and out, and containment for the prompt injection that no gate fully stops.
 
