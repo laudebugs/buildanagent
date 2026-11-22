@@ -26,6 +26,9 @@ const nodeOnlyFiles = new Set([
   "sandbox/base.ts",
   "sandbox/srt/index.ts",
   "sandbox/docker/index.ts",
+  // The egress proxy listens on a local socket and resolves names, so it is Node-only by nature. It has its own entry,
+  // `@buildanagent/harness/credentials`, whose scrubber and address check are portable.
+  "credentials/egress-proxy.ts",
   // The harness's JSONL session store and file lock keep sessions, locks and pointers in files, so they are Node-only by
   // nature. They have their own entry, `@buildanagent/harness/session/jsonl`, and the portable `./session` entry
   // never imports them.

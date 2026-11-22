@@ -106,6 +106,27 @@ Five limits are worth knowing:
 
 `pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the lock-down cases against a real daemon, with a pinned Node image. It is opt-in, and it fails on a skipped case instead of skipping. Without Docker, the rest of `pnpm test` checks the flags and the unavailable paths with a fake client.
 
+## The egress proxy keeps every credential outside the sandbox
+
+`startEgressProxy({ allow, routes, log })` from `./credentials` starts a proxy on `127.0.0.1`, or on a Unix socket you give it (`socketPath`, which is what `dockerSandbox`'s `proxySocket` mounts). Nothing leaves the sandbox except through it. It refuses everything that isn't on its allowlist with a 403, and it writes one log record for each request: the host, the method, the status and the bytes, never a header or a body. Give the sandbox `proxy.url` as `HTTPS_PROXY`.
+
+A tunnel (`CONNECT`) goes only to an allowlisted name on an allowlisted port, which is 443 unless the entry says `:port`. An entry is a name, or `*.name` for every name under it. The proxy resolves the name itself, checks every address it gets, and refuses the whole request if any one is not public: loopback, link-local (which holds the cloud metadata address 169.254.169.254), private, shared, multicast and reserved ranges, for IPv4 and IPv6, and IPv6 addresses that wrap one of them. It then connects to the address it checked, so a name that answers differently a moment later can't redirect the connection. An address literal as a target, an HTTP proxy request in absolute form and a malformed target are refused without a lookup.
+
+A tool that needs a credential uses a route. `routes` lists, for each one, a name, an HTTPS host, the methods it accepts, the header that carries the credential and a function that returns the real secret. The sandbox sends `http://127.0.0.1:<port>/<route>/path` and puts `proxy.sentinels[route]`, a random placeholder, where the credential goes, such as `Authorization: Bearer <sentinel>`. The proxy checks the route, the method and the sentinel, replaces the sentinel with the secret and forwards the request over HTTPS to the route's host, with the same address check. The secret is read for each request, so a rotated key is used at once, and it never enters the sandbox's environment, a log record or a response from the proxy.
+
+`proxy.fetch(input, init)` is for tools that run in the harness's own process, which a network sandbox doesn't confine. It applies the same allowlist, address check and pinned connection, and it rejects with `egress_denied` for a host that isn't allowed. It uses HTTPS only and doesn't follow redirects, so each hop is a new call that the allowlist checks. A URL under `proxy.url` is a route request, with the same injection.
+
+`scrubSecrets(entry, secrets)` returns a copy of a session entry with each secret replaced by `[REDACTED]`, in every string and key at any depth, and also when the secret was percent-encoded, JSON-escaped or turned into base64. Apply it before every append, with `await proxy.knownSecrets()` and the tokens and session URLs of any hosted-browser, CDP or OAuth connector tool, because the scrubber can only remove a secret it is told about.
+
+Four limits are worth knowing:
+
+- **An allowed credential can still act.** The sandbox holds a placeholder, not the secret, but it can ask the proxy to use the real one on that host and those methods. Scope each route to the host and methods the task needs.
+- **A service that echoes the credential back reveals it.** The proxy doesn't read responses, so a route to a service that returns the request's headers hands the secret to the sandbox. Scrub the entry, and don't route to such a service.
+- **No TLS inspection.** A tunnel is an opaque stream: the proxy knows the name, not what the tool sends. Only a route can add a credential, and only a route sees the request.
+- **Local processes can reach it.** The proxy listens on loopback, so any process on the host can use its allowed tunnels. Only a process that knows a sentinel can use a route, and sentinels are random for each proxy. A Unix socket narrows access to the socket's file permissions.
+
+`pnpm test` runs the proxy against a real HTTPS server on loopback with a self-signed certificate that only the test trusts, and a table in place of DNS.
+
 ## Every spawned process gets a cleared environment
 
 `spawnEnv(allow, extra)` builds the whole environment for a spawned process. It returns `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, the parent variables that `allow` names and the parent has, and `extra`. Nothing else is copied, so a key set in the parent never reaches a child. The caller removes the temp `HOME` when the process is done; an `extra.HOME` replaces it and no folder is made. `PATH` is the parent's with every entry that isn't absolute removed, so a `.` can't run a program from the working directory, and `TMPDIR` is the shared system temp directory, not a private one.

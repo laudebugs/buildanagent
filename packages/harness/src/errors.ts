@@ -11,6 +11,8 @@ export type HarnessErrorCode =
   | "sandbox_disposed"
   | "sandbox_not_found"
   | "sandbox_io_failed"
+  | "egress_denied"
+  | "invalid_egress_options"
   | "unsafe_sandbox_not_acknowledged"
   | "invalid_sandbox_options"
   | "invalid_spawn_env"

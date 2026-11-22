@@ -58,7 +58,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - `CredentialRoute { route; host; methods; header; secret: () => Promise<string> }`. The `secret` thunk is the only hook a token source could use, and **nothing is planned behind it**: no vault, no refresh, no per-user lookup.
   - `scrubSecrets()` runs before every append.
 
-  — `docs/plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls`; `docs/todos/ongoing/N20-credential-proxy.md#scope`
+  — `docs/plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls`; `docs/todos/done/N20-credential-proxy.md#scope`
 - **N43: `EgressPolicy { allow, routes }` compiled per backend.** It adds "a `routes` entry kind for git over HTTPS with a ref filter". — `docs/todos/ready/N43-remote-sandbox-egress-policy.md#tasks`
 - **Guide §6 rule:** "the harness takes API keys or proxy-injected credentials, never consumer-subscription OAuth". — `docs/guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both`
 - **Extensions and trust (guide §7, N22).**
