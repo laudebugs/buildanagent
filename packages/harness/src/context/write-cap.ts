@@ -22,9 +22,11 @@ export function headBytes(text: string, bytes: number): string {
 /** The byte length of `text` in UTF-8. */
 export const byteLength = (text: string): number => encoder.encode(text).length;
 
-/** The line that tells the model where the rest of a capped result went. */
-export const capNotice = (kept: number, total: number, path: string): string =>
-  `[output cut: the first ${kept} of ${total} bytes are shown; the full text is in ${path}]`;
+/** The line that tells the model where the rest of a capped result went, or that it was not kept. */
+export const capNotice = (kept: number, total: number, path: string | undefined): string =>
+  path === undefined
+    ? `[output cut: the first ${kept} of ${total} bytes are shown; the rest could not be saved]`
+    : `[output cut: the first ${kept} of ${total} bytes are shown; the full text is in ${path}]`;
 
 /** The room an entry's own fields (ids, timestamps, the call's name) take beside its content. */
 export const ENTRY_RESERVE_BYTES = 1024;

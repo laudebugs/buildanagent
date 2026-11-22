@@ -19,7 +19,7 @@ export function fileSpillStore(options: { readonly dir: string }): SpillStore {
       }
       const fs = process.getBuiltinModule("node:fs/promises");
       const path = process.getBuiltinModule("node:path");
-      const folder = path.join(options.dir, encodeName(key.userId), encodeName(key.sessionId));
+      const folder = path.resolve(options.dir, encodeName(key.userId), encodeName(key.sessionId));
       await fs.mkdir(folder, { recursive: true });
       const file = path.join(folder, `${encodeName(callId)}.txt`);
       await fs.writeFile(file, text, "utf8");

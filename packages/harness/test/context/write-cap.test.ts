@@ -109,16 +109,44 @@ describe("the write cap", () => {
     assert.ok(entry.spill.path.includes(start.runId));
   });
 
-  test("details that would crowd out the text are replaced by a note, so the entry still fits", async () => {
-    const { entries } = await runScripted(
+  test("details that alone are too big are replaced by a note, with no spill and no cut", async () => {
+    const { adapter, entries } = await runScripted(
       [call("c1", 40 * KIB), done],
       createContextPolicy({ spill: memorySpillStore() }),
       (_id, size) => "x".repeat(size),
       { big: "d".repeat(30 * KIB) },
     );
     const entry = entries.find((e) => e.type === "tool_result");
-    assert.ok(entry?.type === "tool_result" && entry.spill !== undefined);
+    assert.ok(entry?.type === "tool_result" && entry.spill === undefined);
     assert.deepEqual(entry.details, { omitted: "the result's details were over the entry bound" });
+    assert.equal(resultText(adapter).length, 40 * KIB);
+  });
+
+  test("details and text that are both big are cut together and still fit", async () => {
+    const { entries } = await runScripted(
+      [call("c1", 100 * KIB), done],
+      createContextPolicy({ spill: memorySpillStore() }),
+      (_id, size) => "x".repeat(size),
+      { big: "d".repeat(30 * KIB) },
+    );
+    const entry = entries.find((e) => e.type === "tool_result");
+    assert.ok(entry?.type === "tool_result" && entry.spill !== undefined);
+  });
+
+  test("a spill store that cannot write still gets the text cut, with a notice that the rest was lost", async () => {
+    const { adapter, entries } = await runScripted(
+      [call("c1", 100 * KIB), done],
+      createContextPolicy({
+        spill: {
+          async write() {
+            throw new Error("disk full");
+          },
+        },
+      }),
+    );
+    assert.ok(resultText(adapter).includes("the rest could not be saved"));
+    const entry = entries.find((e) => e.type === "tool_result");
+    assert.ok(entry?.type === "tool_result" && entry.spill === undefined);
   });
 
   test("a budget that is not a positive whole number is refused", () => {

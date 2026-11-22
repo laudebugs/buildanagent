@@ -86,14 +86,17 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
         }
       }
 
+      let spilled = 0;
       const afterToolCall: NonNullable<TurnContext["interceptors"]["afterToolCall"]> = async (event) => {
+        // Read the earlier turns' spills first, so this result takes its place after them in the list.
+        await learn();
         const capped = writeCap
           ? await capResult({
               content: event.result.content,
               details: event.result.details,
               cap,
-              name: `${event.runId}.${event.callId}`,
-              // The call id alone can repeat across turns, so the file is named by the run too.
+              name: `${event.runId}.${spilled++}.${event.callId}`,
+              // A call id can repeat across turns and within a run, so the file is named by the run and a count too.
               write: (name, text) =>
                 (options.spill as NonNullable<typeof options.spill>).write(session.key, name, text),
             })
