@@ -70,4 +70,15 @@ Depends on §3.6 need 11 for the final capability list; N35 checks it after B20.
 
 ## Outcome
 
-`createDispatcher()` and `inProcessTransport()` are in `@buildanagent/harness/server`, with ten tests in `packages/harness/test/server/dispatcher.test.ts`. `turn/start` claims the session before its first await, answers with its disposition, and only then starts the run, so no event reaches a client first. `runTurn()` gained a per-turn `observers` option, which unlike `Run.on()` also sees `run_start`. The dispatcher wraps the store to announce each appended entry with its own `seq`, and sends one `turn/settled` after `runTurn()` resolves or throws. Not done, and left to N28: a steer or follow-up queued before the run exists is dropped if the turn fails before the run starts, `session/list` and `initialize` scan every session on each call, and a created session that never takes a turn stays in the dispatcher's map; also cancellation of a request in flight, bounded queues, server requests and reconnect. The file for the in-process transport is `local-transport.ts`, because the portability test's `\bprocess\s*[.[]` pattern matches the import path `./in-process.js`.
+`createDispatcher()` and `inProcessTransport()` are in `@buildanagent/harness/server`, with fifteen tests in `packages/harness/test/server/dispatcher.test.ts`.
+
+- **Disposition first.** `turn/start` claims the session before its first await, answers with its disposition, and only then starts the run, so no event reaches a client before the reply.
+- **Events and settling.** The dispatcher wraps the store to announce each appended entry with its own `seq`, and sends one `turn/settled` after `runTurn()` resolves or throws. `runTurn()` gained a per-turn `observers` option, which, unlike `Run.on()`, also sees `run_start`.
+- **File name.** The in-process transport lives in `local-transport.ts`, because the portability test's `\bprocess\s*[.[]` pattern matches the import path `./in-process.js`.
+
+Not done, and left to N28:
+
+- A steer or follow-up queued before the run exists is dropped if the turn fails before the run starts.
+- `session/list` and `initialize` scan every session on each call.
+- A created session that never takes a turn stays in the dispatcher's map.
+- Cancellation of a request in flight, bounded queues, server requests and reconnect.
