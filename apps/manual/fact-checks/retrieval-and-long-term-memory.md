@@ -185,7 +185,7 @@ The claims log for [`retrieval-and-long-term-memory.md`](../src/content/chapters
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 113 |
+| ✅ confirmed | 112 |
 | ✏️ corrected | 3 (rows 11, 27 and 36) |
 | ⚠️ unverified: our inference or recommendation, marked as ours in the text, or an absence claim | 10 (rows 12, 13, 29, 42, 57, 89, 92, 103, 111 and 113) |
-| Total | 126 |
+| Total | 125 |
