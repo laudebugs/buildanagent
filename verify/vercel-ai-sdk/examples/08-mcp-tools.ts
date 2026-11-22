@@ -8,7 +8,6 @@ import { check, scripted } from "./lib/check.ts";
 type Msg = { jsonrpc: "2.0"; id?: number | string; method?: string; params?: any };
 const received: string[] = [];
 
-// #region in-process-server
 class InProcessServer implements MCPTransport {
   onmessage?: MCPTransport["onmessage"];
   async start() {}
@@ -43,7 +42,6 @@ class InProcessServer implements MCPTransport {
       );
   }
 }
-// #endregion
 
 // #region mcp-client
 const client = await createMCPClient({ transport: new InProcessServer() }); // book:note connect

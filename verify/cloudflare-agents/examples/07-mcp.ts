@@ -11,7 +11,6 @@ import { check, type Harness } from "./lib/check.ts";
 
 type Env = { McpUser: DurableObjectNamespace<McpUser> };
 
-// #region mcp-server
 function createServer() {
   const server = new McpServer({ name: "orders", version: "1.0.0" });
   server.registerTool(
@@ -21,8 +20,7 @@ function createServer() {
   );
   return server;
 }
-const handler = createMcpHandler(createServer); // book:note handler
-// #endregion
+const handler = createMcpHandler(createServer);
 
 // #region mcp-client
 export class McpUser extends Agent<Env> {
