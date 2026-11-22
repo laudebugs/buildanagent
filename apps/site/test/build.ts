@@ -29,7 +29,14 @@ export async function buildSite(): Promise<string> {
     LANG: process.env.LANG ?? "C.UTF-8",
     ASTRO_TELEMETRY_DISABLED: "1",
   };
-  await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: ROOT, env });
-  rmSync(home, { recursive: true, force: true });
-  return out;
+  try {
+    await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: ROOT, env });
+    return out;
+  } catch (error) {
+    // A failed build leaves nothing for the caller to remove, so clean up here.
+    rmSync(out, { recursive: true, force: true });
+    throw error;
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 }

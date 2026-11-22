@@ -1,6 +1,7 @@
 // Every string the landing page shows. Each factual sentence has a row in
 // docs/plans/reviews/fact-check-landing-page.md; change both together.
-const repo = "https://github.com/laudebugs/buildanagent";
+/** The repository, which the GitHub link, the package links and the footer licence link share. */
+export const repository = "https://github.com/laudebugs/buildanagent";
 
 export const copy = {
   brand: "Build An Agent",
@@ -8,7 +9,7 @@ export const copy = {
     { label: "Docs", href: "https://docs.buildanagent.fyi" },
     { label: "Manual", href: "https://manual.buildanagent.fyi" },
     { label: "Site", href: "/" },
-    { label: "GitHub", href: repo },
+    { label: "GitHub", href: repository },
   ],
   hero: {
     eyebrow: "Agent toolkit · alpha",
@@ -62,22 +63,22 @@ export const copy = {
       {
         name: "@buildanagent/harness",
         summary: "Keeps sessions and runs tools.",
-        href: `${repo}/tree/main/packages/harness#readme`,
+        href: `${repository}/tree/main/packages/harness#readme`,
       },
       {
         name: "@buildanagent/agent-safety",
         summary: "Types write outcomes, signs approvals and caps spend.",
-        href: `${repo}/tree/main/packages/agent-safety#readme`,
+        href: `${repository}/tree/main/packages/agent-safety#readme`,
       },
       {
         name: "@buildanagent/protocol",
         summary: "Defines the session log and client messages.",
-        href: `${repo}/tree/main/packages/protocol#readme`,
+        href: `${repository}/tree/main/packages/protocol#readme`,
       },
       {
         name: "@buildanagent/cli",
         summary: "Runs the harness in a terminal.",
-        href: `${repo}/tree/main/packages/cli#readme`,
+        href: `${repository}/tree/main/packages/cli#readme`,
       },
     ],
   },

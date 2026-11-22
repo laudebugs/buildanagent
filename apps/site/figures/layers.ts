@@ -116,10 +116,11 @@ function wide(): Drawing {
 }
 
 /**
- * The narrow drawing's width. At a 320 px viewport the figure has 320 less 32 px of page padding and 2 px of border, so
- * 286 px show 300 units, a scale of 0.953 and a 13 px label of 12.4 px, above the 12 px floor.
+ * The narrow drawing's width. The longest note, 36 characters at 13 px and an advance of 0.62 em, is 290 units, so 307
+ * leaves 8 units on each side. At a 320 px viewport the figure has 320 less 32 px of page padding and 2 px of border,
+ * so 286 px show 307 units, a scale of 0.932 and a 13 px label of 12.1 px, above the 12 px floor.
  */
-export const NARROW_WIDTH = 300;
+export const NARROW_WIDTH = 307;
 
 /** The narrow figure: each note under its slab, then the loop turn as two rows, for a phone. */
 function narrow(): Drawing {
@@ -129,31 +130,33 @@ function narrow(): Drawing {
     drawSlab(drawing, slab);
     drawing.text(layer.note, NARROW_WIDTH / 2, slab.top + 124, { anchor: "middle" });
   });
-  const callBox = { x: 10, y: 440, width: 120, height: 44 };
-  const toolBox = { x: 170, y: 440, width: 120, height: 44 };
+  // The loop row was drawn for 300 units; dx centres it in the wider canvas.
+  const dx = (NARROW_WIDTH - 300) / 2;
+  const callBox = { x: 10 + dx, y: 440, width: 120, height: 44 };
+  const toolBox = { x: 170 + dx, y: 440, width: 120, height: 44 };
   drawing.box("model-call", callBox);
   drawing.box("tool-calls", toolBox);
-  drawing.text(labels.modelCall, 70, 467, { anchor: "middle", on: "model-call" });
-  drawing.text(labels.toolCalls, 230, 467, { anchor: "middle", on: "tool-calls" });
+  drawing.text(labels.modelCall, 70 + dx, 467, { anchor: "middle", on: "model-call" });
+  drawing.text(labels.toolCalls, 230 + dx, 467, { anchor: "middle", on: "tool-calls" });
   drawing.arrow({
     id: "call-to-tools",
     path: [
-      [130, 462],
-      [161, 462],
+      [130 + dx, 462],
+      [161 + dx, 462],
     ],
-    tip: [169, 462],
+    tip: [169 + dx, 462],
     direction: "right",
     target: "tool-calls",
   });
   drawing.arrow({
     id: "tools-to-call",
     path: [
-      [230, 484],
-      [230, 524],
-      [70, 524],
-      [70, 493],
+      [230 + dx, 484],
+      [230 + dx, 524],
+      [70 + dx, 524],
+      [70 + dx, 493],
     ],
-    tip: [70, 485],
+    tip: [70 + dx, 485],
     direction: "up",
     target: "model-call",
   });

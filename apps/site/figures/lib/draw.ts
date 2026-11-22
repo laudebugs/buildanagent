@@ -11,24 +11,28 @@ export interface Rect {
   readonly height: number;
 }
 
-/** The width of one character of the figure's monospace labels, as a share of the font size. */
-export const CHAR_WIDTH = 0.6;
+/**
+ * The width of one character of the figure's monospace labels, as a share of the font size. The page's code font,
+ * Manual Code, advances 0.6 em (read from its WOFF2), but the text falls back to the system monospace stack (Menlo and
+ * DejaVu Sans Mono advance 0.602 em), so the checks assume 0.62 em to stay safe on any of them.
+ */
+const CHAR_WIDTH = 0.62;
 /** The smallest label the figure may carry, in the figure's own units, which are CSS pixels at its natural size. */
-export const MIN_FONT_SIZE = 12;
+const MIN_FONT_SIZE = 12;
 /** The space two marks must leave between them. */
 const CLEARANCE = 2;
 /** Half the width of a stroked line, for the box a line occupies. */
 const HALF_STROKE = 1.25;
 
 /** How far an arrowhead reaches back from its tip, in the figure's units. */
-export const HEAD_LENGTH = 8;
+const HEAD_LENGTH = 8;
 /** Half the stroke width of a box, which its outline adds outside the rectangle's own edge. */
 const BOX_HALF_STROKE = 1;
 /** How far an arrow's parts may sit from where they should meet. */
 const JOIN_TOLERANCE = 0.5;
 
 /** One arrow: a line that ends in a head whose tip touches the outline of the box it points at. */
-export interface Arrow {
+interface Arrow {
   readonly id: string;
   readonly path: readonly [number, number][];
   readonly tip: readonly [number, number];
@@ -51,7 +55,7 @@ interface Label {
 }
 
 /** The text styles a label can take: its anchor, its colour and its weight. */
-export interface TextOptions {
+interface TextOptions {
   readonly anchor?: "start" | "middle";
   readonly fill?: string;
   readonly weight?: number;
@@ -60,7 +64,7 @@ export interface TextOptions {
 }
 
 /** Writes a number the same way every time: two decimals at most, no trailing zeros, no negative zero. */
-export function num(value: number): string {
+function num(value: number): string {
   if (!Number.isFinite(value)) throw new Error(`a coordinate is ${value}, not a finite number`);
   const rounded = Math.round(value * 100) / 100;
   return rounded === 0 ? "0" : String(rounded);

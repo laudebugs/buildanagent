@@ -5,7 +5,7 @@ import { describe, inject, test } from "vitest";
 import { layers, NARROW_WIDTH } from "../figures/layers.js";
 import { Drawing } from "../figures/lib/draw.js";
 import { tokenFiles } from "../scripts/token-files.js";
-import { copy } from "../src/landing/copy.js";
+import { copy, repository } from "../src/landing/copy.js";
 import { ROOT } from "./build.js";
 
 const OUT = inject("siteOut");
@@ -21,6 +21,43 @@ function cssOf(page: string): string {
   );
   const inline = [...page.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(([, css]) => css ?? "");
   return [...linked, ...inline].join("\n");
+}
+
+interface CssRule {
+  readonly selectors: readonly string[];
+  readonly declarations: Readonly<Record<string, string>>;
+  /** The viewport width from which the rule applies: the `min-width` of the @media block around it, or 0. */
+  readonly minWidth: number;
+}
+
+/** Reads a stylesheet's rules, one level of @media deep, in source order. It handles only what site.css uses. */
+function parseCss(css: string, minWidth = 0): CssRule[] {
+  const rules: CssRule[] = [];
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  let index = 0;
+  while (index < text.length) {
+    const open = text.indexOf("{", index);
+    if (open === -1) break;
+    let depth = 1;
+    let close = open + 1;
+    for (; close < text.length && depth > 0; close++) depth += text[close] === "{" ? 1 : text[close] === "}" ? -1 : 0;
+    const prelude = text.slice(index, open).trim();
+    const body = text.slice(open + 1, close - 1);
+    const media = /^@media\s*\(\s*min-width:\s*(\d+)px\s*\)$/.exec(prelude);
+    if (media !== null) rules.push(...parseCss(body, Number(media[1])));
+    else if (!prelude.startsWith("@")) {
+      const declarations = Object.fromEntries(
+        body
+          .split(";")
+          .map((line) => line.split(/:(.*)/s).map((part) => part.trim()))
+          .filter(([name, value]) => name !== "" && value !== undefined && value !== "")
+          .map(([name, value]) => [name, value]),
+      );
+      rules.push({ selectors: prelude.split(",").map((selector) => selector.trim()), declarations, minWidth });
+    }
+    index = close;
+  }
+  return rules;
 }
 
 describe("the landing page", () => {
@@ -68,16 +105,34 @@ describe("the landing page", () => {
       assert.ok(svg.includes(`aria-label="${escapeAttr(copy.figure.alt)}"`), `${name} carries the alt text`);
     }
     assert.ok(html.includes(`<figcaption>${copy.figure.caption}</figcaption>`));
-    const css = cssOf(html);
-    // display:none keeps the hidden drawing out of the accessibility tree: narrow below 940 px, wide from 940 px.
-    assert.match(css, /\.layers \.layers-wide\{display:none\}/);
-    assert.match(css, /\.layers \.layers-narrow\{[^}]*max-width:440px/);
-    const wide =
-      /@media\s*\((?:min-width:\s*940px|width>=\s*940px)\)\s*\{([\s\S]*?\.layers-narrow\{display:none\}[\s\S]*?)\}\s*(?:@media|\.|$)/.exec(
-        css,
-      );
-    assert.ok(wide?.[1]?.includes(".layers-wide{display:block}"), "wide shows from 940 px");
-    assert.ok(wide?.[1]?.includes(".layers-narrow{display:none}"), "narrow hides from 940 px");
+  });
+
+  test("shows exactly one figure at each width: narrow below 940 px, wide from 940 px", () => {
+    // display:none keeps the hidden drawing out of the accessibility tree. The check reads the source stylesheet, so a
+    // change to the breakpoint or to either rule fails here without depending on how the build minifies the CSS.
+    const rules = parseCss(read("src/styles/site.css"));
+    const shown = (width: number, name: string): boolean => {
+      let display = "block";
+      for (const rule of rules) {
+        const matches = rule.selectors.includes(`.layers .${name}`);
+        if (matches && rule.minWidth <= width && rule.declarations.display !== undefined)
+          display = rule.declarations.display;
+      }
+      return display !== "none";
+    };
+    for (const width of [320, 400, 939, 940, 1280]) {
+      assert.equal(shown(width, "layers-wide"), width >= 940, `wide at ${width}`);
+      assert.equal(shown(width, "layers-narrow"), width < 940, `narrow at ${width}`);
+    }
+  });
+
+  test("links the licence line to the repository's LICENSE", () => {
+    assert.equal(repository, "https://github.com/laudebugs/buildanagent");
+    assert.ok(html.includes(`<a href="${repository}/blob/main/LICENSE">Apache-2.0 OR MIT</a>`));
+  });
+
+  test("gives the package section the id the package pages link back to", () => {
+    assert.match(html, /<section class="packages" id="packages">/);
   });
 
   test("shows the install command from the copy", () => {
@@ -162,6 +217,19 @@ describe("the figure's geometry", () => {
     // From 940 px the wide drawing has 940 - 48 (page padding) - 2 (border) - 36 (figure padding) = 854 px for 900 units.
     assert.ok((13 * (940 - 48 - 2 - 36)) / 900 >= 12);
     assert.ok((13 * (940 - 15 - 48 - 2 - 36)) / 900 >= 12, "still 12 px beside a classic scrollbar");
+  });
+
+  test("keeps every narrow label 8 units inside the canvas at an advance of 0.62 em", () => {
+    const narrow = drawings.find((entry) => entry.path.endsWith("narrow.svg"))?.drawing;
+    assert.ok(narrow !== undefined);
+    for (const label of narrow.labels) {
+      const width = [...label.text].length * 13 * 0.62;
+      const centre = label.rect.x + label.rect.width / 2;
+      assert.ok(centre - width / 2 >= 8 || label.on !== undefined, `${label.text} left margin`);
+      assert.ok(centre + width / 2 <= NARROW_WIDTH - 8 || label.on !== undefined, `${label.text} right margin`);
+    }
+    const longest = Math.max(...Object.values(copy.figure.labels).map((text) => [...text].length));
+    assert.ok(longest * 13 * 0.62 + 16 <= NARROW_WIDTH);
   });
 
   test("keeps the wide drawing at the mock's 900 x 372", () => {

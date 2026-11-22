@@ -1,5 +1,6 @@
 // The files the site derives from the book's design tokens. The path below reaches into the manual because L12a has not
-// yet exported its tokens module; L12a's `@buildanagent/manual` export replaces the relative import.
+// yet exported its tokens module; L12a's `@buildanagent/manual` export replaces the relative import. The maintainability
+// checks (check:deps, check:unused, check:duplicates) cover packages/ only, so none of them sees this import.
 import { readTokens, tokensCss } from "../../manual/src/design/tokens.js";
 
 /** The header the manual's generator writes, which names the manual's script and command. */

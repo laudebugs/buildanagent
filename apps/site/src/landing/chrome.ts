@@ -8,8 +8,7 @@ export const wordmark = copy.brand;
 /** The links of the header, in order. */
 export const navLinks = copy.nav;
 
-/** The repository's address, which the licence line links to. */
-export const repository = copy.nav.find((link) => link.label === "GitHub")?.href ?? "";
+export { repository } from "./copy.js";
 
 /**
  * The prompt mark: a rounded window, a chevron and a caret. The window and chevron take the text colour, and the caret

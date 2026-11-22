@@ -37,6 +37,15 @@ describe("the built site", () => {
     }
   });
 
+  test("links each package page back to the landing page's package grid, above the title", () => {
+    for (const route of ["packages/gateway", "packages/sdk"]) {
+      const html = htmlOf(route);
+      const back = html.indexOf('<a class="back" href="/#packages">All packages</a>');
+      assert.ok(back !== -1, route);
+      assert.ok(back < html.indexOf("<h1"), `${route} puts the link above the title`);
+    }
+  });
+
   test("points every internal link at a page that was built", () => {
     for (const route of ROUTES) {
       // A link to a page has no file extension; an asset such as a stylesheet or an icon does.

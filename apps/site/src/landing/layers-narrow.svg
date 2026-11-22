@@ -1,26 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="layers-narrow" viewBox="0 0 300 568" role="img" aria-label="The three layers, from top to bottom: harness, loop and gateway, with what each does. One turn of the loop: a model call, then tool calls, then results returned to the model." style="font-family:var(--font-code);font-size:13px">
-  <path d="M150 6L234 48L150 90L66 48Z" fill="var(--cell)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M66 48L150 90L150 110L66 68Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M150 90L234 48L234 68L150 110Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <text x="150" y="53" text-anchor="middle" fill="currentColor" stroke="none">harness</text>
-  <text x="150" y="130" text-anchor="middle" fill="currentColor" stroke="none">tools · sessions · MCP · approvals</text>
-  <path d="M150 144L234 186L150 228L66 186Z" fill="var(--a)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M66 186L150 228L150 248L66 206Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M150 228L234 186L234 206L150 248Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <text x="150" y="191" text-anchor="middle" fill="var(--bg)" stroke="none">loop (sdk)</text>
-  <text x="150" y="268" text-anchor="middle" fill="currentColor" stroke="none">model call, tool calls, stop</text>
-  <path d="M150 282L234 324L150 366L66 324Z" fill="var(--cell)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M66 324L150 366L150 386L66 344Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <path d="M150 366L234 324L234 344L150 386Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-  <text x="150" y="329" text-anchor="middle" fill="currentColor" stroke="none">gateway</text>
-  <text x="150" y="406" text-anchor="middle" fill="currentColor" stroke="none">streaming · retries · caching · cost</text>
-  <rect x="10" y="440" width="120" height="44" fill="none" stroke="currentColor" stroke-width="2"/>
-  <rect x="170" y="440" width="120" height="44" fill="none" stroke="currentColor" stroke-width="2"/>
-  <text x="70" y="467" text-anchor="middle" fill="currentColor" stroke="none">model call</text>
-  <text x="230" y="467" text-anchor="middle" fill="currentColor" stroke="none">tool calls</text>
-  <path d="M130 462L161 462" fill="none" stroke="var(--a)" stroke-width="2.5" stroke-linejoin="miter"/>
-  <path d="M169 462L161 457L161 467Z" fill="var(--a)" stroke="none"/>
-  <path d="M230 484L230 524L70 524L70 493" fill="none" stroke="var(--a)" stroke-width="2.5" stroke-linejoin="miter"/>
-  <path d="M70 485L65 493L75 493Z" fill="var(--a)" stroke="none"/>
-  <text x="150" y="552" text-anchor="middle" fill="currentColor" stroke="none">results return to the model</text>
+<svg xmlns="http://www.w3.org/2000/svg" class="layers-narrow" viewBox="0 0 307 568" role="img" aria-label="The three layers, from top to bottom: harness, loop and gateway, with what each does. One turn of the loop: a model call, then tool calls, then results returned to the model." style="font-family:var(--font-code);font-size:13px">
+  <path d="M153.5 6L237.5 48L153.5 90L69.5 48Z" fill="var(--cell)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M69.5 48L153.5 90L153.5 110L69.5 68Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M153.5 90L237.5 48L237.5 68L153.5 110Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="153.5" y="53" text-anchor="middle" fill="currentColor" stroke="none">harness</text>
+  <text x="153.5" y="130" text-anchor="middle" fill="currentColor" stroke="none">tools · sessions · MCP · approvals</text>
+  <path d="M153.5 144L237.5 186L153.5 228L69.5 186Z" fill="var(--a)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M69.5 186L153.5 228L153.5 248L69.5 206Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M153.5 228L237.5 186L237.5 206L153.5 248Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="153.5" y="191" text-anchor="middle" fill="var(--bg)" stroke="none">loop (sdk)</text>
+  <text x="153.5" y="268" text-anchor="middle" fill="currentColor" stroke="none">model call, tool calls, stop</text>
+  <path d="M153.5 282L237.5 324L153.5 366L69.5 324Z" fill="var(--cell)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M69.5 324L153.5 366L153.5 386L69.5 344Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M153.5 366L237.5 324L237.5 344L153.5 386Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="153.5" y="329" text-anchor="middle" fill="currentColor" stroke="none">gateway</text>
+  <text x="153.5" y="406" text-anchor="middle" fill="currentColor" stroke="none">streaming · retries · caching · cost</text>
+  <rect x="13.5" y="440" width="120" height="44" fill="none" stroke="currentColor" stroke-width="2"/>
+  <rect x="173.5" y="440" width="120" height="44" fill="none" stroke="currentColor" stroke-width="2"/>
+  <text x="73.5" y="467" text-anchor="middle" fill="currentColor" stroke="none">model call</text>
+  <text x="233.5" y="467" text-anchor="middle" fill="currentColor" stroke="none">tool calls</text>
+  <path d="M133.5 462L164.5 462" fill="none" stroke="var(--a)" stroke-width="2.5" stroke-linejoin="miter"/>
+  <path d="M172.5 462L164.5 457L164.5 467Z" fill="var(--a)" stroke="none"/>
+  <path d="M233.5 484L233.5 524L73.5 524L73.5 493" fill="none" stroke="var(--a)" stroke-width="2.5" stroke-linejoin="miter"/>
+  <path d="M73.5 485L68.5 493L78.5 493Z" fill="var(--a)" stroke="none"/>
+  <text x="153.5" y="552" text-anchor="middle" fill="currentColor" stroke="none">results return to the model</text>
 </svg>

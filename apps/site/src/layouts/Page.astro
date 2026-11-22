@@ -6,10 +6,13 @@ interface Props {
   frontmatter: { title: string; description: string };
 }
 const { frontmatter } = Astro.props;
+// The link back to the landing page's package grid, above the title of a package page.
+const BACK_LABEL = "All packages";
 ---
 
 <Base title={frontmatter.title} description={frontmatter.description} bodyClass="page">
   <main>
+    <a class="back" href="/#packages">{BACK_LABEL}</a>
     <h1>{frontmatter.title}</h1>
     <slot />
   </main>
