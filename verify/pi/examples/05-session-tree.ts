@@ -12,14 +12,15 @@ const { session } = await fauxSession(
 );
 const sm = session.sessionManager;
 try {
+  // #region tree
   await session.prompt("Propose a plan.");
-  const firstAnswerId = sm.getLeafId();
+  const firstAnswerId = sm.getLeafId(); // book:note first-answer
   check(firstAnswerId, "the first answer has an entry id");
   await session.prompt("Refine it.");
   check(sm.getBranch().length >= 4, "active branch holds both exchanges");
 
   // Branch from the first answer and continue down a different path.
-  sm.branch(firstAnswerId);
+  sm.branch(firstAnswerId); // book:note branch
   check(sm.getLeafId() === firstAnswerId, "branch() moves the active leaf back");
   await session.prompt("Try something else.");
 
@@ -34,8 +35,9 @@ try {
     sm.getEntries().every((e) => e.parentId === null || ids.has(e.parentId)),
     "every entry points at a parent in the same tree",
   );
-  const children = sm.getEntries().filter((e) => e.parentId === firstAnswerId);
+  const children = sm.getEntries().filter((e) => e.parentId === firstAnswerId); // book:note children
   check(children.length === 2, "the branch point has two children");
+  // #endregion
 } finally {
   session.dispose();
 }
