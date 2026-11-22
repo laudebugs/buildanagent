@@ -2,6 +2,7 @@
 // tool that spawns it reports to the model as an error result.
 import assert from "node:assert/strict";
 import {
+  type AgentEvent,
   defineTool,
   isSdkError,
   nestedRunDepth,
@@ -11,6 +12,7 @@ import {
   type ToolDefinition,
   type ToolResult,
 } from "@buildanagent/sdk";
+import { sequentialIds } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
 import { determinism, drive, scripted, text, toolCall } from "./run-helpers.js";
 
@@ -128,4 +130,75 @@ test("depth and maxDepth must be whole numbers from 0", () => {
 
 test("nestedRunDepth is one level deeper under the same cap", () => {
   assert.deepEqual(nestedRunDepth({ depth: 1, maxDepth: 4 }), { depth: 2, maxDepth: 4 });
+});
+
+// Parent run ids ----------------------------------------------------------------------------------------------------
+
+/** A tool that runs a nested agent with `nestedRunDepth(ctx)` and keeps the nested run's events. */
+function parentingTool(nestedEvents: AgentEvent[], extra: Partial<RunOptions> = {}): ToolDefinition {
+  return defineTool({
+    name: "delegate",
+    description: "Hands the task to a sub-agent.",
+    inputSchema: { type: "object", properties: {} },
+    async execute(_input, ctx): Promise<ToolResult> {
+      const { model } = scripted([text("Sub done.")]);
+      const child = run({
+        model,
+        system: SYSTEM,
+        input: "Sub-task.",
+        ...nestedRunDepth(ctx),
+        ...extra,
+        ...determinism(),
+        idGenerator: sequentialIds("child"),
+      });
+      nestedEvents.push(...(await drive(child)).events);
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  });
+}
+
+function startOf(events: readonly AgentEvent[]) {
+  const start = events.find((event) => event.type === "run_start");
+  assert.ok(start?.type === "run_start", "the run emits run_start");
+  return start;
+}
+
+test("a run a tool starts with nestedRunDepth() names the calling run and call in run_start", async () => {
+  const nested: AgentEvent[] = [];
+  const { model } = scripted([toolCall("delegate", {}, "call-7"), text("Top done.")]);
+  const { events } = await drive(
+    run({ model, system: SYSTEM, input: "Go.", tools: [parentingTool(nested)], ...determinism() }),
+  );
+  const top = startOf(events);
+  const child = startOf(nested);
+  assert.equal(child.parentRunId, top.runId);
+  assert.equal(child.parentCallId, "call-7");
+  assert.equal("parentRunId" in top, false, "a top-level run names no parent");
+  assert.equal("parentCallId" in top, false);
+});
+
+test("parentRun without nestedRunDepth() reaches run_start, and a blank id is refused", async () => {
+  const { model } = scripted([text("Hi.")]);
+  const base = { model, system: SYSTEM, input: "Go.", ...determinism() };
+  const { events } = await drive(run({ ...base, parentRun: { runId: "run-a", callId: "call-b" } }));
+  const start = startOf(events);
+  assert.deepEqual([start.parentRunId, start.parentCallId], ["run-a", "call-b"]);
+  for (const parentRun of [
+    { runId: "", callId: "c" },
+    { runId: "r", callId: "" },
+  ]) {
+    assert.throws(
+      () => run({ ...base, parentRun }),
+      (error) => isSdkError(error) && error.code === "invalid_run_options",
+    );
+  }
+});
+
+test("nestedRunDepth() leaves parentRun out of a context that has no run or call id", () => {
+  assert.deepEqual(nestedRunDepth({ depth: 1, maxDepth: 3 }), { depth: 2, maxDepth: 3 });
+  assert.deepEqual(nestedRunDepth({ depth: 0, maxDepth: 2, runId: "r", callId: "c" }), {
+    depth: 1,
+    maxDepth: 2,
+    parentRun: { runId: "r", callId: "c" },
+  });
 });

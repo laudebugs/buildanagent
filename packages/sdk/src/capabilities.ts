@@ -19,6 +19,7 @@ export const CAPABILITIES: readonly string[] = Object.freeze([
   "usd_budget_v1",
   "progress_policy_v1",
   "depth_cap_v1",
+  "parent_run_v1",
   "output_tool_v1",
   "write_outcomes_v1",
   "turn_retries_v1",

@@ -104,6 +104,13 @@ export interface RunOptions<S = unknown> {
   readonly depth?: number;
   /** The deepest nesting allowed, which tools read as `ctx.maxDepth`. Default 2. */
   readonly maxDepth?: number;
+  /**
+   * The run and tool call that start this run, which `run_start` carries as `parentRunId` and `parentCallId`, so an
+   * observer can place this run under the calling tool call. A tool that starts a run passes
+   * `{ runId: ctx.runId, callId: ctx.callId }`, or spreads `nestedRunDepth(ctx)`, which sets it with `depth` and
+   * `maxDepth`. Both ids must be non-empty strings.
+   */
+  readonly parentRun?: ParentRun;
   /** Aborts the run, like `run.abort()`. */
   readonly signal?: AbortSignal;
   /** Options for every model call, such as `maxOutputTokens`. The run passes its own abort signal. */
@@ -299,7 +306,9 @@ class RunHandle<S> implements Run<S> {
       defaultsHash: DEFAULTS_HASH,
       capabilities: CAPABILITIES,
     };
-    emit({ type: "run_start", ...versions, model: model.ref }, 0);
+    const parent = setup.parentRun;
+    const parentIds = parent === undefined ? {} : { parentRunId: parent.runId, parentCallId: parent.callId };
+    emit({ type: "run_start", ...versions, model: model.ref, ...parentIds }, 0);
     const forwardAbort = () => this.abort(reasonOf(signal?.reason));
     if (signal?.aborted) forwardAbort();
     else signal?.addEventListener("abort", forwardAbort, { once: true });
@@ -416,13 +425,35 @@ function isCount(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
+/** The run and tool call that start a nested run: `ToolContext`'s `runId` and `callId`. */
+export interface ParentRun {
+  readonly runId: string;
+  readonly callId: string;
+}
+
 /**
- * The `depth` and `maxDepth` options for a run that a tool starts: one level deeper than the tool's own run, under
- * the same cap. Spread it into the nested `run()`; the nested run throws `max_depth_exceeded` when the tool was
- * already at `maxDepth`.
+ * The `depth`, `maxDepth` and `parentRun` options for a run that a tool starts: one level deeper than the tool's own
+ * run, under the same cap, and named after the tool call that starts it. Spread it into the nested `run()`; the
+ * nested run throws `max_depth_exceeded` when the tool was already at `maxDepth`. A context without `runId` and
+ * `callId` gets no `parentRun`.
  */
-export function nestedRunDepth(ctx: Pick<ToolContext, "depth" | "maxDepth">): { depth: number; maxDepth: number } {
-  return { depth: ctx.depth + 1, maxDepth: ctx.maxDepth };
+export function nestedRunDepth(
+  ctx: Pick<ToolContext, "depth" | "maxDepth"> & Partial<Pick<ToolContext, "runId" | "callId">>,
+): { depth: number; maxDepth: number; parentRun?: ParentRun } {
+  const { runId, callId } = ctx;
+  const parentRun = runId === undefined || callId === undefined ? {} : { parentRun: { runId, callId } };
+  return { depth: ctx.depth + 1, maxDepth: ctx.maxDepth, ...parentRun };
+}
+
+/** Checks `parentRun`: both ids are non-empty strings. Returns it as a field to spread, or nothing when absent. */
+function parentRunOf(options: RunOptions<unknown>): { parentRun?: ParentRun } {
+  const { parentRun } = options;
+  if (parentRun === undefined) return {};
+  const ok = (id: unknown) => typeof id === "string" && id !== "";
+  if (!ok(parentRun.runId) || !ok(parentRun.callId)) {
+    throw new SdkError("invalid_run_options", "parentRun needs a non-empty runId and callId");
+  }
+  return { parentRun: { runId: parentRun.runId, callId: parentRun.callId } };
 }
 
 /** Checks `depth` and `maxDepth`, and refuses a run nested deeper than the cap allows (D11). */
@@ -528,6 +559,7 @@ function setupOf(
     ...(budgetUsd === undefined ? {} : { budgetUsd }),
     depth,
     maxDepth,
+    ...parentRunOf(options),
     modelOptions: options.modelOptions ?? {},
     includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),

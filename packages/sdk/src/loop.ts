@@ -77,6 +77,8 @@ export interface LoopSetup {
   /** How deeply this run is nested inside other agents' tool calls, and the deepest nesting allowed (D11). */
   readonly depth: number;
   readonly maxDepth: number;
+  /** The run and tool call that started this run, when a tool did; `run_start` carries them. */
+  readonly parentRun?: { readonly runId: string; readonly callId: string };
   readonly modelOptions: CallOptions;
   /** Whether each model call asks for the provider's raw events, which the run emits as `raw` events. */
   readonly includeRaw: boolean;

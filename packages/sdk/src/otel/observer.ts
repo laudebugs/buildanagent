@@ -64,8 +64,9 @@ export interface OtelObserverOptions {
    * span, such as an incoming request's. Every run the observer serves starts in this one context, so when it
    * belongs to one request, create one observer for each request. Left out, the run's span starts in whatever the
    * tracer treats as its default, which for an OpenTelemetry tracer is the active context. A run that a tool starts
-   * is another run to the observer, with the same `parentContext`: its span is not a child of the calling tool's
-   * span, because events carry no parent run id.
+   * carries `parentRun` (`nestedRunDepth()` sets it) is a child of the calling tool's span, when this observer saw
+   * that tool call start. Any other run, including a nested one whose parent this observer did not see, starts in
+   * `parentContext`.
    */
   readonly parentContext?: unknown;
   /**
@@ -206,7 +207,7 @@ class Projection {
         },
         ...startTime(event),
       },
-      this.#options.parentContext,
+      this.#parentContextOf(event),
     );
     let childContext: unknown;
     try {
@@ -217,6 +218,16 @@ class Projection {
       throw error;
     }
     this.#runs.set(event.runId, { agent, childContext, model: undefined, tools: new Map() });
+  }
+
+  /** The context a run's span starts in: the calling tool call's span for a nested run this observer can place. */
+  #parentContextOf(event: Extract<AgentEvent, { type: "run_start" }>): unknown {
+    const { parentRunId, parentCallId } = event;
+    const caller =
+      parentRunId === undefined || parentCallId === undefined
+        ? undefined
+        : this.#runs.get(parentRunId)?.tools.get(parentCallId);
+    return caller === undefined ? this.#options.parentContext : this.#options.childContext(caller);
   }
 
   #startModelCall(event: Extract<AgentEvent, { type: "model_call_start" }>, spans: RunSpans): void {
