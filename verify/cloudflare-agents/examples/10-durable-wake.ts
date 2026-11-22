@@ -75,8 +75,9 @@ export async function test(env: { Probe: DurableObjectNamespace<Probe> }, h: Har
   const woke = after.woke[0];
   // #endregion evict-and-wake
   check(after.note === "call back at noon", "the state was reloaded from storage on the new instance");
-  check(after.inMemory === 0 && woke?.inMemory === 0, "the in-memory field did not survive eviction");
-  check(woke?.note === "call back at noon", "the schedule's callback ran with its payload after the eviction");
+  check(woke, "the schedule woke the evicted agent: its callback wrote a row");
+  check(after.inMemory === 0 && woke.inMemory === 0, "the in-memory field did not survive eviction");
+  check(woke.note === "call back at noon", "the schedule's callback ran with its payload after the eviction");
   check(woke.starts === 2 && after.starts === 2, "the callback ran on the new instance, the agent's second start");
   check(woke.at >= due.time * 1000 - 50, "it ran at or after the schedule's due time");
   check(woke.at < asked, "it ran before any request reached the agent, so the alarm woke it");
