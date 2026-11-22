@@ -81,13 +81,14 @@ const run = async (agent: LlmAgent, text: string, plugins: BasePlugin[] = []) =>
 // beforeToolCallback returning an object blocks the tool; afterToolCallback rewrites a result.
 {
   const model = new ScriptedLlm((req) => (afterTool(req) ? say("done") : callTool("refund", { orderId: "A-1" })));
+  // #region tool-callbacks
   const blocked = new LlmAgent({
     name: "blocked",
     model,
     instruction: "x",
     tools: [refund],
     beforeToolCallback: ({ tool, args }) =>
-      tool.name === "refund" ? { error: `refund of ${args.orderId} needs a human` } : undefined,
+      tool.name === "refund" ? { error: `refund of ${args.orderId} needs a human` } : undefined, // book:note block
   });
   const events = await run(blocked, "refund A-1");
   check(ran.length === 0, "beforeToolCallback returning an object means the tool body never runs");
@@ -102,13 +103,14 @@ const run = async (agent: LlmAgent, text: string, plugins: BasePlugin[] = []) =>
     model: model2,
     instruction: "x",
     tools: [lookup],
-    afterToolCallback: ({ response }) => ({ ...response, note: "checked" }),
+    afterToolCallback: ({ response }) => ({ ...response, note: "checked" }), // book:note after
   });
   const e2 = await run(after, "status?");
   check(
     responses(e2)[0]?.response?.note === "checked",
     "afterToolCallback returning an object replaces the tool result",
   );
+  // #endregion
 }
 
 // Plugins: hooks take one object; a plugin that returns a value pre-empts the agent's callback.

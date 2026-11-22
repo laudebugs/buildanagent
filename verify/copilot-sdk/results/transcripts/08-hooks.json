@@ -118,37 +118,37 @@
     },
     {
       "kind": "check",
-      "line": 51,
+      "line": 53,
       "message": "the denied tool's handler never ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 52,
+      "line": 54,
       "message": "the allowed tool ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 53,
+      "line": 55,
       "message": "onPermissionRequest was not asked for the denied tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 54,
+      "line": 56,
       "message": "onPreToolUse runs before onPermissionRequest",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 59,
+      "line": 61,
       "message": "the model saw the deny reason",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 60,
+      "line": 62,
       "message": "onPostToolUse replaced the result",
       "pass": true
     }

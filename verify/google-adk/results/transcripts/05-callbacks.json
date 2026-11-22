@@ -74,7 +74,7 @@
     },
     {
       "kind": "request",
-      "line": 92,
+      "line": 93,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -103,7 +103,7 @@
     },
     {
       "kind": "response",
-      "line": 92,
+      "line": 93,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -122,7 +122,7 @@
     },
     {
       "kind": "request",
-      "line": 92,
+      "line": 93,
       "model": "model-2",
       "repeated": 3,
       "messages": [
@@ -146,7 +146,7 @@
     },
     {
       "kind": "response",
-      "line": 92,
+      "line": 93,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -161,19 +161,19 @@
     },
     {
       "kind": "check",
-      "line": 93,
+      "line": 94,
       "message": "beforeToolCallback returning an object means the tool body never runs",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 94,
+      "line": 95,
       "message": "the returned object is the tool result the model sees",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 107,
+      "line": 108,
       "model": "model-3",
       "repeated": 0,
       "messages": [
@@ -202,7 +202,7 @@
     },
     {
       "kind": "response",
-      "line": 107,
+      "line": 108,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -221,7 +221,7 @@
     },
     {
       "kind": "request",
-      "line": 107,
+      "line": 108,
       "model": "model-3",
       "repeated": 3,
       "messages": [
@@ -247,7 +247,7 @@
     },
     {
       "kind": "response",
-      "line": 107,
+      "line": 108,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -262,13 +262,13 @@
     },
     {
       "kind": "check",
-      "line": 108,
+      "line": 109,
       "message": "afterToolCallback returning an object replaces the tool result",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 159,
+      "line": 161,
       "model": "model-4",
       "repeated": 0,
       "messages": [
@@ -297,7 +297,7 @@
     },
     {
       "kind": "response",
-      "line": 159,
+      "line": 161,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -316,7 +316,7 @@
     },
     {
       "kind": "request",
-      "line": 159,
+      "line": 161,
       "model": "model-4",
       "repeated": 3,
       "messages": [
@@ -340,7 +340,7 @@
     },
     {
       "kind": "response",
-      "line": 159,
+      "line": 161,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -355,25 +355,25 @@
     },
     {
       "kind": "check",
-      "line": 160,
+      "line": 162,
       "message": "a plugin's beforeToolCallback can block a tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 164,
+      "line": 166,
       "message": "when a plugin hook returns a value, the agent-level callback is skipped",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 165,
+      "line": 167,
       "message": "a positional (agent, context) plugin hook gets context === undefined",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 166,
+      "line": 168,
       "message": "the first argument is the params object {agent, callbackContext}, not the agent",
       "pass": true
     }

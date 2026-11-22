@@ -28,15 +28,16 @@ const { session } = await createAgentSession({
   tools: [],
 });
 try {
-  const run = session.prompt("Start.");
+  // #region steer
+  const run = session.prompt("Start."); // book:note start
   await new Promise((r) => setTimeout(r, 150));
   let rejected = false;
   await session.prompt("Ambiguous.").catch(() => {
-    rejected = true;
+    rejected = true; // book:note reject
   });
   check(rejected, "prompt() while streaming, without steer/followUp, rejects");
-  check((await session.steer("Steer: be brief.")) === "queued", 'steer() returns "queued"');
-  check((await session.followUp("Follow-up: and then?")) === "queued", 'followUp() returns "queued"');
+  check((await session.steer("Steer: be brief.")) === "queued", 'steer() returns "queued"'); // book:note steer
+  check((await session.followUp("Follow-up: and then?")) === "queued", 'followUp() returns "queued"'); // book:note follow-up
   await run;
   await session.waitForIdle();
   const users = session.messages
@@ -47,6 +48,7 @@ try {
     "user messages land in order: prompt, steer, follow-up",
   );
   check(faux.state.callCount === 3, "the steer and the follow-up each trigger one more model request");
+  // #endregion
 } finally {
   session.dispose();
 }
