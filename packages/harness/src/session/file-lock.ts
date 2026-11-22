@@ -326,7 +326,7 @@ function lockPath(dir: string, key: SessionKey): string {
   return join(dir, encodeName(key.userId), `${encodeName(key.sessionId)}${EXTENSION}`);
 }
 
-/** A lock file that held a record when it was removed. */
+/** What `unlockSession()` removed: the lock's record, or `"unreadable"` when the file held no valid record. */
 export type RemovedLock = LockRecord | "unreadable";
 
 /**
