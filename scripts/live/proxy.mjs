@@ -382,6 +382,8 @@ export async function startLiveProxy({ allowTool, messagesOf, secrets, log }) {
 
   const server = createServer((req, res) => {
     let raw = "";
+    // Decoding each chunk alone would break a character that straddles two of them.
+    req.setEncoding("utf8");
     req.on("data", (chunk) => (raw += chunk));
     req.on("end", () => {
       const path = new URL(req.url ?? "/", "http://proxy").pathname;

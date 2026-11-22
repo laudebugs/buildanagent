@@ -232,6 +232,7 @@ function reply(res, body, p, sink) {
 export function startMock(port = 0, log = process.env.MOCK_LOG, sink = undefined) {
   const server = createServer((req, res) => {
     let raw = "";
+    req.setEncoding("utf8");
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       const path = req.url.split("?")[0];

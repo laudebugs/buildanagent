@@ -643,6 +643,35 @@ test("the proxy drops the edits that clear thinking together with the thinking t
   assert.deepEqual(fits.context_management, cleared);
 });
 
+test("the Claude live preload checks every MCP config, offers the CLI only ToolSearch, and refuses what it can't inspect", async () => {
+  const { isCli, liveArgs, mcpServers } = await import(
+    new URL("../../verify/claude-agent-sdk/scripts/live-args.mjs", import.meta.url).href
+  );
+  const sdk = JSON.stringify({ mcpServers: { weather: { type: "sdk", name: "weather" } } });
+  const stdio = JSON.stringify({ mcpServers: { host: { type: "stdio", command: "node" } } });
+  const cli = ["--output-format", "stream-json", "--input-format", "stream-json"];
+  assert.ok(isCli(cli));
+  assert.ok(!isCli(["--version"]));
+  assert.deepEqual(
+    mcpServers(["--mcp-config", sdk, `--mcp-config=${stdio}`]).map(([name]) => name),
+    ["weather", "host"],
+  );
+  // A later server of the same name does not hide an earlier one.
+  const hidden = JSON.stringify({ mcpServers: { host: { type: "sdk" } } });
+  assert.throws(() => liveArgs([...cli, "--mcp-config", stdio, "--mcp-config", hidden]), /MCP server "host"/);
+  assert.deepEqual(liveArgs([...cli, "--mcp-config", sdk, "--tools", "Bash,Read", "--model", "m"]), [
+    ...cli,
+    "--mcp-config",
+    sdk,
+    "--model",
+    "m",
+    "--tools=ToolSearch",
+  ]);
+  // A stdio server in a second config, or a config given as a file path, stops the run.
+  assert.throws(() => liveArgs([...cli, "--mcp-config", sdk, "--mcp-config", stdio]), /MCP server "host"/);
+  assert.throws(() => liveArgs([...cli, "--mcp-config", "./mcp.json"]), /not inline JSON/);
+});
+
 test("calls that overlap, or that a killed run never settled, count against the cap while they are in flight", () => {
   const dir = mkdtempSync(join(tmpdir(), "live-inflight-"));
   const prices = readCatalog(fixtureCatalog(dir));

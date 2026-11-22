@@ -167,8 +167,10 @@ const usd = (value: number): string => `$${value.toFixed(4)}`;
 
 /**
  * Checks the next call against the cap before it is sent, and returns its projected cost, which the ledger holds as
- * in flight until `settleCall`. When the spend so far, the calls in flight and the projection would pass the cap, or the call can't be projected, the ledger records the refusal, no later call
- * may run, and this throws.
+ * in flight until `settleCall`. A run killed before it settles leaves the call in flight, which later calls of the same
+ * run count against the cap, as the call may have been billed; each run starts a new ledger. When the spend so far,
+ * the calls in flight and the projection would pass the cap, or the call can't be projected, the ledger records the
+ * refusal, no later call may run, and this throws.
  */
 export function reserveCall(file: string, call: PlannedCall, catalog: Catalog = readCatalog()): number {
   const ledger = readLedger(file);
@@ -189,9 +191,10 @@ export function reserveCall(file: string, call: PlannedCall, catalog: Catalog = 
   if (projected === null) return refuse(null, `the price catalog has no entry for ${call.provider} ${call.model}`);
   const inflight = ledger.inflight ?? 0;
   if (ledger.spent + inflight + projected > ledger.cap) {
+    const held = inflight > 0 ? `, ${usd(inflight)} in flight,` : "";
     return refuse(
       projected,
-      `${usd(ledger.spent)} spent${inflight > 0 ? `, ${usd(inflight)} in flight,` : ""} plus this call's projected ${usd(projected)} would pass the ${usd(ledger.cap)} cap`,
+      `${usd(ledger.spent)} spent${held} plus this call's projected ${usd(projected)} would pass the ${usd(ledger.cap)} cap`,
     );
   }
   ledger.inflight = inflight + projected;

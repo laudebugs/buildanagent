@@ -13,37 +13,11 @@
 import childProcess from "node:child_process";
 import { syncBuiltinESMExports } from "node:module";
 import { PLACEHOLDER_KEY, startForwarder } from "../../../scripts/live/forward.mjs";
+import { isCli, liveArgs } from "./live-args.mjs";
 
 const baseURL = await startForwarder(process.env.LIVE_PROXY_SOCKET);
 process.env.ANTHROPIC_BASE_URL = baseURL;
 process.env.ANTHROPIC_API_KEY = PLACEHOLDER_KEY;
-
-/** Whether a spawn is the SDK starting the CLI: it always talks stream-json over stdio. */
-const isCli = (args) =>
-  Array.isArray(args) &&
-  args.includes("--output-format") &&
-  args.includes("--input-format") &&
-  args.includes("stream-json");
-
-/** The MCP servers the SDK passes in --mcp-config, as `--mcp-config=<json>` or `--mcp-config <json>`. */
-function mcpServers(args) {
-  const at = args.findIndex((arg) => arg === "--mcp-config" || arg.startsWith("--mcp-config="));
-  if (at < 0) return {};
-  const value = args[at].startsWith("--mcp-config=") ? args[at].slice("--mcp-config=".length) : args[at + 1];
-  return JSON.parse(value).mcpServers ?? {};
-}
-
-function liveArgs(args) {
-  for (const [name, server] of Object.entries(mcpServers(args))) {
-    if (server?.type !== "sdk") throw new Error(`live mode: MCP server "${name}" runs outside the example's process`);
-  }
-  const out = [];
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--tools") i++;
-    else if (!args[i].startsWith("--tools=")) out.push(args[i]);
-  }
-  return [...out, "--tools=ToolSearch"];
-}
 
 const spawn = childProcess.spawn;
 childProcess.spawn = function liveSpawn(command, args, options) {
