@@ -51,7 +51,7 @@ const Triage = z.object({
 function triageAgent(model: ScriptedModel) {
   return new Agent({
     name: "Triage",
-    instructions: "Look up the customer, escalate every checkout failure to on-call, then classify the issue.",
+    instructions: "Look up the customer, escalate a checkout failure to on-call once, then classify it either way.",
     model,
     tools: [lookupCustomer, escalate],
     inputGuardrails: [noInjection],

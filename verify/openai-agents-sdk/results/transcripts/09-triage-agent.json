@@ -17,7 +17,7 @@
           "parts": [
             {
               "type": "text",
-              "text": "Look up the customer, escalate every checkout failure to on-call, then classify the issue."
+              "text": "Look up the customer, escalate a checkout failure to on-call once, then classify it either way."
             }
           ]
         },

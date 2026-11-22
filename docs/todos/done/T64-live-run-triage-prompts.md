@@ -11,7 +11,7 @@
 
 ## Goal
 
-The owner's first live run (workflow run 45026707288, 2026-11-22) failed in both provider jobs. All five listed triage capstones ended with a failed check, and then each job's "Write the patch" step exited 128, so no live transcript reached the report job and the run produced no comparison. This todo fixes what the repository can fix. It makes each capstone's prompt ask for the path its checks test, so a real model has a reason to call the gated tool. It also makes the one Cloudflare check that compared a value the model wrote compare only what the example fixes. The workflow's pathspec fix goes to the owner as a diff, because agents don't edit `.github/workflows/`.
+The owner's first live run (workflow run 45026707288, 2026-11-22) failed in both provider jobs. All five listed triage capstones ended with a failed check, and then each job's "Write the patch" step exited 128, so no live transcript reached the report job and the run produced no comparison. This todo fixes what the repository can fix. It makes each capstone's prompt ask for the path its checks test, so a real model has a reason to call the gated tool. It also makes the Cloudflare check on the escalation compare only the customer, which the example fixes, not the reason the model writes. The Cloudflare result check still compares the priority the model chooses, because the ticket describes a full outage and `p1` is the right answer. The workflow's pathspec fix goes to the owner as a diff, because agents don't edit `.github/workflows/`.
 
 ## Context
 
@@ -38,7 +38,7 @@ The owner's first live run (workflow run 45026707288, 2026-11-22) failed in both
 
 - [x] Read the failed run's logs and reproduce each example offline
 - [x] Show that the pathspec never matches a file under `results/live/`, whether or not one exists
-- [x] Change the prompts and the Cloudflare check, keeping every line number the book's regions use
+- [x] Change the prompts and the Cloudflare check, keeping every line inside the book's regions where it was (the Cloudflare check sits below its file's only region, so the lines after it move)
 - [x] Rerun the harnesses and commit the rewritten mock transcripts
 - [x] Write the workflow diff
 
@@ -64,7 +64,7 @@ A real model may still choose a different path, such as asking the customer befo
 
 **The patch step never matched a file.** A wildcard pathspec must match a whole path, so `'verify/*/results/live'` matches no file under that directory, and `git add` exits 128 even when the run wrote transcripts. The run did write them: the job's report counted each example's checks, and `run.mjs` reads those counts from the live transcript. No change to `run.mjs` can fix that, because git tracks no empty directory and the pathspec misses the files inside one. The report job's `git checkout HEAD -- 'verify/*/results/live' …` has the same fault. The fix for both steps went to the owner as a diff of `live-run.yml`: stage `verify/`, diff `':(glob)verify/*/results/live/**'`, and check the transcripts out only when the commit changed one.
 
-**Each capstone's prompt now asks for the path its checks test.** A failed check already reaches the comparison: the recorder writes it to the live transcript with `pass: false`, `live-diff.mjs` reports it as a difference, and `run.mjs` exits 0. The examples failed because nothing in their prompts asked for the gated tool, so each real model made two calls, a lookup and an answer, where the mock made three. The Cloudflare capstone failed on a check that compared the escalation's reason, which a real model words itself.
+**Each capstone's prompt now asks for the path its checks test.** A failed check already reaches the comparison: the recorder writes it to the live transcript with `pass: false`, `live-diff.mjs` reports it as a difference, and `run.mjs` exits 0. The examples failed because nothing in their prompts asked for the gated tool, so each real model made two calls, a lookup and an answer, where the mock made three. The LangChain, OpenAI Agents SDK and Pi prompts also ask for one escalation and a result whether or not a person allows it, because those examples always reject or block it, and a model that asked again would fail the call-order checks. The LangChain example reads its typed result with optional chaining, so a run that ends without one records the failed check instead of throwing a `TypeError` first. The Cloudflare capstone failed on a check that compared the escalation's reason, which a real model words itself. Its check now requires exactly one escalation, for customer C-9, whatever the reason says. The new check spans four lines, so the SDK README's code-line count for the Cloudflare capstone moved from 122 to 125.
 
 ## Definition of done
 

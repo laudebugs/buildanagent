@@ -90,7 +90,7 @@ try {
       JSON.stringify(["escalate", "lookup_customer", "submit_triage"]),
     'noTools: "builtin" leaves only our three tools',
   );
-  await session.prompt("user@example.com gets a 500 at checkout. Look them up, escalate, then submit the triage.");
+  await session.prompt("Checkout 500 for user@example.com. Look up, escalate once, submit triage even if blocked.");
   check(
     JSON.stringify(audit) === JSON.stringify(["lookup_customer", "escalate", "submit_triage"]),
     "the extension audited every call in order",

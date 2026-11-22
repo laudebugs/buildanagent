@@ -655,7 +655,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Pi | 87 | |
 | Copilot SDK | 105 | |
 | Google ADK | 114 | |
-| Cloudflare Agents | 122 | |
+| Cloudflare Agents | 125 | |
 
 ## A reference loop shows the real loop's shape in about 450 lines
 
