@@ -75,18 +75,16 @@ interface UsageMetadata {
 
 /**
  * A scripted answer's usage in the transcript's classes. LangChain's `input_tokens` counts every input token, cached
- * or not, so the uncached part is what is left once both cache classes are known; with either missing it is left out.
- * Its `output_tokens` already includes the reasoning tokens.
+ * or not, so the uncached part is what is left once the cache classes it reports are taken out; a cache class it does
+ * not report counts as none (events.ts, `Usage`). Its `output_tokens` already includes the reasoning tokens.
  */
-function usageOf(message: BaseMessage): Usage | undefined {
+export function usageOf(message: BaseMessage): Usage | undefined {
   const metadata = (message as BaseMessage & { usage_metadata?: UsageMetadata }).usage_metadata;
   if (metadata === undefined) return undefined;
   const cacheRead = metadata.input_token_details?.cache_read;
   const cacheWrite = metadata.input_token_details?.cache_creation;
   const uncachedInput =
-    metadata.input_tokens !== undefined && cacheRead !== undefined && cacheWrite !== undefined
-      ? metadata.input_tokens - cacheRead - cacheWrite
-      : undefined;
+    metadata.input_tokens === undefined ? undefined : metadata.input_tokens - (cacheRead ?? 0) - (cacheWrite ?? 0);
   return reportedUsage({
     uncachedInput,
     cacheRead,

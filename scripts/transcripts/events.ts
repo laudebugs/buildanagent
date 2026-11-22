@@ -28,7 +28,10 @@ export interface Message {
  * The token counts a mock reported for one answer, in the four classes a provider bills (uncached input, cache reads,
  * cache writes and output), plus the part of the output spent on reasoning where the SDK reports it. `output`
  * includes `reasoning`. A class the mock did not report is left out, never written as a zero, because a zero would
- * read as a measurement.
+ * read as a measurement. One class is derived instead: where an SDK reports a total input that includes the cached
+ * tokens, `uncachedInput` is that total less the cache classes it reports, and a cache class it does not report counts
+ * as none, so a total with no cache detail is all uncached. The AI SDK, LangChain, OpenAI Agents SDK and Google ADK
+ * mappers follow that rule.
  */
 export interface Usage {
   uncachedInput?: number;

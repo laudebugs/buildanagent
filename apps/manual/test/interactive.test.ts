@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterAll, test } from "vitest";
 import { listedFiles, loadBook, renderDependencies } from "../src/book/load.js";
 import { cutRegion } from "../src/book/regions.js";
-import { replayEvents, type Transcript } from "../src/book/transcripts.js";
+import { replayEvents, type Transcript, usageText } from "../src/book/transcripts.js";
 import {
   edit,
   fixtureInputs,
@@ -178,7 +178,7 @@ test("without JavaScript a replay lists every event and says where each came fro
 
 test("a replay leaves out the model's answer when the next request resends it, and empty text", () => {
   const transcript: Transcript = {
-    format: 1,
+    format: 2,
     example: "x",
     file: "x.ts",
     harness: "verify/x",
@@ -272,10 +272,17 @@ test("an answer shows the usage and model id its transcript records, and an answ
   ]);
 });
 
+test("an answer's usage names only the classes it holds, and always ends its counts in tokens", () => {
+  assert.equal(usageText({ output: 200 }), "200 output tokens");
+  assert.equal(usageText({ output: 200, reasoning: 50 }), "200 output tokens, 50 of them on reasoning");
+  assert.equal(usageText({ reasoning: 50 }), "50 reasoning tokens");
+  assert.equal(usageText({ uncachedInput: 1000, reasoning: 50 }), "1,000 uncached input, 50 reasoning tokens");
+});
+
 test("a replay folds history another agent resends, names unknown parts and shortens long bodies", () => {
   const user = { role: "user" as const, parts: [{ type: "text" as const, text: "Where is my refund?" }] };
   const transcript: Transcript = {
-    format: 1,
+    format: 2,
     example: "x",
     file: "x.ts",
     harness: "verify/x",

@@ -376,7 +376,9 @@ export function transcriptProblems(transcript) {
       if (typeof event.model !== "string") fail(where, "names no model");
       message(event.message, `${where}.message`);
       if (event.usage !== undefined) usage(event.usage, `${where}.usage`);
-      if (event.modelId !== undefined && !MODEL_ID.test(String(event.modelId))) {
+      if (event.modelId !== undefined && typeof event.modelId !== "string")
+        fail(where, "has a model id that is no string");
+      else if (event.modelId !== undefined && !MODEL_ID.test(event.modelId)) {
         fail(where, "has a model id outside [A-Za-z0-9_.:/@-]");
       }
     } else if (event.kind === "check") {

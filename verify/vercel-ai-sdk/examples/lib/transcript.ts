@@ -90,14 +90,20 @@ function recordRequest(model: object, options: LanguageModelV4CallOptions): void
  * The usage a mock's answer reports, in the transcript's classes, or nothing when it is a helper's default
  * (`placeholder()` in events.ts). The AI SDK's output total already includes its reasoning tokens.
  */
-function usageOf(usage: LanguageModelV4Usage | undefined): Usage | undefined {
+export function usageOf(usage: LanguageModelV4Usage | undefined): Usage | undefined {
   if (usage === undefined || isPlaceholder(usage)) return undefined;
+  // A mock may report a usage without either half; reading it must never throw, or the recorder would fail the example.
+  const input: Partial<LanguageModelV4Usage["inputTokens"]> | undefined = usage.inputTokens;
+  const output: Partial<LanguageModelV4Usage["outputTokens"]> | undefined = usage.outputTokens;
+  // The AI SDK reports the uncached input itself; without it, the total less the cache classes is (events.ts, `Usage`).
+  const derived =
+    input?.total === undefined ? undefined : input.total - (input.cacheRead ?? 0) - (input.cacheWrite ?? 0);
   return reportedUsage({
-    uncachedInput: usage.inputTokens.noCache,
-    cacheRead: usage.inputTokens.cacheRead,
-    cacheWrite: usage.inputTokens.cacheWrite,
-    output: usage.outputTokens.total,
-    reasoning: usage.outputTokens.reasoning,
+    uncachedInput: input?.noCache ?? derived,
+    cacheRead: input?.cacheRead,
+    cacheWrite: input?.cacheWrite,
+    output: output?.total,
+    reasoning: output?.reasoning,
   });
 }
 

@@ -92,15 +92,16 @@ function detail(details: readonly object[], name: string): number | undefined {
 /**
  * A scripted answer's usage in the transcript's classes. ScriptedModel gives an answer scripted as a bare list of items
  * an all-zero usage, which no script chose, so a usage without a single token is left out. The SDK's input count
- * includes the cached tokens, and its output count the reasoning tokens; it reports no cache writes.
+ * includes the cached tokens, so the uncached part is what is left once the cached tokens it reports are taken out
+ * (events.ts, `Usage`); its output count includes the reasoning tokens, and it reports no cache writes.
  */
-function usageOf(value: unknown): Usage | undefined {
+export function usageOf(value: unknown): Usage | undefined {
   if (value === undefined) return undefined;
   const usage = value instanceof SdkUsage ? value : new SdkUsage(value as ConstructorParameters<typeof SdkUsage>[0]);
   if (usage.inputTokens === 0 && usage.outputTokens === 0 && usage.totalTokens === 0) return undefined;
   const cacheRead = detail(usage.inputTokensDetails, "cached_tokens");
   return reportedUsage({
-    uncachedInput: cacheRead === undefined ? undefined : usage.inputTokens - cacheRead,
+    uncachedInput: usage.inputTokens - (cacheRead ?? 0),
     cacheRead,
     output: usage.outputTokens,
     reasoning: detail(usage.outputTokensDetails, "reasoning_tokens"),

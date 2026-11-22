@@ -29,7 +29,12 @@ const message = z.object({ role: z.enum(["system", "user", "assistant", "tool"])
 const line = z.number().int().positive().optional();
 const count = z.number().int().nonnegative().optional();
 /** The token counts the mock reported for an answer, each class only where the example's script set it. */
-const usage = z.object({ uncachedInput: count, cacheRead: count, cacheWrite: count, output: count, reasoning: count });
+const usage = z
+  .object({ uncachedInput: count, cacheRead: count, cacheWrite: count, output: count, reasoning: count })
+  .strict()
+  .refine((counts) => Object.values(counts).some((value) => value !== undefined), {
+    message: "must hold at least one token class",
+  });
 
 const event = z.discriminatedUnion("kind", [
   z.object({
@@ -53,8 +58,7 @@ const event = z.discriminatedUnion("kind", [
 ]);
 
 const transcriptSchema = z.object({
-  /** Version 1 has no `usage` or `modelId`; the replay reads it until every committed transcript is rewritten. */
-  format: z.union([z.literal(1), z.literal(TRANSCRIPT_FORMAT)]),
+  format: z.literal(TRANSCRIPT_FORMAT),
   example: z.string(),
   file: z.string(),
   harness: z.string(),
@@ -99,6 +103,14 @@ export function readTranscript(
     data = JSON.parse(readFileSync(file, "utf8"));
   } catch (error) {
     return { message: `${transcriptPath} is not JSON: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const format = (data as { format?: unknown } | null)?.format;
+  if (typeof format === "number" && format !== TRANSCRIPT_FORMAT) {
+    return {
+      message:
+        `${transcriptPath} is at transcript format ${format}, not ${TRANSCRIPT_FORMAT}; run ${listing.harness}'s ` +
+        "pnpm test to record it again",
+    };
   }
   const parsed = transcriptSchema.safeParse(data);
   if (!parsed.success) {
@@ -184,8 +196,9 @@ export function usageText(usage: TranscriptUsage): string {
   if (usage.cacheWrite !== undefined) classes.push(`${tokens(usage.cacheWrite)} cache write`);
   if (usage.output !== undefined) classes.push(`${tokens(usage.output)} output`);
   if (usage.reasoning === undefined) return `${classes.join(", ")} tokens`;
-  const reasoning = `${tokens(usage.reasoning)} ${usage.output === undefined ? "reasoning" : "of them on reasoning"}`;
-  return classes.length === 0 ? `${reasoning} tokens` : `${classes.join(", ")} tokens, ${reasoning}`;
+  if (usage.output !== undefined)
+    return `${classes.join(", ")} tokens, ${tokens(usage.reasoning)} of them on reasoning`;
+  return [...classes, `${tokens(usage.reasoning)} reasoning`].join(", ") + " tokens";
 }
 
 /** What an answer reported about itself, for the last event the replay shows of it. */

@@ -515,6 +515,58 @@ test("transcriptProblems() checks a response's usage and model id", () => {
   assert.deepEqual(transcriptProblems(transcript({ usage: {} })), [
     "events[0].usage: must be an object with at least one token class",
   ]);
+  for (const modelId of [42, ["claude-sonnet-5-5"], null]) {
+    assert.deepEqual(transcriptProblems(transcript({ modelId })), ["events[0]: has a model id that is no string"]);
+  }
+});
+
+test("each mapper counts a reported input total with no cache detail as uncached, the rule events.ts states", async () => {
+  const openai = await import("../../verify/openai-agents-sdk/examples/lib/transcript.ts");
+  assert.deepEqual(openai.usageOf({ inputTokens: 120, outputTokens: 30, totalTokens: 150 }), {
+    uncachedInput: 120,
+    output: 30,
+  });
+  assert.deepEqual(
+    openai.usageOf({
+      inputTokens: 120,
+      outputTokens: 30,
+      totalTokens: 150,
+      inputTokensDetails: { cached_tokens: 100 },
+      outputTokensDetails: { reasoning_tokens: 10 },
+    }),
+    { uncachedInput: 20, cacheRead: 100, output: 30, reasoning: 10 },
+  );
+  assert.equal(openai.usageOf({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }), undefined, "the zero default");
+  // usageOf() reads only an AI message's usage_metadata.
+  const said = (usage_metadata) => ({ content: "x", usage_metadata });
+  const langchain = await import("../../verify/langchain/examples/lib/transcript.ts");
+  assert.deepEqual(langchain.usageOf(said({ input_tokens: 120, output_tokens: 30, total_tokens: 150 })), {
+    uncachedInput: 120,
+    output: 30,
+  });
+  assert.deepEqual(
+    langchain.usageOf(
+      said({ input_tokens: 120, output_tokens: 30, total_tokens: 150, input_token_details: { cache_read: 100 } }),
+    ),
+    { uncachedInput: 20, cacheRead: 100, output: 30 },
+  );
+  const aiSdk = await import("../../verify/vercel-ai-sdk/examples/lib/transcript.ts");
+  assert.deepEqual(
+    aiSdk.usageOf({
+      inputTokens: { total: 120, noCache: undefined, cacheRead: 100, cacheWrite: undefined },
+      outputTokens: { total: 30, text: 30, reasoning: undefined },
+    }),
+    { uncachedInput: 20, cacheRead: 100, output: 30 },
+  );
+});
+
+test("the AI SDK mappers read a usage missing either half without throwing, so the recorder cannot fail an example", async () => {
+  for (const harness of ["vercel-ai-sdk", "cloudflare-agents"]) {
+    const { usageOf } = await import(`../../verify/${harness}/examples/lib/transcript.ts`);
+    assert.deepEqual(usageOf({ outputTokens: { total: 5 } }), { output: 5 }, harness);
+    assert.deepEqual(usageOf({ inputTokens: { total: 9, noCache: 9 } }), { uncachedInput: 9 }, harness);
+    assert.equal(usageOf({}), undefined, harness);
+  }
 });
 
 test("transcriptProblems() names what is wrong with a malformed transcript", () => {
