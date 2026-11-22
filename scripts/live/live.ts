@@ -127,6 +127,28 @@ export function denyHostTools(tools: readonly { name: string; type?: string }[],
   }
 }
 
+type UsageFields = Record<string, unknown>;
+const isUsageObject = (value: unknown): value is UsageFields =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+/**
+ * Overlays a later Anthropic usage report on an earlier one, as the gateway's own adapter merges them
+ * (packages/gateway/src/adapters/anthropic/usage.ts, `mergeUsage`). The Messages API types a `message_delta`'s
+ * `input_tokens` and cache counts as `number | null`, so a field it sends as null or leaves out keeps the
+ * `message_start` value; a plain spread would let the null through and the guard would price that input as free.
+ * The gateway doesn't export its merge, and a relative import into its `src/` would cross packages, so this mirrors it.
+ */
+export function mergeAnthropicUsage(earlier: UsageFields, later: unknown): UsageFields {
+  if (!isUsageObject(later)) return earlier;
+  const merged: UsageFields = { ...earlier };
+  for (const [key, value] of Object.entries(later)) {
+    if (value === null || value === undefined) continue;
+    const before = earlier[key];
+    merged[key] = isUsageObject(value) && isUsageObject(before) ? { ...before, ...value } : value;
+  }
+  return merged;
+}
+
 /** A live call the cost guard let through; `settle` records its cost once it has answered. */
 export interface LiveCall {
   settle(usage: TokenUsage | undefined): void;
@@ -178,17 +200,19 @@ export async function guardedCall<T>(
 }
 
 /**
- * Passes a streamed answer through and settles its cost guard however the stream ends. A part that `isFinish` picks
- * out settles the guard at once with the usage `usageOf` reads from it, so a reader that stops after the finish part
- * without cancelling still pays. A stream that ends without a finish part settles with the last usage seen. A stream
- * that fails, or that the reader cancels first, settles with no usage, which records the call's projection: every
- * input token at the dearest rate and the whole output allowance. The guard settles once whatever happens.
+ * Passes a streamed answer through and settles its cost guard however the stream ends. Only a completed answer is
+ * priced from its streamed usage: a part that `isFinish` picks out settles the guard at once with the usage `usageOf`
+ * has read up to and including it, so a reader that stops or cancels after the finish part still pays that usage.
+ * Every other ending settles with no usage, which records the call's projection: every input token at the dearest rate
+ * and the whole output allowance. That covers a stream that ends without a finish part, one that fails and one that
+ * the reader cancels first, because the usage such an answer has streamed so far, such as the one output token
+ * Anthropic's `message_start` reports, is not what the call is billed. The guard settles once whatever happens.
  */
 export function guardStream<T>(
   stream: ReadableStream<T>,
   guard: LiveCall,
   usageOf: (part: T) => TokenUsage | undefined,
-  isFinish: (part: T) => boolean = () => false,
+  isFinish: (part: T) => boolean,
 ): ReadableStream<T> {
   const reader = stream.getReader();
   let usage: TokenUsage | undefined;
@@ -203,7 +227,8 @@ export function guardStream<T>(
         return;
       }
       if (next.done) {
-        guard.settle(usage);
+        // A finish part has already settled the guard, so this records the projection only for an unfinished answer.
+        guard.settle(undefined);
         controller.close();
         return;
       }

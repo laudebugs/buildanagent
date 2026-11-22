@@ -1,0 +1,13 @@
+{
+  "format": 2,
+  "example": "01-hello",
+  "file": "verify/demo-sdk/examples/01-hello.ts",
+  "harness": "verify/demo-sdk",
+  "pin": "demo-sdk@1.2.3",
+  "mock": "demo-sdk@1.2.3",
+  "live": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5"
+  },
+  "events": []
+}

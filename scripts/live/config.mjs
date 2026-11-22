@@ -1,5 +1,6 @@
 // The live run's example list, apps/manual/src/data/live-examples.json: which examples run against real APIs, on which
-// provider and model, with what output allowance, and what a run is projected to cost. run.mjs runs the list,
+// provider and model, with what output allowance, and what a run is projected to cost. A harness is a verify/<sdk>
+// directory or one of our own packages, such as packages/sdk, and the list may name one file once for each provider. run.mjs runs the list,
 // live-diff.mjs compares it, the book marks every other listing "verified against mock models only", and tests in
 // scripts/ci/live-run.test.mjs and apps/manual check it with liveConfigProblems().
 import { existsSync, readFileSync } from "node:fs";
@@ -26,12 +27,16 @@ export const PROVIDERS = {
   "verify/langchain": ["anthropic", "openai"],
   "verify/pi": ["anthropic", "openai"],
   "verify/google-adk": [],
+  // Our gateway's Anthropic and OpenAI Chat Completions adapters, which the SDK's examples run on.
+  "packages/sdk": ["anthropic", "openai"],
 };
 
 /**
  * The harnesses whose scripts/run-examples.mjs has a --live mode. The Claude Agent SDK and Copilot SDK make their model
  * calls from a child process, so their live mode sends them through proxy.mjs; the other five wrap each call in the
- * example's process (live.ts). google-adk reaches no provider the run holds a key for.
+ * example's process (live.ts), and so does packages/sdk, whose runner, packages/sdk/scripts/run-examples.mjs, drives
+ * the SDK's book examples (apps/manual/README.md, "Changing the live list").
+ * google-adk reaches no provider the run holds a key for.
  */
 export const LIVE_HARNESSES = [
   "verify/vercel-ai-sdk",
@@ -41,14 +46,28 @@ export const LIVE_HARNESSES = [
   "verify/cloudflare-agents",
   "verify/claude-agent-sdk",
   "verify/copilot-sdk",
+  "packages/sdk",
 ];
 
-/** An example's harness directory and name, from its path: `verify/pi/examples/08-triage-agent.ts`. */
-export function exampleOf(file) {
+/**
+ * An example's harness directory and name, from its path, such as `verify/pi/examples/08-triage-agent.ts` or
+ * `packages/sdk/examples/13-triage-agent.ts`, and where its transcripts go. Its live transcript on `provider` goes to
+ * that provider's own folder, so one example can run on both; without a provider there is no live transcript, so
+ * `live` is left out rather than name a folder no run writes.
+ */
+export function exampleOf(file, provider) {
   const harness = dirname(dirname(file));
   const id = basename(file, extname(file));
-  return { harness, id, mock: `${harness}/results/transcripts/${id}.json`, live: `${harness}/results/live/${id}.json` };
+  return {
+    harness,
+    id,
+    mock: `${harness}/results/transcripts/${id}.json`,
+    ...(provider === undefined ? {} : { live: `${harness}/results/live/${provider}/${id}.json` }),
+  };
 }
+
+/** How the list, its projection and its problems name one entry: its file and its provider. */
+export const entryName = (example) => `${example.file} on ${example.provider}`;
 
 export function readLiveConfig(file = LIVE_EXAMPLES_FILE) {
   return JSON.parse(readFileSync(file, "utf8"));
@@ -71,7 +90,7 @@ export function projection(config, catalog = readCatalog()) {
       entry,
     );
     const cost = perCall === null ? null : up(perCall * example.calls);
-    examples[example.file] = cost;
+    examples[entryName(example)] = cost;
     if (cost !== null) total += cost;
   }
   const asOf = [
@@ -99,9 +118,9 @@ export function liveConfigProblems(
   const seen = new Set();
   for (const example of config.examples) {
     const where = example.file ?? "an example";
-    const { harness, mock } = exampleOf(String(example.file ?? ""));
-    if (seen.has(example.file)) problems.push(`${where} is listed twice`);
-    seen.add(example.file);
+    const { harness, mock } = exampleOf(String(example.file ?? ""), example.provider);
+    if (seen.has(entryName(example))) problems.push(`${where} is listed twice on ${example.provider}`);
+    seen.add(entryName(example));
     if (!existsSync(join(root, String(example.file ?? "")))) problems.push(`${where} does not exist`);
     if (!(harness in PROVIDERS)) problems.push(`${where} is in no harness`);
     else if (!PROVIDERS[harness].includes(example.provider)) {
@@ -120,12 +139,15 @@ export function liveConfigProblems(
   }
   if (problems.length > 0 || !check) return problems;
   const projected = projection(config, catalog);
-  for (const [file, cost] of Object.entries(projected.examples)) {
-    if (config.projection.examples?.[file] !== cost) {
+  for (const [name, cost] of Object.entries(projected.examples)) {
+    if (config.projection.examples?.[name] !== cost) {
       problems.push(
-        `projection.examples["${file}"] is ${config.projection.examples?.[file]}, but the list projects ${cost}`,
+        `projection.examples["${name}"] is ${config.projection.examples?.[name]}, but the list projects ${cost}`,
       );
     }
+  }
+  for (const name of Object.keys(config.projection.examples ?? {})) {
+    if (!(name in projected.examples)) problems.push(`projection.examples["${name}"] names no entry of the list`);
   }
   if (config.projection.total !== projected.total) {
     problems.push(`projection.total is ${config.projection.total}, but the list projects ${projected.total}`);

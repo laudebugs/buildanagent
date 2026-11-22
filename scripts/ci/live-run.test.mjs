@@ -5,11 +5,20 @@
 // `node --test scripts/ci/*.test.mjs`. No test reaches a provider: every request goes to live-stub.mjs.
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import { liveTool as claudeLiveTool } from "../../verify/claude-agent-sdk/scripts/live-tools.mjs";
 import { liveTool as copilotLiveTool } from "../../verify/copilot-sdk/scripts/live-tools.mjs";
@@ -28,7 +37,14 @@ import {
 import { exampleOf, LIVE_HARNESSES, liveConfigProblems, projection, readLiveConfig } from "../live/config.mjs";
 import { liveMode } from "../live/harness.mjs";
 import { guardStream, HOST_TOOL_NAMES } from "../live/live.ts";
-import { exampleEnv, loopbackNamespace, PLACEHOLDER_KEY, prepareBody, requestProblem } from "../live/proxy.mjs";
+import {
+  anthropicAnswer,
+  exampleEnv,
+  loopbackNamespace,
+  PLACEHOLDER_KEY,
+  prepareBody,
+  requestProblem,
+} from "../live/proxy.mjs";
 import { findSecret, redact } from "../live/redact.ts";
 import { childSpend } from "../live/run.mjs";
 import { transcriptProblems, writeTranscript } from "../transcripts/write.mjs";
@@ -39,7 +55,9 @@ import {
   DATE_FILE,
   dateAfter,
   fenced,
+  inIndex,
   mergeReports,
+  patchProblems,
   protectionProblems,
 } from "./live-run.mjs";
 import { STUB_IDS, startStub, turnsFromTranscript } from "./live-stub.mjs";
@@ -214,7 +232,13 @@ test("a harness runner's --live needs the runner's environment and one example",
 
 // --- The runner against a stub ----------------------------------------------------------------------------------
 
-/** Which listed example a request comes from, by the tools it offers, and that example's mock answers. */
+/** Our SDK's triage agent's system prompt, which tells its requests apart from Pi's, whose tools have the same names. */
+const SDK_TRIAGE_SYSTEM = "Escalate only what an engineer must see.";
+
+/**
+ * Which listed example a request comes from, by the API it reaches and the tools it offers, and that example's mock
+ * answers. Our gateway's OpenAI adapter speaks Chat Completions, which no verify harness does.
+ */
 function stubScript(examples) {
   const turns = new Map(
     examples.map((e) => [
@@ -223,10 +247,12 @@ function stubScript(examples) {
     ]),
   );
   const counts = new Map();
-  const exampleFor = (provider, body) => {
+  const exampleFor = (api, body) => {
     const names = (body.tools ?? []).map((tool) => tool.name);
     const find = (part) => examples.find((e) => e.file.includes(part))?.file;
-    if (provider === "anthropic") {
+    if (api === "openai-chat") return find("packages/sdk/");
+    if (api === "anthropic") {
+      if (JSON.stringify(body.system ?? "").includes(SDK_TRIAGE_SYSTEM)) return find("packages/sdk/");
       if (names.includes("lookupOrder")) return find("vercel-ai-sdk");
       if (names.includes("Triage")) return find("langchain");
       if (names.includes("submit_triage")) return find("verify/pi/");
@@ -235,10 +261,12 @@ function stubScript(examples) {
     }
     return undefined;
   };
-  return (provider, body) => {
-    const file = exampleFor(provider, body);
-    const n = counts.get(file) ?? 0;
-    counts.set(file, n + 1);
+  // One file may be listed on both providers, so each provider's run of it plays the mock's turns from the start.
+  return (api, body) => {
+    const file = exampleFor(api, body);
+    const key = `${api === "anthropic" ? "anthropic" : "openai"} ${file}`;
+    const n = counts.get(key) ?? 0;
+    counts.set(key, n + 1);
     return turns.get(file)?.[n] ?? "No more turns.";
   };
 }
@@ -328,9 +356,11 @@ test("every listed example runs live against a stub that answers as its mock did
       assert.ok(request.body.max_tokens <= 1024);
     } else {
       assert.equal(request.headers.authorization, `Bearer ${FAKE_KEYS.OPENAI_API_KEY}`);
-      assert.ok(request.body.max_output_tokens <= 2048);
+      const allowance =
+        request.provider === "openai-chat" ? request.body.max_completion_tokens : request.body.max_output_tokens;
+      assert.ok(allowance <= 2048, `${request.provider} allows ${allowance}`);
     }
-    const names = (request.body.tools ?? []).map((tool) => tool.name);
+    const names = (request.body.tools ?? []).map((tool) => tool.name ?? tool.function?.name);
     for (const host of ["read", "write", "edit", "bash", "ls", "grep"]) assert.ok(!names.includes(host), host);
   }
   // No key, account id or request id reached a written file or the log.
@@ -437,7 +467,7 @@ test("the run reads an example's ledger as a claim, and stops when it can't", ()
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("a streamed answer settles its guard once: at the finish part, or on an error or a cancel", async () => {
+test("a streamed answer settles its guard once: at the finish part, or at the projection on any other ending", async () => {
   const settled = [];
   // A guard settles once, as beginCall()'s does; later calls are ignored.
   const once = () => {
@@ -485,7 +515,481 @@ test("a streamed answer settles its guard once: at the finish part, or on an err
   });
   const stopped = guardStream(afterFinish, once(), usageOf, isFinish).getReader();
   assert.equal((await stopped.read()).value.type, "finish");
-  assert.deepEqual(settled, [finishUsage, "projection", "projection", finishUsage]);
+  // End cleanly without a finish part, after a part that reported partial usage, as an Anthropic body that stops after
+  // message_start does: the partial usage is not what the call is billed, so the call counts at its projection.
+  const partialUsage = { uncachedInput: 1, output: 1 };
+  const anyUsage = (part) => part.usage;
+  assert.equal(
+    (await read(guardStream(parts([{ type: "start", usage: partialUsage }]), once(), anyUsage, isFinish))).length,
+    1,
+  );
+  assert.deepEqual(settled, [finishUsage, "projection", "projection", finishUsage, "projection"]);
+});
+
+// --- Our SDK's live mode ----------------------------------------------------------------------------------------
+
+const SDK_TRIAGE = "packages/sdk/examples/13-triage-agent.ts";
+const sdkEntries = () => config.examples.filter((example) => example.file === SDK_TRIAGE);
+const TSX = import.meta.resolve("tsx");
+const SOURCE_CONDITION = join(root, "scripts/transcripts/source-condition.mjs");
+/** A file of the repository as a quoted file URL, for a child script's import. */
+const fileURL = (path) => JSON.stringify(pathToFileURL(join(root, path)).href);
+
+test("the list runs our SDK's triage agent on both providers, each with its own live transcript", () => {
+  assert.deepEqual(
+    sdkEntries()
+      .map((example) => example.provider)
+      .sort(),
+    ["anthropic", "openai"],
+  );
+  const [first, second] = sdkEntries();
+  assert.notEqual(exampleOf(first.file, first.provider).live, exampleOf(second.file, second.provider).live);
+  assert.equal(exampleOf(SDK_TRIAGE, "openai").live, "packages/sdk/results/live/openai/13-triage-agent.json");
+  assert.equal(exampleOf(SDK_TRIAGE).mock, "packages/sdk/results/transcripts/13-triage-agent.json");
+  // Without a provider no run writes a live transcript, so none is named, not one in an "undefined" folder.
+  assert.equal("live" in exampleOf(SDK_TRIAGE), false);
+  const twice = { ...config, examples: [first, { ...first }] };
+  assert.ok(liveConfigProblems(twice).some((p) => p.includes(`${SDK_TRIAGE} is listed twice on ${first.provider}`)));
+  const stray = { ...config, projection: { ...config.projection, examples: { ...config.projection.examples, x: 1 } } };
+  assert.ok(liveConfigProblems(stray).some((p) => /"x"\] names no entry/.test(p)));
+});
+
+test("our SDK's triage agent runs live through our gateway's two adapters and keeps the mock's flow", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-sdk-"));
+  const entries = sdkEntries();
+  const stub = await startStub(stubScript(entries));
+  const out = join(dir, "out");
+  const report = join(dir, "report");
+  const {
+    code,
+    out: log,
+    deleted,
+  } = await runLive([
+    ...["--config", writeConfig(dir, entries), "--out", out, "--report", report],
+    ...["--base-url", `anthropic=${stub.url}`, "--base-url", `openai=${stub.url}`],
+  ]);
+  await stub.close();
+  assert.equal(code, 0, log);
+  assert.ok(deleted, "run.mjs deletes each key file once it has read it");
+  const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
+  assert.ok(results.complete, log);
+  for (const example of results.examples) {
+    assert.equal(example.outcome, "ran", `${example.provider}\n${log}`);
+    assert.equal(example.calls, 3, "the ledger holds each of the three calls");
+    // Our gateway's adapters cancel the body at message_stop or [DONE]; each call is still priced from the usage the
+    // stub streamed, 120 input and 30 output tokens, not at its projection.
+    const model = catalog.models.find((m) => m.provider === example.provider && m.id === example.model);
+    const streamed = priceUsage({ uncachedInput: 120, cacheRead: 0, cacheWrite: 0, output: 30 }, model);
+    assert.ok(close(example.spent, 3 * streamed), `${example.provider} spent ${example.spent}, not ${3 * streamed}`);
+    assert.deepEqual(example.checks, { passed: 6, total: 6 });
+    assert.equal(example.transcript, `packages/sdk/${example.provider}/13-triage-agent.json`);
+  }
+  for (const result of compareAll({ ...config, examples: entries }, { liveDir: out })) {
+    assert.deepEqual(result.differences, [], result.provider);
+  }
+  for (const provider of ["anthropic", "openai"]) {
+    const transcript = JSON.parse(readFileSync(join(out, "packages/sdk", provider, "13-triage-agent.json"), "utf8"));
+    assert.deepEqual(transcriptProblems(transcript), []);
+    assert.equal(transcript.harness, "packages/sdk");
+    assert.equal(transcript.live.provider, provider);
+    // The usage the stub streamed reached the transcript through our gateway.
+    const usage = transcript.events.find((event) => event.kind === "response").usage;
+    assert.equal(usage.output, 30);
+  }
+  // Each provider's key reached only its own API, through our adapters' own endpoints, with the run's allowance.
+  const byApi = Object.groupBy(stub.requests, (request) => request.provider);
+  assert.equal(byApi.anthropic.length, 3);
+  assert.equal(byApi["openai-chat"].length, 3);
+  for (const request of byApi.anthropic) {
+    assert.equal(request.headers["x-api-key"], FAKE_KEYS.ANTHROPIC_API_KEY);
+    assert.equal(request.headers.authorization, undefined);
+    assert.ok(request.body.max_tokens <= 1024);
+    assert.equal(request.body.model, "claude-haiku-5-5");
+  }
+  for (const request of byApi["openai-chat"]) {
+    assert.equal(request.headers.authorization, `Bearer ${FAKE_KEYS.OPENAI_API_KEY}`);
+    assert.equal(request.headers["x-api-key"], undefined);
+    assert.ok(request.body.max_completion_tokens <= 2048);
+    assert.equal(request.body.model, "gpt-5.4-mini");
+  }
+  for (const file of filesUnder(dir)) {
+    const text = readFileSync(file, "utf8");
+    for (const secret of SECRETS) assert.ok(!text.includes(secret), `${file} holds a secret`);
+  }
+  for (const secret of SECRETS) assert.ok(!log.includes(secret), "the log holds a secret");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("a call our gateway retries after a 429 counts once in our SDK's checks and transcript, and the guard charges both attempts", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-sdk-retry-"));
+  const entries = sdkEntries();
+  // Each API refuses its first request as a rate-limited provider does; the gateway waits and sends it again.
+  const refusals = {
+    anthropic: { type: "error", error: { type: "rate_limit_error", message: "rate limited" } },
+    "openai-chat": { error: { type: "rate_limit_exceeded", message: "rate limited" } },
+  };
+  const stub = await startStub(stubScript(entries), {
+    refuse: (api, n) =>
+      n === 0 ? { status: 429, body: refusals[api], headers: { "retry-after-ms": "0" } } : undefined,
+  });
+  const out = join(dir, "out");
+  const report = join(dir, "report");
+  const { code, out: log } = await runLive([
+    ...["--config", writeConfig(dir, entries), "--out", out, "--report", report],
+    ...["--base-url", `anthropic=${stub.url}`, "--base-url", `openai=${stub.url}`],
+  ]);
+  await stub.close();
+  assert.equal(code, 0, log);
+  const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
+  assert.ok(results.complete, log);
+  for (const example of results.examples) {
+    assert.equal(example.outcome, "ran", `${example.provider}\n${log}`);
+    // The example's own check that it made exactly three calls passes: the retried attempt is not a call of the run.
+    assert.deepEqual(example.checks, { passed: 6, total: 6 }, `${example.provider}\n${log}`);
+    // The guard charged the refused attempt too, at its projection, beside the three answered calls' streamed usage.
+    assert.equal(example.calls, 4, "the ledger holds the refused attempt and the three calls");
+    const model = catalog.models.find((m) => m.provider === example.provider && m.id === example.model);
+    const streamed = priceUsage({ uncachedInput: 120, cacheRead: 0, cacheWrite: 0, output: 30 }, model);
+    assert.ok(example.spent > 3 * streamed, `${example.provider} spent ${example.spent}, no more than 3 answers`);
+  }
+  for (const result of compareAll({ ...config, examples: entries }, { liveDir: out })) {
+    assert.deepEqual(result.differences, [], result.provider);
+  }
+  for (const provider of ["anthropic", "openai"]) {
+    const transcript = JSON.parse(readFileSync(join(out, "packages/sdk", provider, "13-triage-agent.json"), "utf8"));
+    assert.deepEqual(transcriptProblems(transcript), []);
+    const kinds = transcript.events
+      .map((event) => event.kind)
+      .filter((kind) => kind === "request" || kind === "response");
+    assert.deepEqual(kinds, ["request", "response", "request", "response", "request", "response"], provider);
+  }
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("our SDK's runner runs only under run.mjs, with --live and one example", () => {
+  const runner = join(root, "packages/sdk/scripts/run-examples.mjs");
+  const run = (args, env = {}) => {
+    try {
+      execFileSync(process.execPath, [runner, ...args], { env: { PATH: process.env.PATH, ...env }, stdio: "pipe" });
+      return { code: 0, text: "" };
+    } catch (error) {
+      return { code: error.status, text: `${error.stdout}${error.stderr}` };
+    }
+  };
+  const offline = run(["examples", "--only", "13-triage-agent"]);
+  assert.equal(offline.code, 2);
+  assert.match(offline.text, /only scripts\/live\/run\.mjs runs this/);
+  assert.match(run(["examples", "--only", "13-triage-agent", "--live"]).text, /only under scripts\/live\/run\.mjs/);
+  const settings = { LIVE: "1", LIVE_API_KEY_FILE: join(tmpdir(), "no-such-key-file") };
+  assert.match(run(["examples", "--live"], settings).text, /--live needs --only/);
+  const unknown = run(["examples", "--only", "../../etc/passwd", "--live"], settings);
+  assert.equal(unknown.code, 2);
+  assert.match(unknown.text, /is not one of the book's examples/);
+});
+
+test("our SDK's runner deletes an earlier live transcript and its raw events when the example times out", () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-sdk-timeout-"));
+  const temp = join(dir, "tmp");
+  const outDir = join(dir, "out");
+  mkdirSync(temp);
+  mkdirSync(outDir);
+  const stale = join(outDir, "13-triage-agent.json");
+  writeFileSync(stale, "{}\n");
+  const keyFile = join(dir, "key");
+  writeFileSync(keyFile, FAKE_KEYS.ANTHROPIC_API_KEY, { mode: 0o600 });
+  // A 1 ms timeout kills the example before it can send anything.
+  const env = {
+    PATH: process.env.PATH,
+    TMPDIR: temp,
+    EXAMPLE_TIMEOUT_MS: "1",
+    LIVE: "1",
+    LIVE_PROVIDER: "anthropic",
+    LIVE_MODEL: "claude-haiku-5-5",
+    LIVE_API_KEY_FILE: keyFile,
+    LIVE_OUT_DIR: outDir,
+  };
+  let text = "";
+  let code = 0;
+  try {
+    text = execFileSync(
+      process.execPath,
+      [join(root, "packages/sdk/scripts/run-examples.mjs"), "examples", "--only", "13-triage-agent", "--live"],
+      { env, stdio: "pipe" },
+    ).toString();
+  } catch (error) {
+    code = error.status;
+    text = `${error.stdout}${error.stderr}`;
+  }
+  assert.equal(code, 1, text);
+  assert.match(text, /^timeout\s+13-triage-agent/m);
+  assert.ok(!existsSync(stale), "the earlier run's transcript is deleted, so run.mjs can't report it");
+  assert.deepEqual(readdirSync(temp), [], "the raw events and the runner's temporary folders are deleted");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+/**
+ * Runs `script` with tsx, on our packages' src/, in a child whose environment is a live run's of our SDK's triage
+ * agent, with a dummy key file and a fresh ledger; resolves with its exit code, its output and whether the key file
+ * is left. `env` adds to or, with undefined, takes away from that environment.
+ */
+function sdkChild(script, env = {}) {
+  const dir = mkdtempSync(join(tmpdir(), "live-sdk-child-"));
+  const keyFile = join(dir, "key");
+  writeFileSync(keyFile, FAKE_KEYS.ANTHROPIC_API_KEY, { mode: 0o600 });
+  const ledger = join(dir, "ledger.json");
+  writeLedger(ledger, newLedger());
+  const file = join(dir, "child.mts");
+  writeFileSync(file, script);
+  const base = {
+    PATH: process.env.PATH,
+    HOME: dir,
+    LIVE: "1",
+    LIVE_PROVIDER: "anthropic",
+    LIVE_MODEL: "claude-haiku-5-5",
+    LIVE_MAX_TOKENS: "1024",
+    LIVE_LEDGER: ledger,
+    LIVE_EXAMPLE: SDK_TRIAGE,
+    LIVE_API_KEY_FILE: keyFile,
+  };
+  const childEnv = Object.fromEntries(Object.entries({ ...base, ...env }).filter(([, value]) => value !== undefined));
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ["--import", TSX, "--import", SOURCE_CONDITION, file], {
+      env: childEnv,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let out = "";
+    child.stdout.on("data", (chunk) => (out += chunk));
+    child.stderr.on("data", (chunk) => (out += chunk));
+    child.on("close", (code) => {
+      const keyLeft = existsSync(keyFile);
+      const spent = readLedger(ledger);
+      rmSync(dir, { recursive: true, force: true });
+      resolve({ code, out, keyLeft, ledger: spent });
+    });
+  });
+}
+
+test("in our SDK's live mode the offline setup still guards every fetch but the live transport's", async () => {
+  const { code, out, keyLeft } =
+    await sdkChild(`import { modelRequestsAreAllowed } from ${fileURL("packages/gateway/src/index.ts")};
+import { scripted } from ${fileURL("packages/sdk/examples/lib/check.ts")};
+const before = modelRequestsAreAllowed();
+const outside = await fetch("https://api.anthropic.com/v1/messages").then(() => "sent", (error) => error.message);
+const { adapter } = scripted([]);
+console.log(JSON.stringify({ before, after: modelRequestsAreAllowed(), outside, calls: adapter.calls.length }));
+`);
+  assert.equal(code, 0, out);
+  assert.ok(!keyLeft, "the live mode deletes the key file once it has read it");
+  const result = JSON.parse(out.trim().split("\n").at(-1));
+  assert.equal(result.before, false, "real model requests stay off until the live model is built");
+  assert.equal(result.after, true);
+  assert.match(result.outside, /Blocked outbound request to api\.anthropic\.com/);
+  assert.equal(result.calls, 0);
+  // A provider key variable still stops the example before it runs, live or not.
+  const keyed = await sdkChild(`import ${fileURL("packages/sdk/examples/lib/check.ts")};\nconsole.log("ran");\n`, {
+    ANTHROPIC_API_KEY: FAKE_KEYS.ANTHROPIC_API_KEY,
+  });
+  assert.notEqual(keyed.code, 0);
+  assert.match(keyed.out, /Refusing to run tests with provider credentials set \(ANTHROPIC_API_KEY\)/);
+  assert.ok(!keyed.out.includes(FAKE_KEYS.ANTHROPIC_API_KEY));
+});
+
+test("our SDK's live transport refuses before sending, guards each call and passes on no provider header", async () => {
+  const { code, out, ledger } =
+    await sdkChild(`import { readLedger, writeLedger } from ${fileURL("scripts/live/budget.ts")};
+import { liveTransport, requestProblem, usageReader } from ${fileURL("packages/sdk/examples/lib/live.mjs")};
+const ledger = process.env.LIVE_LEDGER;
+const config = { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 1024, apiKey: "k", baseURL: undefined,
+  example: "${SDK_TRIAGE}", ledger, catalog: undefined };
+const sent = [];
+const sse = (events) => events.map((e) => "event: " + e.type + "\\ndata: " + JSON.stringify(e) + "\\n\\n").join("");
+// The Messages API types a message_delta's input and cache counts as number | null; a null keeps message_start's count.
+let answer = () => new Response(sse([
+  { type: "message_start", message: { usage: { input_tokens: 40, cache_read_input_tokens: 10, output_tokens: 1 } } },
+  { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: {
+    input_tokens: null, cache_read_input_tokens: null, cache_creation_input_tokens: null, output_tokens: 20,
+  } },
+  { type: "message_stop" },
+]), { headers: { "content-type": "text/event-stream", "request-id": "req_0123456789abcdef" } });
+const send = async (url, init) => { sent.push(url); return answer(); };
+const transport = liveTransport(config, send);
+const post = (body, url = "https://api.anthropic.com/v1/messages") =>
+  transport(new Request(url, { method: "POST", body: JSON.stringify(body) })).then(
+    async (response) => ({ status: response.status, headers: [...response.headers.keys()], text: await response.text() }),
+    (error) => error.message,
+  );
+// Reads the answer as our gateway's adapters do: up to the event that until names, then cancels the body.
+const readUntil = (body, until) =>
+  transport(new Request("https://api.anthropic.com/v1/messages", { method: "POST", body: JSON.stringify(body) })).then(
+    async (response) => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      while (!text.includes(until)) {
+        const { done, value } = await reader.read();
+        if (done) return "ended";
+        text += decoder.decode(value, { stream: true });
+      }
+      await reader.cancel();
+      return "cancelled";
+    },
+  );
+const ok = { model: "claude-haiku-5-5", max_tokens: 1024, messages: [], tools: [{ name: "lookup_customer" }] };
+const results = {
+  elsewhere: await post(ok, "https://example.com/v1/messages"),
+  host: await post({ ...ok, tools: [{ name: "bash" }] }),
+  typed: await post({ ...ok, tools: [{ name: "x", type: "computer_20250124" }] }),
+  model: await post({ ...ok, model: "claude-opus-5-5" }),
+  allowance: await post({ ...ok, max_tokens: 4096 }),
+  // Fields an extraBody could add that reach past the model or multiply the output, and one the adapter never sends.
+  mcp: await post({ ...ok, mcp_servers: [{ type: "url", url: "https://example.com/mcp", name: "x" }] }),
+  container: await post({ ...ok, container: "container_1" }),
+  unknown: await post({ ...ok, metadata: { user_id: "u" } }),
+  sentBefore: sent.length,
+  ok: await post(ok),
+  afterFinal: await readUntil(ok, "message_stop"),
+};
+// A body cancelled after message_start, before the final usage and message_stop, streams more than it reported.
+const started = sse([{ type: "message_start", message: { usage: { input_tokens: 40, output_tokens: 1 } } }]);
+answer = () => new Response(new ReadableStream({
+  start(controller) { controller.enqueue(new TextEncoder().encode(started)); },
+  pull: () => new Promise(() => {}),
+}), { headers: { "content-type": "text/event-stream" } });
+results.beforeFinal = await readUntil(ok, "message_start");
+answer = () => new Response("overloaded", { status: 529, headers: {
+  "retry-after": "7", "retry-after-ms": "7000", "request-id": "req_0123456789abcdef",
+  "anthropic-organization-id": "0d4b5ad1-3f0e-4c0a-9b1e-5f4e3d2c1b0a",
+} });
+results.failed = await post(ok);
+answer = () => new Response("rate limited", { status: 429, headers: {
+  "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT", "retry-after-ms": "soon",
+} });
+results.limited = await post(ok);
+// A body that ends cleanly after message_start, with no message_delta or message_stop, reported only partial usage.
+answer = () => new Response(started, { headers: { "content-type": "text/event-stream" } });
+results.endedEarly = await post(ok);
+// The same endings on OpenAI: a finished answer is priced from its usage chunk; one that ends before it, or ends with
+// [DONE] but no usage, at its projection.
+const openai = liveTransport({ ...config, provider: "openai", model: "gpt-5.4-mini", maxTokens: 2048 }, send);
+const chat = { model: "gpt-5.4-mini", max_completion_tokens: 2048, messages: [], stream: true };
+const postOpenAI = () =>
+  openai(new Request("https://api.openai.com/v1/chat/completions", { method: "POST", body: JSON.stringify(chat) })).then(
+    async (response) => ({ status: response.status, text: await response.text() }),
+  );
+const data = (lines) => lines.map((line) => "data: " + line + "\\n\\n").join("");
+const text = JSON.stringify({ choices: [{ delta: { content: "hi" } }] });
+const usageChunk = JSON.stringify({ choices: [], usage: { prompt_tokens: 50, completion_tokens: 7 } });
+for (const [name, lines] of [["openaiDone", [text, usageChunk, "[DONE]"]], ["openaiEarly", [text]], ["openaiNoUsage", [text, "[DONE]"]]]) {
+  answer = () => new Response(data(lines), { headers: { "content-type": "text/event-stream" } });
+  results[name] = await postOpenAI();
+}
+const chatConfig = { ...config, provider: "openai", model: "gpt-5.4-mini", maxTokens: 2048 };
+results.chatFields = {
+  adapter: requestProblem(chatConfig, { ...chat, stream_options: { include_usage: true }, prompt_cache_options: { mode: "explicit" } }) ?? null,
+  one: requestProblem(chatConfig, { ...chat, n: 1 }) ?? null,
+  several: requestProblem(chatConfig, { ...chat, n: 2 }),
+  audio: requestProblem(chatConfig, { ...chat, modalities: ["text", "audio"] }),
+};
+// Every allowance field the body carries is held to the run's limit, not only the one OpenAI reads first.
+const { max_completion_tokens: _, ...noAllowance } = chat;
+results.allowances = {
+  completionOver: requestProblem(chatConfig, { ...chat, max_completion_tokens: 4096 }),
+  legacyOverBesideCompletion: requestProblem(chatConfig, { ...chat, max_tokens: 100000 }),
+  legacyOver: requestProblem(chatConfig, { ...noAllowance, max_tokens: 4096 }),
+  bothWithin: requestProblem(chatConfig, { ...chat, max_tokens: 1024 }) ?? null,
+  legacyWithin: requestProblem(chatConfig, { ...noAllowance, max_tokens: 2048 }) ?? null,
+  neither: requestProblem(chatConfig, noAllowance),
+  fraction: requestProblem(chatConfig, { ...chat, max_completion_tokens: 1.5 }),
+  text: requestProblem(chatConfig, { ...chat, max_tokens: "100" }),
+  anthropicNone: requestProblem(config, { model: "claude-haiku-5-5", messages: [] }),
+  anthropicFraction: requestProblem(config, { ...ok, max_tokens: 512.5 }),
+};
+const nullDelta = usageReader("anthropic");
+results.nullDelta = nullDelta.usageOf(new TextEncoder().encode(sse([
+  { type: "message_start", message: { usage: { input_tokens: 40, cache_creation_input_tokens: 5, cache_read_input_tokens: 10, output_tokens: 1 } } },
+  { type: "message_delta", usage: { input_tokens: null, cache_creation_input_tokens: null, cache_read_input_tokens: null, output_tokens: 20 } },
+])));
+const now = readLedger(ledger);
+writeLedger(ledger, { ...now, cap: now.spent + 0.0001 });
+results.overCap = await post(ok);
+results.sent = sent.length;
+const read = usageReader("openai");
+const chunk = (text) => new TextEncoder().encode(text);
+const usage = 'data: {"choices":[],"usage":{"prompt_tokens":50,"completion_tokens":7,"prompt_tokens_details":{"cached_tokens":20}}}';
+results.split = [read.usageOf(chunk(usage.slice(0, 30)))];
+results.finishedEarly = read.isFinish();
+results.split.push(read.usageOf(chunk(usage.slice(30) + "\\n\\n")));
+results.finishedAtUsage = read.isFinish();
+const done = usageReader("openai");
+done.usageOf(chunk('data: {"choices":[{"delta":{"content":"hi"}}]}\\n\\n'));
+results.finishedAtText = done.isFinish();
+done.usageOf(chunk("data: [DONE]\\n\\n"));
+results.finishedAtDone = done.isFinish();
+console.log(JSON.stringify(results));
+`);
+  assert.equal(code, 0, out);
+  const r = JSON.parse(out.trim().split("\n").at(-1));
+  assert.match(r.elsewhere, /sends only to https:\/\/api\.anthropic\.com\/v1\/messages/);
+  assert.match(r.host, /the host tool "bash"/);
+  assert.match(r.typed, /of type "computer_20250124", not an in-process function/);
+  assert.match(r.model, /names the model "claude-opus-5-5"/);
+  assert.match(r.allowance, /allows 4096 output tokens in max_tokens, not at most the run's 1024/);
+  assert.match(r.mcp, /carries "mcp_servers", which the live mode doesn't send/);
+  assert.match(r.container, /carries "container"/);
+  assert.match(r.unknown, /carries "metadata"/);
+  assert.deepEqual(r.chatFields.adapter, null, "the fields our OpenAI adapter sends pass");
+  assert.equal(r.chatFields.one, null);
+  assert.match(r.chatFields.several, /asks for 2 answers, not one/);
+  assert.match(r.chatFields.audio, /carries "modalities"/);
+  const a = r.allowances;
+  assert.match(a.completionOver, /allows 4096 output tokens in max_completion_tokens, not at most the run's 2048/);
+  assert.match(a.legacyOverBesideCompletion, /allows 100000 output tokens in max_tokens/);
+  assert.match(a.legacyOver, /allows 4096 output tokens in max_tokens/);
+  assert.equal(a.bothWithin, null);
+  assert.equal(a.legacyWithin, null);
+  assert.match(a.neither, /sets no output allowance \(max_completion_tokens or max_tokens\)/);
+  assert.match(a.fraction, /allows 1\.5 output tokens in max_completion_tokens/);
+  assert.match(a.text, /allows "100" output tokens in max_tokens/);
+  assert.match(a.anthropicNone, /sets no output allowance \(max_tokens\)/);
+  assert.match(a.anthropicFraction, /allows 512\.5 output tokens in max_tokens/);
+  assert.deepEqual(r.nullDelta, { uncachedInput: 40, cacheRead: 10, cacheWrite: 5, output: 20 });
+  assert.equal(r.sentBefore, 0, "nothing refused reached the provider");
+  assert.equal(r.ok.status, 200);
+  assert.deepEqual(r.ok.headers, ["content-type"], "the provider's headers stay behind");
+  assert.equal(r.afterFinal, "cancelled");
+  assert.equal(r.beforeFinal, "cancelled");
+  assert.equal(r.failed.status, 529);
+  // A failed answer passes on its numeric retry delays, so the gateway waits as asked, and no other header.
+  assert.deepEqual(r.failed.headers.sort(), ["content-type", "retry-after", "retry-after-ms"]);
+  assert.equal(r.limited.status, 429);
+  assert.deepEqual(r.limited.headers, ["content-type"], "a delay that is not a plain number stays behind");
+  assert.match(r.overCap, /would pass the \$\d\.\d{4} cap/);
+  assert.equal(r.endedEarly.status, 200);
+  assert.equal(r.openaiDone.status, 200);
+  assert.equal(r.sent, 9, "the call past the cap was refused before it was sent");
+  // JSON writes the first, unfinished event's missing usage as null.
+  assert.deepEqual(r.split, [null, { uncachedInput: 30, cacheRead: 20, output: 7 }]);
+  assert.equal(r.finishedEarly, false);
+  assert.equal(r.finishedAtUsage, true, "OpenAI's usage chunk carries the whole usage");
+  assert.equal(r.finishedAtText, false);
+  assert.equal(r.finishedAtDone, true);
+  // An answer read to its end, or cancelled after its final event as the gateway's adapters cancel it, is priced from
+  // its streamed usage. One cancelled before its final event, one that ends without it and the failed ones, at the
+  // projection, as they may be billed. On OpenAI only the answer whose usage chunk arrived is priced from its usage.
+  assert.deepEqual(
+    ledger.calls.map((call) => call.basis),
+    ["usage", "usage", "projection", "projection", "projection", "projection", "usage", "projection", "projection"],
+  );
+  const haiku = catalog.models.find((m) => m.provider === "anthropic" && m.id === "claude-haiku-5-5");
+  for (const call of ledger.calls.slice(0, 2)) {
+    assert.ok(close(call.cost, priceUsage({ uncachedInput: 40, cacheRead: 10, output: 20 }, haiku)));
+  }
+  assert.ok(close(ledger.calls[2].cost, ledger.calls[2].projected));
+  assert.ok(
+    close(ledger.calls[5].cost, ledger.calls[5].projected),
+    "a body that ends after message_start costs its projection",
+  );
+  assert.ok(ledger.aborted !== null);
 });
 
 // --- The proxied live mode of the Claude Agent SDK and Copilot SDK ----------------------------------------------
@@ -602,6 +1106,30 @@ test("the proxy refuses a host tool by name or type, a tool its harness doesn't 
   assert.match(responses([{ type: "web_search" }]), /host tool "web_search"/);
   assert.match(responses([{ type: "mcp", server_url: "https://example.com" }]), /of type "mcp"/);
   assert.match(responses([{ type: "function", name: "shell" }]), /host tool "shell"/);
+});
+
+test("the proxy prices a streamed Anthropic answer whose message_delta sends its input counts as null", () => {
+  const sse = (events) => events.map((e) => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`).join("");
+  const text = sse([
+    {
+      type: "message_start",
+      message: {
+        usage: { input_tokens: 40, cache_creation_input_tokens: 5, cache_read_input_tokens: 10, output_tokens: 1 },
+      },
+    },
+    {
+      type: "message_delta",
+      delta: { stop_reason: "end_turn" },
+      usage: {
+        input_tokens: null,
+        cache_creation_input_tokens: null,
+        cache_read_input_tokens: null,
+        output_tokens: 20,
+      },
+    },
+    { type: "message_stop" },
+  ]);
+  assert.deepEqual(anthropicAnswer(text, true).usage, { uncachedInput: 40, cacheRead: 10, cacheWrite: 5, output: 20 });
 });
 
 test("the proxy sets the run's model and output cap and drops the machine's ids", () => {
@@ -952,10 +1480,26 @@ test("live-diff reports a changed tool call, argument keys, stop reason and chec
 test("live-diff counts a missing live transcript as a difference and writes Markdown for the issue", () => {
   const results = compareAll(config, { liveDir: mkdtempSync(join(tmpdir(), "live-none-")) });
   assert.ok(results.every((r) => r.differences.length === 1));
-  const markdown = diffMarkdown(results, { examples: [{ file: results[0].file, outcome: "not run" }] });
+  const { file, provider } = results[0];
+  const markdown = diffMarkdown(results, { examples: [{ file, provider, outcome: "not run" }] });
   assert.match(markdown, new RegExp(`^${results.length} of ${results.length} live examples differ`));
   assert.match(markdown, /outcome: not run/);
+  // One file listed on both providers keeps each provider's outcome.
+  const both = results.filter((r) => r.file === SDK_TRIAGE);
+  assert.deepEqual(both.map((r) => r.provider).sort(), ["anthropic", "openai"]);
+  const outcomes = both.map((r) => ({ file: r.file, provider: r.provider, outcome: `${r.provider} outcome` }));
+  const split = diffMarkdown(both, { examples: outcomes });
+  assert.match(split, /anthropic `claude-haiku-5-5`, outcome: anthropic outcome/);
+  assert.match(split, /openai `gpt-5\.4-mini`, outcome: openai outcome/);
   assert.match(diffMarkdown([{ ...results[0], differences: [] }]), /^All 1 live examples kept the mock's flow/);
+  // An entry the run reached whose transcript is not here says so, rather than that it never ran.
+  const ran = { examples: [{ file: SDK_TRIAGE, provider: "openai", outcome: "ran" }] };
+  const reached = compareAll(config, { liveDir: mkdtempSync(join(tmpdir(), "live-none-")), report: ran });
+  const sdk = reached.find((r) => r.file === SDK_TRIAGE && r.provider === "openai");
+  assert.match(sdk.differences[0], /^No live transcript is committed: the run reports this example's outcome as ran/);
+  assert.match(sdk.differences[0], /verified against mock models only/);
+  const unreached = reached.find((r) => r.file === SDK_TRIAGE && r.provider === "anthropic");
+  assert.equal(unreached.differences[0], "No live transcript: the example recorded no live run.");
 });
 
 test("live-diff exits 0 when the flows differ", () => {
@@ -1002,6 +1546,9 @@ test("the pre-run check passes the environment as set up and stops when its prot
 const reportOf = (providers, complete) => ({ providers, runCap: 1, target: 0.5, spent: 0.1, complete, examples: [] });
 const entry = (dir, report) => ({ provider: artifactProvider(dir), report });
 
+/** A results commit that holds every listed live transcript. */
+const everything = () => true;
+
 test("the date moves to the report job's own date only after every provider's own job completed", () => {
   const before = { lastCompared: "2026-11-30" };
   const both = mergeReports([
@@ -1010,15 +1557,39 @@ test("the date moves to the report job's own date only after every provider's ow
   ]);
   assert.ok(close(both.spent, 0.2));
   assert.deepEqual(both.completed, ["anthropic", "openai"]);
-  assert.deepEqual(dateAfter(both, "2026-12-01", before, config), { lastCompared: "2026-12-01" });
+  assert.deepEqual(dateAfter(both, "2026-12-01", before, config, everything), { lastCompared: "2026-12-01" });
   const one = mergeReports([entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true))]);
-  assert.equal(dateAfter(one, "2026-12-01", before, config), before, "the OpenAI job left no artifact");
+  assert.equal(dateAfter(one, "2026-12-01", before, config, everything), before, "the OpenAI job left no artifact");
   const partial = mergeReports([
     entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true)),
     entry("/tmp/live/live-openai", reportOf(["openai"], false)),
   ]);
-  assert.equal(dateAfter(partial, "2026-12-01", before, config), before);
-  assert.throws(() => dateAfter(both, "yesterday", before, config));
+  assert.equal(dateAfter(partial, "2026-12-01", before, config, everything), before);
+  assert.throws(() => dateAfter(both, "yesterday", before, config, everything));
+});
+
+test("only an entry whose live transcript the results commit holds can move the date", () => {
+  const before = { lastCompared: "2026-11-30" };
+  const both = mergeReports([
+    entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true)),
+    entry("/tmp/live/live-openai", reportOf(["openai"], true)),
+  ]);
+  // Both jobs completed, but the commit holds no transcript, as when the workflow stages none: the date stays.
+  assert.equal(
+    dateAfter(both, "2026-12-01", before, config, () => false),
+    before,
+  );
+  // The commit holds verify/'s transcripts but not our SDK's: those entries count, and move the date.
+  const verifyOnly = (path) => path.startsWith("verify/");
+  assert.deepEqual(dateAfter(both, "2026-12-01", before, config, verifyOnly), { lastCompared: "2026-12-01" });
+  // Only Anthropic's transcripts are held, and only its job completed: the entries that count all completed.
+  const one = mergeReports([entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true))]);
+  const anthropicOnly = (path) => path.includes("/results/live/anthropic/");
+  assert.deepEqual(dateAfter(one, "2026-12-01", before, config, anthropicOnly), { lastCompared: "2026-12-01" });
+  assert.equal(dateAfter(one, "2026-12-01", before, config, everything), before);
+  // The date step asks git's index, where the patches applied: a committed file is there, and a missing one is not.
+  assert.equal(inIndex("apps/manual/src/data/live-examples.json"), true);
+  assert.equal(inIndex("packages/sdk/results/live/no-such-provider/13-triage-agent.json"), false);
 });
 
 test("a provider's job can't claim another provider's completion or examples", () => {
@@ -1033,18 +1604,19 @@ test("a provider's job can't claim another provider's completion or examples", (
   assert.deepEqual(merged.providers, ["openai", "anthropic"]);
   assert.deepEqual(merged.completed, ["openai"]);
   assert.deepEqual(merged.examples, [], "the OpenAI job's report may list only OpenAI examples");
-  assert.equal(dateAfter(merged, "2026-12-01", before, config), before);
+  assert.equal(dateAfter(merged, "2026-12-01", before, config, everything), before);
   // An artifact without the Anthropic job's own directory counts for nothing, whatever it claims.
   const alone = mergeReports([entry("/tmp/live/live-openai", forged), entry("/tmp/live/live-other", forged)]);
   assert.deepEqual(alone.providers, ["openai"]);
-  assert.equal(dateAfter(alone, "2026-12-01", before, config), before);
+  assert.equal(dateAfter(alone, "2026-12-01", before, config, everything), before);
   assert.equal(artifactProvider("/tmp/live/live-anthropic-extra"), undefined, "the directory name must be exact");
 });
 
 test("the results commit may change only listed live transcripts and the date file", () => {
-  const live = exampleOf(config.examples[0].file).live;
-  const mock = readFileSync(join(root, exampleOf(config.examples[0].file).mock), "utf8");
-  const liveText = JSON.stringify({ ...JSON.parse(mock), live: { provider: "anthropic", model: "m" } });
+  const first = config.examples[0];
+  const live = exampleOf(first.file, first.provider).live;
+  const mock = readFileSync(join(root, exampleOf(first.file).mock), "utf8");
+  const liveText = JSON.stringify({ ...JSON.parse(mock), live: { provider: first.provider, model: "m" } });
   const read = (texts) => (path) => texts[path];
   const day = "2026-12-01";
   assert.deepEqual(changeProblems({ status: "A", path: live }, read({ [live]: liveText }), config, day), []);
@@ -1062,6 +1634,16 @@ test("the results commit may change only listed live transcripts and the date fi
     changeProblems({ status: "M", path: "scripts/ci/live-run.mjs" }, read({}), config, day)[0],
     /not a listed/,
   );
+  // A transcript in one provider's folder must name that provider, so it can't pass for the other provider's run.
+  // Which job wrote it is checked on that job's own patch, before any patch applies (patchProblems below).
+  const other = first.provider === "anthropic" ? "openai" : "anthropic";
+  const misplaced = liveText.replace(`"provider":"${first.provider}"`, `"provider":"${other}"`);
+  assert.match(
+    changeProblems({ status: "A", path: live }, read({ [live]: misplaced }), config, day)[0],
+    /sits in .*'s folder/,
+  );
+  // The same file listed on the other provider has its own live transcript, in that provider's folder.
+  assert.notEqual(exampleOf(first.file, other).live, live);
   const date = read({ [DATE_FILE]: '{"lastCompared":"2026-12-01"}' });
   assert.deepEqual(changeProblems({ status: "M", path: DATE_FILE }, date, config, day), []);
   // A live job can't move the date: only the report job's own date passes.
@@ -1071,6 +1653,72 @@ test("the results commit may change only listed live transcripts and the date fi
   );
   const extra = read({ [DATE_FILE]: '{"lastCompared":"2026-12-01","x":1}' });
   assert.equal(changeProblems({ status: "M", path: DATE_FILE }, extra, config, day).length, 1);
+});
+
+/** A patch that adds `path` with the text `{}`, as a provider job's `git diff --cached --binary` writes one. */
+const addPatch = (path) =>
+  [
+    `diff --git a/${path} b/${path}`,
+    "new file mode 100644",
+    "index 0000000..0967ef4",
+    "--- /dev/null",
+    `+++ b/${path}`,
+    "@@ -0,0 +1 @@",
+    "+{}",
+    "",
+  ].join("\n");
+
+test("a provider job's patch may touch only that provider's listed live transcripts", () => {
+  const anthropicLive = exampleOf(SDK_TRIAGE, "anthropic").live;
+  const openaiLive = exampleOf(SDK_TRIAGE, "openai").live;
+  assert.deepEqual(patchProblems("anthropic", addPatch(anthropicLive), config), []);
+  assert.deepEqual(patchProblems("openai", addPatch(openaiLive), config), []);
+  // The OpenAI job writes a transcript into Anthropic's folder; the transcript may name anthropic, but the job can't.
+  assert.match(patchProblems("openai", addPatch(anthropicLive), config)[0], /openai job's patch touches .*anthropic/);
+  assert.match(patchProblems("anthropic", addPatch("scripts/ci/live-run.mjs"), config)[0], /not one of its live/);
+  assert.match(patchProblems(undefined, addPatch(anthropicLive), config)[0], /names no provider/);
+  // A rename's source, a quoted path and a path only git apply reports count too.
+  const rename = `diff --git a/${openaiLive} b/${openaiLive}\nrename from ${anthropicLive}\nrename to ${openaiLive}\n`;
+  assert.equal(patchProblems("openai", rename, config).length, 1);
+  assert.match(patchProblems("openai", `diff --git "a/x y" "b/x y"\n`, config)[0], /header it can't read/);
+  assert.equal(patchProblems("openai", addPatch(openaiLive), config, [anthropicLive]).length, 1);
+});
+
+test("merge refuses every artifact's patch that touches another provider's files, before any patch applies", () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-merge-"));
+  const artifact = (provider, patch, report = true) => {
+    const path = join(dir, "live", `live-${provider}`);
+    mkdirSync(path, { recursive: true });
+    if (report) writeFileSync(join(path, "live-report.json"), JSON.stringify(reportOf([provider], true)));
+    writeFileSync(join(path, "live.patch"), patch);
+    return path;
+  };
+  const merge = (...dirs) => {
+    try {
+      execFileSync(process.execPath, [join(root, "scripts/ci/live-run.mjs"), "merge", join(dir, "r.json"), ...dirs], {
+        env: { PATH: process.env.PATH },
+        stdio: "pipe",
+      });
+      return { code: 0, text: "" };
+    } catch (error) {
+      return { code: error.status, text: `${error.stdout}${error.stderr}` };
+    }
+  };
+  const anthropic = artifact("anthropic", addPatch(exampleOf(SDK_TRIAGE, "anthropic").live));
+  const openai = artifact("openai", addPatch(exampleOf(SDK_TRIAGE, "openai").live));
+  assert.deepEqual(merge(anthropic, openai), { code: 0, text: "" });
+  assert.ok(existsSync(join(dir, "r.json")));
+  // The OpenAI job left out its report, so the workflow passes only Anthropic's directory; its patch is still read.
+  rmSync(join(dir, "r.json"));
+  artifact("openai", addPatch(exampleOf(SDK_TRIAGE, "anthropic").live), false);
+  rmSync(join(openai, "live-report.json"));
+  const refused = merge(anthropic);
+  assert.equal(refused.code, 1);
+  assert.match(refused.text, /live-openai: the openai job's patch touches packages\/sdk\/results\/live\/anthropic\//);
+  assert.ok(!existsSync(join(dir, "r.json")), "no merged report, so the job stops before it applies a patch");
+  writeFileSync(join(openai, "live.patch"), "not a patch\n");
+  assert.match(merge(anthropic).text, /live-openai's live.patch is not a patch git can read/);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("text a live job wrote goes into an issue only inside a code block it can't close, with mentions broken", () => {

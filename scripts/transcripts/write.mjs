@@ -41,8 +41,12 @@ export const MOCK_PACKAGES = {
 /** Where a harness keeps the transcript of one example. */
 export const transcriptPath = (harnessDir, example) => join(harnessDir, "results", "transcripts", `${example}.json`);
 
-/** Where a harness keeps the transcript of one example's live run (scripts/live/run.mjs). */
-export const liveTranscriptPath = (harnessDir, example) => join(harnessDir, "results", "live", `${example}.json`);
+/**
+ * Where a harness keeps the transcript of one example's live run on one provider (scripts/live/run.mjs). Each provider
+ * has its own folder, because the live list may run one example on both.
+ */
+export const liveTranscriptPath = (harnessDir, example, provider) =>
+  join(harnessDir, "results", "live", provider, `${example}.json`);
 
 const toPosix = (path) => path.split(sep).join("/");
 const harnessOf = (harnessDir) => toPosix(relative(REPO_ROOT, harnessDir));
@@ -229,6 +233,15 @@ export function mergeEvents(mockEvents, exampleEvents) {
 /** A transcript as the file holds it: two-space JSON with a final newline. */
 export const serialise = (transcript) => `${JSON.stringify(transcript, null, 2)}\n`;
 
+/** Where an example's transcript goes: its mock or live transcript under `harnessDir`, or `outDir` when one is given. */
+function transcriptFile({ harnessDir, exampleFile, outDir, live }) {
+  const example = basename(exampleFile, extname(exampleFile));
+  if (outDir !== undefined) return join(outDir, `${example}.json`);
+  return live === undefined
+    ? transcriptPath(harnessDir, example)
+    : liveTranscriptPath(harnessDir, example, live.provider);
+}
+
 /**
  * Writes the transcript of one example from the raw events record.mjs saved in `rawFile`. `cwd` and `home` are the
  * temporary working and home directories the example ran in, and `outDir` overrides where the file goes. An example
@@ -236,14 +249,13 @@ export const serialise = (transcript) => `${JSON.stringify(transcript, null, 2)}
  * file is deleted and the problem printed, so the results-drift check reports it instead of passing on an old run.
  *
  * `live`, `{ provider, model, secrets }`, marks the transcript of a live run (scripts/live/run.mjs), which goes to
- * `results/live/` and names the provider and model. A real model chose every tool-call id in it, so none is kept as
+ * `results/live/<provider>/` and names the provider and model. A real model chose every tool-call id in it, so none is kept as
  * written. A live transcript that holds one of `secrets` or the shape of a key, an account id or a request id
  * (scripts/live/redact.ts) is not written at all, and the problem names only the shape it matched.
  */
 export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live, mockEvents }) {
   const example = basename(exampleFile, extname(exampleFile));
-  const defaultPath = live === undefined ? transcriptPath : liveTranscriptPath;
-  const file = outDir === undefined ? defaultPath(harnessDir, example) : join(outDir, `${example}.json`);
+  const file = transcriptFile({ harnessDir, exampleFile, outDir, live });
   const raw = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
   const recorded = mergeEvents(mockEvents ?? [], raw).map(({ at: _at, ...event }) => event);
   const events = live === undefined ? recorded : recorded.map(({ scripted: _scripted, ...event }) => event);
@@ -280,7 +292,9 @@ export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, o
 
 /**
  * Prepares one run of an example for recording: adds the recorder to the node arguments, after tsx's `--import`, and
- * the raw file to the environment. Returns `write`, which the runner calls once the process has exited.
+ * the raw file to the environment. Returns `write`, which the runner calls once the process has exited, and `discard`,
+ * which a runner that records no transcript for the run calls instead: it deletes the raw events and the example's
+ * earlier transcript, so no file from an older run stands in for this one.
  */
 export function transcriptRun(args, env) {
   const raw = join(mkdtempSync(join(tmpdir(), "transcript-")), "events.json");
@@ -300,6 +314,10 @@ export function transcriptRun(args, env) {
       });
       rmSync(dirname(raw), { recursive: true, force: true });
       return written;
+    },
+    discard: ({ harnessDir, exampleFile, outDir, live }) => {
+      rmSync(dirname(raw), { recursive: true, force: true });
+      rmSync(transcriptFile({ harnessDir, exampleFile, outDir, live }), { force: true });
     },
   };
 }

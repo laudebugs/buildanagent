@@ -216,7 +216,7 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
   );
   checkIllustrations(analogies, index, names.analogies, problems);
   const live = readLiveRuns(
-    { examples: inputs.liveExamplesFile, comparison: inputs.liveComparisonFile },
+    { examples: inputs.liveExamplesFile, comparison: inputs.liveComparisonFile, repoRoot: inputs.repoRoot },
     { examples: names.liveExamples, comparison: names.liveComparison },
     problems,
   );
@@ -255,7 +255,7 @@ function checkIllustrations(
 /**
  * What every chapter's rendered output depends on beyond its own file: which chapters exist, their numbers, the
  * numbered blocks in each, the lines and pin each listing shows, and the line offset of each body, which error lines
- * depend on, and the live run's list and date. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
+ * depend on, and the live run's list, the transcripts it has committed and its date. Astro caches a chapter until the chapter itself changes, so `astro.config.mjs` clears the cache when this
  * text changes, as when a figure is added to one chapter and another chapter refers to it, when a listed file or
  * its harness's pin changes, or when a package a listing imports resolves to another version.
  */
