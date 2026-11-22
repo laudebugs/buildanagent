@@ -163,7 +163,7 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [N41](../todos/done/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
 | [N42](../todos/done/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
 | [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
-| [N44](../todos/ready/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
+| [N44](../todos/done/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight seams (`EffectStore` added by ADR 0043); local implementations pass | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
 | [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
