@@ -96,5 +96,5 @@ None open. P4 moved the entry union into this package (R2), so the protocol neve
 - **The framing rule stands, with a corrected reason.** Pi's documentation says Node's `readline` splits on U+2028 and U+2029, and the plan repeats it. Node 22.23.5 did not when checked (it splits on a lone `\r`), so the README says what was checked, and the rule stays: split on the newline byte alone ([fact-check row N26-4](../../plans/reviews/fact-check-build-harness.md)).
 - **No batch support.** JSON-RPC allows an array of messages. The framing puts one message on each line, so a batch is an `invalid_request`.
 
-**Left out.** The dispatcher, queues and transports (N27 to N29).
+**Left out.** The dispatcher, queues and transports (N27 to N29), and shipping `schema/` in the tarball: the pack test allows only `dist/` and the top-level files, so when the package is published its `files` list and that test change together.
 
