@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N41` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
 | Depends on | [N4](../done/N4-writer-lock.md) |
