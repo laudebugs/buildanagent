@@ -2,10 +2,11 @@
 // streams, and the bounds it keeps under a full output. The child-process tests in stdio.test.ts cover the wire.
 import assert from "node:assert/strict";
 import { PassThrough, Writable } from "node:stream";
+import { isHarnessError } from "@buildanagent/harness";
 import { type Dispatcher, stdioTransport } from "@buildanagent/harness/server";
 import type { SessionStore } from "@buildanagent/harness/session";
 import { decode, ErrorCodes, type ServerMessage } from "@buildanagent/protocol";
-import { describe, test } from "vitest";
+import { describe, test, vi } from "vitest";
 import { chunkReader, lineWriter, Stopper } from "../../src/server/stdio-streams.js";
 import { memoryBackend } from "../session/memory-backend.js";
 import { approvalSetup, callTool, gate, reply, until } from "./server-helpers.js";
@@ -388,4 +389,166 @@ describe("a message JSON can't carry, at the end of the input", () => {
     controller.abort();
     await within(done, 2000, "the transport");
   });
+});
+
+/** A response the tests deliver by hand, as the connection's queue would. */
+const response = (id: number): ServerMessage => ({ jsonrpc: "2.0", id, result: {} }) as unknown as ServerMessage;
+
+/** An output that takes a line only when the test calls the callback its write left behind. */
+function handFed(): { output: Writable; callbacks: (() => void)[] } {
+  const callbacks: (() => void)[] = [];
+  const output = new Writable({
+    highWaterMark: 1,
+    write(_chunk, _encoding, callback) {
+      callbacks.push(() => callback());
+    },
+  });
+  return { output, callbacks };
+}
+
+/**
+ * Runs `body` on a fake clock for `setTimeout` and `clearTimeout` only, so the streams' own ticks still run, and checks
+ * that no timer is left once it returns.
+ */
+async function onFakeClock(body: () => Promise<void>): Promise<void> {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await body();
+    assert.equal(vi.getTimerCount(), 0, "a timer was left behind");
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+/** Starts the transport over a hand-driven dispatcher, and tells whether it has resolved. */
+function started(output: Writable, options: { writeTimeoutMs?: number; signal?: AbortSignal } = {}) {
+  const fake = fakeDispatcher();
+  const input = new PassThrough();
+  const logs: string[] = [];
+  let finished = false;
+  const done = stdioTransport(fake.dispatcher, { input, output, log: (entry) => logs.push(entry) }, options).then(
+    () => {
+      finished = true;
+    },
+  );
+  return { ...fake, input, logs, done, finished: () => finished };
+}
+
+const stoppedLogs = (logs: readonly string[]) => logs.filter((entry) => entry.startsWith("stdio: stopped"));
+
+describe("the write timeout", () => {
+  test("stops a client that ended its input and reads nothing once 30 seconds pass, says why and closes", async () => {
+    await onFakeClock(async () => {
+      const run = started(stalled());
+      run.send()(response(1));
+      run.input.end();
+      await until(() => vi.getTimerCount() === 1, "the write timeout");
+      await vi.advanceTimersByTimeAsync(29_999);
+      assert.equal(run.finished(), false);
+      await vi.advanceTimersByTimeAsync(1);
+      await run.done;
+      assert.deepEqual(stoppedLogs(run.logs), [
+        "stdio: stopped: the output took no line for 30000 ms after the input ended",
+      ]);
+      assert.deepEqual(run.events, ["closed"]);
+    });
+  });
+
+  test("restarts with each line the output takes, so a client that reads slowly is never cut off", async () => {
+    await onFakeClock(async () => {
+      const { output, callbacks } = handFed();
+      const run = started(output);
+      for (let id = 1; id <= 3; id += 1) run.send()(response(id));
+      run.input.end();
+      await until(() => vi.getTimerCount() === 1, "the write timeout");
+      // Each line is taken 20 seconds after the last, 60 seconds in all, and none waits 30.
+      for (let taken = 0; taken < 3; taken += 1) {
+        await until(() => callbacks.length === 1, "the next write");
+        await vi.advanceTimersByTimeAsync(20_000);
+        callbacks.shift()?.();
+      }
+      await run.done;
+      assert.deepEqual(stoppedLogs(run.logs), []);
+      assert.deepEqual(run.events, ["closed"]);
+    });
+  });
+
+  test("does not run while the input is open, and takes the value it is given once the input ends", async () => {
+    await onFakeClock(async () => {
+      const run = started(stalled(), { writeTimeoutMs: 1000 });
+      run.send()(response(1));
+      await vi.advanceTimersByTimeAsync(600_000);
+      assert.equal(run.finished(), false);
+      assert.equal(vi.getTimerCount(), 0);
+      run.input.end();
+      await until(() => vi.getTimerCount() === 1, "the write timeout");
+      await vi.advanceTimersByTimeAsync(1000);
+      await run.done;
+      assert.deepEqual(stoppedLogs(run.logs), [
+        "stdio: stopped: the output took no line for 1000 ms after the input ended",
+      ]);
+    });
+  });
+
+  test("Infinity waits for the output for as long as it takes, with no timer", async () => {
+    await onFakeClock(async () => {
+      const controller = new AbortController();
+      const run = started(stalled(), { writeTimeoutMs: Number.POSITIVE_INFINITY, signal: controller.signal });
+      run.send()(response(1));
+      run.input.end();
+      await vi.advanceTimersByTimeAsync(3_600_000);
+      assert.equal(run.finished(), false);
+      assert.equal(vi.getTimerCount(), 0);
+      controller.abort();
+      await run.done;
+      assert.deepEqual(stoppedLogs(run.logs), ["stdio: stopped: the signal aborted"]);
+    });
+  });
+
+  test("a signal that aborts during the wait clears the timer", async () => {
+    await onFakeClock(async () => {
+      const controller = new AbortController();
+      const run = started(stalled(), { signal: controller.signal });
+      run.send()(response(1));
+      run.input.end();
+      await until(() => vi.getTimerCount() === 1, "the write timeout");
+      controller.abort();
+      await run.done;
+      assert.deepEqual(stoppedLogs(run.logs), ["stdio: stopped: the signal aborted"]);
+    });
+  });
+
+  test("restarts with each line a Web output takes", async () => {
+    await onFakeClock(async () => {
+      const writes: (() => void)[] = [];
+      const output = new WritableStream<Uint8Array>(
+        { write: () => new Promise<void>((resolve) => writes.push(resolve)) },
+        { highWaterMark: 1 },
+      );
+      const fake = fakeDispatcher();
+      const input = new PassThrough();
+      const logs: string[] = [];
+      const done = stdioTransport(fake.dispatcher, { input, output, log: (entry) => logs.push(entry) });
+      for (let id = 1; id <= 3; id += 1) fake.send()(response(id));
+      input.end();
+      for (let taken = 0; taken < 3; taken += 1) {
+        await until(() => writes.length === 1, "the next write");
+        await vi.advanceTimersByTimeAsync(20_000);
+        writes.shift()?.();
+      }
+      await done;
+      assert.deepEqual(stoppedLogs(logs), []);
+    });
+  });
+
+  for (const writeTimeoutMs of [0, -1, 1.5, Number.NaN, 2 ** 31]) {
+    test(`refuses a writeTimeoutMs of ${writeTimeoutMs} before it connects`, async () => {
+      const { dispatcher, send } = fakeDispatcher();
+      await assert.rejects(
+        stdioTransport(dispatcher, { input: new PassThrough(), output: reading().output }, { writeTimeoutMs }),
+        (error: unknown) => isHarnessError(error) && error.code === "invalid_transport_options",
+      );
+      assert.equal(send(), undefined);
+    });
+  }
 });
