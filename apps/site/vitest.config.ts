@@ -11,7 +11,5 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     setupFiles: ["./test/setup.ts"],
-    // A test builds the whole site once, so it gets more time than a unit test.
-    testTimeout: 60_000,
   },
 });

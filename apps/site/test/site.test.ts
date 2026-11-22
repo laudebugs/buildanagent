@@ -1,19 +1,39 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build } from "astro";
+import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, test } from "vitest";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const PAGES = join(ROOT, "src/pages");
 const OUT = mkdtempSync(join(tmpdir(), "site-build-"));
+
+function nearestBin(name: string): string {
+  for (let dir = ROOT; dir !== dirname(dir); dir = dirname(dir)) {
+    const bin = join(dir, "node_modules", ".bin", name);
+    if (existsSync(bin)) return bin;
+  }
+  throw new Error(`no node_modules/.bin/${name} above ${ROOT}`);
+}
 const ROUTES = ["", "packages/gateway", "packages/sdk"];
 
 beforeAll(async () => {
-  await build({ root: ROOT, outDir: OUT, logLevel: "silent" });
-});
+  const home = mkdtempSync(join(tmpdir(), "site-home-"));
+  // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
+  const env = {
+    PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
+    HOME: home,
+    TMPDIR: tmpdir(),
+    LANG: process.env.LANG ?? "C.UTF-8",
+    ASTRO_TELEMETRY_DISABLED: "1",
+  };
+  await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", OUT], { cwd: ROOT, env });
+  rmSync(home, { recursive: true, force: true });
+  // A cold build takes longer than a hook's default 10 seconds.
+}, 180_000);
 
 afterAll(() => rmSync(OUT, { recursive: true, force: true }));
 
@@ -44,7 +64,8 @@ describe("the built site", () => {
 
   test("points every internal link at a page that was built", () => {
     for (const route of ROUTES) {
-      for (const [, href] of htmlOf(route).matchAll(/href="(\/[^"#]*)"/g)) {
+      // A link to a page has no file extension; an asset such as a stylesheet or an icon does.
+      for (const [, href] of htmlOf(route).matchAll(/href="(\/[^"#.]*)"/g)) {
         assert.ok(existsSync(join(OUT, href ?? "", "index.html")), `${route} links to ${href}, which was not built`);
       }
     }
