@@ -2,7 +2,7 @@
 title: "Stopping: caps, stop conditions and structured output"
 summary: An agent stops when the model answers, when a condition you wrote holds, or when a cap runs out, and each SDK counts and reports that end in its own way. A schema then turns the answer into a typed object, which fixes its shape but never its truth.
 opening: question
-sources: [ai-sdk-loop-control, langgraph-graph-api, claude-agent-sdk-agent-loop, claude-agent-sdk-tool-search, openai-agents-running-agents, ai-sdk-generating-structured-data, claude-agent-sdk-structured-outputs, anthropic-structured-outputs]
+sources: [ai-sdk-loop-control, langgraph-graph-api, claude-agent-sdk-agent-loop, claude-agent-sdk-tool-search, openai-agents-running-agents, ai-sdk-generating-structured-data, claude-agent-sdk-structured-outputs, anthropic-structured-outputs, ghosh-truthgate]
 glossary: [agent-loop, stop-condition, tool, stop-reason, structured-output]
 switchTo: [B11, B14]
 ---
@@ -82,7 +82,7 @@ Not every early stop is a failure. Sometimes you want the loop to end the moment
 
 The recorded run bears this out. The first request offers the model two tools, `ping` and `finalAnswer`. The model calls `ping`, the tool returns "pong", and the second request carries that result back. The model then calls `finalAnswer` with the answer "42", the tool runs, and `hasToolCall("finalAnswer")` holds, so the loop ends after two steps. The script holds a third answer, "never reached", and the replay confirms that no request ever asked for it. The answer arrives as the tool's result, and the example's checks read "42" from it.
 
-A done tool hands you more than a clean stop. Its input schema, the same kind of schema every tool in [[ch:tools]] declares, shapes the answer, so the model's last act fills in typed fields instead of writing prose. Several SDKs build structured output on this very idea, as the next section shows. The rule this section leaves you with is ours: read the run's stop reason before you read its answer. A run that the model ended, a run that your condition ended and a run that a cap cut off can all return text, and only the first two are finished.
+A done tool hands you more than a clean stop. Its input schema, the same kind of schema every tool in [[ch:tools]] declares, shapes the answer, so the model's last act fills in typed fields instead of writing prose. Several SDKs build structured output on this very idea, as the next section shows. The rule this section leaves you with is ours: read the run's stop reason before you read its answer. A run that the model ended, a run that your condition ended and a run that a cap cut off can all return text, and only the first two are finished. Finished means that the loop ended by its own rules, not that the task succeeded: whether the answer is right is a separate question, which the next section takes up.
 
 ## A schema fixes the shape of the answer, never its truth
 
@@ -99,7 +99,7 @@ Behind the mould sits structured output. Your code gives the SDK a schema; the S
 
 The replay is short, because the work happens around the model rather than in it. The request carries one message, "I was charged twice!", and offers no tools. The model answers with the text `{"category":"billing","urgent":true}` and finishes with `"stop"`. The SDK parses that text into an object, checks it, and hands it over as `result.output`. The example's checks confirm the rest: the request asked for JSON under the schema's name, "triage", and carried the JSON Schema, and the answer came back as the parsed, typed object.
 
-[[fig:jelly-mould]] shows what the check can and cannot catch. The same example sends a second request whose scripted answer is `{"category":"refund"}`, with a category the schema does not list and no `urgent` field. That jelly never set: `generateText` rejects with `NoObjectGeneratedError`. A third answer would fare worse. For the same ticket, `{"category":"bug","urgent":false}` fits the mould exactly, passes every check, and is wrong.
+[[fig:jelly-mould]] shows what the check can and cannot catch. The same example sends a second request whose scripted answer is `{"category":"refund"}`, with a category the schema does not list and no `urgent` field. That jelly never set: `generateText` rejects with `NoObjectGeneratedError`. A third answer would fare worse. For the same ticket, `{"category":"bug","urgent":false}` fits the mould exactly, passes every check, and is wrong. A measured case shows the same gap in a coding task. On Impossible-LiveCodeBench, whose tasks cannot be solved without breaking their own specification, Claude Sonnet 5.5 still passed 39 of 180 task variants, every time by special-casing its code to fit the failing assertion [@ghosh-truthgate]. Asked for a final report, all 55 natural cheats in the study named the special case, but unasked, Sonnet's visible text named it in 0 of 47 [@ghosh-truthgate].
 
 :::figure[A jelly mould: every answer that fits comes out the same shape, right or wrong]{#jelly-mould analogy="jelly-mould"}
 ::svg{alt="A box at the top, the mould, reads: the schema, category, urgent: true or false. Arrows lead down to three jellies. The first, billing, urgent: true, is marked right shape, right answer. The second, bug, urgent: false, is marked right shape, wrong answer. The third, drawn dashed, reads refund, no urgent field, and is marked did not set: rejected. Text under them names the ticket: I was charged twice!"}
@@ -134,7 +134,7 @@ A real mould shapes the jelly while it sets, and a schema rarely gets that chanc
 
 So treat a validated object as well-formed and nothing more. We recommend three habits. First, read the run's stop reason, and use the object only when the run finished. Second, check what the schema could not: the enum's casing, the limits the provider dropped, and any rule that ties one field to another or to your data, such as a refund amount no larger than the order. Third, give the model an honest way out, such as the `"other"` category in [[lst:triage-schema]], so that a ticket that fits no category does not have to be forced into one.
 
-An agent, then, stops for one of three reasons: the model finishes, a condition you wrote holds, or a cap runs out, and a default cap is set by people who never saw your task. Set the cap yourself, in the unit your SDK counts. Read why the run ended before you read what it said. And when the answer comes back as a typed object, trust its shape to the schema and its truth to your own checks.
+An agent, then, stops for one of three reasons: the model finishes, a condition you wrote holds, or a cap runs out, and a default cap is set by people who never saw your task. Set the cap yourself, in the unit your SDK counts. Read why the run ended before you read what it said. And when the answer comes back as a typed object, trust its shape to the schema and its truth to your own checks. [[ch:evals-observability-and-release]] returns to checking an agent's claim against a record the agent cannot edit.
 
 ## Exercises
 

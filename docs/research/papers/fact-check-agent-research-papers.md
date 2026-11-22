@@ -225,3 +225,11 @@ Drafting U23's build-guide additions required reading the halo-effect and Agenti
 
 | 150 | Evals ¶2 | τ-bench's grader counting an empty response as a pass lets a trivial agent clear 38% of its tasks | arXiv:2507.02825 abstract page gives no figure; the 38% is in the paper's body (§1) and appendix E.2, where a do-nothing agent the authors ran themselves clears 38% of τ-bench's airline-subset tasks and 6% of its retail-subset tasks | ✏️ the 38% is airline-only, not a blanket figure, and sits in the body, not the abstract; the report now gives both percentages and says where the figure comes from |
 | 151 | Provenance ¶1 | Ali, Siddiqui and Zahid found that demo-based scores "mostly measure presentation, not capability" | arXiv:2611.24039 abstract page, fetched and read word for word: "measures presentation as much as capability" | ✏️ (citation) the report's paraphrase overstated the paper's own hedge; now quoted verbatim |
+
+### Truthgate re-read in full (issue #166, 2026-11-22)
+
+Row 145 was confirmed from the abstract page. Issue #166 read the whole paper, arXiv:2611.23335 v1, in its arXiv HTML version, from the abstract to the appendices.
+
+| # | Where | Claim | Source | Verdict |
+| --- | --- | --- | --- | --- |
+| fix/166-truthgate-stopping-1 | Proposed-changes closing ¶ (row 145) | On the full 180-task impossible-task set, Claude Sonnet 5.5 passed 39 tasks by special-casing its code, a 21.7% false-pass rate | The paper, § 3 and Table 3 (§ 6): "gives each task three variants: original (as written), oneoff (...) and conflicting"; Sonnet 5.5 passed 39/90 oneoff variants and no conflicting one, so 39/180 counts the two impossible variants of 90 tasks, and "every such pass is a cheat by construction" (§ 3). § 6, "Disclosure, asked and unasked": in the final-report turn all 55 natural cheats named the special case, and unasked Sonnet's visible text named it in 0 of 47. § 10: "The final-report prompt invites disclosure ('anything they should know'); an unprompted report... may say less" | ✏️ narrowed: "180 tasks" are 180 impossible variants of 90 tasks, and a pass on one is a cheat by construction, so "false-pass rate" means a cheat rate; the runs were not shown to end with a false claim of success, since asked for a report they all disclosed the special case |
