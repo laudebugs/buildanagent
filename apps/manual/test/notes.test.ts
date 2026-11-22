@@ -1433,6 +1433,29 @@ test("only the pointer that grabbed the sheet's handle moves it, and a layout ch
   assert.equal(calls.includes("hide"), true);
 });
 
+test("a refresh keeps what a reader typed in a plain highlight's field, and a saved note is what a later delete is judged against", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const storage = () => {
+    const event = new win.Event("storage");
+    Object.defineProperty(event, "key", { value: KEY });
+    win.dispatchEvent(event);
+  };
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  field.value = "Half typed";
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, { ...FAILED, color: "pink" }] }));
+  storage();
+  assert.equal((q(win, ".notes-pop__field") as HTMLTextAreaElement).value, "Half typed", "the typed text is kept");
+  popAction(win, "save").click();
+  assert.equal(storedItems(win).find((found) => found.id === "one")?.note, "Half typed");
+  // After a save the stored note is the saved one, so another tab's delete closes the popover.
+  const hide = vi.fn();
+  Object.defineProperty(win.HTMLElement.prototype, "hidePopover", { configurable: true, value: hide });
+  win.localStorage.setItem(KEY, stored({ tools: [FAILED] }));
+  storage();
+  assert.equal(hide.mock.calls.length > 0, true);
+});
+
 test("a wide window places the popover beside the passage, with no sheet attribute", () => {
   const { win } = stage([CONTRACT, FAILED]);
   click(win, q(win, "article p:last-of-type"), 50, 310);

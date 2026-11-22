@@ -1790,7 +1790,8 @@ class Notes {
       return;
     }
     this.popId = item.id;
-    this.popItem = { ...item };
+    this.popReturnId = item.id;
+    this.popItem = { ...item, note };
     this.popEditing = false;
     this.popMessage.textContent = "";
     this.say(note === "" && before !== "" ? "Note removed." : "Note saved.");
@@ -1812,9 +1813,15 @@ class Notes {
       this.closePop();
       return;
     }
-    if (!this.popEditing) this.popField.value = item.note;
+    // The field is the reader's while a note is being written or edited, which a plain highlight always is.
+    const writing = this.popEditing || (this.popItem?.note ?? "") === "";
+    if (!writing) this.popField.value = item.note;
     this.popItem = { ...item };
+    const active = this.doc.activeElement;
+    const color = this.pop.contains(active) ? active?.getAttribute?.("data-color") : null;
     this.renderPop();
+    // The colour buttons are rebuilt, so one that had focus gets it back.
+    if (color) this.popColors.querySelector(`[data-color="${color}"]`)?.focus({ preventScroll: true });
   }
 
   /**
