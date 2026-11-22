@@ -1,8 +1,8 @@
-// The harness's copy of the SDK's side of the transcript recorder (scripts/transcripts/), because its turns run on the
-// SDK's `ScriptedModel`. When scripts/transcripts/book-examples.ts preloads
-// the recorder, this file attaches it to `ScriptedModel`, so each request and answer of every scripted model joins the
-// example's transcript; otherwise it does nothing. The recorder only reads the request and the stream's events, so the
-// model answers as it would without it.
+// The harness's copy of the SDK's side of the transcript recorder (scripts/transcripts/). When
+// scripts/transcripts/book-examples.ts preloads the recorder, this file attaches it to `ScriptedModel`, so each request
+// and answer of every scripted model joins the example's transcript; otherwise it does nothing. The recorder only
+// reads the request and the stream's events, so the model answers as it would without it. The body must stay the
+// same as packages/sdk/examples/lib/transcript.ts, which test/recorder-copy.test.ts checks.
 import type {
   AssistantMessage,
   ContentBlock,
