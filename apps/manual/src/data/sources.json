@@ -111,6 +111,16 @@
     "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
   },
   {
+    "id": "buildanagent-sdk-readme",
+    "title": "@buildanagent/sdk README",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/main/packages/sdk/README.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@buildanagent/sdk@0.1.0-alpha.19",
+    "verifiedIn": "apps/manual/fact-checks/call-workflow-loop.md"
+  },
+  {
     "id": "ai-sdk-testing",
     "title": "Testing",
     "publisher": "AI SDK documentation",
