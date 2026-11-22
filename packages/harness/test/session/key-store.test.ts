@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { KeyStore } from "@buildanagent/agent-safety";
 import { isHarnessError } from "@buildanagent/harness";
 import { DEFAULT_PLATFORM_HINT, pruneKeys, rotateKeys, secretKeyStore } from "@buildanagent/harness/session";
 import { fileKeyStore } from "@buildanagent/harness/session/jsonl";
@@ -19,12 +20,25 @@ afterAll(() => {
 const key = () => randomBytes(32).toString("base64url");
 const ring = (current: string, keys: Record<string, string>) => JSON.stringify({ current, keys });
 
-/** True when `error` is an `invalid_key_store` error whose message and cause chain hold none of `secret`. */
+/**
+ * True when `error` is an `invalid_key_store` error with no cause and no piece of `secret`, eight characters or longer,
+ * in its message, its stack or anything else it holds. Test names never hold the secret, because it is random.
+ */
 function leaksNothing(error: unknown, secret: string): boolean {
-  if (!isHarnessError(error) || error.code !== "invalid_key_store") return false;
+  if (!isHarnessError(error) || error.code !== "invalid_key_store" || error.cause !== undefined) return false;
+  const seen = new Set<unknown>();
   let text = "";
-  for (let current: unknown = error; current instanceof Error; current = current.cause) text += `${current.message}\n`;
-  return !text.includes(secret);
+  const collect = (value: unknown): void => {
+    if (typeof value === "string") text += `${value}\n`;
+    if (typeof value !== "object" || value === null || seen.has(value)) return;
+    seen.add(value);
+    for (const name of Object.getOwnPropertyNames(value)) collect((value as Record<string, unknown>)[name]);
+  };
+  collect(error);
+  for (let start = 0; start + 8 <= secret.length; start += 1) {
+    if (text.includes(secret.slice(start, start + 8))) return false;
+  }
+  return true;
 }
 
 describe("secretKeyStore()", () => {
@@ -71,7 +85,42 @@ describe("secretKeyStore()", () => {
     for (const secret of bad) {
       await assert.rejects(
         () => secretKeyStore({ read: () => secret }).load(),
-        (error) => leaksNothing(error, material.slice(0, 20)),
+        (error) => leaksNothing(error, material),
+      );
+    }
+  });
+
+  test("a reader whose error quotes key material is a typed error that drops the reader's error", async () => {
+    const material = key();
+    const quoting = () => {
+      const error = new SyntaxError(`Unexpected token in JSON at position 30: {"k1":"${material}"`);
+      Object.assign(error, { code: material, detail: { key: material } });
+      throw error;
+    };
+    await assert.rejects(
+      () => secretKeyStore({ read: quoting }).load(),
+      (error) => leaksNothing(error, material),
+    );
+    await assert.rejects(
+      () => secretKeyStore({ read: () => JSON.parse(`{"current":"k1","keys":{"k1":"${material}"`).KEY_RING }).load(),
+      (error) => leaksNothing(error, material),
+    );
+  });
+
+  test("a ring with a key in an id position is a typed error that leaks no part of the key", async () => {
+    const material = key();
+    const bad = [
+      // The id and the key swapped: the signer refuses "k1" as too short and names its id, the key.
+      JSON.stringify({ current: "k1", keys: { [material]: "k1" } }),
+      // A key as `current`, which the ring lacks.
+      ring(material, { k1: key() }),
+      // A key as an id whose value is not base64url, which the parser names.
+      ring("k1", { k1: key(), [material]: "not base64url!" }),
+    ];
+    for (const secret of bad) {
+      await assert.rejects(
+        () => secretKeyStore({ read: () => secret }).load(),
+        (error) => leaksNothing(error, material),
       );
     }
   });
@@ -122,6 +171,22 @@ describe("rotateKeys() and pruneKeys()", () => {
         error.message.includes("wrangler secret put KEY_RING") &&
         !error.message.includes("vercel env"),
     );
+  });
+
+  test("a store whose rotate() or prune() throws synchronously makes each helper reject, not throw", async () => {
+    const throwing: KeyStore = {
+      load: readOnly.load,
+      rotate: () => {
+        throw new Error("rotate failed");
+      },
+      prune: () => {
+        throw new Error("prune failed");
+      },
+    };
+    const rotation = rotateKeys(throwing);
+    const pruning = pruneKeys(throwing, new Set());
+    await assert.rejects(rotation, /rotate failed/);
+    await assert.rejects(pruning, /prune failed/);
   });
 
   test("on a store with the methods, each calls through", async () => {

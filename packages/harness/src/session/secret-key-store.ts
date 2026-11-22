@@ -2,7 +2,7 @@
  * `secretKeyStore()`: a read-only `KeyStore` over a secret the host can read but not write, such as a Worker secret, a
  * Secrets Manager value or a secret environment variable. The platform's own tooling rotates the secret, so the store
  * has `load()` only (ADR 0035). `rotateKeys()` and `pruneKeys()` call a store's optional methods and, for a read-only
- * store, throw an error that names the tooling to use instead. Nothing here needs Node, so it runs on every target.
+ * store, reject with an error that names the tooling to use instead. Nothing here needs Node, so it runs on every target.
  */
 import { hmacSigner, type KeyRing, type KeyStore, parseKeyRing } from "@buildanagent/agent-safety";
 import { HarnessError } from "../errors.js";
@@ -16,8 +16,10 @@ export interface SecretKeyStoreOptions {
   readonly read: () => string | Promise<string>;
 }
 
-const invalid = (message: string, cause?: unknown) =>
-  new HarnessError("invalid_key_store", message, cause === undefined ? undefined : { cause });
+// No error built here carries a cause: a reader's error can quote the secret, as `JSON.parse` quotes its input, and a
+// SafetyError repeats key ids as the ring spells them, so a ring with a key in an id position would put the key in the
+// message. A fixed message is the only text that cannot hold key material.
+const invalid = (message: string) => new HarnessError("invalid_key_store", message);
 
 /**
  * A `KeyStore` whose `load()` calls `read()` and parses the text it returns. It reads the secret on every call and
@@ -26,7 +28,8 @@ const invalid = (message: string, cause?: unknown) =>
  *
  * `load()` throws a `HarnessError`, code `invalid_key_store`, when `read()` fails or returns something that is not a
  * usable ring: not JSON, a key that is not base64url or is shorter than 32 bytes, or a `current` the ring lacks. The
- * error never holds the secret's text or a key's bytes.
+ * error's message is fixed text and it has no cause, so it never holds the secret's text, a key id or a key, nor the
+ * error `read()` threw. Check the secret itself to find which rule it breaks.
  */
 export function secretKeyStore(options: SecretKeyStoreOptions): KeyStore {
   const { read } = options;
@@ -36,8 +39,8 @@ export function secretKeyStore(options: SecretKeyStoreOptions): KeyStore {
       let text: unknown;
       try {
         text = await read();
-      } catch (cause) {
-        throw invalid("the key ring secret could not be read", cause);
+      } catch {
+        throw invalid("the key ring secret could not be read");
       }
       if (typeof text !== "string") throw invalid("the key ring secret's reader must return a string");
       try {
@@ -45,9 +48,11 @@ export function secretKeyStore(options: SecretKeyStoreOptions): KeyStore {
         // The signer checks what the parser leaves out: key lengths, key ids and that `current` is in the ring.
         hmacSigner(ring);
         return ring;
-      } catch (cause) {
-        // The cause is a SafetyError, whose message names key ids only, never the text or a key.
-        throw invalid("the key ring secret is not a usable key ring", cause);
+      } catch {
+        throw invalid(
+          "the key ring secret is not a usable key ring: it must be JSON with a current id and unpadded base64url keys " +
+            "of 32 or more bytes, and current must be one of the keys",
+        );
       }
     },
   };
@@ -72,20 +77,27 @@ function readOnly(action: string, options: KeyChangeOptions | undefined): Harnes
 }
 
 /**
- * Adds a new current key to `store` and returns its id. Throws a `HarnessError`, code `key_store_read_only`, when the
- * store has no `rotate()`, with a message that names the platform tool to rotate with instead.
+ * Adds a new current key to `store` and returns its id. Rejects with a `HarnessError`, code `key_store_read_only`, when
+ * the store has no `rotate()`, with a message that names the platform tool to rotate with instead. An error the store's
+ * `rotate()` throws, even synchronously, becomes a rejection too.
  */
-export function rotateKeys(store: KeyStore, options?: KeyChangeOptions): Promise<string> {
-  if (store.rotate === undefined) return Promise.reject(readOnly("rotate keys", options));
-  return store.rotate();
+export async function rotateKeys(store: KeyStore, options?: KeyChangeOptions): Promise<string> {
+  if (store.rotate === undefined) throw readOnly("rotate keys", options);
+  return await store.rotate();
 }
 
 /**
- * Removes every key of `store` that is neither current nor in `inUse`, and returns the removed ids. Pass every key id
- * that an unresolved pause names, or that pause fails closed. Throws a `HarnessError`, code `key_store_read_only`, when
- * the store has no `prune()`, with a message that names the platform tool to remove keys with instead.
+ * Calls `store.prune(inUse)` and returns the ids it removed. The store removes the keys not in `inUse` and keeps its
+ * current key; this helper adds no check of its own, and `keyStoreConformanceCases()` tests a store for both. Pass
+ * every key id that an unresolved pause names, or that pause fails closed. Rejects with a `HarnessError`, code
+ * `key_store_read_only`, when the store has no `prune()`, with a message that names the platform tool to remove keys
+ * with instead. An error the store's `prune()` throws, even synchronously, becomes a rejection too.
  */
-export function pruneKeys(store: KeyStore, inUse: ReadonlySet<string>, options?: KeyChangeOptions): Promise<string[]> {
-  if (store.prune === undefined) return Promise.reject(readOnly("prune keys", options));
-  return store.prune(new Set(inUse));
+export async function pruneKeys(
+  store: KeyStore,
+  inUse: ReadonlySet<string>,
+  options?: KeyChangeOptions,
+): Promise<string[]> {
+  if (store.prune === undefined) throw readOnly("prune keys", options);
+  return await store.prune(new Set(inUse));
 }
