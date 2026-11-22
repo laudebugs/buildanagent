@@ -1,0 +1,185 @@
+{
+  "format": 2,
+  "example": "09-triage-agent",
+  "file": "verify/openai-agents-sdk/examples/09-triage-agent.ts",
+  "harness": "verify/openai-agents-sdk",
+  "pin": "@openai/agents@0.21.0",
+  "mock": "@openai/agents@0.21.0",
+  "live": {
+    "provider": "openai",
+    "model": "gpt-5.4-mini"
+  },
+  "events": [
+    {
+      "kind": "request",
+      "line": 69,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Look up the customer, escalate a checkout failure to on-call once, then classify it either way."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Customer user@example.com says checkout fails with a 500. Triage it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 69,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "lookup_customer",
+            "input": {
+              "email": "user@example.com"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls",
+      "usage": {
+        "uncachedInput": 162,
+        "cacheRead": 0,
+        "output": 20,
+        "reasoning": 0
+      }
+    },
+    {
+      "kind": "request",
+      "line": 69,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "lookup_customer",
+              "output": "{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 69,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "<id-2>",
+            "name": "escalate",
+            "input": {
+              "reason": "Checkout failure with HTTP 500 reported by pro customer user@example.com; needs on-call investigation."
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls",
+      "usage": {
+        "uncachedInput": 209,
+        "cacheRead": 0,
+        "output": 37,
+        "reasoning": 0
+      }
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "escalation pauses for approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 73,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-2>",
+              "name": "escalate",
+              "output": "Tool execution was not approved."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 73,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Pro customer user@example.com reports checkout fails with HTTP 500. Requires urgent triage and on-call investigation.\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 264,
+        "cacheRead": 0,
+        "output": 41,
+        "reasoning": 0
+      }
+    },
+    {
+      "kind": "check",
+      "line": 74,
+      "message": "lookup ran and the rejected escalation never did",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 78,
+      "message": "the run ends with a typed triage result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 92,
+      "message": "the input guardrail blocks injection before any model call",
+      "pass": true
+    }
+  ]
+}
