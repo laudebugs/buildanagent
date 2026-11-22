@@ -169,7 +169,7 @@ const proxy = await startEgressProxy({ ...compiled, log: audit });
 The compiler refuses anything that isn't plainly allowed, with the code `invalid_egress_options`, and its message names the place of the entry and never its value:
 
 - a field that a route kind doesn't have, such as `secret` or `token`;
-- a string that looks like a credential, such as a value or a whitespace-separated token that starts with `ghp_` or `sk-`, or a whole 20-character AWS key id; a name that merely contains such text, like the repository `acme/sk-api`, is allowed;
+- a string that looks like a credential, such as a value or a whitespace-separated token that starts with `ghp_` followed by a long enough body, or `sk-` followed by one, or a whole 20-character AWS key id; a name that merely contains a prefix, like the repository `sk-labs/app`, is allowed. The scan is defence in depth: the field allowlist and the upper-case credential name are the real guards, and a token that starts mid-word, like `acme/ghp_…`, or is base64-encoded passes it;
 - a credential name that isn't upper case;
 - a wildcard or an address literal in `allow` or in a route's `host`;
 - a git route whose `host` is also in `allow`, or is the host of any other route, because a tunnel or a header route to that host would go around the ref filter. `startEgressProxy()` enforces the same rule on routes it is given directly.
@@ -186,7 +186,7 @@ A push is checked before anything is forwarded. The proxy reads the command list
 - a push certificate, a body with a `content-encoding` other than `identity`, or a pkt-line that is malformed or not UTF-8;
 - a command list over 64 KiB (`GIT_MAX_COMMAND_BYTES`) or over 64 commands (`GIT_MAX_COMMANDS`).
 
-When a push is bigger than git's `http.postBuffer` (1 MiB by default), git first sends a probe whose body is a single flush packet. The proxy treats that body as an empty command list and forwards it, and it refuses any byte after the flush. The command list has an idle timeout: each chunk of the body restarts it, so a stalled client is cut off and a slow one is not.
+When a push is bigger than git's `http.postBuffer` (1 MiB by default), git first sends a probe whose body is a single flush packet. The proxy treats that body as an empty command list and forwards it, and it refuses any byte after the flush. The command list has two timeouts. `idleTimeoutMs` restarts on each chunk, so a stalled client is cut off and a slow one is not. `pushCheckTimeoutMs` (60,000 ms by default, a whole number from 1 to 2,147,483,647) never restarts and covers the command list only, not the pack, so a client that sends one byte at a time is cut off too. The 64 KiB limit applies however the list is split across chunks.
 
 A pattern is a branch such as `refs/heads/main`, or a prefix such as `refs/heads/agent/*`, which matches the branches under `agent/` and not `agent` itself. A route with no `pushRefs` refuses every push, and one with `fetch` left out refuses every fetch.
 
