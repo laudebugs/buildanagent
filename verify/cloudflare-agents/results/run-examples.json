@@ -121,5 +121,15 @@
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - the same delivery id starts a task once\nok - one task exists after two deliveries\nok - a different id starts its own task\nok - a redelivery after eviction is still dropped, because the id is in storage\nok - the evicted agent still holds two tasks"
+  },
+  {
+    "id": "13-voice-pipeline",
+    "durableObjects": {
+      "Concierge": "Concierge"
+    },
+    "ms": 1701,
+    "modelCalls": 0,
+    "outcome": "ran",
+    "tail": "ok - the TTS call that was speaking saw the same abort\nok - the signal passed to streamText reached the model call: aborted for turn 2, live for turn 1\nok - onInterrupt ran once\nok - the status returned to listening after the interrupt\nok - the interrupted turn closed with a turn_metrics outcome of aborted\nok - turn 2's model request holds no tool message from turn 1\nok - and no tool result\nok - the stored history is text only: [{\"role\":\"user\",\"content\":\"what is the weather in Paris\"},{\"role\":\"assistant\",\"content\":\"It is 21 degrees and sunny in Paris.\"},{\"role\":\"user\",\"content\":\"and what about tomorrow\"}]"
   }
 ]

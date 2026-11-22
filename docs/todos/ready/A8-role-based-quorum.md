@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 2](../../plans/build-agent.md#42-stage-2-compiles-the-tier-table-into-the-pipeline-and-adds-the-kill-switch-the-quorum-and-the-taint-rule) |
 | Round / milestone | Round A (build agent), M7b |
-| Depends on | [A6](A6-tier-table.md), [N14](N14-sticky-grouped-quorum.md) |
+| Depends on | [A6](A6-tier-table.md), [N14](../done/N14-sticky-grouped-quorum.md) |
 | Size | M |
 
 ## Goal

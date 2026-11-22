@@ -18,7 +18,7 @@ Add a voice and realtime section to three SDK references: the [OpenAI Agents SDK
 - [U20 report, SDKs](../../research/voice/voice-and-realtime.md#two-sdks-ship-a-voice-agent-two-ship-experimental-live-layers-and-four-leave-voice-to-the-builder): the SDK table and the two paragraphs on OpenAI, Cloudflare and ADK
 - U20's SDK notes: [OpenAI and Cloudflare](../../research/voice/notes/sdks-openai-cloudflare.md) and [ADK and the other five](../../research/voice/notes/sdks-adk-vercel-langchain-claude-copilot-pi.md), with file paths and line numbers
 - [U20's fact-check](../../research/voice/fact-check-voice-and-realtime.md): the rows behind each SDK claim
-- [T46](../done/T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md): the two book examples. Where one has landed, its section marks the claims it asserts **[verified]**; otherwise the section cites the pinned `.d.ts` or the mirrored doc
+- [T46](../done/T46-example-realtime-session.md) and [T47](../done/T47-example-voice-pipeline.md): the two book examples. Where one has landed, its section marks the claims it asserts **[verified]**; otherwise the section cites the pinned `.d.ts` or the mirrored doc
 - [TypeScript gaps, Google ADK](../../comparison/typescript-gaps.md#google-adk-the-port-trails-python-by-14-features-but-the-docs-undersell-it-by-15): ADK's Python-only live parts
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk), steps 6 and 8
 
@@ -32,7 +32,7 @@ Add a voice and realtime section to three SDK references: the [OpenAI Agents SDK
 
 **Out of scope** (and which todo covers it)
 
-- New `verify/` examples: [T46](../done/T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md); an ADK `runLive` example is one of U20's three optional examples and has no todo
+- New `verify/` examples: [T46](../done/T46-example-realtime-session.md) and [T47](../done/T47-example-voice-pipeline.md); an ADK `runLive` example is one of U20's three optional examples and has no todo
 - The other five references, whose SDKs ship no voice agent as of November 2026
 - The book's section: [T38](T38-section-voice-and-realtime.md)
 
