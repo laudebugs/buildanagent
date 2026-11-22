@@ -67,6 +67,12 @@ test("a message without jsonrpc, with another version, an unknown method or a st
       },
     },
     { jsonrpc: "2.0", id: 1, method: "approval/request", params: { session: "s", request: { id: "r" } } },
+    // Only session/open replays, and only from a whole sequence number.
+    { jsonrpc: "2.0", id: 1, method: "session/create", params: { cwd: "/w", fromSeq: 0 } },
+    { jsonrpc: "2.0", id: 1, method: "session/open", params: { session: "s", cwd: "/w", fromSeq: -1 } },
+    { jsonrpc: "2.0", id: 1, method: "session/open", params: { session: "s", cwd: "/w", fromSeq: 1.5 } },
+    { jsonrpc: "2.0", method: "event", params: { session: "s", seq: 3, event: { type: "events_dropped", count: 0 } } },
+    { jsonrpc: "2.0", method: "$/cancelRequest", params: { id: "sr-1", reason: "late" } },
   ];
   for (const input of invalid) assert.equal(validator.validate(input).valid, false, JSON.stringify(input));
 });
@@ -85,7 +91,8 @@ function methodNames(node: unknown, found = new Set<string>()): Set<string> {
 }
 
 test("the schema names exactly the methods the constants list", () => {
-  const expected = [...CLIENT_METHODS, ...SERVER_REQUEST_METHODS, ...SERVER_NOTIFICATION_METHODS].sort();
+  // `$/cancelRequest` goes both ways, so it is in two of the lists and once in the set.
+  const expected = [...new Set([...CLIENT_METHODS, ...SERVER_REQUEST_METHODS, ...SERVER_NOTIFICATION_METHODS])].sort();
   assert.deepEqual([...methodNames(JSON.parse(committed))].sort(), expected);
   assert.equal(CLIENT_METHODS.length, 12, "eleven client methods and the cancel notification");
   assert.ok(EXPERIMENTAL_METHODS.every((method) => CLIENT_METHODS.includes(method)));

@@ -26,6 +26,7 @@ export type HarnessErrorCode =
   | "unsupported_format"
   | "invalid_turn_options"
   | "invalid_context_options"
+  | "invalid_dispatcher_options"
   | "spill_unavailable"
   | "invalid_extension"
   | "extension_hash_mismatch"
@@ -40,6 +41,7 @@ export type HarnessErrorCode =
   | "entry_too_large"
   | "invalid_session_entry"
   | "invalid_session_key"
+  | "invalid_retention"
   | "session_corrupt"
   | "invalid_completion_config";
 
@@ -64,7 +66,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * options can't be used, such as a tool allowlist that names a tool the registry lacks, or a hook that changed the
  * model inside a turn.
  * `invalid_context_options`: a context policy's setting can't be used, such as a write cap with no spill store or a mask
- * step of zero. `spill_unavailable`: a spill store can't write, such as the file store on a runtime without Node's file
+ * step of zero. `invalid_dispatcher_options`: a dispatcher's setting can't be used, such as a queue size of zero.
+ * `spill_unavailable`: a spill store can't write, such as the file store on a runtime without Node's file
  * system. `invalid_extension`: an extension has no name or version, two share a name, or a project extension's module does not export one. `extension_hash_mismatch`: a project extension's files hash differently from the lock file, or the lock file does not list it. `approval_not_pending`: a resolution names a request that is not waiting.
  * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky
  * allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids
@@ -73,7 +76,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * with no `rotate()` or `prune()` was asked to rotate or prune. `session_conflict`: an append found the log in a state it did
  * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
- * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
+ * `invalid_session_key`: a user or session id the store can't use. `invalid_retention`: a retention period that is not a
+ * positive number, or an action other than `archive` and `purge`. `session_corrupt`: a log file has a bad line before
  * its last line. `invalid_completion_config`: `.agents/harness.json` is not JSON, or its `completionChecks` is not a list
  * of commands.
  */
