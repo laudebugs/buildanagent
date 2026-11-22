@@ -1,0 +1,151 @@
+<title>Buildanagent Landing Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap">
+<style>
+/* Layout: a switcher bar, then one full landing-page mock at a time (three directions). Every mock uses the chosen prompt logo and the manual's tokens (docs/design/book-tokens.json), so each can be built on the same palette. */
+:root {
+  --page: #FAF3E8; --text: #2A1E16; --soft: #4A3B2F; --muted: #6B5B4D; --accent: #B04E29; --panel: #F3EADB; --rule: #E4D6C2; --ink: #17110D; --ink-text: #F4EADC; --ink-accent: #E8A27C; --ink-rule: #3A2B20; --ink-muted: #A8968A;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: Literata, Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #2A1E16; --text: #F4EADC; --soft: #D9C9B6; --muted: #A8968A; --accent: #E8A27C; --panel: #17110D; --rule: #3A2B20; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #2A1E16; --text: #F4EADC; --soft: #D9C9B6; --muted: #A8968A; --accent: #E8A27C; --panel: #17110D; --rule: #3A2B20; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--text); font: 16px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 64px; }
+.eyebrow { font: 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1.t { font: 400 clamp(30px, 5vw, 44px)/1.05 var(--display); margin: 8px 0; text-wrap: balance; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 12px; }
+.bar button { font: 13px/1 var(--mono); padding: 11px 14px; border: 1px solid var(--rule); background: var(--panel); color: var(--text); cursor: pointer; }
+.bar button[aria-selected="true"] { background: var(--accent); color: var(--page); border-color: var(--accent); }
+.bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.blurb { color: var(--soft); max-width: 72ch; margin: 0 0 16px; font-size: 15px; }
+.frame { border: 1px solid var(--rule); overflow: hidden; }
+.pg[hidden] { display: none; }
+.pg a { color: inherit; }
+.mark { width: 28px; height: 28px; flex: none; } .mark path, .mark rect { vector-effect: non-scaling-stroke; }
+.sfg { stroke: currentColor; fill: none; } .sac { stroke: var(--a); fill: none; }
+nav.top { display: flex; align-items: center; gap: 18px; padding: 14px 22px; flex-wrap: wrap; }
+nav.top .brand { display: flex; gap: 9px; align-items: center; font: 400 22px/1 var(--display); margin-right: auto; }
+nav.top .brand i { font-style: normal; color: var(--a); }
+nav.top a { font: 13px/1 var(--mono); text-decoration: none; opacity: .85; }
+.btn { display: inline-block; font: 600 13px/1 var(--mono); padding: 13px 18px; text-decoration: none; border: 1px solid currentColor; }
+.btn.p { background: var(--a); border-color: var(--a); color: var(--bg); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+pre { margin: 0; font: 13px/1.6 var(--mono); overflow-x: auto; }
+.pkgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+.pkg { padding: 14px; border: 1px solid var(--line); min-width: 0; }
+.pkg b { font: 600 13px/1.3 var(--mono); display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+.pkg span { font-size: 14px; opacity: .85; }
+.foot { padding: 18px 22px; font: 12px/1.5 var(--mono); opacity: .75; display: flex; gap: 16px; flex-wrap: wrap; }
+
+
+/* Hybrid of Textbook (cream paper, serif, flat figures) and Blueprint (ruled panels, isometric stack). One shared scope, three layouts. */
+.H { --bg: #FAF3E8; --fg: #2A1E16; --a: #B04E29; --line: #2A1E16; --soft2: #6B5B4D; --cell: #F3EADB; --hair: #E4D6C2; background: var(--bg); color: var(--fg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .H { --bg: #2A1E16; --fg: #F4EADC; --a: #E8A27C; --line: #F4EADC; --soft2: #A8968A; --cell: #17110D; --hair: #3A2B20; } }
+:root[data-theme="dark"] .H { --bg: #2A1E16; --fg: #F4EADC; --a: #E8A27C; --line: #F4EADC; --soft2: #A8968A; --cell: #17110D; --hair: #3A2B20; }
+.H h2 { font: 400 clamp(36px, 5.8vw, 64px)/1 var(--display); margin: 14px 0; text-wrap: balance; }
+.H h2 em { color: var(--a); }
+.H h3 { font: 400 28px/1.1 var(--display); margin: 0 0 14px; text-wrap: balance; }
+.H .lead { max-width: 46ch; color: var(--soft2); margin: 0 0 22px; font-size: 17px; }
+.H .cap { font: 12px/1.4 var(--mono); color: var(--soft2); margin-top: 8px; }
+.H svg.iso { width: min(100%, 360px); height: auto; }
+.H .pkg { border-color: var(--hair); background: var(--cell); }
+.H .n { font: 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--a); }
+.H .cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.H .cells > div { padding: 20px 22px; border-left: 1px solid var(--line); }
+.H .cells > div:first-child { border-left: 0; }
+.H .cells b { display: block; font: 400 24px/1.1 var(--display); margin: 8px 0 6px; }
+.H .cells p { margin: 0; font-size: 14.5px; color: var(--soft2); }
+@media (max-width: 760px) { .H .cells > div { border-left: 0; border-top: 1px solid var(--line); } .H .cells > div:first-child { border-top: 0; } }
+.H section.s { padding: 30px 22px; }
+/* V1: split hero, ruled panel on the right */
+.V1 .hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.V1 .hero > div { padding: 46px 22px; min-width: 0; }
+.V1 .hero > figure { margin: 0; padding: 22px; display: grid; place-items: center; align-content: center; background: var(--cell); border-left: 1px solid var(--line); }
+@media (max-width: 760px) { .V1 .hero { grid-template-columns: 1fr; } .V1 .hero > figure { border-left: 0; border-top: 1px solid var(--line); } }
+/* V2: centred headline, full-width figure with labelled callouts */
+.V2 .hero { text-align: center; padding: 50px 22px 16px; }
+.V2 .hero .lead { margin-inline: auto; }
+.V2 .hero .row { justify-content: center; }
+.V2 .wide { margin: 10px 22px 26px; border: 1px solid var(--line); background: var(--cell); padding: 18px; }
+.V2 .wide svg { width: 100%; height: auto; display: block; }
+/* V3: book layout, a contents rail and chapter sections */
+.V3 .book { display: grid; grid-template-columns: 220px minmax(0, 1fr); border-top: 1px solid var(--line); }
+.V3 .toc { padding: 24px 22px; border-right: 1px solid var(--line); font: 13px/1.5 var(--mono); }
+.V3 .toc ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.V3 .toc li a { text-decoration: none; display: flex; gap: 8px; }
+.V3 .toc li a span { color: var(--a); min-width: 1.4em; }
+.V3 .main { min-width: 0; }
+.V3 .hero { padding: 40px 28px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px; align-items: center; }
+.V3 .ch { padding: 26px 28px; border-top: 1px solid var(--hair); display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 16px; }
+.V3 .ch .no { font: 400 54px/1 var(--display); color: var(--a); }
+.V3 .ch p { margin: 4px 0 8px; font-size: 15.5px; color: var(--soft2); max-width: 58ch; }
+.V3 .ch code { font: 12.5px/1.4 var(--mono); background: var(--cell); border: 1px solid var(--hair); padding: 2px 7px; }
+@media (max-width: 760px) { .V3 .book { grid-template-columns: 1fr; } .V3 .toc { border-right: 0; border-bottom: 1px solid var(--line); } .V3 .hero { grid-template-columns: 1fr; } .V3 .ch { grid-template-columns: 1fr; gap: 4px; } }
+
+.H svg text { stroke: none; }
+.V2b .hero { padding: 46px 22px 22px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: end; border-top: 1px solid var(--line); }
+.V2b .hero { text-align: left; }
+.V2b .hero .lead { margin-inline: 0; }
+.V2b .hero .row { justify-content: flex-start; }
+.V2b .hero h2 { margin: 12px 0 0; }
+.V2b .hero .lead { margin: 0 0 16px; }
+.V2b .wide { margin: 0; border-left: 0; border-right: 0; }
+.V2b .cells > div { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
+.V2b .cells .dot { grid-row: span 3; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--a); color: var(--a); font: 600 13px/1 var(--mono); display: grid; place-items: center; margin-top: 2px; }
+.V2b .cells .n { display: none; }
+.V2b .cells b { margin: 0 0 4px; }
+@media (max-width: 760px) { .V2b .hero { grid-template-columns: 1fr; } }
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="logo" viewBox="0 0 64 64"><rect x="7" y="7" width="50" height="50" rx="11" fill="none" stroke="currentColor" stroke-width="5"/><path d="M21 23L34 32L21 41" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 43H48" fill="none" stroke="var(--a)" stroke-width="5" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <div class="eyebrow">buildanagent.fyi · landing page</div>
+  <h1 class="t">Figure first, two variations</h1>
+  <div class="bar" role="tablist" aria-label="Variations">
+    <button role="tab" data-k="V2" aria-selected="true">A · Centred</button>
+    <button role="tab" data-k="V2b" aria-selected="false">B · Numbered figure</button>
+  </div>
+  <p class="blurb" id="blurb"></p>
+  <div class="frame"><div class="pg H V2" id="V2" hidden><nav class="top"><span class="brand"><svg class="mark" viewBox="0 0 64 64"><use href="#logo"/></svg>build<i>an</i>agent</span><a href="#">Docs</a><a href="#">Manual</a><a href="#">Packages</a><a href="#">GitHub</a></nav>
+<div class="hero"><div class="eyebrow">Agent toolkit · alpha</div><h2>An agent is three layers and a loop. <em>Read all of them.</em></h2><p class="lead">Buildanagent splits an agent into a gateway, a loop and a harness. Each is a small TypeScript package with its own docs and its own chapter in the manual.</p><div class="row"><a class="btn p" href="#">Read the docs</a><a class="btn" href="#">Open the manual</a></div></div>
+<div class="wide"><svg viewBox="0 0 900 372" role="img" aria-label="The three layers, from top to bottom: harness, loop and gateway, with what each does. On the right, one turn of the loop: a model call, then tool calls, then results returned to the model."><g stroke="currentColor" stroke-width="2" stroke-linejoin="round" font-family="ui-monospace,Menlo,monospace" font-size="13"><path d="M210 10L300 55L210 100L120 55Z" fill="var(--cell)"/><path d="M120 55L210 100V120L120 75Z" fill="var(--bg)"/><path d="M210 100L300 55V75L210 120Z" fill="var(--bg)"/><text x="210" y="60" text-anchor="middle" fill="currentColor">harness</text><path d="M210 130L300 175L210 220L120 175Z" fill="var(--a)"/><path d="M120 175L210 220V240L120 195Z" fill="var(--bg)"/><path d="M210 220L300 175V195L210 240Z" fill="var(--bg)"/><text x="210" y="180" text-anchor="middle" fill="var(--bg)">loop (sdk)</text><path d="M210 250L300 295L210 340L120 295Z" fill="var(--cell)"/><path d="M120 295L210 340V360L120 315Z" fill="var(--bg)"/><path d="M210 340L300 295V315L210 360Z" fill="var(--bg)"/><text x="210" y="300" text-anchor="middle" fill="currentColor">gateway</text></g><g font-family="ui-monospace,Menlo,monospace" font-size="13" fill="currentColor"><path d="M310 55H330" stroke="var(--a)" stroke-width="2"/><text x="338" y="60">tools · sessions · MCP · approvals</text><path d="M310 175H330" stroke="var(--a)" stroke-width="2"/><text x="338" y="180">model call, tool calls, stop</text><path d="M310 295H330" stroke="var(--a)" stroke-width="2"/><text x="338" y="300">streaming · retries · caching · cost</text></g><g transform="translate(612 120)" font-family="ui-monospace,Menlo,monospace" font-size="13" fill="currentColor">
+    <rect x="0" y="0" width="110" height="46" fill="none" stroke="currentColor" stroke-width="2"/><text x="55" y="28" text-anchor="middle">model call</text>
+    <rect x="150" y="0" width="110" height="46" fill="none" stroke="currentColor" stroke-width="2"/><text x="205" y="28" text-anchor="middle">tool calls</text>
+    <path d="M110 23H148" stroke="var(--a)" stroke-width="2.5"/><path d="M148 23l-8-5v10z" fill="var(--a)"/>
+    <path d="M205 46V100H55V50" fill="none" stroke="var(--a)" stroke-width="2.5"/><path d="M55 48l-5 8h10z" fill="var(--a)"/>
+    <text x="130" y="126" text-anchor="middle">results return to the model</text></g></svg><div class="cap">Figure 1. The three layers on the left, and one turn of the loop on the right.</div></div>
+<div class="cells"><div><div class="n">Gateway</div><b>Calls any model the same way</b><p>The gateway streams replies, retries failures, caches prompts and records what each call costs.</p></div><div><div class="n">Loop</div><b>Runs turns you can follow</b><p>The loop calls the model, runs its tools and stops on a condition you set.</p></div><div><div class="n">Harness</div><b>Asks before it acts</b><p>The harness runs tools and sessions. Risky writes need a signed approval, and a cost cap ends a run that spends too much.</p></div></div><section class="s"><h3>Six packages, one job each</h3><div class="pkgs"><div class="pkg"><b>@buildanagent/gateway</b><span>Calls the models.</span></div><div class="pkg"><b>@buildanagent/sdk</b><span>Runs the loop.</span></div><div class="pkg"><b>@buildanagent/harness</b><span>Runs tools and sessions.</span></div><div class="pkg"><b>@buildanagent/agent-safety</b><span>Checks approvals and caps cost.</span></div><div class="pkg"><b>@buildanagent/protocol</b><span>Defines the events front ends read.</span></div><div class="pkg"><b>@buildanagent/cli</b><span>Runs agents from the terminal.</span></div></div></section><div class="foot"><span>Alpha releases ship on npm under the alpha tag.</span><span>Source is on GitHub.</span></div></div><div class="pg H V2 V2b" id="V2b" hidden><nav class="top"><span class="brand"><svg class="mark" viewBox="0 0 64 64"><use href="#logo"/></svg>build<i>an</i>agent</span><a href="#">Docs</a><a href="#">Manual</a><a href="#">Packages</a><a href="#">GitHub</a></nav>
+<div class="hero"><div><div class="eyebrow">Agent toolkit · alpha</div><h2>Build an agent you can <em>read</em> end to end.</h2></div><div><p class="lead">Buildanagent gives you a gateway, a loop and a harness as separate TypeScript packages, and a textbook that explains how each one works.</p><div class="row"><a class="btn p" href="#">Read the docs</a><a class="btn" href="#">Open the manual</a></div></div></div>
+<div class="wide"><svg viewBox="0 0 900 372" role="img" aria-label="The three layers, from top to bottom: harness, loop and gateway, with what each does. On the right, one turn of the loop: a model call, then tool calls, then results returned to the model."><g stroke="currentColor" stroke-width="2" stroke-linejoin="round" font-family="ui-monospace,Menlo,monospace" font-size="13"><path d="M210 10L300 55L210 100L120 55Z" fill="var(--cell)"/><path d="M120 55L210 100V120L120 75Z" fill="var(--bg)"/><path d="M210 100L300 55V75L210 120Z" fill="var(--bg)"/><text x="210" y="60" text-anchor="middle" fill="currentColor">harness</text><path d="M210 130L300 175L210 220L120 175Z" fill="var(--a)"/><path d="M120 175L210 220V240L120 195Z" fill="var(--bg)"/><path d="M210 220L300 175V195L210 240Z" fill="var(--bg)"/><text x="210" y="180" text-anchor="middle" fill="var(--bg)">loop (sdk)</text><path d="M210 250L300 295L210 340L120 295Z" fill="var(--cell)"/><path d="M120 295L210 340V360L120 315Z" fill="var(--bg)"/><path d="M210 340L300 295V315L210 360Z" fill="var(--bg)"/><text x="210" y="300" text-anchor="middle" fill="currentColor">gateway</text></g><g font-family="ui-monospace,Menlo,monospace" font-size="13" fill="currentColor"><path d="M310 55H330" stroke="var(--a)" stroke-width="2"/><text x="338" y="60">tools · sessions · MCP · approvals</text><circle cx="46" cy="55" r="14" fill="none" stroke="var(--a)" stroke-width="2"/><text x="46" y="60" text-anchor="middle" fill="var(--a)" font-weight="600">1</text><path d="M62 55H110" stroke="var(--a)" stroke-width="1.5" stroke-dasharray="4 4"/><path d="M310 175H330" stroke="var(--a)" stroke-width="2"/><text x="338" y="180">model call, tool calls, stop</text><circle cx="46" cy="175" r="14" fill="none" stroke="var(--a)" stroke-width="2"/><text x="46" y="180" text-anchor="middle" fill="var(--a)" font-weight="600">2</text><path d="M62 175H110" stroke="var(--a)" stroke-width="1.5" stroke-dasharray="4 4"/><path d="M310 295H330" stroke="var(--a)" stroke-width="2"/><text x="338" y="300">streaming · retries · caching · cost</text><circle cx="46" cy="295" r="14" fill="none" stroke="var(--a)" stroke-width="2"/><text x="46" y="300" text-anchor="middle" fill="var(--a)" font-weight="600">3</text><path d="M62 295H110" stroke="var(--a)" stroke-width="1.5" stroke-dasharray="4 4"/></g><g transform="translate(612 120)" font-family="ui-monospace,Menlo,monospace" font-size="13" fill="currentColor">
+    <rect x="0" y="0" width="110" height="46" fill="none" stroke="currentColor" stroke-width="2"/><text x="55" y="28" text-anchor="middle">model call</text>
+    <rect x="150" y="0" width="110" height="46" fill="none" stroke="currentColor" stroke-width="2"/><text x="205" y="28" text-anchor="middle">tool calls</text>
+    <path d="M110 23H148" stroke="var(--a)" stroke-width="2.5"/><path d="M148 23l-8-5v10z" fill="var(--a)"/>
+    <path d="M205 46V100H55V50" fill="none" stroke="var(--a)" stroke-width="2.5"/><path d="M55 48l-5 8h10z" fill="var(--a)"/>
+    <text x="130" y="126" text-anchor="middle">results return to the model</text></g></svg><div class="cap">Figure 1. Layers 1 to 3 from the top, and one turn of the loop on the right.</div></div>
+<div class="cells"><div><span class="dot">1</span><div class="n">Harness</div><b>Asks before it acts</b><p>The harness runs tools and sessions. Risky writes need a signed approval, and a cost cap ends a run that spends too much.</p></div><div><span class="dot">2</span><div class="n">Loop</div><b>Runs turns you can follow</b><p>The loop calls the model, runs its tools and stops on a condition you set.</p></div><div><span class="dot">3</span><div class="n">Gateway</div><b>Calls any model the same way</b><p>The gateway streams replies, retries failures, caches prompts and records what each call costs.</p></div></div><section class="s"><h3>Six packages, one job each</h3><div class="pkgs"><div class="pkg"><b>@buildanagent/gateway</b><span>Calls the models.</span></div><div class="pkg"><b>@buildanagent/sdk</b><span>Runs the loop.</span></div><div class="pkg"><b>@buildanagent/harness</b><span>Runs tools and sessions.</span></div><div class="pkg"><b>@buildanagent/agent-safety</b><span>Checks approvals and caps cost.</span></div><div class="pkg"><b>@buildanagent/protocol</b><span>Defines the events front ends read.</span></div><div class="pkg"><b>@buildanagent/cli</b><span>Runs agents from the terminal.</span></div></div></section><div class="foot"><span>Alpha releases ship on npm under the alpha tag.</span><span>Source is on GitHub.</span></div></div></div>
+  <p class="blurb" style="margin-top:14px">The copy follows the writing skill's rules. The real page's claims will come from the package READMEs and be fact-checked before it ships.</p>
+</div>
+<script>
+var notes = {
+  V2: "A · Centred. A centred headline above the wide figure, then three ruled cells and the package grid. The figure now spaces the three layers apart, so no label sits under another block.",
+  V2b: "B · Numbered figure. A left-aligned headline with the pitch beside it, a figure whose layers carry numbers 1 to 3, and numbered cells below that match them. It reads like a labelled diagram in the manual."
+};
+var tabs = Array.prototype.slice.call(document.querySelectorAll(".bar button"));
+function show(k) {
+  tabs.forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.k === k)); });
+  ["V2", "V2b"].forEach(function (x) { document.getElementById(x).hidden = x !== k; });
+  document.getElementById("blurb").textContent = notes[k];
+}
+tabs.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.k); }); });
+show("V2");
+</script>
