@@ -2,8 +2,8 @@
 title: "Choosing the shape: buy, adopt or build, how to plan, and when subagents pay"
 summary: An agent's shape is three choices made before any prompt is written. This chapter sorts the SDKs by who owns the loop, says why to start planning with ReAct, separates workflows, routing and handoffs by who decides the next step, and runs one subagent to show what it keeps out of the parent's context and what it adds to the bill.
 opening: fact
-sources: [anthropic-multi-agent-research-system, claude-agent-sdk-hosting, claude-agent-sdk-overview, copilot-sdk-nodejs-readme, openai-agents-running-agents, pi-how-pi-works, ai-sdk-generate-text, cloudflare-agents-chat-agents, buildanagent-sdk-readme, liu-what-does-a-harness-buy, yao-react, del-rosario-plan-then-execute, shinn-reflexion, anthropic-building-effective-agents, adk-sequential-agents, adk-graph-routes, openai-agents-handoffs, openai-agents-orchestration]
-glossary: [agent, agent-loop, harness, react, plan-and-execute]
+sources: [anthropic-multi-agent-research-system, claude-agent-sdk-hosting, claude-agent-sdk-overview, copilot-sdk-nodejs-readme, openai-agents-running-agents, pi-how-pi-works, ai-sdk-generate-text, cloudflare-agents-chat-agents, buildanagent-sdk-readme, liu-what-does-a-harness-buy, yao-react, del-rosario-plan-then-execute, shinn-reflexion, anthropic-building-effective-agents, adk-sequential-agents, adk-graph-routes, openai-agents-handoffs, openai-agents-orchestration, openai-agents-tools, openai-agents-context, openai-agents-results]
+glossary: [agent, agent-loop, harness, react, plan-and-execute, workflow, handoff, subagent, token, context-window]
 switchTo: [B19b]
 ---
 
@@ -81,6 +81,39 @@ A handoff lets the model decide. In the OpenAI Agents SDK, handoffs are represen
 
 Who picks decides what can go wrong. Code never sends input to a branch it was not given, but it cannot read a message it has no rule for. A classifier reads the message and can misread it, at the price of one call. The model in a handoff reads the whole conversation, and only its prompt and the specialists' descriptions limit where it sends the work. OpenAI separates the handoff from a neighbouring pattern. Use a handoff when routing is part of the workflow and the specialist should own the next part of the conversation. Use an agent as a tool when the specialist should help with a subtask without taking over [@openai-agents-orchestration]. That second case is a subagent, and it is the next section.
 
+## A subagent keeps its reading out of its parent's context, and the tokens of every room still land on the bill
+
+Your support agent is asked whether tool-call logging became more common between two surveys of teams. The answer is one sentence, but getting it means reading two sources, and the agent would carry both in its context for the rest of the conversation. A subagent can do the reading somewhere else. :analogy[Researchers sent to separate reading rooms who return with summaries]{#reading-rooms} is the picture. The lead asks a question, each researcher reads their sources in a room of their own, and only a summary comes back through the door. Anthropic describes its Research system the same way: its subagents work in parallel with their own context windows and condense the most important tokens for the lead agent [@anthropic-multi-agent-research-system]. The picture breaks at the bill. Each researcher is paid by the word read, so every room adds its own tokens, and the lead's saving is in context, not in cost.
+
+:::figure[Researchers sent to separate reading rooms who return with summaries: only the summary leaves the room]{#reading-rooms analogy="reading-rooms"}
+::svg{alt="A lead agent box on the left and two dashed reading rooms on the right. Each room holds a researcher, drawn in the accent, and two source boxes: A and B in room 1, C and D in room 2. A solid arrow carries the question from the lead into each room, and a dashed accent arrow carries a summary back out. Under the lead: reads summaries, never the sources. A line at the bottom, in the accent: each researcher is paid by the word read."}
+:::
+
+The OpenAI Agents SDK builds this with an agent that is also a tool. Calling `asTool()` on an agent makes a function tool with a single input parameter. When the model calls it, the SDK runs the subagent with that input in a nested run, then returns the subagent's last message or whatever an output extractor chooses [@openai-agents-tools]. [[lst:subagent]] reads two sources inside that nested run and hands back one sentence.
+
+:::listing[A researcher agent exposed as a tool: it reads in a run of its own and returns one sentence]{#subagent file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="subagent"}
+::note[The subagent's own tokens are the sum over its model responses, which this run keeps apart from its parent's.]{#own-usage}
+::note[Read inside the nested run, the usage object holds the shared running total, not the subagent's own count.]{#shared-usage}
+::note[Only this string leaves the nested run, as the tool call's output.]{#summary}
+:::
+
+The orchestrator never sees the reading. [[lst:orchestrator]] gives it the research tool and asks its question, and the example's checks confirm what crosses the door: the orchestrator's second request holds the summary as the tool's output, and nothing from the subagent's tool calls or the sources it read.
+
+:::listing[The orchestrator calls the research tool and answers from the summary]{#orchestrator file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="orchestrator" replay}
+:::
+
+The tokens do cross, though. In the script the subagent's calls grow more expensive as it reads, because each call carries everything read before it, as every call in a loop does. [[lst:usage]] adds them up.
+
+:::listing[Each run's own tokens, and the run's total, which counts both]{#usage file="verify/openai-agents-sdk/examples/12-subagent-as-tool.ts" region="usage"}
+::note[The run's usage adds the subagent's tokens to the orchestrator's own, because the nested run shares the orchestrator's run context.]{#run-usage}
+:::
+
+The example prints `orchestrator 800, subagent 2400, run 3200 tokens`, so the run's total is four times the orchestrator's own. We wrote those counts into the script, and no model measured them, so the 4× shows how a subagent's tokens add up and says nothing about real cost. The measured figures are Anthropic's. In its data, agents typically use about four times the tokens of a chat, and multi-agent systems about fifteen times [@anthropic-multi-agent-research-system]. Those are two separate figures, each measured against a chat, and neither is this run's ratio. To read a subagent's own tokens from the nested run, sum its `rawResponses`, as the listing does. Its `state.usage` is the shared running total, which was 2,740 tokens when the extractor ran in this example, because the orchestrator's first call had already been added [@openai-agents-context; @openai-agents-results].
+
+Subagents pay when the work is wide, and they lose when it is narrow. Anthropic found that a lead Claude Opus 4 with Claude Sonnet 4 subagents beat a single Claude Opus 4 by 90.2% on its internal research eval, and that token use alone explained 80% of the variance on a browsing benchmark, so much of the gain is more tokens spent. It sees the fit in "heavy parallelization, information that exceeds single context windows, and interfacing with numerous complex tools". It names the misfits too: tasks in which all agents must share one context or depend heavily on one another, and it adds that most coding tasks have fewer parallelizable parts than research. For the cost to make sense, the value of the task must be "high enough to pay for the increased performance" [@anthropic-multi-agent-research-system]. Our rule follows. Add a subagent when one context cannot hold the reading or the reading can run in parallel, and when the answer is worth several times the tokens of a chat.
+
 ## Exercises
 
-1. Placeholder exercise, to be written with the last section.
+1. **Replace the handoff with a router in code.** In `verify/openai-agents-sdk/examples/03-handoff.ts`, give the billing agent the question directly with `runner.run(billing, "Where is my refund?")`, as a router that sends every refund question to billing would. Predict how many scripted answers the run needs, change the script to match, and run `pnpm test` in `verify/openai-agents-sdk`. How many model calls did the router save compared with the handoff, and what must your code now know that the triage model knew?
+2. **Turn the specialist into a subagent.** Make `billing` a tool of the triage agent with `asTool()`, a `toolName` and a `toolDescription`, and script the answers the triage agent needs: one that calls the tool and one that answers from its result. The billing agent needs an answer of its own. Predict the number of model calls in all, then check it with the script's completeness check. Who writes the final answer now, and where does the billing agent's text go?
+3. **Compare the three shapes in tokens.** Give every scripted answer a token count of your choosing, as `answer()`{checked=row-88} does in `verify/openai-agents-sdk/examples/12-subagent-as-tool.ts`, and total the tokens of the handoff, the router and the subagent. Which is cheapest, and why does your ranking depend on numbers you chose? Then say which of Anthropic's two figures, about 4× or about 15× the tokens of a chat, your totals could support.
