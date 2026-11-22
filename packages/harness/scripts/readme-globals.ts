@@ -51,10 +51,12 @@ declare global {
   const index: sessions.SessionIndex;
   const key: sessions.SessionKey;
   const lock: sessions.SessionLock;
+  const machine: sandbox.EscalationMachine;
   const model: Model;
   const policy: sandbox.SandboxPolicy;
   const proxy: tools.FetchProxy;
   const registry: ToolRegistry;
+  const requestId: string;
   const session: sessions.Session;
   const spill: context.SpillStore;
   const spillDir: string;

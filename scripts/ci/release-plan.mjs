@@ -20,8 +20,15 @@
 // - the version matches the pre mode: while .changeset/pre.json says `"mode": "pre"`, only a prerelease whose
 //   identifier is pre.json's `tag` (0.1.0-alpha.0 for `alpha`), published under that dist-tag; otherwise only a
 //   plain x.y.z, published under `latest`. A mismatch throws, because publishing it would move the wrong dist-tag;
-// - npm doesn't already hold every package at that version, or it does but the GitHub release v<version> is missing,
-//   so a run that failed after the uploads can still tag the release.
+// - the GitHub release v<version> doesn't exist yet. The plan asks GitHub before npm. The publish job creates the
+//   release only after its last upload returns, but npm makes an accepted upload public 75 to 187 seconds later. So a
+//   run queued behind the one that released, as in the E409 run of 2026-11-22, would otherwise read npm's 404s as "not
+//   published" and upload again. Without the release, the plan asks npm which packages it lacks. It still publishes
+//   when npm holds all six, so a run that failed after the uploads can still tag the release.
+//   Skipping on the release alone is deliberate: a successful `npm publish` is the confirmation, so a release means
+//   released. A release made by hand, or one left over a partial or lost upload, would therefore leave the missing
+//   packages unpublished with a green run. To recover, delete the GitHub release v<version> and its tag, then re-run:
+//   the plan asks npm, and the publish job skips each package npm already holds and uploads the rest.
 // release.yml adds the last condition itself: only a push to main publishes.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -233,15 +240,16 @@ export async function planRelease({ root, repo, token, fetchImpl = fetch }) {
   const mismatch = preModeMismatch(version, pre);
   if (mismatch) throw new Error(mismatch);
 
+  // The release first. Once the release exists, every upload of this version has returned. Until npm makes those
+  // uploads public, its version endpoint may answer 404, yet its version index still refuses a second upload. The
+  // plan trusts the release over npm on purpose; the header comment says how to recover a release without its packages.
+  if (!repo) throw new Error("set GITHUB_REPOSITORY to owner/name, so the plan can check the GitHub release");
+  if (await hasGitHubRelease(repo, base.tag, { token, fetchImpl })) return skip(`${base.tag} is already released`);
   const toPublish = [];
   for (const pkg of packages) {
     if (!(await isPublished(pkg.name, version, fetchImpl))) toPublish.push(pkg.name);
   }
   if (toPublish.length === 0) {
-    if (!repo) throw new Error("set GITHUB_REPOSITORY to owner/name, so the plan can check the GitHub release");
-    if (await hasGitHubRelease(repo, base.tag, { token, fetchImpl })) {
-      return skip(`npm already holds every package at ${version}, and the release ${base.tag} exists`);
-    }
     // An earlier run uploaded every package but stopped before the release; the publish job skips what npm holds.
     return {
       ...base,
