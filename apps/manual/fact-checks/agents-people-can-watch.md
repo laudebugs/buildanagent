@@ -91,14 +91,16 @@ The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents
 | 60 | A voice agent should announce a slow tool, run it in the background or delegate while the voice keeps talking, because a person cannot tell a thinking agent from a dead line | § A voice agent | ⚠️ | Our synthesis of rows 56 and 57; the report's teaching point, voice log row 100 |
 | 61 | In a phone call either side can cut in, stops when interrupted and remembers only what it heard | § A voice agent | ⚠️ | The analogy's own claim and its "where it breaks" entry, ours |
 | 62 | A realtime tool with `needsApproval` raises `tool_approval_requested` and runs only after `session.approve()` | § A voice agent | ✅ | `verify/openai-agents-sdk/examples/14-realtime-session.ts`, the `approve` region and its checks; the example's header says the approval check is our own, because the testing guide's examples cover history, tool and interruption checks but none approves a tool call |
-| 63 | After the first code review: the robot study is dated 2025 and τ-Voice 2026 in the text; push-to-talk and the announce-background-delegate advice are worded as ours; the OpenAI Agents SDK is named for the delegation advice; links to OpenAI's voice and realtime guides are given for transports and audio formats | § A voice agent | ✅ | Re-check of rows 50, 51, 58 and 60: arXiv 2501.08946 (HRI 2025, v1 2025-01-15) and arXiv 2603.13686 (v1 2026-03-14) per voice log rows 24 and 4; the guide URLs are the voice log's rows 11 and 37 |
-
+| 63 | After the first code review: the robot study is dated 2025 and τ-Voice 2026 in the text | § A voice agent | ✅ | Re-check of rows 50 and 58: arXiv 2501.08946 (HRI 2025, v1 2025-01-15) and arXiv 2603.13686 (v1 2026-03-14), per voice log rows 24 and 4 |
+| 64 | After the first code review: push-to-talk and the announce-background-delegate advice are worded as ours ("Our reading", "We would therefore") | § A voice agent | ✅ | Re-check of rows 51 and 60: wording only; both stay ⚠️ in their own rows |
+| 65 | After the first code review: the text names the OpenAI Agents SDK for the delegation advice and links OpenAI's voice and realtime guides for transports and audio formats | § A voice agent | ✅ | Re-check of row 57; the guide URLs are in voice log rows 11 and 37 |
+| 66 | After the medium review: GPT-Live's interruption behaviour is cited to OpenAI's delegation guide, and the Gemini cancellation is attributed to the `@google/genai` types as the ADK notes quote them | § A voice agent | ✅ | Re-check of rows 54 and 55: [OpenAI GPT-Live delegation](https://developers.openai.com/api/docs/guides/live-delegation); voice log row 147 for the Gemini comment |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 45 |
+| ✅ confirmed | 48 |
 | ✏️ corrected | 0 |
 | ⚠️ unverified, our design or a claim not re-checked here, marked as ours or as the report's in the text | 18 |
-| Total | 63 |
+| Total | 66 |
