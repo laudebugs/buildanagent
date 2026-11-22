@@ -278,6 +278,38 @@ describe("parseSkill", () => {
     assert.ok("skill" in folded && folded.skill.description === "Use when asked.");
   });
 
+  test("drops a comment from a plain value, but not from inside quotes, so a commented name still loads", () => {
+    const named = parse("---\nname: demo  # prod only\ndescription: Use when asked. # see below\n---\n");
+    assert.ok("skill" in named, JSON.stringify(named));
+    assert.equal(named.skill.name, "demo");
+    assert.equal(named.skill.description, "Use when asked.");
+    const inside = parse(`---\nname: demo\ndescription: "Use # as a marker" # comment\n---\n`);
+    assert.ok("skill" in inside && inside.skill.description === "Use # as a marker");
+    const hash = parse("---\nname: demo\ndescription: issue#12 is the one\n---\n");
+    assert.ok("skill" in hash && hash.skill.description === "issue#12 is the one");
+  });
+
+  test("strips quotes only from one fully quoted value", () => {
+    const two = parse("---\nname: demo\ndescription: 'a' or 'b'\n---\n");
+    assert.ok("skill" in two && two.skill.description === "'a' or 'b'");
+    const escaped = parse("---\nname: demo\ndescription: 'it''s here'\n---\n");
+    assert.ok("skill" in escaped && escaped.skill.description === "it's here");
+  });
+
+  test("reads a block scalar whose indicator has an indentation digit or a chomping sign", () => {
+    for (const indicator of ["|2", ">2-", ">-2", "|+", ">  # folded"]) {
+      const block = parse(`---\nname: demo\ndescription: ${indicator}\n  Use when\n  asked.\n---\n`);
+      assert.ok("skill" in block && block.skill.description === "Use when asked.", indicator);
+    }
+  });
+
+  test("a key such as __proto__ or constructor is not read as a field and changes nothing", () => {
+    const odd = parse("---\n__proto__: polluted\nconstructor: x\nname: demo\ndescription: ok\n---\n");
+    assert.ok("skill" in odd && odd.skill.name === "demo");
+    assert.equal(({} as Record<string, unknown>).polluted, undefined);
+    assert.equal(Object.getPrototypeOf({}), Object.prototype);
+  });
+
   test("applies Pi's limits: a name past 64 characters or with a bad shape, and a description past 1,024", () => {
     for (const name of ["a".repeat(65), "Upper", "-lead", "trail-", "dou--ble", "has space"]) {
       assert.ok("problem" in parse(`---\nname: ${name}\ndescription: ok\n---\n`), name);

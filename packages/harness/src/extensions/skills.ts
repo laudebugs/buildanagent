@@ -53,18 +53,33 @@ function frontmatter(text: string): Map<string, string> | undefined {
   return fields;
 }
 
-/** One value from its lines: block-scalar markers dropped, a single pair of quotes removed, lines folded with a space. */
+/** A block scalar's indicator: `>` or `|`, then an optional indentation digit and chomping sign, in either order. */
+const BLOCK = /^[>|](?:[1-9][+-]?|[+-][1-9]?)?$/;
+/** One fully double-quoted or single-quoted value, which only a comment may follow. */
+const QUOTED = /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^']|'')*)')(?:\s+#.*)?$/s;
+
+/** A plain line without its comment: YAML starts one at a `#` that opens the line or follows a space. */
+const uncommented = (line: string): string => line.replace(/(?:^|\s)#.*$/, "").trimEnd();
+
+/**
+ * One value from its lines. A block scalar keeps its lines as written and drops its indicator line; a value that is one
+ * quoted string loses its quotes, with a single quote's `''` read as `'`; a plain value loses its comments. The lines
+ * are then folded with a space.
+ */
 function joined(parts: readonly string[]): string {
-  const [first = "", ...rest] = parts.map((part) => part.trim());
-  const head = /^[>|][+-]?$/.test(first) ? [] : [first];
-  const value = [...head, ...rest].filter((part) => part !== "").join(" ");
-  const quoted = /^(["'])(.*)\1$/.exec(value);
-  return quoted === null ? value : (quoted[2] as string);
+  const lines = parts.map((part) => part.trim());
+  const [first = "", ...rest] = lines;
+  const kept = (values: readonly string[]) => values.filter((value) => value !== "").join(" ");
+  if (BLOCK.test(uncommented(first))) return kept(rest);
+  const quoted = QUOTED.exec(kept(lines));
+  if (quoted !== null) return quoted[1] ?? (quoted[2] as string).replaceAll("''", "'");
+  return kept(lines.map(uncommented));
 }
 
 /**
  * Reads one `SKILL.md`. The frontmatter is a small subset of YAML: `key: value` lines, quoted or plain, with a value
- * that may continue on indented lines or be a `>` or `|` block, which is folded onto one line. A file with no
+ * that may continue on indented lines or be a `>` or `|` block, which is folded onto one line. A plain value's `#`
+ * comment is dropped, and quotes are removed only from a value that is one quoted string. A file with no
  * frontmatter, a missing or empty name or description, a name that is not lowercase letters, digits and single hyphens
  * or runs past 64 characters, or a description past 1,024 characters is not a skill, and `problem` says why. A name
  * that differs from its folder's loads with a notice, because this repository's skills README requires them to match.
