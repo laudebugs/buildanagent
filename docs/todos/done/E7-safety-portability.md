@@ -72,7 +72,7 @@ The package README (choosing a store per target), and the N45 revision below.
 
 `@buildanagent/agent-safety` now has a durable `EffectStore` and a durable `PlanLedger` for each target, every one passing the shared conformance cases, and the package's portable tests run inside workerd as well as Node 22. The README's "Pick a durable store" section says which to use.
 
-The public API, in three new subpaths:
+The public API, in three new subpaths and one addition to `./testing`:
 
 - `./stores/cloudflare`: `durableObjectEffectStore()`, `durableObjectPlanLedger()`, `createCloudflareTables()`, on a Durable Object's `ctx.storage.sql`.
 - `./stores/postgres`: `postgresEffectStore()`, `postgresPlanLedger()`, `POSTGRES_SCHEMA` and `createPostgresTables()`, on any client with `query(text, values)`.

@@ -157,11 +157,21 @@ createCloudflareTables(this.ctx.storage.sql);
 const store = durableObjectEffectStore(this.ctx.storage.sql); // pass it to guardedWrite() as `store`
 ```
 
-Every change is one conditional write that the database decides, so two processes that race for one record can't both win. The Durable Object stores run their statements with no `await` between them, so no other event in the object runs between two of them, and each statement is conditional as well. The Postgres stores use `INSERT … ON CONFLICT` and `UPDATE … WHERE attempt = …` with `RETURNING`. The DynamoDB effect store puts items under a condition expression, and its ledger claims a step in one transaction that checks the step before and puts this one. A Durable Object store belongs to one object, so give each tenant or session its own object, or rely on the keys that `effectKey()` makes unique across tenants.
+Every change is one conditional write that the database decides, so two processes that race for one record can't both win. The Durable Object stores run their statements with no `await` between them, so no other event in the object runs between two of them, and each statement is conditional as well. The Postgres stores use `INSERT … ON CONFLICT` and `UPDATE … WHERE attempt = …` with `RETURNING`. The DynamoDB effect store puts items under a condition expression, and its ledger claims a step in one transaction that checks the step before and puts this one.
+
+A Durable Object store belongs to one object, so give each tenant or session its own object, or rely on the keys that `effectKey()` makes unique across tenants.
 
 A ledger's records follow the same rule as an effect store's: keep them as long as an approval can still be replayed. A plan's ledger rows are tiny, one per step, so keeping them costs little.
 
-Each store runs the cases `effectStoreConformance()` and `planLedgerConformance()` return from `./testing`, and a third-party store should too. The ledger cases check that concurrent claims of one step pass once, that a step claimed out of order is refused, and that a refused or replayed claim uses nothing up. This package's own tests run them on every store: the Durable Object stores inside workerd, on real Durable Object storage; the Postgres stores on PGlite, which is Postgres compiled to WebAssembly and run in the test's process; and the DynamoDB stores through the AWS SDK against a fake that speaks DynamoDB's wire protocol, applies the condition expressions and records each request. A DynamoDB test proves the request shapes and the store's reading of DynamoDB's answers, not DynamoDB's own atomicity, and PGlite and the fake run one request at a time, so their concurrent cases are serialized. A live check of the DynamoDB conditions belongs with the first deploy.
+Each store runs the cases `effectStoreConformance()` and `planLedgerConformance()` return from `./testing`, and a third-party store should too. The ledger cases check that concurrent claims of one step pass once, that a step claimed out of order is refused, and that a refused or replayed claim uses nothing up.
+
+This package's own tests run the cases on every store, each on the nearest thing to the real engine:
+
+- **Durable Object stores:** inside workerd, on real Durable Object storage.
+- **Postgres stores:** on PGlite, which is Postgres compiled to WebAssembly and run in the test's process.
+- **DynamoDB stores:** through the AWS SDK, against a fake that speaks DynamoDB's wire protocol, applies the condition expressions and records each request.
+
+A DynamoDB test proves the request shapes and the store's reading of DynamoDB's answers, not DynamoDB's own atomicity. PGlite and the fake run one request at a time, so their concurrent cases are serialized. A live check of the DynamoDB conditions belongs with the first deploy.
 
 The package's portable tests also run inside workerd, in a Worker that loads each test file with a small runner in place of Vitest, so the same files that pass on Node 22 pass on the Workers runtime. `test/workerd-suite.test.ts` lists the files that stay in Node and why, and fails when a new test file is in neither list.
 
