@@ -63,6 +63,66 @@ What a check can show is how your code behaves when the model answers as scripte
 
 Before you trust a check, ask what a do-nothing agent would do to it. If the check still passes, the check is the problem, and it needs a condition on the answer's content, on a side effect, or on a count of calls. The capstone in the next section checks all three kinds, and each of its checks says what has to be true. A referee knows only the rules that someone wrote down, and a match can go wrong in ways no rule names.
 
+## A complete agent is two tools, a gate, a typed result and a cap, and the checks say which of them holds
+
+The book's capstone is a support-triage agent, small enough to read in one sitting. Given a ticket, it looks up the customer's order, asks a person before it refunds anything, returns a record that matches a schema, and stops after a fixed number of steps. [[lst:capstone-ai]] is the AI SDK's version in full. It runs offline against a scripted model, and its notes mark the five parts that make it an agent and not a single call.
+
+:::listing[A complete triage agent on the AI SDK, with its checks]{#capstone-ai file="verify/vercel-ai-sdk/examples/09-triage-agent.ts" replay}
+::note[The script: three turns, in order. The model looks up the order, asks for a refund, and answers with the triage record as JSON.]{#script}
+::note[The gate. `issueRefund` waits for a person, and `lookupOrder` runs freely.]{#gate}
+::note[The typed result. The final answer must match the `Triage` schema.]{#typed}
+::note[The cap. The loop stops after eight steps, whatever the model asks for.]{#cap}
+::note[A check on a side effect. The refund list is still empty while the call waits.]{#side-effect}
+::note[A check on a count. The run made exactly the three model calls the script holds.]{#count}
+:::
+
+The checks come in the three kinds the last section recommended. Some read what the model was sent: the instructions arrive as the system message, both tools are offered, and the final call asks for JSON. Some read what the code did: step one looked up the order, the refund waited for approval, and after the approval it ran exactly once. The last reads the result, a typed record whose category is `billing` and whose action is `refunded`. One check would still hold for the do-nothing agent of [[lst:weak-check]]: an agent that never calls the refund tool also has an empty refund list. The example therefore pairs that check with the one that says the refund ran exactly once after the approval. The replay shows the same run from outside. There are three model requests and the checks sit between them, and the refund runs only after the person's answer, between the second request and the third.
+
+Seven more capstones build the same agent on the other SDKs, with small differences in tool names, because each follows its own SDK's documentation. They agree on the shape and differ in the gate. [[lst:gate-openai]] and its six neighbours show the lines that stop the risky tool in each SDK, and [[tbl:capstone-differences]] sets all eight side by side.
+
+::::tabs
+:::listing[OpenAI Agents SDK]{#gate-openai file="verify/openai-agents-sdk/examples/09-triage-agent.ts" region="gate"}
+::note[A function on the tool decides whether a call needs approval. This one says yes to every call.]{#gate}
+:::
+:::listing[LangChain]{#gate-langchain file="verify/langchain/examples/10-triage-agent.ts" region="gate"}
+::note[Middleware interrupts the graph before `escalate` and allows two decisions. The checkpointer below it holds the paused run.]{#gate}
+:::
+:::listing[Google ADK]{#gate-adk file="verify/google-adk/examples/08-triage-agent.ts" region="gate"}
+::note[A flag on the tool. ADK asks for confirmation before the tool runs.]{#gate}
+:::
+:::listing[Cloudflare Agents]{#gate-cloudflare file="verify/cloudflare-agents/examples/09-triage-agent.ts" region="gate"}
+::note[The same kind of flag, on a tool defined with the AI SDK's `tool()`. A person answers over the chat protocol.]{#gate}
+:::
+:::listing[Copilot SDK]{#gate-copilot file="verify/copilot-sdk/examples/09-triage-agent.ts" region="gate"}
+::note[The permission handler returns no result for the escalation, so the request stays pending until a reviewer answers it.]{#gate}
+:::
+:::listing[Claude Agent SDK]{#gate-claude file="verify/claude-agent-sdk/examples/07-triage-agent.ts" region="gate"}
+::note[The permission callback denies the escalation, and the read-only lookup never reaches it.]{#gate}
+:::
+:::listing[Pi]{#gate-pi file="verify/pi/examples/08-triage-agent.ts" region="gate"}
+::note[An extension sees every tool call before it runs and blocks `escalate` with a reason that goes back to the model.]{#gate}
+:::
+::::
+
+Two of the seven do not pause. The Claude and Pi capstones deny or block the escalation outright, so no person decides anything, while the other five stop the run and wait for an answer. That difference follows each SDK's design, and the choice matters for the agent you build: a pause needs somewhere to keep the paused run, which the previous chapter covered, and a denial needs none.
+
+:::table[The capstone's gate, typed result and step cap on each of the eight SDKs]{#capstone-differences}
+| SDK | The gate on the risky tool | The typed result | The step cap |
+| --- | --- | --- | --- |
+| AI SDK | `toolApproval` with `"user-approval"` | `Output.object` | `stopWhen` with `isStepCount(8)` |
+| OpenAI Agents SDK | `needsApproval` on the tool | `outputType`{checked=row-35} | not set in the file |
+| LangChain | `humanInTheLoopMiddleware` | `responseFormat`{checked=row-35} | `recursionLimit`{checked=row-35} of 12 |
+| Google ADK | `requireConfirmation` | `outputSchema`{checked=row-35} with `outputKey`{checked=row-35} | not set in the file |
+| Cloudflare Agents | `needsApproval` set to `true` | `Output.object` from `beforeTurn`{checked=row-35} | not set in the file |
+| Copilot SDK | `onPermissionRequest` returning `no-result`{checked=row-35} | `sendAndWait`{checked=row-35} with a schema | not set in the file |
+| Claude Agent SDK | `canUseTool` denying the call | `outputFormat`{checked=row-35} | `maxTurns`{checked=row-35} of 6 |
+| Pi | a `tool_call` handler that blocks | a `submit_triage` tool that ends the run | not set in the file |
+:::
+
+Five of the eight capstones set no step cap in the file, so those runs end when the model answers or when the SDK's own default applies, which [[ch:stopping-and-structured-output]] compares. The cap is the part of a first agent that is easiest to forget, because a scripted model never loops and a real one can.
+
 ## Exercises
 
-1. Placeholder.
+1. **Add one assertion to the capstone, make it fail, then make it pass.** In `verify/vercel-ai-sdk/examples/09-triage-agent.ts`, add `check(JSON.stringify(asks[0].toolCall.input).includes("A-1"), "the approval request names the order the customer mentioned");` after the check that no refund ran before approval. Run `pnpm test` in `verify/vercel-ai-sdk` and confirm that it passes. Then change the scripted refund call to `orderId: "A-2"` and run the tests again. Before you run them, predict which check fails first, and whether the check on the refund list would have caught the wrong order before the approval. Read the failure, restore the file, and run the tests a last time. Which of the file's existing checks would still have passed with the wrong order? Restore the folder with `git checkout -- examples results` when you are done.
+2. **Ask what a do-nothing agent does to your check.** In `verify/vercel-ai-sdk/examples/14-weak-check.ts`, write a third check on the empty answer that holds for it and tells you nothing, and a fourth that fails for it. Then pick any check in the capstone and script the model to answer with nothing. Does the check still pass? If so, name the check that would have caught it.
+3. **Place a mock for a new SDK.** An SDK you have not used starts a program of its own to call the model, and its docs offer a setting for the base URL. Using [[fig:mock-seams]], say which of the three seams you would use, what would run for real in your test, and which bug would pass your test unnoticed.

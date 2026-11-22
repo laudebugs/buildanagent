@@ -30,8 +30,7 @@ const Triage = z.object({
 });
 
 const { model, requests } = scripted([
-  // book:note script
-  { tools: [{ name: "lookupOrder", input: { orderId: "A-1" } }] },
+  { tools: [{ name: "lookupOrder", input: { orderId: "A-1" } }] }, // book:note script
   { tools: [{ name: "issueRefund", input: { orderId: "A-1", reason: "charged twice" } }] },
   JSON.stringify({ category: "billing", action: "refunded", summary: "Refunded A-1 after a double charge." }),
 ]);
