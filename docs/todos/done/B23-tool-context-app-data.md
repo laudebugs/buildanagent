@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B23` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build SDK §4.6](../../plans/build-sdk.md#46-trusted-app-data-for-tools-from-the-books-chapter-3-added-2026-11-19) |
 | Round / milestone | Round B (build SDK), M5 |
-| Depends on | [B10](../done/B10-tool-runtime.md), [B11](../done/B11-loop-core.md) |
+| Depends on | [B10](B10-tool-runtime.md), [B11](B11-loop-core.md) |
 | Size | M |
 
 ## Goal
@@ -20,7 +20,7 @@ Add an app-data field to our SDK's `ToolContext`, such as `ctx.app`, so a tool c
 - [Agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next) and requirement R2 in its introduction: tools that read customer data take no identity argument and read the requester from the trusted run context.
 - Chapter 3's identity section (`apps/manual/src/content/chapters/tools.md`, "Identity comes from the signed-in session, never from the model"): the table of what each SDK hands a tool beside its arguments, and the rule that a server builds a tool, or the object it closes over, per request from that request's authenticated session.
 - [Agent plan §3.2](../../plans/build-agent.md#32-trusted-run-context-helpdesk-and-tool-contracts) and [harness plan §3.2](../../plans/build-harness.md#32-session-log-api): the agent's `TrustedContext` and the harness's per-turn `hostContext`, which today reach `execute` only through a wrapper the registry builds for each turn.
-- [T52](T52-chapter-tools-on-our-sdk.md): Chapter 3's tabs on our SDK, whose identity tab should read the user from this field.
+- [T52](../ready/T52-chapter-tools-on-our-sdk.md): Chapter 3's tabs on our SDK, whose identity tab should read the user from this field.
 
 ## Scope
 
@@ -35,28 +35,28 @@ Add an app-data field to our SDK's `ToolContext`, such as `ctx.app`, so a tool c
 
 **Out of scope** (and which todo covers it)
 
-- Chapter 3's tab on our SDK: [T52](T52-chapter-tools-on-our-sdk.md)
+- Chapter 3's tab on our SDK: [T52](../ready/T52-chapter-tools-on-our-sdk.md)
 - Mapping the harness's per-turn `hostContext` onto this field instead of the registry's per-turn wrapper: the harness todos that build the runner and the registry, N6 and N11, once this todo is done
 - Authorization itself: the field carries the caller's facts, and the tool or the downstream system still checks them
 
 ## Tasks
 
-- [ ] Choose the field's name with the type in place. `app` is the working name; record the choice and the rejected names, such as `context` (which `Context` already means) and `state`, in the pull request.
-- [ ] Add the generic to `ToolContext`, `ToolDefinition`, `defineTool()` and `RunOptions`, defaulting to `unknown`, so existing code compiles unchanged.
-- [ ] Thread the value from `run()` and `continueRun()` through the loop's setup to the context each `execute` receives, without copying it into `Context`, events or observers.
-- [ ] Write the tests and the type tests below.
-- [ ] Document the field: TSDoc, and a README section that builds the value per request from the authenticated session and never from a module-level variable, the rule Chapter 3 states.
-- [ ] Move our own capstone off the hole Chapter 3 opens with. `packages/sdk/examples/triage-agent.ts` offers `lookup_customer` with an `email` the model fills in ("Look up a customer's plan and open tickets by email."); make it read the customer from the field instead, and run the conformance suite and B19's triage suite. If the shared suite needs the email argument, keep it there and say why in the pull request.
+- [x] Choose the field's name with the type in place. `app` is the working name; record the choice and the rejected names, such as `context` (which `Context` already means) and `state`, in the pull request.
+- [x] Add the generic to `ToolContext`, `ToolDefinition`, `defineTool()` and `RunOptions`, defaulting to `unknown`, so existing code compiles unchanged.
+- [x] Thread the value from `run()` and `continueRun()` through the loop's setup to the context each `execute` receives, without copying it into `Context`, events or observers.
+- [x] Write the tests and the type tests below.
+- [x] Document the field: TSDoc, and a README section that builds the value per request from the authenticated session and never from a module-level variable, the rule Chapter 3 states.
+- [x] Move our own capstone off the hole Chapter 3 opens with. `packages/sdk/examples/triage-agent.ts` offers `lookup_customer` with an `email` the model fills in ("Look up a customer's plan and open tickets by email."); make it read the customer from the field instead, and run the conformance suite and B19's triage suite. If the shared suite needs the email argument, keep it there and say why in the pull request.
 
 ## Acceptance criteria
 
-- [ ] A tool declared with `defineTool<..., { customerId: string }>` reads `ctx.app.customerId`, and a run that passes no app data or the wrong type fails to compile (type tests with `@ts-expect-error`)
-- [ ] A test scripts the model to send `{ customerId: "cust-999" }` to a lookup whose schema declares no identity field, and the lookup answers for the customer the caller set; the recorded requests hold no app data
-- [ ] A test serialises the run's events and its saved `Context` and finds no app data in either; `continueRun()` without the option gives tools `undefined`
-- [ ] A test shows that two overlapping runs with different app data each see their own, so no state is shared between runs
-- [ ] A tool that starts a nested run passes its app data on explicitly, and a test checks that the child sees nothing otherwise
-- [ ] A changeset is in the pull request, and CI's `changesets` job passes
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] A tool declared with `defineTool<..., { customerId: string }>` reads `ctx.app.customerId`, and a run that passes no app data or the wrong type fails to compile (type tests with `@ts-expect-error`)
+- [x] A test scripts the model to send `{ customerId: "cust-999" }` to a lookup whose schema declares no identity field, and the lookup answers for the customer the caller set; the recorded requests hold no app data
+- [x] A test serialises the run's events and its saved `Context` and finds no app data in either; `continueRun()` without the option gives tools `undefined`
+- [x] A test shows that two overlapping runs with different app data each see their own, so no state is shared between runs
+- [x] A tool that starts a nested run passes its app data on explicitly, and a test checks that the child sees nothing otherwise
+- [x] A changeset is in the pull request, and CI's `changesets` job passes
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -66,7 +66,7 @@ New unit and type tests in `packages/sdk/test/`, such as `tool-app-data.test.ts`
 
 - `packages/sdk/README.md`: a section on app data for tools, in the tools part
 - [SDK plan §4.6](../../plans/build-sdk.md#46-trusted-app-data-for-tools-from-the-books-chapter-3-added-2026-11-19): this todo's row
-- [T52](T52-chapter-tools-on-our-sdk.md): once this lands, its identity tab reads the field instead of closing over the customer
+- [T52](../ready/T52-chapter-tools-on-our-sdk.md): once this lands, its identity tab reads the field instead of closing over the customer
 - The compiled API docs and `llms.txt` that B20's checks regenerate
 
 ## Risks and open questions
@@ -77,9 +77,32 @@ New unit and type tests in `packages/sdk/test/`, such as `tool-app-data.test.ts`
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+A caller can now pass trusted facts, such as the signed-in customer, to a run, and every tool reads them as `ctx.app`. The model never sees them. The capstone's `lookup_customer` no longer takes an email: it looks up the customer the caller set.
+
+**Public API.**
+- `RunOptions<S, A>` gains `app?: A`, and `ContinueOptions<S, A>` inherits it. `run()` and `continueRun()` take a second type parameter `A`, which defaults to `unknown`.
+- `ToolContext<A>` gains `app: A`, and `ToolDefinition<I, S, A>` and `defineTool<I, S, A>()` take `A` as a third parameter, so `defineTool<Input, unknown, Session>()` declares the type a tool reads. Existing code compiles unchanged, except a hand-built `ToolContext`, which now needs `app`; the changeset says so.
+- `AppRequired<A>` is exported. It makes `app` required once the tools declare a type: `run()` and `continueRun()` take `AppRequired<NoInfer<A>>`, so a run without `app`, or with another type, fails to compile. Type tests pin it with `@ts-expect-error`.
+
+**Behavior.**
+- The value goes from `setupOf()` through the loop's setup and the pipeline context to each `execute`. It is never copied into a request, an event, a span or a saved `Context`; tests check each.
+- `continueRun()` without `app` gives tools `undefined`, and a call approved after a pause runs with the `app` the resuming process passes.
+- `nestedRunDepth(ctx)` does not carry it, so a nested run sees none unless the tool passes `app: ctx.app`.
+- Two overlapping runs each see their own value.
+
+**Decisions.**
+- **Field name: `app`.** Rejected: `context`, because `Context` already means the conversation, and `state`, because it suggests the run changes it.
+- **One `A` per run, not per tool.** Tools of different declared types in one run fail to compile, and a tool that declares none (`A` is `unknown`) mixes with any. The risk note's fallback, typing the field per run only, was not needed.
+- **The capstone keeps no email argument.** The scripted `LOOKUP` call now sends `{}`, and a new suite case has the model send `victim@example.com` and checks the lookup used `user@example.com`. The reference loop passes `app` to its tools too, and its cap of 400 lines still holds.
+- **The harness follow-up** is recorded in the [harness plan](../../plans/build-harness.md): N6 and N11 pass `hostContext` as `RunOptions.app` instead of binding it in a wrapper.
+
+**Left out.** The book's T52 identity tab, which reads this field once its todo runs, and authorization, which stays with the tool.

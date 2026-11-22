@@ -87,7 +87,7 @@ test("a run on autoResponder() calls only the lookup, never reaching the gated t
   const process = world();
   const { result } = await drive(run({ ...triageOptions(process.deps(model)), system: "s", input: TICKET }));
   assert.equal(result.stopReason, "done");
-  assert.deepEqual(process.seen.lookups, ["example"]);
+  assert.deepEqual(process.seen.lookups, ["user@example.com"], "the lookup used the signed-in customer");
   assert.deepEqual(process.seen.escalations, []);
   assert.deepEqual(adapter.calls[0]?.context.tools.map((tool) => tool.name).sort(), TRIAGE_TOOLS);
   adapter.assertComplete();

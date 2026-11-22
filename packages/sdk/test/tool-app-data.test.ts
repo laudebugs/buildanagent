@@ -11,6 +11,7 @@ import {
   type ToolContext,
 } from "@buildanagent/sdk";
 import { test } from "vitest";
+import { pendingOf, processSigner, roundTrip } from "./resume-helpers.js";
 import { determinism, drive, scripted, text, toolCall } from "./run-helpers.js";
 
 const SYSTEM = "You look customers up.";
@@ -191,4 +192,48 @@ test("a nested run sees no app data unless the tool passes it on", async () => {
     );
   }
   assert.deepEqual(childSaw, [undefined, { customerId: "cust-1" }]);
+});
+
+test("a call approved after a pause runs with the app data the resuming process passes", async () => {
+  const seen: unknown[] = [];
+  const refund = defineTool<{ reason: string }, unknown, Session>({
+    name: "refund",
+    description: "Refund the signed-in customer's last order.",
+    inputSchema: { type: "object", properties: { reason: { type: "string" } }, required: ["reason"] },
+    effect: { kind: "write" },
+    async execute(_input, ctx) {
+      seen.push(ctx.app);
+      return { content: [{ type: "text", text: "refunded" }] };
+    },
+  });
+  const options = {
+    system: SYSTEM,
+    tools: [refund],
+    signer: processSigner(),
+    interceptors: { beforeToolCall: () => ({ decision: "ask" as const, reason: "A person approves refunds." }) },
+    ...determinism(),
+  };
+  const first = await drive(
+    run({
+      ...options,
+      model: scripted([toolCall("refund", { reason: "late" })]).model,
+      input: "Refund me.",
+      app: { customerId: "cust-1" },
+    }),
+  );
+  assert.equal(first.result.stopReason, "awaiting_approval");
+  assert.deepEqual(seen, [], "nothing runs before a person answers");
+  const [request] = pendingOf(first.result);
+  assert.ok(request);
+  const allow = { requestId: request.id, decision: "allow" as const, by: "lead" };
+  const second = await drive(
+    continueRun(roundTrip(first.result.context), {
+      ...options,
+      model: scripted([text("Refunded.")]).model,
+      resolutions: [allow],
+      app: { customerId: "cust-1" },
+    }),
+  );
+  assert.equal(second.result.stopReason, "done");
+  assert.deepEqual(seen, [{ customerId: "cust-1" }]);
 });

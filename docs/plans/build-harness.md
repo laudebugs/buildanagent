@@ -365,7 +365,7 @@ interface TurnOptions<H = unknown> {
   inputOrigin?: "user" | "operator";        // Revision (R7): origin of the input blocks; default "user"
   budgetUsd?: number;                       // session cap; the runner passes the remainder (HD9)
   signal?: AbortSignal;
-  hostContext?: H;                          // Revision (agent AH2): per turn; reaches execute, never a schema or the log
+  hostContext?: H;                          // Revision (agent AH2): per turn; reaches execute, never a schema or the log. Follow-up (B23): N6 and N11 pass it as RunOptions.app, which tools read as ctx.app, instead of binding it in a ToolWrapper
   system?: string; tools?: string[];        // Revision (agent AH1): per-turn settings; tools is an allowlist of registered names
   output?: ToolDefinition<any, any>; model?: Model; maxSteps?: number; modelOptions?: StreamOptions;
 }

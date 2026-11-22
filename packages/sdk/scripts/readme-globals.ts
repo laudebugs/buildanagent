@@ -33,6 +33,7 @@ declare global {
   const request: sdk.SignedPendingRequest;
   const resolution: sdk.Resolution;
   const findOrder: FindOrder;
+  const findPlan: (customerId: string) => Promise<string>;
   const fixture: string;
   const gate: NonNullable<sdk.Interceptors["beforeToolCall"]>;
   const base: {

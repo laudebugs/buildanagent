@@ -185,6 +185,17 @@ function changedInput(loop: Loop, backend: Backend) {
   });
 }
 
+function trustedIdentity(loop: Loop, backend: Backend) {
+  test(`${backend.name}: the lookup answers for the signed-in customer, whatever email the model sends`, async () => {
+    const victim: ScriptedCall = { name: "lookup_customer", input: { email: "victim@example.com" } };
+    const { result, fixture, process } = await start(loop, backend, [{ calls: [victim] }, { calls: [submit(BUG)] }]);
+    fixture.assertComplete();
+    assert.equal(result.stopReason, "done");
+    assert.deepEqual(process.seen.lookups, ["user@example.com"], "the caller's customer, not the model's");
+    assertSurface(fixture);
+  });
+}
+
 function systemPromptReachesModel(loop: Loop, backend: Backend) {
   test(`${backend.name}: the system prompt reaches the model on every request`, async () => {
     const { result, fixture } = await start(loop, backend, [{ calls: [LOOKUP] }, { calls: [submit(BUG)] }]);
@@ -262,6 +273,7 @@ export function triageSuite(loop: Loop, backends: readonly Backend[]): void {
     forgedSignature(loop, backend);
     changedInput(loop, backend);
     stepCapAndBudget(loop, backend);
+    trustedIdentity(loop, backend);
     systemPromptReachesModel(loop, backend);
     hostToolsDenied(loop, backend);
   }

@@ -86,7 +86,8 @@ const lookupStep = (id: string): ScriptStep => ({
   content: [call("lookup_customer", { email: "a@b.c" }, id)],
   ...tokens,
 });
-const stuckStep = (id: string): ScriptStep => ({ content: [call("lookup_customer", {}, id)], ...tokens });
+// A call to `escalate` with no reason fails its schema, before the gate sees it, so it never pauses the run.
+const stuckStep = (id: string): ScriptStep => ({ content: [call("escalate", {}, id)], ...tokens });
 const lookup = (id: string) => call("lookup_customer", { email: "a@b.c" }, id);
 const answer: ScriptStep = { content: [{ type: "text", text: "Done." }], ...tokens };
 const aborted = new AbortController();
@@ -218,9 +219,9 @@ const SCENARIOS: Scenario[] = [
   {
     name: "identical failing inputs whose keys come in another order end no_progress",
     steps: [
-      { content: [call("lookup_customer", { email: 1, plan: 2 }, "c1")], ...tokens },
-      { content: [call("lookup_customer", { plan: 2, email: 1 }, "c2")], ...tokens },
-      { content: [call("lookup_customer", { email: 1, plan: 2 }, "c3")], ...tokens },
+      { content: [call("escalate", { reason: 1, plan: 2 }, "c1")], ...tokens },
+      { content: [call("escalate", { plan: 2, reason: 1 }, "c2")], ...tokens },
+      { content: [call("escalate", { reason: 1, plan: 2 }, "c3")], ...tokens },
     ],
     stopReason: "no_progress",
   },
@@ -431,7 +432,7 @@ describe("the reference loop resumes as the real loop does", () => {
     });
 
     test(`${loop.name}: a gate's replacement input that its tool's schema rejects fails the run`, async () => {
-      const gate = { beforeToolCall: () => ({ decision: "allow" as const, input: { email: 42 } }) };
+      const gate = { beforeToolCall: () => ({ decision: "allow" as const, input: "not an object" }) };
       const { options } = setup([lookupStep("c1")], { interceptors: gate });
       const started = loop.run({ ...options, system: SYSTEM_PROMPT, input: "Triage it." });
       await assert.rejects(started.result, { code: "invalid_hook_result" });

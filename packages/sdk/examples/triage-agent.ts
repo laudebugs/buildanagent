@@ -1,6 +1,5 @@
-// A support-triage agent. It looks a customer up, asks a person before it escalates a ticket, and ends with a typed
-// triage record. A run that waits for the person ends with a signed request you can store as JSON, and any process
-// that holds the same signing key can resume it.
+// A support-triage agent. It looks the signed-in customer up, asks a person before it escalates a ticket, and ends with
+// a typed record. A paused run ends with a signed request you can store as JSON; any process with the key resumes it.
 import type { Model } from "@buildanagent/gateway";
 import {
   type ApprovalSigner,
@@ -31,21 +30,16 @@ export const Triage = z.object({
 });
 export type Triage = z.infer<typeof Triage>;
 
-/** What the caller knows about the ticket's sender, from the signed-in session. The model never sees or chooses it. */
-export interface TriageApp {
-  customerEmail: string;
-}
-
 /** What the agent needs from your systems, and where it sends its audit trail. */
 export interface TriageDeps {
   model: Model;
   signer: ApprovalSigner;
-  /** The signed-in customer's email, from the request's session. Build `deps` for each request, not once. */
-  customerEmail: string;
+  customerEmail: string; // The signed-in customer, from the request's session: build `deps` for each request.
   findCustomer(email: string): Promise<{ plan: string; openTickets: number }>;
   escalate(reason: string): Promise<void>;
   audit(line: string): void;
 }
+export type TriageApp = Pick<TriageDeps, "customerEmail">; // What the tools read from `ctx.app`, never the model.
 
 /** Every call the model makes, and every pause for a person, goes to the audit trail. */
 function auditTo(audit: TriageDeps["audit"]): Observer {
@@ -63,7 +57,6 @@ const gate: Interceptors = {
 
 /** The agent's options, shared by its first run and every resume. */
 export function triageOptions(deps: TriageDeps): RunOptions<Triage, TriageApp> & { app: TriageApp } {
-  // The tool takes no identity argument: it looks up the customer the caller set in `app`, whatever the model sends.
   const lookupCustomer = defineTool<object, unknown, TriageApp>({
     name: "lookup_customer",
     description: "Look up the signed-in customer's plan and open tickets.",

@@ -1,6 +1,6 @@
 # Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 27 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner. Revised on 2026-11-20 by B11c: §3.2 and §3.3 record the `raw` event and `includeRaw`, which stay under `specificationVersion: "v1"` (owner decision 2026-11-19). Revised on 2026-11-19 from the book's Chapter 3: §4.6 adds B23, an app-data field on `ToolContext` for trusted data such as the signed-in user, which the owner accepted that day ("yes, i accept these").
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner. Revised on 2026-11-20 by B11c: §3.2 and §3.3 record the `raw` event and `includeRaw`, which stay under `specificationVersion: "v1"` (owner decision 2026-11-19). Revised on 2026-11-19 from the book's Chapter 3: §4.6 adds B23, an app-data field on `ToolContext` for trusted data such as the signed-in user, which the owner accepted that day ("yes, i accept these"). Revised on 2026-11-22 by B23: §3.3 records `ToolContext<A>`, its `app` field and `ToolDefinition`'s third type parameter.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
@@ -360,12 +360,13 @@ interface ToolDefinition<I, S> {
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
   redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
   effect?: { kind: "write"; businessKey?(input: I): string };  // revision (ADR 0043, SG3; B10): absent means read-only for the crash rule
-  execute(input: I, ctx: ToolContext): Promise<ToolResult<S>>;
+  execute(input: I, ctx: ToolContext<A>): Promise<ToolResult<S>>;  // revision (B23): ToolDefinition<I, S, A = unknown>
 }
-interface ToolContext {
+interface ToolContext<A = unknown> {
   runId: string; callId: string; signal: AbortSignal;  // signal also fires when a sibling fails
   depth: number; maxDepth: number;                      // D11
   clock: Clock; update(details: unknown): void;         // emits tool_call_update
+  app: A;                                               // revision (B23): RunOptions.app, never in a request, event or saved Context
 }
 interface ToolResult<S> {
   content: ModelContent[]; details?: unknown; structured?: S;
@@ -685,7 +686,7 @@ Chapter 3 of the book teaches that a tool reads the signed-in user from trusted 
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B23](../todos/ongoing/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
+| [B23](../todos/done/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
 
 ## 5. Test strategy
 

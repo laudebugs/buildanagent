@@ -571,7 +571,7 @@ function setupOf(
     depth,
     maxDepth,
     ...parentRunOf(options),
-    ...(options.app === undefined ? {} : { app: options.app }),
+    app: options.app,
     modelOptions: options.modelOptions ?? {},
     includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),
