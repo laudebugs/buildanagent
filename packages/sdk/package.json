@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/sdk",
-  "version": "0.1.0-alpha.32",
+  "version": "0.1.0-alpha.33",
   "description": "The buildanagent SDK: the agent loop, tools, hooks, signed pauses and budgets over the gateway.",
   "license": "Apache-2.0 OR MIT",
   "repository": {

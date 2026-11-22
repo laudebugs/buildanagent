@@ -1,5 +1,11 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.33
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.33
+
 ## 0.1.0-alpha.32
 
 ### Minor Changes
