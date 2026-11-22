@@ -95,6 +95,10 @@ The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents
 | 64 | After the first code review: push-to-talk and the announce-background-delegate advice are worded as ours ("Our reading", "We would therefore") | § A voice agent | ✅ | Re-check of rows 51 and 60: wording only; both stay ⚠️ in their own rows |
 | 65 | After the first code review: the text names the OpenAI Agents SDK for the delegation advice and links OpenAI's voice and realtime guides for transports and audio formats | § A voice agent | ✅ | Re-check of row 57; the guide URLs are in voice log rows 11 and 37 |
 | 66 | After the medium review: GPT-Live's interruption behaviour is cited to OpenAI's delegation guide, and the Gemini cancellation is attributed to the `@google/genai` types as the ADK notes quote them | § A voice agent | ✅ | Re-check of rows 54 and 55: [OpenAI GPT-Live delegation](https://developers.openai.com/api/docs/guides/live-delegation); voice log row 147 for the Gemini comment |
+| 67 | After the writing review: the intro's fifth claim says a voice agent must guess when a turn ends, keep only what the person heard and never leave dead air | § A voice agent | ✅ | Re-check of rows 51, 52 and 60: the intro repeats the section's claims, with the same hedges (ours where rows 51 and 60 are ours) |
+| 68 | After the writing review: the closing read-back sentence and the Pay-click link restate row 59's recommendation, still marked ours | § A voice agent | ✅ | Re-check of row 59: wording only; the text still says no source states the rule |
+| 69 | After the writing review: the card-number and refund-policy scenarios illustrate rows 49 and 52 and assert no new fact | § A voice agent | ✅ | Re-check of rows 49 and 52: the scenarios are illustrations, not measurements |
+| 70 | After the writing review: the Full-Duplex-Bench, τ-Voice and Gemini sentences keep the same figures, model id and attribution | § A voice agent | ✅ | Re-check of rows 55, 56 and 58: 0.23 s, 93%, 85% and 31 to 51% unchanged; the model id and year unchanged |
 
 ## Tally
 
