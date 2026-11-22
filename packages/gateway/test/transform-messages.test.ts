@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   type AssistantMessage,
   type ContentBlock,
+  createModel,
   emptyUsage,
   isGatewayError,
   type Message,
@@ -9,7 +10,8 @@ import {
   type ModelRef,
   transformMessages,
 } from "@buildanagent/gateway";
-import { seededRandom } from "@buildanagent/gateway/testing";
+import { anthropic } from "@buildanagent/gateway/anthropic";
+import { mockTransport, seededRandom } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
 
 const OPUS: ModelRef = { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" };
@@ -678,4 +680,21 @@ test("a message with any other unknown role is refused with its index", () => {
     (error: unknown) =>
       isGatewayError(error) && error.code === "invalid_message" && error.message.includes("message 1"),
   );
+});
+
+test("a model stream throws the refusal before any request is sent, so nothing is billed", async () => {
+  const transport = mockTransport("anthropic-messages", []);
+  const model = createModel({ adapter: anthropic({ apiKey: "test-key", transport }), id: "claude-sonnet-5-5" });
+  const system = { role: "system", content: [{ type: "text", text: "Be brief." }] } as unknown as Message;
+  const seen: string[] = [];
+  await assert.rejects(
+    async () => {
+      for await (const event of model.stream({ system: "", messages: [user("hi"), system], tools: [] })) {
+        seen.push(event.type);
+      }
+    },
+    (error: unknown) => isGatewayError(error) && error.code === "invalid_message",
+  );
+  assert.deepEqual(seen, [], "no event, not even start, reaches the caller");
+  assert.equal(transport.requests.length, 0, "no request was sent");
 });

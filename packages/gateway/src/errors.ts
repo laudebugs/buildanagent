@@ -1,8 +1,8 @@
 /**
  * `GatewayError`: the gateway's error for programmer errors, such as a missing key, invalid options, a malformed
- * catalog, a tool name outside the canonical rule, a message with a role the transcript does not have, or a request a mock transport's script did not expect. Two
- * subclasses keep their own names for the cases callers catch by class: `StreamContractError` and
- * `ModelRequestsDisabledError`.
+ * catalog, a tool name outside the canonical rule, a message with a role the transcript does not have, or a
+ * request a mock transport's script did not expect. Two subclasses keep their own names for the cases callers catch
+ * by class: `StreamContractError` and `ModelRequestsDisabledError`.
  */
 
 /** Why a `GatewayError` was thrown. */

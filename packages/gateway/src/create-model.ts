@@ -11,6 +11,7 @@ import { startAttempt } from "./request-dump.js";
 import { abortableSleep, DEFAULT_INITIAL_RETRY_DELAY_MS, type RetrySettings, withRetries } from "./retry.js";
 import type { CreateModelOptions, GatewayEvent, Model, ModelCallOptions } from "./runtime-types.js";
 import type { ModelAdapter } from "./spec.js";
+import { assertKnownRoles } from "./transform-messages.js";
 import type { ModelCaps, ModelContext, Usage } from "./types.js";
 
 const DEFAULT_RETRIES = 2;
@@ -80,6 +81,8 @@ export function createModel(options: CreateModelOptions): Model {
 
   async function* stream(context: ModelContext, streamOptions: ModelCallOptions = {}): AsyncGenerator<GatewayEvent> {
     const params = await transformParams(middleware, { context, options: streamOptions });
+    // Refuse a malformed transcript here, before any attempt, so nothing is sent and the caller gets the thrown error.
+    assertKnownRoles(params.context.messages);
     const request = { adapter, ref, context: params.context, options: params.options, caps, onRequest };
     yield* wrapStream(middleware, params, () =>
       withRetries((n) => startAttempt(request, n), ref, params.options.signal, settings),

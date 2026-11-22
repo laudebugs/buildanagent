@@ -71,15 +71,19 @@ export function transformMessages(messages: readonly Message[], target: ModelRef
   );
 }
 
-// Message has no system role, so a cast one would otherwise match no rule below and vanish without a trace.
-function assertKnownRoles(messages: readonly Message[]): void {
+/**
+ * Throws a `GatewayError` with code `invalid_message` for a message whose role is not `user`, `assistant` or `tool`.
+ * `Message` has no system role, so a cast one would otherwise match no rule here and vanish without a trace.
+ * `createModel()` runs it before the first attempt, so a refused transcript sends nothing and bills nothing.
+ */
+export function assertKnownRoles(messages: readonly Message[]): void {
   messages.forEach((message, index) => {
     const role: string = message.role;
     if (role === "user" || role === "assistant" || role === "tool") return;
     const hint = role === "system" ? " Put system text in ModelContext.system." : "";
     throw new GatewayError(
       "invalid_message",
-      `transformMessages(): message ${index} has role "${role}", but a transcript holds only user, assistant and tool messages.${hint}`,
+      `message ${index} has role "${role}", but a transcript holds only user, assistant and tool messages.${hint}`,
     );
   });
 }
