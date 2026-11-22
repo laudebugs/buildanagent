@@ -5,8 +5,9 @@
 // panel with its text. The CSS Custom Highlight API draws the highlights, so the chapter's markup is never wrapped or
 // changed. Everything stays in this browser's localStorage: the script makes no request, and it writes stored text
 // into the page only as text. Each highlight has one of four colours, a click on a highlight or its note marker opens a
-// popover with colour, Share and Remove, and a highlight with a note gets a marker element outside the article, because
-// Firefox 140 to 145 draws no underline from a CSS highlight. Without JavaScript, without CSS.highlights or with
+// popover with colour, Share and Remove, and a highlight with a note gets a marker, because Firefox 140 to 145 draws
+// no underline from a CSS highlight: a speech bubble in the margin where the window leaves room beside the article,
+// and a numbered dot after the passage's last word where it does not. Without JavaScript, without CSS.highlights or with
 // storage blocked, nothing appears.
 // The file is served as-is from public/, not bundled, like reading.js; the tests import its exported functions.
 
@@ -45,6 +46,9 @@ export const STORE_VERSION = 2;
 export function highlightName(color, noted) {
   return `manual-${noted ? "note" : "hl"}-${COLORS.includes(color) ? color : DEFAULT_COLOR}`;
 }
+
+/** A stored colour as one of the four this script draws; an unknown one reads as the default. */
+const colorKey = (color) => (COLORS.includes(color) ? color : DEFAULT_COLOR);
 
 /** Every highlight name, in registration order: the plain names, then the noted ones, which paint above them. */
 export const HIGHLIGHT_NAMES = [
@@ -725,7 +729,7 @@ class Notes {
     this.foreign = false;
     /** The colour the next highlight takes: the one the reader picked last, amber until then. */
     this.color = DEFAULT_COLOR;
-    /** The highlights as drawn, each with its range and its paint order, for the click test and the markers. */
+    /** The highlights as drawn, each with its range and its paint order, for the click test and the note dots. */
     this.drawn = [];
     this.canPop = typeof win.HTMLElement?.prototype?.showPopover === "function";
     this.reload();
@@ -752,15 +756,17 @@ class Notes {
     this.pending = undefined;
     this.placed = new Map();
     this.build();
+    this.margin = false;
+    this.hoverSources = { pointer: undefined, focus: undefined };
     this.paint();
     this.listen();
-    // A marker follows its passage when the article reflows, so it is placed again when the article's size changes and
-    // when fonts finish loading.
+    // A margin marker follows its passage when the article reflows, so it is placed again when the article's size
+    // changes and when fonts finish loading, and the layout switches when the window crosses the gutter's width.
     if (typeof win.ResizeObserver === "function") {
-      this.resizer = new win.ResizeObserver(() => this.layoutMarkers());
+      this.resizer = new win.ResizeObserver(() => this.refit());
       this.resizer.observe(article);
     }
-    whenFontsLoad(this.doc, () => this.layoutMarkers());
+    whenFontsLoad(this.doc, () => this.refit());
   }
 
   /** Reads this chapter's highlights from storage, and whether the stored value is one this page must not overwrite. */
@@ -838,7 +844,7 @@ class Notes {
     });
   }
 
-  /** The popover a click on a highlight or a note marker opens: the passage, its colours, Share and Remove. */
+  /** The popover a click on a highlight or a note dot opens: the passage, its colours, Share and Remove. */
   buildPopover(ui) {
     const doc = this.doc;
     this.popQuote = element(doc, "p", { className: "notes-pop__quote" });
@@ -1001,14 +1007,33 @@ class Notes {
     win.addEventListener("scroll", () => this.position(), { passive: true });
     win.addEventListener("resize", () => {
       this.position();
-      this.layoutMarkers();
+      this.refit();
     });
-    // On iOS Safari a tap fires a click only when an element below the body listens, so the article and the markers
-    // listen themselves.
+    // On iOS Safari a tap fires a click only when an element below the body listens, so the article listens itself.
     this.article.addEventListener("click", (event) => this.onClick(event));
+    this.article.addEventListener("keydown", (event) => this.onDotKey(event));
+    this.article.addEventListener("keyup", (event) => this.onDotKey(event));
     this.markers.addEventListener("click", (event) => this.onClick(event));
+    // A marker brightens its passage while it is hovered or has focus.
+    // The pointer and the keyboard focus are tracked apart, so the shade stays while either one is on a marker.
+    for (const [type, source, on] of [
+      ["mouseover", "pointer", true],
+      ["focusin", "focus", true],
+      ["mouseout", "pointer", false],
+      ["focusout", "focus", false],
+    ]) {
+      this.markers.addEventListener(type, (event) => {
+        const marker = event.target?.closest?.(".notes-marker");
+        if (!marker || (type === "mouseout" && marker.contains(event.relatedTarget))) return;
+        this.hoverSources[source] = on ? marker.getAttribute("data-id") : undefined;
+        this.hover(this.hoverSources.pointer ?? this.hoverSources.focus);
+      });
+    }
     // A click outside or Escape closes the popover without calling this script.
     // beforetoggle runs synchronously, so a click that follows a light dismiss already sees a closed popover.
+    this.pop.addEventListener("toggle", (event) => {
+      if (event.newState === "closed") this.restoreDotFocus();
+    });
     this.pop.addEventListener("beforetoggle", (event) => {
       if (event.newState !== "closed") return;
       this.popOpen = false;
@@ -1257,6 +1282,10 @@ class Notes {
 
   paint() {
     const { win, doc } = this;
+    const focusedId = this.focusedNoteId();
+    // The dots from the last paint split the article's text nodes, so they go and the nodes are joined again before the
+    // chapter's text is read.
+    this.clearDots();
     const chapter = this.chapter();
     const groups = new Map(HIGHLIGHT_NAMES.map((name) => [name, []]));
     this.placed = new Map();
@@ -1286,39 +1315,237 @@ class Notes {
       win.CSS.highlights.delete(name);
       win.CSS.highlights.set(name, highlight);
     }
-    this.layoutMarkers();
+    this.margin = this.hasGutter();
+    if (this.margin) {
+      this.layoutMarkers();
+    } else {
+      this.markers.replaceChildren();
+      this.placeDots();
+    }
+    // A marker that is gone, as when the window narrows to dots, can no longer send its mouseout or focusout, so a
+    // hover or focus source that names one is cleared here.
+    for (const source of ["pointer", "focus"]) {
+      const id = this.hoverSources[source];
+      if (![...this.markers.children].some((marker) => marker.getAttribute("data-id") === id)) {
+        this.hoverSources[source] = undefined;
+      }
+    }
+    this.hover(this.hoverSources.pointer ?? this.hoverSources.focus);
+    if (focusedId !== undefined) this.noteControl(focusedId)?.focus({ preventScroll: true });
     this.updateCount();
   }
 
+  /** The right edge of the chapter's text column: its first paragraph, which the article's box is wider than. */
+  columnRight() {
+    return (this.article.querySelector("p") ?? this.article).getBoundingClientRect().right;
+  }
+
   /**
-   * Draws one marker per noted highlight, above the end of the passage's last line. The markers live in their own
-   * container outside the article, in page coordinates, with the hit area kept inside the article's width so a marker
-   * never widens the page.
+   * Whether the window leaves room for a margin marker beside the text column, and beside every noted passage's own
+   * block, which runs past the column in a table or a quote. When any block is too wide, every note gets a dot.
+   */
+  hasGutter() {
+    const { win, doc } = this;
+    let edge = this.columnRight();
+    for (const { item, range } of this.drawn) {
+      if (!item.note) continue;
+      const node = range.startContainer;
+      const block = (node.nodeType === 1 ? node : node.parentElement)?.closest(BLOCK);
+      if (block) edge = Math.max(edge, block.getBoundingClientRect().right);
+    }
+    return (doc.documentElement.clientWidth || win.innerWidth) - edge >= GUTTER_MIN;
+  }
+
+  /** Places the margin markers again, or switches between markers and dots when the window crossed the gutter's width. */
+  refit() {
+    if (this.hasGutter() !== this.margin) this.paint();
+    else if (this.margin) this.layoutMarkers();
+  }
+
+  /** The id of the note whose dot or marker has keyboard focus, so a redraw can give the focus back. */
+  focusedNoteId() {
+    const active = this.doc.activeElement;
+    const control = active?.closest?.(".notes-dot, .notes-marker");
+    return control?.getAttribute("data-id") ?? undefined;
+  }
+
+  /** The dot or the marker of a note. */
+  noteControl(id) {
+    for (const control of this.doc.querySelectorAll(".notes-dot, .notes-marker")) {
+      if (control.getAttribute("data-id") === id) return control;
+    }
+    return undefined;
+  }
+
+  /** Brightens a note's passage while its marker is hovered or focused: one stronger shade of its own colour. */
+  hover(id) {
+    const { win } = this;
+    this.hovered = id;
+    for (const color of COLORS) win.CSS.highlights.delete(`manual-hover-${color}`);
+    const entry = id === undefined ? undefined : this.drawn.find((drawn) => drawn.item.id === id);
+    if (!entry) return;
+    const highlight = new win.Highlight(entry.range);
+    highlight.priority = 2;
+    win.CSS.highlights.set(`manual-hover-${colorKey(entry.item.color)}`, highlight);
+  }
+
+  /** The number of each noted highlight the page draws, in the order the notes panel lists them, from 1. */
+  noteNumbers() {
+    const numbers = new Map();
+    for (const item of this.ordered()) {
+      const place = this.placed.get(item.id);
+      if (item.note && place && place.status !== "lost" && this.drawn.some((entry) => entry.item.id === item.id)) {
+        numbers.set(item.id, numbers.size + 1);
+      }
+    }
+    return numbers;
+  }
+
+  /**
+   * Takes every dot out of the article and joins the text nodes each one split. The article's own mutation records are
+   * dropped, because the change is this script's, and the chapter's text model is read again.
+   */
+  clearDots() {
+    let removed = false;
+    for (const dot of this.article.querySelectorAll(".notes-dot")) {
+      const before = dot.previousSibling;
+      const after = dot.nextSibling;
+      dot.remove();
+      removed = true;
+      // Only the two text nodes the dot split are joined again, never any other text node in the parent.
+      if (before?.nodeType === 3 && after?.nodeType === 3) {
+        before.appendData(after.data);
+        after.remove();
+      }
+    }
+    // A paint reads the DOM as it is now, so records a script left before it are covered by this paint, and records
+    // from the changes above are this script's own.
+    const pending = this.observer.takeRecords().length > 0;
+    if (removed || pending) this.model = undefined;
+  }
+
+  /**
+   * Draws one speech-bubble marker in the margin for each noted highlight, level with the passage's first line, in the
+   * gutter beside the article. Nothing is added to the article. The markers live in their own container, in page
+   * coordinates; two that begin close together are stacked so they never overlap.
    */
   layoutMarkers() {
     const { win, doc } = this;
-    if (!this.markers) return;
-    const size = 24;
-    const box = this.article.getBoundingClientRect();
-    const markers = [];
+    const numbers = this.noteNumbers();
+    const column = this.columnRight();
+    const width = doc.documentElement.clientWidth || win.innerWidth;
+    const placed = [];
     for (const { item, range } of this.drawn) {
-      if (!item.note) continue;
-      const rects = [...range.getClientRects()];
-      const last = rects[rects.length - 1];
-      if (!last) continue;
-      const left = Math.max(box.left, Math.min(last.right - size / 2, box.right - size));
-      const marker = element(doc, "span", {
-        className: "notes-marker",
-        "data-id": item.id,
-        "data-notes-ui": true,
-        "aria-hidden": "true",
-      });
-      // Set through the CSSOM, which the content security policy allows.
+      const number = numbers.get(item.id);
+      const first = [...range.getClientRects()][0];
+      if (number === undefined || !first) continue;
+      // Beside the passage's own block when that runs past the column, such as a table, and never off the window.
+      const startNode = range.startContainer;
+      const block = (startNode.nodeType === 1 ? startNode : startNode.parentElement)?.closest(BLOCK);
+      const edge = Math.max(column, block ? block.getBoundingClientRect().right : 0);
+      const left = Math.min(edge + MARKER_GAP, width - MARKER_SIZE - 4);
+      placed.push({ item, number, left, top: first.top + first.height / 2 - MARKER_SIZE / 2 });
+    }
+    placed.sort((a, b) => a.top - b.top || a.number - b.number);
+    // A marker that is already in place is moved, not replaced, so one that has focus or the pointer keeps it.
+    const existing = new Map([...this.markers.children].map((marker) => [marker.getAttribute("data-id"), marker]));
+    const markers = [];
+    let floor = Number.NEGATIVE_INFINITY;
+    for (const { item, number, left, top } of placed) {
+      const y = Math.max(top, floor);
+      floor = y + MARKER_SIZE + 4;
+      let marker = existing.get(item.id);
+      if (!marker) {
+        marker = element(doc, "button", {
+          type: "button",
+          className: "notes-marker",
+          "data-id": item.id,
+          "data-notes-ui": true,
+        });
+        marker.append(bubble(doc));
+      }
+      marker.setAttribute("aria-label", `Note ${number}`);
+      marker.setAttribute("data-n", String(number));
+      marker.setAttribute("data-color", colorKey(item.color));
+      // Set through the CSSOM, which the content security policy allows where a style attribute would be blocked.
       marker.style.left = `${Math.round(left + win.scrollX)}px`;
-      marker.style.top = `${Math.round(last.top - size + 4 + win.scrollY)}px`;
+      marker.style.top = `${Math.round(y + win.scrollY)}px`;
       markers.push(marker);
     }
-    this.markers.replaceChildren(...markers);
+    // Only a change in the set of markers or their order touches the container, which keeps the focus where it is.
+    const same =
+      markers.length === this.markers.children.length &&
+      markers.every((marker, i) => marker === this.markers.children[i]);
+    if (!same) {
+      const focusedId = this.focusedNoteId();
+      this.markers.replaceChildren(...markers);
+      if (focusedId !== undefined) this.noteControl(focusedId)?.focus({ preventScroll: true });
+    }
+  }
+
+  /**
+   * Puts a numbered dot right after the last word of each noted passage, as an inline element the line reserves room
+   * for, so it never sits on a character. The dot holds no text (its number is generated content), is skipped by the
+   * chapter's text model, and stays out of Pagefind's index, copy and paste and every stored anchor. It goes after an
+   * inline element the passage ends in, such as a link, never inside it.
+   */
+  placeDots() {
+    const { doc } = this;
+    const numbers = this.noteNumbers();
+    let placed = false;
+    // Highest number first, so two dots that land at one point read in number order after the later ones are inserted.
+    const noted = this.drawn.filter(({ item }) => numbers.has(item.id));
+    noted.sort((a, b) => (numbers.get(b.item.id) ?? 0) - (numbers.get(a.item.id) ?? 0));
+    for (const { item, range } of noted) {
+      const number = numbers.get(item.id);
+      const dot = element(doc, "span", {
+        className: "notes-dot",
+        role: "button",
+        tabindex: "0",
+        "aria-label": `Note ${number}`,
+        "data-id": item.id,
+        "data-n": String(number),
+        "data-color": colorKey(item.color),
+        "data-notes-ui": true,
+        "data-pagefind-ignore": true,
+      });
+      const point = range.cloneRange();
+      point.collapse(false);
+      this.outOfInline(point);
+      point.insertNode(dot);
+      placed = true;
+    }
+    // The dots split text nodes, so the model's node list is stale; the text it joins is the same.
+    const others = this.observer.takeRecords().length > 0;
+    if (placed || others) this.model = undefined;
+  }
+
+  /**
+   * Moves a collapsed point out of every inline element the passage ends at the end of, so a dot never lands in a link
+   * or in code. Trailing text that is white space only, or that the text model skips (a glossary card), is no content.
+   */
+  outOfInline(point) {
+    let node = point.endContainer;
+    const length = node.nodeType === 3 ? node.data.length : node.childNodes.length;
+    if (point.endOffset < length) return;
+    while (node !== this.article) {
+      const parent = node.parentElement;
+      if (!parent || parent === this.article || parent.matches(BLOCK) || !parent.matches(INLINE)) break;
+      let more = false;
+      for (let next = node.nextSibling; next && !more; next = next.nextSibling) {
+        more = next.nodeType === 3 ? next.data.trim() !== "" : next.nodeType === 1 && !next.matches(NOT_TEXT);
+      }
+      if (more) return;
+      node = parent;
+      point.setStartAfter(node);
+      point.collapse(true);
+    }
+    // A button inside a heading would become part of its accessible name, so a dot goes after the heading.
+    const heading = (node.nodeType === 1 ? node : node.parentElement)?.closest("h2, h3, h4");
+    if (heading && this.article.contains(heading)) {
+      point.setStartAfter(heading);
+      point.collapse(true);
+    }
   }
 
   /** The highlight that paints on top where the point falls inside a range's rectangles, within two pixels. */
@@ -1335,13 +1562,13 @@ class Notes {
     return best;
   }
 
-  /** A click on a highlight or a note marker opens the popover; a click on a link, a control or a drag does not. */
+  /** A click on a highlight or a note dot opens the popover; a click on a link, a control or a drag does not. */
   onClick(event) {
     const { win } = this;
     const target = event.target;
     if (!this.canPop || this.dialog.open || event.defaultPrevented || event.button > 0) return;
     if (typeof target?.closest !== "function") return;
-    const marker = target.closest(".notes-marker");
+    const marker = target.closest(".notes-dot, .notes-marker");
     if (!marker && target.closest("[data-notes-ui]")) return;
     if (!marker) {
       if (!this.article.contains(target)) return;
@@ -1351,7 +1578,43 @@ class Notes {
     const entry = marker
       ? this.drawn.find((drawn) => drawn.item.id === marker.getAttribute("data-id"))
       : this.hit(event.clientX, event.clientY);
-    if (entry) this.openPop(entry, event.clientX, event.clientY);
+    if (!entry) return;
+    // A marker is a button, so Enter and Space reach it as a click with no pointer position: its own place stands in.
+    const box = marker ? marker.getBoundingClientRect() : undefined;
+    const byKeyboard = marker !== null && event.detail === 0;
+    this.popFromKey = byKeyboard;
+    this.openPop(entry, box ? box.left + box.width / 2 : event.clientX, box ? box.top + box.height / 2 : event.clientY);
+  }
+
+  /**
+   * Enter or Space on a focused note dot opens the popover, as a click does. Enter acts on keydown and Space on keyup,
+   * like a button, so the keyup of a Space that opened the popover never lands on a colour button inside it.
+   */
+  onDotKey(event) {
+    const target = event.target;
+    if (typeof target?.closest !== "function") return;
+    const dot = target.closest(".notes-dot");
+    const down = event.type === "keydown";
+    if (!dot || !this.canPop || this.dialog.open) return;
+    if (event.key === " " && down) event.preventDefault();
+    if (!(down ? event.key === "Enter" : event.key === " ")) return;
+    const entry = this.drawn.find((drawn) => drawn.item.id === dot.getAttribute("data-id"));
+    if (!entry) return;
+    event.preventDefault();
+    const box = dot.getBoundingClientRect();
+    this.popFromKey = true;
+    this.openPop(entry, box.left + box.width / 2, box.top + box.height / 2);
+  }
+
+  /** After the popover closes on a keyboard path, focus goes back to the note dot it was opened from. */
+  restoreDotFocus() {
+    const id = this.popReturnId;
+    this.popReturnId = undefined;
+    if (!this.popFromKey || id === undefined) return;
+    this.popFromKey = false;
+    const active = this.doc.activeElement;
+    if (active && active !== this.doc.body && active !== this.doc.documentElement) return;
+    this.noteControl(id)?.focus({ preventScroll: true });
   }
 
   /** Opens the popover for a highlight beside the click, with focus on its first control. */
@@ -1359,6 +1622,7 @@ class Notes {
     const { win } = this;
     const item = entry.item;
     this.popId = item.id;
+    this.popReturnId = item.id;
     this.popMessage.textContent = "";
     this.popField.hidden = true;
     this.renderPop();
@@ -1615,6 +1879,7 @@ class Notes {
   renderList() {
     const doc = this.doc;
     const items = this.ordered();
+    const numbers = this.noteNumbers();
     this.empty.hidden = items.length > 0;
     this.list.replaceChildren(
       ...items.map((item) => {
@@ -1668,6 +1933,10 @@ class Notes {
           COLORS.map((color) => this.colorButton(item, color)),
         );
         const parts = [element(doc, "blockquote", { className: "notes-dialog__quote", text: item.quote })];
+        const number = numbers.get(item.id);
+        // The number on the dot after the passage, so a dot and its note in this list can be matched.
+        if (number !== undefined)
+          parts.unshift(element(doc, "p", { className: "notes-dialog__label label", text: `Note ${number}` }));
         if (place.status === "moved") {
           parts.push(
             element(doc, "p", {
@@ -1891,6 +2160,17 @@ export function pageTextOutsideNotes(doc) {
 // The blocks a text directive's terms must each sit inside.
 const BLOCK = "p, li, blockquote, td, th, dd, dt, h2, h3, h4, figcaption, aside";
 
+// The inline elements a note dot is kept out of, so it never lands inside a link or a run of code.
+const INLINE =
+  "a, em, strong, code, b, i, u, s, mark, abbr, cite, kbd, sub, sup, span, small, del, ins, q, time, var, samp, dfn, bdi, bdo, ruby";
+
+// A margin marker is 28 pixels across and sits 8 pixels from the text column, so it needs this much free room beside the
+// column; a narrower window gets the inline dot instead.
+const MARKER_SIZE = 28;
+const MARKER_GAP = 8;
+const GUTTER_MIN = 44;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 /** Calls back when the page's fonts finish loading, since they change where a line ends. */
 function whenFontsLoad(doc, callback) {
   try {
@@ -1899,6 +2179,18 @@ function whenFontsLoad(doc, callback) {
   } catch {
     // A browser without font events keeps the markers where the layout placed them.
   }
+}
+
+/** The speech-bubble icon of a margin marker, built as DOM nodes so the script writes no markup. */
+function bubble(doc) {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = doc.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", "M2 3.5h12v7H8.5L5 13.5v-3H2z");
+  svg.append(path);
+  return svg;
 }
 
 const anchorOf = (item) => ({

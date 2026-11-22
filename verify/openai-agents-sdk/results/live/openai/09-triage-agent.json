@@ -100,7 +100,7 @@
             "id": "<id-2>",
             "name": "escalate",
             "input": {
-              "reason": "Checkout failure with HTTP 500 reported by pro customer user@example.com; needs on-call investigation."
+              "reason": "Checkout failure with HTTP 500 reported by pro customer user@example.com; needs urgent on-call investigation."
             }
           }
         ]
@@ -109,7 +109,7 @@
       "usage": {
         "uncachedInput": 209,
         "cacheRead": 0,
-        "output": 37,
+        "output": 38,
         "reasoning": 0
       }
     },
@@ -151,15 +151,15 @@
         "parts": [
           {
             "type": "text",
-            "text": "{\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Pro customer user@example.com reports checkout fails with HTTP 500. Requires urgent triage and on-call investigation.\"}"
+            "text": "{\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Pro customer user@example.com reports checkout failing with HTTP 500; this is a high-priority bug and should be escalated to on-call for investigation.\"}"
           }
         ]
       },
       "finish": "stop",
       "usage": {
-        "uncachedInput": 264,
+        "uncachedInput": 265,
         "cacheRead": 0,
-        "output": 41,
+        "output": 50,
         "reasoning": 0
       }
     },

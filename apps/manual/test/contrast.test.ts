@@ -55,13 +55,15 @@ test("every text pair on both pages and both panels meets WCAG AA and matches it
       pairs += 1;
     }
   }
-  assert.equal(pairs, 28);
+  assert.equal(pairs, 36);
 });
 
 // The keys the decorative list names (rule, grid, border) and the backgrounds are the only colours that carry no text.
 const decorative = new Set([
   "background",
   ...tokens.color.decorativeOnly.contrast.map((pair) => pair.color.split(".")[1]),
+  // A note marker's outline is a non-text colour: nonText measures it at 3:1 on the page, and no text uses it.
+  ...Object.keys(tokens.color.light.values).filter((key) => key.startsWith("highlightEdge")),
 ]);
 
 test("every text colour on a page or panel has a recorded pair against its background", () => {
@@ -210,16 +212,42 @@ test("a highlight draws text in the text colour and an accent underline, and a n
     bodies.some((body) => /text-decoration-style:\s*dashed;/.test(body)),
     "the four noted names are dashed",
   );
-  // The marker's bubble is filled with the accent, which the recorded accent-on-page pair covers.
+  // A note's marker and dot take the highlight's own colour: the edge shade as the outline, which nonText records at 3:1
+  // on the page, and the pale highlight colour as the dot's fill, under the text colour.
+  assert.match(components, /\.notes-marker\s*\{[^}]*border:\s*1\.5px solid var\(--notes-edge\);/s);
   assert.match(
     components,
-    /\.notes-marker::before\s*\{[^}]*border:\s*2px solid var\(--color-accent\);[^}]*background-color:\s*var\(--color-accent\);/s,
+    /\.notes-dot\s*\{[^}]*border:\s*1\.5px solid var\(--notes-edge\);[^}]*color:\s*var\(--color-text\);/s,
   );
-  for (const mode of ["light", "dark"] as const) {
-    const onPage = tokens.color[mode].contrast.find((pair) => pair.text === "accent" && pair.on === "background");
-    assert.ok(
-      onPage && onPage.ratio >= NON_TEXT_MINIMUM,
-      `${mode}: the marker's accent outline reaches 3:1 on the page`,
+  assert.match(components, /\.notes-marker,\s*\.notes-dot\s*\{[^}]*--notes-edge:\s*var\(--color-highlight-edge\);/s);
+  for (const [color, suffix] of [
+    ["green", "-green"],
+    ["blue", "-blue"],
+    ["pink", "-pink"],
+  ] as const) {
+    assert.match(
+      components,
+      new RegExp(
+        `\\.notes-dot\\[data-color="${color}"\\]\\s*\\{[^}]*--notes-edge:\\s*var\\(--color-highlight-edge${suffix}\\);`,
+        "s",
+      ),
     );
+    assert.match(
+      components,
+      new RegExp(
+        `::highlight\\(manual-hover-${color}\\)\\s*\\{[^}]*background-color:\\s*var\\(--color-highlight-hover${suffix}\\);`,
+        "s",
+      ),
+    );
+  }
+  // While hovered, a passage's text stays the text colour, which the recorded pairs on every hover shade cover.
+  assert.match(components, /::highlight\(manual-hover-pink\)\s*\{[^}]*color:\s*var\(--color-text\);/s);
+  for (const mode of ["light", "dark"] as const) {
+    for (const suffix of ["", "Green", "Blue", "Pink"]) {
+      const edge = tokens.color.nonText.contrast.find((pair) => pair.color === `${mode}.highlightEdge${suffix}`);
+      assert.ok(edge && edge.ratio >= NON_TEXT_MINIMUM, `${mode}: highlightEdge${suffix} is recorded at 3:1 or more`);
+      const hover = tokens.color[mode].contrast.find((pair) => pair.on === `highlightHover${suffix}`);
+      assert.ok(hover && hover.ratio >= TEXT_MINIMUM, `${mode}: text is recorded at 4.5:1 on highlightHover${suffix}`);
+    }
   }
 });
