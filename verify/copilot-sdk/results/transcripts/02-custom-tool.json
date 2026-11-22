@@ -22,25 +22,6 @@
         }
       ],
       "tools": [
-        "bash",
-        "read_bash",
-        "stop_bash",
-        "list_bash",
-        "view",
-        "create",
-        "edit",
-        "web_fetch",
-        "semantic_code_search",
-        "skill",
-        "run_dynamic_workflow",
-        "dynamic_workflows_manage",
-        "sql",
-        "read_agent",
-        "list_agents",
-        "write_agent",
-        "grep",
-        "glob",
-        "task",
         "get_weather"
       ]
     },
@@ -80,25 +61,6 @@
         }
       ],
       "tools": [
-        "bash",
-        "read_bash",
-        "stop_bash",
-        "list_bash",
-        "view",
-        "create",
-        "edit",
-        "web_fetch",
-        "semantic_code_search",
-        "skill",
-        "run_dynamic_workflow",
-        "dynamic_workflows_manage",
-        "sql",
-        "read_agent",
-        "list_agents",
-        "write_agent",
-        "grep",
-        "glob",
-        "task",
         "get_weather"
       ]
     },

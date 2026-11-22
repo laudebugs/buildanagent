@@ -20,6 +20,11 @@ const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? proce
 const only = process.argv.includes("--only")
   ? new Set(process.argv[process.argv.indexOf("--only") + 1].split(","))
   : null;
+// The CLI refuses bypassPermissions as root, so 03-permission-order's query c) never reaches the model there, and a
+// transcript recorded as root would differ from one recorded anywhere else. A root run writes none, except a live run's.
+const asRoot = process.getuid?.() === 0;
+if (asRoot)
+  console.log("running as root: no transcripts are written, because the CLI refuses bypassPermissions as root");
 const liveRun = liveMode();
 // The proxy reads the key when it loads, so it loads only once liveMode() has accepted the run.
 const proxy = liveRun ? await import("../../../scripts/live/proxy.mjs") : undefined;
@@ -144,7 +149,7 @@ async function runOne(t) {
   await live?.close();
   // A killed example never wrote its checks, so a transcript of only its requests and answers would replace a complete
   // one; the timeout is the finding, and the file stays as it was.
-  if (!result.timedOut) {
+  if (!result.timedOut && (liveRun || !asRoot)) {
     transcript?.write({
       harnessDir: root,
       exampleFile: resolve(t.file),

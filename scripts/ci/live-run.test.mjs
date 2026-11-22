@@ -665,11 +665,74 @@ test("the Claude live preload checks every MCP config, offers the CLI only ToolS
     sdk,
     "--model",
     "m",
+    "--strict-mcp-config",
+    "--setting-sources=",
     "--tools=ToolSearch",
   ]);
   // A stdio server in a second config, or a config given as a file path, stops the run.
   assert.throws(() => liveArgs([...cli, "--mcp-config", sdk, "--mcp-config", stdio]), /MCP server "host"/);
   assert.throws(() => liveArgs([...cli, "--mcp-config", "./mcp.json"]), /not inline JSON/);
+});
+
+test("the Claude live preload refuses settings, plugins and a settings file, loads none, and keeps the CLI's environment to a list", async () => {
+  const { cliEnv, liveArgs } = await import(
+    new URL("../../verify/claude-agent-sdk/scripts/live-args.mjs", import.meta.url).href
+  );
+  const cli = ["--output-format", "stream-json", "--input-format", "stream-json"];
+  // Project or user settings, plugins and a settings file run hooks and servers on the host.
+  assert.throws(() => liveArgs([...cli, "--setting-sources=project"]), /loads settings from the host/);
+  assert.throws(() => liveArgs([...cli, "--setting-sources", "user,project"]), /loads settings from the host/);
+  assert.throws(() => liveArgs([...cli, "--plugin-dir", "./plugin"]), /--plugin-dir/);
+  assert.throws(() => liveArgs([...cli, "--settings", "{}"]), /--settings/);
+  // An example that asks for no settings gets none, and only the MCP servers its arguments name.
+  const args = liveArgs([...cli, "--setting-sources=", "--strict-mcp-config"]);
+  assert.deepEqual(
+    args.filter((a) => a.startsWith("--setting-sources") || a === "--strict-mcp-config"),
+    ["--strict-mcp-config", "--setting-sources="],
+  );
+  const env = cliEnv(
+    {
+      PATH: "/bin",
+      HOME: "/h",
+      LANG: "C",
+      CLAUDE_CODE_ENTRYPOINT: "sdk-ts",
+      SECRET_TOKEN: "x",
+      ANTHROPIC_API_KEY: "real",
+      MOCK_LOG: "/l",
+    },
+    "http://127.0.0.1:1",
+    PLACEHOLDER_KEY,
+  );
+  assert.deepEqual(env, {
+    PATH: "/bin",
+    HOME: "/h",
+    LANG: "C",
+    CLAUDE_CODE_ENTRYPOINT: "sdk-ts",
+    ANTHROPIC_BASE_URL: "http://127.0.0.1:1",
+    ANTHROPIC_API_KEY: PLACEHOLDER_KEY,
+  });
+});
+
+test("the proxy drops thinking blocks from the history together with the thinking they belong to", () => {
+  const settings = { model: "claude-haiku-5-5", maxTokens: 1024 };
+  const messages = [
+    { role: "user", content: "Hi" },
+    {
+      role: "assistant",
+      content: [
+        { type: "thinking", thinking: "…", signature: "s" },
+        { type: "text", text: "Hello." },
+      ],
+    },
+  ];
+  const sent = prepareBody(
+    "anthropic",
+    { max_tokens: 64000, thinking: { type: "enabled", budget_tokens: 31999 }, messages },
+    settings,
+  );
+  assert.equal(sent.thinking, undefined);
+  assert.deepEqual(sent.messages[1].content, [{ type: "text", text: "Hello." }]);
+  assert.equal(sent.messages[0].content, "Hi");
 });
 
 test("calls that overlap, or that a killed run never settled, count against the cap while they are in flight", () => {

@@ -139,9 +139,24 @@ function openaiAnswer(turn, body, n, tokens) {
     ["response.created", { type: "response.created", response: { ...response, status: "in_progress", output: [] } }],
   ];
   output.forEach((item, output_index) => {
-    events.push(["response.output_item.added", { type: "response.output_item.added", output_index, item }]);
-    // A message's text also arrives in two deltas, as a real stream sends it in many.
-    for (const [content_index, part] of (item.type === "message" ? item.content : []).entries()) {
+    // A real stream adds a message with no content, adds each part empty, sends the text in deltas, and holds the whole
+    // item only in output_item.done.
+    const message = item.type === "message";
+    events.push([
+      "response.output_item.added",
+      { type: "response.output_item.added", output_index, item: message ? { ...item, content: [] } : item },
+    ]);
+    for (const [content_index, part] of (message ? item.content : []).entries()) {
+      events.push([
+        "response.content_part.added",
+        {
+          type: "response.content_part.added",
+          item_id: item.id,
+          output_index,
+          content_index,
+          part: { ...part, text: "" },
+        },
+      ]);
       const cut = Math.ceil(part.text.length / 2);
       for (const delta of [part.text.slice(0, cut), part.text.slice(cut)]) {
         events.push([
@@ -149,6 +164,14 @@ function openaiAnswer(turn, body, n, tokens) {
           { type: "response.output_text.delta", item_id: item.id, output_index, content_index, delta },
         ]);
       }
+      events.push([
+        "response.output_text.done",
+        { type: "response.output_text.done", item_id: item.id, output_index, content_index, text: part.text },
+      ]);
+      events.push([
+        "response.content_part.done",
+        { type: "response.content_part.done", item_id: item.id, output_index, content_index, part },
+      ]);
     }
     events.push(["response.output_item.done", { type: "response.output_item.done", output_index, item }]);
   });

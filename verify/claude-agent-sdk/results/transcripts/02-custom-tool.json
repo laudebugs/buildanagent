@@ -21,20 +21,7 @@
           ]
         }
       ],
-      "tools": [
-        "Agent",
-        "Bash",
-        "Edit",
-        "ListAgents",
-        "Read",
-        "ReportFindings",
-        "ScheduleWakeup",
-        "Skill",
-        "ToolSearch",
-        "Workflow",
-        "DeferredToolPlaceholder",
-        "Write"
-      ]
+      "tools": []
     },
     {
       "kind": "response",
@@ -82,18 +69,6 @@
         }
       ],
       "tools": [
-        "Agent",
-        "Bash",
-        "Edit",
-        "ListAgents",
-        "Read",
-        "ReportFindings",
-        "ScheduleWakeup",
-        "Skill",
-        "ToolSearch",
-        "Workflow",
-        "Write",
-        "DeferredToolPlaceholder",
         "mcp__weather__get_temperature"
       ]
     },
@@ -134,18 +109,6 @@
         }
       ],
       "tools": [
-        "Agent",
-        "Bash",
-        "Edit",
-        "ListAgents",
-        "Read",
-        "ReportFindings",
-        "ScheduleWakeup",
-        "Skill",
-        "ToolSearch",
-        "Workflow",
-        "Write",
-        "DeferredToolPlaceholder",
         "mcp__weather__get_temperature"
       ]
     },

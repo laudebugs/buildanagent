@@ -21,10 +21,7 @@
           ]
         }
       ],
-      "tools": [
-        "DeferredToolPlaceholder",
-        "ToolSearch"
-      ]
+      "tools": []
     },
     {
       "kind": "response",
@@ -72,8 +69,6 @@
         }
       ],
       "tools": [
-        "ToolSearch",
-        "DeferredToolPlaceholder",
         "mcp__weather__get_forecast"
       ]
     },
@@ -113,8 +108,6 @@
         }
       ],
       "tools": [
-        "ToolSearch",
-        "DeferredToolPlaceholder",
         "mcp__weather__get_forecast"
       ]
     },

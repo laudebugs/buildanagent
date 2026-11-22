@@ -153,12 +153,13 @@ The harness `verify/claude-agent-sdk` now records each example's model exchange,
 | 85 | Claude note: the task needs three turns, one for a `ToolSearch` call that loads the search tool's definition, one to call the search and one to answer with text | § A cap, [[lst:cap-claude]] | ✏️ | Row 13 wrote "two turns". The replay shows the first turn is a `ToolSearch` call. In `02-custom-tool.json` and `08-deferred-tools.json` the same chain runs in full: a `ToolSearch` call, then the tool's own call, then the text answer, three model calls. The tool search page: "Tool search is on by default" and it "adds one extra round-trip each time Claude searches for tools" |
 | 86 | The recorded run of the listing holds one model request, which offers no `mcp__kb__search` tool, and its answer is a `ToolSearch` call with the query `select:mcp__kb__search`; the run then ends with the checks that confirm `error_max_turns` | § A cap, [[lst:cap-claude]] replay | ✅ | `04-max-turns.json`: one `request` event whose `tools` list has the CLI's built-in tools and a `DeferredToolPlaceholder` but no `mcp__kb__search`; one `response` event with `tool-call` `ToolSearch` and input `{"query":"select:mcp__kb__search","max_results":5}`; four `check` events, the first "result subtype is error_max_turns". The answer is the mock's script (`mock-anthropic.mjs`, which loads a deferred tool "as a real model would") |
 | 87 | The single turn `maxTurns: 1` allowed went to a `ToolSearch` call, because the SDK defers a custom tool's definition behind that call by default, so the search itself never ran | § A cap, Claude bullet | ✅ | Row 86 for the one turn and the missing tool. The tool search page, "Tool search applies to all registered tools, whether they come from remote MCP servers or custom SDK MCP servers" and "Tool search is on by default" (unset `ENABLE_TOOL_SEARCH`). The transcript records no `mcp__kb__search` call or result |
+| 88 | The recorded run of the listing holds one model request, which offers no `mcp__` tool, so no `mcp__kb__search`; its `tools` list is empty, because the transcript names only the example's own MCP tools | § A cap, [[lst:cap-claude]] replay | ✏️ | Corrects row 86, which read the first request's `tools` list as the CLI's built-ins and a `DeferredToolPlaceholder`. The recorder now leaves the CLI's built-in tools out, since they are its own list and change with its version; `04-max-turns.json`'s one request has `tools: []`, and its answer is still the `ToolSearch` call of row 86 |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 78 |
-| ✏️ corrected | 6 (rows 7, 22, 38, 46, 65 and 85) |
+| ✏️ corrected | 7 (rows 7, 22, 38, 46, 65, 85 and 88) |
 | ⚠️ unverified, our recommendation, marked as ours in the text | 3 (rows 26, 63 and 81) |
-| Total | 87 |
+| Total | 88 |

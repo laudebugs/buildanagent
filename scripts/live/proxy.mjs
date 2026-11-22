@@ -129,6 +129,17 @@ export function prepareBody(provider, body, { model, maxTokens }) {
     );
     if (edits.length > 0) out.context_management = { ...out.context_management, edits };
     else delete out.context_management;
+    // Thinking blocks left in the history of a run without thinking are the same kind of request the API may refuse.
+    if (Array.isArray(out.messages)) {
+      out.messages = out.messages.map((message) =>
+        Array.isArray(message?.content)
+          ? {
+              ...message,
+              content: message.content.filter((b) => b?.type !== "thinking" && b?.type !== "redacted_thinking"),
+            }
+          : message,
+      );
+    }
   }
   return out;
 }
@@ -389,7 +400,12 @@ export async function startLiveProxy({ allowTool, messagesOf, secrets, log }) {
       const path = new URL(req.url ?? "/", "http://proxy").pathname;
       // Anything but a model call, such as a token count or a model list, stays here: the run needs none of them.
       if (req.method !== "POST" || !ACCEPTS[provider].test(path)) return answer(res, 404, `it serves no ${path}`);
-      forward(req, raw, res).catch(() => answer(res, 500, "the call failed"));
+      forward(req, raw, res).catch((error) => {
+        refused.push(`the call failed (${error?.name ?? "error"})`);
+        // A throw after the head went out can't become a 500; ending the answer keeps the runner and its ledger alive.
+        if (res.headersSent) res.end();
+        else answer(res, 500, "the call failed");
+      });
     });
   });
   const dir = mkdtempSync(join(tmpdir(), "live-proxy-"));

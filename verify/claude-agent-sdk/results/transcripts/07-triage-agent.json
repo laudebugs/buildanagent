@@ -22,9 +22,7 @@
         }
       ],
       "tools": [
-        "StructuredOutput",
         "mcp__support__escalate",
-        "DeferredToolPlaceholder",
         "mcp__support__lookup_customer"
       ]
     },
@@ -64,9 +62,7 @@
         }
       ],
       "tools": [
-        "StructuredOutput",
         "mcp__support__escalate",
-        "DeferredToolPlaceholder",
         "mcp__support__lookup_customer"
       ]
     },

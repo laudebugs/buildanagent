@@ -21,10 +21,7 @@
           ]
         }
       ],
-      "tools": [
-        "DeferredToolPlaceholder",
-        "Skill"
-      ]
+      "tools": []
     },
     {
       "kind": "response",
@@ -70,10 +67,7 @@
           ]
         }
       ],
-      "tools": [
-        "DeferredToolPlaceholder",
-        "Skill"
-      ]
+      "tools": []
     },
     {
       "kind": "response",

@@ -217,6 +217,9 @@ export const eventTime = () => performance.timeOrigin + performance.now();
  * comes first, because an example checks what a call answered after the answer arrived.
  */
 export function mergeEvents(mockEvents, exampleEvents) {
+  // An example's own events are already in the order they happened, so only a mock in another process needs merging.
+  // The sort is stable, so events that tie keep their order, the mock's first.
+  if (mockEvents.length === 0) return exampleEvents;
   return [...mockEvents, ...exampleEvents].sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
 }
 

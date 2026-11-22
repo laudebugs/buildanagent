@@ -21,21 +21,7 @@
           ]
         }
       ],
-      "tools": [
-        "Agent",
-        "Bash",
-        "Edit",
-        "ListAgents",
-        "Read",
-        "ReportFindings",
-        "ScheduleWakeup",
-        "Skill",
-        "StructuredOutput",
-        "ToolSearch",
-        "Workflow",
-        "DeferredToolPlaceholder",
-        "Write"
-      ]
+      "tools": []
     },
     {
       "kind": "response",

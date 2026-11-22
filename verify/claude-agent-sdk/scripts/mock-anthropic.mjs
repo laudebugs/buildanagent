@@ -146,7 +146,8 @@ function report(sink, body, p) {
     kind: "request",
     model,
     messages: messagesOf(body.messages ?? []),
-    tools: (body.tools ?? []).map((t) => t.name),
+    // Only the example's own MCP tools: the CLI's built-ins are its own list, which changes with its version.
+    tools: (body.tools ?? []).map((t) => t.name).filter((name) => name.startsWith("mcp__")),
   });
   const id = p.tool ? p.id : undefined;
   sink({

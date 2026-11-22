@@ -174,7 +174,8 @@ function report(sink, body, p, id) {
     kind: "request",
     model,
     messages: messagesOf(body.messages ?? []),
-    tools: (body.tools ?? []).map((t) => t.name),
+    // Only the tools the example gave the session: the runtime's built-ins are its own list, which changes with its version.
+    tools: (body.tools ?? []).map((t) => t.name).filter(isCallable),
   });
   sink({
     kind: "response",
