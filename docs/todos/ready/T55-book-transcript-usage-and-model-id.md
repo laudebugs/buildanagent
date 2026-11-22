@@ -35,9 +35,9 @@ Make each recorded answer in a transcript carry the token usage and the model id
 
 **Out of scope** (and which todo covers it)
 
-- The Claude Agent SDK's and Copilot SDK's transcripts: [T49](T49-book-http-mock-transcripts.md), which should record the same fields once it lands
+- The Claude Agent SDK's and Copilot SDK's transcripts: [T49](../done/T49-book-http-mock-transcripts.md), which should record the same fields once it lands
 - Cost in the transcript: a price is a catalog lookup that changes with the catalog's date, so the chapters compute cost in the example and show it through a check, as Chapter 2 does
-- Our own packages' transcripts: [T50](T50-chapter-call-workflow-loop-on-our-sdk.md) builds that recorder, and it should adopt the format this todo sets
+- Our own packages' transcripts: [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) builds that recorder, and it should adopt the format this todo sets
 
 ## Tasks
 
@@ -65,7 +65,7 @@ Make each recorded answer in a transcript carry the token usage and the model id
 
 - `apps/manual/README.md`: what a replay shows for each answer
 - [Book plan BK9](../../plans/build-book.md#bk9-listings-come-from-real-regions-and-become-interactive-in-three-tiers-accepted-the-mechanism-is-proposed): the transcript format's fields
-- [T49](T49-book-http-mock-transcripts.md) and [T50](T50-chapter-call-workflow-loop-on-our-sdk.md), if their recorders have not yet landed: record the same fields
+- [T49](../done/T49-book-http-mock-transcripts.md) and [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md), if their recorders have not yet landed: record the same fields
 - Chapter 2 and its fact-check log
 
 ## Risks and open questions
