@@ -41,6 +41,15 @@ export async function canonicalPath(path: string): Promise<string> {
   }
 }
 
+/**
+ * Whether the trust store trusts the project at `root`, asked about its real path only. A link that the store trusted
+ * can be pointed at another folder later, so the spelling the caller wrote is never what is trusted: the folder it
+ * resolves to now is. Every loader asks through this, so the extensions and the skills of a project are trusted alike.
+ */
+export async function projectTrusted(trust: TrustStore, root: string): Promise<boolean> {
+  return trust.isTrusted(await canonicalPath(root));
+}
+
 const places = async (root: string, options: Pick<LoadOptions, "lockFile" | "extensionsDir">) => ({
   // The folder is canonical, so a relative or symlinked spelling of it is one folder to the import-cache check.
   dir: await canonicalPath(options.extensionsDir ?? join(root, ".agents", "extensions")),
@@ -154,12 +163,12 @@ async function importExtension(dir: string, hash: string): Promise<Extension> {
 }
 
 /** Why a project's extensions are not loaded, or `undefined` when they may be. */
-async function skipReason(root: string, options: LoadOptions): Promise<string | undefined> {
+async function skipReason(root: string, base: string, options: LoadOptions): Promise<string | undefined> {
   if (options.headless && options.loadInHeadless !== true) {
-    return `the project extensions of ${root} are skipped: this run is headless`;
+    return `the project extensions of ${base} are skipped: this run is headless`;
   }
-  if (!(await options.trust.isTrusted(root)))
-    return `the project extensions of ${root} are skipped: the project is not trusted`;
+  if (!(await projectTrusted(options.trust, root)))
+    return `the project extensions of ${base} are skipped: the project is not trusted`;
   return undefined;
 }
 
@@ -180,7 +189,7 @@ export async function loadProjectExtensions(root: string, options: LoadOptions):
   const { dir, lock } = await places(base, options);
   // Nothing of a project is read, other than whether it has extensions at all, until trust and headless are decided.
   if (!(await exists(dir)) && !(await exists(lock))) return result;
-  const reason = await skipReason(base, options);
+  const reason = await skipReason(root, base, options);
   if (reason !== undefined) {
     result.notices.push(reason);
     return result;

@@ -4,6 +4,7 @@ import type * as gateway from "@buildanagent/gateway";
 import type * as context from "@buildanagent/harness/context";
 import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
+import type * as extensionsNode from "@buildanagent/harness/extensions/node";
 import type * as mcp from "@buildanagent/harness/mcp";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
@@ -19,6 +20,13 @@ declare global {
   type ToolRegistry = tools.ToolRegistry;
 
   const composeExtensions: typeof extensions.composeExtensions;
+  const contextFiles: typeof extensionsNode.contextFiles;
+  const discoverSkills: typeof extensionsNode.discoverSkills;
+  const fileTrustStore: typeof extensionsNode.fileTrustStore;
+  const planFileSource: typeof extensionsNode.planFileSource;
+  const projectContext: typeof extensions.projectContext;
+  const withPlanConvention: typeof extensions.withPlanConvention;
+  const withSkills: typeof extensions.withSkills;
   const createContextPolicy: typeof context.createContextPolicy;
   const createMcpManager: typeof mcp.createMcpManager;
   const createDispatcher: typeof server.createDispatcher;
@@ -33,11 +41,16 @@ declare global {
   const SYSTEM: string;
   const audit: (entry: unknown) => void;
   const controller: AbortController;
+  const cwd: string;
   const dir: string;
   const harness: server.Harness;
   const index: session.SessionIndex;
   const lock: session.SessionLock;
+  const model: Model;
   const policy: sandbox.SandboxPolicy;
+  const registry: ToolRegistry;
   const spill: context.SpillStore;
   const store: session.SessionStore;
+  const system: string;
+  const trustFile: string;
 }

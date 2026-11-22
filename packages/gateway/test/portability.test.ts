@@ -50,6 +50,14 @@ const nodeOnlyFiles = new Set([
   "extensions/load.ts",
   "extensions/lock.ts",
   "extensions/trust-file.ts",
+  // Finding skills, context files and the plan files reads the project's files, so these are Node-only too. They are
+  // exported from the same `@buildanagent/harness/extensions/node` entry.
+  "extensions/project-dirs.ts",
+  "extensions/skills-node.ts",
+  "extensions/context-files-node.ts",
+  // The trust store that resolves each folder to its real path calls Node's file system when it is built, so it is
+  // Node-only and exported from the same entry; the portable `memoryTrustStore()` compares paths as written.
+  "extensions/trust-store-node.ts",
   // The MCP client's stdio channel spawns a server as a child process, so it is Node-only by nature. It loads Node's
   // modules with `process.getBuiltinModule()` when a server starts, so the `./mcp` entry still loads on every target,
   // where an in-process server needs no Node.
@@ -61,6 +69,10 @@ const nodeOnlyApis: readonly [string, RegExp][] = [
   ["a node: import", /\b(from|import)\s*\(?\s*["']node:/],
   ["Buffer", /\bBuffer\b/],
   ["process", /\bprocess\s*[.[]/],
+  // A copy of `process` under another name gets past the pattern above, and `getBuiltinModule()` loads Node's modules
+  // however it is reached, so both count as well.
+  ["process under another name", /\btypeof\s+process\b/],
+  ["getBuiltinModule", /\bgetBuiltinModule\b/],
   ["require", /\brequire\s*\(/],
   ["__dirname or __filename", /\b__(dirname|filename)\b/],
 ];
