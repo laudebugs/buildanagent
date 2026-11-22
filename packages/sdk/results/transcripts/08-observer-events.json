@@ -1,0 +1,82 @@
+{
+  "format": 2,
+  "example": "08-observer-events",
+  "file": "packages/sdk/examples/08-observer-events.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 10,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Greet the user."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Say hello."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 10,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello from our SDK."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 22,
+      "message": "one model call for a text-only answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 23,
+      "message": "the observer hears the text deltas, then the finished text, then the finished model call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "the deltas come before the end events that carry the finished item",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 31,
+      "message": "agent_settled comes second to last and run_end, which carries the result, comes last",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "an observer passed in the options hears run_start too",
+      "pass": true
+    }
+  ]
+}
