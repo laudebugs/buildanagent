@@ -25,22 +25,27 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 .fig-head--accent{fill:var(--panel-terracotta)}
 </style>
 <g id="one-registry--sources">
-<text x="65" y="14" text-anchor="middle" class="fig-text fig-text--muted">three sources</text>
-<rect x="10" y="28" width="110" height="40" rx="4" class="fig-paper"/>
-<text x="65" y="44.1" text-anchor="middle" class="fig-text">built-in</text>
-<text x="65" y="60.3" text-anchor="middle" class="fig-text">tools</text>
-<rect x="10" y="98" width="110" height="40" rx="4" class="fig-paper"/>
-<text x="65" y="114.1" text-anchor="middle" class="fig-text">MCP server</text>
-<text x="65" y="130.3" text-anchor="middle" class="fig-text">tools</text>
-<rect x="10" y="168" width="110" height="40" rx="4" class="fig-paper"/>
-<text x="65" y="184.1" text-anchor="middle" class="fig-text">extension</text>
-<text x="65" y="200.3" text-anchor="middle" class="fig-text">tools</text>
-<path d="M120 48 L163.37 48" class="fig-line"/>
-<path d="M170 48 L162.63 44.88 L162.63 51.12 Z" class="fig-head"/>
-<path d="M120 118 L163.37 118" class="fig-line"/>
-<path d="M170 118 L162.63 114.88 L162.63 121.12 Z" class="fig-head"/>
-<path d="M120 188 L163.37 188" class="fig-line"/>
-<path d="M170 188 L162.63 184.88 L162.63 191.12 Z" class="fig-head"/>
+<text x="65" y="14" text-anchor="middle" class="fig-text fig-text--muted">four sources</text>
+<rect x="10" y="26" width="110" height="38" rx="4" class="fig-paper"/>
+<text x="65" y="41.1" text-anchor="middle" class="fig-text">built-in</text>
+<text x="65" y="57.3" text-anchor="middle" class="fig-text">tools</text>
+<path d="M120 45 L163.37 45" class="fig-line"/>
+<path d="M170 45 L162.63 41.88 L162.63 48.12 Z" class="fig-head"/>
+<rect x="10" y="78" width="110" height="38" rx="4" class="fig-paper"/>
+<text x="65" y="93.1" text-anchor="middle" class="fig-text">MCP server</text>
+<text x="65" y="109.3" text-anchor="middle" class="fig-text">tools</text>
+<path d="M120 97 L163.37 97" class="fig-line"/>
+<path d="M170 97 L162.63 93.88 L162.63 100.12 Z" class="fig-head"/>
+<rect x="10" y="130" width="110" height="38" rx="4" class="fig-paper"/>
+<text x="65" y="145.1" text-anchor="middle" class="fig-text">extension</text>
+<text x="65" y="161.3" text-anchor="middle" class="fig-text">tools</text>
+<path d="M120 149 L163.37 149" class="fig-line"/>
+<path d="M170 149 L162.63 145.88 L162.63 152.12 Z" class="fig-head"/>
+<rect x="10" y="182" width="110" height="38" rx="4" class="fig-paper"/>
+<text x="65" y="197.1" text-anchor="middle" class="fig-text">client</text>
+<text x="65" y="213.3" text-anchor="middle" class="fig-text">tools</text>
+<path d="M120 201 L163.37 201" class="fig-line"/>
+<path d="M170 201 L162.63 197.88 L162.63 204.12 Z" class="fig-head"/>
 </g>
 <g id="one-registry--registry">
 <text x="245" y="14" text-anchor="middle" class="fig-text fig-text--muted">one registry</text>

@@ -162,7 +162,7 @@
   {
     "id": "tool-registry",
     "term": "tool registry",
-    "definition": "The one place a harness records every tool of every origin, built-in, extension or MCP. It gives each tool one canonical name, decides whether a request carries the tool's definition, and holds what permission rules and the log need to know about it.",
+    "definition": "The one place a harness records every tool of every origin, built-in, extension, client or MCP. It gives each tool one canonical name, decides whether a request carries the tool's definition, and holds what permission rules and the log need to know about it.",
     "sources": ["buildanagent-harness-readme"]
   },
   {

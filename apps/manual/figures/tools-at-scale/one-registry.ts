@@ -1,4 +1,4 @@
-// Chapter 13's registry: tools of three sources enter one registry, which names each once, sets whether a request
+// Chapter 13's registry: tools of four sources enter one registry, which names each once, sets whether a request
 // carries its definition and marks how far its output is trusted; the permission pipeline then decides every call
 // from that one description. It draws the design of our harness's registry, not an SDK's.
 import { Figure } from "../lib/svgkit.js";
@@ -7,13 +7,17 @@ export default function draw(): Figure {
   const figure = new Figure({ id: "one-registry", width: 520, height: 236 });
 
   figure.group("sources", () => {
-    figure.text({ x: 65, y: 14 }, "three sources", { tone: "muted" });
-    const builtin = figure.box({ x: 10, y: 28, width: 110, height: 40 }, { label: ["built-in", "tools"] });
-    const mcp = figure.box({ x: 10, y: 98, width: 110, height: 40 }, { label: ["MCP server", "tools"] });
-    const extension = figure.box({ x: 10, y: 168, width: 110, height: 40 }, { label: ["extension", "tools"] });
-    figure.arrow({ x: builtin.x + builtin.width, y: 48 }, { x: 170, y: 48 });
-    figure.arrow({ x: mcp.x + mcp.width, y: 118 }, { x: 170, y: 118 });
-    figure.arrow({ x: extension.x + extension.width, y: 188 }, { x: 170, y: 188 });
+    figure.text({ x: 65, y: 14 }, "four sources", { tone: "muted" });
+    const sources = [
+      { label: ["built-in", "tools"], y: 26 },
+      { label: ["MCP server", "tools"], y: 78 },
+      { label: ["extension", "tools"], y: 130 },
+      { label: ["client", "tools"], y: 182 },
+    ];
+    for (const source of sources) {
+      const box = figure.box({ x: 10, y: source.y, width: 110, height: 38 }, { label: source.label });
+      figure.arrow({ x: box.x + box.width, y: source.y + 19 }, { x: 170, y: source.y + 19 });
+    }
   });
 
   figure.group("registry", () => {
