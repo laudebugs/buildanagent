@@ -20,10 +20,12 @@ function setup() {
     },
   });
   // #endregion
+  // #region scripted-model
   const model = new ScriptedModel([
-    [functionCall("issue_refund", { orderId: "A-1" }, { callId: "call_refund" })],
-    [assistantMessage("Done.")],
+    [functionCall("issue_refund", { orderId: "A-1" }, { callId: "call_refund" })], // book:note first-turn
+    [assistantMessage("Done.")], // book:note second-turn
   ]);
+  // #endregion
   const agent = new Agent({ name: "Refunds", model, tools: [refund] });
   return { agent, model, executed };
 }

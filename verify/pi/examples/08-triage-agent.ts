@@ -68,9 +68,10 @@ const resourceLoader = new DefaultResourceLoader({
 await resourceLoader.reload();
 
 // The faux model plays a model that looks up, tries to escalate, then submits.
+// #region faux-script
 const { session, faux } = await fauxSession(
   [
-    fauxAssistantMessage([fauxToolCall("lookup_customer", { email: "user@example.com" })], { stopReason: "toolUse" }),
+    fauxAssistantMessage([fauxToolCall("lookup_customer", { email: "user@example.com" })], { stopReason: "toolUse" }), // book:note first-turn
     fauxAssistantMessage([fauxToolCall("escalate", { reason: "checkout 500" })], { stopReason: "toolUse" }),
     fauxAssistantMessage(
       [fauxToolCall("submit_triage", { category: "bug", priority: "high", summary: "Checkout returns 500." })],
@@ -79,6 +80,7 @@ const { session, faux } = await fauxSession(
   ],
   { cwd, resourceLoader, noTools: "builtin", customTools: [lookupCustomer, escalate, submitTriage] },
 );
+// #endregion
 
 try {
   check(
