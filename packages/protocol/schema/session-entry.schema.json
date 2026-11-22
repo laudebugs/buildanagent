@@ -1554,6 +1554,37 @@
         },
         "contentHash": {
           "type": "string"
+        },
+        "mcp": {
+          "type": "object",
+          "properties": {
+            "transport": {
+              "type": "string",
+              "enum": [
+                "stdio",
+                "in_process"
+              ]
+            },
+            "commandHash": {
+              "type": "string"
+            },
+            "era": {
+              "type": "string",
+              "enum": [
+                "2026-07-28",
+                "legacy"
+              ]
+            },
+            "toolsHash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "transport",
+            "era",
+            "toolsHash"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

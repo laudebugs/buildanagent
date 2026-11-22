@@ -84,6 +84,11 @@ export interface ToolRegistry {
    * and name in its canonical name, so the name depends on the tool alone. Only a final name that is still taken throws.
    */
   register(tool: ToolRegistration): RegisteredTool;
+  /**
+   * Registers every tool in the list, or none of them: when one registration throws, the tools registered before it in
+   * the list are removed again and the error is thrown. Returns the tools as registered, in the list's order.
+   */
+  registerAll(tools: readonly ToolRegistration[]): RegisteredTool[];
   /** The tool with this canonical name or alias, or `undefined`. */
   get(name: string): RegisteredTool | undefined;
   /** Every tool, in registration order. A replaced built-in keeps its place. */

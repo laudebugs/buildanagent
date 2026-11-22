@@ -188,6 +188,14 @@ export const SessionEntry = z.discriminatedUnion("type", [
     name: z.string(),
     tier: z.enum(["in_process", "mcp", "skill"]),
     contentHash: z.string(),
+    mcp: z
+      .strictObject({
+        transport: z.enum(["stdio", "in_process"]),
+        commandHash: z.string().optional(),
+        era: z.enum(["2026-07-28", "legacy"]),
+        toolsHash: z.string(),
+      })
+      .optional(),
   }),
   entry("subagent_link", {
     childSession: z.string(),
