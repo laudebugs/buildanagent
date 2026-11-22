@@ -172,11 +172,12 @@ test("a failure's retry-after hint reaches the error event and the result's erro
 
 test("a failure without a retry-after hint leaves retryAfterMs out of the run error", async () => {
   const error = { kind: "quota" as const, message: "out of credit", status: 402 };
-  const { events } = await drive(
+  const { events, result } = await drive(
     run({ model: scripted([{ content: [], error }]).model, system: SYSTEM, input: "Hi." }),
   );
   const event = events.find((e) => e.type === "error");
   assert.equal(event?.type === "error" && "retryAfterMs" in event.error, false);
+  assert.equal(result.stopReason === "error" && "retryAfterMs" in result.error, false);
 });
 
 test("every iteration of a run replays its events from the first", async () => {
