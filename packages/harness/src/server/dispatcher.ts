@@ -336,7 +336,12 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     }
   }
 
-  async dispatch(connection: ServerConnection, command: ClientCommand & { id: Id }): Promise<Dispatched> {
+  async dispatch(connection: ServerConnection, sent: ClientCommand & { id: Id }): Promise<Dispatched> {
+    // JSON-RPC lets a command leave out its params, so the handlers below, which read them as the protocol types them,
+    // get an empty object instead.
+    const command = (
+      (sent as { params?: unknown }).params === undefined ? { ...sent, params: {} } : sent
+    ) as ClientCommand & { id: Id };
     // An experimental method answers NotOptedIn before its params are read, as it would for any params.
     const experimental: readonly string[] = EXPERIMENTAL_METHODS;
     if (experimental.includes(command.method) && !connection.optedIn(command.method)) {

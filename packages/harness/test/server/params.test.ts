@@ -120,22 +120,48 @@ describe("the params check", () => {
     });
   }
 
-  test("a command without params is refused like one with bad params", () => {
-    const { params: _, ...bare } = command("session/list", {});
+  test("a command without params is checked as one with empty params, as JSON-RPC allows", async () => {
+    const { params: _list, ...list } = command("session/list", {});
+    assert.equal(paramsProblem(list), undefined);
+    const { params: _create, ...create } = command("session/create", {});
     assert.equal(
-      paramsProblem(bare),
-      "the params of session/list do not match the protocol schema: /params fails required",
+      paramsProblem(create),
+      "the params of session/create do not match the protocol schema: /params/cwd fails required",
     );
+    // Through the dispatcher, the handler gets an empty object and answers.
+    const { dispatcher, connection, seen } = counted();
+    await connection.receive(
+      command("initialize", { clientInfo: { name: "t", version: "0" }, capabilities: [] }, 0) as never,
+    );
+    await connection.receive(list as never);
+    const answer = seen.find((message) => !("method" in message) && message.id === 1);
+    assert.ok(answer !== undefined && "result" in answer, JSON.stringify(answer));
+    connection.close();
+    await dispatcher.close();
   });
 
-  test("the answer names the field and the keyword, never the value, and cuts a long field name short", () => {
+  test("only the params are checked: a member outside them is left to the envelope check", () => {
+    assert.equal(paramsProblem({ ...command("session/list", {}), extra: true }), undefined);
+    assert.equal(paramsProblem({ jsonrpc: "1.0", id: 1, method: "session/list", params: {} } as never), undefined);
+  });
+
+  test("the answer names the field and the keyword, never the value or a key the client chose", () => {
     const value = "a-value-the-client-sent";
     const problem = paramsProblem(command("session/create", { cwd: [value] })) ?? "";
     assert.equal(problem, "the params of session/create do not match the protocol schema: /params/cwd fails type");
     const long = "k".repeat(10_000);
     const cut = paramsProblem(command("session/create", { cwd: "/w", [long]: value })) ?? "";
-    assert.ok(!cut.includes(value), cut);
-    assert.ok(cut.length < 250, `${cut.length} characters`);
+    assert.equal(
+      cut,
+      "the params of session/create do not match the protocol schema: /params fails additionalProperties",
+    );
+    const key = "evil\nstdio: forged log line";
+    const nested = paramsProblem(
+      command("turn/start", { session: "s", input: [{ type: "text", text: "hi", [key]: value }] }),
+    );
+    assert.ok(nested !== undefined);
+    assert.ok(!nested.includes("\n") && !nested.includes("evil") && !nested.includes("forged"), nested);
+    assert.match(nested, /: \/params\/input\/0 fails /);
   });
 
   test("an experimental method a client has not opted into answers NotOptedIn, whatever its params", async () => {
