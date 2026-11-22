@@ -1,0 +1,230 @@
+{
+  "format": 2,
+  "example": "06-tool-failures",
+  "file": "packages/sdk/examples/06-tool-failures.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Answer order questions."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A-1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "get_order_status",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "get_order_status",
+              "output": "Tool \"get_order_status\" failed: connect ECONNREFUSED db.internal:5432\nReceived arguments: {\"orderId\":\"A-1\"}\nDo not substitute a mock, a placeholder or invented data for this tool's result. Fix the call, try another approach, or tell the user what failed.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I could not look that order up."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "a throw does not end the run: the model answers",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 46,
+      "message": "the model reads the failure as an error result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "by default the model reads the thrown message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "the error repeats the arguments the model sent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 52,
+      "message": "the error says not to invent a result",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Answer order questions."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A-1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "get_order_status",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 28,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "get_order_status",
+              "output": "Tool \"get_order_status\" failed: its error message is hidden.\nReceived arguments: {\"orderId\":\"A-1\"}\nDo not substitute a mock, a placeholder or invented data for this tool's result. Fix the call, try another approach, or tell the user what failed.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "get_order_status"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 28,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I could not look that order up."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 58,
+      "message": "with redactErrors the run still goes on, with an error result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 62,
+      "message": "with redactErrors the model reads a fixed line",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 66,
+      "message": "the thrown message stays out of the model's context",
+      "pass": true
+    }
+  ]
+}
