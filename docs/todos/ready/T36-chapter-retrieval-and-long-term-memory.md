@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U18](../done/U18-research-retrieval-and-long-term-memory.md), [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T41](T41-example-retrieval.md), [T43](T43-example-store-recall-expire.md), [T44](T44-example-context-memory.md) |
+| Depends on | [U18](../done/U18-research-retrieval-and-long-term-memory.md), [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T41](T41-example-retrieval.md), [T43](../done/T43-example-store-recall-expire.md), [T44](T44-example-context-memory.md) |
 | Size | M |
 
 ## Goal
@@ -31,7 +31,7 @@ Write the chapter "Retrieval and long-term memory" (`retrieval-and-long-term-mem
 
 - `apps/manual/src/content/chapters/retrieval-and-long-term-memory.md`, with `switchTo: [N23]` and `opening: scenario` in its front matter
 - Sections: Just-in-time retrieval through tools versus pre-loaded context; Vector and keyword search, their failure modes (OWASP LLM08), and measuring retrieval: recall@k on 20 to 50 labelled queries, some of which should return nothing; Long-term memory across runs: what to store, when to recall, when to forget, and checking a recalled record against its source before acting on it; When to buy a memory service (main report) and when a file is enough
-- Listings and at least one replay from: `verify/langchain/examples/09-long-term-store.ts`, `verify/cloudflare-agents/examples/02-sql.ts`, the retrieval example from [T41](T41-example-retrieval.md), the store, recall and expiry example `verify/langchain/examples/11-store-recall-expire.ts` from [T43](T43-example-store-recall-expire.md), the context-memory example from [T44](T44-example-context-memory.md)
+- Listings and at least one replay from: `verify/langchain/examples/09-long-term-store.ts`, `verify/cloudflare-agents/examples/02-sql.ts`, the retrieval example from [T41](T41-example-retrieval.md), the store, recall and expiry example `verify/langchain/examples/11-store-recall-expire.ts` from [T43](../done/T43-example-store-recall-expire.md), the context-memory example from [T44](T44-example-context-memory.md)
 - Figures: a flat analogy illustration of the reference librarian; Flat figures as U18's findings require
 - Exercise: Store a fact in one run, recall it in the next, then expire it and show it is gone from recall but still in the session log.
 - `apps/manual/fact-checks/retrieval-and-long-term-memory.md`, the chapter's claims log

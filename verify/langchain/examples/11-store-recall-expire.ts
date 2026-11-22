@@ -6,7 +6,7 @@
 // Import the store from @langchain/langgraph: the same name from "langchain" is core's key-value store, which has no
 // search(). Core's ToolRuntime type declares that key-value store, so runtime.store is cast, as in example 09.
 // Docs: langchain/long-term-memory.mdx, langchain/runtime.mdx, langgraph/persistence.mdx
-import { AIMessage } from "@langchain/core/messages";
+import { AIMessage, type BaseMessage } from "@langchain/core/messages";
 import type { ToolRuntime } from "@langchain/core/tools";
 import { InMemoryStore, MemorySaver } from "@langchain/langgraph";
 import { InMemoryStore as CoreKeyValueStore, createAgent, fakeModel, tool } from "langchain";
@@ -77,8 +77,8 @@ const readerModel = fakeModel()
   .respond(new AIMessage("I have nothing on that."));
 const writer = createAgent({ model: writerModel, tools: [remember], store, checkpointer });
 const reader = createAgent({ model: readerModel, tools: [recall], store, checkpointer });
-const ask = (agent: typeof writer | typeof reader, thread_id: string, content: string) =>
-  agent.invoke({ messages: [{ role: "user", content }] }, { configurable: { thread_id } });
+const config = (thread_id: string) => ({ configurable: { thread_id } });
+const userTurn = (content: string) => ({ messages: [{ role: "user", content }] });
 
 check(typeof store.search === "function", "the store passed to createAgent has search()");
 check(
@@ -86,7 +86,9 @@ check(
   'the store that "langchain" exports under the same name has no search()',
 );
 
-await ask(writer, "write", "Remember that deploys freeze on Fridays.");
+// #region write-run
+await writer.invoke(userTurn("Remember that deploys freeze on Fridays."), config("write"));
+// #endregion
 const written = await store.get(NAMESPACE, "deploys");
 check(written?.value.fact === "Deploys freeze on Fridays.", "the write run put the fact in the store");
 check(written?.value.source === "runbook.md#freeze", "the record carries its source");
@@ -96,7 +98,7 @@ check(
 );
 
 // #region recall-run
-await ask(reader, "read-1", "What do you know about deploys?");
+await reader.invoke(userTurn("What do you know about deploys?"), config("read-1"));
 check(executed.join() === "remember,recall", "the recall tool ran in the second run");
 const recalled = readerModel.calls[1].messages.at(-1);
 check(
@@ -107,7 +109,7 @@ check(text(recalled).includes("runbook.md#freeze"), "the recalled record still n
 check((await store.get(NAMESPACE, "deploys")) !== null, "recalling an unexpired record leaves it in the store");
 
 nowMs += MEMORY_TTL_MS + 1; // the clock passes the expiry
-await ask(reader, "read-2", "What do you know about deploys?"); // book:note after-expiry
+await reader.invoke(userTurn("What do you know about deploys?"), config("read-2")); // book:note after-expiry
 // #endregion
 const dropped = readerModel.calls[3].messages.at(-1);
 check(text(dropped) === "No unexpired memory.", "after the expiry the recall tool returns nothing");
@@ -118,10 +120,12 @@ check((await store.search(NAMESPACE)).length === 0, "the store holds no record u
 // #region session-log
 const tuple = await checkpointer.getTuple({ configurable: { thread_id: "write" } });
 check(tuple !== undefined, "the first thread's checkpoint is still there");
-const logged = (tuple.checkpoint.channel_values.messages as AIMessage[]).flatMap((m) => m.tool_calls ?? []);
+const logged = (tuple.checkpoint.channel_values.messages as BaseMessage[]).flatMap((m) =>
+  AIMessage.isInstance(m) ? (m.tool_calls ?? []) : [],
+);
 check(
   logged.some((call) => call.args.fact === "Deploys freeze on Fridays."),
   "the first thread's log still holds the fact",
 ); // book:note log
 // #endregion
-check(executed.join() === "remember,recall,recall", "only the in-memory tools ran, and the host was never touched");
+check(executed.join() === "remember,recall,recall", "the agents ran only remember, recall and recall");
