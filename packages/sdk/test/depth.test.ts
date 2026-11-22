@@ -135,7 +135,7 @@ test("nestedRunDepth is one level deeper under the same cap", () => {
 // Parent run ids ----------------------------------------------------------------------------------------------------
 
 /** A tool that runs a nested agent with `nestedRunDepth(ctx)` and keeps the nested run's events. */
-function parentingTool(nestedEvents: AgentEvent[], extra: Partial<RunOptions> = {}): ToolDefinition {
+function parentingTool(nestedEvents: AgentEvent[]): ToolDefinition {
   return defineTool({
     name: "delegate",
     description: "Hands the task to a sub-agent.",
@@ -147,7 +147,6 @@ function parentingTool(nestedEvents: AgentEvent[], extra: Partial<RunOptions> = 
         system: SYSTEM,
         input: "Sub-task.",
         ...nestedRunDepth(ctx),
-        ...extra,
         ...determinism(),
         idGenerator: sequentialIds("child"),
       });
@@ -186,6 +185,7 @@ test("parentRun without nestedRunDepth() reaches run_start, and a blank id is re
   for (const parentRun of [
     { runId: "", callId: "c" },
     { runId: "r", callId: "" },
+    null as unknown as { runId: string; callId: string },
   ]) {
     assert.throws(
       () => run({ ...base, parentRun }),

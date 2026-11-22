@@ -61,12 +61,11 @@ export interface OtelObserverOptions {
   readonly agentName?: string;
   /**
    * The context the run's span starts in, passed to the tracer as `startSpan`'s third argument: the caller's own
-   * span, such as an incoming request's. Every run the observer serves starts in this one context, so when it
-   * belongs to one request, create one observer for each request. Left out, the run's span starts in whatever the
+   * span, such as an incoming request's. Every top-level run the observer serves starts in this one context, so when
+   * it belongs to one request, create one observer for each request. Left out, the run's span starts in whatever the
    * tracer treats as its default, which for an OpenTelemetry tracer is the active context. A run that a tool starts
-   * carries `parentRun` (`nestedRunDepth()` sets it) is a child of the calling tool's span, when this observer saw
-   * that tool call start. Any other run, including a nested one whose parent this observer did not see, starts in
-   * `parentContext`.
+   * and that carries `parentRun` (`nestedRunDepth()` sets it) is a child of the calling tool's span, when this
+   * observer saw that tool call start; any other nested run starts in `parentContext` too.
    */
   readonly parentContext?: unknown;
   /**

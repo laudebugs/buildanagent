@@ -108,7 +108,8 @@ export interface RunOptions<S = unknown> {
    * The run and tool call that start this run, which `run_start` carries as `parentRunId` and `parentCallId`, so an
    * observer can place this run under the calling tool call. A tool that starts a run passes
    * `{ runId: ctx.runId, callId: ctx.callId }`, or spreads `nestedRunDepth(ctx)`, which sets it with `depth` and
-   * `maxDepth`. Both ids must be non-empty strings.
+   * `maxDepth`. Both ids must be non-empty strings. The run does not check them: an observer trusts them to place
+   * this run's span, so a pair that names another run's call parents the span there.
    */
   readonly parentRun?: ParentRun;
   /** Aborts the run, like `run.abort()`. */
@@ -450,7 +451,7 @@ function parentRunOf(options: RunOptions<unknown>): { parentRun?: ParentRun } {
   const { parentRun } = options;
   if (parentRun === undefined) return {};
   const ok = (id: unknown) => typeof id === "string" && id !== "";
-  if (!ok(parentRun.runId) || !ok(parentRun.callId)) {
+  if (typeof parentRun !== "object" || parentRun === null || !ok(parentRun.runId) || !ok(parentRun.callId)) {
     throw new SdkError("invalid_run_options", "parentRun needs a non-empty runId and callId");
   }
   return { parentRun: { runId: parentRun.runId, callId: parentRun.callId } };
