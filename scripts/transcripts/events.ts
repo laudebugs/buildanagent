@@ -6,8 +6,8 @@
 // The file holds only syntax that Node.js can strip, so `write.mjs` imports it without a build step.
 
 /**
- * The version of the transcript format. Version 2 added a response's `usage` and `modelId`; a version 1 transcript has
- * neither, and the book's replay still reads it.
+ * The version of the transcript format. Version 2 added a response's `usage` and `modelId`. The book reads only this
+ * version, so a version 1 file must be recorded again.
  */
 export const TRANSCRIPT_FORMAT = 2;
 
