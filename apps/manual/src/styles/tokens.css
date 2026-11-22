@@ -80,6 +80,9 @@
   --color-accent: #b04e29;
   --color-link: #8a3519;
   --color-highlight: #f5df9e;
+  --color-highlight-green: #cfe3b4;
+  --color-highlight-blue: #bfdcef;
+  --color-highlight-pink: #f4c9d2;
   --panel-background: #f3eadb;
   --panel-text: #2a1e16;
   --panel-comment: #6b5b4d;
@@ -101,6 +104,9 @@
     --color-accent: #e8a27c;
     --color-link: #f2c2a4;
     --color-highlight: #4f3b1c;
+    --color-highlight-green: #34472b;
+    --color-highlight-blue: #2b4559;
+    --color-highlight-pink: #5c3441;
     --panel-background: #17110d;
     --panel-text: #f2e8dc;
     --panel-comment: #a8968a;
@@ -122,6 +128,9 @@
   --color-accent: #e8a27c;
   --color-link: #f2c2a4;
   --color-highlight: #4f3b1c;
+  --color-highlight-green: #34472b;
+  --color-highlight-blue: #2b4559;
+  --color-highlight-pink: #5c3441;
   --panel-background: #17110d;
   --panel-text: #f2e8dc;
   --panel-comment: #a8968a;
