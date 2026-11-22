@@ -1,6 +1,7 @@
 /**
  * `@buildanagent/harness/testing`: test doubles and conformance suites for the harness's components. The in-memory
- * sandbox, the session store, the scheduler and their conformance suites are here so far.
+ * sandbox, and the conformance suites of the sandbox, the session store, the scheduler and the key store, are here so
+ * far.
  */
 export {
   FAKE_COMMANDS,
@@ -9,6 +10,14 @@ export {
   fakeSandbox,
   type RecordedExec,
 } from "./fake-sandbox.js";
+export {
+  type KeyStoreCase,
+  type KeyStoreConformanceReport,
+  type KeyStoreFactory,
+  type KeyStoreUnderTest,
+  keyStoreConformanceCases,
+  runKeyStoreConformance,
+} from "./key-store-conformance.js";
 export {
   runSandboxConformance,
   type SandboxCase,
