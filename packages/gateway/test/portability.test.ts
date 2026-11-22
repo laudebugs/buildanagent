@@ -58,6 +58,9 @@ const nodeOnlyFiles = new Set([
   // The trust store that resolves each folder to its real path calls Node's file system when it is built, so it is
   // Node-only and exported from the same entry; the portable `memoryTrustStore()` compares paths as written.
   "extensions/trust-store-node.ts",
+  // The memory folder on disk walks real paths and opens files without following links, so it is Node-only. It has its
+  // own entry, `@buildanagent/harness/memory/node`, and the portable `./memory` entry never imports it.
+  "memory/node.ts",
   // The MCP client's stdio channel spawns a server as a child process, so it is Node-only by nature. It loads Node's
   // modules with `process.getBuiltinModule()` when a server starts, so the `./mcp` entry still loads on every target,
   // where an in-process server needs no Node.

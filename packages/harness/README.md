@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp`, `server` and `testing` are built. `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server` and `testing` are built. `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -408,7 +408,7 @@ const { archived, purged, kept, skipped, errors } = await pruneSessions({
 });
 ```
 
-The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. The [session format page](docs/session-format.md#nothing-expires-unless-you-set-a-retention-period) says where the archive is, and it has the [disk-cost projection](docs/session-format.md#what-a-month-of-sessions-costs-on-disk).
+The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. Pass the memory extension's purge list as `marks`, and the result says which marks a purge removed with their sessions (`purgedMarks`) and which archived sessions still hold marked entries (`markedArchives`) for `purgeSession()`: an archive keeps a marked entry as it is. The [session format page](docs/session-format.md#nothing-expires-unless-you-set-a-retention-period) says where the archive is, and it has the [disk-cost projection](docs/session-format.md#what-a-month-of-sessions-costs-on-disk).
 
 ## `runTurn()` writes one SDK run into the log, and the user entry goes first
 
@@ -774,6 +774,66 @@ const harness = createHarness({ registry, model, system: withPlanConvention(syst
 `projectContext()` returns an extension whose `transformContext` hook puts the files at the start of the first user message of every request, as one text block whose bytes never change, followed by a second block for the plan files. Each file sits in an `<untrusted-project-context-TOKEN source="…">` section under a note that says the text is the project's and not the user's. The token is the first 16 hex digits of the SHA-256 of the file's path and text, and the section ends only at `</untrusted-project-context-TOKEN>` with the same token. A file would have to hold its own hash to close its section early, and the token stays the same while the file does, so the block's bytes still never change. As a second guard, every spelling of the label's tag in a file is escaped. The match runs on a folded copy of the text: white space and format characters are removed, and the rest is normalised to NFKC and lower case. It therefore catches fullwidth brackets, a tag name split across lines, and entities for `<` with or without their `;`. The text is rebuilt from the files for each request and is not written to the log, so a compaction that replaces the early messages with a summary can't remove it: the first request after a compaction holds the `AGENTS.md` text again, beside the summary. The cost is that the log doesn't hold the context files' text, so a replay needs the same files.
 
 A long task keeps its state in two files under the project's `.agents/` folder: `plan.md` (Markdown: the goal, the steps, which are done) and `progress.json` (JSON: what is done and what is next). `withPlanConvention()` adds a paragraph to the system prompt that tells the model to keep and update them. `planFileSource(root)` reads both files from disk. `projectContext()` asks the source at the first model call of every run, whether the run is a new turn or a resume, so the first request of a resumed session holds what the last process left. The same text is sent for the rest of the run, so the model's own edits during a run show in the next run, and the run's later calls read the prompt cache. A plan edit is not free, though. The plan sits in the first message, and a provider caches a prompt by its prefix, so the first call of the run after an edit reads none of the conversation from the cache: everything after the system prompt and tools is sent uncached once, and later calls read it from the cache again. Putting the plan in its own block after the context files keeps their text unchanged but does not avoid that pass. The gateway puts cache breakpoints on the system prompt, the tools and the newest message, never between the two blocks. A file that doesn't exist is left out, and a `progress.json` that isn't valid JSON, which a crash can leave, is shown as written with a notice. The harness only reads these files; the model writes them with its ordinary tools.
+
+## Long-term memory is an extension of sourced records that expire, and a delete reaches the log
+
+`memoryExtension()` from `@buildanagent/harness/memory` gives an agent facts that outlast a session, kept as files under the project's `.agents/memory/`. It is off until you load it: with it left out, no `memory` tool and no index reach the model. Load one per session, beside the registry the session's tools are in. `fileMemoryFiles(root)` from the Node-only `@buildanagent/harness/memory/node` keeps the folder on disk, and a host on another runtime passes its own `MemoryFiles`, five calls over names relative to the folder.
+
+```ts
+/** A harness with long-term memory for the session `sessionId` of the project at `root`. */
+export function memoryHarness(registry: ToolRegistry, model: Model, root: string, sessionId: string) {
+  const memory = memoryExtension({ root, files: fileMemoryFiles(root), registry, sessionId });
+  const { interceptors, observers } = composeExtensions([memory]);
+  registerExtensionTools(registry, [memory]);
+  const harness = createHarness({ registry, model, system: SYSTEM, interceptors, observers });
+  return { harness, memory };
+}
+```
+
+**One file holds one record.** A `MemoryRecord` has a `subject`, the `fact`, a `source` (a `file:line`, a URL or the user's own words), a `type` (`project`, `task` or `preference`), the `created` and `validated` dates, an `expires` date (`null` for a preference that holds until it is changed) and a `trust` of `trusted` or `low`. A task record also names its `session`. The file is Markdown: front matter between two `---` lines, one field per line with its value as a JSON string or `null`, then the fact as the body.
+
+```md
+---
+subject: "How to build"
+source: "AGENTS.md:12"
+type: "project"
+created: "2026-11-22T09:00:00.000Z"
+validated: "2026-11-22T09:00:00.000Z"
+expires: "2027-02-20T09:00:00.000Z"
+trust: "trusted"
+---
+Run pnpm build from the repository root; the SDK needs the gateway's dist first.
+```
+
+**The `memory` tool has five commands.** `view` shows a record, with its source, its dates and its trust beside the fact, or lists the records of a folder. `create` writes a new record from `path`, `subject`, `fact`, `source` and `type`. `str_replace` changes the fact from `old_str` to `new_str`, and may give a new `source`. `delete` removes a record, and `rename` moves one from `old_path` to `new_path`. A path is relative to the project root, or absolute under it, and must already be canonical and inside `.agents/memory/`. A path with a `.` or `..` segment, a percent sign, a backslash, a control character or a name that starts with a dot is an error result, and the tool reads nothing for it, so neither `.agents/memory/../secrets.env` nor `.agents/memory/%2e%2e/secrets.env` reaches a file. `fileMemoryFiles()` then walks the real path one folder at a time and refuses a link anywhere on the way, the record included, so a link planted in a cloned project can't send a read or a write outside the folder. A `delete` or a `rename` of the folder itself is refused. A write that holds a credential's shape, or one of the `secrets` the host passes, is refused and stored nowhere.
+
+**The index leads each run's first request.** The index is one line per record that still holds, with its subject, type, trust and path, and never its fact. Like the context files, it is built into the start of the first user message by a `transformContext` hook, labelled untrusted, and is in neither the system prompt nor the log. It is read at each run's first model call, so a record written in one run shows in the next. It stops at 200 lines or 25 KiB, whichever comes first (`MEMORY_INDEX_MAX_LINES`, `MEMORY_INDEX_MAX_BYTES`), heading and note included, and the note says how many records it left out. Trusted records come first, then the most recently validated. The agent finds the rest with `grep` and `glob`.
+
+**A record expires unless a write renews it.** Every date comes from the extension's injected `clock`. A record is shown in `view` and in the index only until it expires (`MEMORY_EXPIRY_DAYS`):
+
+| Type | Trusted | Low trust |
+| --- | --- | --- |
+| `project` | 90 days after it was last validated | 30 days |
+| `preference` | until it is changed | 30 days |
+| `task` | when `endSession()` runs, or 7 days | when `endSession()` runs, or 1 day |
+
+A `view` never moves `validated`. A `create` or a `str_replace` sets it to now, and a `str_replace` whose `old_str` equals its `new_str` renews a record without changing it: the tool's description tells the model to do that only after it has re-read the record's source and found the fact still true. The extension does not read the source itself, so the check is the model's. An expired record stays on disk until a `create` replaces it or a `delete` removes it.
+
+**Writes after untrusted input are low trust.** Once a result from a tool whose `outputTrust` is `untrusted` is in the session, or the model has viewed a low-trust record, every write the session makes is stored with `trust: "low"`. A call to such a tool in the same step as the write counts too, because the two may run together. The `memory` tool's own results are logged as `untrusted`, because a record may have been planted, but a view of a trusted record does not make later writes low trust. The session's earlier tool results are read from the conversation, so after a compaction removes them in a new process, only a fresh untrusted result marks the session again.
+
+**A delete marks the calls that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call, such as a `read` of the record's file, whose input or result names `.agents/memory/` and whose result holds the fact verbatim. A `delete` adds those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id and a tool name. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes marks once every session that held them is purged:
+
+```ts
+/** Purges every deleted record from each of the user's sessions, then clears the marks the purges applied. */
+export async function purgeDeleted(root: string, log: Log, userId: string, sessionIds: readonly string[]) {
+  const files = fileMemoryFiles(root);
+  const marks = await readPurgeMarks(files);
+  for (const sessionId of sessionIds) await purgeSession({ ...log, key: { userId, sessionId }, marks });
+  await clearPurgeMarks(files, marks);
+}
+```
+
+The purge writes the session's files again under new names, from the furthest file that holds a marked entry down to the current one. A marked call's input becomes `{}`, and its result's content becomes `PURGED_TEXT`, without its `details` or `spill`. Every entry keeps its base fields, so the session still rebuilds and each call still pairs with its result. Each new file is read back before the pointer moves, and only then are the session's old files deleted. A fork that continues one of those files must be purged first, or the purge throws `session_conflict` before it writes anything. A fork's purge copies the part it shares with its parent and leaves the parent's file for the parent's own purge. The [session format page](docs/session-format.md#a-memory-delete-marks-entries-and-a-targeted-purge-removes-their-content) says what a purge leaves behind. Two copies stay: a summary that compaction wrote before the delete, and the model's own text where it repeated the fact. The retention purge removes both with the whole session.
 
 ## A call that needs a person is a signed pause that any process with the key file can resume
 

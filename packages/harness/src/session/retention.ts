@@ -11,8 +11,10 @@ import { type FileHandle, mkdir, open, readdir, readFile, rename, rm, stat } fro
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { gunzip as gunzipCallback, gzip as gzipCallback } from "node:zlib";
+import type { SessionEntry } from "@buildanagent/protocol";
 import { HarnessError, isHarnessError } from "../errors.js";
 import type { LockHandle, SessionLock } from "./lock.js";
+import { marksIn, type PurgeMark } from "./purge.js";
 import { isDerivedFile } from "./session.js";
 import { checkKey, encodeName } from "./store.js";
 
@@ -56,6 +58,12 @@ export interface PruneOptions {
    * archived, purged or kept.
    */
   readonly lock?: SessionLock;
+  /**
+   * The purge list, such as the memory extension's `readPurgeMarks()` gives it. With it, the result says which marks a
+   * purge removed with their sessions, in `purgedMarks`, and which archived sessions still hold marked entries, in
+   * `markedArchives`, for a targeted purge. An archive keeps a marked entry as it is: only a purge removes it.
+   */
+  readonly marks?: readonly PurgeMark[];
 }
 
 /**
@@ -78,6 +86,10 @@ export interface PruneResult {
   readonly skipped: string[];
   /** What stopped each session in `kept` with reason `error`. The run went on with the other sessions. */
   readonly errors: Array<{ readonly sessionId: string; readonly error: unknown }>;
+  /** With `marks`: the marks with an entry in a session this run purged, so the host can drop them from its list. */
+  readonly purgedMarks?: PurgeMark[];
+  /** With `marks`: the sessions this run archived that hold a marked entry, which `purgeSession()` can still clean. */
+  readonly markedArchives?: string[];
 }
 
 /** Throws a `HarnessError` with code `invalid_retention` unless `days` is a positive finite number and `action` is known. */
@@ -630,7 +642,14 @@ export function pruneSessions(options: PruneOptions): Promise<PruneResult> {
  * reading or writing is kept as `locked`, so a pass never moves a file under a call that is already past expiry.
  */
 export async function expireSessions(options: PruneOptions, busy: (fileId: string) => boolean): Promise<PruneResult> {
-  const result: PruneResult = { archived: [], purged: [], kept: [], skipped: [], errors: [] };
+  const result: PruneResult = {
+    archived: [],
+    purged: [],
+    kept: [],
+    skipped: [],
+    errors: [],
+    ...(options.marks === undefined ? {} : { purgedMarks: [], markedArchives: [] }),
+  };
   const { retention } = options;
   if (retention === undefined) return result;
   checkRetention(retention);
@@ -730,13 +749,51 @@ async function purgeUnlessContinued(run: Run, id: string, forks: string[], ended
   return done;
 }
 
+/** The entries of a log's bytes, line by line; a line that is not JSON, or has no newline yet, is left out. */
+function entriesOfBytes(bytes: Uint8Array): SessionEntry[] {
+  const lines = Buffer.from(bytes).toString("utf8").split("\n");
+  lines.pop();
+  return lines.flatMap((line) => {
+    try {
+      return [JSON.parse(line) as SessionEntry];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** The marks with an entry in the session's files, live or archived, read whole. Without marks, none. */
+async function sessionMarks(run: Run, session: Session): Promise<PurgeMark[]> {
+  const marks = run.options.marks;
+  if (marks === undefined || marks.length === 0) return [];
+  const found: PurgeMark[] = [];
+  for (const file of session.files) {
+    const bytes =
+      (file.live === undefined ? undefined : await readIfThere(file.live)) ??
+      (file.archived === undefined ? undefined : await readArchive(file.archived));
+    if (bytes !== undefined) found.push(...marksIn(entriesOfBytes(bytes), marks));
+  }
+  return found;
+}
+
+/** Adds marks to a list once each. */
+function addMarks(list: PurgeMark[] | undefined, marks: readonly PurgeMark[]): void {
+  for (const mark of marks) {
+    if (!list?.some((held) => held.callId === mark.callId && held.tool === mark.tool && held.runId === mark.runId))
+      list?.push(mark);
+  }
+}
+
 async function purgeSession(run: Run, session: Session): Promise<void> {
+  // The marks are read before any file goes, and counted only once every file has gone.
+  const marks = await sessionMarks(run, session);
   for (const file of session.files) {
     if (file.live !== undefined) await rm(file.live, { force: true });
     if (file.stub !== undefined) await removeStub(file.stub);
     if (file.archived !== undefined) await rm(file.archived, { force: true });
   }
   if (session.pointer) await rm(join(run.userDir, `${encodeName(session.id)}${POINTER_EXTENSION}`), { force: true });
+  addMarks(run.result.purgedMarks, marks);
 }
 
 /** Removes a live file that held no complete line when the run read it, and keeps it if a line has landed since. */
@@ -751,11 +808,14 @@ async function removeStub(path: string): Promise<void> {
 
 async function archiveSession(run: Run, sessionId: string): Promise<void> {
   let moved = false;
-  for (const file of (run.sessions.get(sessionId) as Session).files) {
+  const session = run.sessions.get(sessionId) as Session;
+  const marked = (await sessionMarks(run, session)).length > 0;
+  for (const file of session.files) {
     if (file.live === undefined) continue;
     if (await archiveFile(run.options.dir, run.options.userId, file.id, file.live)) moved = true;
   }
   if (moved) run.result.archived.push(sessionId);
+  if (moved && marked) run.result.markedArchives?.push(sessionId);
 }
 
 /**

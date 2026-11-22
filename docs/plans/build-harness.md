@@ -268,8 +268,8 @@ packages/
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
-                                "./credentials", "./extensions", "./extensions/node", "./memory", "./telemetry", "./server",
-                                "./ablation", "./testing"
+                                "./credentials", "./extensions", "./extensions/node", "./memory", "./memory/node",
+                                "./telemetry", "./server", "./ablation", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
     src/context/                write cap, masking, summarizer, mid-turn, overflow retry, policy composer
     src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch, grep, glob)

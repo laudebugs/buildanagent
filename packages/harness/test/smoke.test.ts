@@ -23,6 +23,7 @@ const PLANNED_ENTRIES = [
   "./extensions",
   "./extensions/node",
   "./memory",
+  "./memory/node",
   "./telemetry",
   "./server",
   "./ablation",

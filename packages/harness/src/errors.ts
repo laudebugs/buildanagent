@@ -54,7 +54,10 @@ export type HarnessErrorCode =
   | "invalid_mcp_config"
   | "mcp_connect_failed"
   | "mcp_tool_list_refused"
-  | "mcp_call_failed";
+  | "mcp_call_failed"
+  | "invalid_memory_options"
+  | "memory_path_refused"
+  | "memory_corrupt";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
