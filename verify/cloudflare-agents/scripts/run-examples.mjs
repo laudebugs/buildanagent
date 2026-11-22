@@ -42,8 +42,8 @@ const TRANSCRIPT_LINE = "__TRANSCRIPT__";
 
 /**
  * Writes the transcript of one of our examples from workerd's output: the lines that carry this run's marker, in the
- * order workerd printed them, the failed check that ended a run included. workerd keeps no stack that names the
- * example's lines, so these events carry none.
+ * order workerd printed them. A live run's failed check that ended it is included; a mock run that did not finish
+ * (`ran` false) writes nothing. workerd keeps no stack that names the example's lines, so these events carry none.
  */
 async function writeWorkerTranscript(t, out, cwd, nonce, ran) {
   const events = [];

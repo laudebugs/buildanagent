@@ -244,7 +244,8 @@ function transcriptFile({ harnessDir, exampleFile, outDir, live }) {
 }
 
 /**
- * Whether a run finished: its process exited 0 and its checks printed at least one `ok - ` line. A run that failed a
+ * Whether a run finished: its process exited 0 and its output holds at least one `ok - ` line, which `check()` prints
+ * and an example could also print itself, so the line shows only that a check was meant to run. A run that failed a
  * check, threw or was killed leaves a partial exchange, such as a refused call that reached the model, so its
  * transcript would show the opposite of what the example demonstrates.
  */
@@ -324,20 +325,24 @@ export function transcriptRun(args, env) {
   env.TRANSCRIPT_FILE = raw;
   return {
     write: ({ harnessDir, exampleFile, cwd, outDir, live, mockEvents, exit, out }) => {
-      if (live === undefined && exit === undefined) throw new TypeError("write() needs the run's exit and out");
-      const written = writeTranscript({
-        ran: finishedRun({ exit, out }),
-        harnessDir,
-        exampleFile,
-        rawFile: raw,
-        cwd,
-        home: env.HOME,
-        outDir,
-        live,
-        mockEvents,
-      });
-      rmSync(dirname(raw), { recursive: true, force: true });
-      return written;
+      try {
+        if (live === undefined && (exit === undefined || typeof out !== "string")) {
+          throw new TypeError("write() needs the run's exit code and its output as a string");
+        }
+        return writeTranscript({
+          ran: finishedRun({ exit, out }),
+          harnessDir,
+          exampleFile,
+          rawFile: raw,
+          cwd,
+          home: env.HOME,
+          outDir,
+          live,
+          mockEvents,
+        });
+      } finally {
+        rmSync(dirname(raw), { recursive: true, force: true });
+      }
     },
     discard: ({ harnessDir, exampleFile, outDir, live }) => {
       rmSync(dirname(raw), { recursive: true, force: true });

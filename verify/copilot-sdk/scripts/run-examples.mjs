@@ -208,8 +208,7 @@ async function runOne(t) {
       harnessDir: root,
       exampleFile: resolve(t.file),
       cwd,
-      // A block that left its client open is a pass, as the outcome below counts it.
-      exit: result.leftOpen ? 0 : result.exit,
+      exit: result.exit,
       out: result.out,
       ...(live ? { mockEvents: live.events } : {}),
       ...liveRun?.transcript,

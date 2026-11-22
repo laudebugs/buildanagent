@@ -382,7 +382,7 @@ test("write() leaves a committed transcript as it was when the run failed a chec
 });
 
 test("write() and writeTranscript() refuse a mock run that does not say whether it finished", () => {
-  assert.throws(() => recordRun({ exit: undefined, out: "ok - x\n" }), /needs the run's exit and out/);
+  assert.throws(() => recordRun({ exit: undefined, out: "ok - x\n" }), /needs the run's exit code and its output/);
   assert.throws(
     () =>
       writeTranscript({
