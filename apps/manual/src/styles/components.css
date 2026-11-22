@@ -1431,8 +1431,7 @@
 
 /* The popover opens beside the passage a reader clicks, or as a bottom sheet on a narrow window. It is a native popover,
    so it closes on a click outside and on Escape, and the script places it through the style object, which the content
-   security policy allows. From the top it holds the four colours, the passage as a small quotation, the note as the main
-   text and a row of actions. */
+   security policy allows. */
 .notes-pop {
   position: fixed;
   inset: auto;
@@ -1449,6 +1448,7 @@
   color: var(--color-text);
 }
 
+/* The grid display above would otherwise defeat the browser's own display:none on a closed popover. */
 .notes-pop[hidden],
 .notes-pop:not(:popover-open) {
   display: none;
@@ -1640,6 +1640,7 @@
   display: none;
 }
 
+/* On a touch screen the colours and actions are 44px targets. */
 @media (pointer: coarse) {
   .notes-pop .notes-swatch {
     inline-size: 44px;

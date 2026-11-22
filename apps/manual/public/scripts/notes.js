@@ -1643,8 +1643,8 @@ class Notes {
   }
 
   /**
-   * After the popover closes on a keyboard path, opened from the keyboard or closed with Escape, focus goes back to the
-   * marker it was opened from. A click outside leaves focus where the reader put it.
+   * Returns focus to the note's marker when the popover was opened from the keyboard or closed with Escape and focus
+   * has been left on the page body. A click outside leaves focus where the reader put it.
    */
   restoreDotFocus() {
     const id = this.popReturnId;
@@ -1827,8 +1827,8 @@ class Notes {
   }
 
   /**
-   * Starts a swipe on the sheet's handle: the sheet follows the finger down, and lets go closes it past a distance and
-   * springs back before that.
+   * Starts a swipe on the sheet's handle. The sheet follows the finger down; on release it closes if the finger moved
+   * more than `SWIPE_CLOSE` pixels and springs back if it moved less. Only the pointer that grabbed the handle counts.
    */
   startSwipe(event) {
     const { win } = this;
