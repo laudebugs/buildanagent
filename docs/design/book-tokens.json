@@ -4,7 +4,7 @@
   "decided": "2026-11-19",
   "color": {
     "light": {
-      "$comment": "C4 Clay and Cream, light page. highlight is the amber background of a reader's highlight (BK24), and highlightGreen, highlightBlue and highlightPink are the three other colours a reader can choose, drawn under the text colour, so text is the one pair measured on it. `highlightHover*` is the stronger shade a note's passage takes while its margin marker is hovered or focused; text keeps 4.5:1 on it. `highlightEdge*` is the marker's outline, a non-text colour measured in nonText.",
+      "$comment": "C4 Clay and Cream, light page. highlight is the amber background of a reader's highlight (BK24), and highlightGreen, highlightBlue and highlightPink are the three other colours a reader can choose, drawn under the text colour, so text is the one pair measured on it. `highlightHover*` is the stronger shade a note's passage takes while its margin marker is hovered or focused; text keeps 4.5:1 on it. `highlightEdge*` is the marker's outline, a non-text colour measured in nonText. `danger` colours Remove in the notes popover (J4).",
       "values": {
         "background": "#FAF3E8",
         "text": "#2A1E16",
@@ -24,7 +24,8 @@
         "highlightEdgeBlue": "#2D7FB4",
         "highlightHoverBlue": "#77B5DD",
         "highlightEdgePink": "#D83F5F",
-        "highlightHoverPink": "#EA96A7"
+        "highlightHoverPink": "#EA96A7",
+        "danger": "#A3401C"
       },
       "contrast": [
         {
@@ -91,6 +92,11 @@
           "text": "text",
           "on": "highlightHoverPink",
           "ratio": 7.27
+        },
+        {
+          "text": "danger",
+          "on": "background",
+          "ratio": 5.76
         }
       ]
     },
@@ -115,7 +121,8 @@
         "highlightEdgeBlue": "#5C8BB0",
         "highlightHoverBlue": "#385A75",
         "highlightEdgePink": "#B17689",
-        "highlightHoverPink": "#7D4758"
+        "highlightHoverPink": "#7D4758",
+        "danger": "#E2704B"
       },
       "contrast": [
         {
@@ -182,6 +189,11 @@
           "text": "text",
           "on": "highlightHoverPink",
           "ratio": 6.06
+        },
+        {
+          "text": "danger",
+          "on": "background",
+          "ratio": 5.13
         }
       ]
     },
