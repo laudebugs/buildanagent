@@ -318,6 +318,20 @@ test("a chapter page names its slug for the reading script, and every page loads
   assert.ok(existsSync(join(out, "scripts", "reading.js")));
 });
 
+test("only a chapter page loads the notes script, as a same-origin module, and no built page holds its interface", () => {
+  const tag = /<script type="module" src="\/scripts\/notes\.js"><\/script>/;
+  assert.match(chapter(), tag);
+  for (const { path, html } of pages()) {
+    if (!html.includes("data-reading-chapter=")) assert.doesNotMatch(html, tag, path);
+    assert.doesNotMatch(
+      html,
+      /notes-(toolbar|open|dialog)|data-notes-ui/,
+      `${path}: only the script adds the notes UI`,
+    );
+  }
+  assert.ok(existsSync(join(out, "scripts", "notes.js")));
+});
+
 test("the site header links to the glossary and the sources, and both pages exist", () => {
   const html = readFileSync(join(out, "index.html"), "utf8");
   assert.match(html, /<a href="\/glossary\/">Glossary<\/a>/);

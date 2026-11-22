@@ -1209,3 +1209,182 @@
     display: none;
   }
 }
+
+/* A reader's highlights and notes (public/scripts/notes.js, BK24). The script draws each highlight with the CSS Custom
+   Highlight API, so no element wraps the chapter's text. A highlight's pale background stays decorative; the accent
+   underline marks it, at 3:1 or more on the highlight in both modes, and a dashed underline marks one with a note.
+   Highlighted text takes the text colour, which keeps 4.5:1 on the highlight (book-tokens.json). */
+::highlight(manual-highlight),
+::highlight(manual-note) {
+  background-color: var(--color-highlight);
+  color: var(--color-text);
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-accent);
+  text-decoration-thickness: 2px;
+}
+
+::highlight(manual-note) {
+  text-decoration-style: dashed;
+}
+
+/* The toolbar sits beside the selection and the Notes button in the window's corner, both fixed, so neither moves the
+   chapter's text when it appears. */
+.notes-toolbar {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-width: min(22rem, calc(100vw - 1rem));
+  padding: 0.4rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+.notes-toolbar__message {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--size-note);
+  line-height: 1.45;
+}
+
+.notes-open {
+  position: fixed;
+  right: max(0.5rem, env(safe-area-inset-right));
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  z-index: 20;
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+.notes-open__count:empty {
+  display: none;
+}
+
+.notes-open__count {
+  min-width: 1.4em;
+  padding-inline: 0.3em;
+  border-radius: 999px;
+  background-color: var(--color-highlight);
+  text-align: center;
+}
+
+.notes-dialog {
+  width: min(40rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 1rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  overscroll-behavior: contain;
+}
+
+.notes-dialog::backdrop {
+  background-color: color-mix(in srgb, var(--color-text) 35%, transparent);
+}
+
+.notes-dialog__head {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.notes-dialog__title {
+  margin: 0;
+  font-size: var(--size-chapter-link);
+}
+
+.notes-dialog__hint,
+.notes-dialog__status {
+  margin: 0.5rem 0;
+  font-size: var(--size-note);
+  line-height: 1.45;
+  color: var(--color-text-soft);
+}
+
+.notes-dialog__status:empty {
+  display: none;
+}
+
+.notes-dialog__selection,
+.notes-dialog__form,
+.notes-dialog__export {
+  margin-block: 1rem;
+}
+
+.notes-dialog__quote {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--color-accent);
+  font-size: var(--size-note);
+  line-height: 1.45;
+}
+
+.notes-dialog__field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--size-note);
+  resize: vertical;
+}
+
+.notes-dialog__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes-dialog__item {
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--color-rule);
+}
+
+.notes-dialog__flag {
+  margin: 0 0 0.4rem;
+  color: var(--color-accent);
+}
+
+.notes-dialog__note {
+  margin: 0 0 0.5rem;
+  font-size: var(--size-note);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.notes-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.notes-dialog__download {
+  margin-top: 0.5rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* Printed, the chapter carries no notes: no highlight, toolbar, button or panel. */
+@media print {
+  .notes-ui {
+    display: none;
+  }
+
+  ::highlight(manual-highlight),
+  ::highlight(manual-note) {
+    background-color: transparent;
+    color: inherit;
+    text-decoration-line: none;
+  }
+}

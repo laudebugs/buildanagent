@@ -79,6 +79,7 @@
   --color-rule: #e4d6c2;
   --color-accent: #b04e29;
   --color-link: #8a3519;
+  --color-highlight: #f5df9e;
   --panel-background: #f3eadb;
   --panel-text: #2a1e16;
   --panel-comment: #6b5b4d;
@@ -99,6 +100,7 @@
     --color-rule: #45352a;
     --color-accent: #e8a27c;
     --color-link: #f2c2a4;
+    --color-highlight: #4f3b1c;
     --panel-background: #17110d;
     --panel-text: #f2e8dc;
     --panel-comment: #a8968a;
@@ -119,6 +121,7 @@
   --color-rule: #45352a;
   --color-accent: #e8a27c;
   --color-link: #f2c2a4;
+  --color-highlight: #4f3b1c;
   --panel-background: #17110d;
   --panel-text: #f2e8dc;
   --panel-comment: #a8968a;

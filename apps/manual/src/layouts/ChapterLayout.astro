@@ -27,7 +27,7 @@ type Props = PageProps & {
   readonly hasFileListing?: boolean;
   /** Whether one of those listings shows a file the live run compares, so the line gives the comparison's date. */
   readonly hasComparedListing?: boolean;
-  /** The chapter's slug, under which public/scripts/reading.js stores the reader's place. */
+  /** The chapter's slug, under which public/scripts/reading.js and notes.js store the reader's place and notes. */
   readonly slug?: string;
 };
 
@@ -49,6 +49,8 @@ const {
 ---
 
 <BaseLayout title={title} description={description}>
+  <!-- A module, so it runs once the page is parsed: it draws the reader's highlights and adds the notes panel. -->
+  <script is:inline type="module" src="/scripts/notes.js" slot="head"></script>
   <div class="page layout">
     <ChapterHead label={label} title={title} lede={lede} />
     {Astro.slots.has("figure") && <div class="chapter-figure"><slot name="figure" /></div>}
