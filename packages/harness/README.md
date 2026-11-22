@@ -110,7 +110,7 @@ The same opt-in tests run the conformance suite and the lock-down cases against 
 
 ## A backend that claims a stop reads its policy back, and one that can't resume says so
 
-A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy fails it too.
+A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy fails it too. One narrowing is not caught: a write root that the caller's `denyWrite` names exactly is mounted read-only, but it still reads back as a write root, because the read-back takes the caller's own `denyWrite` as part of the request. So `provision()` accepts it, and nothing in that root is writable inside the container.
 
 The error's code is `sandbox_policy_mismatch`, and its `field` names the first field that differs, such as `network.allow`. The message never holds a path or a host. The code below catches the error and prints that field:
 
@@ -122,9 +122,9 @@ const attempt = srtSandbox().provision({ root: "/work/repo" }, policy);
 await attempt.catch((error) => console.log(error instanceof SandboxPolicyMismatchError ? error.field : error));
 ```
 
-A client that claims a stop but gives its sandbox no read-back, or one whose read-back fails, is refused the same way, with the field `readBack`. `noneSandbox()` claims no stop, so it needs none. `stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`.
+A client that claims a stop but gives its sandbox no read-back, or one whose read-back fails, is refused the same way, with the field `readBack`. `noneSandbox()` claims no stop, so it needs none. `stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`, and the message names the cause, such as that the policy allows all hosts, so the sandbox cannot stop exfiltration. `srtSandbox()` and `dockerSandbox()` both claim `mistakes` and `exfiltration`, so a policy that allows every host no longer provisions on either.
 
-A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
+A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
 
 None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
 
@@ -168,10 +168,10 @@ const proxy = await startEgressProxy({ ...compiled, log: audit });
 The compiler refuses anything that isn't plainly allowed, with the code `invalid_egress_options`, and its message names the place of the entry and never its value:
 
 - a field that a route kind doesn't have, such as `secret` or `token`;
-- a string that looks like a credential, such as one that starts with `ghp_` or `sk-`;
+- a string that looks like a credential, such as a value or a whitespace-separated token that starts with `ghp_` or `sk-`, or a whole 20-character AWS key id; a name that merely contains such text, like the repository `acme/sk-api`, is allowed;
 - a credential name that isn't upper case;
 - a wildcard or an address literal in `allow` or in a route's `host`;
-- a git route whose `host` is also in `allow`, because a tunnel to that host would go around the ref filter.
+- a git route whose `host` is also in `allow`, or is the host of any other route, because a tunnel or a header route to that host would go around the ref filter. `startEgressProxy()` enforces the same rule on routes it is given directly.
 
 Nothing here puts a credential value in a sandbox. The policy holds names, the proxy reads the value on the host, and the sandbox sees a random placeholder. Nothing here authenticates a caller either: any process that knows the placeholder can use the route. The policy is not part of `SandboxPolicy` yet, and `srtSandbox()` keeps its own proxy.
 
@@ -184,6 +184,8 @@ A push is checked before anything is forwarded. The proxy reads the command list
 - a deletion, a tag, or a ref that no `pushRefs` pattern matches;
 - a push certificate, a body with a `content-encoding` other than `identity`, or a pkt-line that is malformed or not UTF-8;
 - a command list over 64 KiB (`GIT_MAX_COMMAND_BYTES`) or over 64 commands (`GIT_MAX_COMMANDS`).
+
+When a push is bigger than git's `http.postBuffer` (1 MiB by default), git first sends a probe whose body is a single flush packet. The proxy treats that body as an empty command list and forwards it, and it refuses any byte after the flush. The command list has an idle timeout: each chunk of the body restarts it, so a stalled client is cut off and a slow one is not.
 
 A pattern is a branch such as `refs/heads/main`, or a prefix such as `refs/heads/agent/*`, which matches the branches under `agent/` and not `agent` itself. A route with no `pushRefs` refuses every push, and one with `fetch` left out refuses every fetch.
 
