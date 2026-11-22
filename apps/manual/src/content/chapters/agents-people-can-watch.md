@@ -66,7 +66,7 @@ The SDK asks the rule about every action of every call, batched ones included, s
 ::note[The paused state is turned into a string and read back into a run state, which could happen in another process hours later.]{#save}
 :::
 
-After the pause, `approve()`{checked=row-27} lets the click through once, and `reject()`{checked=row-27} stops it for good: the computer receives nothing more. A rejected click is not silent to the model. The SDK sends it a fallback one-pixel image as the call's result with the rejection recorded only in the result's provider data, and then adds the assistant message "Tool execution was not approved." An action that throws gives the model an empty screenshot. Those behaviours hold for SDK 0.21.0 as of November 2026, where the tool is named `computer_use_preview`.
+After the pause, `approve()`{checked=row-27} lets the click through once, and `reject()`{checked=row-27} stops it for good: the computer receives nothing more. A rejected click is not silent to the model. The SDK sends it a fallback one-pixel image as the call's result with the rejection recorded only in the result's provider data, and then adds the assistant message "Tool execution was not approved." An action that throws gives the model an empty screenshot. Those behaviours hold for SDK 0.22.0 as of November 2026, where the tool is named `computer_use_preview`.
 
 The example proves the loop and the approval flow, nothing more. Its computer only records what it was asked to do and its model is scripted, so the example cannot show how a real model or browser behaves. It also pauses a single call, which is not a takeover.
 

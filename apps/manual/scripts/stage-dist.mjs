@@ -102,9 +102,10 @@ export function checkName(name) {
 
 /**
  * Reads a zip archive's central directory and returns its entries, checking every rule above that the directory
- * alone can settle. Throws an ArtifactError on the first broken rule.
+ * alone can settle. Throws an ArtifactError on the first broken rule. `required` lists the files the site must hold;
+ * the book's are index.html and 404.html, and scripts/ci/site-stage-dist.mjs passes the two other sites' own lists.
  */
-export function readEntries(zip) {
+export function readEntries(zip, { required = REQUIRED } = {}) {
   if (zip.length > LIMITS.totalBytes) throw new ArtifactError(`the zip is ${zip.length} bytes, over the 100 MiB cap`);
   const end = findEndOfCentralDirectory(zip);
   if (zip.readUInt16LE(end + 4) !== 0 || zip.readUInt16LE(end + 6) !== 0) {
@@ -173,7 +174,7 @@ export function readEntries(zip) {
     // The artifact's own _headers is never written: stageZip puts main's copy there.
     if (path !== "_headers") entries.push({ path, method, crc, compressedSize, uncompressedSize, localOffset });
   }
-  for (const file of REQUIRED) if (!files.has(file)) throw new ArtifactError(`${file} is missing`);
+  for (const file of required) if (!files.has(file)) throw new ArtifactError(`${file} is missing`);
   return entries;
 }
 

@@ -3,8 +3,8 @@
   "example": "12-subagent-as-tool",
   "file": "verify/openai-agents-sdk/examples/12-subagent-as-tool.ts",
   "harness": "verify/openai-agents-sdk",
-  "pin": "@openai/agents@0.21.0",
-  "mock": "@openai/agents@0.21.0",
+  "pin": "@openai/agents@0.22.0",
+  "mock": "@openai/agents@0.22.0",
   "events": [
     {
       "kind": "request",
