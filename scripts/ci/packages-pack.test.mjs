@@ -325,9 +325,9 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 });
 
 // The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
-// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `extensions`,
-// `extensions/node` and `server` entries reach it through the SDK, and so does the CLI's, which runs the harness; the protocol's entries
-// don't. The harness's `mcp` entry fails for a second reason as well: `@modelcontextprotocol/client` reaches
+// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `sandbox`, `extensions`,
+// `extensions/node` and `server` entries reach it through the SDK, and so does the CLI's, which runs the harness; the
+// protocol's entries don't. (The `sandbox` entry imports the SDK in its escalation machine.) The harness's `mcp` entry fails for a second reason as well: `@modelcontextprotocol/client` reaches
 // `eventsource` 3.0.7, whose `source` condition names a `.ts` file, and Node refuses to strip types under `node_modules`
 // (`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`). The list is in exports order.
 // Every other entry must import; an entry listed here that imports again fails the test, so the list is cut once
@@ -338,6 +338,7 @@ const SOURCE_CONDITION_FAILURES = [
   "@buildanagent/harness/tools",
   "@buildanagent/harness/mcp",
   "@buildanagent/harness/permissions",
+  "@buildanagent/harness/sandbox",
   "@buildanagent/harness/extensions",
   "@buildanagent/harness/extensions/node",
   "@buildanagent/harness/server",
