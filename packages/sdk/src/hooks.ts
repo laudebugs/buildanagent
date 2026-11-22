@@ -113,6 +113,14 @@ export interface ModelCallPatch {
   readonly model?: Model;
   /** Replaces the options of this call. */
   readonly options?: CallOptions;
+  /**
+   * Ends the run before this call: nothing is sent to the model, and the run ends `stopped` with this text as
+   * `stoppedBy`. It works for the first call too, so a hook can refuse a conversation it does not trust, such as a
+   * user message that carries a prompt injection, before any model sees it. Return it alone: with another field it
+   * throws an `SdkError` with code `invalid_hook_result`, as does text that is blank. `composeInterceptors()` ends the
+   * run on the first hook that returns one and does not call the hooks after it.
+   */
+  readonly stop?: string;
 }
 
 /**
@@ -159,7 +167,7 @@ export interface Interceptors {
    * the full history. Each call emits a `context_transformed` event with the message counts.
    */
   readonly transformContext?: (e: ContextEvent) => MaybePromise<readonly Message[]>;
-  /** Changes the request about to be sent. Return nothing to leave it as it is. */
+  /** Changes the request about to be sent, or ends the run before it with `{ stop }`. Return nothing to leave it as it is. */
   readonly beforeModelCall?: (e: ModelCallEvent) => MaybePromise<OrNothing<ModelCallPatch>>;
   /**
    * Replaces the model's response. The transcript and the `model_call_end` event hold the replacement, and its tool

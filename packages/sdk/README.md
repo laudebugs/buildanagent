@@ -211,6 +211,7 @@ A program versioned apart from the SDK, such as a harness that talks to the agen
 - **`write_outcomes_v1`**: a tool's `outcome` tells the model what a write did and whether a retry is safe.
 - **`turn_retries_v1`**: `turnRetries` re-issues a model call that ended with a `retryable` error, and marks each retry with a `retry` event whose `layer` is `turn`.
 - **`raw_events_v1`**: `includeRaw` makes the run emit the provider's own stream events as `raw` events.
+- **`before_model_call_stop_v1`**: `beforeModelCall` may return `{ stop }`, which ends the run `stopped` before that call.
 
 A test fails when this list and `CAPABILITIES` disagree.
 
@@ -231,7 +232,7 @@ A hook is a function that takes one event object. Interceptors can change, block
 Each model call goes through the same moments, and each interceptor owns one of them:
 
 1. **`transformContext`** returns the messages to send for this call. Use it to mask old tool output or summarise a long conversation. The view reaches that one request. The next call's event, `result.messages` and `result.context` all keep the full history, and each call emits a `context_transformed` event.
-2. **`beforeModelCall`** returns a patch for the request: a `system` prompt, `messages`, `options`, another `model`, or `activeTools`. A patch lasts for that call only.
+2. **`beforeModelCall`** returns a patch for the request: a `system` prompt, `messages`, `options`, another `model`, or `activeTools`. A patch lasts for that call only. It can also return `{ stop: "reason" }` alone, which ends the run before the call, the first one included: nothing is sent to any model, no `model_call_start` is emitted, and the run ends `stopped` with the reason as `stoppedBy`. Use it to refuse a conversation you do not trust, such as a user message that carries a prompt injection.
 3. The model call runs.
 4. **`afterModelCall`** returns `{ message }` to replace the response. The transcript, `model_call_end` and the tool calls that run all use the replacement, while usage and cost stay the model's own.
 5. For each tool call, **`beforeToolCall`** decides whether it runs, and **`afterToolCall`** edits the result.
@@ -265,7 +266,7 @@ Set `onFailure: "continue"` to skip a failed hook and go on as if it had returne
 
 ### `composeInterceptors()` joins several objects
 
-A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as `"fail_closed"`.
+A run takes one `Interceptors` object, so `composeInterceptors(a, b)` joins a context policy, a permission check and an audit. For a moment that several define, the hooks run in the order given. `transformContext` passes the messages through each hook in turn. `beforeModelCall` merges the patches, a later field replacing an earlier one, and the first `{ stop }` ends the check, so the hooks after it are never called. `afterModelCall` and `afterToolCall` chain, each hook seeing the result so far. For gates the strictest answer wins: the first `deny` ends the check, an `ask` beats an `allow`, and an input one gate replaces is the input the next gate sees. For `shouldStop` the first stop wins, then the first continue. Each hook's return value is checked as if it ran alone, so a gate that returns nothing throws `invalid_hook_result` even when another gate allows the call. The joined `onFailure` is `"continue"` only when every object sets it to `"continue"`; an object that leaves it unset counts as `"fail_closed"`.
 
 ### Observers watch without changing anything
 
@@ -636,6 +637,7 @@ The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a 
 - every request offers only `lookup_customer`, `escalate` and `submit_triage`;
 - the lookup answers for the signed-in customer, whatever email the model sends;
 - a call to a host tool the agent never offered, such as `bash` or `write_file`, runs nothing and comes back to the model as an error;
+- a `beforeModelCall` stop ends a run on an injected ticket before any model call, and the same hook lets a clean ticket through;
 - the system prompt reaches the model on every request, on a resumed run too.
 
 The cases assert nothing about observers, so a loop without them can run the suite. `test/capstone.test.ts` checks the audit trail on the SDK's loop.
@@ -645,7 +647,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
 | Our capstone, the agent alone | 83 | 2 |
-| Our capstone with its cases and backends | 527 | 2 |
+| Our capstone with its cases and backends | 574 | 2 |
 | Vercel AI SDK | 58 | |
 | Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |

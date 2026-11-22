@@ -24,4 +24,5 @@ export const CAPABILITIES: readonly string[] = Object.freeze([
   "write_outcomes_v1",
   "turn_retries_v1",
   "raw_events_v1",
+  "before_model_call_stop_v1",
 ]);

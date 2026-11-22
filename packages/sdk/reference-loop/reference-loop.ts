@@ -238,6 +238,7 @@ async function callModel(s: State): Promise<Called> {
   // before: the interceptor may change this call's system prompt, messages, tools, model or options
   const before = { ...base, context, options: modelOptions };
   const patch: ModelCallPatch = (await guarded("beforeModelCall", hooks.beforeModelCall, before)) ?? {};
+  if (patch.stop !== undefined) return { outcome: { stopReason: "stopped", stoppedBy: patch.stop } };
   const { system = s.system, messages = context.messages, model: used = model, options = modelOptions } = patch;
   const active = named(s, patch.activeTools);
   context = { system, messages: [...messages], tools: active.map(wireOf) };

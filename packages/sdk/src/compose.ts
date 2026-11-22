@@ -60,6 +60,8 @@ const before =
     for (const hook of hooks) {
       const patch = checkModelPatch(await hook(event));
       if (patch === undefined) continue;
+      // The first stop wins, and the hooks after it never see a call that will not happen.
+      if (patch.stop !== undefined) return patch;
       const fields = definedFields(patch);
       merged = { ...merged, ...fields };
       event = { ...event, context: contextAfter(event.context, fields), options: fields.options ?? event.options };
@@ -144,6 +146,7 @@ const stop =
  * - `transformContext`: the messages pass through each hook in turn.
  * - `beforeModelCall`: the patches are merged in order, a later field replacing an earlier one, and each hook sees
  *   the system prompt, messages and options the earlier ones set. A field left `undefined` keeps the earlier value.
+ *   The first hook to return `{ stop }` ends the check, and its stop is the joined hook's.
  * - `afterModelCall`: each hook sees the message the one before returned.
  * - `beforeToolCall`: the strictest decision wins. The first `deny` ends the check, an `ask` beats `allow`, and an
  *   input one gate replaces is the input the next gate sees. When a gate asks, the `ask` carries the last

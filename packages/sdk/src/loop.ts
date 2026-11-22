@@ -284,7 +284,7 @@ function patched(state: LoopState, request: Request, patch: ModelCallPatch): Req
  * Builds one call's request: the transcript, or the view `transformContext` returns for this call alone, then the
  * changes `beforeModelCall` asks for. The run's own transcript is never replaced by either.
  */
-async function buildRequest(state: LoopState): Promise<Request> {
+async function buildRequest(state: LoopState): Promise<Request | { readonly stop: string }> {
   const { model, system, modelOptions, tools } = state.setup;
   const view = await state.hooks.transformContext({
     system,
@@ -296,6 +296,7 @@ async function buildRequest(state: LoopState): Promise<Request> {
   const context = { system, messages: [...(view ?? state.messages)], tools: state.wireOf(active) };
   const request: Request = { model, context, options: modelOptions, active };
   const patch = await state.hooks.beforeModelCall({ context, options: modelOptions });
+  if (patch?.stop !== undefined) return { stop: patch.stop };
   return patch === undefined ? request : patched(state, request, patch);
 }
 
@@ -442,6 +443,8 @@ async function retryWait(state: LoopState, delayMs: number): Promise<void> {
 async function callModel(state: LoopState): Promise<AssistantMessage | { readonly blocked: Outcome }> {
   for (let streak = 1; ; streak += 1) {
     const request = await buildRequest(state);
+    // A hook ended the run before this call, so nothing is sent and no model_call_start is emitted.
+    if ("stop" in request) return { blocked: { stopReason: "stopped", stoppedBy: request.stop } };
     const blocked = budgetBlock(state, request);
     if (blocked !== undefined) return { blocked };
     state.active = request.active;

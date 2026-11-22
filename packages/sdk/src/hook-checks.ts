@@ -29,10 +29,21 @@ export function checkMessages(hook: string, value: unknown): Message[] {
   return [...value];
 }
 
-/** Checks `beforeModelCall`'s return value: nothing, or a patch of well-formed fields. */
+/** Checks a `beforeModelCall` return that carries `stop`: its text is not blank, and nothing else comes with it. */
+function checkStop(value: Record<string, unknown>): ModelCallPatch {
+  const { stop } = value;
+  if (typeof stop !== "string" || stop.trim() === "") invalid("beforeModelCall", "returned a stop that is not text");
+  if (Object.keys(value).some((key) => key !== "stop" && value[key] !== undefined)) {
+    invalid("beforeModelCall", "returned stop with other fields, so return it alone");
+  }
+  return { stop };
+}
+
+/** Checks `beforeModelCall`'s return value: nothing, a stop, or a patch of well-formed fields. */
 export function checkModelPatch(value: unknown): ModelCallPatch | undefined {
   if (value === undefined) return undefined;
   if (!isObject(value)) invalid("beforeModelCall", "must return a patch object or nothing");
+  if (value.stop !== undefined) return checkStop(value);
   const { system, messages, activeTools, model, options } = value;
   if (system !== undefined && typeof system !== "string")
     invalid("beforeModelCall", "returned a system that is not a string");
