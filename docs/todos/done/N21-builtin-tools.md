@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N21` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N11](../done/N11-tool-registry.md), [N15](../done/N15-sandbox-interface.md), [N20](../done/N20-credential-proxy.md), [N8](../done/N8-write-cap-masking.md) |
@@ -40,18 +40,18 @@ Ship the small built-in tool set the eval baseline needs, each running only thro
 
 ## Tasks
 
-- [ ] Run every test of `write`, `edit` and `bash` against `fakeSandbox()`.
-- [ ] Mark `read`, `fetch`, `grep` and `glob` `firstParty` read-only for scheduling.
-- [ ] Check every `grep` and `glob` path against the sandbox policy's `readRoots` before calling the sandbox.
+- [x] Run every test of `write`, `edit` and `bash` against `fakeSandbox()`.
+- [x] Mark `read`, `fetch`, `grep` and `glob` `firstParty` read-only for scheduling.
+- [x] Check every `grep` and `glob` path against the sandbox policy's `readRoots` before calling the sandbox.
 
 ## Acceptance criteria
 
-- [ ] With `fakeSandbox()`, a scripted model's `bash` call records the command and touches no host file
-- [ ] `edit` with two matches returns an error result and changes nothing
-- [ ] A `fetch` to a non-allowlisted host returns an error result
-- [ ] `read` of a spill path returns the full output
-- [ ] With `fakeSandbox()`, `grep` finds a pattern in a seeded file and `glob` lists matching paths, and neither writes a file
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] With `fakeSandbox()`, a scripted model's `bash` call records the command and touches no host file
+- [x] `edit` with two matches returns an error result and changes nothing
+- [x] A `fetch` to a non-allowlisted host returns an error result
+- [x] `read` of a spill path returns the full output
+- [x] With `fakeSandbox()`, `grep` finds a pattern in a seeded file and `glob` lists matching paths, and neither writes a file
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -67,7 +67,14 @@ Tool descriptions affect model behaviour; version them and let N39 compare.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+- `builtinTools(sandbox, proxy, options)` from `@buildanagent/harness/tools` returns `read`, `write`, `edit`, `bash`, `grep`, `glob` and, when a proxy is given, `fetch`. It takes a third argument the plan lacked, `{ root, policy, env?, spills? }`, because the `Sandbox` interface reports neither the workspace root nor the policy.
+- Every path is checked as text against the policy's roots before any sandbox call; the backends' real-path check is the second line against symlinks. On `noneSandbox()` there is no second line.
+- `grep` and `glob` run inside the sandbox through `find` and `grep`, so the model's regular expression never runs in the host loop. `fetch` is https only, goes only through the egress proxy and scrubs every known secret from its output.
+- Open for the owner: whether tools may bind to a `none` sandbox; whether `bash` output is also scrubbed of known secrets; whether `BUILTIN_TOOLS_HASH` goes into a session entry (N39 or N34); whether the shared `workspace` resource key, which makes writes to different files wait for each other, is acceptable.
