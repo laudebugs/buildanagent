@@ -624,5 +624,34 @@
     "asOf": "November 2026",
     "version": "agents@0.33.0",
     "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "pi-compaction",
+    "title": "Compaction Reference",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/compaction.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@earendil-works/pi-coding-agent@1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "swe-agent-observation-masking",
+    "title": "The Complexity Trap: Simple Observation Masking Is as Efficient as LLM Summarization for Agent Context Management",
+    "publisher": "arXiv",
+    "url": "https://arxiv.org/abs/2508.21433",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "buildanagent-protocol-entries",
+    "title": "The session entry union",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c2e80fff77540da496110a5ec36330273c/packages/protocol/src/entries.ts",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "commit 2174e4c",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
   }
 ]

@@ -2,7 +2,7 @@
 title: "The session log and context policy"
 summary: A session log that keeps every entry in one append-only tree lets a harness fork, resume and shorten what the model sees without losing anything. This chapter shows why one tree of typed entries suits that job, how HEAD, a fork and a writer lock keep it safe, how five context layers shorten the context cheapest first while compaction stays visible and reversible, and how a progress file carries long work across windows.
 opening: analogy
-sources: [pi-session-format, pi-sessions, pi-session-manager, hou-messy-middle, wong-governed-ml, buildanagent-harness-readme, buildanagent-harness-plan, cloudflare-agents-websockets]
+sources: [pi-session-format, pi-sessions, pi-session-manager, hou-messy-middle, wong-governed-ml, buildanagent-harness-readme, buildanagent-harness-plan, cloudflare-agents-websockets, pi-compaction, anthropic-effective-context-engineering, swe-agent-observation-masking, buildanagent-protocol-entries]
 glossary: [session-log, session]
 switchTo: [N2, N3, N4, N5, N6, N7, N8, N9, N10]
 ---
@@ -64,6 +64,46 @@ The lock keeps writers apart, and resume lets a different process pick up where 
 The listing's lesson is the rule our harness follows: keep nothing in memory that the log lacks. Everything the agent needed after the wake, its topic and its connection, sat in storage, and what sat only in a class field was gone. Our harness applies that to a run. `session.toContext()`{checked=row-31} rebuilds the SDK's context from the entries between the root and HEAD, the messages in order and the system prompt of the latest turn, byte for byte, and its result deep-equals the context of the run that wrote the log. A turn that passes no history takes it from the log, so a new process goes on from the file alone [@buildanagent-harness-readme]. `runTurn()`{checked=row-33} writes the user's input before the first model call, so a turn that dies at once still leaves the question in the file. A crash can also leave a tool call without a result. The next turn settles it before anything else: a call to a tool that writes gets an `unknown` outcome and the instruction to check before retrying, because the write may have happened, and a call to any other tool gets an error that says it was interrupted.
 
 HEAD, a fork, a revert, a lock and a resume all read or extend the log, and none depends on what a process remembers. That is the case for one tree: a harness that keeps its state in the log can stop, fork or move to another process at any entry.
+
+## Context policy runs five layers, cheapest first, and none of them deletes an entry
+
+Your desk holds a laptop, two folders and a coffee. Everything else you own sits in the filing cabinet, and nothing moves from the cabinet to the desk unless someone carries it. A model's context window is :analogy[a desk with limited space]{#limited-desk}. Anthropic calls context "a finite resource with diminishing marginal returns" [@anthropic-effective-context-engineering], so more on the desk does not mean better work. Each turn the harness rebuilds the context from the session log, and the context policy is the code that decides which entries make it onto the desk. The model can read only what lands there.
+
+:::figure[A desk with limited space: the harness decides what sits on it, and the model reads only the desk]{#limited-desk analogy="limited-desk"}
+::svg{alt="On the left, a box labelled session log, the drawer, every entry, with a note under it that the model cannot open the drawer. An arrow labelled harness decides runs from it to a large box on the right, the desk, which is the context window and holds three cards: system prompt, summary of earlier work and recent messages. An arrow runs from the desk down to a box labelled model reads the desk."}
+:::
+
+Our plan sets the policy as five layers ordered by cost, shown in [[fig:context-layers]]. They are a design, not shipped code: as of November 2026 the harness package builds the log, forks and writer lock of the last section, and its context component is an empty stub [@buildanagent-harness-readme]. The numbers below are the plan's defaults, which it marks provisional until an ablation run tests each layer on and off [@buildanagent-harness-plan].
+
+:::figure[Five context layers, cheapest first: the first two leave the log alone, the last three add one summary entry]{#context-layers}
+::svg{alt="A table of five rows with three columns. Layer 1, write cap: cap a tool result at 64 KiB and spill the rest to a file; the log gets the capped result and a file path. Layer 2, mask: show older tool results as 500 characters, in steps; the log gets nothing, because it is a view built at read time. Layer 3, summarize: between turns, replace old messages with a summary; one compaction entry. Layer 4, mid-turn: the same, when one step reaches 90 percent of the window; one compaction entry. Layer 5, overflow retry: on a provider overflow error, compact once, then retry; one compaction entry. A note says the layers run cheapest first, from the top down."}
+:::
+
+The two cheap layers change little. Layer 1 caps a tool result at 64 KiB when the harness writes it and spills the full text to a file that the agent can reread by path; the store already refuses an entry over that size [@buildanagent-harness-readme]. Layer 2 shows older tool results at 500 characters, moving the cutoff only every eight messages so that the cached prefix stays stable, and it never edits the log. Anthropic's guide names its closest relative: "One of the safest lightest touch forms of compaction is tool result clearing" [@anthropic-effective-context-engineering]. The three expensive layers all write a summary. Layer 3 fires between turns when the context passes a budget, which defaults to the smaller of the window minus 16,384 tokens and 200,000, and keeps a verbatim tail of about 20,000 tokens. Layer 4 fires when one step reaches 90% of the window, and by default only for windows under 128,000 tokens. Layer 5 answers a provider's overflow error with one compaction and one retry [@buildanagent-harness-plan]. Pi runs the same triggers: it compacts when the context passes the window minus a reserve of 16,384 tokens, keeps the latest 20,000 tokens, and on an overflow error compacts once and retries [@pi-compaction].
+
+Why cheapest first? One study gives the order a measured basis, with limits. In SWE-agent on SWE-bench Verified, masking old observations matched LLM summarization's solve rate at about half the raw agent's cost [@swe-agent-observation-masking]. For Qwen3-Coder 480B, masking solved 54.8% of tasks at $0.61 each, summarization 53.8% at $0.64, and the raw agent 53.4% at $1.29. The result did not hold for every model. With thinking on, masking cut Qwen3-32B's cost by only 9.8%, and it lowered Gemini 2.5 Flash's solve rate by 9.9% against the raw agent. Each cell is one run of 500 tasks, and the authors warn that the finding "may not generalize to domains where agent-environment interactions are more succinct". We read it as a reason to try masking first and to test each layer against a baseline, which is how the plan treats all five.
+
+### A compaction is an entry, so the recap stands in for the episodes and the episodes stay
+
+A television show opens with a "previously on" recap: ninety seconds that stand in for ten episodes, so a new viewer can follow tonight's. :analogy[The recap]{#previously-on-recap} has a cost. A person wrote it, and it can leave out the detail that matters in episode eleven. Compaction does the same to a session. A model writes a summary of the older messages, the harness puts the summary where those messages were, and the next call reads the summary instead. The difference is where the episodes go. The recap on television replaces what you watched, while in a tree the summary is one more entry and the older ones stay in the file. [[lst:compaction-pi]] compacts a two-question session.
+
+:::listing[A compaction appends one summary entry and the next request carries the summary, not the old messages]{#compaction-pi file="verify/pi/examples/06-compaction.ts" region="compact" replay}
+::note[`compact()` asks the model to summarize. With the example's tiny `keepRecentTokens`{checked=row-45}, the cut falls inside the last user message's span, so Pi sends two summary requests and merges their answers.]{#compact}
+::note[The result is one `compaction` entry on the path, which holds the summary and the first entry it keeps.]{#entry}
+::note[The entry count rises by exactly one: no original entry is removed.]{#originals}
+:::
+
+The replay shows both halves. The two summary requests carry the conversation to summarize, inside a template that ends "Keep each section concise. Preserve exact file paths, function names, and error messages." After the compaction, the next request opens with a message that begins "The conversation history before this point was compacted into the following summary:", then the summary, the latest answer and "Thanks." The checks on lines 42 and 43 confirm that the request holds the summary and omits "The capital of France is Paris.", though that answer still sits in the session. Pi's guide states the rule in one sentence: compaction "does not delete the original session entries" [@pi-sessions].
+
+The recap can drop facts, so the original entries stay, and the harness can put any of them back on the desk. Our harness shapes its compaction entry for that. Besides the summary, it records which layer wrote it, the first entry kept, the token counts before and after, the model and the prompt version that wrote the summary, the `usage`{checked=row-50} entry that holds its cost, and an optional focus hint [@buildanagent-protocol-entries]. Anyone can read what replaced what, at what price. Reversal then needs no special feature. Pi builds a model's context by walking from the current leaf to the root and using the latest compaction on that path [@pi-session-format], so a branch that leaves the path before the compaction sees the original messages again. The last exercise does exactly that.
+
+[[fig:session-log-tree]] puts the pieces on one bench: entries linked to the ones they follow, a fork that leaves the abandoned path in place, one taller compaction entry and the HEAD post on the last block.
+
+:::figure[The session log as a tree of entries: an append, a fork, a compaction and HEAD]{#session-log-tree}
+::viewer{alt="An isometric bench with a row of six entry blocks along the back, each joined to the next by a short link. The fifth block is taller and labelled compaction. A post with a lamp on the sixth is labelled HEAD. A second row of two lower blocks branches from the third entry and is labelled fork. Four lamps light in turn: an append on the second entry, the fork, the compaction and HEAD."}
+:::
+
+The desk holds what the policy chose, and the drawer still holds everything. A harness that keeps both can compact as hard as it likes, because an undo costs one move of HEAD.
 
 ## Exercises
 
