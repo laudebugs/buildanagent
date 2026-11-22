@@ -951,6 +951,13 @@ N29 ([Outcome](../todos/done/N29-stdio-transport.md#outcome)) shipped the stdio 
 
 **Two WebSocket choices from N44, confirmed by the manager session on 2026-11-22.** [N44](../todos/done/N44-web-stream-websocket-transport.md#outcome) closes the socket with 1009 after a frame over the size bound, where the stdio transport keeps its stream open after an oversize line: a line stream resyncs on the next newline, and a WebSocket frame has no such point. The global `WebSocket` refuses 1008, 1009 and 1011 in `close()` (checked in Node 22), so the transport retries a refused code as 4008, 4009 or 4011 with the same reason.
 
+### 6.4a Two questions from N40 and N18 wait for the owner
+
+Each question follows a built behavior that the plan did not settle. Neither blocks a todo.
+
+1. **Should a sticky allowance cover a code call as it covers a model call?** N40 built it so: a sticky allowance clears a code call that matches it, because the pipeline reads allowances without asking who started the call ([N40's Outcome](../todos/done/N40-code-initiated-calls.md)). That keeps one rule. But a person who says "always allow this command" while watching a model turn may not expect a script to reuse the allowance, and the same holds the other way, for an allowance granted on a code call's approval. The options are to keep the shared allowance, or to record the call's initiator in the allowance so that it matches only that kind of call. A tool that sets `approvalReuse: "none"` is unaffected either way.
+2. **Should a denied command pause the turn that ran it?** N18's `escalation()` runs outside the turn: the denial goes back to the model as a tool result, and the signed request waits in the machine until a person answers it. A pause inside the turn, which would rerun the command on approval and let the model see only the result, needs a change in the SDK's loop, because a tool call cannot suspend and resume itself today. The options are to keep the machine as built and let the model ask again after an approval, or to add an SDK pause kind for a denied command (the third host-tool pattern in §1's non-goals). Without the SDK change, `escalation()` cannot do the second.
+
 ### 6.5 Where Round N slots into the roadmap
 
 Round N interleaves with Round B in the build phase, starting from B1 and B2, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b), N50 and N52; N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
