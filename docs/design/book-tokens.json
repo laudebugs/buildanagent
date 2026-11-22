@@ -4,7 +4,7 @@
   "decided": "2026-11-19",
   "color": {
     "light": {
-      "$comment": "C4 Clay and Cream, light page highlight is the background of a reader's highlight (BK24); highlighted text takes the text colour, so text is the one pair on it.",
+      "$comment": "C4 Clay and Cream, light page. highlight is the background of a reader's highlight (BK24), drawn under the text colour, so text is the one pair measured on it.",
       "values": {
         "background": "#FAF3E8",
         "text": "#2A1E16",
@@ -49,7 +49,7 @@
       ]
     },
     "dark": {
-      "$comment": "C4's brown page, dark mode. link is #F2C2A4 (owner, 2026-11-19), a paler shade than the accent so links and accent labels differ; links keep an underline because neither link colour reaches 3:1 against body text. highlight is the background of a reader's highlight (BK24), drawn under the text colour.",
+      "$comment": "C4's brown page, dark mode. link is #F2C2A4 (owner, 2026-11-19), a paler shade than the accent so links and accent labels differ; links keep an underline because neither link colour reaches 3:1 against body text. highlight is the background of a reader's highlight (BK24), drawn under the text colour, so text is the one pair measured on it.",
       "values": {
         "background": "#2A1E16",
         "text": "#F4EADC",

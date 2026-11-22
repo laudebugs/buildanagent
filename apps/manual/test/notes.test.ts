@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
 import { afterEach, test, vi } from "vitest";
 import {
   bestMatch,
@@ -206,8 +208,41 @@ test("an unchanged chapter finds each repeat of a quote where it was made, by it
 test("among repeats with the same context, the one nearest the stored offset wins", () => {
   const text = "x. same same same. y";
   const anchor = { quote: "same", prefix: "", suffix: "", section: "", offset: 8 };
-  assert.deepEqual(bestMatch(text, [3, 8, 13], anchor, 0), { start: 8, exact: true });
+  assert.deepEqual(bestMatch(text, [3, 8, 13], anchor, 0), { start: 8, exact: true, preferred: true });
+  assert.deepEqual(
+    bestMatch(text, [3, 8, 13], anchor, 0, (start) => start === 13),
+    { start: 13, exact: true, preferred: true },
+    "on equal context the preferred section wins before the offset",
+  );
   assert.equal(bestMatch(text, [], anchor, 0), undefined);
+});
+
+test("a paragraph moved to another section is found there by its context, though a similar sentence stays behind", () => {
+  const quote = "the model reads it";
+  const before =
+    "Intro. Schemas: first the model reads it slowly and then acts. Errors: nothing here yet about the topic.";
+  const sectionsBefore = [
+    { id: "schemas", start: before.indexOf("Schemas") },
+    { id: "errors", start: before.indexOf("Errors") },
+  ];
+  const anchor = anchorAt(before, quote, 0, sectionsBefore);
+  assert.equal(anchor.section, "schemas");
+  // The paragraph moved under Errors; Schemas keeps a sentence with the same words in other context.
+  const after =
+    "Intro. Schemas: here too the model reads it, briefly. Errors: first the model reads it slowly and then acts.";
+  const sectionsAfter = [
+    { id: "schemas", start: after.indexOf("Schemas") },
+    { id: "errors", start: after.indexOf("Errors") },
+  ];
+  const found = locate(after, anchor, sectionsAfter);
+  assert.equal(found.status, "moved", "the winner sits outside the stored section");
+  assert.equal(found.start, after.lastIndexOf(quote), "the exact context in Errors beats the repeat in Schemas");
+  const unchanged = locate(before, anchor, sectionsBefore);
+  assert.deepEqual(unchanged, {
+    start: before.indexOf(quote),
+    end: before.indexOf(quote) + quote.length,
+    status: "found",
+  });
 });
 
 test("text edited around a quote, in front of its section or across sections marks the highlight moved", () => {
@@ -279,8 +314,10 @@ test("the Markdown export quotes each passage with its note and says which passa
       "",
       "> a tool is a contract",
       "",
-      "Remember this.",
-      "Two lines.",
+      "Note:",
+      "",
+      "> Remember this.",
+      "> Two lines.",
       "",
       "---",
       "",
@@ -293,6 +330,76 @@ test("the Markdown export quotes each passage with its note and says which passa
     ].join("\n"),
   );
   assert.match(toMarkdown("T", "u", []), /No highlights yet\.\n$/);
+});
+
+test("a note's lines stay text in the export: no heading, list, rule, fence, table or HTML block, and blank lines kept", () => {
+  const note = [
+    "# not a heading",
+    "---",
+    "===",
+    "- not a list",
+    "+ nor this",
+    "* nor this",
+    "1. nor this",
+    "2) nor this",
+    "> not a quote",
+    "```js",
+    "~~~",
+    "| a | b |",
+    "<img src=x onerror=alert(1)>",
+    "    indented code",
+    "",
+    "back\\slash and *stars* stay",
+  ].join("\n");
+  const markdown = toMarkdown("T", "u", [{ quote: "# a quote", note, status: "found" }]);
+  const body = markdown.split("Note:\n\n")[1]?.split("\n\n---")[0];
+  assert.equal(
+    body,
+    [
+      "> \\# not a heading",
+      "> \\---",
+      "> \\===",
+      "> \\- not a list",
+      "> \\+ nor this",
+      "> \\* nor this",
+      "> 1\\. nor this",
+      "> 2\\) nor this",
+      "> \\> not a quote",
+      "> \\```js",
+      "> \\~~~",
+      "> \\| a | b |",
+      "> \\<img src=x onerror=alert(1)>",
+      "> indented code",
+      ">",
+      "> back\\\\slash and *stars* stay",
+    ].join("\n"),
+  );
+  assert.match(markdown, /\n> \\# a quote\n/, "the quote is escaped the same way");
+});
+
+test("a CommonMark parser reads the hostile note as two paragraphs of text inside one quotation", () => {
+  const note = "# h\n---\n- l\n1. n\n> q\n```\n<b>x</b>\n| a | b |\n\nafter the blank line";
+  const tree = unified()
+    .use(remarkParse)
+    .parse(toMarkdown("T", "u", [{ quote: "q", note, status: "found" }]));
+  const types = (node: { type: string; children?: unknown[] }): string[] => [
+    node.type,
+    ...((node.children ?? []) as { type: string; children?: unknown[] }[]).flatMap(types),
+  ];
+  const quotes = (tree.children as { type: string; children?: unknown[] }[]).filter(
+    (node) => node.type === "blockquote",
+  );
+  assert.equal(quotes.length, 2, "the passage and the note");
+  const noteQuote = quotes[1] as { type: string; children: { type: string }[] };
+  assert.deepEqual(
+    noteQuote.children.map((child) => child.type),
+    ["paragraph", "paragraph"],
+  );
+  assert.deepEqual(
+    types(noteQuote).filter((type) => !["blockquote", "paragraph", "text"].includes(type)),
+    [],
+    "no heading, list, rule, code, HTML or table",
+  );
 });
 
 const CHAPTER = `
@@ -310,7 +417,7 @@ const CHAPTER = `
   </article>`;
 
 test("the chapter's prose leaves out figures, controls and hidden glossary cards, and sections start at headings", () => {
-  const win = new Window();
+  const win = track(new Window());
   const doc = win.document as unknown as Document;
   doc.body.innerHTML = CHAPTER;
   const article = doc.querySelector("article") as Element;
@@ -328,7 +435,7 @@ test("the chapter's prose leaves out figures, controls and hidden glossary cards
 });
 
 test("a selection across em, code and links maps to the text a reader sees, and element points map to the next text", () => {
-  const win = new Window();
+  const win = track(new Window());
   const doc = win.document as unknown as Document;
   doc.body.innerHTML = CHAPTER;
   const article = doc.querySelector("article") as Element;
@@ -357,12 +464,17 @@ test("a selection across em, code and links maps to the text a reader sees, and 
   assert.equal(range.endOffset, 3);
 });
 
-let window: Window | undefined;
 let requests: string[] = [];
+const windows: Window[] = [];
+
+/** A happy-dom window that afterEach closes, whichever test made it. */
+function track(win: Window): Window {
+  windows.push(win);
+  return win;
+}
 
 afterEach(async () => {
-  await window?.happyDOM.close();
-  window = undefined;
+  await Promise.all(windows.splice(0).map((win) => win.happyDOM.close()));
   vi.restoreAllMocks();
 });
 
@@ -375,8 +487,7 @@ class FakeHighlight {
 
 function page(options: { highlights?: boolean; storage?: "blocked"; items?: unknown[] } = {}): Window {
   requests = [];
-  const win = new Window({ url: "https://manual.buildanagent.fyi/tools/" });
-  window = win;
+  const win = track(new Window({ url: "https://manual.buildanagent.fyi/tools/" }));
   win.document.body.innerHTML = CHAPTER;
   const record =
     (name: string) =>
@@ -574,7 +685,114 @@ test("a chapter page reads as usual when storage throws on every write, and says
   );
   assert.doesNotThrow(() => (win.document.activeElement as unknown as HTMLButtonElement).click());
   assert.match(q(win, "[role='status'].visually-hidden")?.textContent ?? "", /would not save the change/);
+  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false, "the toolbar stays open");
+  assert.match(visibleMessage(win), /would not save the change/, "and shows why");
   assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), []);
+});
+
+/** The toolbar's message, when the reader can see it. */
+function visibleMessage(win: Window): string {
+  const message = q<HTMLElement>(win, ".notes-toolbar__message");
+  return message && !message.hidden && message.closest("[hidden]") === null ? (message.textContent ?? "") : "";
+}
+
+function shortcut(win: Window) {
+  win.document.dispatchEvent(
+    new win.KeyboardEvent("keydown", { key: "N", code: "KeyN", altKey: true, shiftKey: true, bubbles: true }),
+  );
+}
+
+const toolbarButton = (win: Window, label: string) =>
+  [...(win.document as unknown as Document).querySelectorAll<HTMLButtonElement>(".notes-toolbar button")].find(
+    (button) => button.textContent === label,
+  ) as HTMLButtonElement;
+
+test("highlighting a passage twice keeps the toolbar open and says so in view, with the panel closed", () => {
+  const win = page();
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Highlight").click();
+  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, true, "a saved highlight closes the toolbar");
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Highlight").click();
+  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false);
+  assert.equal(visibleMessage(win), "That passage is already highlighted.");
+  assert.equal(parseStored(win.localStorage.getItem(KEY)).get("tools")?.length, 1);
+});
+
+test("at the cap a passage already highlighted still takes a note, and only a new highlight is refused", () => {
+  const first = page();
+  start(first as unknown as globalThis.Window);
+  const firstParagraph = q(first, "article p:last-of-type")?.firstChild as Node;
+  select(first, firstParagraph, 2, firstParagraph, 13);
+  shortcut(first);
+  toolbarButton(first, "Highlight").click();
+  const made = parseStored(first.localStorage.getItem(KEY)).get("tools")?.[0];
+  assert.ok(made);
+  const fillers = Array.from({ length: MAX_HIGHLIGHTS - 1 }, (_, n) => item({ id: `f${n}`, quote: `gone ${n}` }));
+  const win = page({ items: [made, ...fillers] });
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  assert.equal(toolbarButton(win, "Add note").disabled, false, "the highlighted passage can take a note");
+  assert.equal(visibleMessage(win), "");
+  toolbarButton(win, "Add note").click();
+  const field = q<HTMLTextAreaElement>(win, "#notes-field");
+  assert.ok(field);
+  field.value = "A note at the cap.";
+  q<HTMLButtonElement>(win, ".notes-dialog__form button[type='submit']")?.click();
+  const items = parseStored(win.localStorage.getItem(KEY)).get("tools") ?? [];
+  assert.equal(items.length, MAX_HIGHLIGHTS);
+  assert.equal(items.find((found) => found.id === made.id)?.note, "A note at the cap.");
+  q<HTMLButtonElement>(win, ".notes-dialog__head button")?.click();
+  select(win, paragraph, 40, paragraph, 51);
+  shortcut(win);
+  assert.equal(toolbarButton(win, "Highlight").disabled, true, "a new passage is refused");
+  assert.match(visibleMessage(win), /already holds 200 highlights/);
+});
+
+test("the chapter's text model is built once per page state and again after the article changes", () => {
+  const win = page({ items: ITEMS });
+  const walkers = vi.spyOn(win.document, "createTreeWalker");
+  start(win as unknown as globalThis.Window);
+  assert.equal(walkers.mock.calls.length, 1, "drawing the stored highlights builds it");
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  for (const end of [13, 20, 30]) {
+    select(win, paragraph, 2, paragraph, end);
+    shortcut(win);
+    (win.document.activeElement as unknown as HTMLElement | null)?.blur?.();
+  }
+  toolbarButton(win, "Highlight").click();
+  assert.equal(walkers.mock.calls.length, 1, "selections and a saved highlight reuse it");
+  q(win, "article p")?.append(win.document.createTextNode(" More words.") as unknown as Node);
+  select(win, paragraph, 2, paragraph, 9);
+  shortcut(win);
+  assert.equal(walkers.mock.calls.length, 2, "a changed article is read again");
+  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false);
+});
+
+test("a change from another tab redraws the panel and keeps focus on the same control of the same row", () => {
+  const win = page({ items: ITEMS });
+  start(win as unknown as globalThis.Window);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const deleteOf = (id: string) =>
+    (win.document as unknown as Document).querySelector<HTMLButtonElement>(
+      `.notes-dialog__item[data-id="${id}"] [data-action="delete"]`,
+    );
+  deleteOf("two")?.focus();
+  const before = deleteOf("two");
+  // Another tab deleted "one".
+  win.localStorage.setItem(KEY, stored({ tools: ITEMS.filter((found) => found.id !== "one") }));
+  const event = new win.Event("storage");
+  Object.defineProperty(event, "key", { value: KEY });
+  win.dispatchEvent(event);
+  assert.equal(q(win, '.notes-dialog__item[data-id="one"]'), null, "the list shows the stored notes");
+  assert.notEqual(deleteOf("two"), before, "the row was rendered again");
+  assert.equal(win.document.activeElement, deleteOf("two"));
 });
 
 test("the script names no API that can reach the network and writes no markup", () => {

@@ -265,29 +265,39 @@ function sharedStart(a, b) {
 }
 
 /**
- * Picks the occurrence of the anchor's quote whose surrounding text matches the anchor's prefix and suffix best, and
- * among equals the one nearest the anchor's offset in its section. Gives the occurrence's start and whether its
- * context matches in full.
+ * Picks the occurrence of the anchor's quote whose surrounding text matches the anchor's prefix and suffix best.
+ * Among equals it prefers one for which `preferred(start)` holds, the anchor's own section, then the one nearest the
+ * anchor's offset in its section. Gives the occurrence's start, whether its context matches in full and whether it
+ * is preferred.
  * @param {string} text
  * @param {readonly number[]} starts
  * @param {Anchor} anchor
  * @param {number} sectionStart
- * @returns {{ start: number, exact: boolean } | undefined}
+ * @param {(start: number) => boolean} [preferred]
+ * @returns {{ start: number, exact: boolean, preferred: boolean } | undefined}
  */
-export function bestMatch(text, starts, anchor, sectionStart) {
+export function bestMatch(text, starts, anchor, sectionStart, preferred = () => true) {
   let best;
   for (const start of starts) {
     const end = start + anchor.quote.length;
     const context =
       sharedEnd(text.slice(Math.max(0, start - anchor.prefix.length), start), anchor.prefix) +
       sharedStart(text.slice(end, end + anchor.suffix.length), anchor.suffix);
+    const home = preferred(start);
     const distance = Math.abs(start - sectionStart - anchor.offset);
-    if (!best || context > best.context || (context === best.context && distance < best.distance)) {
-      best = { start, context, distance };
-    }
+    const better =
+      !best ||
+      context > best.context ||
+      (context === best.context && home && !best.home) ||
+      (context === best.context && home === best.home && distance < best.distance);
+    if (better) best = { start, context, home, distance };
   }
   if (!best) return undefined;
-  return { start: best.start, exact: best.context === anchor.prefix.length + anchor.suffix.length };
+  return {
+    start: best.start,
+    exact: best.context === anchor.prefix.length + anchor.suffix.length,
+    preferred: best.home,
+  };
 }
 
 // A passage whose own words were edited is found by its context: the prefix, then the suffix a similar length later.
@@ -307,10 +317,10 @@ function byContext(text, anchor) {
 }
 
 /**
- * Finds an anchor in the chapter's joined text. The search looks first in the anchor's own section, then in the
- * whole article, and picks among repeats of the quote with `bestMatch`. A quote found in its section with its context
- * intact is "found"; one found elsewhere, with changed context, or by its context alone after its own words changed is
- * "moved"; one the chapter no longer holds is "lost".
+ * Finds an anchor in the chapter's joined text. Every repeat of the quote in the article is scored with `bestMatch`:
+ * the best match of the stored context wins wherever it sits, and the anchor's own section wins only a tie. A quote
+ * found in its section with its context intact is "found"; one found in another section, with changed context, or
+ * by its context alone after its own words changed is "moved"; one the chapter no longer holds is "lost".
  * @param {string} text
  * @param {Anchor} anchor
  * @param {readonly Section[]} sections
@@ -322,11 +332,10 @@ export function locate(text, anchor, sections) {
   const known = anchor.section === "" || at >= 0;
   const sectionStart = at >= 0 ? (sections[at]?.start ?? 0) : 0;
   const sectionEnd = at >= 0 ? (sections[at + 1]?.start ?? text.length) : (sections[0]?.start ?? text.length);
-  const inSection = known ? occurrences(text, anchor.quote, sectionStart, sectionEnd) : [];
-  const starts = inSection.length > 0 ? inSection : occurrences(text, anchor.quote, 0, text.length);
-  const match = bestMatch(text, starts, anchor, sectionStart);
+  const home = (start) => known && start >= sectionStart && start < sectionEnd;
+  const match = bestMatch(text, occurrences(text, anchor.quote, 0, text.length), anchor, sectionStart, home);
   if (match) {
-    const status = inSection.length > 0 && match.exact ? "found" : "moved";
+    const status = match.preferred && match.exact ? "found" : "moved";
     return { start: match.start, end: match.start + anchor.quote.length, status };
   }
   const moved = byContext(text, anchor);
@@ -343,8 +352,22 @@ export function cleanNote(note) {
 }
 
 /**
+ * Escapes one line of a reader's text for a Markdown blockquote, so it stays a line of text: leading spaces go, a
+ * character that would start a heading, list, quote, rule, fence, table or HTML block at the line's start is escaped,
+ * and every `<` is escaped so no HTML is read.
+ * @param {string} line
+ * @returns {string}
+ */
+export function markdownLine(line) {
+  const text = line.replace(/^\s+/, "").replace(/\\/g, "\\\\").replace(/</g, "\\<");
+  if (/^\d+[.)]/.test(text)) return text.replace(/^(\d+)([.)])/, "$1\\$2");
+  return /^[#>+*=_~`|-]/.test(text) ? `\\${text}` : text;
+}
+
+/**
  * Writes a chapter's highlights as Markdown: a heading with the chapter's title, its address, then each passage as a
- * quotation with its note under it. A passage the chapter no longer holds says so.
+ * quotation, and its note as a second quotation under a "Note:" line, with every line of both escaped by
+ * `markdownLine`. A passage the chapter no longer holds says so.
  * @param {string} title
  * @param {string} url
  * @param {readonly { quote: string, note: string, status: string }[]} items
@@ -352,11 +375,12 @@ export function cleanNote(note) {
  */
 export function toMarkdown(title, url, items) {
   const oneLine = (value) => value.replace(/\s+/g, " ").trim();
-  const lines = [`# Notes on ${oneLine(title)}`, "", `From <${url}>, exported from this browser.`, ""];
+  const quote = (text) => text.split(/\r?\n/).map((line) => (line.trim() ? `> ${markdownLine(line)}` : ">"));
+  const lines = [`# Notes on ${markdownLine(oneLine(title))}`, "", `From <${url}>, exported from this browser.`, ""];
   if (items.length === 0) lines.push("No highlights yet.", "");
   for (const item of items) {
-    lines.push(`> ${oneLine(item.quote)}`, "");
-    if (item.note) lines.push(...item.note.trim().split(/\r?\n/), "");
+    lines.push(...quote(oneLine(item.quote)), "");
+    if (item.note.trim()) lines.push("Note:", "", ...quote(item.note.trim()), "");
     if (item.status === "lost") lines.push("_This passage is no longer in the chapter._", "");
     lines.push("---", "");
   }
@@ -512,12 +536,32 @@ class Notes {
     this.slug = slug;
     this.storage = storage;
     this.items = readAll(storage)?.get(slug) ?? [];
+    // The chapter's text model is built once and rebuilt only after the article's text or the attributes that decide
+    // which text counts have changed.
+    this.model = undefined;
+    this.observer = new win.MutationObserver(() => {
+      this.model = undefined;
+    });
+    this.observer.observe(article, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["aria-hidden", "aria-live", "role", "data-pagefind-ignore", "id"],
+    });
     /** @type {{ anchor: Anchor, start: number, end: number } | undefined} */
     this.pending = undefined;
     this.placed = new Map();
     this.build();
     this.paint();
     this.listen();
+  }
+
+  /** The chapter's text model, rebuilt only when the article changed since it was last built. */
+  chapter() {
+    if (this.observer.takeRecords().length > 0) this.model = undefined;
+    if (!this.model) this.model = readChapter(this.article);
+    return this.model;
   }
 
   build() {
@@ -694,7 +738,7 @@ class Notes {
       if (event.key !== KEY && event.key !== null) return;
       this.items = readAll(this.storage)?.get(this.slug) ?? [];
       this.paint();
-      if (this.dialog.open) this.renderList();
+      if (this.dialog.open) this.rerender();
     });
   }
 
@@ -731,7 +775,7 @@ class Notes {
       this.hideToolbar();
       return;
     }
-    const chapter = readChapter(article);
+    const chapter = this.chapter();
     const start = chapter.position(range.startContainer, range.startOffset);
     const end = chapter.position(range.endContainer, range.endOffset);
     const built = buildAnchor(chapter.index.text, start, end, chapter.sections);
@@ -741,7 +785,10 @@ class Notes {
       return;
     }
     this.pending = "anchor" in built ? built : undefined;
-    const problem = "reason" in built ? MESSAGES.long : this.items.length >= MAX_HIGHLIGHTS ? MESSAGES.full : "";
+    // At the cap a passage already highlighted can still take a note; only a new highlight is refused.
+    const isNew = this.pending !== undefined && this.existing(this.pending) === undefined;
+    const full = isNew && this.items.length >= MAX_HIGHLIGHTS;
+    const problem = "reason" in built ? MESSAGES.long : full ? MESSAGES.full : "";
     this.highlightButton.disabled = problem !== "";
     this.noteButton.disabled = problem !== "";
     this.toolbarMessage.textContent = problem;
@@ -782,21 +829,33 @@ class Notes {
     else this.openButton.focus();
   }
 
-  /** Highlights the pending selection, or opens the note form for it. */
+  /** The stored highlight drawn over exactly the pending passage, if any. */
+  existing(pending) {
+    return this.items.find((item) => {
+      const place = this.placed.get(item.id);
+      return place?.status !== "lost" && place?.start === pending.start && place?.end === pending.end;
+    });
+  }
+
+  /**
+   * Highlights the pending selection, or opens the note form for it. The toolbar stays open, with the reason in view,
+   * until the highlight is saved.
+   */
   addPending(withNote) {
     const pending = this.pending;
     const fromToolbar = this.toolbar.contains(this.doc.activeElement);
     if (!pending) return;
-    if (this.items.length >= MAX_HIGHLIGHTS) {
-      this.say(MESSAGES.full);
+    const existing = this.existing(pending);
+    if (!existing && this.items.length >= MAX_HIGHLIGHTS) {
+      this.notice(MESSAGES.full);
       return;
     }
-    const existing = this.items.find((item) => {
-      const place = this.placed.get(item.id);
-      return place?.status !== "lost" && place?.start === pending.start && place?.end === pending.end;
-    });
-    this.hideToolbar();
+    if (!withNote && existing) {
+      this.notice("That passage is already highlighted.");
+      return;
+    }
     if (withNote) {
+      this.hideToolbar();
       this.formTarget = existing ? { id: existing.id } : { anchor: pending.anchor };
       if (!this.dialog.open) this.open(fromToolbar ? this.returnFocus : this.doc.activeElement);
       this.selectionBlock.hidden = true;
@@ -804,12 +863,13 @@ class Notes {
       this.clearSelection();
       return;
     }
-    if (existing) {
-      this.say("That passage is already highlighted.");
-    } else {
-      const item = this.makeItem(pending.anchor, "");
-      if (this.commit([...this.items, item])) this.say(`Highlighted “${shorten(item.quote)}”.`);
+    const item = this.makeItem(pending.anchor, "");
+    if (!this.commit([...this.items, item])) {
+      this.notice(MESSAGES.storage);
+      return;
     }
+    this.hideToolbar();
+    this.say(`Highlighted “${shorten(item.quote)}”.`);
     this.pending = undefined;
     this.clearSelection();
     if (this.dialog.open) {
@@ -834,15 +894,9 @@ class Notes {
   /** Stores the chapter's new list, keeping the other chapters as they are stored now. Gives whether it was saved. */
   commit(items) {
     const all = readAll(this.storage);
-    if (!all) {
-      this.say(MESSAGES.storage);
-      return false;
-    }
+    if (!all) return false;
     all.set(this.slug, items);
-    if (!writeAll(this.storage, all)) {
-      this.say(MESSAGES.storage);
-      return false;
-    }
+    if (!writeAll(this.storage, all)) return false;
     this.items = items;
     this.paint();
     return true;
@@ -854,9 +908,18 @@ class Notes {
     if (this.dialog.open) this.status.textContent = message;
   }
 
+  /** Says why an action failed where the reader is looking: the toolbar while it is open, and the panel. */
+  notice(message) {
+    this.say(message);
+    if (this.toolbar.hidden) return;
+    this.toolbarMessage.textContent = message;
+    this.toolbarMessage.hidden = false;
+    this.position();
+  }
+
   paint() {
-    const { win, doc, article } = this;
-    const chapter = readChapter(article);
+    const { win, doc } = this;
+    const chapter = this.chapter();
     const plain = [];
     const noted = [];
     this.placed = new Map();
@@ -926,6 +989,21 @@ class Notes {
     else this.openButton.focus();
   }
 
+  /** Renders the list again and puts focus back on the same control of the same row, if both are still there. */
+  rerender() {
+    const active = this.doc.activeElement;
+    const row = this.list.contains(active) ? active.closest("[data-id]") : null;
+    const id = row?.getAttribute("data-id");
+    const action = active?.getAttribute?.("data-action");
+    this.renderList();
+    if (!row) return;
+    const again = [...this.list.children].find((child) => child.getAttribute("data-id") === id);
+    const target =
+      [...(again?.querySelectorAll("button") ?? [])].find((button) => button.getAttribute("data-action") === action) ??
+      again?.querySelector("button");
+    (target ?? this.closeButton).focus();
+  }
+
   renderList() {
     const doc = this.doc;
     const items = this.ordered();
@@ -935,13 +1013,19 @@ class Notes {
         const place = this.placed.get(item.id) ?? { status: "lost" };
         const buttons = [];
         if (place.status !== "lost") {
-          const go = element(doc, "button", { type: "button", className: "control", text: "Go to passage" });
+          const go = element(doc, "button", {
+            type: "button",
+            className: "control",
+            "data-action": "go",
+            text: "Go to passage",
+          });
           go.addEventListener("click", () => this.jump(item));
           buttons.push(go);
         }
         const edit = element(doc, "button", {
           type: "button",
           className: "control",
+          "data-action": "edit",
           text: item.note ? "Edit note" : "Add note",
         });
         edit.addEventListener("click", () => {
@@ -949,7 +1033,12 @@ class Notes {
           this.selectionBlock.hidden = true;
           this.openForm(item.note, item.quote, edit);
         });
-        const remove = element(doc, "button", { type: "button", className: "control", text: "Delete" });
+        const remove = element(doc, "button", {
+          type: "button",
+          className: "control",
+          "data-action": "delete",
+          text: "Delete",
+        });
         remove.addEventListener("click", () => this.remove(item));
         buttons.push(edit, remove);
         const parts = [element(doc, "blockquote", { className: "notes-dialog__quote", text: item.quote })];
@@ -1016,7 +1105,10 @@ class Notes {
       id = target.id;
       items = this.items.map((item) => (item.id === id ? { ...item, note, at: Date.now() } : item));
     }
-    if (!this.commit(items)) return;
+    if (!this.commit(items)) {
+      this.say(MESSAGES.storage);
+      return;
+    }
     this.formTarget = undefined;
     this.formReturn = undefined;
     this.form.hidden = true;
@@ -1036,7 +1128,10 @@ class Notes {
   remove(item) {
     const rows = [...this.list.children];
     const index = rows.findIndex((row) => row.getAttribute("data-id") === item.id);
-    if (!this.commit(this.items.filter((other) => other.id !== item.id))) return;
+    if (!this.commit(this.items.filter((other) => other.id !== item.id))) {
+      this.say(MESSAGES.storage);
+      return;
+    }
     this.renderList();
     this.say(`Deleted the highlight on “${shorten(item.quote)}”.`);
     const next = this.list.children[Math.min(index, this.list.children.length - 1)];
@@ -1044,15 +1139,17 @@ class Notes {
   }
 
   jump(item) {
-    const chapter = readChapter(this.article);
+    const chapter = this.chapter();
     const located = locate(chapter.index.text, item, chapter.sections);
     if (located.status === "lost") return;
     const from = rawPoint(chapter.index, located.start, "start");
     const node = from && chapter.nodes[from.seg];
     const block = node?.parentElement?.closest("p, li, blockquote, td, th, dd, dt, h2, h3, h4, figcaption, aside");
     // The dialog's close event runs after the browser has returned focus to the opener, so the move happens there.
-    this.opener = block ?? undefined;
-    this.jumping = Boolean(block);
+    if (block) {
+      this.opener = block;
+      this.jumping = true;
+    }
     this.dialog.close();
   }
 
