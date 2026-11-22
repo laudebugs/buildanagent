@@ -1,0 +1,70 @@
+{
+  "format": 2,
+  "example": "11-route-by-code",
+  "file": "packages/sdk/examples/11-route-by-code.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "check",
+      "line": 24,
+      "message": "a digit sends the input to the plain function and asks no model",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 14,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Reply."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hello"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 14,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "from the model"
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 28,
+      "message": "any other input takes the model branch, one call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "the same input takes the same branch every time",
+      "pass": true
+    }
+  ]
+}
