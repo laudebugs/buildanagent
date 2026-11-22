@@ -768,7 +768,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [N22](../todos/done/N22-in-process-extensions.md) | In-process extensions: composition, project trust and content-hash pins | N11, N12 | M |
-| [N23](../todos/ready/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
+| [N23](../todos/ongoing/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
 | [N52](../todos/ready/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
