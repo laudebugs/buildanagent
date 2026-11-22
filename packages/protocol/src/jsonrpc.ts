@@ -40,8 +40,8 @@ export const CLIENT_METHODS = [
 /** The requests the server sends. */
 export const SERVER_REQUEST_METHODS = ["approval/request", "clarification/request", "tool/call"] as const;
 
-/** The notifications the server sends. */
-export const SERVER_NOTIFICATION_METHODS = ["event", "turn/settled"] as const;
+/** The notifications the server sends. `$/cancelRequest` withdraws one of the server's own requests. */
+export const SERVER_NOTIFICATION_METHODS = ["event", "turn/settled", "$/cancelRequest"] as const;
 
 /** The client methods that need an opt-in, because they may change before a client other than ours uses them. */
 export const EXPERIMENTAL_METHODS = ["session/checkout", "session/fork"] as const;

@@ -24,6 +24,7 @@ import {
   run,
   SDK_VERSION,
   type ToolDefinition,
+  type ToolResult,
 } from "@buildanagent/sdk";
 import type { Clock } from "@buildanagent/sdk/testing";
 import {
@@ -38,11 +39,26 @@ import type { ContextFill, TurnContext } from "../context/types.js";
 import { HarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import type { PolicySession } from "../permissions/types.js";
+import type { ToolWrapper } from "../tools/types.js";
 import { contextOf } from "./rebuild.js";
 import { settleOpenCalls, unansweredCalls } from "./resume.js";
 import type { Session } from "./session.js";
 import { findSticky } from "./sticky.js";
 import type { EntryInput } from "./store.js";
+
+/** One call to a `client_request` tool, as `TurnOptions.clientTool` receives it. */
+export interface ClientToolCall {
+  readonly callId: string;
+  /** The tool's canonical name. */
+  readonly tool: string;
+  /** The input after the SDK validated it. */
+  readonly input: unknown;
+  /** Fires when the run is aborted, so the caller can withdraw the request it sent. */
+  readonly signal: AbortSignal;
+}
+
+/** Runs a `client_request` tool's call by asking the client that holds the tool, and resolves with its result. */
+export type ClientToolRunner = (call: ClientToolCall) => Promise<ToolResult>;
 
 /** The options of one turn. Anything left out takes the harness's setting. */
 export interface TurnOptions<H = unknown> {
@@ -80,6 +96,11 @@ export interface TurnOptions<H = unknown> {
   readonly onCompletionCheck?: (entry: SessionEntry) => void;
   /** Observers for this turn alone. Unlike `Run.on()`, they also see `run_start`. They run after the harness's own. */
   readonly observers?: readonly Observer[];
+  /**
+   * Runs the calls of every tool registered with the `client_request` pattern, in place of the tool's own `execute`.
+   * The dispatcher sets it to send a `tool/call` request. Left out, the tool's own `execute` runs.
+   */
+  readonly clientTool?: ClientToolRunner;
   /**
    * The conversation so far. Left out, it is rebuilt from the session's log, so a turn in any process goes on from
    * what the log holds. Pass it only to run on a conversation the log doesn't hold.
@@ -151,9 +172,29 @@ class EntryWriter {
 
 const refKey = (ref: ModelRef): string => `${ref.api}\u0000${ref.provider}\u0000${ref.id}`;
 
+/**
+ * The harness's wrapper, with a `client_request` tool's `execute` sent to `clientTool` first, so a write cap or shadow
+ * mode still wraps the call the client runs.
+ */
+function wrapperOf<H>(harness: Harness<H>, clientTool: ClientToolRunner | undefined): ToolWrapper<H> | undefined {
+  if (clientTool === undefined) return harness.wrap;
+  const inner: ToolWrapper<H> = harness.wrap ?? ((tool) => tool.definition);
+  return (tool, hostContext) => {
+    if (tool.pattern !== "client_request") return inner(tool, hostContext);
+    const definition: ToolDefinition<unknown, unknown, unknown> = {
+      ...tool.definition,
+      execute: (input, ctx) => clientTool({ callId: ctx.callId, tool: tool.canonicalName, input, signal: ctx.signal }),
+    };
+    return inner({ ...tool, definition }, hostContext);
+  };
+}
+
 /** The turn's tools: the registry's definitions for this host context, cut to the allowlist. */
-function toolsOf<H>(harness: Harness<H>, options: TurnOptions<H>): ToolDefinition<unknown, unknown, unknown>[] {
-  const all = harness.registry.definitions(harness.wrap, options.hostContext as H);
+function toolsOf<H>(
+  harness: Harness<H>,
+  options: Pick<TurnOptions<H>, "tools" | "hostContext" | "clientTool">,
+): ToolDefinition<unknown, unknown, unknown>[] {
+  const all = harness.registry.definitions(wrapperOf(harness, options.clientTool), options.hostContext as H);
   if (options.tools === undefined) return all;
   const allowed = new Set<string>();
   for (const name of options.tools) {
@@ -728,6 +769,10 @@ export interface ResumeOptions<H = unknown> extends RunSettings<H> {
   readonly signal?: AbortSignal;
   /** Called with the resumed run as soon as it starts, so a caller can `steer()`, `followUp()` or abort it. */
   readonly onRun?: (run: Run<unknown>) => void;
+  /** Observers for this resume alone, as `TurnOptions.observers`. */
+  readonly observers?: readonly Observer[];
+  /** Runs the calls of `client_request` tools, as `TurnOptions.clientTool`. */
+  readonly clientTool?: ClientToolRunner;
 }
 
 /** The resume's policy check: the pipeline decides the call again, so a deny written after the pause wins. */
@@ -782,9 +827,9 @@ export async function resumeTurn<H = unknown>(
   // The paused turn's tools: the latest `loadout` names them, and one the registry has lost stops the resume.
   const names = path.findLast((entry) => entry.type === "loadout");
   const tools = toolsOf(harness, {
-    input: "",
     ...(names?.type === "loadout" ? { tools: names.tools } : {}),
     ...(options.hostContext === undefined ? {} : { hostContext: options.hostContext }),
+    ...(options.clientTool === undefined ? {} : { clientTool: options.clientTool }),
   });
   const records = options.records ?? options.resolutions.map((resolution) => ({ resolution }));
   for (const record of records) await writer.write("user", { type: "approval_resolved", ...record });
@@ -808,7 +853,11 @@ export async function resumeTurn<H = unknown>(
     signer: harness.signer,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
-    observers: [(event: AgentEvent) => recorder.handle(event), ...afterWrites(harness.observers, writer)],
+    observers: [
+      (event: AgentEvent) => recorder.handle(event),
+      ...afterWrites(harness.observers, writer),
+      ...afterWrites(options.observers, writer),
+    ],
     ...optionalRunOptions(options, harness, []),
   });
   options.onRun?.(handle);

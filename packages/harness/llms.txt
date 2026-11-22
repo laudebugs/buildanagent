@@ -18,8 +18,15 @@ The sections of README.md and every public export, generated from this package's
 - [A session belongs to a user, and every store call names both](README.md#a-session-belongs-to-a-user-and-every-store-call-names-both)
 - [One writer holds a session's lock, and a lock outlives a crash only by its lease](README.md#one-writer-holds-a-sessions-lock-and-a-lock-outlives-a-crash-only-by-its-lease)
 - [HEAD moves by entries, and a fork or a revert writes a new file and never edits an old one](README.md#head-moves-by-entries-and-a-fork-or-a-revert-writes-a-new-file-and-never-edits-an-old-one)
+- [Nothing is deleted unless you set a retention period](README.md#nothing-is-deleted-unless-you-set-a-retention-period)
 - [`runTurn()` writes one SDK run into the log, and the user entry goes first](README.md#runturn-writes-one-sdk-run-into-the-log-and-the-user-entry-goes-first)
 - [One dispatcher answers every client, and a client in the same process needs no framing](README.md#one-dispatcher-answers-every-client-and-a-client-in-the-same-process-needs-no-framing)
+  - [A request for a person goes to every watching client once its entry is durable, and the first answer wins](README.md#a-request-for-a-person-goes-to-every-watching-client-once-its-entry-is-durable-and-the-first-answer-wins)
+  - [A client tool's call goes to the client that started the turn](README.md#a-client-tools-call-goes-to-the-client-that-started-the-turn)
+  - [Either side cancels its own request with `$/cancelRequest`](README.md#either-side-cancels-its-own-request-with-cancelrequest)
+  - [Each connection's queues are bounded at 128, and only events are dropped](README.md#each-connections-queues-are-bounded-at-128-and-only-events-are-dropped)
+  - [`session/open` with `fromSeq` replays the entries a client missed](README.md#sessionopen-with-fromseq-replays-the-entries-a-client-missed)
+  - [A client that reconnects finds its pending requests in `initialize` and is asked again on open](README.md#a-client-that-reconnects-finds-its-pending-requests-in-initialize-and-is-asked-again-on-open)
 - [The log is the only state, so a turn rebuilds its context from it](README.md#the-log-is-the-only-state-so-a-turn-rebuilds-its-context-from-it)
   - [A crash leaves open calls, and the next turn settles them by what they could have done](README.md#a-crash-leaves-open-calls-and-the-next-turn-settles-them-by-what-they-could-have-done)
 - [Two cheap layers keep a long run small: a write cap that spills, and masking in steps](README.md#two-cheap-layers-keep-a-long-run-small-a-write-cap-that-spills-and-masking-in-steps)
@@ -30,6 +37,7 @@ The sections of README.md and every public export, generated from this package's
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
   - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
+  - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 
 ## Exports from `@buildanagent/harness`
 
@@ -48,6 +56,8 @@ The sections of README.md and every public export, generated from this package's
 - `interface CheckConfig`: The parts of the workspace that decide what a check does, as text: the config file, the bodies of the `package.json` scripts discovery names and the resolved checks run (with their `pre` and `post` hooks), and the `Makefile` `test` rule.
 - `CheckoutEntry`: re-exported from `@buildanagent/protocol`.
 - `type ChildLink`: What links a child session to the session that started it: a tool call, or a workflow step.
+- `interface ClientToolCall`: One call to a `client_request` tool, as `TurnOptions.clientTool` receives it.
+- `type ClientToolRunner`: Runs a `client_request` tool's call by asking the client that holds the tool, and resolves with its result.
 - `CompactionEntry`: re-exported from `@buildanagent/protocol`.
 - `CompletionCheckEntry`: re-exported from `@buildanagent/protocol`.
 - `type CompletionOutcome`: What a check found: the body of the `completion_check` entry.
@@ -57,6 +67,7 @@ The sections of README.md and every public export, generated from this package's
 - `createApprovals()`: Creates the approvals of `harness`, which needs a `signer` to check the requests it resumes.
 - `DEFAULT_CHECK_TIMEOUT_MS`: How long one check may run before it is stopped with exit code 124.
 - `DEFAULT_MAX_ENTRY_BYTES`: The default bound on one entry's JSON, in bytes.
+- `DEFAULT_PLATFORM_HINT`: Where a read-only store's error sends the owner when no hint is given.
 - `DENIED_EXIT_CODE`: The exit code recorded for a check that the sandbox's policy refused to run.
 - `DERIVED`: The prefix of the name of a file that holds part of a session, such as a revert's or a migration's file.
 - `DISCOVERED_SCRIPTS`: The `package.json` scripts discovery runs, in the order it runs them.
@@ -73,6 +84,7 @@ The sections of README.md and every public export, generated from this package's
 - `isDerivedFile`: Whether a file id names a derived file.
 - `isProtocolError`: re-exported from `@buildanagent/protocol`.
 - `isTestFile()`: Whether a path looks like a test file: a code file (by its extension, such as `.ts`, `.py` or `.go`) in a `test`, `tests` or `__tests__` folder, or a file named as a test anywhere.
+- `interface KeyChangeOptions`: The options of `rotateKeys()` and `pruneKeys()`.
 - `listSessions()`: The user's sessions, oldest first, without the files that only hold part of a session (a revert's or a migration's).
 - `interface LoadOptions`: The options of `load()`.
 - `LoadoutEntry`: re-exported from `@buildanagent/protocol`.
@@ -103,6 +115,7 @@ The sections of README.md and every public export, generated from this package's
 - `ProductRecordEntry`: re-exported from `@buildanagent/protocol`.
 - `ProtocolError`: re-exported from `@buildanagent/protocol`.
 - `ProtocolErrorCode`: re-exported from `@buildanagent/protocol`.
+- `pruneKeys()`: Calls `store.prune(inUse)` and returns the ids it removed.
 - `quorumOf()`: A policy that needs `needed` allows from distinct approvers, named by `Resolution.by`.
 - `interface QuorumPolicy`: Decides when a request has enough answers.
 - `type QuorumVerdict`: What a quorum policy says about one request: its answers are enough, not yet, a refusal, or too old.
@@ -110,10 +123,13 @@ The sections of README.md and every public export, generated from this package's
 - `resolveChecks()`: Finds what checks the task.
 - `interface ResolvedChecks`: The checks to run, and whether the project named them or the harness found them.
 - `interface ResolveOptions`: The settings a resume takes besides the answers: a turn's settings, and what the answers cover.
+- `rotateKeys()`: Adds a new current key to `store` and returns its id.
 - `runCompletionCheck()`: Runs the checks `start` resolved before the turn, in the sandbox, one after another and all of them even when one fails, and compares the workspace and the check config with `start`.
 - `runTurn()`: Runs one turn on a session and writes it to the log.
 - `SandboxTier`: re-exported from `@buildanagent/protocol`.
 - `interface Scheduler`: Promises a wake at a time.
+- `secretKeyStore()`: A `KeyStore` whose `load()` calls `read()` and parses the text it returns.
+- `interface SecretKeyStoreOptions`: The options of `secretKeyStore()`.
 - `class Session`: One session.
 - `SESSION_ENTRY_TYPES`: re-exported from `@buildanagent/protocol`.
 - `SessionEntry`: re-exported from `@buildanagent/protocol`.
@@ -149,8 +165,13 @@ The sections of README.md and every public export, generated from this package's
 - `interface FileLockOptions`: The options of `fileLock()` and `unlockSession()`.
 - `jsonlStore()`: A store that keeps each session in `<dir>/<user>/<session>.jsonl`, one JSON entry per line.
 - `interface JsonlStoreOptions`: The options of `jsonlStore()`.
+- `type KeptReason`: Why an expired session was left alone.
 - `interface LockRecord`: What a lock file holds.
+- `interface PruneOptions`: The options of `pruneSessions()`.
+- `interface PruneResult`: What `pruneSessions()` did, by session id.
+- `pruneSessions()`: Expires the user's sessions: each one whose last entry is more than `retention.days` old is archived or purged, and with no `retention` nothing happens.
 - `type RemovedLock`: What `unlockSession()` removed: the lock's record, or `"unreadable"` when the file held no valid record.
+- `interface Retention`: How long to keep a session after its last entry, and what to do with it then.
 - `unlockSession()`: Removes a session's lock whatever its state: the library behind `buildanagent session unlock --force`.
 
 ## Exports from `@buildanagent/harness/context`
@@ -298,14 +319,16 @@ The sections of README.md and every public export, generated from this package's
 - `interface Connection`: One client's end of the dispatcher: send it messages, and it calls back with what the server sends.
 - `createDispatcher()`: Creates the dispatcher that serves `options.harness` over the protocol's commands.
 - `createHarness()`: Creates a harness.
+- `type Deliver`: Takes one message.
 - `interface Dispatcher`: The dispatcher `createDispatcher()` returns.
 - `interface DispatcherOptions`: The settings of `createDispatcher()`.
 - `EXPERIMENTAL_METHODS`: The methods a client must opt into, by listing each in the `capabilities` of its `initialize`.
 - `interface Harness`: A harness: its options with the defaults filled in.
 - `interface HarnessEnv`: What the session's `env_stamp` records about where the turns run.
 - `interface HarnessOptions`: The options of `createHarness()`.
-- `interface InProcessClient`: What a client sees: calls that resolve with a result, and the server's notifications.
+- `interface InProcessClient`: What a client sees: calls that resolve with a result, the server's messages, and a way to answer its requests.
 - `inProcessTransport()`: Connects a new client to `dispatcher`.
+- `interface RequestOptions`: What `InProcessClient.request()` takes besides the method and its params.
 - `class RpcFailure`: A command the server answered with an error.
 
 ## Exports from `@buildanagent/harness/ablation`
@@ -318,7 +341,13 @@ The sections of README.md and every public export, generated from this package's
 - `fakeSandbox()`: Builds a fake backend with the tier `os` and the stops `mistakes` and `exfiltration`, because it enforces the policy's file roots and network allowlist in memory.
 - `interface FakeSandboxClient`: A fake backend, and what it has seen.
 - `interface FakeSandboxOptions`: The options of `fakeSandbox()`.
+- `type KeyStoreCase`: One key store case.
+- `keyStoreConformanceCases()`: The cases, each run against a store from `factory`.
+- `type KeyStoreConformanceReport`: What `runKeyStoreConformance()` reports.
+- `type KeyStoreFactory`: Makes a fresh store for each case.
+- `interface KeyStoreUnderTest`: What a factory returns: the store under test.
 - `interface RecordedExec`: One command the fake received, with what the caller passed.
+- `runKeyStoreConformance()`: Runs every case and reports which passed, which skipped and which failed.
 - `runSandboxConformance()`: Runs every case against backends from `factory` and reports which passed, which skipped with a reason and which failed.
 - `runSchedulerConformance()`: Runs every case and reports which passed, which skipped and which failed.
 - `runStoreConformance()`: Runs every case and reports which passed, which skipped with a reason and which failed.

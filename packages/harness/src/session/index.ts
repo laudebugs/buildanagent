@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/harness/session`: the session log. The entry union lives in `@buildanagent/protocol`, so the protocol
  * never imports the harness, and this entry re-exports it for code that already imports the harness. It holds the
- * store interface and `memoryStore()`, and nothing that needs Node. `jsonlStore()` is in
+ * store interface, `memoryStore()` and the read-only `secretKeyStore()`, and nothing that needs Node. `jsonlStore()` is in
  * `@buildanagent/harness/session/jsonl`.
  */
 
@@ -81,7 +81,14 @@ export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
 export { type MigrateOptions, type Migration, type MigrationResult, migrateSession } from "./migrate.js";
 export { memoryIndex, type SessionIndex } from "./pointer.js";
 export type { PendingApproval } from "./rebuild.js";
-export { rerunFrom, runTurn, type TurnOptions, type TurnResult } from "./runner.js";
+export {
+  type ClientToolCall,
+  type ClientToolRunner,
+  rerunFrom,
+  runTurn,
+  type TurnOptions,
+  type TurnResult,
+} from "./runner.js";
 export {
   type ProcessScheduler,
   type ProcessSchedulerOptions,
@@ -89,6 +96,14 @@ export {
   type Scheduler,
   type WakeHandler,
 } from "./scheduler.js";
+export {
+  DEFAULT_PLATFORM_HINT,
+  type KeyChangeOptions,
+  pruneKeys,
+  rotateKeys,
+  type SecretKeyStoreOptions,
+  secretKeyStore,
+} from "./secret-key-store.js";
 export {
   type ChildLink,
   DERIVED,

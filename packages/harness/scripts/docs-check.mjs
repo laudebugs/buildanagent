@@ -17,6 +17,12 @@ export const CONFIG = {
   blocksFromExamples: true,
   // Prose names that look like exports but are not this package's: members, fields, variables and other packages' names.
   notExports: {
+    InvalidParams: "an error code the protocol package exports",
+    QueueFull: "an error code the protocol package exports",
+    delete: "a SessionStore method",
+    read: "the secret reader callback `secretKeyStore()` takes",
+    request: "an InProcessClient method",
+    respond: "an InProcessClient method",
     ANTHROPIC_API_KEY: "an environment variable",
     AUTH: "part of a credential-like variable name",
     CONNECT: "an HTTP method",

@@ -7,6 +7,7 @@ import type * as extensions from "@buildanagent/harness/extensions";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
 import type * as session from "@buildanagent/harness/session";
+import type * as jsonl from "@buildanagent/harness/session/jsonl";
 import type * as tools from "@buildanagent/harness/tools";
 import type * as sdk from "@buildanagent/sdk";
 
@@ -22,12 +23,15 @@ declare global {
   const createHarness: typeof server.createHarness;
   const fileSpillStore: typeof file.fileSpillStore;
   const inProcessTransport: typeof server.inProcessTransport;
+  const jsonlStore: typeof jsonl.jsonlStore;
+  const pruneSessions: typeof jsonl.pruneSessions;
   const recordsOf: typeof extensions.recordsOf;
   const registerExtensionTools: typeof extensions.registerExtensionTools;
 
   const SYSTEM: string;
   const audit: (entry: unknown) => void;
   const controller: AbortController;
+  const dir: string;
   const harness: server.Harness;
   const index: session.SessionIndex;
   const lock: session.SessionLock;
