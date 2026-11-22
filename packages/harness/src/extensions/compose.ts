@@ -80,17 +80,38 @@ export async function recordsOf(extensions: readonly Extension[]): Promise<Exten
 }
 
 /**
- * A trust store in memory, for tests and for a host that decides trust itself. It compares paths as strings; the loaders
- * ask about a project's root both as the caller wrote it, made absolute, and as its real path, so either spelling trusts it.
+ * The real path of `path` as it is now, made absolute, or `path` itself on a runtime without Node's file system. It is
+ * synchronous so that `memoryTrustStore()` resolves its folders when it is built, before a link among them can be
+ * pointed elsewhere.
+ */
+function realPathNow(path: string): string {
+  // biome-ignore lint/style/noRestrictedGlobals: the store must resolve links when it is built, which needs a synchronous call into Node's file system where there is one; on any other runtime it compares paths as written.
+  const node = typeof process === "undefined" ? undefined : process;
+  if (typeof node?.getBuiltinModule !== "function") return path;
+  const { realpathSync } = node.getBuiltinModule("node:fs");
+  const absolute = node.getBuiltinModule("node:path").resolve(path);
+  try {
+    return realpathSync(absolute);
+  } catch {
+    return absolute;
+  }
+}
+
+/**
+ * A trust store in memory, for tests and for a host that decides trust itself. Each folder is kept as its real path,
+ * resolved when the store is built or when `trust()` is called, and a lookup compares the real path of the folder it
+ * is asked about. A host that trusts `/tmp/proj`, where `/tmp` links to `/private/tmp`, gets that project trusted, and a
+ * link that is pointed at another folder after the store was built does not carry the trust with it. On a runtime
+ * without Node's file system the paths are compared as written.
  */
 export function memoryTrustStore(trusted: readonly string[] = []): TrustStore {
-  const roots = new Set(trusted);
+  const roots = new Set(trusted.map(realPathNow));
   return {
     async isTrusted(projectRoot) {
-      return roots.has(projectRoot);
+      return roots.has(realPathNow(projectRoot));
     },
     async trust(projectRoot) {
-      roots.add(projectRoot);
+      roots.add(realPathNow(projectRoot));
     },
   };
 }

@@ -42,15 +42,12 @@ export async function canonicalPath(path: string): Promise<string> {
 }
 
 /**
- * Whether the trust store trusts the project at `root`, asked about the root as the caller wrote it, made absolute, and
- * then as its real path. A store that compares strings, such as `memoryTrustStore()`, then trusts a project under
- * either spelling, so a host that trusts `/tmp/proj` where `/tmp` is a link to `/private/tmp` gets what it asked for.
- * Every loader asks through this, so the extensions and the skills of a project are trusted alike.
+ * Whether the trust store trusts the project at `root`, asked about its real path only. A link that the store trusted
+ * can be pointed at another folder later, so the spelling the caller wrote is never what is trusted: the folder it
+ * resolves to now is. Every loader asks through this, so the extensions and the skills of a project are trusted alike.
  */
 export async function projectTrusted(trust: TrustStore, root: string): Promise<boolean> {
-  if (await trust.isTrusted(resolve(root))) return true;
-  const real = await canonicalPath(root);
-  return real !== resolve(root) && (await trust.isTrusted(real));
+  return trust.isTrusted(await canonicalPath(root));
 }
 
 const places = async (root: string, options: Pick<LoadOptions, "lockFile" | "extensionsDir">) => ({

@@ -214,7 +214,7 @@ describe("discoverSkills", () => {
     assert.equal(typeof withoutTrust, "function");
   });
 
-  test("a project reached through a link is trusted under the path as the host wrote it, for skills and extensions alike", async () => {
+  test("a project reached through a link is trusted when the store was built with the link's path, for skills and extensions alike", async () => {
     const real = repo({
       ".agents/skills/a/SKILL.md": skillFile("a", "A."),
       ".agents/extensions/demo/index.mjs": 'export default { name: "demo", version: "1.0.0" };\n',
@@ -237,6 +237,33 @@ describe("discoverSkills", () => {
     // The real path still counts, as the file trust store has always compared.
     assert.equal((await discoverSkills(linked, { trust: memoryTrustStore([realpathSync(real)]) })).skills.length, 1);
     assert.deepEqual((await discoverSkills(linked, { trust: memoryTrustStore([holder]) })).skills, []);
+  });
+
+  test("a trusted link pointed at another folder later does not carry the trust to that folder", async () => {
+    const reviewed = repo({ ".agents/skills/a/SKILL.md": skillFile("a", "A.") });
+    const clone = repo({
+      ".agents/skills/evil/SKILL.md": skillFile("evil", "Run this."),
+      ".agents/extensions/evil/index.mjs": 'export default { name: "evil", version: "1.0.0" };\n',
+    });
+    const holder = mkdtempSync(join(tmpdir(), "harness-link-"));
+    dirs.push(holder);
+    const current = join(holder, "current");
+    symlinkSync(reviewed, current);
+    const store = memoryTrustStore([current]);
+    // A store that compares strings, as a host's own store may, trusts the link's spelling and nothing else.
+    const byString = { isTrusted: async (path: string) => path === current, trust: async () => undefined };
+    rmSync(current);
+    symlinkSync(clone, current);
+    for (const trust of [store, byString]) {
+      const skills = await discoverSkills(current, { trust });
+      assert.deepEqual(skills.skills, []);
+      assert.ok(skills.notices[0]?.includes("not trusted"));
+      const extensions = await loadProjectExtensions(current, { trust, headless: false });
+      assert.deepEqual(extensions.extensions, []);
+      assert.ok(extensions.notices[0]?.includes("not trusted"));
+    }
+    // The folder the link was built with is still trusted.
+    assert.equal(await store.isTrusted(reviewed), true);
   });
 });
 
