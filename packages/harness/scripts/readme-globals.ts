@@ -39,15 +39,18 @@ declare global {
 
   const SYSTEM: string;
   const audit: (entry: unknown) => void;
+  const client: sandbox.SandboxClient;
   const controller: AbortController;
   const cwd: string;
   const dir: string;
   const harness: server.Harness;
   const index: sessions.SessionIndex;
   const lock: sessions.SessionLock;
+  const machine: sandbox.EscalationMachine;
   const model: Model;
   const policy: sandbox.SandboxPolicy;
   const registry: ToolRegistry;
+  const requestId: string;
   const session: sessions.Session;
   const spill: context.SpillStore;
   const store: sessions.SessionStore;

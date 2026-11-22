@@ -10,6 +10,7 @@ import type { AssistantMessage, ContentBlock, Message } from "@buildanagent/gate
 import type { SessionEntry } from "@buildanagent/protocol";
 import type { Context, SignedPendingRequest } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
+import { ESCALATION_TOOL } from "./escalation-log.js";
 
 type Block = Extract<SessionEntry, { type: "message_block" }>;
 type Pending = { role: "user" | "assistant"; id: string; blocks: Block[]; firstId: string };
@@ -221,10 +222,10 @@ export function contextWithStarts(path: readonly SessionEntry[]): {
   const builder = new MessageBuilder(stripped);
   let system = "";
   for (const entry of path) if (entry.type === "turn_start") system = entry.system;
-  // A code call's result answers no call the model made, so the model never reads it.
+  // A code call's or a sandbox escalation's result answers no call the model made, so the model never reads it.
   const codeCalls = new Set(path.flatMap((entry) => (entry.type === "code_call" ? [entry.callId] : [])));
   for (const entry of entries) {
-    if (entry.type === "tool_result" && codeCalls.has(entry.callId)) continue;
+    if (entry.type === "tool_result" && (codeCalls.has(entry.callId) || entry.tool === ESCALATION_TOOL)) continue;
     switch (entry.type) {
       case "message_block":
         builder.block(entry);

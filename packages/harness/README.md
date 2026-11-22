@@ -56,6 +56,46 @@ The `none` backend starts each command in its own process group. A timeout, an a
 
 Bad input is an error, not a result. A working directory that isn't an existing folder, a bad `timeoutMs` or a bad `maxOutputBytes` throws a `HarnessError`. An already aborted signal rejects before the command runs, and reading a missing file rejects with the code `sandbox_not_found`.
 
+## A denied command becomes a signed request, and an approved one reruns once
+
+`escalation({ approvalPolicy, approvals })` from `./sandbox` decides what happens when the sandbox denies a command. The host owns that decision, and no tool or model can widen the sandbox. A wider policy is built on the host from two things only, the denial the backend reported and a verified answer, and it lasts for one rerun.
+
+```ts
+import { escalation, spawnEnv } from "@buildanagent/harness/sandbox";
+
+const machine = escalation({ approvalPolicy: "on-request", approvals: createApprovals(harness) });
+const where = { client, manifest: { root: "/work/repo" }, env: spawnEnv([]), signal: controller.signal };
+const outcome = await machine.run(session, { ...where, tool: "fetch", input: { url: "https://example.com" }, command: ["curl", "https://example.com"], policy });
+```
+
+`machine.run(session, run)` runs the command once under `run.policy` and ends one of three ways. Each result carries `result`, the tool result the model reads.
+
+- **`ran`.** The backend did not deny the command, and nothing is written.
+- **`denied`.** The backend denied it, and nobody is asked, so nothing is written. That is every denial under `never`, every denial that no `granular` rule lets the host ask about, and every denial that can't be widened: a path that is `/`, relative or holds `..`, a host with a wildcard, a scheme or a path, and a host that the policy's own `network.deny` names.
+- **`awaiting_approval`.** Under `on-request`, or `granular` where a rule allows it, `run()` writes an `approval_requested` entry before it returns. The harness's signer signs the request as `createPendingRequest()` does, and the request's tool is `ESCALATION_TOOL` (`sandbox.escalation`), a name no registered tool can have. Its input is the record the approver sees: the tool and its input, the command, the workspace root, the policy and the denial. `widened` is the policy the rerun would get.
+
+`run()` writes only when it asks. A tool's `execute` may call it under `never`, and under the other two policies host code calls it between turns, as it calls `invokeTool()`, because a write inside a turn's tool step would race the turn's own writes.
+
+`machine.resolve(session, resolution, options)` answers one request. The log holds no backend, workspace, environment or signal, so `options` passes them again:
+
+```ts
+import { spawnEnv } from "@buildanagent/harness/sandbox";
+
+const rerun = await machine.resolve(session, { requestId, decision: "allow", by: "grace" }, { client, manifest: { root: "/work/repo" }, env: spawnEnv([]), signal: controller.signal });
+```
+
+- **The check comes first.** Before anything is written, the answer is checked against the request: the signature under a key in the ring, the bound host context, the call, and the record, which must hash to the signed hash. A forged, re-signed or edited request throws `approval_refused`, writes nothing and runs nothing.
+- **A classifier never approves a rerun.** An allow whose `by` starts with `classifier:` throws `approval_refused` and leaves the request waiting. A person's or a hook's allow approves it.
+- **The quorum policy decides.** The answer is written, and the approvals' quorum policy decides it. A quorum that still waits returns `awaiting_approval`, and a deny, a rejection or an expiry ends `denied` with no rerun.
+- **A deny written since the pause wins.** An allow goes through the permission pipeline again, as the tool call the command ran for.
+- **The rerun runs once, no wider than the denial.** It runs in a fresh sandbox under the recorded policy plus exactly the path or host that was denied, and that sandbox is disposed after it. A second denial is the rerun's result: it ends `denied`, and nobody is asked again.
+
+Every move follows `ESCALATION_TRANSITIONS`, a table of the states `sandboxed`, `denied`, `requested`, `approved`, `rerun` and `done` and the events between them. `nextEscalationState()` throws `invalid_escalation` for an edge the table does not list. Only a verified allow leads from `requested` to `approved`, and `rerun` leads only to `done`. Each result's `states` lists the states its call passed through.
+
+A rerun runs at most once, even across a crash. It *starts* once the log holds the pipeline's fresh decision after a final allow, the last entry before the rerun runs. To *settle* an escalation is to write the result it lacks. The next `resolve()`, or `run()` that asks, settles each escalation a crash left open: a rerun that started may have run, so it is settled as such and never run again, and an answer whose rerun never started is settled as never run. The result is a `tool_result` with the tool `sandbox.escalation`. The model never reads it; the host gets the command's output from `resolve()`.
+
+`approvals.pending()` and `approvals.resolve()` don't see an escalation: `machine.pending(session)` lists the ones that wait. A `granular` policy takes `granular`, a list of rules of the form `{ kind?, tool?, escalate }`. The first rule that matches the denial's kind and the tool decides, and a denial no rule matches goes back with no request. `escalation()` throws `invalid_escalation` for rules given with another policy, for a `granular` policy with none, and for approvals that `createApprovals()` did not make. A policy that can ask also needs a harness with a signer and a permission pipeline: without the signer it throws `approval_unavailable`, and without the pipeline `invalid_escalation`.
+
 ## The srt backend confines each command with Anthropic's OS sandbox
 
 `srtSandbox()` from `./sandbox/srt` runs each command under `srt`, Anthropic's sandbox runtime. It pins `@anthropic-ai/sandbox-runtime` 0.0.83 under the Apache-2.0 license. The package calls itself a "Beta Research Preview", and says its APIs and configuration formats may evolve (as of November 2026). `provision()` writes the settings file, so `./sandbox/srt` is the one place that knows that format.
