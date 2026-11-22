@@ -112,7 +112,8 @@ export function toolSearchInterceptors(registry: ToolRegistry, activated: Readon
   }
   return {
     beforeModelCall: ({ context }) => {
-      const held = [...activated].filter((name) => registry.list().some((tool) => tool.canonicalName === name));
+      const known = new Set(registry.list().map((tool) => tool.canonicalName));
+      const held = [...activated].filter((name) => known.has(name));
       // The search tool is always sent, so a source set to deferred or hidden can't leave the model with no way to find a tool.
       return { activeTools: [...new Set([...context.tools.map((tool) => tool.name), ...held, "tool_search"])] };
     },
