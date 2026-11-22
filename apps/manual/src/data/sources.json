@@ -546,5 +546,35 @@
     "asOf": "November 2026",
     "version": "v5",
     "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "pi-json-events",
+    "title": "JSON Event Stream",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/json.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "buildanagent-sdk-hooks",
+    "title": "@buildanagent/sdk README: events, hooks and observers",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/v0.1.0-alpha.26/packages/sdk/README.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "@buildanagent/sdk@0.1.0-alpha.26",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "buildanagent-copilot-sdk-check",
+    "title": "Copilot SDK reference: fact-check (F6, the untyped model events)",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c/docs/reference/copilot-sdk/fact-check.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "@github/copilot-sdk@1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
   }
 ]
