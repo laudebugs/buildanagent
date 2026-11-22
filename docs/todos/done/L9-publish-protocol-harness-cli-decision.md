@@ -11,7 +11,7 @@
 
 ## Goal
 
-Record the owner's decision to publish `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to npm, in that order, after the gateway and SDK, and plan the two todos that carry it out.
+Record the owner's decision to publish `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to npm, together, in one release after N30 has given the CLI a working binary, and plan the two todos that carry it out.
 
 ## Context
 
