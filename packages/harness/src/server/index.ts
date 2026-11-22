@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/harness/server`: the harness itself. `createHarness()` holds the settings every turn shares,
  * `createDispatcher()` serves the protocol's commands over a harness, and `inProcessTransport()` connects a client in
- * the same process. The stdio transport arrives with its own todo.
+ * the same process. A stdio transport will carry the same messages later.
  */
 export { createHarness, type Harness, type HarnessEnv, type HarnessOptions } from "../harness.js";
 export {

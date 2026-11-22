@@ -763,8 +763,11 @@ export interface ResumeOptions<H = unknown> extends RunSettings<H> {
    * `output`, `turnRetries` and `modelOptions` again, because the log does not hold them.
    */
   readonly hostContext?: H;
+  /** The model the resumed turn runs on, in place of the harness's. */
   readonly model?: Model;
+  /** Aborts the resumed turn. */
   readonly signal?: AbortSignal;
+  /** Called with the resumed run as soon as it starts, so a caller can `steer()`, `followUp()` or abort it. */
   readonly onRun?: (run: Run<unknown>) => void;
   /** Observers for this resume alone, as `TurnOptions.observers`. */
   readonly observers?: readonly Observer[];

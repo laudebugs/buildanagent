@@ -9,7 +9,7 @@
 // declarations come from `tsc --emitDeclarationOnly` into a temp folder, and README blocks resolve our packages
 // through their `source` condition (ADR 0050), which points at the same src/ the declarations come from.
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,14 @@ export function codeBlocks(markdown) {
     if (!open) continue;
     const end = lines.findIndex((line, j) => j > i && line.startsWith(open[1]) && line.trim() === open[1]);
     const close = end === -1 ? lines.length : end;
-    if (TS_FENCES.has(open[2].toLowerCase())) blocks.push({ line: i + 1, code: lines.slice(i + 1, close).join("\n") });
+    if (TS_FENCES.has(open[2].toLowerCase()))
+      blocks.push({
+        line: i + 1,
+        code: lines
+          .slice(i + 1, close)
+          .join("\n")
+          .replaceAll("\r", ""),
+      });
     i = close;
   }
   return blocks;
@@ -150,8 +157,12 @@ export function declarationExports(packageDir) {
   try {
     const args = ["-p", "tsconfig.build.json", "--emitDeclarationOnly", "--declarationMap", "false", "--outDir", out];
     // The build settings resolve sibling packages through their dist/ types; `source` reads their src/ instead, so
-    // no build has to come first. The root stays the package's src/, so only its own files are emitted.
-    const emitted = runTsc([...args, "--customConditions", "source"], packageDir);
+    // no build has to come first. The root stays the package's src/, so only its own files are emitted. A third-party
+    // package can ship a `source` condition too: eventsource-parser, which `ai` reaches, points it at src/*.ts files
+    // that import `.ts` specifiers, so those are allowed here as in agent-safety's tsconfig.json. The build config
+    // still forbids them in our own files.
+    const conditions = ["--customConditions", "source", "--allowImportingTsExtensions"];
+    const emitted = runTsc([...args, ...conditions], packageDir);
     if (!emitted.ok) throw new Error(`tsc could not emit ${packageDir}'s declarations:\n${emitted.output}`);
     return entryPoints(packageDir).map(({ specifier, source }) => {
       const file = path.join(out, path.relative("src", source).replace(/\.ts$/, ".d.ts"));
@@ -314,6 +325,8 @@ function blockConfig(files) {
       module: "esnext",
       moduleResolution: "bundler",
       customConditions: ["source"],
+      // A third-party `source` condition may lead to `.ts` specifiers, as in declarationExports().
+      allowImportingTsExtensions: true,
       strict: true,
       noEmit: true,
       skipLibCheck: true,
@@ -333,6 +346,30 @@ function errorsByBlock(output, blocks) {
   const other = output.split("\n").filter((line) => /error TS/.test(line) && !/^block-\d+\.ts\(/.test(line));
   if (other.length > 0) throw new Error(`the README check's setup failed to type-check:\n${other.join("\n")}`);
   return blocks.map((block) => ({ line: block.line, errors: errors.get(block.line) ?? [] }));
+}
+
+/** The most lines a README block may hold without coming from a tested example (docs-writing guideline). */
+const MAX_INLINE_LINES = 5;
+
+/**
+ * Lists each block of more than five lines that no TypeScript file under the package's examples/ holds word for word:
+ * its lines must appear in one file, together and in order. The examples are tested, so a long block then shows code
+ * that runs.
+ */
+export function blocksNotFromExamples(packageDir, blocks) {
+  const dir = path.join(packageDir, "examples");
+  const files = existsSync(dir)
+    ? readdirSync(dir, { recursive: true })
+        .filter((file) => String(file).endsWith(".ts"))
+        .map((file) => `\n${readFileSync(path.join(dir, String(file)), "utf8").replaceAll("\r\n", "\n")}\n`)
+    : [];
+  return blocks
+    .filter((block) => block.code.split("\n").length > MAX_INLINE_LINES)
+    .filter((block) => !files.some((text) => text.includes(`\n${block.code}\n`)))
+    .map(
+      (block) =>
+        `README block at line ${block.line}: over ${MAX_INLINE_LINES} lines, and no file in examples/ holds it`,
+    );
 }
 
 /** GitHub's heading anchor: lower case, punctuation dropped, spaces as hyphens, and `-1`, `-2` … for a repeat. */
@@ -407,18 +444,15 @@ export function renderLlmsTxt({ packageDir, readme, entries }) {
 
 /**
  * Runs every check on one package and returns `{ problems, llms }`: the problems found, as lines, and the llms.txt the
- * package should have. `config` gives the README's globals file, the packages its prose may name, and its
- * `notExports`.
+ * package should have. `config` gives the README's globals file, the packages its prose may name, its
+ * `notExports`, and `blocksFromExamples`, which requires every block of more than five lines to come from examples/.
  */
 export function checkPackage(packageDir, config) {
   const readme = readFileSync(path.join(packageDir, "README.md"), "utf8");
   const own = declarationExports(packageDir);
   const others = (config.alsoNames ?? []).flatMap((dir) => declarationExports(path.resolve(packageDir, dir)));
-  const blocks = typecheckBlocks({
-    packageDir,
-    blocks: codeBlocks(readme),
-    globals: path.join(packageDir, config.globals),
-  });
+  const readmeBlocks = codeBlocks(readme);
+  const blocks = typecheckBlocks({ packageDir, blocks: readmeBlocks, globals: path.join(packageDir, config.globals) });
   const problems = [
     ...blocks.flatMap(({ line, errors }) => errors.map((error) => `README block at line ${line}: ${error}`)),
     ...missingNames({
@@ -427,6 +461,7 @@ export function checkPackage(packageDir, config) {
       notExports: config.notExports,
     }),
     ...experimentalViolations(own),
+    ...(config.blocksFromExamples === true ? blocksNotFromExamples(packageDir, readmeBlocks) : []),
   ];
   return { problems, llms: renderLlmsTxt({ packageDir, readme, entries: own }), blocks: blocks.length };
 }

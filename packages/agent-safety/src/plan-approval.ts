@@ -122,6 +122,10 @@ export interface PlanStepCall {
  * get one `claimed` between them.
  */
 export interface PlanLedger {
+  /**
+   * Records step `stepIndex` of plan `planId` as passed. Resolves `"claimed"` when every earlier step is recorded and
+   * this one isn't, `"replayed"` when this one already is, and `"out_of_order"` when an earlier step is missing.
+   */
   claim(planId: string, stepIndex: number): Promise<"claimed" | "replayed" | "out_of_order">;
 }
 

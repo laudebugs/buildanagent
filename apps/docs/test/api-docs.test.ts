@@ -7,7 +7,13 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import { checkApiDocs, listExports } from "../src/api/check.js";
-import { API_PACKAGES, REQUIRED_TO_BE_DOCUMENTED, typeDocOptions, VALIDATION } from "../src/api/packages.js";
+import {
+  API_PACKAGES,
+  CHECKED_PACKAGES,
+  REQUIRED_TO_BE_DOCUMENTED,
+  typeDocOptions,
+  VALIDATION,
+} from "../src/api/packages.js";
 
 const APP = fileURLToPath(new URL("..", import.meta.url));
 const fixture = (name: string) => join(APP, "test/fixtures/api", name);
@@ -26,7 +32,7 @@ describe("the undocumented-export check", { timeout: 120_000 }, () => {
     assert.match(problems[0] ?? "", /subtract .*does not have any documentation/);
   });
 
-  for (const pkg of API_PACKAGES) {
+  for (const pkg of CHECKED_PACKAGES) {
     test(`passes every entry point of ${pkg.name}`, async () => {
       assert.deepEqual((await checkApiDocs(typeDocOptions(pkg))).problems, []);
     });
