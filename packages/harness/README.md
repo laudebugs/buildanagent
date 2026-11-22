@@ -80,7 +80,9 @@ Four limits are worth knowing:
 
 ## The Docker backend runs each command in a locked-down container
 
-`dockerSandbox({ image })` from `./sandbox/docker` runs each command in its own container, made from an image that is already on the Docker host: `provision()` never pulls, and you should pin the image by digest. The container has all capabilities dropped, a read-only root file system, no network, no new privileges and no shared IPC. It also has a limit on processes (`pidsLimit`, 256 by default), CPUs (`cpus`, 1) and memory with no swap (`memoryMb`, 1024). It runs as your user and group, so the files it writes stay yours, and its only other writable place is a 64 MiB `/tmp` in memory.
+`dockerSandbox({ image })` from `./sandbox/docker` runs each command in its own container, made from an image that is already on the Docker host: `provision()` never pulls, and you should pin the image by digest. The container has all capabilities dropped, a read-only root file system, no network, no new privileges and no shared IPC.
+
+The container also has a limit on processes (`pidsLimit`, 256 by default), CPUs (`cpus`, 1) and memory with no swap (`memoryMb`, 1024). It runs as your user and group, so the files it writes stay yours, and its only other writable place is a 64 MiB `/tmp` in memory.
 
 The policy decides what is mounted, at the same path inside as outside. A write root is mounted writable, and it must exist. A read root and an `extraReadRoots` folder are mounted read-only. A `denyWrite` folder inside a write root is made if it is missing and mounted read-only on top, so the session log stays out of the agent's reach. A `denyWrite` path outside every write root is not mounted at all. The protected files that `srt` also guards, such as `.bashrc`, `.claude`, `.git/hooks` and `.git/config` at the top of a write root, are mounted read-only when they exist, and `writeFile` refuses them. Nothing else is mounted, so a path outside the roots does not exist in the container.
 
@@ -90,7 +92,9 @@ The container has no network, so a command reaches a host only through `proxySoc
 
 `provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
 
-A command's environment is exactly the one it was given. `env -i` clears the image's own variables, so the image needs an `env` that takes `-i` and `--`, as BusyBox and GNU coreutils do. It also clears `PATH`, and a program name is then looked up on the C library's default path, which differs between images. Pass a `PATH`, as `spawnEnv()` does, for a program that lives elsewhere, such as `/usr/local/bin/node` in a Debian image. A command whose first word contains `=` resolves with exit code 127, as under `none`. Each command is created and then started, and a timeout, an abort or `dispose()` kills the container by name, so nothing outlives the call. `dispose()` also removes any container of this sandbox that a stopped client left behind.
+A command's environment is exactly the one it was given. `env -i` clears the image's own variables, so the image needs an `env` that takes `-i` and `--`, as BusyBox and GNU coreutils do. It also clears `PATH`, and a program name is then looked up on the C library's default path, which differs between images. Pass a `PATH`, as `spawnEnv()` does, for a program that lives elsewhere, such as `/usr/local/bin/node` in a Debian image. A command whose first word contains `=` resolves with exit code 127, as under `none`.
+
+Each command is created and then started. A timeout, an abort or `dispose()` kills the container by name, so nothing outlives the call, and `dispose()` also removes any container of this sandbox that a stopped client left behind.
 
 Five limits are worth knowing:
 
