@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E4a](../done/E4a-plan-approval-record.md) |
