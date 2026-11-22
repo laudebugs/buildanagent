@@ -35,6 +35,7 @@ export type HarnessErrorCode =
   | "approval_reuse_refused"
   | "approver_is_requester"
   | "invalid_key_store"
+  | "key_store_read_only"
   | "session_conflict"
   | "entry_too_large"
   | "invalid_session_entry"
@@ -68,7 +69,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky
  * allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids
  * a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `invalid_key_store`: a key
- * file is unreadable, malformed or readable by others. `session_conflict`: an append found the log in a state it did
+ * file or key secret is unreadable or malformed, or a key file is readable by others. `key_store_read_only`: a key store
+ * with no `rotate()` or `prune()` was asked to rotate or prune. `session_conflict`: an append found the log in a state it did
  * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
  * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
