@@ -41,9 +41,8 @@ export interface RunError {
   readonly status?: number;
   /**
    * How long the provider asked the caller to wait before retrying, in milliseconds, copied from the failed call's
-   * `error.retryAfterMs` whatever its size. The model has already waited out a hint of 60 seconds or less before each
-   * retry it made, so a caller that retries the run waits only as long as its own backoff needs. A hint over 60
-   * seconds ends the call with no retry, and the caller can wait that long and then call `continueRun()`.
+   * `error.retryAfterMs`. The model waits out a hint of 60 seconds or less before its own retries. A hint over 60
+   * seconds ends the call with no retry, so the caller can wait that long and run again.
    */
   readonly retryAfterMs?: number;
 }
