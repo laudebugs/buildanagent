@@ -114,6 +114,30 @@ function checkBytes(name: string, value: number | undefined, fallback: number): 
 const refusal = (message: string) =>
   new ProtocolError("invalid_request", message, { rpcCode: ErrorCodes.InvalidRequest, requestId: null });
 
+/** A frame text with a lone surrogate, which has no UTF-8 form; `\p{Surrogate}` with `u` matches no paired one. */
+const LONE_SURROGATE = /\p{Surrogate}/u;
+
+/** The refusal of a frame UTF-8 can't carry, as the framer refuses a line that isn't UTF-8. */
+const notUtf8 = () =>
+  new ProtocolError("invalid_json", "a frame is not valid UTF-8 JSON", {
+    rpcCode: ErrorCodes.ParseError,
+    requestId: null,
+  });
+
+/**
+ * A binary frame's size in bytes, read from its `byteLength` (an `ArrayBuffer`, a typed array or a `Buffer`) or its
+ * `size` (a `Blob`) without reading its data, or `undefined` when it has neither.
+ */
+function binarySize(data: unknown): number | undefined {
+  if (typeof data !== "object" || data === null) return undefined;
+  const size = "byteLength" in data ? data.byteLength : "size" in data ? data.size : undefined;
+  return typeof size === "number" ? size : undefined;
+}
+
+/** `text` without one trailing `\n` or `\r\n`, which ends the message as it ends a line on stdio, uncounted by the bound. */
+const withoutNewline = (text: string): string =>
+  text.endsWith("\r\n") ? text.slice(0, -2) : text.endsWith("\n") ? text.slice(0, -1) : text;
+
 /**
  * Serves one client over one open WebSocket, one JSON-RPC 2.0 message per text frame, and resolves once the client is
  * gone or the transport stops. The host accepts the socket, and whatever authenticates the peer happens there: the
@@ -240,17 +264,21 @@ class WebSocketSession {
   #receive(data: unknown): void {
     if (this.#stopper.stopped) return;
     if (typeof data !== "string") {
-      this.#rpc.refuse(refusal("a frame must be text, not binary"), ErrorCodes.InvalidRequest, "a frame");
+      this.#refuseBinary(data);
       return;
     }
-    if (this.#tooBig(data)) {
-      const bound = this.#limits.maxMessageBytes;
-      this.#rpc.refuse(refusal(`a frame went over the bound of ${bound} bytes`), ErrorCodes.InvalidRequest, "a frame");
-      this.#stop(`a frame went over the bound of ${bound} bytes`, MESSAGE_TOO_BIG);
+    const text = withoutNewline(data);
+    if (this.#tooBig(text)) {
+      this.#refuseTooBig();
       return;
     }
-    const framed = this.#framer.push(encoder.encode(data));
-    if (!data.endsWith("\n")) framed.push(...this.#framer.push(NEWLINE));
+    // `encode()` would write a lone surrogate as U+FFFD, so the frame is refused as stdio refuses a line of bad UTF-8.
+    if (LONE_SURROGATE.test(text)) {
+      this.#rpc.refuse(notUtf8(), ErrorCodes.ParseError, "a frame");
+      return;
+    }
+    const framed = this.#framer.push(encoder.encode(text));
+    framed.push(...this.#framer.push(NEWLINE));
     const [only] = framed;
     if (framed.length !== 1 || only === undefined) {
       const why = framed.length === 0 ? "a frame must hold a message" : "a frame must hold one message, on one line";
@@ -259,6 +287,20 @@ class WebSocketSession {
     }
     if (only.ok) this.#rpc.handle(only.value);
     else this.#rpc.refuse(only.error, ErrorCodes.ParseError, "a frame");
+  }
+
+  /** Refuses a binary frame, without reading its data: a frame over the bound also stops the transport. */
+  #refuseBinary(data: unknown): void {
+    const size = binarySize(data);
+    if (size !== undefined && size > this.#limits.maxMessageBytes) this.#refuseTooBig();
+    else this.#rpc.refuse(refusal("a frame must be text, not binary"), ErrorCodes.InvalidRequest, "a frame");
+  }
+
+  /** Answers a frame over the bound, then stops the transport, which closes the socket with 1009. */
+  #refuseTooBig(): void {
+    const why = `a frame went over the bound of ${this.#limits.maxMessageBytes} bytes`;
+    this.#rpc.refuse(refusal(why), ErrorCodes.InvalidRequest, "a frame");
+    this.#stop(why, MESSAGE_TOO_BIG);
   }
 
   /** Whether `text` holds more UTF-8 bytes than the bound, encoding it only when its length can't tell. */
@@ -278,7 +320,10 @@ class WebSocketSession {
       this.#socket.send(line.slice(0, -1));
     } catch (error) {
       // The socket may still be open, so it is closed as a server failure; the error's message is not logged.
-      this.#stop(`the socket refused a frame: ${error instanceof Error ? error.name : "unknown error"}`, INTERNAL_ERROR);
+      this.#stop(
+        `the socket refused a frame: ${error instanceof Error ? error.name : "unknown error"}`,
+        INTERNAL_ERROR,
+      );
       return undefined;
     }
     if (this.#buffered() <= this.#limits.maxBufferedBytes) return undefined;

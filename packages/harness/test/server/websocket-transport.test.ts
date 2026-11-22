@@ -153,6 +153,82 @@ describe("a bad frame gets the stdio transport's answer, and the socket stays op
     assert.deepEqual(stopped(run), ["websocket: stopped: a frame went over the bound of 64 bytes"]);
   });
 
+  test("a trailing newline is not counted: a message of exactly maxMessageBytes is served with or without one", async () => {
+    const { dispatcher } = approvalSetup([]);
+    const message = (id: number) => JSON.stringify({ jsonrpc: "2.0", id, method: "initialize", params: initParams });
+    const bound = new TextEncoder().encode(message(1)).length;
+    const run = wsRun(dispatcher, { maxMessageBytes: bound });
+    run.send(message(1));
+    run.send(`${message(2)}\n`);
+    run.send(`${message(3)}\r\n`);
+    await until(() => run.messages().length === 3, "three answers");
+    assert.deepEqual(
+      run.messages().map((m) => !("method" in m) && "result" in m && m.id),
+      [1, 2, 3],
+    );
+    assert.equal(run.server.readyState, 1);
+    // One byte over, a space the JSON allows, is too big.
+    run.send(`${message(4)} \n`);
+    await run.done;
+    assert.deepEqual(run.server.closeCalls, [{ code: 1009, reason: `a frame went over the bound of ${bound} bytes` }]);
+  });
+
+  for (const [name, frame] of [
+    ["an ArrayBuffer", () => new ArrayBuffer(65)],
+    ["a Uint8Array", () => new Uint8Array(65)],
+    ["a Buffer", () => Buffer.alloc(65)],
+    ["a Blob", () => new Blob([new Uint8Array(65)])],
+  ] as const) {
+    test(`a binary frame over maxMessageBytes, as ${name}, is answered and the socket closed with 1009`, async () => {
+      const { dispatcher } = approvalSetup([]);
+      const run = wsRun(dispatcher, { maxMessageBytes: 64 });
+      run.client.send(frame() as never);
+      await run.done;
+      await until(() => run.closes.length === 1, "the close");
+      assert.deepEqual(
+        errorsOf(run.messages()).map((m) => [m.id, m.error.code, m.error.message]),
+        [[null, ErrorCodes.InvalidRequest, "a frame went over the bound of 64 bytes"]],
+      );
+      assert.deepEqual(run.server.closeCalls, [{ code: 1009, reason: "a frame went over the bound of 64 bytes" }]);
+    });
+  }
+
+  test("a binary frame within maxMessageBytes is refused as binary, and the socket stays open", async () => {
+    const { dispatcher } = approvalSetup([]);
+    const run = wsRun(dispatcher, { maxMessageBytes: 64 });
+    run.client.send(new Uint8Array(64));
+    await until(() => run.messages().length === 1, "the refusal");
+    assert.deepEqual(
+      errorsOf(run.messages()).map((m) => [m.id, m.error.message]),
+      [[null, "a frame must be text, not binary"]],
+    );
+    assert.equal(run.server.readyState, 1);
+    run.client.close(1000);
+    await run.done;
+  });
+
+  test("a frame with a lone surrogate gets ParseError, as a line of bad UTF-8 does on stdio", async () => {
+    const { dispatcher } = approvalSetup([]);
+    const run = wsRun(dispatcher);
+    // JSON.stringify would escape the surrogate, so the frame is written by hand.
+    run.send('{"jsonrpc":"2.0","id":7,"method":"x\uD800"}');
+    // An escaped surrogate and a whole pair are well-formed text, so they reach the dispatcher.
+    run.send('{"jsonrpc":"2.0","id":8,"method":"x\\ud800"}');
+    run.send('{"jsonrpc":"2.0","id":9,"method":"x😀"}');
+    await until(() => run.messages().length === 3, "three answers");
+    assert.deepEqual(
+      errorsOf(run.messages()).map((m) => [m.id, m.error.code]),
+      [
+        [null, ErrorCodes.ParseError],
+        [8, ErrorCodes.MethodNotFound],
+        [9, ErrorCodes.MethodNotFound],
+      ],
+    );
+    assert.equal(errorsOf(run.messages())[0]?.error.message, "a frame is not valid UTF-8 JSON");
+    run.client.close(1000);
+    await run.done;
+  });
+
   test("a frame within maxMessageBytes is served", async () => {
     const { dispatcher } = approvalSetup([]);
     const run = wsRun(dispatcher, { maxMessageBytes: 200 });
