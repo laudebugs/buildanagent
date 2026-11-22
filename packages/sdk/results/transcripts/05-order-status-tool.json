@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 27,
+      "line": 28,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -37,7 +37,7 @@
     },
     {
       "kind": "response",
-      "line": 27,
+      "line": 28,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -56,7 +56,7 @@
     },
     {
       "kind": "request",
-      "line": 27,
+      "line": 28,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -79,7 +79,7 @@
     },
     {
       "kind": "response",
-      "line": 27,
+      "line": 28,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -98,7 +98,7 @@
     },
     {
       "kind": "request",
-      "line": 27,
+      "line": 28,
       "model": "model-1",
       "repeated": 5,
       "messages": [
@@ -120,7 +120,7 @@
     },
     {
       "kind": "response",
-      "line": 27,
+      "line": 28,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -135,61 +135,61 @@
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 39,
       "message": "the model is offered the tool by name",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 39,
+      "line": 40,
       "message": "the Zod schema becomes a JSON Schema whose orderId field is a required string",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 47,
       "message": "the failed call comes back to the model as an error result",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 47,
+      "line": 48,
       "message": "the error names the failing field by its JSON Pointer path and says what was wrong with it",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 52,
+      "line": 53,
       "message": "the error repeats the arguments the model sent",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 56,
+      "line": 57,
       "message": "the error ends by telling the model not to invent a result",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 61,
+      "line": 62,
       "message": "execute() ran only for the valid call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 64,
       "message": "the retry's result is an ordinary tool result",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 67,
+      "line": 68,
       "message": "the function's text goes back",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 71,
+      "line": 72,
       "message": "three model calls in all: the bad call, the retry, the answer",
       "pass": true
     }

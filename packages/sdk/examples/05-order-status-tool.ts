@@ -19,6 +19,7 @@ const getOrderStatus = defineTool({
 // #endregion
 // #region retry
 // Call 1 sends a number where the schema wants a string; call 2 retries with a string; call 3 answers.
+const MAX_STEPS = 5;
 const { adapter, model } = scripted([
   { content: [{ type: "tool_call", callId: "call-1", name: "get_order_status", input: { orderId: 42 } }] }, // book:note bad-call
   { content: [{ type: "tool_call", callId: "call-2", name: "get_order_status", input: { orderId: "A-1" } }] }, // book:note retry
@@ -28,7 +29,7 @@ const result = await run({
   model,
   system: "Answer order questions.",
   tools: [getOrderStatus], // book:note offered
-  maxSteps: 5,
+  maxSteps: MAX_STEPS,
   input: "Where is order A-1?",
 }).result;
 // #endregion

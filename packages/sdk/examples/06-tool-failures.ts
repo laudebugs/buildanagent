@@ -6,6 +6,9 @@ import { defineTool, run } from "@buildanagent/sdk";
 import { z } from "zod";
 import { check, scripted } from "./lib/check.js";
 
+/** The most model calls a run may make; each run here needs two. */
+const MAX_STEPS = 5;
+
 /** An order lookup whose database is down, so every call throws. */
 function brokenLookup(redactErrors: boolean) {
   return defineTool({
@@ -29,7 +32,7 @@ async function failedCall(redactErrors: boolean) {
     model,
     system: "Answer order questions.",
     tools: [brokenLookup(redactErrors)],
-    maxSteps: 5,
+    maxSteps: MAX_STEPS,
     input: "Where is order A-1?",
   }).result;
   const message = adapter.calls[1]?.context.messages.find((m) => m.role === "tool");

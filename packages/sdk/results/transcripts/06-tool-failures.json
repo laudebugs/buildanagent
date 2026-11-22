@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 28,
+      "line": 31,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -37,7 +37,7 @@
     },
     {
       "kind": "response",
-      "line": 28,
+      "line": 31,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -56,7 +56,7 @@
     },
     {
       "kind": "request",
-      "line": 28,
+      "line": 31,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -79,7 +79,7 @@
     },
     {
       "kind": "response",
-      "line": 28,
+      "line": 31,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -94,37 +94,37 @@
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 45,
       "message": "a throw does not end the run: the model answers",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 49,
       "message": "the model reads the failure as an error result",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 47,
+      "line": 50,
       "message": "by default the model reads the thrown message",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 51,
+      "line": 54,
       "message": "the error repeats the arguments the model sent",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 52,
+      "line": 55,
       "message": "the error says not to invent a result",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 28,
+      "line": 31,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -153,7 +153,7 @@
     },
     {
       "kind": "response",
-      "line": 28,
+      "line": 31,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -172,7 +172,7 @@
     },
     {
       "kind": "request",
-      "line": 28,
+      "line": 31,
       "model": "model-2",
       "repeated": 3,
       "messages": [
@@ -195,7 +195,7 @@
     },
     {
       "kind": "response",
-      "line": 28,
+      "line": 31,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -210,19 +210,19 @@
     },
     {
       "kind": "check",
-      "line": 58,
+      "line": 61,
       "message": "with redactErrors the run still goes on, with an error result",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 62,
+      "line": 65,
       "message": "with redactErrors the model reads a fixed line",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 66,
+      "line": 69,
       "message": "the thrown message stays out of the model's context",
       "pass": true
     }

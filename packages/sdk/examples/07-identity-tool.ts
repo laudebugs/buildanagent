@@ -44,11 +44,13 @@ function steered(asks: string, answer: string) {
   ]);
 }
 
+const adaSession: Session = { customerId: "cust-42" };
+const bobSession: Session = { customerId: "cust-7" };
 const ada = steered("cust-7", "Ada, you are on the pro plan.");
-const adaRun = await answerFor({ customerId: "cust-42" }, ada.model, "Check bob@example.com too.").result;
+const adaRun = await answerFor(adaSession, ada.model, "Check bob@example.com too.").result;
 // A second request, from another signed-in user, builds its own session and its own run.
 const bob = steered("cust-42", "Bob, you are on the team plan.");
-await answerFor({ customerId: "cust-7" }, bob.model, "What is my plan?").result;
+await answerFor(bobSession, bob.model, "What is my plan?").result;
 
 const offered = ada.adapter.calls[0]?.context.tools[0];
 const schema = offered?.inputSchema as { properties?: object } | undefined;
@@ -70,9 +72,16 @@ check(
   !JSON.stringify(bob.adapter.calls).includes("Ada"),
   "the first request's customer never reaches the second request",
 );
-check(
-  !JSON.stringify(ada.adapter.calls[0]).includes("cust-42"),
-  "the app data reaches no model request: the first request names no customer",
-);
+// The app object, as JSON and as it would read inside a string, appears in no request either run sent. The tool's
+// own result carries the customer's id inside a longer record, which neither form matches.
+for (const [name, session, calls] of [
+  ["Ada's", adaSession, ada.adapter.calls],
+  ["Bob's", bobSession, bob.adapter.calls],
+] as const) {
+  const asJson = JSON.stringify(session);
+  const asText = JSON.stringify(asJson).slice(1, -1);
+  const sent = JSON.stringify(calls);
+  check(!sent.includes(asJson) && !sent.includes(asText), `the app data reaches none of ${name} requests`);
+}
 ada.adapter.assertComplete();
 bob.adapter.assertComplete();
