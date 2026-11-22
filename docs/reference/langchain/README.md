@@ -7,7 +7,7 @@ TypeScript reference for [LangChain.js](https://github.com/langchain-ai/langchai
 | [guide.md](guide.md) | Our reference: `createAgent` and its graph, model ids, tools, middleware, human approval, structured output, threads and stores, the recursion limit, streaming, testing with `fakeModel()`, a production checklist and the triage-agent capstone |
 | [fact-check.md](fact-check.md) | How accurate the JS docs are: type-checks of 713 blocks, offline runs, an API-surface diff and behavioral tests |
 | [`source/`](source/) | Mirror of 44 pages and the 97 snippets they import, with the MIT `LICENSE`, from `langchain-ai/docs` at commit `9d9747d` (2026-11-17). The docs repo has no release tags, so the mirror records a commit; `_manifest.json` lists every file |
-| [../../../verify/langchain/](../../../verify/langchain/) | Verification harness, scripted-model runner, and our 10 verified examples |
+| [../../../verify/langchain/](../../../verify/langchain/) | Verification harness, scripted-model runner, and our 11 verified examples |
 
 ## Regenerate the mirror and re-verify
 

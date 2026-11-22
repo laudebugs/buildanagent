@@ -45,13 +45,13 @@ A script compares the docs' API lists with the package's declarations (`scripts/
 | Surface | Docs | Package | Differences |
 |---|---|---|---|
 | Middleware hooks (`middleware/custom.mdx`) | 6 | 6 | None |
-| Built-in middleware factories (`middleware/built-in.mdx`) | 14 | 24 | None missing (`modelRefusalMiddleware` arrived in 1.6.6, F3); 10 exported factories, such as `toolErrorMiddleware`, `anthropicPromptCachingMiddleware` and the new `autoModeMiddleware` and `modelRouterMiddleware`, appear on no page in scope. The page's `createFilesystemMiddleware` comes from `deepagents` |
+| Built-in middleware factories (`middleware/built-in.mdx`) | 14 | 24 | None missing (`modelRefusalMiddleware` arrived in 1.6.4, F3); 10 exported factories, such as `toolErrorMiddleware`, `anthropicPromptCachingMiddleware` and the new `autoModeMiddleware` and `modelRouterMiddleware`, appear on no page in scope. The page's `createFilesystemMiddleware` comes from `deepagents` |
 | `createAgent` options used in the JS docs | 10 | 15 | None missing; `description`, `includeAgentName`, `signal`, `streamTransformers` and `version` are used nowhere |
 | Recursion-limit default (`langgraph/graph-api.mdx`) | 25 | 25 | None |
 
-## Tier 4: all thirteen documented claims held
+## Tier 4: all fourteen documented claims held
 
-Ten programs in `verify/langchain/examples/` assert documented behavior on LangChain's own `fakeModel()`, and all ten pass:
+Eleven programs in `verify/langchain/examples/` assert documented behavior on LangChain's own `fakeModel()`, and all eleven pass:
 
 | Claim (doc page) | Test | Result |
 |---|---|---|
@@ -67,15 +67,16 @@ Ten programs in `verify/langchain/examples/` assert documented behavior on LangC
 | Middleware hooks run in loop order, and `wrapToolCall` can answer for a tool (middleware/custom) | 07 | ✅ |
 | `streamMode` `"updates"` and `"values"` yield per-step and full-state chunks (streaming) | 08 | ✅ |
 | Tools reach the agent's store as `runtime.store`, with `get()` and `put()` (long-term-memory, runtime) | 09 | ✅ |
-| `fakeModel()` scripts responses and records calls (test/unit-testing) | 01–10 | ✅ |
+| A record written on one thread is recalled on another through `runtime.store`, and a recall tool that compares an expiry time with an injected clock deletes the expired record (long-term-memory, runtime) | 11 | ✅ |
+| `fakeModel()` scripts responses and records calls (test/unit-testing) | 01–11 | ✅ |
 
-## Eight findings: seven doc errors and one testing gap
+## Nine findings: seven doc errors, one testing gap and one probe
 
 **F1. The docs' default model id can't be resolved, so the first example throws.** Pages use `model: "gpt-6.1-sol"` without a provider prefix, starting at `overview.mdx:31`. `initChatModel` infers a provider only from known name prefixes, and in 1.6.6 the OpenAI ones are `gpt-3`, `gpt-4`, `gpt-5`, `o1`, `o3` and `o4` (`chat_models/universal.js:171`; 1.6.1 had the same list). The call fails with "Unable to infer model provider for { model: gpt-6.1-sol }". This one cause produced 13 of the 14 Tier 2 errors. Write `"openai:gpt-6.1-sol"`.
 
 **F2. A short-term-memory example omits the `thread_id` its checkpointer requires.** `short-term-memory.mdx:75` builds an agent with `MemorySaver` and invokes it without `configurable.thread_id`. LangGraph then throws "missing a required thread_id field", as example 05 shows.
 
-**F3. Pages ran ahead of the 1.6.1 release; 1.6.6 ships most of what they documented.** The pages document `modelRefusalMiddleware` and `ModelRefusalError` (`middleware/built-in.mdx:501`, `:530`, `:569`, `models.mdx:1001`, `structured-output.mdx:563`), plus `executionInfo` and `serverInfo` on the tool config. Against 1.6.1, readers who copied them got "no exported member" errors. Release 1.6.6, published 2026-11-13, exports `modelRefusalMiddleware` from `langchain` (`dist/agents/middleware/modelRefusal.d.ts`, `dist/index.d.ts:50`). `@langchain/core` 1.4.1 exports `ModelRefusalError` from `@langchain/core/errors`. The five refusal blocks now compile apart from names they leave undefined. `executionInfo` and `serverInfo` are in `@langchain/langgraph` 1.7.4's `Runtime` type (`dist/pregel/runnable_types.d.ts:77`, `:79`), but three blocks (`runtime.mdx`, `tools.mdx` twice) still fail, because a tool's second argument is core's `ToolRuntime`, whose 1.4.1 typings have neither field. At run time `runtime.executionInfo` is there (F9). The [update section](#update-to-langchain166-2026-11-22) gives the counts.
+**F3. Pages ran ahead of the 1.6.1 release; 1.6.4 and later ship most of what they documented.** The pages document `modelRefusalMiddleware` and `ModelRefusalError` (`middleware/built-in.mdx:501`, `:530`, `:569`, `models.mdx:1001`, `structured-output.mdx:563`), plus `executionInfo` and `serverInfo` on the tool config. Against 1.6.1, readers who copied them got "no exported member" errors. Release 1.6.4 first shipped `modelRefusalMiddleware` (its tarball holds `dist/agents/middleware/modelRefusal.*`; the 1.6.3 tarball does not), and our pin 1.6.6, published 2026-11-13, exports it from `langchain` (`dist/agents/middleware/modelRefusal.d.ts`, `dist/index.d.ts:50`). `@langchain/core` 1.4.1 exports `ModelRefusalError` from `@langchain/core/errors`. The five refusal blocks now compile apart from names they leave undefined. `executionInfo` and `serverInfo` are in `@langchain/langgraph` 1.7.4's `Runtime` type (`dist/pregel/runnable_types.d.ts:77`, `:79`), but three blocks (`runtime.mdx`, `tools.mdx` twice) still fail, because a tool's second argument is core's `ToolRuntime`, whose 1.4.1 typings have neither field. At run time `runtime.executionInfo` is there (F9). The [update section](#update-to-langchain166-2026-11-22) gives the counts.
 
 **F4. Core's `ToolRuntime` type contradicts the store the docs and the runtime use.** Thirty-one blocks in `runtime.mdx`, `context-engineering.mdx` and the long-term-memory samples call `runtime.store.get(namespace, key)` and `put(...)`. At run time, those calls work, because the store is LangGraph's (example 09). The `ToolRuntime` type in `@langchain/core/tools` declares core's key-value `BaseStore` instead, which has only `mget` and `mset`, so the blocks fail to type-check. Core 1.4.1, the newest release, keeps the same type. Until it changes, cast `runtime.store` to LangGraph's store type.
 
@@ -118,6 +119,8 @@ The weekly update job moved the harness from `langchain@1.6.1`, `@langchain/core
 - **Two more blocks pass for an unrelated reason.** The two `test/integration-testing.mdx` blocks import `vitest`, which the workspace now installs for every package; this is not a LangChain change.
 - **No regression.** The 78 mismatches are the same blocks in the same twelve cause groups. One block's error list lost its `vitest` import error, and the three blocks that use `executionInfo` or `serverInfo` stay mismatches (F3). Every other doc run, example and behavioral test gave the same outcome as before, and the transcripts differ only in their version fields.
 
+- **Correction (2026-11-22): `modelRefusalMiddleware` first shipped in 1.6.4, not 1.6.6.** An earlier draft of this section and of the guide said it arrived in 1.6.6. Unpacking the npm tarballs (`npm pack langchain@1.6.3`, `@1.6.4`, `@1.6.5`) shows `dist/agents/middleware/modelRefusal.*` in 1.6.4 and 1.6.5 and not in 1.6.3 (1.6.2 also lacks it). The 1.6.1 pin lacked it, so F3 stands; only the release that first ships it changes.
+
 **F9. `modelRefusalMiddleware` works, and `executionInfo` exists at run time although its type does not.** A one-off probe on 1.6.6 (not committed) ran a `fakeModel()` that answers with a `refusal` content block under `createAgent({ middleware: [modelRefusalMiddleware()] })`. The run threw a `ModelRefusalError` ("Model refused to produce the requested output: no"), and `ModelRefusalError.isInstance` returned true. The `.d.ts` says the middleware does not detect a refusal the model writes as plain text, and that a retry middleware does not retry a refusal, so list it after `modelFallbackMiddleware` (`dist/agents/middleware/modelRefusal.d.ts`, doc comment). A second probe ran a tool through `createAgent` and read its second argument: `runtime.executionInfo` held `checkpointId`, `checkpointNs`, `taskId`, `threadId`, `nodeAttempt` and `nodeFirstAttemptTime`, and `runtime.serverInfo` was `undefined` off the Agent Server (the page says `null`). These probes are all that tests the factory and the error class: no example in `verify/langchain/examples/` covers them, and no real provider refused anything.
 
 ## TypeScript parity
@@ -126,4 +129,4 @@ LangChain is Python first, so the [TypeScript gap report](../../comparison/types
 
 ## Verdict: trust the behavior, and compile examples against your release before copying them
 
-Every LangChain.js behavior we tested matched its docs, from interrupts and resume to thread memory, middleware order, the recursion limit and streaming modes. The API lists are also sound: the six middleware hooks and the recursion default match exactly, and every `createAgent` option the docs use exists. The JavaScript examples are where the docs fall short. They share pages with Python, they ran ahead of the release before 1.6.6 caught up, and they repeat a few typing slips. Before you copy one, prefix model ids with their provider (F1), pass a `thread_id` whenever a checkpointer is set (F2), and compile the example against your pinned version. Then rerun `pnpm run verify` at each upgrade to catch the next page that runs ahead.
+Every LangChain.js behavior we tested matched its docs, from interrupts and resume to thread memory, middleware order, the recursion limit and streaming modes. The API lists are also sound: the six middleware hooks and the recursion default match exactly, and every `createAgent` option the docs use exists. The JavaScript examples are where the docs fall short. They share pages with Python, they ran ahead of the release until 1.6.4 and later releases caught up, and they repeat a few typing slips. Before you copy one, prefix model ids with their provider (F1), pass a `thread_id` whenever a checkpointer is set (F2), and compile the example against your pinned version. Then rerun `pnpm run verify` at each upgrade to catch the next page that runs ahead.

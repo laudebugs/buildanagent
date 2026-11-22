@@ -240,7 +240,7 @@ The table comes from [SDK research §1][sr1] and [§4][sr4]; the Pi patch releas
 
 **Docs drift wherever they build from a branch instead of a release.** Four references found the same failure:
 - **Pi:** docs.pi.dev/latest serves main, and six pages described changes made after v1.5.2 ([Pi F1][pi-fc]).
-- **LangChain:** the docs repo has no tags that match npm releases, and pages documented `modelRefusalMiddleware` before it shipped; 1.6.1 lacked it and 1.6.6 has it ([LangChain F3][lc-fc]).
+- **LangChain:** the docs repo has no tags that match npm releases, and pages documented `modelRefusalMiddleware` before it shipped; 1.6.1 lacked it, 1.6.4 first shipped it and 1.6.6 has it ([LangChain F3][lc-fc]).
 - **Cloudflare:** two doc sites render branches, so pages import subpaths that 0.33.0 never exported; the `docs/` folder inside the npm package matches the release tag exactly ([Cloudflare F12–F15][cf-fc-drift]).
 - **ADK:** the TypeScript prose lags the 2.5.0 package and calls `requireConfirmation` Python-only, though 2.5.0 has it ([ADK F2][adk-fc-doc]).
 

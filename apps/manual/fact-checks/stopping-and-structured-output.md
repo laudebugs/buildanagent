@@ -214,6 +214,6 @@ T54 turned the three listings `#cap-ai`, `#stop-on-done` and `#triage-output` in
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 106 |
-| ✏️ corrected | 12 (rows 7, 22, 38, 46, 65, 83, 85, 88, 96, 107, 117, 122 and 123) |
+| ✏️ corrected | 12 (rows 7, 22, 38, 46, 65, 83, 85, 88, 96, 107, 117 and 123) |
 | ⚠️ unverified, our recommendation, marked as ours in the text | 5 (rows 26, 63, 81, 93 and 116) |
 | Total | 123 |

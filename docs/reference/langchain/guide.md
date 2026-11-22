@@ -61,7 +61,7 @@ Custom middleware comes from `createMiddleware` with up to six hooks, and the do
 
 In example 07, the hooks ran in loop order: `beforeModel`, `wrapToolCall`, `beforeModel` again, then `afterAgent`. **[verified: 07]** A `wrapToolCall` that returns its own `ToolMessage` instead of calling the handler blocks the tool, and the model receives that message. **[verified: 07]** This is LangChain's closest equivalent of Pi's `tool_call` gate.
 
-The package also exports 24 built-in middleware factories, from `summarizationMiddleware` and `modelCallLimitMiddleware` to `piiMiddleware` and `toolRetryMiddleware`. The built-in page documents 14 of them, plus `createFilesystemMiddleware` from the separate `deepagents` package. One of the 14, `modelRefusalMiddleware`, is new in 1.6.6: it throws `ModelRefusalError` when a provider reports a refusal as a successful response, so list it after `modelFallbackMiddleware` and the fallback catches it (fact-check F3 and F9).
+The package also exports 24 built-in middleware factories, from `summarizationMiddleware` and `modelCallLimitMiddleware` to `piiMiddleware` and `toolRetryMiddleware`. The built-in page documents 14 of them, plus `createFilesystemMiddleware` from the separate `deepagents` package. One of the 14, `modelRefusalMiddleware`, is new since 1.6.1 (it first shipped in 1.6.4): it throws `ModelRefusalError` when a provider reports a refusal as a successful response, so list it after `modelFallbackMiddleware` and the fallback catches it (fact-check F3 and F9).
 
 ## 6. Human approval interrupts the graph and resumes with a `Command`
 
@@ -155,7 +155,7 @@ The capstone [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage
 pnpm install && pnpm --filter @buildanagent/verify-langchain test
 ```
 
-## 15. Ten runnable examples back every [verified] claim
+## 15. Eleven runnable examples back every [verified] claim
 
 | File | Demonstrates |
 |---|---|
@@ -169,6 +169,7 @@ pnpm install && pnpm --filter @buildanagent/verify-langchain test
 | `08-streaming.ts` | `streamMode` `"updates"` and `"values"` |
 | `09-long-term-store.ts` | `runtime.store` as LangGraph's store, and the type mismatch |
 | `10-triage-agent.ts` | The capstone, combining all of the above |
+| `11-store-recall-expire.ts` | A memory with an expiry on LangGraph's store: recall on another thread, an injected clock, deletion after expiry, and the checkpoint keeping the fact |
 
 ## Conclusion: pin the model, the thread and the limit, and the middleware does the rest
 

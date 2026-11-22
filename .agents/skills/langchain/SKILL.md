@@ -68,7 +68,7 @@ if (first.__interrupt__) {
 - **`message.content` is `string | ContentBlock[]`.** Narrow it before string use; read `tool_calls` only from an `AIMessage`.
 - **`result.__interrupt__` is missing from the typed result.** Read it through `any` or a cast.
 - **`initChatModel()` returns a Promise.** Await it.
-- **The JS docs can run ahead of your release.** `modelRefusalMiddleware` and `ModelRefusalError` were missing in 1.6.1 and ship in 1.6.6. `runtime.executionInfo` and `runtime.serverInfo` exist at run time in 1.6.6 but not on the `ToolRuntime` type that a tool's second argument has, so cast. Compile copied examples against your pinned version.
+- **The JS docs can run ahead of your release.** `modelRefusalMiddleware` and `ModelRefusalError` were missing in 1.6.1 and first ship in 1.6.4 (1.6.6 has them). `runtime.executionInfo` exists at run time in 1.6.6 but not on the `ToolRuntime` type that a tool's second argument has, so cast. `runtime.serverInfo` is `undefined` outside the Agent Server (locally), so check it before you read a field from it. Compile copied examples against your pinned version.
 - **Old approval flags** (`allowAccept`, `allowEdit`) are gone; use `allowedDecisions`.
 - **A call rejected by `humanInTheLoopMiddleware` never reaches `wrapToolCall`**, so an audit built on `wrapToolCall` misses it. Audit requested calls in `afterModel` (from the model's `tool_calls`) if you need them all. The rejection reaches the model as a `ToolMessage` named after the tool.
 
