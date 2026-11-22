@@ -1,91 +1,91 @@
 [
   {
     "id": "01-hello-agent",
-    "file": "/home/user/buildanagent/verify/langchain/examples/01-hello-agent.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/01-hello-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5991,
+    "ms": 1449,
     "modelCalls": 0,
     "tail": "ok - the last message is the model's answer\nok - messages hold the user turn and the answer\nok - one model call without tools\nok - systemPrompt arrives as the system message"
   },
   {
     "id": "02-tool-loop",
-    "file": "/home/user/buildanagent/verify/langchain/examples/02-tool-loop.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/02-tool-loop.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4384,
+    "ms": 1463,
     "modelCalls": 0,
     "tail": "ok - the tool gets parsed input with defaults\nok - human, tool call, tool result, answer\nok - the tool result reaches the next model call\nok - the loop ends on the model's answer"
   },
   {
     "id": "03-human-in-the-loop",
-    "file": "/home/user/buildanagent/verify/langchain/examples/03-human-in-the-loop.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/03-human-in-the-loop.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5815,
+    "ms": 1459,
     "modelCalls": 0,
     "tail": "ok - approve: the run interrupts with the execute_sql action request\nok - approve: the tool has not run before the decision\nok - approve: the tool runs exactly once after resuming\nok - approve: the model then answers\nok - reject: the run interrupts with the execute_sql action request\nok - reject: the tool has not run before the decision\nok - reject: the tool never runs\nok - reject: the model receives a tool message about the rejection"
   },
   {
     "id": "04-structured-output",
-    "file": "/home/user/buildanagent/verify/langchain/examples/04-structured-output.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/04-structured-output.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4460,
+    "ms": 1265,
     "modelCalls": 0,
     "tail": "ok - structuredResponse is the parsed, typed object\nok - the structured-output tool call ends the run"
   },
   {
     "id": "05-thread-memory",
-    "file": "/home/user/buildanagent/verify/langchain/examples/05-thread-memory.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/05-thread-memory.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6064,
+    "ms": 1237,
     "modelCalls": 0,
     "tail": "ok - the same thread_id carries the earlier turn into the second invocation\nok - the model sees the full thread history\nok - a new thread_id starts empty\nok - without a thread_id, a checkpointed agent throws"
   },
   {
     "id": "06-recursion-limit",
-    "file": "/home/user/buildanagent/verify/langchain/examples/06-recursion-limit.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/06-recursion-limit.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 7167,
+    "ms": 1344,
     "modelCalls": 0,
     "tail": "ok - the default limit throws GraphRecursionError\nok - the default limit is 25\nok - 25 super-steps allow 13 model calls (got 13)\nok - recursionLimit: 5 stops after 3 model calls (got 3)"
   },
   {
     "id": "07-middleware",
-    "file": "/home/user/buildanagent/verify/langchain/examples/07-middleware.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/07-middleware.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6842,
+    "ms": 1301,
     "modelCalls": 0,
     "tail": "ok - wrapToolCall can block a tool by returning its own ToolMessage\nok - the model receives the middleware's message\nok - hooks run in loop order: beforeModel, wrapToolCall:restart_service, beforeModel, afterAgent"
   },
   {
     "id": "08-streaming",
-    "file": "/home/user/buildanagent/verify/langchain/examples/08-streaming.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/08-streaming.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6750,
+    "ms": 1184,
     "modelCalls": 0,
     "tail": "ok - \"updates\" yields one chunk per step: model_request, tools, model_request\nok - \"values\" yields growing full states: 1, 2, 3, 4"
   },
   {
     "id": "09-long-term-store",
-    "file": "/home/user/buildanagent/verify/langchain/examples/09-long-term-store.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/09-long-term-store.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6587,
+    "ms": 1000,
     "modelCalls": 0,
     "tail": "ok - runtime.store.put() wrote to the store passed to createAgent\nok - the runtime store is LangGraph's store, which has no mget()"
   },
   {
     "id": "10-triage-agent",
-    "file": "/home/user/buildanagent/verify/langchain/examples/10-triage-agent.ts",
+    "file": "/home/user/agent-speak/verify/langchain/examples/10-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6308,
+    "ms": 919,
     "modelCalls": 0,
     "tail": "ok - the run pauses at escalate\nok - the lookup ran; escalate has not\nok - the rejected escalation never runs\nok - the agent returns a typed triage record\nok - the audit middleware saw the lookup\nok - three model calls: lookup, escalate request, triage\ntriage: {\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Checkout returns 500.\"}"
   },
@@ -94,8 +94,8 @@
     "file": "/home/user/buildanagent/verify/langchain/examples/11-store-recall-expire.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5042,
+    "ms": 1630,
     "modelCalls": 0,
-    "tail": "ok - recalling an unexpired record leaves it in the store\nok - after the expiry the recall tool returns nothing\nok - the model never sees the expired fact\nok - the recall tool deleted the expired record from the store\nok - the store holds no record under that namespace\nok - the first thread's checkpoint is still there\nok - the first thread's log still holds the fact\nok - the agents ran only remember, recall and recall"
+    "tail": "ok - recalling an unexpired record leaves it in the store\nok - after the expiry the recall tool returns nothing\nok - the model never sees the expired fact\nok - the recall tool deleted the expired record from the store\nok - the store holds no record under that namespace\nok - the first thread's checkpoint is still there\nok - the first thread's log still holds the fact\nok - only the in-memory tools ran, and the host was never touched"
   }
 ]
