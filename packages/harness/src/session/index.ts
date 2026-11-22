@@ -39,12 +39,13 @@ export {
   parseEntry,
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
+export { effectScope } from "./effect-scope.js";
 export { ConflictError, EntryTooLargeError } from "./errors.js";
 export type { LockHandle, SessionLock } from "./lock.js";
 export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
 export { type MigrateOptions, type Migration, type MigrationResult, migrateSession } from "./migrate.js";
 export { memoryIndex, type SessionIndex } from "./pointer.js";
-export { runTurn, type TurnOptions, type TurnResult } from "./runner.js";
+export { rerunFrom, runTurn, type TurnOptions, type TurnResult } from "./runner.js";
 export {
   type ChildLink,
   DERIVED,

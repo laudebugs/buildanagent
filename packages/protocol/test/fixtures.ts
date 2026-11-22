@@ -109,6 +109,7 @@ export const FIXTURES = [
     type: "usage",
     source: "summary",
     usage: USAGE,
+    lastAttemptUsage: USAGE,
     cost: { total: 0.0123, basis: "catalog", currency: "USD", catalogAsOf: "2026-11-01" },
   },
   { ...at("harness"), type: "turn_end", runId: "run-1", stopReason: "done", steps: 3 },

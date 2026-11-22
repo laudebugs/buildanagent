@@ -32,7 +32,7 @@ As of November 2026 the package is private and not on npm. Each removable compon
 | --- | --- | --- | --- |
 | `none` | `noneSandbox({ unsafe: true })` | nothing | A command runs as the user, with the machine's files and network. For a machine that is already disposable, and for tests of the rest of the harness |
 | `os` | `srtSandbox()` | mistakes and exfiltration | An operating-system sandbox that shares the host's kernel, on Linux only |
-| `container` | Docker, coming | mistakes and exfiltration, as far as its setup allows | A container with its capabilities dropped and no network by default |
+| `container` | `dockerSandbox()` | mistakes and exfiltration, as far as its setup allows | A container with its capabilities dropped and no network, on Linux only |
 
 `mistakes` are the agent's own errors, such as a write outside the workspace. `exfiltration` is sending data to a host that is not allowed. No backend claims to stop a `hostile_process`, because a sandbox that shares the host's kernel can't promise it. A backend that can't start throws `SandboxUnavailableError`, and the host must not run unconfined, so no backend falls back to `none`.
 
@@ -77,6 +77,34 @@ Four limits are worth knowing:
 - **Cleanup depends on `srt`.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
 
 `pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the escape cases against the real `srt`. It is opt-in because it starts bubblewrap, and it fails on a skipped case instead of skipping. Without `srt`, the rest of `pnpm test` checks the settings and the unavailable paths.
+
+## The Docker backend runs each command in a locked-down container
+
+`dockerSandbox({ image })` from `./sandbox/docker` runs each command in its own container, made from an image that is already on the Docker host: `provision()` never pulls, and you should pin the image by digest. The container has all capabilities dropped, a read-only root file system, no network, no new privileges and no shared IPC.
+
+The container also has a limit on processes (`pidsLimit`, 256 by default), CPUs (`cpus`, 1) and memory with no swap (`memoryMb`, 1024). It runs as your user and group, so the files it writes stay yours, and its only other writable place is a 64 MiB `/tmp` in memory.
+
+The policy decides what is mounted, at the same path inside as outside. A write root is mounted writable, and it must exist. A read root and an `extraReadRoots` folder are mounted read-only. A `denyWrite` folder inside a write root is made if it is missing and mounted read-only on top, so the session log stays out of the agent's reach. A `denyWrite` path outside every write root is not mounted at all. The protected files that `srt` also guards, such as `.bashrc`, `.claude`, `.git/hooks` and `.git/config` at the top of a write root, are mounted read-only when they exist, and `writeFile` refuses them. Nothing else is mounted, so a path outside the roots does not exist in the container.
+
+The workspace must lie inside a root. The backend never mounts the Docker socket: a root that resolves to `/`, or that holds the daemon's socket (`/var/run/docker.sock`, `/run/docker.sock` or the one `dockerHost` names), is refused.
+
+The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows.
+
+`provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
+
+A command's environment is exactly the one it was given. `env -i` clears the image's own variables, so the image needs an `env` that takes `-i` and `--`, as BusyBox and GNU coreutils do. It also clears `PATH`, and a program name is then looked up on the C library's default path, which differs between images. Pass a `PATH`, as `spawnEnv()` does, for a program that lives elsewhere, such as `/usr/local/bin/node` in a Debian image. A command whose first word contains `=` resolves with exit code 127, as under `none`.
+
+Each command is created and then started. A timeout, an abort or `dispose()` kills the container by name, so nothing outlives the call, and `dispose()` also removes any container of this sandbox that a stopped client left behind.
+
+Five limits are worth knowing:
+
+- **Shared kernel.** A container shares the host's kernel, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
+- **Protected files made later.** A protected file that is missing when `provision()` runs, or one in a subfolder, is not protected inside the container, because a mount needs a file to cover. An agent could write `.git/hooks/pre-commit` there, and the host's next `git commit` would run it. Keep `.git/hooks` and `.git/config` in place, or list them in `denyWrite`.
+- **Linux and a rootful daemon.** Only Linux was tested, against a rootful daemon. Rootless Docker mounts differently and was not tested.
+- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path and through `/proc`, as under `srt`, and `writeFile` refuses a `denyWrite` folder. A hostile process could still win that race.
+- **The network lock rests on the daemon.** `--network none` is checked by inspecting the running container, because a test host with no bridge can't tell a closed network from a missing one.
+
+`pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the lock-down cases against a real daemon, with a pinned Node image. It is opt-in, and it fails on a skipped case instead of skipping. Without Docker, the rest of `pnpm test` checks the flags and the unavailable paths with a fake client.
 
 ## Every spawned process gets a cleared environment
 
@@ -188,3 +216,29 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 | `run_end` | `turn_end` |
 
 Call `runTurn()` once at a time per `Session`: its writes stay in order within one call, but two concurrent calls on one `Session` can interleave their entries. A turn may set `system`, `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal`, `tools` and `hostContext`. `tools` is an allowlist of registered names, and an unknown name throws `invalid_turn_options`. `hostContext` reaches a tool as `ctx.app` and reaches no entry. `onRun` hands the caller the run, so it can `steer()` or `followUp()` it.
+
+## The log is the only state, so a turn rebuilds its context from it
+
+`session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It groups `message_block` entries by `messageId`, closes a message at its `message_end`, and takes its usage from the `usage` entry that follows. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message. The result deep-equals the `context` of a run that ended without pausing, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone.
+
+A paused run keeps its signed requests in `context.pending`, which no entry holds yet. A context rebuilt from a paused run therefore cannot resolve its approval until the log stores signed approvals.
+
+There are two ways to look at a stored session again, and neither calls a model:
+
+- **Playback** is `session.playback(headId?)`, which yields the entries on the path in order and reads the log and nothing else.
+- **Re-run** is `rerunFrom(session, harness, entryId, options)`: it appends a `checkout` to `entryId` and starts a new turn there, on a new branch of the same log. The entries of the branch it left don't change. It refuses an entry that follows an open call, because that call never ran on the new branch.
+
+To get byte-identical logs, set `TurnOptions.clock` and `newId` to a fixed clock and sequential ids. Two identical scripted sessions then write identical JSONL files.
+
+### A crash leaves open calls, and the next turn settles them by what they could have done
+
+An open call is a tool call whose result is not in the log. Before a turn writes anything, it settles the open calls a crash left:
+
+- A message with blocks and no end is ended first, as `tool_calls` if it made calls and as `aborted` if not, so its calls count and the model is sent their results.
+- A call to a tool that declares `effect: { kind: "write" }`, or to a tool the registry no longer has, gets an `unknown` write outcome with `retry: "reconcile_first"`, because the write may have taken effect. The model reads that it must check before it retries.
+- A call to any other tool gets an error that says it was interrupted, which the model may retry.
+- A turn with no `turn_end` gets one with stop reason `aborted`, unless a checkout moved HEAD there, since a turn left behind by a re-run was not interrupted.
+
+A turn that ended `awaiting_approval` or `clarification_requested` leaves its calls open on purpose, for the approval that resolves them. A later turn that passes no `history` refuses to start with `invalid_turn_options` while any call is open, because the gateway would answer it with a made-up "missing result" error and the approval would then have nothing to resume.
+
+When a tool has a business key, a model that proposes the same write again reaches the same effect key, so the write goes out once. `effectScope(session, harness, toolCallId)` builds the scope that key takes: the harness's `tenant` (default `local`), the session id, the branch and the call id. The branch is the log's file plus its latest checkout.

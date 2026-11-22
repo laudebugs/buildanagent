@@ -102,7 +102,12 @@ export const SessionEntry = z.discriminatedUnion("type", [
     policyVersion: z.string(),
     inputHash: z.string(),
   }),
-  entry("usage", { source: z.enum(["model_call", "summary", "judge"]), usage: Usage, cost: Cost }),
+  entry("usage", {
+    source: z.enum(["model_call", "summary", "judge"]),
+    usage: Usage,
+    lastAttemptUsage: Usage.optional(),
+    cost: Cost,
+  }),
   entry("turn_end", {
     runId: z.string(),
     stopReason: z.enum([

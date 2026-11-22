@@ -74,7 +74,7 @@ Gap 1 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-
 
 - [x] A tool that returns `outcome` with any kind except `applied` has `isError` set for the model, and the model-facing content includes the outcome sentence.
 - [x] `outcome` round-trips through a `context` JSON serialisation.
-- [x] `ToolDefinition` gains an optional `effect?: { kind: "write"; businessKey?(input: I): string }`. A tool without it counts as read-only for the crash rule in the [N7](../ready/N7-rebuild-resume-replay.md) and [N40](../ready/N40-code-initiated-calls.md) revisions, which read this field.
+- [x] `ToolDefinition` gains an optional `effect?: { kind: "write"; businessKey?(input: I): string }`. A tool without it counts as read-only for the crash rule in the [N7](../done/N7-rebuild-resume-replay.md) and [N40](../ready/N40-code-initiated-calls.md) revisions, which read this field.
 
 The owner accepted [ADR 0043](../../decisions/0043-standalone-safety-core.md) and SG3, including this `effect` field, on 2026-11-18, so this revision is in force and E1 is in **Depends on**.
 

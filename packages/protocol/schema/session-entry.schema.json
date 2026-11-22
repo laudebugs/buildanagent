@@ -799,6 +799,53 @@
           ],
           "additionalProperties": false
         },
+        "lastAttemptUsage": {
+          "type": "object",
+          "properties": {
+            "uncachedInput": {
+              "type": "number"
+            },
+            "cacheRead": {
+              "type": "number"
+            },
+            "cacheWrite": {
+              "type": "object",
+              "properties": {
+                "5m": {
+                  "type": "number"
+                },
+                "1h": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "5m",
+                "1h"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "number"
+            },
+            "reasoning": {
+              "type": "number"
+            },
+            "raw": {},
+            "unreported": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "required": [
+            "uncachedInput",
+            "cacheRead",
+            "cacheWrite",
+            "output",
+            "reasoning",
+            "raw"
+          ],
+          "additionalProperties": false
+        },
         "cost": {
           "type": "object",
           "properties": {

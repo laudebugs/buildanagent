@@ -116,6 +116,9 @@ function schemaProperties(node: unknown, found = new Set<string>()): Set<string>
     const properties = record.properties as Record<string, unknown> | undefined;
     // A session entry's own fields are covered by the entry schema's test, not repeated here.
     if (isEntryType((properties?.type as { const?: string } | undefined)?.const)) return found;
+    // The token counts of a `usage` entry. Two entry fields share the shape, so the schema names it once in `$defs`,
+    // and no message fixture reaches it outside an entry.
+    if (properties !== undefined && "uncachedInput" in properties) return found;
     for (const name of Object.keys(properties ?? {})) found.add(name);
     for (const value of Object.values(record)) schemaProperties(value, found);
   }

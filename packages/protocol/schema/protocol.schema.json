@@ -1433,7 +1433,7 @@
           "$ref": "#/$defs/shape-5c323794ce"
         },
         {
-          "$ref": "#/$defs/shape-a79cc50d48"
+          "$ref": "#/$defs/shape-d6df0f1a8e"
         },
         {
           "$ref": "#/$defs/shape-4e9a9a0e7e"
@@ -1983,7 +1983,7 @@
       ],
       "additionalProperties": false
     },
-    "shape-a79cc50d48": {
+    "shape-d6df0f1a8e": {
       "type": "object",
       "properties": {
         "id": {
@@ -2014,51 +2014,10 @@
           ]
         },
         "usage": {
-          "type": "object",
-          "properties": {
-            "uncachedInput": {
-              "type": "number"
-            },
-            "cacheRead": {
-              "type": "number"
-            },
-            "cacheWrite": {
-              "type": "object",
-              "properties": {
-                "5m": {
-                  "type": "number"
-                },
-                "1h": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "5m",
-                "1h"
-              ],
-              "additionalProperties": false
-            },
-            "output": {
-              "type": "number"
-            },
-            "reasoning": {
-              "type": "number"
-            },
-            "raw": {},
-            "unreported": {
-              "type": "boolean",
-              "const": true
-            }
-          },
-          "required": [
-            "uncachedInput",
-            "cacheRead",
-            "cacheWrite",
-            "output",
-            "reasoning",
-            "raw"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/shape-572f2e8cad"
+        },
+        "lastAttemptUsage": {
+          "$ref": "#/$defs/shape-572f2e8cad"
         },
         "cost": {
           "type": "object",
@@ -2103,6 +2062,53 @@
         "source",
         "usage",
         "cost"
+      ],
+      "additionalProperties": false
+    },
+    "shape-572f2e8cad": {
+      "type": "object",
+      "properties": {
+        "uncachedInput": {
+          "type": "number"
+        },
+        "cacheRead": {
+          "type": "number"
+        },
+        "cacheWrite": {
+          "type": "object",
+          "properties": {
+            "5m": {
+              "type": "number"
+            },
+            "1h": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "5m",
+            "1h"
+          ],
+          "additionalProperties": false
+        },
+        "output": {
+          "type": "number"
+        },
+        "reasoning": {
+          "type": "number"
+        },
+        "raw": {},
+        "unreported": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "uncachedInput",
+        "cacheRead",
+        "cacheWrite",
+        "output",
+        "reasoning",
+        "raw"
       ],
       "additionalProperties": false
     },

@@ -238,6 +238,9 @@ importers:
       '@anthropic-ai/sandbox-runtime':
         specifier: 0.0.83
         version: 0.0.83
+      '@buildanagent/agent-safety':
+        specifier: workspace:*
+        version: link:../agent-safety
       '@buildanagent/gateway':
         specifier: workspace:*
         version: link:../gateway
