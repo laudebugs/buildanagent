@@ -8,13 +8,13 @@
   "events": [
     {
       "kind": "check",
-      "line": 19,
+      "line": 20,
       "message": "prepareStep(0) sees the 0 earlier step(s)",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 13,
+      "line": 14,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -34,7 +34,7 @@
     },
     {
       "kind": "response",
-      "line": 13,
+      "line": 14,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -53,13 +53,13 @@
     },
     {
       "kind": "check",
-      "line": 19,
+      "line": 20,
       "message": "prepareStep(1) sees the 1 earlier step(s)",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 13,
+      "line": 14,
       "model": "model-1",
       "repeated": 2,
       "messages": [
@@ -79,7 +79,7 @@
     },
     {
       "kind": "response",
-      "line": 13,
+      "line": 14,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -94,31 +94,31 @@
     },
     {
       "kind": "check",
-      "line": 27,
+      "line": 29,
       "message": "prepareStep runs before each step",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 28,
+      "line": 30,
       "message": "step 0: only the active tool is offered",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 29,
+      "line": 31,
       "message": "step 0: toolChoice forces the tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 30,
+      "line": 32,
       "message": "step 1: activeTools [] offers no tools",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 31,
+      "line": 33,
       "message": "the loop finishes with the model's answer",
       "pass": true
     }

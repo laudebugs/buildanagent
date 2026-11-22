@@ -86,14 +86,16 @@ const policy = Array.from({ length: 400 }, (_, i) => `Refund rule ${i}: refund w
 const longPolicy = policy.repeat(2);
 const cacheControl = { anthropic: { cacheControl: { type: "ephemeral" } } };
 type Extra = { maxRetries?: number; maxOutputTokens?: number };
+// #region ask
 const ask = (model: LanguageModelV4, question: string, system = policy, extra: Extra = {}) =>
   generateText({
     model,
-    instructions: { role: "system", content: system, providerOptions: cacheControl },
+    instructions: { role: "system", content: system, providerOptions: cacheControl }, // book:note cache-mark
     prompt: question,
-    maxOutputTokens: MAX_OUTPUT_TOKENS,
+    maxOutputTokens: MAX_OUTPUT_TOKENS, // book:note output-cap
     ...extra,
   });
+// #endregion
 
 // ---- First protocol: a scripted model that fails on demand and caches a prefix the way a provider does. ----
 const failures: APICallError[] = [];

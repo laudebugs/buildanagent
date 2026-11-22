@@ -65,7 +65,7 @@
     },
     {
       "kind": "check",
-      "line": 136,
+      "line": 138,
       "message": "a retryable error costs one retry (1)",
       "pass": true
     },
@@ -89,7 +89,7 @@
     },
     {
       "kind": "check",
-      "line": 141,
+      "line": 143,
       "message": "an error that is not retryable fails at once, with no retry",
       "pass": true
     },
@@ -121,7 +121,7 @@
     },
     {
       "kind": "check",
-      "line": 148,
+      "line": 150,
       "message": "maxRetries 1 gives up after two errors",
       "pass": true
     },
@@ -167,19 +167,19 @@
     },
     {
       "kind": "check",
-      "line": 164,
+      "line": 166,
       "message": "the first call writes the prefix to the cache",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 168,
+      "line": 170,
       "message": "the same prefix, sent again, reports cache-read tokens (3973)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 170,
+      "line": 172,
       "message": "the cached call costs under a fifth of an uncached one ($0.00062)",
       "pass": true
     },
@@ -225,55 +225,55 @@
     },
     {
       "kind": "check",
-      "line": 179,
+      "line": 181,
       "message": "a long prefix with a short answer projects $0.0101485, not the input-rate $0.0081620",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 188,
+      "line": 190,
       "message": "a call that fits the budget alone ($0.0249) is refused ...",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 192,
+      "line": 194,
       "message": "... because $0.0114 is already spent",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 196,
+      "line": 198,
       "message": "the refused call never reached the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 234,
+      "line": 236,
       "message": "over the Messages format, an HTTP 529 costs one retry (3 requests for two calls)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 238,
+      "line": 240,
       "message": "over the Messages format, the first call writes the prefix",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 242,
+      "line": 244,
       "message": "over the Messages format, the repeated prefix reads from the cache",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 247,
+      "line": 249,
       "message": "over the Messages format, a call that fits the budget alone ($0.0249) is refused ...",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 251,
+      "line": 253,
       "message": "... because $0.0108 is already spent, and no request was sent",
       "pass": true
     }
