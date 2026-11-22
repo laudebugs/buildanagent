@@ -234,3 +234,63 @@ test("a body of exactly one flush, git's probe before a large push, is allowed, 
   const shallowOnly = encoder.encode(`${pkt(`shallow ${NEW}\n`)}0000`);
   assert.deepEqual(pushVerdict(shallowOnly, filter, true), { refused: "git_bad_pkt_line" }, "a flush after a line");
 });
+
+test("a git route's host is refused when another route, of either kind, reaches it", () => {
+  const [header, git] = policy.routes as [
+    Extract<EgressPolicy["routes"][number], { kind: "header" }>,
+    Extract<EgressPolicy["routes"][number], { kind: "git" }>,
+  ];
+  const variants: [string, EgressPolicy["routes"]][] = [
+    ["a header route to the git host", [{ ...header, host: "github.com" }, git]],
+    ["a header route to the git host, in other case and with a port", [{ ...header, host: "GitHub.com:443" }, git]],
+    ["a header route to the git host on another port", [{ ...header, host: "github.com:8443" }, git]],
+    ["a header route listed after the git route", [git, { ...header, host: "github.com" }]],
+    ["two git routes to one host", [git, { ...git, route: "git2", repositories: ["other/repo"] }]],
+  ];
+  for (const [label, routes] of variants) {
+    const error = codeOf(() => compileEgressPolicy({ allow: [], routes }, { secret }));
+    assert.equal(error.code, "invalid_egress_options", label);
+    assert.match(error.message ?? "", /another route's host/, label);
+    assert.doesNotMatch(error.message ?? "", /github/i, "the message names the place, not the host");
+  }
+  assert.ok(compileEgressPolicy({ allow: [], routes: [header, git] }, { secret }), "different hosts are fine");
+});
+
+test("an ordinary name that merely contains a credential's prefix is accepted", () => {
+  const git = policy.routes[1] as Extract<EgressPolicy["routes"][number], { kind: "git" }>;
+  const ordinary: EgressPolicy = {
+    allow: ["api.sk-telecom.com"],
+    routes: [
+      {
+        ...git,
+        repositories: ["acme/sk-api"],
+        pushRefs: ["refs/heads/agent/sk-1"],
+        credential: "ASIAPACIFICREGION_TOKEN",
+      },
+    ],
+  };
+  assert.ok(compileEgressPolicy(ordinary, { secret }));
+  const shaped = [
+    "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+    "github_pat_11ABCDEFG0123456789",
+    "sk-ant-api03-abcdef",
+    "xoxb-1234-5678-abcdef",
+    "AKIAIOSFODNN7EXAMPLE",
+    "ASIAIOSFODNN7EXAMPLE",
+    "Bearer abcdef",
+    "basic dXNlcjpwYXNz",
+    "token=ghp_abcdef",
+    "user:sk-abcdef",
+  ];
+  for (const value of shaped) {
+    const attempts: unknown[] = [
+      { ...ordinary, allow: [value] },
+      { ...ordinary, routes: [{ ...ordinary.routes[0], repositories: [value] }] },
+    ];
+    for (const attempt of attempts) {
+      const error = codeOf(() => compileEgressPolicy(attempt as EgressPolicy, { secret }));
+      assert.equal(error.code, "invalid_egress_options", value);
+      assert.match(error.message ?? "", /looks like a credential/, value);
+    }
+  }
+});

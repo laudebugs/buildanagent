@@ -5,7 +5,7 @@
  */
 import { HarnessError } from "../errors.js";
 import { isAddressLiteral } from "./addresses.js";
-import { type CredentialRoute, parseAllow, parseRoutes } from "./allowlist.js";
+import { type CredentialRoute, gitHostOverlap, parseAllow, parseRoutes } from "./allowlist.js";
 import { checkGitFilter, type GitRouteFilter } from "./git-route.js";
 
 /** A route that swaps the sentinel in one request header for a credential, as `startEgressProxy()`'s routes do. */
@@ -68,9 +68,19 @@ export interface CompiledEgressPolicy {
 }
 
 const CREDENTIAL_NAME = /^[A-Z][A-Z0-9_]{0,63}$/;
-// The starts of well-known credential formats, so a token pasted where its name belongs is refused wherever it is.
+// Well-known credential formats, matched at the start of a value or of a token in it, so a token pasted where its name
+// belongs is refused while an ordinary name that merely contains such letters, such as acme/sk-api, is not. An AWS key
+// id is matched only as a whole token, because its prefix starts ordinary upper-case names too.
 const CREDENTIAL_SHAPED =
-  /(^|[^A-Za-z0-9])(gh[pousr]_|github_pat_|xox[abposr]-|sk-|sk_live_|sk_test_|AKIA[0-9A-Z]{12}|ASIA[0-9A-Z]{12}|glpat-|AIza)|^(Bearer|Basic) /;
+  /^(gh[pousr]_|github_pat_|xox[abposr]-|sk-|sk_live_|sk_test_|glpat-|AIza)|^(AKIA|ASIA)[0-9A-Z]{16}$/;
+const AUTH_SCHEME = /^(Bearer|Basic) /i;
+// What separates a pasted token from the text around it: white space, and the punctuation of `key=value`, `user:pass`,
+// `user@host`, lists and quotes. A repository's `/` and a host's `.` are not separators.
+const TOKEN_SEPARATOR = /[\s=:@,;"'`]+/;
+
+/** Whether `text` looks like a credential, or carries one in a token or after an auth scheme. */
+const credentialShaped = (text: string): boolean =>
+  AUTH_SCHEME.test(text) || text.split(TOKEN_SEPARATOR).some((token) => CREDENTIAL_SHAPED.test(token));
 const HEADER_FIELDS = new Set(["kind", "route", "host", "methods", "header", "credential"]);
 const GIT_FIELDS = new Set(["kind", "route", "host", "repositories", "pushRefs", "fetch", "username", "credential"]);
 const DEFAULT_GIT_USERNAME = "x-access-token";
@@ -149,16 +159,24 @@ function toCredentialRoute(route: EgressRoute, options: CompileEgressOptions): C
   };
 }
 
-/** The host name of a host entry, in lower case and without its port. */
-const hostName = (entry: string): string => entry.toLowerCase().replace(/:[0-9]+$/, "");
-
-/** Throws unless each git route's filter is usable and its host is not also tunnelled to. */
-function checkGitRoutes(routes: readonly EgressRoute[], allowed: ReadonlySet<string>): void {
+/** Throws unless each git route's filter is usable and no tunnel or other route reaches its host. */
+function checkGitRoutes(routes: readonly EgressRoute[], allow: readonly string[]): void {
+  const overlap = gitHostOverlap(
+    routes.map((route) => ({ host: route.host, ...(route.kind === "git" ? { git: gitFilter(route) } : {}) })),
+    parseAllow(allow),
+  );
+  if (overlap?.with === "allow") {
+    throw invalid(
+      `the host of git route ${overlap.index} is also in allow, so a tunnel could go around its ref filter`,
+    );
+  }
+  if (overlap?.with === "route") {
+    throw invalid(
+      `the host of git route ${overlap.index} is another route's host, so that route could go around its ref filter`,
+    );
+  }
   for (const [index, route] of routes.entries()) {
     if (route.kind !== "git") continue;
-    if (allowed.has(hostName(route.host))) {
-      throw invalid(`the host of git route ${index} is also in allow, so a tunnel could go around its ref filter`);
-    }
     try {
       checkGitFilter(gitFilter(route));
     } catch (error) {
@@ -176,7 +194,8 @@ function checkGitRoutes(routes: readonly EgressRoute[], allowed: ReadonlySet<str
  * - a field a route kind doesn't have, such as `secret` or `token`, and a credential that is not an upper-case name;
  * - any string in the policy that looks like a credential, such as one starting `ghp_` or `sk-`;
  * - a wildcard or an address literal in `allow` or a route's host;
- * - a git route whose host is also in `allow`, because a tunnel to it would go around the ref filter;
+ * - a git route whose host is also in `allow`, because a tunnel to it would go around the ref filter, and a git route
+ *   whose host is another route's host, because that route would carry a credential there without the ref filter;
  * - a git route with no repository, a push ref outside `refs/heads/`, or neither a push nor a fetch.
  *
  * The compiled routes read each credential through `options.secret` at every request, so a rotated one is used at once.
@@ -188,15 +207,15 @@ export function compileEgressPolicy(policy: EgressPolicy, options: CompileEgress
   if (Object.keys(policy).some((key) => key !== "allow" && key !== "routes")) {
     throw invalid("an egress policy has only allow and routes");
   }
-  if (strings(policy).some((text) => CREDENTIAL_SHAPED.test(text))) {
+  if (strings(policy).some(credentialShaped)) {
     throw invalid("the egress policy holds what looks like a credential; name it in a route's credential instead");
   }
   for (const [index, entry] of allow.entries()) checkHost(entry, `allow entry ${index}`);
   for (const [index, route] of routes.entries()) checkRoute(route, index);
-  checkGitRoutes(routes, new Set(allow.map(hostName)));
+  checkGitRoutes(routes, allow);
   const compiled = routes.map((route) => toCredentialRoute(route, options));
   try {
-    parseRoutes(compiled);
+    parseRoutes(compiled, parseAllow(allow));
   } catch {
     // The proxy's own message quotes the route's name or header, which this one must not.
     throw invalid("a route's name, methods or header is not usable, or two routes share a name");

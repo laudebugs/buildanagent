@@ -183,7 +183,7 @@ class EgressGate {
     this.modules = modules;
     this.options = options;
     this.allow = parseAllow(options.allow);
-    this.routes = new Map(parseRoutes(options.routes ?? []).map((route) => [route.route, route]));
+    this.routes = new Map(parseRoutes(options.routes ?? [], this.allow).map((route) => [route.route, route]));
     this.unsafe = new Set(options.unsafeAllowAddresses ?? []);
     for (const route of this.routes.keys()) {
       this.sentinels[route] = `sentinel_${modules.crypto.randomBytes(18).toString("base64url")}`;

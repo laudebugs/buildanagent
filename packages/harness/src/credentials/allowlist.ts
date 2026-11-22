@@ -98,15 +98,55 @@ export function isAllowed(allow: readonly AllowEntry[], host: string, port: numb
   );
 }
 
-/** Parses and checks the routes, and refuses two with one name. */
-export function parseRoutes(routes: readonly CredentialRoute[]): ParsedRoute[] {
+/** Whether `name` is on the allowlist on any port, so a tunnel could reach it. */
+const allowedOnAnyPort = (allow: readonly AllowEntry[], name: string): boolean =>
+  allow.some((entry) => (entry.wildcard ? name.endsWith(`.${entry.name}`) : name === entry.name));
+
+/**
+ * The first git route that shares its host with a way around its filter, and what that way is: an allowlist entry, on
+ * any port, that lets a tunnel reach the host, or another route to the same host, which would carry a credential there
+ * without the git route's repository and ref checks. Hosts are compared in lower case without their ports.
+ */
+export function gitHostOverlap(
+  routes: readonly Pick<CredentialRoute, "host" | "git">[],
+  allow: readonly AllowEntry[],
+): { readonly index: number; readonly with: "allow" | "route" } | undefined {
+  const names = routes.map((route) =>
+    String(route.host)
+      .toLowerCase()
+      .replace(/:[0-9]*$/, ""),
+  );
+  for (const [index, route] of routes.entries()) {
+    if (route.git === undefined) continue;
+    const name = names[index] ?? "";
+    if (allowedOnAnyPort(allow, name)) return { index, with: "allow" };
+    if (names.some((other, at) => at !== index && other === name)) return { index, with: "route" };
+  }
+  return undefined;
+}
+
+/**
+ * Parses and checks the routes against the parsed allowlist. It refuses two routes with one name, and a git route whose
+ * host is also on the allowlist or is another route's host, because either would go around its filter.
+ */
+export function parseRoutes(routes: readonly CredentialRoute[], allow: readonly AllowEntry[]): ParsedRoute[] {
   const seen = new Set<string>();
-  return routes.map((route) => {
+  const parsed = routes.map((route) => {
     if (!ROUTE_NAME.test(route.route)) throw invalid(`the route name ${JSON.stringify(route.route)} is not usable`);
     if (seen.has(route.route)) throw invalid(`two routes are named ${route.route}`);
     seen.add(route.route);
     return parseRoute(route);
   });
+  const overlap = gitHostOverlap(routes, allow);
+  if (overlap !== undefined) {
+    const name = routes[overlap.index]?.route ?? "";
+    throw invalid(
+      overlap.with === "allow"
+        ? `the host of the git route ${name} is also on the allowlist, so a tunnel could go around its filter`
+        : `the host of the git route ${name} is another route's host, which could go around its filter`,
+    );
+  }
+  return parsed;
 }
 
 /** Parses and checks one route's host, methods, header, secret and git filter. */
