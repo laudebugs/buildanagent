@@ -88,11 +88,11 @@ Before you trust a check, ask what a do-nothing agent would do to it. If the che
 The book's capstone is a support-triage agent, small enough to read in one sitting. Given a ticket, it looks up the customer's order, asks a person before it refunds anything, returns a record that matches a schema, and stops after a fixed number of steps. [[lst:capstone-ours]] is the version on our SDK and [[lst:capstone-ai]] is the AI SDK's, each in full. Both run offline against a scripted model, and their six notes mark the script, the gate, the typed result, the cap and two of the checks. Ours looks up a customer and gates an escalation, as the seven capstones below do, while the AI SDK's looks up an order and gates a refund.
 
 ::::tabs
-:::listing[Our SDK]{#capstone-ours file="packages/sdk/examples/13-triage-agent.ts" region="agent" replay}
-::note[The script: three turns, in order. The model looks the customer up, asks to escalate, and submits the triage record.]{#script}
+:::listing[Our SDK]{#capstone-ours file="packages/sdk/examples/13-triage-agent.ts" replay}
+::note[The script: three turns, in order. The model looks the customer up, asks to escalate, and submits the triage record. `scripted()` puts them behind a model.]{#script}
 ::note[The gate. `escalate` waits for a person, and `lookup_customer` runs freely.]{#gate}
 ::note[The typed result. The final answer is a call to `submit_triage`, checked against the `Triage` schema.]{#typed}
-::note[The cap. The loop stops after eight model calls, whatever the model asks for.]{#cap}
+::note[The cap. Each run stops after eight model calls, whatever the model asks for, and the resumed run gets a fresh eight.]{#cap}
 ::note[A check on a side effect. The escalation list is still empty while the run waits.]{#side-effect}
 ::note[A check on a count. The run made exactly the three model calls the script holds.]{#count}
 :::
@@ -142,7 +142,7 @@ Two of the other seven do not pause. The Claude and Pi capstones deny or block t
 :::table[The capstone's gate, typed result and step cap on our SDK and eight others]{#capstone-differences}
 | SDK | The gate on the risky tool | The typed result | The step cap |
 | --- | --- | --- | --- |
-| Our SDK | `beforeToolCall` returning `ask` | `outputTool` | `maxSteps` of 8 |
+| Our SDK | `beforeToolCall` returning `ask` | `outputTool` | `maxSteps` of 8 for each run |
 | AI SDK | `toolApproval` with `"user-approval"` | `Output.object` | `stopWhen` with `isStepCount(8)` |
 | OpenAI Agents SDK | `needsApproval` on the tool | `outputType`{checked=row-35} | not set in the file |
 | LangChain | `humanInTheLoopMiddleware` | `responseFormat`{checked=row-35} | `recursionLimit`{checked=row-35} of 12 |
@@ -153,7 +153,7 @@ Two of the other seven do not pause. The Claude and Pi capstones deny or block t
 | Pi | a `tool_call` handler that blocks | a `submit_triage` tool that ends the run | not set in the file |
 :::
 
-Five of the eight other capstones set no step cap in the file, so those runs end when the model answers or when something else stops them. OpenAI, ADK and Cloudflare have defaults that apply, and Pi and Copilot have no cap you can set, so your code must end a runaway run there, as [[ch:stopping-and-structured-output]] explains. Ours sets a cap of eight model calls, as the AI SDK's does. The cap is the part of a first agent that is easiest to forget, because a scripted model never loops and a real one can.
+Five of the eight other capstones set no step cap in the file, so those runs end when the model answers or when something else stops them. OpenAI, ADK and Cloudflare have defaults that apply, and Pi and Copilot have no cap you can set, so your code must end a runaway run there, as [[ch:stopping-and-structured-output]] explains. Ours sets a cap of eight model calls for each run, so a run resumed after a pause gets a fresh eight. The cap is the part of a first agent that is easiest to forget, because a scripted model never loops and a real one can.
 
 ## Exercises
 

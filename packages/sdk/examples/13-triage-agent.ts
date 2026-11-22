@@ -34,12 +34,12 @@ const escalate = defineTool({
 });
 const Triage = z.object({ category: z.enum(["bug", "billing"]), priority: z.enum(["low", "high"]) });
 
-// #region agent
-const { adapter, model } = scripted([
-  step("call-1", "lookup_customer", {}), // book:note script
+const script = [
+  step("call-1", "lookup_customer", {}),
   step("call-2", "escalate", { reason: REASON }),
   step("call-3", "submit_triage", { category: "bug", priority: "high" }),
-]);
+];
+const { adapter, model } = scripted(script); // book:note script
 // #region gate
 const gate: Interceptors = {
   beforeToolCall: ({ tool }) =>
@@ -65,4 +65,3 @@ check(done.stopReason === "done" && done.output?.category === "bug", "the run re
 check(adapter.calls[0]?.context.system === SYSTEM, "the instructions arrive as the system prompt");
 check(adapter.calls.length === 3, "the run made exactly the three model calls the script holds"); // book:note count
 adapter.assertComplete();
-// #endregion
