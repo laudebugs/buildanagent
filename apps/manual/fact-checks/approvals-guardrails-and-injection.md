@@ -88,3 +88,19 @@ The OWASP entries are [LLM01:2025 Prompt Injection](https://raw.githubuserconten
 | 51 | OWASP's LLM06 traces the damage to excessive functionality, permissions and autonomy, names direct and indirect prompt injection among the triggers "regardless of what is causing the LLM to malfunction", and prescribes minimal extensions, minimal permissions, the user's context and user approval | § prompt injection | ✅ | LLM06, "Description" ("The root cause … is typically one or more of: excessive functionality; excessive permissions; excessive autonomy") and mitigations 1, 2, 4, 5 and 6; mitigation 6 begins "Utilise human-in-the-loop control to require a human to approve high-impact actions before they are taken" |
 | 52 | A model reads the developer's instructions, the user's message and a fetched page as text in one context, and can follow instructions from any of them | § prompt injection (analogy) | ✅ | LLM01 on indirect injection ("content data that when interpreted by the model, alters the behavior of the model"); the glossary entry says trusted and untrusted text share one context. The analogy's "no way to tell" is the memo's side of the comparison, not a claim about every defence: row 49 notes products that try |
 | 53 | A forged memo "works exactly as well as a real one" for an assistant without a way to check it | § prompt injection (analogy) | ⚠️ | An illustration in the owner-approved analogy, with invented figures |
+
+## Exercises
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 54 | `noInjection` is the name of the triage example's input guardrail, a regular expression over the serialised input | § Exercises | ✅ | `verify/openai-agents-sdk/examples/09-triage-agent.ts`, region `injection-guardrail`: `const noInjection: InputGuardrail = {…}`; the regex is `/ignore (all|previous) instructions/i` |
+| 55 | `lookup_order`, `send_reply`, `issue_refund` and `delete_account` are tool names of an imagined shop, not names from any SDK | § Exercises | ✅ | Our invention for the paper exercise; only `issue_refund` also appears in the listings (`verify/openai-agents-sdk/examples/05-approval-resume.ts`, a tool named `issue_refund`). None is an API identifier, so no listing or declaration file needs to hold it |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 50 |
+| ✏️ corrected | 0 |
+| ⚠️ unverified, an illustration or our reading, marked as ours in the text | 5 (rows 26, 27, 31, 41 and 53) |
+| Total | 55 |

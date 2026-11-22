@@ -7,8 +7,14 @@ export default function draw(): Figure {
   const figure = new Figure({ id: "paused-run", width: 520, height: 250 });
 
   figure.group("run-one", () => {
-    const ask = figure.box({ x: 10, y: 20, width: 150, height: 44 }, { label: ["run 1: model asks", "for the refund"] });
-    const stop = figure.box({ x: 10, y: 96, width: 150, height: 44 }, { label: ["the SDK does not", "run the tool"], tone: "accent" });
+    const ask = figure.box(
+      { x: 10, y: 20, width: 150, height: 44 },
+      { label: ["run 1: model asks", "for the refund"] },
+    );
+    const stop = figure.box(
+      { x: 10, y: 96, width: 150, height: 44 },
+      { label: ["the SDK does not", "run the tool"], tone: "accent" },
+    );
     figure.connect(ask, stop);
     figure.text({ x: 85, y: 166 }, "the run ends", { tone: "muted" });
   });
@@ -24,10 +30,19 @@ export default function draw(): Figure {
   });
 
   figure.group("run-two", () => {
-    const person = figure.box({ x: 360, y: 20, width: 150, height: 44 }, { label: ["a person decides:", "approve or reject"] });
-    const resume = figure.box({ x: 360, y: 96, width: 150, height: 44 }, { label: ["run 2 starts from", "the stored copy"], tone: "accent" });
+    const person = figure.box(
+      { x: 360, y: 20, width: 150, height: 44 },
+      { label: ["a person decides:", "approve or reject"] },
+    );
+    const resume = figure.box(
+      { x: 360, y: 96, width: 150, height: 44 },
+      { label: ["run 2 starts from", "the stored copy"], tone: "accent" },
+    );
     figure.connect(person, resume);
-    const ran = figure.box({ x: 360, y: 176, width: 150, height: 44 }, { label: ["approved: the tool", "runs exactly once"] });
+    const ran = figure.box(
+      { x: 360, y: 176, width: 150, height: 44 },
+      { label: ["approved: the tool", "runs exactly once"] },
+    );
     figure.connect(resume, ran);
   });
 
