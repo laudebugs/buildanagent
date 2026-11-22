@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { createModel, type Model } from "@buildanagent/gateway";
 import { isHarnessError } from "@buildanagent/harness";
+import { createPermissionPipeline } from "@buildanagent/harness/permissions";
 import { createHarness } from "@buildanagent/harness/server";
 import { openSession, runTurn, type Session, type SessionStore } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";
@@ -324,5 +325,74 @@ describe.each(BACKENDS)("%s", (_name, make) => {
         steer.block.text === "also check 2",
     );
     await session.close();
+  });
+  test("a permission decision follows the message that made the call and precedes its result", async () => {
+    const backend = make();
+    const { model } = scripted([
+      {
+        content: [
+          { type: "text", text: "Looking." },
+          { type: "tool_call", callId: "c1", name: "lookup", input: { id: 7 } },
+        ],
+      },
+      { content: [{ type: "text", text: "Done." }] },
+    ]);
+    const registry = createToolRegistry();
+    registry.register({ name: "lookup", source: "builtin", definition: lookup() as never });
+    const pipeline = createPermissionPipeline(
+      { mode: "default", interactive: true, policyVersion: "p1", allow: [{ tool: "lookup" }] },
+      registry,
+    );
+    const harness = createHarness({ registry, model, system: "s", pipeline });
+    const session = await open(backend);
+    await runTurn(session, harness, { input: "go" });
+    const shape2 = (await entriesOf(backend.store)).map((entry) => entry.type);
+    const decision = shape2.indexOf("permission_decision");
+    assert.ok(decision > shape2.indexOf("message_end"), "after the message that made the call");
+    assert.ok(decision < shape2.indexOf("tool_result"), "before the call's result");
+    await session.close();
+  });
+
+  test("a result from a tool the registry doesn't know is recorded as untrusted", async () => {
+    const backend = make();
+    const { model } = scripted([{ content: [{ type: "tool_call", callId: "c1", name: "answer", input: { id: 1 } }] }]);
+    const { harness } = harnessOf(model);
+    const session = await open(backend);
+    const output = defineTool({
+      name: "answer",
+      description: "The turn's answer.",
+      inputSchema: { type: "object", properties: { id: { type: "number" } } },
+      async execute() {
+        return { content: [{ type: "text", text: "x" }] };
+      },
+    });
+    await runTurn(session, harness, { input: "go", output: output as never });
+    const result = (await entriesOf(backend.store)).find((entry) => entry.type === "tool_result");
+    assert.ok(result?.type === "tool_result" && result.trust === "untrusted");
+    await session.close();
+  });
+
+  test("a child's first turn writes its env_stamp, and a hook that returns the same model by another object is allowed", async () => {
+    const backend = make();
+    const { model, adapter } = scripted([
+      { content: [{ type: "text", text: "p" }] },
+      { content: [{ type: "text", text: "c" }] },
+    ]);
+    const twin = createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
+    const { harness } = harnessOf(model, { interceptors: { beforeModelCall: () => ({ model: twin }) } });
+    const parent = await open(backend);
+    await runTurn(parent, harness, { input: "parent" });
+    const child = await parent.child({ stepId: "step-1" });
+    const result = await runTurn(child, harness, { input: "work" });
+    assert.equal(result.stopReason, "done");
+    const types = (await entriesOf(backend.store, { userId: KEY.userId, sessionId: child.file() })).map(
+      (entry) => entry.type,
+    );
+    assert.deepEqual(types.slice(0, 3), ["session_header", "env_stamp", "loadout"]);
+    const listed = [];
+    for await (const summary of backend.store.list(KEY.userId)) listed.push(summary);
+    assert.deepEqual(listed.find((summary) => summary.sessionId === child.file())?.spawn, { stepId: "step-1" });
+    await child.close();
+    await parent.close();
   });
 });

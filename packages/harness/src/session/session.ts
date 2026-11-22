@@ -282,7 +282,7 @@ export class Session {
   async #writeFile(
     file: string,
     parent: { session: string; entryId: string } | undefined,
-    spawn?: { spawningCallId?: string; stepId?: string },
+    spawn?: SessionHeaderEntry["spawn"],
   ): Promise<void> {
     const header = this.#header();
     const headerId = this.#newId();

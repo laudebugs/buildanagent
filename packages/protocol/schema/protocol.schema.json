@@ -1415,7 +1415,7 @@
     "SessionEntry": {
       "oneOf": [
         {
-          "$ref": "#/$defs/shape-69ae87f1b5"
+          "$ref": "#/$defs/shape-2ca31167ed"
         },
         {
           "$ref": "#/$defs/shape-22fcb79a8f"
@@ -1470,7 +1470,7 @@
         }
       ]
     },
-    "shape-69ae87f1b5": {
+    "shape-2ca31167ed": {
       "type": "object",
       "properties": {
         "id": {
@@ -1531,16 +1531,32 @@
           "additionalProperties": false
         },
         "spawn": {
-          "type": "object",
-          "properties": {
-            "spawningCallId": {
-              "type": "string"
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "spawningCallId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "spawningCallId"
+              ],
+              "additionalProperties": false
             },
-            "stepId": {
-              "type": "string"
+            {
+              "type": "object",
+              "properties": {
+                "stepId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "stepId"
+              ],
+              "additionalProperties": false
             }
-          },
-          "additionalProperties": false
+          ]
         },
         "product": {
           "type": "object",

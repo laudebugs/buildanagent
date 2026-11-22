@@ -142,7 +142,8 @@ async function recordLoadout<H>(
   model: Model,
   tools: readonly ToolDefinition<unknown, unknown, unknown>[],
 ): Promise<void> {
-  if (session.head() === null) {
+  const started = await session.path();
+  if (started.length === 0) {
     await writer.write("harness", {
       type: "session_header",
       formatVersion: FORMAT_VERSION,
@@ -152,6 +153,8 @@ async function recordLoadout<H>(
       capabilities: [...CAPABILITIES],
       ablationHash: harness.ablationHash,
     });
+  }
+  if (!started.some((entry) => entry.type === "env_stamp")) {
     await writer.write("harness", { type: "env_stamp", ...harness.env, model: model.ref });
   }
   const names = tools.map((tool) => tool.name);
@@ -202,8 +205,13 @@ class EventRecorder {
     this.#newId = newId;
   }
 
-  async #usage(message: ModelMessage): Promise<void> {
-    await this.#writer.write("harness", {
+  /** Queues a write and returns at once. A failure is recorded by the writer and rethrown by `runTurn()`. */
+  #queue(origin: Origin, body: Body): void {
+    this.#writer.write(origin, body).catch(() => undefined);
+  }
+
+  #usage(message: ModelMessage): void {
+    this.#queue("harness", {
       type: "usage",
       source: "model_call",
       usage: message.usage,
@@ -211,41 +219,45 @@ class EventRecorder {
     });
   }
 
-  /** Writes the held-back message: its blocks, its end and its usage. */
-  async #flush(): Promise<void> {
+  /**
+   * Queues the held-back message: its blocks, its end and its usage. The gate calls it before it writes, so a call's
+   * decision never lands ahead of the message that made the call.
+   */
+  flush(): void {
     const message = this.#pending;
     if (message === undefined) return;
     this.#pending = undefined;
     const messageId = this.#newId();
     for (const [index, block] of message.content.entries()) {
-      await this.#writer.write("model", { type: "message_block", messageId, role: "assistant", index, block });
+      this.#queue("model", { type: "message_block", messageId, role: "assistant", index, block });
     }
-    await this.#writer.write("model", {
+    this.#queue("model", {
       type: "message_end",
       messageId,
       model: message.model,
       stopReason: message.stopReason,
       ...(message.error === undefined ? {} : { error: message.error }),
     });
-    await this.#usage(message);
+    this.#usage(message);
   }
 
-  async handle(event: AgentEvent): Promise<void> {
+  /** Handles an event without waiting for the store, so the observer is never behind and the SDK never drops it. */
+  handle(event: AgentEvent): void {
     if (event.type === "retry" && event.layer === "turn" && this.#pending !== undefined) {
       // The call's message is superseded and not in the transcript, but the provider billed it.
       const superseded = this.#pending;
       this.#pending = undefined;
-      await this.#usage(superseded);
+      this.#usage(superseded);
       return;
     }
-    await this.#flush();
-    await this.#record(event);
+    this.flush();
+    this.#record(event);
   }
 
-  async #record(event: AgentEvent): Promise<void> {
+  #record(event: AgentEvent): void {
     switch (event.type) {
       case "run_start":
-        await this.#writer.write("harness", {
+        this.#queue("harness", {
           type: "turn_start",
           runId: event.runId,
           mode: "run",
@@ -259,11 +271,11 @@ class EventRecorder {
         this.#tools.set(event.callId, event.tool);
         return;
       case "tool_call_end":
-        await this.#toolResult(event);
+        this.#toolResult(event);
         return;
       case "steer_applied":
         for (const [index, block] of event.receipt.message.entries()) {
-          await this.#writer.write("user", {
+          this.#queue("user", {
             type: "message_block",
             messageId: event.receipt.id,
             role: "user",
@@ -274,7 +286,7 @@ class EventRecorder {
         }
         return;
       case "run_end":
-        await this.#writer.write("harness", {
+        this.#queue("harness", {
           type: "turn_end",
           runId: event.runId,
           stopReason: event.result.stopReason,
@@ -285,11 +297,11 @@ class EventRecorder {
     }
   }
 
-  async #toolResult(event: Extract<AgentEvent, { type: "tool_call_end" }>): Promise<void> {
+  #toolResult(event: Extract<AgentEvent, { type: "tool_call_end" }>): void {
     const tool = this.#tools.get(event.callId) ?? "";
-    const trust = this.#harness.registry.get(tool)?.outputTrust ?? "trusted";
+    const trust = this.#harness.registry.get(tool)?.outputTrust ?? "untrusted";
     const { result } = event;
-    await this.#writer.write("tool", {
+    this.#queue("tool", {
       type: "tool_result",
       callId: event.callId,
       tool,
@@ -306,22 +318,29 @@ function interceptorsOf<H>(
   harness: Harness<H>,
   session: Session,
   writer: EntryWriter,
+  recorder: EventRecorder,
   hostContext: H | undefined,
   turnModel: Model,
 ): Interceptors {
   const policySession: PolicySession = { append: (entry) => writer.write("harness", entry) };
-  const gate = harness.pipeline?.gate(async () => ({
-    session: policySession,
-    hostContext,
-    entries: await session.path(),
-  }));
+  const gate = harness.pipeline?.gate(async () => {
+    // The model's message and the earlier results are queued first, so the gate's entries follow them in the log.
+    recorder.flush();
+    await writer.settled();
+    return { session: policySession, hostContext, entries: await session.path() };
+  });
   const composed = composeInterceptors(harness.interceptors ?? {}, gate ?? {});
   const inner = composed.beforeModelCall;
   return {
     ...composed,
     async beforeModelCall(event) {
       const patch = await inner?.(event);
-      if (patch !== undefined && "model" in patch && patch.model !== undefined && patch.model !== turnModel) {
+      if (
+        patch !== undefined &&
+        "model" in patch &&
+        patch.model !== undefined &&
+        refKey(patch.model.ref) !== refKey(turnModel.ref)
+      ) {
         throw new HarnessError(
           "invalid_turn_options",
           "a hook changed the model inside a turn; set TurnOptions.model for the next turn so it is recorded",
@@ -365,7 +384,7 @@ export async function runTurn<H = unknown>(
     input: options.input,
     tools,
     signal,
-    interceptors: interceptorsOf(harness, session, writer, options.hostContext, model),
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
     observers: [observer, ...(harness.observers ?? [])],
     ...(options.history === undefined ? {} : { history: options.history }),
     ...(options.hostContext === undefined ? {} : { app: options.hostContext }),
@@ -377,9 +396,17 @@ export async function runTurn<H = unknown>(
     ...(harness.signer === undefined ? {} : { signer: harness.signer }),
   } as never);
   options.onRun?.(handle);
-  const result = (await handle.result) as RunResult<unknown>;
+  let result: RunResult<unknown> | undefined;
+  let runError: unknown;
+  try {
+    result = (await handle.result) as RunResult<unknown>;
+  } catch (error) {
+    runError = error;
+  }
   await writer.settled();
+  // A store failure is the cause of an aborted run, so it comes before the run's own error.
   const failed = writer.failure();
   if (failed !== undefined) throw failed.error;
+  if (result === undefined) throw runError;
   return { ...result, sessionKey: session.key.sessionId, lastEntryId: session.head() as string };
 }

@@ -76,16 +76,32 @@
           "additionalProperties": false
         },
         "spawn": {
-          "type": "object",
-          "properties": {
-            "spawningCallId": {
-              "type": "string"
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "spawningCallId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "spawningCallId"
+              ],
+              "additionalProperties": false
             },
-            "stepId": {
-              "type": "string"
+            {
+              "type": "object",
+              "properties": {
+                "stepId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "stepId"
+              ],
+              "additionalProperties": false
             }
-          },
-          "additionalProperties": false
+          ]
         },
         "product": {
           "type": "object",
