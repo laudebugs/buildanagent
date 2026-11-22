@@ -111,7 +111,7 @@ export class Concierge extends VoiceAgent<Env> {
       },
       stopWhen: stepCountIs(3),
       abortSignal: context.signal,
-      // Test only: onFinish runs after the model stream closed, and the transcript records the model's response then.
+      // Test only: onFinish runs once the model stream has closed; the test waits on it after turn 2 starts.
       onFinish: () => {
         this.modelFinished++;
       },
