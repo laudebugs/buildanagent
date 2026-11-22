@@ -40,7 +40,7 @@ The sections of README.md and every public export, generated from this package's
 - `assertCanonicalName()`: Throws a `GatewayError` with code `invalid_tool_name` unless `name` meets the canonical rule, 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`.
 - `assertModelRequestAllowed()`: Throws unless real requests are allowed or the transport is a mock.
 - `assertStreamContract()`: Consumes the stream, throws `StreamContractError` at the first violation, and returns every event it read.
-- `interface AssistantMessage`
+- `interface AssistantMessage`: A model's answer: its content blocks, the model that wrote it, why it stopped, any typed error, and its usage and cost.
 - `CANONICAL_TOOL_NAME`: The canonical tool-name rule: 1 to 64 ASCII letters, digits, underscores or hyphens.
 - `interface CatalogEntry`: One model in the price catalog: its rates, its limits, and the date and pages they were copied from.
 - `interface CatalogSources`: Where each part of a catalog entry was copied from: the provider's own pricing and model pages.
@@ -64,12 +64,12 @@ The sections of README.md and every public export, generated from this package's
 - `type GatewayEvent`: The events `Model.stream()` yields: the adapter's events plus one `retry` event before each retry.
 - `isCanonicalName()`: True when `name` meets the canonical tool-name rule.
 - `isGatewayError()`: True for a `GatewayError`, including one from another copy of the package.
-- `isMockTransport()`
+- `isMockTransport()`: Whether `transport` was marked as a mock, which may send requests while real model requests are off.
 - `MAX_RETRY_DELAY_MS`: The longest wait before one retry, in milliseconds.
-- `type Message`
+- `type Message`: One message of a transcript: from the user, from the model (`AssistantMessage`) or a tool's result.
 - `interface MiddlewareParams`: The request a middleware may rewrite: the context and the stream options.
 - `interface Model`: A model bound to one adapter and id, with the gateway's retries, middleware and request dump around it.
-- `interface ModelAdapter`
+- `interface ModelAdapter`: What a provider adapter implements: its identity and one method, `stream()`, which sends a request and returns the events of the answer.
 - `type ModelCallOptions`: The options of one call through a `Model`: the adapter's `StreamOptions` without `caps`, which `createModel()` sets itself from the caps it resolved.
 - `interface ModelCaps`: The context window and output limit that context trimming and the budget need; filled from the price catalog.
 - `type ModelContent`: What a tool result may carry.
@@ -78,7 +78,7 @@ The sections of README.md and every public export, generated from this package's
 - `type ModelEvent`: The events one model call streams.
 - `interface ModelMiddleware`: Shared behaviour around every model call.
 - `interface ModelRef`: Identifies one model behind one wire protocol and one vendor.
-- `modelRequestsAreAllowed()`
+- `modelRequestsAreAllowed()`: Whether real model requests are on for this process.
 - `class ModelRequestsDisabledError`: Thrown before a request is sent while real model requests are off and the transport is not a mock.
 - `interface OpaqueToken`: A provider-issued token that is valid only for the model that produced it, such as a reasoning signature.
 - `parseCatalog()`: Checks a catalog read from JSON and returns it typed.
@@ -97,7 +97,7 @@ The sections of README.md and every public export, generated from this package's
 - `type Sleep`: Waits `ms` milliseconds, or less if `signal` aborts first.
 - `staleCatalogEntries()`: The entries whose `asOf` date is more than `maxAgeDays` days before `now`.
 - `class StreamContractError`: Thrown by `assertStreamContract()` at the first event that breaks the stream rule.
-- `interface StreamOptions`
+- `interface StreamOptions`: The per-call options of `ModelAdapter.stream()`: an abort signal, output and sampling limits, and the raw-event switch.
 - `TOOL_NAME_RULES`: The tool-name rules of the two first wire protocols, Anthropic Messages and OpenAI Chat Completions.
 - `interface ToolNameMap`: A run's map between canonical tool names and one protocol's wire names.
 - `interface ToolNameRule`: One wire protocol's rule for tool names, copied from the provider's API reference.
@@ -133,7 +133,7 @@ The sections of README.md and every public export, generated from this package's
 - `installTestGuards()`: Installs the guards once per process: checks provider keys and replaces `globalThis.fetch`.
 - `isCredentialName()`: True when `name` names a credential: one of `CREDENTIAL_HEADERS` or `apiKey`, or a name that ends in `apiKey`, `authorization`, `token`, `secret` or `password`, compared without case, hyphens or underscores.
 - `isLoopbackHost()`: True for hosts that resolve to this machine: `localhost`, `*.localhost`, 127.0.0.0/8 and `::1`.
-- `isMockTransport()`
+- `isMockTransport()`: Whether `transport` was marked as a mock, which may send requests while real model requests are off.
 - `markMockTransport()`: Marks a transport as an in-process mock, which `allowModelRequests(false)` still lets through.
 - `interface MockServer`: A running mock server.
 - `interface MockServerOptions`: What `startMockServer()` takes.

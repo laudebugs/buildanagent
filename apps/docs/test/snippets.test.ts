@@ -12,7 +12,9 @@ import { readPages } from "../src/plugins/pages.js";
 // A short code block that a page writes inline must still compile against the packages. A longer block comes from an
 // example file, which the package's own type-check already covers. Each block is a module of its own, beside the
 // docs app so that it resolves the workspace packages through their `source` condition, as the packages' tests do.
-const TSC = join(dirname(createRequire(import.meta.url).resolve("typescript/package.json")), "bin", "tsc");
+// The repo root's TypeScript, which the packages and their users build with, not the 6.0.3 this app pins for TypeDoc.
+const ROOT_REQUIRE = createRequire(new URL("../../../package.json", import.meta.url));
+const TSC = join(dirname(ROOT_REQUIRE.resolve("typescript/package.json")), "bin", "tsc");
 const APP = fileURLToPath(new URL("..", import.meta.url));
 
 // The type-check reads the gateway's sources too, so it gets more than the default 5 seconds on a busy runner.

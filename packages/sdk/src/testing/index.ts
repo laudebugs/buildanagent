@@ -3,6 +3,8 @@
  * `autoResponder()` stand in for the model, `scriptedApprovals()` and `scriptedMcpServer()` for the approval and MCP
  * seams, `testSigner()` signs reproducible pauses, `recordPairs()` and `replayPairs()` record a real model once and
  * replay it, and `fixedClock()` and `sequentialIds()` keep the run deterministic.
+ *
+ * @module @buildanagent/sdk/testing
  */
 
 export { TEST_KEY_ID, testSigner } from "../vendor/agent-safety/test-signer.js";

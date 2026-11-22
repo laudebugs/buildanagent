@@ -70,6 +70,10 @@ export interface Cost {
  */
 export type ModelErrorCode = "thinking_prefix_mismatch";
 
+/**
+ * A model's answer: its content blocks, the model that wrote it, why it stopped, any typed error, and its usage and
+ * cost. A failed or aborted call still returns one, with the content and usage so far.
+ */
 export interface AssistantMessage {
   role: "assistant";
   content: ContentBlock[];
@@ -99,6 +103,7 @@ export interface AssistantMessage {
   cost: Cost;
 }
 
+/** One message of a transcript: from the user, from the model (`AssistantMessage`) or a tool's result. */
 export type Message =
   | { role: "user"; content: ContentBlock[] }
   | AssistantMessage
