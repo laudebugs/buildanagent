@@ -24,6 +24,7 @@ let proxy: EgressProxy;
 let logs: EgressRecord[] = [];
 const resolutions: Record<string, string[]> = {};
 let resolveCalls: string[] = [];
+let slowClosed = false;
 
 const resolve = async (host: string): Promise<readonly string[]> => {
   resolveCalls.push(host);
@@ -62,6 +63,19 @@ beforeAll(async () => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
     request.on("end", () => {
+      if (request.url === "/nobody") {
+        response.writeHead(204);
+        response.end();
+        return;
+      }
+      if (request.url === "/slow") {
+        const timer = setTimeout(() => response.end("late"), 1500);
+        request.on("close", () => {
+          clearTimeout(timer);
+          slowClosed = true;
+        });
+        return;
+      }
       seen.push({
         method: request.method ?? "",
         url: request.url ?? "",
@@ -627,4 +641,176 @@ test("a bad allowlist entry or route is refused when the proxy starts", async ()
     const error = await startEgressProxy(options).catch((caught: unknown) => caught);
     assert.equal((error as { code?: string }).code, "invalid_egress_options", `${label} must be refused`);
   }
+});
+
+test("a secret with a character Node refuses in a header is a 502, and the proxy carries on", async () => {
+  fresh();
+  const odd = await startEgressProxy({
+    allow: [],
+    routes: [
+      {
+        route: "del",
+        host: `upstream.test:${upstreamPort}`,
+        methods: ["GET"],
+        header: "authorization",
+        secret: async () => "tok\x7fen",
+      },
+      {
+        route: "wide",
+        host: `upstream.test:${upstreamPort}`,
+        methods: ["GET"],
+        header: "authorization",
+        secret: async () => "tok\u0100en",
+      },
+      {
+        route: "ok",
+        host: `upstream.test:${upstreamPort}`,
+        methods: ["GET"],
+        header: "authorization",
+        secret: async () => "fine-token",
+      },
+    ],
+    log: (record) => logs.push(record),
+    resolve,
+    ca: certificate,
+    unsafeAllowAddresses: ["127.0.0.1"],
+  });
+  try {
+    for (const route of ["del", "wide"]) {
+      const reply = await routeRequest(odd, `/${route}/x`, {
+        headers: { authorization: `Bearer ${odd.sentinels[route]}` },
+      });
+      assert.equal(reply.status, 502, route);
+    }
+    const good = await routeRequest(odd, "/ok/x", { headers: { authorization: `Bearer ${odd.sentinels.ok}` } });
+    assert.equal(good.status, 200, "the proxy is still serving");
+    assert.equal(seen.length, 1);
+  } finally {
+    await odd.close();
+  }
+});
+
+test("a tunnel whose name never resolves times out with a 502 and a log record", async () => {
+  fresh();
+  const stuck = await startEgressProxy({
+    allow: ["stuck.test"],
+    log: (record) => logs.push(record),
+    resolve: () => new Promise(() => {}),
+    idleTimeoutMs: 200,
+  });
+  try {
+    const started = Date.now();
+    const { status, socket } = await connect(stuck, "stuck.test:443");
+    socket.destroy();
+    assert.equal(status, 502);
+    assert.ok(Date.now() - started < 3000);
+    assert.equal(logs.find((record) => record.host === "stuck.test")?.reason, "timeout");
+  } finally {
+    await stuck.close();
+  }
+});
+
+test("a fetch whose response has no body, or is never read, is still logged", async () => {
+  fresh();
+  const none = await proxy.fetch(`https://upstream.test:${upstreamPort}/nobody`);
+  assert.equal(none.status, 204);
+  const head = await proxy.fetch(`https://upstream.test:${upstreamPort}/unread`, { method: "POST", body: "x" });
+  assert.equal(head.status, 200);
+  await new Promise((done) => setTimeout(done, 300));
+  assert.ok(
+    logs.some((record) => record.kind === "fetch" && record.status === 204),
+    "the 204 was logged",
+  );
+  await head.body?.cancel();
+  await new Promise((done) => setTimeout(done, 300));
+  assert.ok(
+    logs.some((record) => record.kind === "fetch" && record.status === 200),
+    "the unread response was logged once it ended",
+  );
+});
+
+test("many requests on one keep-alive connection add no listeners that pile up", async () => {
+  fresh();
+  const warnings: string[] = [];
+  const onWarning = (warning: Error) => warnings.push(warning.name);
+  process.on("warning", onWarning);
+  const { port } = new URL(proxy.url);
+  const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+  try {
+    for (let index = 0; index < 30; index += 1) {
+      await new Promise<void>((done, fail) => {
+        http
+          .request(
+            {
+              host: "127.0.0.1",
+              port: Number(port),
+              path: "/svc/keep",
+              agent,
+              headers: { authorization: `Bearer ${proxy.sentinels.svc}` },
+            },
+            (response) => {
+              response.resume();
+              response.on("end", () => done());
+            },
+          )
+          .on("error", fail)
+          .end();
+      });
+    }
+  } finally {
+    agent.destroy();
+    process.off("warning", onWarning);
+  }
+  assert.deepEqual(
+    warnings.filter((name) => name === "MaxListenersExceededWarning"),
+    [],
+  );
+});
+
+test("a fetch with an aborted signal rejects with the abort reason, before or during the request", async () => {
+  fresh();
+  const early = new AbortController();
+  early.abort(new Error("already"));
+  const before = await proxy
+    .fetch(`https://upstream.test:${upstreamPort}/x`, { signal: early.signal })
+    .catch((caught: unknown) => caught);
+  assert.equal((before as Error).message, "already");
+  assert.equal(seen.length, 0);
+  const late = new AbortController();
+  const pending = proxy
+    .fetch(`https://upstream.test:${upstreamPort}/slow`, { signal: late.signal })
+    .catch((caught: unknown) => caught);
+  setTimeout(() => late.abort(new Error("changed my mind")), 100);
+  assert.equal(((await pending) as Error).message, "changed my mind");
+});
+
+test("a route request is reached in process at the virtual origin as well as the proxy's address", async () => {
+  fresh();
+  const reply = await proxy.fetch("http://egress.proxy/svc/virtual", {
+    headers: { authorization: `Bearer ${proxy.sentinels.svc}` },
+  });
+  assert.equal(reply.status, 200);
+  assert.equal(seen[0]?.headers.authorization, `Bearer ${SECRET}`);
+});
+
+test("a client that disconnects takes the upstream request with it", async () => {
+  fresh();
+  slowClosed = false;
+  const { port } = new URL(proxy.url);
+  await new Promise<void>((done) => {
+    const request = http.request({
+      host: "127.0.0.1",
+      port: Number(port),
+      path: "/svc/slow",
+      headers: { authorization: `Bearer ${proxy.sentinels.svc}` },
+    });
+    request.on("error", () => {});
+    request.end();
+    setTimeout(() => {
+      request.destroy();
+      done();
+    }, 200);
+  });
+  for (let tries = 0; tries < 30 && !slowClosed; tries += 1) await new Promise((done) => setTimeout(done, 50));
+  assert.equal(slowClosed, true, "the upstream saw its connection close long before its 1.5 s delay");
 });

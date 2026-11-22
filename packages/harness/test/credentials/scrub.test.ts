@@ -50,6 +50,24 @@ test("a copy of the secret is removed too: percent-encoded, JSON-escaped and in 
   for (const form of forms.slice(0, 5)) assert.ok(!scrubbed.includes(form), `${form} was left`);
 });
 
+test("a secret inside a Basic authorization header is removed, whatever the prefix and suffix", () => {
+  const cases = ["user:", "x-access-token:", "a:", "longer-user-name:"].flatMap((prefix) =>
+    [
+      Buffer.from(`${prefix}${SECRET}`).toString("base64"),
+      Buffer.from(`${prefix}${SECRET}:and-more`).toString("base64"),
+      Buffer.from(`${prefix}${SECRET}`).toString("base64url"),
+    ].map((form) => ({ prefix, form })),
+  );
+  const scrubbed = JSON.stringify(
+    scrubSecrets(entry({ content: cases.map(({ form }) => `Authorization: Basic ${form}`) }), [SECRET]),
+  );
+  for (const { prefix, form } of cases) {
+    // The characters of the first base64 group that holds only secret bytes, and the 12 secret bytes after it.
+    const start = Math.ceil(prefix.length / 3) * 4;
+    assert.ok(!scrubbed.includes(form.slice(start, start + 16)), `a piece of ${form} was left`);
+  }
+});
+
 test("the entry's own fields are kept, and the input is not changed", () => {
   const original = entry({ content: `has ${SECRET}` });
   const before = JSON.stringify(original);

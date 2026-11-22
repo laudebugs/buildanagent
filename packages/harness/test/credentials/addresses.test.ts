@@ -30,6 +30,16 @@ const refused = [
   "64:ff9b::7f00:1",
   "2002:7f00:1::1",
   "2001:db8::1",
+  "64:ff9b:1::a9fe:a9fe",
+  "::ffff:0:a9fe:a9fe",
+  "fec0::1",
+  "100::1",
+  "2001::1",
+  "2001:2::1",
+  "2001:10::1",
+  "5f00::1",
+  "3fff::1",
+  "2002:a9fe:a9fe::1",
   "[::1]",
   "not-an-ip",
   "1.2.3",
@@ -48,6 +58,8 @@ const allowed = [
   "2606:4700:4700::1111",
   "2001:4860:4860::8888",
   "::ffff:8.8.8.8",
+  "2001:200::1",
+  "64:ff9b::808:808",
 ];
 
 test("every loopback, link-local, metadata, private, shared, multicast and reserved address is refused", () => {

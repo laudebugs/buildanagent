@@ -13,13 +13,35 @@ export const REDACTED = "[REDACTED]";
 // the log, so they are left alone at the top of an entry.
 const STRUCTURAL = new Set(["type", "id", "parentId", "seq", "timestamp", "origin", "formatVersion"]);
 
-/** The base64 of `text`'s UTF-8 bytes, in the standard alphabet and the URL-safe one, without padding. */
-function base64Forms(text: string): string[] {
-  const bytes = new TextEncoder().encode(text);
+/** The standard and URL-safe base64 of `bytes`, without padding. */
+function base64Of(bytes: Uint8Array): string[] {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   const standard = btoa(binary).replace(/=+$/, "");
   return [standard, standard.replaceAll("+", "-").replaceAll("/", "_")];
+}
+
+// The fewest base64 characters worth looking for, so a short secret's pieces don't redact ordinary text.
+const MIN_BASE64_PIECE = 8;
+
+/**
+ * The base64 forms of a secret: alone, and as part of longer text. Base64 packs three bytes into four characters, so a
+ * secret that follows a prefix such as `user:` encodes differently by its offset in the group. The encodings at all three
+ * offsets are kept, trimmed to the groups the secret fills, because the groups at its edges depend on its neighbours.
+ */
+function base64Forms(text: string): string[] {
+  const secret = new TextEncoder().encode(text);
+  const found = new Set(base64Of(secret));
+  for (let offset = 0; offset < 3; offset += 1) {
+    const shifted = new Uint8Array(offset + secret.length);
+    shifted.set(secret, offset);
+    const groups = Math.floor(shifted.length / 3);
+    for (const form of base64Of(shifted)) {
+      const piece = form.slice(offset === 0 ? 0 : 4, groups * 4);
+      if (piece.length >= MIN_BASE64_PIECE) found.add(piece);
+    }
+  }
+  return [...found];
 }
 
 /**
@@ -61,7 +83,7 @@ function scrubValue(value: unknown, patterns: readonly string[]): unknown {
 /**
  * Returns a copy of `entry` with every secret replaced by `[REDACTED]`, in every string value and every key, at any depth.
  * A secret is also removed when it appears percent-encoded, JSON-escaped or in base64. The entry's `type`, `id`,
- * `parentId`, `seq`, `timestamp` and `origin` are kept as they are. An empty secret is ignored, and a short one redacts
+ * `parentId`, `seq`, `timestamp`, `origin` and `formatVersion` are kept as they are. An empty secret is ignored, and a short one redacts
  * every place it occurs, so pass real credentials. The input is not changed.
  */
 export function scrubSecrets<T extends SessionEntry>(entry: T, secrets: readonly string[]): T {

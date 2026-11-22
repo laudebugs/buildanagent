@@ -64,13 +64,19 @@ export interface EgressProxyOptions {
 
 /** A running egress proxy. */
 export interface EgressProxy {
-  /** Where the sandbox sends its requests: give it as `HTTPS_PROXY`, and join a route's name to it for a route. */
+  /**
+   * Where the sandbox sends its requests: give it as `HTTPS_PROXY`, and join a route's name to it for a route. On a Unix
+   * socket it is `unix:<path>`, which is not a proxy URL: the program that uses the socket connects to it itself.
+   */
   readonly url: string;
   /** The Unix socket the proxy listens on, when it was started with `socketPath`. */
   readonly socketPath?: string;
   /** For each route, the placeholder the sandbox puts where the credential goes. The real secret never leaves the host. */
   readonly sentinels: Readonly<Record<string, string>>;
-  /** Fetches `input` for an in-process tool, under the same allowlist. A host that isn't on it rejects with `egress_denied`. */
+  /**
+   * Fetches `input` for an in-process tool, under the same allowlist. A host that isn't on it rejects with `egress_denied`.
+   * A route is reached at `${proxy.url}/<route>/…`, or at `http://egress.proxy/<route>/…`, which also works on a Unix socket.
+   */
   fetch(input: string | URL, init?: RequestInit): Promise<Response>;
   /** The routes' secrets now, for `scrubSecrets()`. */
   knownSecrets(): Promise<readonly string[]>;
@@ -118,6 +124,11 @@ const HOP_BY_HOP = new Set([
   "host",
 ]);
 const DEFAULT_IDLE_MS = 120_000;
+// What Node refuses in a header value: anything but tab, printable ASCII and the Latin-1 range. A secret with a line break
+// or another control character would split or break the request, so it is refused before it is sent.
+const INVALID_HEADER_VALUE = /[^\t\x20-\x7e\x80-\xff]/;
+// The origin an in-process tool uses for a route, in either mode, because a Unix socket has no address of its own.
+const ROUTE_ORIGIN = "http://egress.proxy";
 
 /** What a request for a route resolves to, before it is written to a socket or wrapped in a `Response`. */
 interface RouteReply {
@@ -208,7 +219,9 @@ class EgressGate {
   };
 
   private reasonOf(error: unknown): string {
-    return (error as { code?: string }).code === "EGRESS_ADDRESS" ? "address_refused" : "connect_failed";
+    const code = (error as { code?: string }).code;
+    if (code === "EGRESS_ADDRESS") return "address_refused";
+    return code === "ETIMEDOUT" ? "timeout" : "connect_failed";
   }
 
   /** The host and port of a `CONNECT` target, or `undefined` for one that isn't `host:port`. */
@@ -245,7 +258,9 @@ class EgressGate {
     let established = false;
     const upstream = this.modules.net.connect({ host, port, lookup: this.checkedLookup as never });
     this.track(upstream);
-    upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy());
+    upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () =>
+      upstream.destroy(Object.assign(new Error("idle"), { code: "ETIMEDOUT" })),
+    );
     upstream.once("error", (error) => {
       if (established) client.destroy();
       else deny(this.reasonOf(error), 502);
@@ -278,6 +293,7 @@ class EgressGate {
   }
 
   private track(socket: import("node:net").Socket): void {
+    if (this.sockets.has(socket)) return;
     this.sockets.add(socket);
     socket.once("close", () => this.sockets.delete(socket));
     socket.on("error", () => {});
@@ -297,8 +313,19 @@ class EgressGate {
       });
       return;
     }
-    void this.routeRequest(request.method ?? "GET", url, request.headers, request).then((reply) =>
-      this.finish(response, reply.reply, reply.base),
+    // A client that goes away takes the upstream request with it, so a credential isn't spent for nobody.
+    const gone = new AbortController();
+    response.once("close", () => gone.abort());
+    const base = {
+      kind: "route" as const,
+      host: "(route)",
+      port: 0,
+      method: request.method ?? "GET",
+      route: undefined,
+    };
+    this.routeRequest(request.method ?? "GET", url, request.headers, request, gone.signal).then(
+      (reply) => this.finish(response, reply.reply, reply.base),
+      () => this.finish(response, refusal(502, "request_failed"), base),
     );
   }
 
@@ -324,7 +351,7 @@ class EgressGate {
     reply.body.on("data", (chunk: Buffer) => {
       bytes += chunk.length;
     });
-    reply.body.once("end", report);
+    reply.body.once("close", report);
     reply.body.once("error", () => response.destroy());
     response.once("close", () => reply.body?.destroy());
     reply.body.pipe(response);
@@ -339,6 +366,7 @@ class EgressGate {
     rawPath: string,
     headers: Record<string, string | string[] | undefined>,
     body: import("node:stream").Readable | Uint8Array | undefined,
+    signal?: AbortSignal,
   ): Promise<{ reply: RouteReply; base: Pick<EgressRecord, "kind" | "host" | "port" | "method" | "route"> }> {
     const match = /^\/([^/?#]+)(\/[^?#]*)?(\?[^#]*)?$/.exec(rawPath);
     const route = match === null ? undefined : this.routes.get(match[1] ?? "");
@@ -357,9 +385,9 @@ class EgressGate {
       return { reply: refusal(403, "bad_sentinel"), base };
     }
     const secret = await route.secret().catch(() => "");
-    if (secret === "" || /[\r\n\0]/.test(secret)) return { reply: refusal(502, "secret_unavailable"), base };
+    if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return { reply: refusal(502, "secret_unavailable"), base };
     const outgoing = this.outgoingHeaders(headers, route, presented.replaceAll(sentinel, secret));
-    const reply = await this.forward(route, method, `${match[2] ?? "/"}${match[3] ?? ""}`, outgoing, body);
+    const reply = await this.forward(route, method, `${match[2] ?? "/"}${match[3] ?? ""}`, outgoing, body, signal);
     return { reply, base };
   }
 
@@ -383,19 +411,20 @@ class EgressGate {
     path: string,
     headers: Record<string, string | string[]>,
     body: import("node:stream").Readable | Uint8Array | undefined,
+    signal?: AbortSignal,
   ): Promise<RouteReply> {
     return new Promise((resolve) => {
-      const upstream = this.modules.https.request({
-        host: route.hostname,
-        port: route.port,
-        servername: route.hostname,
-        method,
-        path,
-        headers,
-        agent: false,
-        lookup: this.checkedLookup as never,
-        ...(this.options.ca === undefined ? {} : { ca: this.options.ca as never }),
-      });
+      let upstream: import("node:http").ClientRequest;
+      try {
+        upstream = this.openRoute(route, method, path, headers);
+      } catch {
+        resolve(refusal(502, "request_invalid"));
+        return;
+      }
+      const stop = () => upstream.destroy(new Error("client gone"));
+      if (signal?.aborted === true) stop();
+      else signal?.addEventListener("abort", stop, { once: true });
+      upstream.once("close", () => signal?.removeEventListener("abort", stop));
       this.requests.add(upstream);
       upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy(new Error("idle")));
       upstream.once("close", () => this.requests.delete(upstream));
@@ -413,15 +442,38 @@ class EgressGate {
     });
   }
 
+  /** Opens the HTTPS request to a route's host, which throws for a header or path Node refuses. */
+  private openRoute(
+    route: ParsedRoute,
+    method: string,
+    path: string,
+    headers: Record<string, string | string[]>,
+  ): import("node:http").ClientRequest {
+    return this.modules.https.request({
+      host: route.hostname,
+      port: route.port,
+      servername: route.hostname,
+      method,
+      path,
+      headers,
+      agent: false,
+      lookup: this.checkedLookup as never,
+      ...(this.options.ca === undefined ? {} : { ca: this.options.ca as never }),
+    });
+  }
+
   /** An in-process fetch under the same allowlist, with the same address checks and pinned connection. */
   async fetch(input: string | URL, init?: RequestInit): Promise<Response> {
     const request = new Request(input, init);
+    request.signal.throwIfAborted();
     const url = new URL(request.url);
     const host = url.hostname.toLowerCase().replace(/\.$/, "");
     const port = url.port === "" ? 443 : Number(url.port);
     const bodyBytes =
       request.method === "GET" || request.method === "HEAD" ? undefined : new Uint8Array(await request.arrayBuffer());
-    if (this.origin !== "" && url.origin === this.origin) return this.fetchRoute(request, url, bodyBytes);
+    if (url.origin === ROUTE_ORIGIN || (this.origin !== "" && url.origin === this.origin)) {
+      return this.fetchRoute(request, url, bodyBytes);
+    }
     const refuse = (reason: string): never => {
       this.record({ kind: "fetch", host, port, method: request.method, status: 403, bytes: 0, reason });
       throw new HarnessError("egress_denied", `the egress proxy refused ${url.host}: ${reason}`);
@@ -437,7 +489,8 @@ class EgressGate {
     request.headers.forEach((value, name) => {
       headers[name.toLowerCase()] = value;
     });
-    const { reply, base } = await this.routeRequest(request.method, `${url.pathname}${url.search}`, headers, body);
+    const path = `${url.pathname}${url.search}`;
+    const { reply, base } = await this.routeRequest(request.method, path, headers, body, request.signal);
     const stream = reply.body;
     let bytes = 0;
     stream?.on("data", (chunk: Buffer) => {
@@ -451,8 +504,8 @@ class EgressGate {
         ...(reply.reason === undefined ? {} : { reason: reply.reason }),
       });
     if (stream === undefined) finished();
-    else stream.once("end", finished);
-    return this.toResponse(reply.status, reply.headers, stream, request.signal);
+    else stream.once("close", finished);
+    return this.toResponse(reply.status, reply.headers, stream);
   }
 
   private sendFetch(
@@ -479,38 +532,33 @@ class EgressGate {
         ...(this.options.ca === undefined ? {} : { ca: this.options.ca as never }),
       });
       this.requests.add(upstream);
-      upstream.once("close", () => this.requests.delete(upstream));
-      request.signal.addEventListener("abort", () => upstream.destroy(request.signal.reason as Error), { once: true });
+      const abort = () => upstream.destroy(request.signal.reason as Error);
+      request.signal.addEventListener("abort", abort, { once: true });
+      upstream.once("close", () => {
+        this.requests.delete(upstream);
+        request.signal.removeEventListener("abort", abort);
+      });
       upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy(new Error("idle")));
       upstream.once("response", (reply) => {
         let bytes = 0;
         reply.on("data", (chunk: Buffer) => {
           bytes += chunk.length;
         });
-        reply.once("end", () =>
+        // The record is written when the response is done with, which also covers one that is never read to its end.
+        reply.once("close", () =>
           this.record({ kind: "fetch", host, port, method: request.method, status: reply.statusCode ?? 0, bytes }),
         );
-        resolve(
-          this.toResponse(
-            reply.statusCode ?? 502,
-            reply.headers as Record<string, string | string[]>,
-            reply,
-            request.signal,
-          ),
-        );
+        resolve(this.toResponse(reply.statusCode ?? 502, reply.headers as Record<string, string | string[]>, reply));
       });
       upstream.once("error", (error) => {
-        this.record({
-          kind: "fetch",
-          host,
-          port,
-          method: request.method,
-          status: 502,
-          bytes: 0,
-          reason: this.reasonOf(error),
-        });
+        if (request.signal.aborted) {
+          reject(request.signal.reason);
+          return;
+        }
+        const reason = this.reasonOf(error);
+        this.record({ kind: "fetch", host, port, method: request.method, status: 502, bytes: 0, reason });
         reject(
-          new HarnessError("egress_denied", `the egress proxy could not reach ${url.host}: ${this.reasonOf(error)}`, {
+          new HarnessError("egress_denied", `the egress proxy could not reach ${url.host}: ${reason}`, {
             cause: error,
           }),
         );
@@ -523,14 +571,14 @@ class EgressGate {
     status: number,
     headers: Record<string, string | string[]>,
     stream: import("node:stream").Readable | undefined,
-    signal: AbortSignal,
   ): Response {
     const out = new Headers();
     for (const [name, value] of Object.entries(headers)) {
       for (const one of Array.isArray(value) ? value : [value]) out.append(name, one);
     }
     const bodiless = stream === undefined || [101, 204, 205, 304].includes(status);
-    if (stream !== undefined) signal.addEventListener("abort", () => stream.destroy(), { once: true });
+    // A response with no body is drained, so its socket and its log record don't wait for a reader that never comes.
+    if (bodiless) stream?.resume();
     const web = bodiless ? null : (this.modules.stream.Readable.toWeb(stream) as ReadableStream);
     return new Response(web, { status, headers: out });
   }

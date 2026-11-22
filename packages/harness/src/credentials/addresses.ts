@@ -76,22 +76,48 @@ function ipv4Refused(value: number): boolean {
   });
 }
 
+/** The IPv6 prefixes a proxy refuses, as the leading groups and the prefix length in bits. */
+const IPV6_REFUSED: readonly (readonly [readonly number[], number])[] = [
+  [[0, 0, 0, 0, 0, 0, 0, 0], 128], // ::, unspecified
+  [[0, 0, 0, 0, 0, 0, 0, 1], 128], // ::1, loopback
+  [[0x64, 0xff9b, 1], 48], // 64:ff9b:1::/48, local-use NAT64
+  [[0x100], 64], // 100::/64, discard-only
+  [[0x2001, 0], 23], // 2001::/23: Teredo, benchmarking, ORCHID and protocol assignments
+  [[0x2001, 0x0db8], 32], // documentation
+  [[0x3fff], 20], // 3fff::/20, documentation
+  [[0x5f00], 16], // segment routing SIDs
+  [[0xfc00], 7], // unique local
+  [[0xfe80], 10], // link-local
+  [[0xfec0], 10], // site-local, deprecated
+  [[0xff00], 8], // multicast
+];
+
+/** Whether the first `bits` bits of `groups` equal those of `prefix`. */
+function inPrefix(groups: readonly number[], prefix: readonly number[], bits: number): boolean {
+  for (let index = 0; index * 16 < bits; index += 1) {
+    const take = Math.min(16, bits - index * 16);
+    const mask = (0xffff << (16 - take)) & 0xffff;
+    if (((groups[index] ?? 0) & mask) !== ((prefix[index] ?? 0) & mask)) return false;
+  }
+  return true;
+}
+
+/** The IPv4 address an IPv6 one carries, as a number: mapped, compatible, translated, NAT64 and 6to4 forms. */
+function wrappedIpv4(groups: readonly number[]): number | undefined {
+  const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0] = groups;
+  const zeroHigh = a === 0 && b === 0 && c === 0 && d === 0;
+  const low = g * 65536 + h;
+  if (zeroHigh && e === 0 && (f === 0xffff || f === 0)) return low; // ::ffff:a.b.c.d and ::a.b.c.d
+  if (zeroHigh && e === 0xffff && f === 0) return low; // ::ffff:0:a.b.c.d, IPv4-translated
+  if (a === 0x64 && b === 0xff9b && c === 0 && d === 0 && e === 0 && f === 0) return low; // 64:ff9b::/96
+  return a === 0x2002 ? b * 65536 + c : undefined; // 6to4 wraps the address in its next two groups
+}
+
 /** Whether an IPv6 address, as eight groups, is one a proxy refuses. */
 function ipv6Refused(groups: readonly number[]): boolean {
-  const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0] = groups;
-  if (groups.every((group) => group === 0)) return true; // ::, the unspecified address
-  if (a === 0 && b === 0 && c === 0 && d === 0 && e === 0 && f === 0 && g === 0 && h === 1) return true; // ::1
-  // IPv4 inside IPv6: ::ffff:a.b.c.d (mapped), ::a.b.c.d (compatible) and 64:ff9b::a.b.c.d (NAT64).
-  const wraps =
-    (a === 0 && b === 0 && c === 0 && d === 0 && e === 0 && (f === 0xffff || f === 0)) ||
-    (a === 0x64 && b === 0xff9b && c === 0 && d === 0 && e === 0 && f === 0);
-  if (wraps) return ipv4Refused(g * 65536 + h);
-  if ((a & 0xfe00) === 0xfc00) return true; // fc00::/7, unique local
-  if ((a & 0xffc0) === 0xfe80) return true; // fe80::/10, link-local
-  if ((a & 0xff00) === 0xff00) return true; // ff00::/8, multicast
-  if (a === 0x2001 && b === 0x0db8) return true; // documentation
-  if (a === 0x2002) return ipv4Refused(b * 65536 + c); // 6to4 wraps an IPv4 address
-  return false;
+  const wrapped = wrappedIpv4(groups);
+  if (wrapped !== undefined && ipv4Refused(wrapped)) return true;
+  return IPV6_REFUSED.some(([prefix, bits]) => inPrefix(groups, prefix, bits));
 }
 
 /**
