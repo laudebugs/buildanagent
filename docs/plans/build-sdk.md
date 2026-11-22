@@ -374,15 +374,16 @@ interface ToolResult<S> {
   pause?: { kind: "clarification"; question: string }; // Revision: the clarification pause starts in a tool
   outcome?: WriteOutcome;                              // revision (ADR 0043, SG3; B10): typed by agent-safety (E1)
 }
-declare function defineTool<I, S>(definition: ToolDefinition<I, S>): ToolDefinition<I, S>;
+declare function defineTool<I, S, A = unknown>(definition: ToolDefinition<I, S, A>): ToolDefinition<I, S, A>;  // revision (B23): A
 declare function outputTool<S>(options: { name: string; schema: StandardSchemaV1<S> & StandardJSONSchemaV1 }): ToolDefinition<S, S>;
 // A run whose only tool is an outputTool ends "done" after one valid call; a schema failure costs one model call of maxSteps.
 declare function clarificationTool(options?: { name?: string }): ToolDefinition<{ question: string }, never>;
 
 // Loop (guide §3; SDK decisions 6–8; D9, D10)
-interface RunOptions<S = unknown> {
+interface RunOptions<S = unknown, A = unknown> {   // revision (B23): A is the tools' app type
   model: Model;                        // from createModel(); a string is a type error
-  tools?: ToolDefinition<any, any>[];
+  tools?: ToolDefinition<any, any, A>[];
+  app?: A;                             // revision (B23): the tools read it as ctx.app; never in a request, event or saved Context
   output?: ToolDefinition<S, S>;       // from outputTool(); its structured result becomes result.output
   interceptors?: Interceptors;
   observers?: Observer[];
@@ -397,10 +398,13 @@ interface RunOptions<S = unknown> {
   clock?: Clock; idGenerator?: () => string; random?: () => number;  // stable, public
   includeRaw?: boolean;                // raw provider events, opt-in; revision (B11c): the run's alone decides, so CallOptions omits it
 }
-declare function run<S>(options: RunOptions<S> & { system: string; input: string | ContentBlock[]; history?: Message[] }): Run<S>;
+// Revision (B23): AppFor<T> asks for an app that has every app type the tools in T declare, and nothing when none declares one.
+declare function run<S, const T extends readonly ToolDefinition<any, any, any>[]>(
+  options: RunOptions<S> & { tools?: T; system: string; input: string | ContentBlock[]; history?: Message[] } & AppFor<T>): Run<S>;
 // Revision (R1): Context moved here from the gateway. It is plain JSON, so a caller may build it from its own store.
 interface Context { system: string; messages: Message[]; pending?: SignedPendingRequest[] }
-declare function continueRun<S>(context: Context, options: RunOptions<S> & { resolutions?: Resolution[] }): Run<S>;
+declare function continueRun<S, const T extends readonly ToolDefinition<any, any, any>[]>(
+  context: Context, options: RunOptions<S> & { tools?: T; resolutions?: Resolution[] } & AppFor<T>): Run<S>;  // revision (B23): the same app rule
 // A call with a verified "allow" resolution runs without calling beforeToolCall; the host re-checks policy before resolving.
 // A context whose last message is an errored assistant message drops it and re-issues the call.
 declare function runOrThrow<S>(run: Run<S>): Promise<DoneResult<S>>;   // throws RunStoppedError (D10)

@@ -85,6 +85,18 @@ On 2026-11-19 the owner approved every change the A2A report (U19) and the voice
 | 42 | Row 38: N13's signed pause is "the pause U19 proposes for MCP's `input_required` too" | §1 | ✏️ | U19 proposes no MCP pause. The [source-update report](../../research/source-update-2026-11-19.md#proposed-plan-changes) proposes that a server's input request pause the turn through N13 (its MCP section and its N24 row), and its conclusion lists that as one of four decisions still open for the owner. **Now:** §1 cites the source-update report's proposal and says it awaits the owner's decision |
 | 43 | Row 36: "nothing we build has an outside caller yet" | §1 | ✏️ | U19 says only that the coding agent "has no outside caller yet", and its platform note expects hosted products as future callers. **Now:** "the coding agent, the first agent we build, has no outside caller yet" |
 
+## N15: the sandbox interface (branch `todo/N15-sandbox-interface`)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| N15-1 | GNU `timeout` exits with status 124 when the command times out, unless `--preserve-status` is given | `none.ts`, harness README | ✅ | [GNU Coreutils manual, `timeout` invocation](https://www.gnu.org/software/coreutils/manual/html_node/timeout-invocation.html), exit status list, read verbatim: "124 if command times out, and --preserve-status is not specified". Our `none` backend borrows the number; it does not call `timeout` |
+| N15-2 | A shell reports exit status 127 for a command it can't find | `none.ts`, harness README | ⚠️ | [POSIX.1-2024, Shell Command Language §2.8.2](https://pubs.opengroup.org/onlinepubs/9799919799/utilities/V3_chap02.html): "If the command is not found, the exit status shall be 127." Not verified against the page itself, which the check read only as a summary; the quote came from a model-extracted summary of the page, so the wording is not verbatim; the number matches the standard |
+| N15-3 | `process.getBuiltinModule(id)` returns a built-in module, or `undefined`, and exists from Node 22.3.0 | `spawn-env.ts`, `none.ts` | ⚠️ | [Node.js `process.getBuiltinModule`](https://nodejs.org/api/process.html#processgetbuiltinmoduleid) lists "Added in: v22.3.0, v20.16.0"; the repo's `.nvmrc` is Node 22. Not verified against the page itself; the description came from a model-extracted summary of the page |
+| N15-4 | The sandbox holds no credentials and the loop runs outside it | README, `spawnEnv` | ✅ | [ADR 0036](../../decisions/0036-loop-outside-sandbox-and-pr-approval.md): "The sandbox holds no credentials." |
+| N15-5 | `none` stops nothing, `os` shares the host's kernel, and no backend claims `hostile_process` | README | ⚠️ | Our own design from [HD4](../build-harness.md#hd4-srt-for-interactive-runs-and-docker-for-headless-runs-accepted) and [harness guide §6](../../guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both); the claims for `srt` and Docker are plans, which N16 and N17 will measure |
+| N15-6 | A shell reports a command that a signal killed as exit status 128 plus the signal's number | `none.ts`, harness README | ⚠️ | The convention of POSIX shells (§2.8.2 says a status above 128 for a signalled command, from memory of the page); not re-read verbatim. Node's `close` event gives `code` null and the signal name, and `os.constants.signals` maps it to the number, which the test pins for SIGTERM (143) |
+
+
 ## N2: the session entry union, its JSON Schema and the stable fields (2026-11-22)
 
 | # | Claim | Where | Verdict | Source and reason |
@@ -95,4 +107,4 @@ On 2026-11-19 the owner approved every change the A2A report (U19) and the voice
 | N2-4 | The log holds eighteen entry types, because the approval entries and `code_call` come later | `packages/harness/README.md` | ✅ | [§3.2](../build-harness.md#32-session-log-api) lists twenty-one entry types. N2's scope leaves out `approval_requested` and `approval_resolved` (N13) and `code_call` (N40), which leaves eighteen, and the `SESSION_ENTRY_TYPES` test pins that count. |
 | N2-5 | `turn_end.stopReason` takes the SDK's `RunResult` stop reasons | `src/entries.ts`, `scripts/session-entry-schema.ts` | ✅ | `packages/sdk/src/result.ts` declares nine `stopReason` values: `done`, `max_steps`, `aborted`, `no_progress`, `budget`, `error`, `stopped`, `awaiting_approval` and `clarification_requested`; the zod list matches, and the field's type is `RunResult<unknown>["stopReason"]`, so a drift fails the type check of the fixtures. |
 
-**Totals:** 48 claims: 39 ✅, 3 ✏️, 6 ⚠️.
+**Totals:** 54 claims: 41 ✅, 3 ✏️, 10 ⚠️.

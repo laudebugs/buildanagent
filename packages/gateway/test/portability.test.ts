@@ -8,7 +8,16 @@ const packagesRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 // The offline guards run only in our Node test process, so they may use Node APIs. The mock server opens a socket,
 // which needs Node's `http` module; it imports it only when a test starts a server, so the export loads everywhere.
-const nodeOnlyFiles = new Set(["testing/guards.ts", "testing/setup.ts", "testing/mock-server.ts"]);
+const nodeOnlyFiles = new Set([
+  "testing/guards.ts",
+  "testing/setup.ts",
+  "testing/mock-server.ts",
+  // The harness's `none` sandbox runs a local process and `spawnEnv()` reads the parent's environment, so both are
+  // Node-only by nature. They load Node's modules with `process.getBuiltinModule()` when called, so importing the
+  // sandbox entry still works on every target.
+  "sandbox/none.ts",
+  "sandbox/spawn-env.ts",
+]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.
 const nodeOnlyApis: readonly [string, RegExp][] = [

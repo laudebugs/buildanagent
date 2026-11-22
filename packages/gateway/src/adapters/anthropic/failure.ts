@@ -11,14 +11,7 @@
  */
 import type { ModelEvent } from "../../spec.js";
 import type { ModelRef } from "../../types.js";
-import {
-  failureTerminal,
-  isObject,
-  type PartialReply,
-  readErrorBody,
-  retryAfterMs,
-  type WireFailure,
-} from "../wire.js";
+import { failureTerminal, isObject, type PartialReply, readFailureResponse, type WireFailure } from "../wire.js";
 
 // The HTTP status each error type stands for, so a stream error classifies like the HTTP error it would have been.
 const STATUS_OF_TYPE: Readonly<Record<string, number>> = {
@@ -53,18 +46,9 @@ export function failureFrom(body: unknown, status: number | undefined, fallback:
   };
 }
 
-/**
- * Reads a failed HTTP response's error body and its retry-after hint; a body that is not JSON keeps its text as the
- * message.
- */
-export async function failureFromResponse(response: Response): Promise<WireFailure> {
-  const { body, text } = await readErrorBody(response);
-  const wait = retryAfterMs(response.headers);
-  return {
-    ...failureFrom(body, response.status, text || `HTTP ${response.status}`),
-    ...(wait === undefined ? {} : { retryAfterMs: wait }),
-  };
-}
+/** Reads a failed HTTP response's error body and its retry-after hint. */
+export const failureFromResponse = (response: Response): Promise<WireFailure> =>
+  readFailureResponse(response, failureFrom);
 
 /** True for the prefix-check 400, which the adapter answers by retrying with `drop_block`. */
 export function isPrefixMismatch(failure: WireFailure): boolean {

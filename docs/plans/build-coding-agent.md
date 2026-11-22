@@ -64,7 +64,7 @@ The agent serves one person. The model key is one secret held by the host and ad
 | Transport | stdio | WebSocket on the Durable Object | Lambda response streaming | WebSocket (beta) or SSE |
 | `EffectStore` | `memoryEffectStore()` | Durable Object SQLite | DynamoDB, conditional put | Postgres, insert on conflict do nothing |
 
-**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/done/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/ready/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
+**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/done/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/done/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
 
 The table follows U11's per-target mapping, which is our inference from each platform's docs and untested ([portable agents report][pa-sdk]). The conformance suite (N45) makes it a test: every implementation in a column must pass the same cases, including HD2's settling test and the three rules of the [storage-and-wake note][sw-rules].
 
