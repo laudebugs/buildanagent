@@ -344,25 +344,49 @@ describe("the deploy workflows", { skip }, () => {
     assert.match(scripts, /wrangler deploy --config wrangler\.toml --env next/);
   });
 
-  test("docs-deploy's production checks for a stable tag around a push's deploy, and a release always deploys", () => {
+  test("docs-deploy's production checks the tag and main's tip before a push's deploy, and a release always deploys", () => {
     const job = SITES.docs.jobs.production;
     const names = steps(job).map((step) => step.name);
     const before = names.indexOf("Check that no stable release exists yet");
+    const newest = names.indexOf("Check that this commit is still main's newest");
     const deploy = names.indexOf("Deploy");
-    const afterDeploy = names.indexOf("Check that no stable release was tagged during the deploy");
-    assert.ok(before >= 0 && before < deploy && deploy < afterDeploy, names.join(", "));
+    const afterDeploy = names.indexOf("Check that no release deployed during this deploy");
+    assert.ok(before >= 0 && before < newest && newest === deploy - 1 && deploy < afterDeploy, names.join(", "));
     assert.equal(steps(job)[before].if, "github.event_name == 'workflow_run'");
-    assert.equal(steps(job)[before].env.PHASE, "before");
+    assert.equal(steps(job)[newest].if, "github.event_name == 'workflow_run'");
     assert.equal(
-      steps(job)[deploy].if,
-      "github.event_name == 'workflow_dispatch' || steps.unreleased.outputs.deploy == 'true'",
+      steps(job)[deploy].if.replace(/\s+/g, " ").trim(),
+      "github.event_name == 'workflow_dispatch' || " +
+        "(steps.unreleased.outputs.deploy == 'true' && steps.newest.outputs.deploy == 'true')",
     );
     assert.equal(
       steps(job)[afterDeploy].if,
-      "github.event_name == 'workflow_run' && steps.unreleased.outputs.deploy == 'true'",
+      "github.event_name == 'workflow_run' && steps.deploy.outcome == 'success'",
     );
-    assert.equal(steps(job)[afterDeploy].env.PHASE, "after");
-    assert.equal(steps(job)[afterDeploy].run, steps(job)[before].run);
+    assert.equal(steps(job)[afterDeploy].env.STARTED, `\${{ steps.unreleased.outputs.started }}`);
+  });
+
+  test("docs-deploy's next and site-deploy's production check main's tip just before they deploy", () => {
+    for (const job of [SITES.docs.jobs.next, SITES.site.jobs.production]) {
+      const names = steps(job).map((step) => step.name);
+      const newest = names.indexOf("Check that this commit is still main's newest");
+      assert.ok(newest >= 0 && names[newest + 1] === "Deploy", names.join(", "));
+      assert.equal(steps(job)[newest + 1].if, "steps.newest.outputs.deploy == 'true'");
+    }
+  });
+
+  test("every preview checks its pull request just before it deploys, and reads pull requests only", () => {
+    for (const workflow of Object.values(SITES)) {
+      const job = workflow.jobs.preview;
+      const names = steps(job).map((step) => step.name);
+      const open = names.indexOf("Check that the pull request is still open at this commit");
+      assert.ok(open >= 0 && names[open + 1] === "Deploy the preview", names.join(", "));
+      assert.doesNotMatch(JSON.stringify(steps(job)[open]), /secrets\./);
+      for (const name of ["Deploy the preview", "Record the preview's URLs"]) {
+        assert.equal(stepNamed(job, name).if, "steps.open.outputs.deploy == 'true'", name);
+      }
+      assert.equal(job.permissions["pull-requests"], "read");
+    }
   });
 
   test("every action is one the lock already holds at that tag", () => {
@@ -604,44 +628,194 @@ describe("the docs' dispatch and next", { skip }, () => {
   });
 });
 
-describe("the docs' stable-tag check in production", { skip }, () => {
+describe("the docs' stable-tag checks in production", { skip }, () => {
   const job = skip ? {} : SITES.docs.jobs.production;
-  const script = skip ? "" : stepNamed(job, "Check that no stable release exists yet").run;
+  const before = skip ? "" : stepNamed(job, "Check that no stable release exists yet").run;
+  const afterScript = skip ? "" : stepNamed(job, "Check that no release deployed during this deploy").run;
   const TAGS = "repos/owner/repo/git/matching-refs/tags/v";
-  const check = (phase, answers) => runStep(script, { PATH: fakeGh(answers).PATH, REPO, PHASE: phase });
+  const RUNS = "repos/owner/repo/actions/workflows/docs-deploy.yml/runs?event=workflow_dispatch&per_page=30";
+  const jobsOf = (id) => `repos/owner/repo/actions/runs/${id}/jobs?per_page=100`;
+  const STARTED = "2026-11-22T10:00:00Z";
+  const STABLE = [{ ref: "refs/tags/v0.1.0-alpha.3" }, { ref: "refs/tags/v0.1.0" }];
+  const check = (answers) => runStep(before, { PATH: fakeGh(answers).PATH, REPO });
+  const checkAfter = (answers, started = STARTED) => {
+    const gh = fakeGh(answers);
+    return { ...runStep(afterScript, { PATH: gh.PATH, REPO, STARTED: started }), calls: gh.calls() };
+  };
+  const release = (id, updated_at) => ({ id, updated_at });
+  const deployJob = (conclusion, completed_at, name = "Deploy docs.buildanagent.fyi") => ({
+    jobs: [
+      { name: "Build the docs at v0.1.0", steps: [{ name: "Deploy", conclusion: "success", completed_at }] },
+      { name, steps: [{ name: "Deploy", conclusion, completed_at }] },
+    ],
+  });
 
-  test("lets the deploy go ahead while only prerelease tags exist", () => {
-    for (const phase of ["before", "after"]) {
-      const result = check(phase, { [TAGS]: [{ ref: "refs/tags/v0.1.0-alpha.3" }, { ref: "refs/tags/v0.1.0x" }] });
-      assert.equal(result.status, 0, result.stderr);
-      assert.equal(result.outputs.deploy, "true");
-    }
+  test("lets the deploy go ahead while only prerelease tags exist, and records when its window opens", () => {
+    const result = check({ [TAGS]: [{ ref: "refs/tags/v0.1.0-alpha.3" }, { ref: "refs/tags/v0.1.0x" }] });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.outputs.deploy, "true");
+    assert.match(result.outputs.started, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.ok(Date.parse(result.outputs.started) <= Date.now() - 59_000, result.outputs.started);
   });
 
   test("skips the deploy with a notice when a stable tag appeared before it", () => {
-    const result = check("before", { [TAGS]: [{ ref: "refs/tags/v0.1.0" }] });
+    const result = check({ [TAGS]: [{ ref: "refs/tags/v0.1.0" }] });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.outputs.deploy, "false");
     assert.match(result.stdout, /::notice::/);
   });
 
-  test("fails loudly when a stable tag appeared during the deploy", () => {
-    const result = check("after", { [TAGS]: [{ ref: "refs/tags/v1.0.0" }] });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stdout, /::error::/);
-  });
-
   test("a failed tag lookup stops the deploy", () => {
-    const result = check("before", {});
+    const result = check({});
     assert.notEqual(result.status, 0);
     assert.notEqual(result.outputs.deploy, "true");
   });
+
+  test("after the deploy, with still no stable tag, succeeds quietly and reads no runs", () => {
+    const result = checkAfter({ [TAGS]: [{ ref: "refs/tags/v0.1.0-alpha.3" }] });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /::(error|notice)::/);
+    assert.deepEqual(result.calls, [TAGS]);
+  });
+
+  test("a tag that appeared during the deploy, with its release deploy still to come, leaves a notice and succeeds", () => {
+    const result = checkAfter({ [TAGS]: STABLE, [RUNS]: { workflow_runs: [] } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /::notice::/);
+    assert.doesNotMatch(result.stdout, /::error::/);
+  });
+
+  test("ignores release runs from before the window, and ones whose deploy failed, finished earlier or is another job's", () => {
+    const result = checkAfter({
+      [TAGS]: STABLE,
+      [RUNS]: {
+        workflow_runs: [
+          release(1, "2026-11-22T09:59:59Z"),
+          release(2, STARTED),
+          release(3, STARTED),
+          release(4, STARTED),
+        ],
+      },
+      [jobsOf(1)]: deployJob("success", "2026-11-22T10:05:00Z"),
+      [jobsOf(2)]: deployJob("failure", "2026-11-22T10:05:00Z"),
+      [jobsOf(3)]: deployJob("success", "2026-11-22T09:59:00Z"),
+      [jobsOf(4)]: deployJob("success", "2026-11-22T10:05:00Z", "Deploy next.docs.buildanagent.fyi"),
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /::notice::/);
+    assert.ok(!result.calls.includes(jobsOf(1)), result.calls.join(", "));
+  });
+
+  test("fails loudly when a release's deploy succeeded during this deploy", () => {
+    const result = checkAfter({
+      [TAGS]: STABLE,
+      [RUNS]: { workflow_runs: [release(9, "2026-11-22T10:06:00Z")] },
+      [jobsOf(9)]: deployJob("success", "2026-11-22T10:05:00Z"),
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout, /::error::Release deploy run 9 /);
+  });
+
+  test("fails on a window start, a run id or a job list it cannot trust, and on a failed lookup", () => {
+    assert.notEqual(checkAfter({ [TAGS]: STABLE, [RUNS]: { workflow_runs: [] } }, "now; rm -rf /").status, 0);
+    for (const id of ["1 x", "*", "0"]) {
+      const result = checkAfter({ [TAGS]: STABLE, [RUNS]: { workflow_runs: [release(id, STARTED)] } });
+      assert.notEqual(result.status, 0, id);
+      assert.match(result.stdout, /run id that is not a number/, id);
+    }
+    assert.notEqual(
+      checkAfter({ [TAGS]: STABLE, [RUNS]: { workflow_runs: [release(5, STARTED)] }, [jobsOf(5)]: { jobs: null } })
+        .status,
+      0,
+    );
+    assert.notEqual(checkAfter({ [TAGS]: STABLE }).status, 0);
+    assert.notEqual(checkAfter({}).status, 0);
+  });
+});
+
+describe("the re-check of main's newest commit before a push deploys", { skip }, () => {
+  for (const [label, job] of skip
+    ? []
+    : [
+        ["docs production", SITES.docs.jobs.production],
+        ["docs next", SITES.docs.jobs.next],
+        ["site production", SITES.site.jobs.production],
+      ]) {
+    const script = stepNamed(job, "Check that this commit is still main's newest").run;
+    const check = (answers, headSha = SHA) => {
+      const gh = fakeGh(answers);
+      return { ...runStep(script, { PATH: gh.PATH, REPO, HEAD_SHA: headSha }), calls: gh.calls() };
+    };
+
+    test(`${label}: deploys while this commit is main's newest`, () => {
+      const result = check({ "repos/owner/repo/commits/main": { sha: SHA } });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.deploy, "true");
+    });
+
+    test(`${label}: a stale tip at deploy time deploys nothing, with a notice`, () => {
+      const result = check({ "repos/owner/repo/commits/main": { sha: OTHER } });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.deploy, "false");
+      assert.match(result.stdout, /::notice::.*no longer main's newest commit/);
+    });
+
+    test(`${label}: a failed lookup, a tip that is not a SHA or a bad head SHA deploys nothing`, () => {
+      for (const result of [
+        check({}),
+        check({ "repos/owner/repo/commits/main": { sha: `${SHA}\nx` } }),
+        check({ "repos/owner/repo/commits/main": { sha: SHA } }, `${SHA}\nx`),
+      ]) {
+        assert.notEqual(result.status, 0);
+        assert.notEqual(result.outputs.deploy, "true");
+      }
+      assert.deepEqual(check({}, "nope").calls, []);
+    });
+  }
 });
 
 for (const name of ["docs", "site"]) {
   const WORKER = WORKERS[name];
   const ALIAS = `https://pr-7-${WORKER}.example.workers.dev`;
   const VERSION = `https://1a2b3c4d-${WORKER}.example.workers.dev`;
+
+  describe(`the ${name} preview's pull request check`, { skip }, () => {
+    const script = skip
+      ? ""
+      : stepNamed(SITES[name].jobs.preview, "Check that the pull request is still open at this commit").run;
+    const PR = "repos/owner/repo/pulls/7";
+    const check = (pr, number = "7") => {
+      const gh = fakeGh(pr === undefined ? {} : { [PR]: pr });
+      return { ...runStep(script, { PATH: gh.PATH, REPO, NUMBER: number, HEAD_SHA: SHA }), calls: gh.calls() };
+    };
+
+    test("deploys while the pull request is open, from a branch of this repository, at this commit", () => {
+      const result = check(pull(7));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.deploy, "true");
+    });
+
+    for (const [label, pr] of [
+      ["closed after resolve", pull(7, { state: "closed" })],
+      ["moved on to a new head SHA", pull(7, { sha: OTHER })],
+      ["now from a fork", pull(7, { head: "fork/repo" })],
+      ["from a fork since deleted", { ...pull(7), head: { sha: SHA, repo: null } }],
+    ]) {
+      test(`skips the preview with a notice when the pull request is ${label}`, () => {
+        const result = check(pr);
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.outputs.deploy, "false");
+        assert.match(result.stdout, /::notice::/);
+      });
+    }
+
+    test("a failed lookup or a number that is not a number deploys nothing", () => {
+      assert.notEqual(check(undefined).status, 0);
+      const bad = check(pull(7), "7/../../x");
+      assert.notEqual(bad.status, 0);
+      assert.deepEqual(bad.calls, []);
+    });
+  });
 
   describe(`the ${name} preview's URL check`, { skip }, () => {
     const record = skip ? {} : SITES[name].jobs.preview.steps.find((step) => step.id === "record");
@@ -885,6 +1059,23 @@ if (data !== undefined) {
       assert.deepEqual(
         gh.comments().map((c) => c.body),
         [person.body, BODY],
+      );
+      assert.deepEqual(
+        gh.writes().map((w) => [w.method, w.path]),
+        [["PATCH", "repos/owner/repo/issues/comments/6"]],
+      );
+    });
+
+    test("leaves a marked comment alone unless github-actions[bot] wrote it as a Bot", () => {
+      const app = { id: 3, user: { login: "other-app[bot]", type: "Bot" }, body: `${MARKER}\napp` };
+      const user = { id: 4, user: { login: "github-actions[bot]", type: "User" }, body: `${MARKER}\nuser` };
+      const ours = { id: 6, user: bot, body: `${MARKER}\nold` };
+      const gh = fakeCommentGh({ pull: open, comments: [app, user, ours] });
+      const result = run(gh);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(
+        gh.comments().map((c) => c.body),
+        [app.body, user.body, BODY],
       );
       assert.deepEqual(
         gh.writes().map((w) => [w.method, w.path]),
