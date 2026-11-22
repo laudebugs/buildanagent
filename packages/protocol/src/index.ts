@@ -9,6 +9,7 @@ export type {
   EnvStampEntry,
   ExtensionLoadedEntry,
   LoadoutEntry,
+  McpServerRecord,
   MessageBlockEntry,
   MessageEndEntry,
   Origin,
