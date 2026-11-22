@@ -47,7 +47,9 @@ function answer(message: Message, options: RawOptions): object | undefined {
     case "tools/call": {
       const params = message.params ?? {};
       options.calls?.push({ name: String(params.name), arguments: params.arguments });
-      return reply({ content: [{ type: "text", text: `called ${String(params.name)}` }] });
+      const echo = (params.arguments as { echo?: unknown } | undefined)?.echo;
+      const tail = typeof echo === "string" ? `: ${echo}` : "";
+      return reply({ content: [{ type: "text", text: `called ${String(params.name)}${tail}` }] });
     }
     default:
       return reply({});

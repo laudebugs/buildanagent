@@ -35,10 +35,15 @@ function toResponse(reply: IncomingMessage): Response {
     if (value === undefined) continue;
     for (const one of Array.isArray(value) ? value : [value]) headers.append(name, one);
   }
-  const status = reply.statusCode ?? 502;
-  if ([101, 204, 205, 304].includes(status) || status < 200) {
+  const status = reply.statusCode ?? 0;
+  // Node parses any three-digit status, and `Response` throws outside 200 to 599, so such an answer is refused here.
+  if (status < 200 || status > 599) {
+    reply.destroy();
+    throw new RemoteRefusal("refused", `the server answered with status ${status}, which HTTP does not define`);
+  }
+  if ([204, 205, 304].includes(status)) {
     reply.resume();
-    return new Response(null, { status: status < 200 ? 502 : status, headers });
+    return new Response(null, { status, headers });
   }
   return new Response(stream.Readable.toWeb(reply) as ReadableStream<Uint8Array>, {
     status,
@@ -123,7 +128,13 @@ function settle(request: ClientRequest, signal: AbortSignal | undefined): Promis
         reject(new RemoteRefusal("refused", "the server compressed its answer, which the harness did not ask for"));
         return;
       }
-      resolve(toResponse(reply));
+      // A throw here would escape the event handler and end the process, so every failure becomes a rejection.
+      try {
+        resolve(toResponse(reply));
+      } catch (error) {
+        reply.destroy();
+        reject(error);
+      }
     });
     request.once("error", (error) => reject(signal?.aborted ? signal.reason : error));
   });

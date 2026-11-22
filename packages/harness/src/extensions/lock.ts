@@ -13,7 +13,7 @@
  */
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors.js";
 
 const LOCK_VERSION = 1;
@@ -105,13 +105,45 @@ export async function readLock(file: string): Promise<ReadonlyMap<string, string
 const sorted = (entries: Iterable<readonly [string, unknown]>) =>
   Object.fromEntries([...entries].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 
-/** Writes the lock file for these extension pins, keeping its MCP pins, and replaces the old file in one step. */
-export async function writeLock(file: string, pins: ReadonlyMap<string, string>): Promise<void> {
-  const before = await readBody(file);
-  await writeBody(file, {
-    version: LOCK_VERSION,
-    extensions: sorted(pins),
-    ...(before?.mcp === undefined ? {} : { mcp: before.mcp }),
+// The writes waiting on each lock file, by its resolved path, so every writer in this process, `writeLock()` and every
+// `fileMcpPinStore()` alike, reads and replaces the file one after another and none loses another's change.
+const queues = new Map<string, Promise<unknown>>();
+
+/** Runs `work` after every earlier write to the same file in this process has settled. */
+function serially<T>(file: string, work: () => Promise<T>): Promise<T> {
+  const key = resolve(file);
+  const run = (queues.get(key) ?? Promise.resolve()).then(work);
+  const settled = run.catch(() => {});
+  queues.set(key, settled);
+  void settled.then(() => {
+    if (queues.get(key) === settled) queues.delete(key);
+  });
+  return run;
+}
+
+/** The lock file's body, or `undefined` when there is none or it can't be read as a lock file. */
+async function readBodyOrNone(file: string): Promise<LockBody | undefined> {
+  try {
+    return await readBody(file);
+  } catch (error) {
+    if (error instanceof HarnessError && error.code === "invalid_extension") return undefined;
+    throw error;
+  }
+}
+
+/**
+ * Writes the lock file for these extension pins, keeping its MCP pins, and replaces the old file in one step. A lock
+ * file that can't be read as one, such as one left with merge-conflict markers, is replaced whole, so a person can
+ * repin a broken file; its MCP pins go with it, and their tools wait for approval again.
+ */
+export function writeLock(file: string, pins: ReadonlyMap<string, string>): Promise<void> {
+  return serially(file, async () => {
+    const before = await readBodyOrNone(file);
+    await writeBody(file, {
+      version: LOCK_VERSION,
+      extensions: sorted(pins),
+      ...(before?.mcp === undefined ? {} : { mcp: before.mcp }),
+    });
   });
 }
 
@@ -132,24 +164,25 @@ export async function readMcpPins(file: string, server: string): Promise<Readonl
   return pins;
 }
 
-/** Replaces the MCP pins of one server in a lock file, keeping every other member. */
-export async function writeMcpPins(
-  file: string,
-  server: string,
-  pins: Readonly<Record<string, string>>,
-): Promise<void> {
-  const before = await readBody(file);
-  const servers = { ...((before?.mcp ?? {}) as Record<string, unknown>) };
-  Object.defineProperty(servers, server, {
-    value: { tools: sorted(Object.entries(pins)) },
-    enumerable: true,
-    writable: true,
-    configurable: true,
-  });
-  await writeBody(file, {
-    version: LOCK_VERSION,
-    ...(before?.extensions === undefined ? {} : { extensions: before.extensions }),
-    mcp: sorted(Object.entries(servers)),
+/**
+ * Replaces the MCP pins of one server in a lock file, keeping every other member. It throws `invalid_extension` for a
+ * lock file it can't read, rather than replace it: a file without its extension pins would let unpinned extensions load.
+ */
+export function writeMcpPins(file: string, server: string, pins: Readonly<Record<string, string>>): Promise<void> {
+  return serially(file, async () => {
+    const before = await readBody(file);
+    const servers = { ...((before?.mcp ?? {}) as Record<string, unknown>) };
+    Object.defineProperty(servers, server, {
+      value: { tools: sorted(Object.entries(pins)) },
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+    await writeBody(file, {
+      version: LOCK_VERSION,
+      ...(before?.extensions === undefined ? {} : { extensions: before.extensions }),
+      mcp: sorted(Object.entries(servers)),
+    });
   });
 }
 

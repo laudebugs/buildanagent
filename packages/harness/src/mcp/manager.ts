@@ -50,7 +50,7 @@ interface Listed {
 }
 
 /** What a turn was last told about one registered tool. */
-type Label = "enabled" | "new" | "changed" | "removed" | "unreadable";
+type Label = "enabled" | "new" | "changed" | "removed" | "unreadable" | "stale";
 
 /** One server's state for the life of the manager. */
 interface ServerState {
@@ -69,6 +69,8 @@ interface ServerState {
   staged?: { readonly registrations: readonly ToolRegistration[]; readonly record: ExtensionLoadedRecord } | undefined;
   /** Each registered tool's canonical name, by its name on the server, in registration order. */
   registered: Map<string, string>;
+  /** The hash of each registered tool's definition as registered: the one the model reads for the whole session. */
+  registeredHash: Map<string, string>;
   /** The tools that may run this turn, by name on the server. Replaced only at a turn boundary. */
   enabled: ReadonlySet<string>;
   announced: Map<string, Label>;
@@ -169,8 +171,11 @@ async function listedOf(tools: readonly McpTool[]): Promise<Map<string, Listed>>
 function labelOf(state: ServerState, name: string): Label {
   if (state.enabled.has(name)) return "enabled";
   if (state.unreadable) return "unreadable";
-  if (!state.latest.has(name)) return "removed";
-  return state.pinned.has(name) ? "changed" : "new";
+  const now = state.latest.get(name);
+  if (now === undefined) return "removed";
+  const pin = state.pinned.get(name);
+  if (pin === undefined) return "new";
+  return pin === now.hash ? "stale" : "changed";
 }
 
 const SENTENCES: Record<Label, string> = {
@@ -179,6 +184,8 @@ const SENTENCES: Record<Label, string> = {
   changed: "changed its definition on its server and is disabled until a person approves it",
   removed: "was removed by its server and is disabled",
   unreadable: "is disabled, because its server's tool list could not be read",
+  stale:
+    "is disabled for this session, because the definition it was registered with is not the approved one; a new session registers the approved one",
 };
 
 /** The notice lines of one server: each tool whose label changed, and the count of tools it added mid-session. */
@@ -213,6 +220,7 @@ const newState = (config: McpServerConfig): ServerState => ({
   latest: new Map(),
   unreadable: false,
   registered: new Map(),
+  registeredHash: new Map(),
   enabled: new Set(),
   announced: new Map(),
   announcedAdded: 0,
@@ -380,6 +388,7 @@ class Manager implements McpManager {
       throw refused(config.name, error);
     }
     state.registered = new Map(registrations.map((registration, index) => [registration.name, tools[index] as string]));
+    state.registeredHash = new Map(registrations.map(({ name }) => [name, state.latest.get(name)?.hash ?? ""]));
     state.status = "registered";
     this.#records.set(config.name, staged.record);
     this.#settle(state);
@@ -391,7 +400,10 @@ class Manager implements McpManager {
     if (!state.unreadable) {
       for (const name of state.registered.keys()) {
         const now = state.latest.get(name);
-        if (now !== undefined && state.pinned.get(name) === now.hash) enabled.add(name);
+        // The model reads the definition registered at connect, so that one must be the approved one too, or a server
+        // could register an unapproved definition and then list the approved one to have it enabled.
+        const pin = state.pinned.get(name);
+        if (now !== undefined && pin === now.hash && pin === state.registeredHash.get(name)) enabled.add(name);
       }
     }
     state.enabled = enabled;

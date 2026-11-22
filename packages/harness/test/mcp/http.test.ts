@@ -2,6 +2,7 @@
 // @modelcontextprotocol/server 2.4.0 and scripted legacy ones. Each hostile server misbehaves at the HTTP layer, and
 // each test shows what the harness does instead of what the server asked for.
 import assert from "node:assert/strict";
+import { createServer } from "node:net";
 import { isHarnessError } from "@buildanagent/harness";
 import { connectMcpServer, createMcpManager, McpError, type McpServerConfig } from "@buildanagent/harness/mcp";
 import { createToolRegistry } from "@buildanagent/harness/tools";
@@ -130,6 +131,23 @@ describe("hostile HTTP answers", () => {
       same.seen.map((request) => request.url),
       ["/mcp"],
     );
+  });
+
+  test("a status line outside 200 to 599 fails the request, and never throws out of the response handler", async () => {
+    for (const status of [600, 999]) {
+      const raw = createServer((socket) => {
+        socket.once("data", () =>
+          socket.end(`HTTP/1.1 ${status} Nope\r\ncontent-length: 0\r\nconnection: close\r\n\r\n`),
+        );
+      });
+      await new Promise<void>((resolve) => raw.listen(0, "127.0.0.1", resolve));
+      closers.push(() => new Promise<void>((resolve) => raw.close(() => resolve())));
+      const port = (raw.address() as { port: number }).port;
+      const error = await refusedConnect(
+        remoteServer("odd", `http://127.0.0.1:${port}/mcp`, { connectTimeoutMs: 3000 }),
+      );
+      assert.match(error.message, new RegExp(`status ${status}`));
+    }
   });
 
   test("a 401 fails the connect with a clear error and starts no authorization flow", async () => {

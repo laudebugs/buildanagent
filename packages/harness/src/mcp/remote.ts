@@ -21,9 +21,10 @@ const REOPEN_WINDOW_MS = 10 * 60 * 1000;
 
 /**
  * The platform's fetch, for a runtime without Node's network modules. It can't resolve a name, so it checks a literal
- * address and refuses `localhost` names unless loopback is allowed; the platform's own rules decide the rest.
+ * address, counts `localhost` and a name under `.localhost` as loopback, and leaves where any other name goes to the
+ * platform. Plain `http:` reaches a loopback literal or a localhost name only.
  */
-function platformFetch(settings: RemoteSettings): FetchLike {
+export function platformFetch(settings: RemoteSettings): FetchLike {
   return (input, init) => {
     const url = new URL(typeof input === "string" ? input : input.href);
     const host = url.hostname.replace(/^\[|\]$/g, "");
@@ -31,7 +32,7 @@ function platformFetch(settings: RemoteSettings): FetchLike {
     if ((isAddressLiteral(host) && !settings.allows(host)) || (local && !settings.allows("127.0.0.1"))) {
       return Promise.reject(new RemoteRefusal("refused", "the server's address is one it may not reach"));
     }
-    if (!isAddressLiteral(host) && url.protocol === "http:" && !isLoopbackAddress(host)) {
+    if (url.protocol === "http:" && !(local || (isAddressLiteral(host) && isLoopbackAddress(host)))) {
       return Promise.reject(new RemoteRefusal("refused", "plain http: reaches only a loopback address"));
     }
     return globalThis.fetch(url, { ...init, redirect: "manual" });

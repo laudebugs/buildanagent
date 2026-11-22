@@ -12,7 +12,8 @@ import { isHarnessError } from "@buildanagent/harness";
 import { type EgressRecord, startEgressProxy } from "@buildanagent/harness/credentials";
 import { connectMcpServer, createMcpManager, McpError, type McpServerConfig } from "@buildanagent/harness/mcp";
 import { createToolRegistry } from "@buildanagent/harness/tools";
-import { afterAll, beforeAll, describe, test } from "vitest";
+import { afterAll, beforeAll, describe, test, vi } from "vitest";
+import { platformFetch } from "../../src/mcp/remote.js";
 import { checkRemoteTransport } from "../../src/mcp/remote-config.js";
 import { eventually } from "./helpers.js";
 import { legacyHttp, rawTool } from "./raw-http.js";
@@ -238,6 +239,33 @@ describe("the addresses a request reaches", () => {
       assert.equal(server.seen.length, before);
     } finally {
       await connection.close();
+    }
+  });
+});
+
+describe("a runtime without Node's network", () => {
+  test("the platform fetch reaches a localhost name over http only with unsafeAllowLoopback, and no other name", async () => {
+    const reached: string[] = [];
+    vi.stubGlobal("fetch", async (input: string | URL) => {
+      reached.push(String(input));
+      return new Response("{}");
+    });
+    try {
+      const loopback = (url: string) =>
+        platformFetch(checkRemoteTransport({ kind: "http", url, unsafeAllowLoopback: true }));
+      await loopback("http://localhost:8080/mcp")("http://localhost:8080/mcp");
+      await loopback("http://mcp.localhost:8080/mcp")("http://mcp.localhost:8080/mcp");
+      await loopback("http://127.0.0.1:8080/mcp")("http://127.0.0.1:8080/mcp");
+      await assert.rejects(loopback("http://mcp.example.test/mcp")("http://mcp.example.test/mcp"), /loopback/);
+      const strict = platformFetch(checkRemoteTransport({ kind: "http", url: "https://localhost/mcp" }));
+      await assert.rejects(strict("https://localhost/mcp"), /may not reach/);
+      assert.deepEqual(reached, [
+        "http://localhost:8080/mcp",
+        "http://mcp.localhost:8080/mcp",
+        "http://127.0.0.1:8080/mcp",
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 });
