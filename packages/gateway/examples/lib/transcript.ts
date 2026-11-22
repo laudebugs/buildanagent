@@ -8,6 +8,7 @@ import type {
   Message as GatewayMessage,
   Model,
   ModelAdapter,
+  ModelCallOptions,
   ModelContext,
   ModelEvent,
 } from "@buildanagent/gateway";
@@ -140,15 +141,15 @@ export function recordedAdapter(adapter: ModelAdapter, usage: ScriptedUsage | un
  */
 export function lendCallerLine(model: Model): Model {
   if (!recording) return model;
-  return {
-    ...model,
-    stream(context, options) {
+  // Object.create keeps every member of the model, including any the gateway adds later, and overrides the two calls.
+  return Object.assign(Object.create(model) as Model, {
+    stream(context: ModelContext, options?: ModelCallOptions) {
       enterCaller();
       return model.stream(context, options);
     },
-    complete(context, options) {
+    complete(context: ModelContext, options?: ModelCallOptions) {
       enterCaller();
       return model.complete(context, options);
     },
-  };
+  });
 }

@@ -58,7 +58,7 @@ Watch :analogy[a news ticker]{#news-ticker} crawl along the bottom of a televisi
 Streaming gives your code the ticker's head start. Instead of waiting for the whole answer, your code receives it as a run of deltas, small pieces of text sent as the model produces them, and folds them together as they arrive. [[lst:text-stream-ours]] and [[lst:text-stream]] each stream one answer, the first through our gateway's `stream()` and the second with the AI SDK's `streamText`. The first tab of this listing and of [[lst:stream-usage-ours]] runs on `@buildanagent/gateway`, and the second tab runs the same step on the AI SDK, so you can see what changes between SDKs and what stays. As of November 2026 the gateway is a `0.1.0` alpha release, so its names may still change.
 
 ::::tabs
-:::listing[Our SDK]{#text-stream-ours file="packages/gateway/examples/01-text-stream.ts" region="text-stream" replay}
+:::listing[Our gateway]{#text-stream-ours file="packages/gateway/examples/01-text-stream.ts" region="text-stream" replay}
 ::note[`scripted` gives the gateway's own Anthropic adapter a scripted Messages stream, so the call needs no key and sends nothing over the network.]{#scripted}
 ::note[`model.stream(context)` yields events, and each `"text_delta"` event holds one piece of the text in `delta`. This loop keeps them in order.]{#deltas}
 ::note[The last event is `"done"`, or `"error"` when the call failed, and it carries the whole `AssistantMessage`.]{#closing}
@@ -98,7 +98,7 @@ A model call has a fare, and the provider charges it like :analogy[a taxi meter 
 The input leg has more fare classes than a taxi does. A provider counts input three ways: tokens read from its prompt cache, tokens written to that cache for later calls, and the rest, which it reads uncached. With the output, that makes four token classes, and the bill for one call is each class's count times its rate, summed. The AI SDK reports the three input classes as `noCacheTokens`, `cacheReadTokens` and `cacheWriteTokens` in `usage.inputTokenDetails`, and the output beside them in `usage.outputTokens` [@ai-sdk-stream-text]. Our gateway names the same classes `uncachedInput`, `cacheRead` and `cacheWrite` in the `Usage` of the message that closes the stream, beside `output`; `cacheWrite` holds one count for each cache lifetime [@buildanagent-gateway-readme]. [[lst:stream-usage-ours]] and [[lst:stream-usage]] each stream one answer, read its usage and price it.
 
 ::::tabs
-:::listing[Our SDK]{#stream-usage-ours file="packages/gateway/examples/02-stream-usage.ts" region="stream-usage" replay}
+:::listing[Our gateway]{#stream-usage-ours file="packages/gateway/examples/02-stream-usage.ts" region="stream-usage" replay}
 ::note[The usage arrives on the stream's closing message, so it is readable only once the loop has ended.]{#usage-at-end}
 ::note[The four classes. The mock reports 1,000 uncached, 1,500 read from the cache and 500 written to the 5-minute cache, which `cacheWrite` counts under `"5m"`, plus 200 output.]{#four-classes}
 ::note[The gateway has already priced the message: `total` is 0.0054 dollars and `basis` is `"catalog"`, because the cost came from the catalog's rates for the model id.]{#priced}
