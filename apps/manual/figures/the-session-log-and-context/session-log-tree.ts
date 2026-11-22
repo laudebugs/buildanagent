@@ -44,6 +44,7 @@ export default function draw(): IsoFigure {
     HEIGHT,
     { pad: 16 },
   );
+  const x = (index: number): number => FIRST_X + index * PITCH;
   const R = audit.recorder(P);
   const parts = new IsoParts(P, R);
 
@@ -57,14 +58,13 @@ export default function draw(): IsoFigure {
     marks: [
       kit.lineSvg(kit.planOutline(kit.insetPlan(PLATE, 5), 0, P), { tone: "faint" }),
       parts.label("entries", [FIRST_X, ROW_A + ENTRY_D + 14], 0),
-      parts.label("fork", [FIRST_X, ROW_B + 16], 0),
-      parts.label("compaction", [FIRST_X + 3 * PITCH - 8, ROW_A + ENTRY_D + 14], 0),
+      parts.label("fork", [x(2), ROW_B + 16], 0),
+      parts.label("compaction", [x(4) - 8, ROW_A + ENTRY_D + 14], 0),
       parts.label("HEAD", [FIRST_X + 5 * PITCH - 6, ROW_A + ENTRY_D + 14], 0),
     ].join(""),
   });
 
   // The back row: entries 1 to 6, each with a link to the next. The fifth is the compaction.
-  const x = (index: number): number => FIRST_X + index * PITCH;
   for (let index = 0; index < 6; index += 1) {
     const compaction = index === 4;
     const plan: Plan = { x: x(index), y: ROW_A, w: ENTRY_W, d: ENTRY_D, r: 1 };

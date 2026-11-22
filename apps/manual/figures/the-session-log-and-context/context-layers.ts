@@ -45,7 +45,7 @@ export default function draw(): Figure {
 
   for (const [index, layer] of LAYERS.entries()) {
     const y = 24 + index * 58;
-    // The first two layers change what the model reads and add little to the log; the last three add a summary entry.
+    // The first two layers write no summary entry (layer 1 stores a capped result and a file path, layer 2 is a read-time view); the last three add one.
     const tone = index < 2 ? "text" : "accent";
     figure.group(`layer-${index + 1}`, () => {
       figure.box({ x: columns[0].x, y, width: columns[0].width, height: 50 }, { label: layer.name, tone });
