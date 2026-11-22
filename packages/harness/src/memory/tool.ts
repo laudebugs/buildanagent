@@ -182,8 +182,9 @@ async function create(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContext
   if (refused !== undefined) return error(refused);
   // An expired record that is written over is gone, so the calls that held it go to the purge list.
   if (existing !== undefined) await deps.store.forget(name);
-  await deps.store.files.write(name, formatRecord(record));
+  // The call is marked before the record is written, so a failed write can leave a mark too many, never one too few.
   await deps.store.touched([name], mark(ctx));
+  await deps.store.files.write(name, formatRecord(record));
   return text(`Created ${shownPath(name)} (${record.type}, ${record.trust === "low" ? "low trust" : "trusted"}).`);
 }
 
@@ -219,8 +220,8 @@ async function replace(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContex
   if (typeof record === "string") return error(record);
   const refused = refusedText(deps, record);
   if (refused !== undefined) return error(refused);
-  await deps.store.files.write(name, formatRecord(record));
   await deps.store.touched([name], mark(ctx));
+  await deps.store.files.write(name, formatRecord(record));
   const what = input.old_str === input.new_str ? "Renewed" : "Changed";
   return text(
     `${what} ${shownPath(name)}: last validated ${record.validated}, expires ${record.expires ?? "when changed"}.`,

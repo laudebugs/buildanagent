@@ -191,12 +191,34 @@ async function dependentsOf(
   return found;
 }
 
+/** Writes a new file and reads it back, refusing a copy whose ids differ or that still holds marked content. */
+async function writeChecked(
+  store: SessionStore,
+  target: SessionKey,
+  entries: readonly SessionEntry[],
+  holdsMarked: (entry: SessionEntry) => boolean,
+): Promise<void> {
+  await store.append(
+    target,
+    entries.map(({ seq: _seq, ...entry }) => entry as EntryInput),
+    { expectedLastId: null },
+  );
+  const back = await load(store, target);
+  if (back.map((entry) => entry.id).join() !== entries.map((entry) => entry.id).join() || back.some(holdsMarked)) {
+    throw new HarnessError(
+      "session_corrupt",
+      `the purged file ${target.sessionId} does not match what was written, so the purge stopped`,
+    );
+  }
+}
+
 /**
  * Rewrites the session so that no entry matching `marks` keeps its content. The files from the furthest one that holds
  * a marked entry down to the current file are written again under new names, each header pointing at the new copy of
  * the file above it, with every marked entry's content replaced by `purgedEntry()` and every entry's base fields kept.
  * Each new file is read back and compared before the pointer moves to the new current file, and the old files of the
- * session's own are deleted only after that. A fork's parent file from another session is copied and left in place,
+ * session's own are deleted only after that. When the session's first file is among them, its purged copy is written
+ * under the session's id again, so a listing still finds the session. A fork's parent file from another session is copied and left in place,
  * for that session's own purge.
  *
  * A session with no marked entry is left alone. The purge throws a `HarnessError` with code `session_locked` when a
@@ -237,6 +259,7 @@ async function purgeLocked(options: PurgeSessionOptions): Promise<PurgeSessionRe
   }
   const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
   const renamed = new Map<string, string>();
+  const purged = new Map<string, SessionEntry[]>();
   let count = 0;
   for (const file of rewritten) {
     const name = `${PURGE_FILE}${newId()}`;
@@ -249,24 +272,18 @@ async function purgeLocked(options: PurgeSessionOptions): Promise<PurgeSessionRe
       count += 1;
       return purgedEntry(entry);
     });
-    const target = { userId: key.userId, sessionId: name };
-    await store.append(
-      target,
-      entries.map(({ seq: _seq, ...entry }) => entry as EntryInput),
-      { expectedLastId: null },
-    );
-    const back = await load(store, target);
-    if (back.map((entry) => entry.id).join() !== entries.map((entry) => entry.id).join() || back.some(holdsMarked)) {
-      throw new HarnessError(
-        "session_corrupt",
-        `the purged file ${name} does not match what was written, so the pointer was not moved`,
-      );
-    }
+    await writeChecked(store, { userId: key.userId, sessionId: name }, entries, holdsMarked);
     renamed.set(file.id, name);
+    purged.set(file.id, entries);
   }
   const files = rewritten.map((file) => renamed.get(file.id) as string);
   await index.set(key, files.at(-1) as string);
   for (const id of deleting) await store.delete({ userId: key.userId, sessionId: id });
+  // A listing finds a session by its first file, so the purged copy of that file is written under the session's id
+  // again. The chain reads the copy under its new name, so a crash before this write leaves a session that still opens
+  // and only drops out of the listing.
+  const first = purged.get(key.sessionId);
+  if (first !== undefined && deleting.has(key.sessionId)) await writeChecked(store, key, first, holdsMarked);
   return {
     purged: true,
     files,

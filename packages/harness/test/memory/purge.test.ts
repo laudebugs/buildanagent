@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
 import { clearPurgeMarks, readPurgeMarks } from "@buildanagent/harness/memory";
 import { fileMemoryFiles } from "@buildanagent/harness/memory/node";
-import { openSession, PURGED_TEXT, purgeSession, type SessionKey } from "@buildanagent/harness/session";
+import { listSessions, openSession, PURGED_TEXT, purgeSession, type SessionKey } from "@buildanagent/harness/session";
 import { pruneSessions } from "@buildanagent/harness/session/jsonl";
 import { describe, test } from "vitest";
 import { counter, fileBackend } from "../session/session-helpers.js";
@@ -87,6 +87,9 @@ describe("a delete reaches the log", () => {
     }
     assert.deepEqual(purged, ["s1", "s2"], "the session that only deleted held nothing to purge");
     for (const file of filesUnder(sessions)) assert.ok(!file.text.includes(FACT), file.path);
+    const listed: string[] = [];
+    for await (const summary of listSessions(setup.store, "ada")) listed.push(summary.sessionId);
+    assert.deepEqual(listed.sort(), ["s1", "s2", "s3"], "a purged session is still listed by its id");
     for (const id of ["s1", "s2", "s3"]) {
       const session = await openSession({ store: setup.store, index: setup.index, key: key(id) });
       const context = await session.toContext();
