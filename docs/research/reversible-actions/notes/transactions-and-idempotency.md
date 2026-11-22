@@ -115,7 +115,7 @@ The established design is a client-generated key, scoped per account, stored wit
 - LangGraph: "Because interrupts work by re-running the nodes they were called from, side effects called before `interrupt` should (ideally) be idempotent", and "If a node fails after committing a side effect but before completing, retrying the node can repeat the effect. Use idempotent operations or deduplicate writes in the external system." — `docs/reference/langchain/source/src/oss/langgraph/interrupts.mdx:1365-1375` (repo mirror)
 
 **This repo's plans**
-- `SessionStore.append(key, entries, { expectedLastId })` is "idempotent by id" and has an expected-last-id compare-and-swap. A conformance suite pins "idempotent append by id". — `docs/plans/build-harness.md:294`, `docs/plans/build-harness.md:709`; todo `docs/todos/ready/N3-session-store.md:14,27`
+- `SessionStore.append(key, entries, { expectedLastId })` is "idempotent by id" and has an expected-last-id compare-and-swap. A conformance suite pins "idempotent append by id". — `docs/plans/build-harness.md:294`, `docs/plans/build-harness.md:709`; todo `docs/todos/done/N3-session-store.md:14,27`
 - The agent plan's resume test requires that "an approval resolved in a second process sends the reply exactly once". — `docs/plans/build-agent.md:676`
 - The plans do not say how a backend tool endpoint should deduplicate tool calls; they give idempotency only to the session log. — grep of `build-harness.md` and `build-agent.md` for "idempot" (only the two lines above match)
 

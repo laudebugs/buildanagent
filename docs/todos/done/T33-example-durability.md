@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T33` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
@@ -36,17 +36,17 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 ## Tasks
 
-- [ ] Write the example in the Cloudflare harness's workerd test setup: write state, schedule a wake, hibernate, and assert both after the wake.
-- [ ] Write in the harness README, and in Chapter T24's todo, that AWS and Vercel durability is not runnable in `verify/`, and point at N47 and N48 for when it will be.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
-- [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
+- [x] Write the example in the Cloudflare harness's workerd test setup: write state, schedule a wake, hibernate, and assert both after the wake.
+- [x] Write in the harness README, and in Chapter T24's todo, that AWS and Vercel durability is not runnable in `verify/`, and point at N47 and N48 for when it will be.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] No mock model in the example calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] No mock model in the example calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -63,9 +63,19 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`verify/cloudflare-agents/examples/10-durable-wake.ts` shows an agent whose state and schedule survive eviction, and whose schedule wakes the evicted agent with no request.
+
+- **The wake is real.** The callback's row shows a start count of 2, so it ran on a new instance before the example's first read, and the example checks the count.
+- **State and schedule survive, memory does not.** After the wake the note is back from storage, the in-memory field is 0, the callback ran once with its payload, and the one-shot schedule is removed. Rows T33-1 to T33-5 in `docs/plans/reviews/fact-check-cloudflare-durable-wake-example.md` check each claim against the pinned docs or the run.
+- **It adds to `03-scheduling.ts` and `08-hibernation.ts`.** `03-scheduling.ts` shows a schedule firing, and `08-hibernation.ts` shows state surviving eviction, but neither shows both together. This one does: the alarm fires into an evicted object.
+- **AWS and Vercel stay prose.** `verify/` has no AWS or Vercel harness, so the harness README and Chapter T24's todo say so and name N47a and N48a as where those behaviours get built.
+- **No transcript.** The example makes no model call.

@@ -258,7 +258,7 @@ packages/
     schema/protocol.schema.json generated from messages.ts and committed
     schema/session-entry.schema.json generated from entries.ts and committed
   harness/                      @buildanagent/harness
-    package.json                exports: ".", "./session", "./context", "./tools", "./mcp",
+    package.json                exports: ".", "./session", "./session/jsonl", "./context", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
                                 "./credentials", "./extensions", "./memory", "./telemetry", "./server",
                                 "./ablation", "./testing"
@@ -328,20 +328,22 @@ type SessionEntry = EntryBase & (
   | { type: "product_record"; name: string; data: unknown }   // Revision (agent AH8): name is namespaced ("triage.record");
 );                                                            // data sits outside HD11's stable surface
 
-interface SessionStore {                                      // guide sketch, unchanged except the CAS argument
-  append(key: string, entries: SessionEntry[], options?: { expectedLastId?: string }): Promise<void>; // idempotent by id
-  load(key: string, options?: { fromSeq?: number }): AsyncIterable<SessionEntry>;               // tolerates a torn last line
-  list(): AsyncIterable<SessionSummary>;
-  delete(key: string): Promise<void>;
+interface SessionKey { readonly userId: string; readonly sessionId: string }   // revision (N3, owner amendment 2026-11-19): no lookup by id alone
+type EntryInput = Omit<SessionEntry, "seq">;                  // revision (N3): the store assigns seq; Omit applies to each variant of the union, so the type keeps its discriminant
+interface SessionStore {                                      // revision (N3): keyed by user and session
+  append(key: SessionKey, entries: EntryInput[], options?: { expectedLastId?: string | null }): Promise<SessionEntry[]>; // idempotent by id; returns the stored entries
+  load(key: SessionKey, options?: { fromSeq?: number; onTornLine?: (line: { bytes: number }) => void }): AsyncIterable<SessionEntry>; // skips a torn last line and reports it once
+  list(userId: string): AsyncIterable<SessionSummary>;
+  delete(key: SessionKey): Promise<void>;
 }
-declare function memoryStore(): SessionStore;
-declare function jsonlStore(options: { dir: string; maxEntryBytes?: number }): SessionStore; // default 64 KiB, larger is a typed error
-interface SessionLock { acquire(key: string): Promise<LockHandle | "would_block"> }        // HD2
+declare function memoryStore(options?: { maxEntryBytes?: number }): SessionStore;      // @buildanagent/harness/session
+declare function jsonlStore(options: { dir: string; maxEntryBytes?: number }): SessionStore; // @buildanagent/harness/session/jsonl, Node only; default 64 KiB, larger is an EntryTooLargeError
+interface SessionLock { acquire(key: SessionKey): Promise<LockHandle | "would_block"> }    // HD2; keyed like the store (N3)
 interface LockHandle { readonly token: string; release(): Promise<void> }
 declare function fileLock(options: { dir: string; leaseMs?: number; renewMs?: number }): SessionLock;
 
 interface Session {
-  readonly key: string;
+  readonly key: SessionKey;
   head(): string;                                            // the entry id HEAD points at
   path(headId?: string): Promise<SessionEntry[]>;            // root → head, following parentId
   checkout(entryId: string): Promise<void>;                  // appends a checkout entry
@@ -352,10 +354,10 @@ interface Session {
   playback(): AsyncIterable<SessionEntry>;                   // no model or tool calls
   rerunFrom(entryId: string, options: TurnOptions): Promise<TurnResult>; // branches, then calls the model again
 }
-declare function openSession(options: { store: SessionStore; lock: SessionLock; key?: string }): Promise<Session>;
+declare function openSession(options: { store: SessionStore; lock: SessionLock; key: SessionKey }): Promise<Session>; // revision (N3): the key names the user
 ```
 
-**Amended by the owner on 2026-11-19 ("yes, i accept these"): every session lookup takes the user.** The book's Chapter 5 found that a session id finds a session but proves nothing about who may open it, and that of our eight SDKs only ADK's `getSession` scopes a lookup by user ([Chapter 5, "A session id finds a session; your server decides whose it is"](../../apps/manual/src/content/chapters/memory-and-sessions.md)). So `SessionStore` keys each session by its user and its id: `append`, `load` and `delete` take both, `list` takes the user, and a session under another user looks exactly like a missing one. No method finds a session by its id alone, so no caller can forget the owner check. [N3](../todos/ready/N3-session-store.md) builds the store that way and updates the sketch above; the `key: string` in it is the pre-amendment form. One point stays open: whether `openSession({ key })` and `SessionLock.acquire(key)` also take `{ userId, sessionId }`. We recommend yes, so that neither an open nor a lock can reach another user's session, and N3 decides.
+**Amended by the owner on 2026-11-19 ("yes, i accept these"): every session lookup takes the user.** The book's Chapter 5 found that a session id finds a session but proves nothing about who may open it, and that of our eight SDKs only ADK's `getSession` scopes a lookup by user ([Chapter 5, "A session id finds a session; your server decides whose it is"](../../apps/manual/src/content/chapters/memory-and-sessions.md)). So `SessionStore` keys each session by its user and its id: `append`, `load` and `delete` take both, `list` takes the user, and a session under another user looks exactly like a missing one. No method finds a session by its id alone, so no caller can forget the owner check. [N3](../todos/done/N3-session-store.md) built the store that way and updated the sketch above. N3 also settled the open point: `openSession({ key })` and `SessionLock.acquire(key)` take the same `{ userId, sessionId }`, so neither an open nor a lock can reach another user's session.
 
 The session runner turns SDK events into entries. It is an `Observer` that the harness passes in `RunOptions.observers`, and it appends inside the same lock:
 
@@ -687,7 +689,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N1](../todos/done/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
 | [N2](../todos/done/N2-session-entries-schema.md) | Session entry union in `@buildanagent/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
-| [N3](../todos/ready/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
+| [N3](../todos/done/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
 | [N5](../todos/ready/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
 | [N6](../todos/ready/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
