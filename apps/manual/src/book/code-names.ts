@@ -49,7 +49,7 @@ const TYPED = new Set([".d.ts", ".d.mts", ".d.cts", ".ts", ".mts", ".cts", ".tsx
 /**
  * One place a chapter's inline code may resolve to, and the names found there. The label names it in a failure
  * message: a listing's path and region, a transcript's path, or a package import and its version, such as
- * `ai@7.0.162` or `ai/test from ai@7.0.162`.
+ * `ai@7.0.173` or `ai/test from ai@7.0.173`.
  */
 export interface NameSource {
   readonly label: string;

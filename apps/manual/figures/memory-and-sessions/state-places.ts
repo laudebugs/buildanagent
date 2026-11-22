@@ -2,7 +2,7 @@
 // survives: process memory, the host's disk, or somewhere else. Each default comes from the pinned package or its docs,
 // as the chapter's fact-check log records: @openai/agents 0.21.0, langchain 1.6.1, @google/adk 2.5.0,
 // @anthropic-ai/claude-agent-sdk 0.3.327, @earendil-works/pi-coding-agent 1.5.2, @github/copilot-sdk 1.0.31,
-// agents 0.33.0 and ai 7.0.162.
+// agents 0.33.0 and ai 7.0.173.
 import { Figure } from "../lib/svgkit.js";
 
 const WIDTH = 520;

@@ -1,6 +1,6 @@
 # Fact-check: Side effects that can fail: outcomes, idempotency and plan approvals
 
-The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/side-effects-that-can-fail.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-22. Package claims are checked against the harness pins of that date: `ai@7.0.162` for the Vercel example and `agents@0.33.0` with `@cloudflare/ai-chat` for the Cloudflare one. Claims about our own packages are checked against commit a3db5d1.
+The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/side-effects-that-can-fail.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-22. Package claims are checked against the harness pins of that date: `ai@7.0.173` for the Vercel example and `agents@0.33.0` with `@cloudflare/ai-chat` for the Cloudflare one. Claims about our own packages are checked against commit a3db5d1. The AI SDK rows were first checked on `ai@7.0.162` and re-checked on `ai@7.0.173` on 2026-11-22: cited line numbers moved, and each claim held except where a row says it was corrected.
 
 ## The research question, answered before drafting
 
