@@ -34,10 +34,22 @@ const starlight = readdirSync(starlightRoot, { recursive: true, encoding: "utf8"
   .map((path) => readFileSync(join(starlightRoot, path), "utf8"))
   .join("\n");
 
-/** Whether Starlight paints a variable only as a border, a background or another variable's value. */
-function onlyDecorative(variable: string): boolean {
-  const uses = declarations(starlight).filter(({ value }) => value.includes(`var(${variable})`));
-  return uses.every(({ property }) => DECORATIVE_PROPERTIES.test(property) || /^(--|box-shadow$)/.test(property));
+/**
+ * Whether a stylesheet paints a variable only as a border, a background or a box shadow. A use as another custom
+ * property's value is followed to that property's own uses, so a chain counts by where it ends; a cycle, or any other
+ * use, makes the variable more than decorative.
+ */
+function onlyDecorative(variable: string, css: string, path: readonly string[] = []): boolean {
+  if (path.includes(variable)) return false;
+  // Custom property names hold only letters, digits and hyphens, none of which a regular expression treats specially.
+  const used = new RegExp(`var\\(\\s*${variable}\\s*[,)]`);
+  return declarations(css)
+    .filter(({ value }) => used.test(value))
+    .every(({ property }) =>
+      property.startsWith("--")
+        ? onlyDecorative(property, css, [...path, variable])
+        : DECORATIVE_PROPERTIES.test(property) || property === "box-shadow",
+    );
 }
 
 test("no docs stylesheet or component writes a hex colour; every colour comes from tokens.css", () => {
@@ -72,19 +84,36 @@ test("the rule, highlight, grid and border tokens appear only where nothing is r
   for (const [variable, rule] of Object.entries(REPAINTED)) {
     assert.match(mapping, rule, `starlight.css repaints Starlight's meaningful use of ${variable}`);
   }
+  // A custom property that names a decorative token is judged by where Starlight and the docs' own styles paint it.
+  const everything = [starlight, ...files.map(({ text }) => text)].join("\n");
   for (const { path, text } of files) {
     for (const { property, value } of declarations(text)) {
       if (!DECORATIVE.test(value)) continue;
-      if (property.startsWith("--sl-")) {
+      if (property.startsWith("--")) {
         assert.ok(
-          property in REPAINTED || onlyDecorative(property),
-          `${path}: Starlight draws ${property} as more than a border or background`,
+          property in REPAINTED || onlyDecorative(property, everything),
+          `${path}: ${property} is drawn as more than a border or background`,
         );
-      } else if (property !== "--sl-color-asides-border") {
+      } else {
         assert.match(property, DECORATIVE_PROPERTIES, `${path}: ${property} uses a decorative-only token`);
       }
     }
   }
+});
+
+test("a decorative variable is followed through the custom properties that name it", () => {
+  const border = "a { border-color: var(--sl-color-gray-5); background: var(--sl-color-gray-5, red); }";
+  assert.ok(onlyDecorative("--sl-color-gray-5", border));
+  const chained = ":root { --sl-color-foo: var(--sl-color-gray-5); } a { color: var(--sl-color-foo); }";
+  assert.ok(!onlyDecorative("--sl-color-gray-5", chained), "a chain that ends in text colour is not decorative");
+  const chainedBorder =
+    ":root { --sl-color-foo: var(--sl-color-gray-5); } a { border-top: 1px solid var(--sl-color-foo); }";
+  assert.ok(onlyDecorative("--sl-color-gray-5", chainedBorder), "a chain that ends in a border is decorative");
+  const cycle = ":root { --a: var(--sl-color-gray-5); --b: var(--a); --a: var(--b); }";
+  assert.ok(!onlyDecorative("--sl-color-gray-5", cycle), "a cycle is not decorative");
+  assert.ok(!onlyDecorative("--sl-color-gray-5", "a { outline-color: var(--sl-color-gray-5); }"));
+  assert.ok(!onlyDecorative("--sl-color-gray-5", "a { fill: var( --sl-color-gray-5 ); }"), "spacing inside var()");
+  assert.ok(onlyDecorative("--sl-color-gray-5", "a { color: var(--sl-color-gray-50); }"), "a longer name is another");
 });
 
 test("headings use the display face at its one weight", () => {
