@@ -12,11 +12,21 @@ An example is code a reader will paste into their own agent, so it must be code 
 
 - **MUST:** the file opens with a comment that says what it shows. The comment mentions no ADR or todo ids, no repository paths and no test vocabulary.
 - **MUST:** an example imports only public entry points, such as `@buildanagent/sdk` and `@buildanagent/gateway/anthropic`. It never imports from `src/`, `test/` or another package's files.
-- **MUST:** an example holds no test scaffolding. A fixed clock, fixed ids or a scripted model are parameters the test passes in, and checks of the output live in the test.
+- **MUST:** an example holds no test scaffolding. A fixed clock, fixed ids or a scripted model are parameters the test passes in, and checks of the output live in the test. [An example about testing](#an-example-about-testing-may-build-the-double-it-teaches) is the one exception.
 - **MUST:** an example receives its API key from the code that calls it. It never hard-codes a key, and it never reads one from an environment variable inside the example's own functions.
 - **MUST:** numbers have names (`MAX_STEPS`, `BUDGET_USD`).
 - **MUST:** functions are at most 40 lines and files at most 100, stricter than the package limit, because a reader reads the whole file.
 - **SHOULD:** handle errors the way an app would: act on an `awaiting_approval` result or an error terminal, and let the rest throw.
+
+## An example about testing may build the double it teaches
+
+A reader who copies an agent example must not copy its test double, so the rule above keeps doubles out. A reader who is learning to test needs to see one, though, so an example whose subject is testing, such as one that shows `ScriptedModel`, may build the double and check that the run used it up. Those lines are the lesson. Nothing else relaxes:
+
+- **MUST:** its header says that it shows a test double, and it may use the double's name, such as "scripted model", where the header rule above would otherwise ban test vocabulary.
+- **MUST NOT:** it asserts the agent's output, imports a test runner or builds anything the lesson doesn't teach. A fixed clock and fixed ids appear only when determinism is the lesson. A test runs the example and checks what it returns.
+- **MUST:** it still holds one lesson, reads top to bottom, and stays within the length limits.
+
+`packages/sdk/examples/offline-order-agent.ts` is the first such example: it scripts two model answers, runs the order agent, checks that the script ran out and returns the answer.
 
 ## Reviewer checklist
 
@@ -25,3 +35,4 @@ An example is code a reader will paste into their own agent, so it must be code 
 - Does it use only public entry points?
 - Are the numbers named?
 - Does the header say what it shows, in plain words?
+- If its subject is testing, does it build only the double it teaches and leave every assertion about the agent to the test?
