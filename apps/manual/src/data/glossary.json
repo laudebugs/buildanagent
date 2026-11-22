@@ -154,6 +154,24 @@
     "sources": ["langgraph-checkpointers"]
   },
   {
+    "id": "context-window",
+    "term": "context window",
+    "definition": "The most text, counted in tokens, that a model can read in one request: the system prompt, the messages and the tool results together. Whatever the harness leaves out of the request, the model does not see.",
+    "sources": ["anthropic-effective-context-engineering"]
+  },
+  {
+    "id": "compaction",
+    "term": "compaction",
+    "definition": "Shortening a conversation that nears the context window by having a model summarize its older part and sending the summary in place of those messages. In a harness that keeps a session log, the summary is one more entry, and the older entries stay in the log.",
+    "sources": ["anthropic-effective-context-engineering", "pi-compaction"]
+  },
+  {
+    "id": "writer-lock",
+    "term": "writer lock",
+    "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
+    "sources": ["buildanagent-harness-readme"]
+  },
+  {
     "id": "permission-pipeline",
     "term": "permission pipeline",
     "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
