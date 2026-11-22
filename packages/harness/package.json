@@ -212,10 +212,12 @@
     "@buildanagent/agent-safety": "workspace:*",
     "@buildanagent/gateway": "workspace:*",
     "@buildanagent/protocol": "workspace:*",
-    "@buildanagent/sdk": "workspace:*"
+    "@buildanagent/sdk": "workspace:*",
+    "@earendil-works/pi-schema": "1.5.2",
+    "@modelcontextprotocol/client": "2.4.0"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/server": "2.4.0",
     "json-rpc-2.0": "1.8.1"
   }
 }

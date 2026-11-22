@@ -54,3 +54,9 @@ export function input(session: PolicySession = recorder()): PolicyInput {
 }
 
 export const base = { mode: "default", interactive: true, policyVersion: "p1" } as const satisfies PermissionConfig;
+
+/** The result of a resolve that answered a turn's requests, which a test asserts is not a code call's. */
+export function asTurn<T extends object>(result: T): Exclude<T, { status: unknown }> {
+  if ("status" in result) throw new Error("expected a turn's result, and the resolve returned a code call's");
+  return result as Exclude<T, { status: unknown }>;
+}

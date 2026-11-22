@@ -1524,6 +1524,9 @@
           "$ref": "#/$defs/shape-ee4fe95261"
         },
         {
+          "$ref": "#/$defs/shape-577dea7485"
+        },
+        {
           "$ref": "#/$defs/shape-5c323794ce"
         },
         {
@@ -1551,7 +1554,7 @@
           "$ref": "#/$defs/shape-edc9ba2d47"
         },
         {
-          "$ref": "#/$defs/shape-c9a3564bb4"
+          "$ref": "#/$defs/shape-bd3038f936"
         },
         {
           "$ref": "#/$defs/shape-16c3a65781"
@@ -2016,6 +2019,56 @@
         "content",
         "isError",
         "trust"
+      ],
+      "additionalProperties": false
+    },
+    "shape-577dea7485": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/shape-f0ebe3aa93"
+        },
+        "parentId": {
+          "$ref": "#/$defs/shape-174e29b899"
+        },
+        "seq": {
+          "$ref": "#/$defs/shape-83f6485d0d"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/shape-4a251fc3b0"
+        },
+        "origin": {
+          "$ref": "#/$defs/shape-3a32340578"
+        },
+        "type": {
+          "type": "string",
+          "const": "code_call"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "input": {},
+        "inputHash": {
+          "type": "string"
+        },
+        "compensates": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "parentId",
+        "seq",
+        "timestamp",
+        "origin",
+        "type",
+        "callId",
+        "tool",
+        "input",
+        "inputHash"
       ],
       "additionalProperties": false
     },
@@ -2612,7 +2665,7 @@
       ],
       "additionalProperties": false
     },
-    "shape-c9a3564bb4": {
+    "shape-bd3038f936": {
       "type": "object",
       "properties": {
         "id": {
@@ -2647,6 +2700,37 @@
         },
         "contentHash": {
           "type": "string"
+        },
+        "mcp": {
+          "type": "object",
+          "properties": {
+            "transport": {
+              "type": "string",
+              "enum": [
+                "stdio",
+                "in_process"
+              ]
+            },
+            "commandHash": {
+              "type": "string"
+            },
+            "era": {
+              "type": "string",
+              "enum": [
+                "2026-07-28",
+                "legacy"
+              ]
+            },
+            "toolsHash": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "transport",
+            "era",
+            "toolsHash"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

@@ -225,6 +225,11 @@
     },
     {
       "kind": "check",
+      "message": "turn 2's model stream finished before the held sentence is checked",
+      "pass": true
+    },
+    {
+      "kind": "check",
       "message": "turn 2 reached the speaking status",
       "pass": true
     },
