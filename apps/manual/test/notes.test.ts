@@ -11,6 +11,7 @@ import {
   CONTEXT,
   cleanNote,
   HIGHLIGHT_NAMES,
+  highlightName,
   KEY,
   locate,
   MAX_HIGHLIGHTS,
@@ -25,9 +26,12 @@ import {
   readChapter,
   sectionAt,
   serializeStored,
+  shareLink,
+  shareText,
   start,
   storedKind,
   supportsHighlights,
+  textDirective,
   textOffset,
   toMarkdown,
 } from "../public/scripts/notes.js";
@@ -38,9 +42,13 @@ import {
 // storage working, blocked and throwing, and with every network API set to fail the test.
 
 type Anchor = { quote: string; prefix: string; suffix: string; section: string; offset: number };
-type Item = Anchor & { id: string; note: string; at: number };
+type Item = Anchor & { id: string; note: string; at: number; color: string };
 
-const stored = (chapters: Record<string, unknown>) => JSON.stringify({ v: 1, chapters });
+/** The names an amber highlight takes, with and without a note: the colour a highlight has before a reader picks one. */
+const PLAIN = highlightName("amber", false);
+const NOTED = highlightName("amber", true);
+
+const stored = (chapters: Record<string, unknown>, v = 2) => JSON.stringify({ v, chapters });
 const item = (fields: Partial<Item> = {}): Item => ({
   id: "abc",
   quote: "a passage",
@@ -50,6 +58,7 @@ const item = (fields: Partial<Item> = {}): Item => ({
   offset: 0,
   note: "",
   at: 1,
+  color: "amber",
   ...fields,
 });
 
@@ -63,7 +72,8 @@ test("a stored value that is missing, damaged or of another shape reads as no hi
     "null",
     "[]",
     '"text"',
-    '{"v":2,"chapters":{}}',
+    '{"v":3,"chapters":{"tools":[]}}',
+    '{"v":0,"chapters":{}}',
     '{"chapters":{"tools":[]}}',
     '{"v":1,"chapters":[]}',
     '{"v":1,"chapters":null}',
@@ -121,7 +131,7 @@ test("a stored note, prefix and suffix are cut to their limits, and serializing 
   assert.ok(kept?.prefix.endsWith("END"), "the prefix keeps the characters next to the quote");
   assert.ok(kept?.suffix.startsWith("START"), "the suffix keeps the characters next to the quote");
   assert.deepEqual([...parseStored(serializeStored(chapters))], [...chapters]);
-  assert.equal(serializeStored(new Map([["tools", []]])), '{"v":1,"chapters":{}}', "an empty chapter is not written");
+  assert.equal(serializeStored(new Map([["tools", []]])), '{"v":2,"chapters":{}}', "an empty chapter is not written");
 });
 
 test("a chapter keeps at most 200 highlights when read", () => {
@@ -498,6 +508,12 @@ function track(win: Window): Window {
 }
 
 afterEach(async () => {
+  // happy-dom shares element classes between windows, so a popover method defined for one test must go.
+  for (const win of popoverWindows.splice(0)) {
+    for (const name of ["showPopover", "hidePopover"]) {
+      Reflect.deleteProperty(win.HTMLElement.prototype, name);
+    }
+  }
   await Promise.all(windows.splice(0).map((win) => win.happyDOM.close()));
   vi.restoreAllMocks();
 });
@@ -576,8 +592,8 @@ const ITEMS = [
 test("a chapter draws its stored highlights and lists every one, a lost one with its text, writing notes as text", () => {
   const win = page({ items: ITEMS });
   start(win as unknown as globalThis.Window);
-  assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), ["a contract with a model"]);
-  assert.deepEqual(painted(win, HIGHLIGHT_NAMES.noted), ["A failed call comes back again"]);
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model"]);
+  assert.deepEqual(painted(win, NOTED), ["A failed call comes back again"]);
   const open = q<HTMLButtonElement>(win, ".notes-open");
   assert.equal(open?.getAttribute("aria-label"), "Notes, 3 saved");
   assert.ok(open?.closest("[data-pagefind-ignore]"), "the button is outside the search index");
@@ -614,7 +630,7 @@ test("deleting and editing in the panel write the chapter's list and keep other 
     ["two", "gone"],
   );
   assert.equal(afterDelete.get("call-workflow-loop")?.[0]?.id, "kept");
-  assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), []);
+  assert.deepEqual(painted(win, PLAIN), []);
   button("gone", "Edit note").click();
   const field = q<HTMLTextAreaElement>(win, ".notes-dialog__form textarea");
   assert.ok(field);
@@ -662,12 +678,12 @@ test("the shortcut shows the toolbar on a selection in the article, and Highligh
   );
   const toolbar = q<HTMLElement>(win, ".notes-toolbar");
   assert.equal(toolbar?.hidden, false);
-  assert.equal(win.document.activeElement?.textContent, "Highlight", "the shortcut moves focus into the toolbar");
+  assert.equal(win.document.activeElement?.textContent, "Amber", "the shortcut moves focus into the toolbar");
   (win.document.activeElement as unknown as HTMLButtonElement).click();
   const items = parseStored(win.localStorage.getItem(KEY)).get("tools") ?? [];
   assert.equal(items[0]?.quote, "failed call");
   assert.equal(items[0]?.section, "errors");
-  assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), ["failed call"]);
+  assert.deepEqual(painted(win, PLAIN), ["failed call"]);
   assert.equal(toolbar?.hidden, true);
   assert.deepEqual(requests, []);
 });
@@ -711,7 +727,7 @@ test("a chapter page reads as usual when storage throws on every write, and says
   assert.match(q(win, "[role='status'].visually-hidden")?.textContent ?? "", /would not save the change/);
   assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false, "the toolbar stays open");
   assert.match(visibleMessage(win), /would not save the change/, "and shows why");
-  assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), []);
+  assert.deepEqual(painted(win, PLAIN), []);
 });
 
 /** The toolbar's message, when the reader can see it. */
@@ -731,20 +747,21 @@ const toolbarButton = (win: Window, label: string) =>
     (button) => button.textContent === label,
   ) as HTMLButtonElement;
 
-test("highlighting a passage twice keeps the toolbar open and says so in view, with the panel closed", () => {
+test("a colour button on a passage already highlighted recolours it and adds no second highlight", () => {
   const win = page();
   start(win as unknown as globalThis.Window);
   const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
   select(win, paragraph, 2, paragraph, 13);
   shortcut(win);
-  toolbarButton(win, "Highlight").click();
+  toolbarButton(win, "Amber").click();
   assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, true, "a saved highlight closes the toolbar");
   select(win, paragraph, 2, paragraph, 13);
   shortcut(win);
-  toolbarButton(win, "Highlight").click();
-  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false);
-  assert.equal(visibleMessage(win), "That passage is already highlighted.");
-  assert.equal(parseStored(win.localStorage.getItem(KEY)).get("tools")?.length, 1);
+  toolbarButton(win, "Green").click();
+  const saved = parseStored(win.localStorage.getItem(KEY)).get("tools");
+  assert.equal(saved?.length, 1);
+  assert.equal(saved?.[0]?.color, "green");
+  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, true);
 });
 
 test("at the cap a passage already highlighted still takes a note, and only a new highlight is refused", () => {
@@ -753,7 +770,7 @@ test("at the cap a passage already highlighted still takes a note, and only a ne
   const firstParagraph = q(first, "article p:last-of-type")?.firstChild as Node;
   select(first, firstParagraph, 2, firstParagraph, 13);
   shortcut(first);
-  toolbarButton(first, "Highlight").click();
+  toolbarButton(first, "Amber").click();
   const made = parseStored(first.localStorage.getItem(KEY)).get("tools")?.[0];
   assert.ok(made);
   const fillers = Array.from({ length: MAX_HIGHLIGHTS - 1 }, (_, n) => item({ id: `f${n}`, quote: `gone ${n}` }));
@@ -775,7 +792,7 @@ test("at the cap a passage already highlighted still takes a note, and only a ne
   q<HTMLButtonElement>(win, ".notes-dialog__head button")?.click();
   select(win, paragraph, 40, paragraph, 51);
   shortcut(win);
-  assert.equal(toolbarButton(win, "Highlight").disabled, true, "a new passage is refused");
+  assert.equal(toolbarButton(win, "Amber").disabled, true, "a new passage is refused");
   assert.match(visibleMessage(win), /already holds 200 highlights/);
 });
 
@@ -790,7 +807,7 @@ test("the chapter's text model is built once per page state and again after the 
     shortcut(win);
     (win.document.activeElement as unknown as HTMLElement | null)?.blur?.();
   }
-  toolbarButton(win, "Highlight").click();
+  toolbarButton(win, "Amber").click();
   assert.equal(walkers.mock.calls.length, 1, "selections and a saved highlight reuse it");
   q(win, "article p")?.append(win.document.createTextNode(" More words.") as unknown as Node);
   select(win, paragraph, 2, paragraph, 9);
@@ -825,7 +842,10 @@ test("the script names no API that can reach the network and writes no markup", 
     source,
     /\bfetch\b|XMLHttpRequest|WebSocket|EventSource|sendBeacon|\bimport\(|new Image|\.src\s*=|document\.cookie|analytics/,
   );
-  assert.deepEqual(source.match(/navigator\.\w+/g), ["navigator.clipboard"], "the clipboard is its only navigator API");
+  assert.ok(
+    (source.match(/navigator\.\w+/g) ?? []).every((found) => found === "navigator.clipboard"),
+    "the clipboard is its only navigator API",
+  );
   assert.doesNotMatch(
     source,
     /innerHTML|outerHTML|insertAdjacentHTML|document\.write|\.style\s*=|setAttribute\("style"/,
@@ -874,7 +894,7 @@ test("a note saved while the stored value is one this script cannot read says so
   q<HTMLButtonElement>(win, ".notes-open")?.click();
   rowButton(win, "two", "edit").click();
   noteForm(win).field.value = "Mine.";
-  const newer = '{"v":2,"chapters":{"tools":{"new":"shape"}}}';
+  const newer = '{"v":3,"chapters":{"tools":{"new":"shape"}}}';
   win.localStorage.setItem(KEY, newer);
   noteForm(win).save();
   assert.match(panelStatus(win), /Nothing was changed/);
@@ -915,7 +935,7 @@ test("a new note on a passage another tab highlighted meanwhile goes on that hig
   const otherParagraph = q(otherTab, "article p:last-of-type")?.firstChild as Node;
   select(otherTab, otherParagraph, 2, otherParagraph, 13);
   shortcut(otherTab);
-  toolbarButton(otherTab, "Highlight").click();
+  toolbarButton(otherTab, "Amber").click();
   const theirs = parseStored(otherTab.localStorage.getItem(KEY)).get("tools") ?? [];
   assert.equal(theirs.length, 1);
   first.localStorage.setItem(KEY, stored({ tools: theirs }));
@@ -927,16 +947,16 @@ test("a new note on a passage another tab highlighted meanwhile goes on that hig
 });
 
 test("a stored value from a newer version or damaged text is never overwritten, and export gives it back as stored", () => {
-  for (const raw of ['{"v":2,"chapters":{"tools":{"new":"shape"}}}', "{not json"]) {
+  for (const raw of ['{"v":3,"chapters":{"tools":{"new":"shape"}}}', "{not json"]) {
     const win = page();
     win.localStorage.setItem(KEY, raw);
     Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: undefined });
     start(win as unknown as globalThis.Window);
-    assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), [], "reads tolerate it as no notes");
+    assert.deepEqual(painted(win, PLAIN), [], "reads tolerate it as no notes");
     const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
     select(win, paragraph, 2, paragraph, 13);
     shortcut(win);
-    toolbarButton(win, "Highlight").click();
+    toolbarButton(win, "Amber").click();
     assert.equal(win.localStorage.getItem(KEY), raw, `${raw} is left as it was`);
     assert.match(visibleMessage(win), /Nothing was changed/);
     q<HTMLButtonElement>(win, ".notes-open")?.click();
@@ -958,7 +978,7 @@ test("a stored value from a newer version or damaged text is never overwritten, 
 test("when another script changes the article's text, the highlights are found and drawn again", async () => {
   const win = page({ items: ITEMS });
   start(win as unknown as globalThis.Window);
-  const before = painted(win, HIGHLIGHT_NAMES.noted);
+  const before = painted(win, NOTED);
   assert.deepEqual(before, ["A failed call comes back again"]);
   const paragraph = q(win, "article p:last-of-type") as Element;
   paragraph.prepend(win.document.createTextNode("Inserted by a script. ") as unknown as Node);
@@ -966,8 +986,505 @@ test("when another script changes the article's text, the highlights are found a
   last.data = last.data.replace("comes back again", "comes back again, reworded");
   await new Promise((resolve) => setTimeout(resolve, REPAINT_MS + 50));
   const ranges = (win as unknown as { CSS: { highlights: Map<string, FakeHighlight> } }).CSS.highlights.get(
-    HIGHLIGHT_NAMES.noted,
+    NOTED,
   )?.ranges;
   assert.equal(ranges?.[0]?.toString(), "A failed call comes back again", "the range covers the passage again");
   assert.notEqual(ranges?.[0]?.startOffset, 0);
+});
+
+// Colours, the popover, the note markers and Share (BK24, designed in docs/research/book/). happy-dom has no layout, so
+// each test gives the ranges rectangles by the text they cover, as a browser's layout would.
+type Rect = { left: number; top: number; right: number; bottom: number; width: number; height: number };
+const rect = (left: number, top: number, right: number, bottom: number): Rect => ({
+  left,
+  top,
+  right,
+  bottom,
+  width: right - left,
+  height: bottom - top,
+});
+
+function layout(win: Window, rects: Record<string, Rect[]>) {
+  vi.spyOn(win.Range.prototype, "getClientRects").mockImplementation(function (this: Range) {
+    return (rects[this.toString().replace(/\s+/g, " ")] ?? []) as never;
+  } as never);
+  const article = q(win, "article");
+  vi.spyOn(article as Element, "getBoundingClientRect").mockReturnValue(rect(0, 0, 400, 2000) as unknown as DOMRect);
+}
+
+const popoverWindows: Window[] = [];
+
+/** Gives the page the native popover methods, which happy-dom lacks, and records which element was shown or hidden. */
+function withPopover(win: Window) {
+  const calls: string[] = [];
+  popoverWindows.push(win);
+  Object.defineProperty(win.HTMLElement.prototype, "showPopover", {
+    configurable: true,
+    value() {
+      calls.push("show");
+    },
+  });
+  Object.defineProperty(win.HTMLElement.prototype, "hidePopover", {
+    configurable: true,
+    value() {
+      calls.push("hide");
+    },
+  });
+  return calls;
+}
+
+function click(win: Window, target: Element | null, x: number, y: number) {
+  target?.dispatchEvent(
+    new win.MouseEvent("click", { clientX: x, clientY: y, bubbles: true, cancelable: true }) as unknown as Event,
+  );
+}
+
+const CONTRACT = item({ id: "one", quote: "a contract with a model", section: "schemas", offset: 13 });
+const FAILED = item({
+  id: "two",
+  quote: "A failed call comes back again",
+  section: "errors",
+  note: "Remember the retry.",
+});
+const RECTS = {
+  "a contract with a model": [rect(10, 100, 200, 120)],
+  "A failed call comes back again": [rect(10, 300, 150, 320), rect(10, 320, 250, 340)],
+};
+const stage = (items: Item[], options: { popover?: boolean } = {}) => {
+  const win = page({ items });
+  layout(win, RECTS);
+  if (options.popover === false) {
+    for (const name of ["showPopover", "hidePopover"]) Reflect.deleteProperty(win.HTMLElement.prototype, name);
+  }
+  const calls = options.popover === false ? [] : withPopover(win);
+  start(win as unknown as globalThis.Window);
+  return { win, calls };
+};
+const popButton = (win: Window, label: string) =>
+  [...(win.document as unknown as Document).querySelectorAll<HTMLButtonElement>(".notes-pop button")].find(
+    (button) => button.textContent === label,
+  ) as HTMLButtonElement;
+const storedItems = (win: Window) => parseStored(win.localStorage.getItem(KEY)).get("tools") ?? [];
+
+test("a version 1 value loads as amber, stays as stored until the first change, and is written as version 2 then", () => {
+  const win = page();
+  const one = { ...CONTRACT } as Partial<Item>;
+  delete one.color;
+  const v1 = JSON.stringify({ v: 1, chapters: { tools: [one] } });
+  win.localStorage.setItem(KEY, v1);
+  start(win as unknown as globalThis.Window);
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model"], "a highlight without a colour is amber");
+  assert.equal(win.localStorage.getItem(KEY), v1, "a visit that only reads writes nothing");
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Green").click();
+  const written = JSON.parse(win.localStorage.getItem(KEY) ?? "{}") as { v: number; chapters: { tools: Item[] } };
+  assert.equal(written.v, 2, "the first change writes version 2");
+  assert.deepEqual(
+    written.chapters.tools.map((found) => [found.id, found.color]),
+    [
+      ["one", "amber"],
+      [written.chapters.tools[1]?.id, "green"],
+    ],
+  );
+});
+
+test("a colour this script does not know is kept as stored, drawn amber, and replaced only when the reader picks one", () => {
+  const kept = parseStored(stored({ tools: [CONTRACT, { ...FAILED, color: "teal" }] })).get("tools");
+  assert.equal(kept?.[1]?.color, "teal", "the colour is read as stored");
+  assert.equal(parseStored(serializeStored(new Map([["tools", kept ?? []]]))).get("tools")?.[1]?.color, "teal");
+  assert.equal(highlightName("teal", true), highlightName("amber", true), "an unknown colour draws amber");
+  const { win } = stage([{ ...CONTRACT, color: "teal" }]);
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model"]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  assert.equal(storedItems(win)[0]?.color, "teal", "opening the popover changes nothing");
+  popButton(win, "Blue").click();
+  assert.equal(storedItems(win)[0]?.color, "blue");
+});
+
+test("eight highlight names register in a fixed order, and noted ones come last with priority 1", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const registry = (win as unknown as { CSS: { highlights: Map<string, FakeHighlight & { priority: number }> } }).CSS
+    .highlights;
+  assert.deepEqual([...registry.keys()], HIGHLIGHT_NAMES);
+  assert.deepEqual(
+    [...registry.values()].map((highlight) => highlight.priority),
+    [0, 0, 0, 0, 1, 1, 1, 1],
+  );
+  assert.deepEqual(painted(win, highlightName("amber", false)), ["a contract with a model"]);
+  assert.deepEqual(painted(win, highlightName("amber", true)), ["A failed call comes back again"]);
+  // A repaint keeps the order, so a priority tie always breaks the same way.
+  win.dispatchEvent(new win.Event("resize"));
+  const again = new win.Event("storage");
+  Object.defineProperty(again, "key", { value: KEY });
+  win.dispatchEvent(again);
+  assert.deepEqual([...registry.keys()], HIGHLIGHT_NAMES);
+});
+
+test("a toolbar swatch highlights in its colour, and the colour a reader picked last is the one a note takes", () => {
+  const win = page();
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Blue").click();
+  assert.equal(storedItems(win)[0]?.color, "blue");
+  assert.deepEqual(painted(win, highlightName("blue", false)), ["failed call"]);
+  select(win, paragraph, 40, paragraph, 51);
+  shortcut(win);
+  toolbarButton(win, "Add note").click();
+  noteForm(win).field.value = "In blue too.";
+  noteForm(win).save();
+  const made = storedItems(win).find((found) => found.note === "In blue too.");
+  assert.equal(made?.color, "blue", "the note's highlight takes the last colour");
+  assert.deepEqual(painted(win, highlightName("blue", true)).length, 1);
+});
+
+test("a click on a highlight opens the popover with its passage and colours, and a colour button recolours it", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  assert.deepEqual(calls, ["show"]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“a contract with a model”");
+  const pressed = [...(win.document as unknown as Document).querySelectorAll(".notes-pop [aria-pressed='true']")];
+  assert.deepEqual(
+    pressed.map((button) => button.textContent),
+    ["Amber"],
+  );
+  assert.equal(
+    [...(win.document as unknown as Document).querySelectorAll(".notes-pop .notes-colors button")].length,
+    4,
+    "four colour buttons, each named in text",
+  );
+  popButton(win, "Pink").click();
+  assert.equal(storedItems(win).find((found) => found.id === "one")?.color, "pink");
+  assert.deepEqual(painted(win, PLAIN), [], "the amber highlight moved to the pink name");
+  assert.deepEqual(painted(win, highlightName("pink", false)), ["a contract with a model"]);
+  assert.equal(popButton(win, "Pink").getAttribute("aria-pressed"), "true");
+  assert.equal(win.document.activeElement?.textContent, "Pink", "focus stays on the colour that was chosen");
+  assert.match(q(win, "[role='status'].visually-hidden")?.textContent ?? "", /colour changed to pink/);
+  assert.deepEqual(requests, []);
+});
+
+test("Remove in the popover deletes the highlight and closes the popover", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  popButton(win, "Remove").click();
+  assert.deepEqual(
+    storedItems(win).map((found) => found.id),
+    ["two"],
+  );
+  assert.deepEqual(painted(win, PLAIN), []);
+  assert.deepEqual(calls, ["show", "hide"]);
+});
+
+test("a click on a link, with text selected, outside any highlight or in a browser without popovers opens nothing", () => {
+  const { win, calls } = stage([item({ id: "link", quote: "reads the schema only", section: "schemas" })]);
+  layout(win, { "reads the schema only": [rect(10, 100, 200, 120)] });
+  click(win, q(win, "article a[href='/x/']"), 50, 110);
+  assert.deepEqual(calls, [], "a link inside a highlight follows its link");
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  assert.deepEqual(calls, [], "a drag that selects text is not a click on a highlight");
+  (win as unknown as globalThis.Window).getSelection()?.removeAllRanges();
+  click(win, q(win, "article p:nth-of-type(2)"), 900, 900);
+  assert.deepEqual(calls, [], "a click outside every highlight");
+  click(win, q(win, "h1"), 50, 110);
+  assert.deepEqual(calls, [], "a click outside the article");
+  const plain = stage([CONTRACT], { popover: false });
+  click(plain.win, q(plain.win, "article p:nth-of-type(2)"), 50, 110);
+  assert.equal(q(plain.win, ".notes-pop__quote")?.textContent, "", "without the Popover API the panel is the way in");
+});
+
+test("where highlights overlap, a click opens the one that paints on top: a noted one, then a later colour", () => {
+  const under = item({ id: "under", quote: "a contract with a model", color: "amber" });
+  const over = item({ id: "over", quote: "contract with", color: "pink" });
+  const noted = item({ id: "noted", quote: "with a", color: "amber", note: "On top." });
+  const win = page({ items: [under, over, noted] });
+  layout(win, {
+    "a contract with a model": [rect(10, 100, 200, 120)],
+    "contract with": [rect(40, 100, 120, 120)],
+    "with a": [rect(80, 100, 110, 120)],
+  });
+  withPopover(win);
+  start(win as unknown as globalThis.Window);
+  const target = q(win, "article p:nth-of-type(2)");
+  click(win, target, 90, 110);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“with a”", "the noted highlight paints above the plain ones");
+  click(win, target, 50, 110);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“contract with”", "pink registers after amber");
+  click(win, target, 20, 110);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“a contract with a model”");
+});
+
+test("a noted highlight gets a marker outside the article, above its last line, clamped to the article's width", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const markers = [
+    ...(win.document as unknown as Document).querySelectorAll<HTMLElement>(".notes-markers .notes-marker"),
+  ];
+  assert.equal(markers.length, 1, "only the highlight with a note has one");
+  const [marker] = markers;
+  assert.equal(marker?.getAttribute("data-id"), "two");
+  assert.equal(marker?.getAttribute("aria-hidden"), "true");
+  assert.equal(marker?.closest("[data-pagefind-ignore]")?.className.includes("notes-markers"), true);
+  assert.equal(q(win, "article .notes-marker"), null, "the markers are outside the article");
+  assert.equal(marker?.style.left, "238px", "the hit area is centred on the end of the last line");
+  assert.equal(marker?.style.top, "300px", "and sits above it");
+  const edge = page({ items: [{ ...FAILED }] });
+  layout(edge, { "A failed call comes back again": [rect(10, 320, 395, 340)] });
+  start(edge as unknown as globalThis.Window);
+  assert.equal(
+    q<HTMLElement>(edge, ".notes-marker")?.style.left,
+    "376px",
+    "a passage that ends at the article's edge keeps the marker inside it",
+  );
+});
+
+test("a click on a marker opens the popover for its highlight", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  click(win, q(win, ".notes-marker"), 250, 295);
+  assert.deepEqual(calls, ["show"]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+});
+
+test("the markers are placed again when the page resizes, and a highlight with no note has none", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  layout(win, { "A failed call comes back again": [rect(10, 520, 150, 540), rect(10, 540, 100, 560)] });
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.top, "520px");
+  assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.left, "88px");
+  const none = stage([CONTRACT]);
+  assert.equal(q(none.win, ".notes-marker"), null);
+});
+
+test("Share copies the passage, the title and a text-fragment link, and never the note", async () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText } });
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popButton(win, "Share").click();
+  await Promise.resolve();
+  assert.equal(writeText.mock.calls.length, 1);
+  const text = (writeText.mock.calls[0] as unknown as [string])[0];
+  assert.equal(
+    text,
+    "“A failed call comes back again”\n— Tools\nhttps://manual.buildanagent.fyi/tools/#errors:~:text=A%20failed%20call%20comes%20back%20again",
+  );
+  assert.doesNotMatch(text, /retry/, "the note stays private");
+  assert.match(q(win, ".notes-pop__message")?.textContent ?? "", /Copied the passage and its link/);
+  assert.deepEqual(requests, []);
+});
+
+test("Share adds the passage's own block as context when the passage repeats, and drops a page's old fragment", async () => {
+  const again = item({
+    id: "again",
+    quote: "A failed call comes back",
+    prefix: "as a message. ",
+    suffix: " again.",
+    section: "errors",
+  });
+  const win = page({ items: [again] });
+  layout(win, { "A failed call comes back": [rect(10, 300, 250, 320)] });
+  withPopover(win);
+  win.history.pushState({}, "", "/tools/?x=1#old:~:text=gone");
+  start(win as unknown as globalThis.Window);
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText } });
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popButton(win, "Share").click();
+  await Promise.resolve();
+  const text = (writeText.mock.calls[0] as unknown as [string])[0];
+  assert.match(
+    text,
+    /^“A failed call comes back”\n— Tools\nhttps:\/\/manual\.buildanagent\.fyi\/tools\/\?x=1#errors:~:text=/,
+  );
+  assert.match(
+    text,
+    /text=[^,]+-,A%20failed%20call%20comes%20back,-[^,]+$/,
+    "a prefix and a suffix tell the copies apart",
+  );
+  assert.doesNotMatch(text, /#old/);
+});
+
+test("Share leaves out text the chapter model skips, such as a hidden glossary card, and uses where the passage is now", async () => {
+  const again = item({
+    id: "again",
+    quote: "A failed call comes back",
+    prefix: "as a message. ",
+    suffix: " again.",
+    section: "stale-section",
+  });
+  const win = page({ items: [again] });
+  const paragraph = q(win, "article p:last-of-type") as Element;
+  const text = paragraph.firstChild as Text;
+  const rest = text.splitText((text.data.indexOf("A failed call") ?? 0) as number);
+  const hidden = (win.document as unknown as Document).createElement("span");
+  hidden.setAttribute("aria-hidden", "true");
+  hidden.textContent = "ZZHIDDENZZ ";
+  paragraph.insertBefore(hidden, rest);
+  layout(win, { "A failed call comes back": [rect(10, 300, 250, 320)] });
+  withPopover(win);
+  start(win as unknown as globalThis.Window);
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText } });
+  click(win, paragraph, 50, 310);
+  popButton(win, "Share").click();
+  await Promise.resolve();
+  const copied = (writeText.mock.calls[0] as unknown as [string])[0];
+  assert.doesNotMatch(copied, /ZZHIDDEN/);
+  assert.match(copied, /#errors:~:text=/, "the section is the one the passage is under now, not the stored one");
+});
+
+test("Remove in the popover works from the stored list, so another tab's change is kept", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  const other = item({ id: "three", quote: "from another tab", section: "errors" });
+  win.localStorage.setItem(KEY, serializeStored(new Map([["tools", [CONTRACT, FAILED, other]]])));
+  popButton(win, "Remove").click();
+  assert.deepEqual(
+    storedItems(win)
+      .map((found) => found.id)
+      .sort(),
+    ["three", "two"],
+  );
+});
+
+test("a refused highlight is not stored", () => {
+  const win = page();
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Green").click();
+  assert.equal(storedItems(win)[0]?.color, "green");
+  const long = "x".repeat(5000);
+  q(win, "article p:last-of-type")?.append(long);
+  select(win, paragraph, 0, q(win, "article p:last-of-type")?.lastChild as Node, long.length);
+  shortcut(win);
+  toolbarButton(win, "Pink").click();
+  assert.equal(storedItems(win).length, 1, "the long passage was refused");
+});
+
+test("a click on a second highlight opens its popover after a light dismiss closed the first", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  const pop = q(win, ".notes-pop") as Element;
+  // A light dismiss reports beforetoggle at once and toggle later; the click that follows must see it closed.
+  const closing = new win.Event("beforetoggle") as unknown as Event & { newState: string };
+  closing.newState = "closed";
+  pop.dispatchEvent(closing);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  assert.deepEqual(calls, ["show", "show"]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
+});
+
+test("Share shows the text in a field to copy by hand when the clipboard is missing or refuses", async () => {
+  for (const clipboard of [undefined, { writeText: () => Promise.reject(new Error("denied")) }]) {
+    const { win } = stage([CONTRACT]);
+    Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: clipboard });
+    click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+    popButton(win, "Share").click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const field = q<HTMLTextAreaElement>(win, ".notes-pop textarea");
+    assert.equal(field?.hidden, false);
+    assert.match(
+      field?.value ?? "",
+      /^“a contract with a model”\n— Tools\nhttps:\/\/manual\.buildanagent\.fyi\/tools\/#schemas:~:text=/,
+    );
+    assert.match(q(win, ".notes-pop__message")?.textContent ?? "", /Select the text below and copy it/);
+  }
+});
+
+test("the panel's rows offer the same colour buttons and Share as the popover", async () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText } });
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const inRow = (id: string, label: string) =>
+    [
+      ...(win.document as unknown as Document).querySelectorAll<HTMLButtonElement>(
+        `.notes-dialog__item[data-id="${id}"] button`,
+      ),
+    ].find((button) => button.textContent === label) as HTMLButtonElement;
+  assert.equal(inRow("one", "Amber").getAttribute("aria-pressed"), "true");
+  inRow("one", "Green").click();
+  assert.equal(storedItems(win).find((found) => found.id === "one")?.color, "green");
+  assert.equal(inRow("one", "Green").getAttribute("aria-pressed"), "true", "the row shows the new colour");
+  inRow("two", "Share").click();
+  await Promise.resolve();
+  assert.equal(writeText.mock.calls.length, 1);
+  assert.equal(inRow("gone", "Share"), undefined, "a passage the chapter lost has nothing to link to");
+});
+
+test("textDirective builds a whole-word directive for a passage, its ends, or its context", () => {
+  const page = "Intro. The loop runs until the model answers. More text. The loop runs until a limit stops it.";
+  const one = (quote: string, before: string, after: string, pageText = page) =>
+    textDirective({ quote, before, after, first: quote, last: quote, spans: false }, pageText);
+  assert.equal(
+    one("The loop runs until the model answers", "Intro. ", ". More"),
+    "text=The%20loop%20runs%20until%20the%20model%20answers",
+  );
+  assert.equal(
+    one("oop runs until the mod", "The l", "el answers.", "unique oop runs until the mod text"),
+    "text=runs%20until%20the",
+    "a passage a reader began and ended inside words loses the partial ones",
+  );
+  assert.equal(
+    one("loop runs until", "The ", " the model"),
+    "text=The-,loop%20runs%20until,-the%20model",
+    "repeated, so context joins",
+  );
+  assert.equal(
+    one("own fox jumps", "The quick br", " over", "The quick brown fox jumps over. The quick brown fox jumps again."),
+    "text=The%20quick%20brown-,fox%20jumps,-over",
+    "the fragment of a dropped partial word stays in the context, so the context meets the term",
+  );
+  const run = "w".repeat(50);
+  assert.equal(
+    textDirective(
+      { quote: `Start here ${run}`, before: "", after: "", first: "Start here", last: run, spans: true },
+      "other",
+    ),
+    "",
+    "an end term that is a fragment of one long word leaves no directive",
+  );
+  assert.equal(one("a-b, c&d", "", "", "other"), "text=a%2Db%2C%20c%26d", "-, and & are percent-encoded");
+  assert.equal(one("mid", "x", "y"), "", "a passage with no whole word has no directive");
+  const long = "word ".repeat(60).trim();
+  assert.equal(
+    textDirective({ quote: long, before: "", after: "", first: long, last: long, spans: false }, "other"),
+    `text=${[`${"word%20".repeat(7)}word`, `${"word%20".repeat(7)}word`].join(",")}`,
+    "a long passage goes in as its first and last 40 characters",
+  );
+  const across = textDirective(
+    {
+      quote: "end of one. Start of two",
+      before: "",
+      after: "",
+      first: "end of one.",
+      last: "Start of two",
+      spans: true,
+    },
+    "other",
+  );
+  assert.equal(
+    across,
+    "text=end%20of%20one.,Start%20of%20two",
+    "a passage across blocks takes one term from each block",
+  );
+});
+
+test("shareLink drops an old fragment and keeps the heading as the fallback, and shareText leaves the note out", () => {
+  assert.equal(
+    shareLink("https://x.test/a/?q=1#old:~:text=z", "errors", "text=a"),
+    "https://x.test/a/?q=1#errors:~:text=a",
+  );
+  assert.equal(shareLink("https://x.test/a/", "", "text=a"), "https://x.test/a/#:~:text=a");
+  assert.equal(
+    shareLink("https://x.test/a/", "errors", ""),
+    "https://x.test/a/#errors",
+    "no whole word, so the section only",
+  );
+  assert.equal(shareText("q", "T", "https://u"), "“q”\n— T\nhttps://u");
 });

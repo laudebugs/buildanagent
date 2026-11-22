@@ -55,7 +55,7 @@ test("every text pair on both pages and both panels meets WCAG AA and matches it
       pairs += 1;
     }
   }
-  assert.equal(pairs, 22);
+  assert.equal(pairs, 28);
 });
 
 // The keys the decorative list names (rule, grid, border) and the backgrounds are the only colours that carry no text.
@@ -149,28 +149,77 @@ test("a table's header rule uses a colour recorded at 3:1 or more, and its row l
   }
 });
 
-// A reader's highlight (public/scripts/notes.js) is drawn over the page, so its text takes the text colour, recorded at
-// 4.5:1 on the highlight, and its underline takes the accent, recorded at 3:1 or more on the highlight in both modes.
-// The highlight's own background is decorative, below 3:1 on the page, so the underline is what marks it.
-test("a highlight draws text in the text colour and an accent underline, both recorded on the highlight", () => {
+// A reader's highlight (public/scripts/notes.js) is drawn over the page in one of four colours, so its text takes the
+// text colour, recorded at 4.5:1 on every colour, and its underline and marker take the accent, recorded at 3:1 or more
+// on every colour in both modes. A colour's own background is decorative, below 3:1 on the page, so the underline and the
+// marker are what mark a highlight.
+const HIGHLIGHT_KEYS = [
+  ["amber", "highlight"],
+  ["green", "highlightGreen"],
+  ["blue", "highlightBlue"],
+  ["pink", "highlightPink"],
+] as const;
+
+test("every highlight colour has its two names, its token, and its pairs recorded in both modes", () => {
   const components = readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
-  const rule = /::highlight\(manual-highlight\),\s*::highlight\(manual-note\)\s*\{([^}]*)\}/.exec(components)?.[1];
-  assert.ok(rule, "components.css styles both highlight names together");
-  assert.match(rule, /background-color:\s*var\(--color-highlight\);/);
+  for (const [color, key] of HIGHLIGHT_KEYS) {
+    const property = colorProperty("light", key);
+    const rule = new RegExp(
+      `::highlight\\(manual-hl-${color}\\),\\s*::highlight\\(manual-note-${color}\\)\\s*\\{([^}]*)\\}`,
+    ).exec(components)?.[1];
+    assert.ok(rule, `components.css gives manual-hl-${color} and manual-note-${color} one rule`);
+    assert.match(rule, new RegExp(`background-color:\\s*var\\(${property}\\);`));
+    for (const mode of ["light", "dark"] as const) {
+      const text = tokens.color[mode].contrast.find((pair) => pair.text === "text" && pair.on === key);
+      assert.ok(text && text.ratio >= TEXT_MINIMUM, `${mode}: text on ${key} reaches 4.5:1`);
+      const line = tokens.color.nonText.contrast.find(
+        (pair) => pair.color === `${mode}.accent` && pair.on === `${mode}.${key}`,
+      );
+      assert.ok(line, `nonText records ${mode}.accent on ${mode}.${key}`);
+      assert.ok(
+        contrastRatio(qualified(line.color), qualified(line.on)) >= NON_TEXT_MINIMUM,
+        `${mode}.${key} keeps the accent at 3:1`,
+      );
+      const page = tokens.color.decorativeOnly.contrast.find((pair) => pair.color === `${mode}.${key}`);
+      assert.ok(page, `${mode}.${key} is recorded as decorative on the page`);
+      assert.ok(
+        contrastRatio(qualified(page.color), qualified(page.on)) < NON_TEXT_MINIMUM,
+        `${mode}.${key} stays below 3:1 on the page`,
+      );
+    }
+  }
+});
+
+test("a highlight draws text in the text colour and an accent underline, and a note's is dashed", () => {
+  const components = readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
+  const names = [
+    ...HIGHLIGHT_KEYS.map(([color]) => `manual-hl-${color}`),
+    ...HIGHLIGHT_KEYS.map(([color]) => `manual-note-${color}`),
+  ];
+  const selector = names.map((name) => `::highlight\\(${name}\\)`).join(",\\s*");
+  const rule = new RegExp(`${selector}\\s*\\{([^}]*)\\}`).exec(components)?.[1];
+  assert.ok(rule, "components.css styles all eight highlight names together");
   assert.match(rule, /(?<![-\w])color:\s*var\(--color-text\);/);
   assert.match(rule, /text-decoration-line:\s*underline;/);
   assert.match(rule, /text-decoration-color:\s*var\(--color-accent\);/);
+  const notedSelector = HIGHLIGHT_KEYS.map(([color]) => `::highlight\\(manual-note-${color}\\)`).join(",\\s*");
+  const bodies = [...components.matchAll(new RegExp(`${notedSelector}\\s*\\{([^}]*)\\}`, "g"))].map(
+    (match) => match[1] ?? "",
+  );
+  assert.ok(
+    bodies.some((body) => /text-decoration-style:\s*dashed;/.test(body)),
+    "the four noted names are dashed",
+  );
+  // The marker's bubble is filled with the accent, which the recorded accent-on-page pair covers.
+  assert.match(
+    components,
+    /\.notes-marker::before\s*\{[^}]*border:\s*2px solid var\(--color-accent\);[^}]*background-color:\s*var\(--color-accent\);/s,
+  );
   for (const mode of ["light", "dark"] as const) {
-    const text = tokens.color[mode].contrast.find((pair) => pair.text === "text" && pair.on === "highlight");
-    assert.ok(text && text.ratio >= TEXT_MINIMUM, `${mode}: text on the highlight reaches 4.5:1`);
-    const line = tokens.color.nonText.contrast.find(
-      (pair) => pair.color === `${mode}.accent` && pair.on === `${mode}.highlight`,
-    );
-    assert.ok(line, `nonText records ${mode}.accent on ${mode}.highlight`);
-    assert.ok(contrastRatio(qualified(line.color), qualified(line.on)) >= NON_TEXT_MINIMUM);
+    const onPage = tokens.color[mode].contrast.find((pair) => pair.text === "accent" && pair.on === "background");
     assert.ok(
-      tokens.color.decorativeOnly.contrast.some((pair) => pair.color === `${mode}.highlight`),
-      `${mode}.highlight is recorded as decorative on the page`,
+      onPage && onPage.ratio >= NON_TEXT_MINIMUM,
+      `${mode}: the marker's accent outline reaches 3:1 on the page`,
     );
   }
 });

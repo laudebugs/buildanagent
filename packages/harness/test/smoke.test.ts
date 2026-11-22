@@ -21,6 +21,7 @@ const PLANNED_ENTRIES = [
   "./sandbox/docker",
   "./credentials",
   "./extensions",
+  "./extensions/node",
   "./memory",
   "./telemetry",
   "./server",

@@ -4,7 +4,7 @@
   "decided": "2026-11-19",
   "color": {
     "light": {
-      "$comment": "C4 Clay and Cream, light page. highlight is the background of a reader's highlight (BK24), drawn under the text colour, so text is the one pair measured on it.",
+      "$comment": "C4 Clay and Cream, light page. highlight is the amber background of a reader's highlight (BK24), and highlightGreen, highlightBlue and highlightPink are the three other colours a reader can choose, drawn under the text colour, so text is the one pair measured on it.",
       "values": {
         "background": "#FAF3E8",
         "text": "#2A1E16",
@@ -13,7 +13,10 @@
         "rule": "#E4D6C2",
         "accent": "#B04E29",
         "link": "#8A3519",
-        "highlight": "#F5DF9E"
+        "highlight": "#F5DF9E",
+        "highlightGreen": "#CFE3B4",
+        "highlightBlue": "#BFDCEF",
+        "highlightPink": "#F4C9D2"
       },
       "contrast": [
         {
@@ -45,11 +48,26 @@
           "text": "text",
           "on": "highlight",
           "ratio": 12.3
+        },
+        {
+          "text": "text",
+          "on": "highlightGreen",
+          "ratio": 11.81
+        },
+        {
+          "text": "text",
+          "on": "highlightBlue",
+          "ratio": 11.34
+        },
+        {
+          "text": "text",
+          "on": "highlightPink",
+          "ratio": 10.91
         }
       ]
     },
     "dark": {
-      "$comment": "C4's brown page, dark mode. link is #F2C2A4 (owner, 2026-11-19), a paler shade than the accent so links and accent labels differ; links keep an underline because neither link colour reaches 3:1 against body text. highlight is the background of a reader's highlight (BK24), drawn under the text colour, so text is the one pair measured on it.",
+      "$comment": "C4's brown page, dark mode. link is #F2C2A4 (owner, 2026-11-19), a paler shade than the accent so links and accent labels differ; links keep an underline because neither link colour reaches 3:1 against body text. highlight is the amber background of a reader's highlight (BK24), and highlightGreen, highlightBlue and highlightPink are the three other colours a reader can choose, drawn under the text colour, so text is the one pair measured on it.",
       "values": {
         "background": "#2A1E16",
         "text": "#F4EADC",
@@ -58,7 +76,10 @@
         "rule": "#45352A",
         "accent": "#E8A27C",
         "link": "#F2C2A4",
-        "highlight": "#4F3B1C"
+        "highlight": "#4F3B1C",
+        "highlightGreen": "#34472B",
+        "highlightBlue": "#2B4559",
+        "highlightPink": "#5C3441"
       },
       "contrast": [
         {
@@ -90,6 +111,21 @@
           "text": "text",
           "on": "highlight",
           "ratio": 8.94
+        },
+        {
+          "text": "text",
+          "on": "highlightGreen",
+          "ratio": 8.48
+        },
+        {
+          "text": "text",
+          "on": "highlightBlue",
+          "ratio": 8.41
+        },
+        {
+          "text": "text",
+          "on": "highlightPink",
+          "ratio": 8.73
         }
       ]
     },
@@ -215,6 +251,36 @@
           "color": "dark.accent",
           "on": "dark.highlight",
           "ratio": 5.01
+        },
+        {
+          "color": "light.accent",
+          "on": "light.highlightGreen",
+          "ratio": 3.86
+        },
+        {
+          "color": "light.accent",
+          "on": "light.highlightBlue",
+          "ratio": 3.7
+        },
+        {
+          "color": "light.accent",
+          "on": "light.highlightPink",
+          "ratio": 3.56
+        },
+        {
+          "color": "dark.accent",
+          "on": "dark.highlightGreen",
+          "ratio": 4.75
+        },
+        {
+          "color": "dark.accent",
+          "on": "dark.highlightBlue",
+          "ratio": 4.71
+        },
+        {
+          "color": "dark.accent",
+          "on": "dark.highlightPink",
+          "ratio": 4.89
         }
       ]
     },
@@ -270,6 +336,36 @@
           "color": "dark.highlight",
           "on": "dark.background",
           "ratio": 1.52
+        },
+        {
+          "color": "light.highlightGreen",
+          "on": "light.background",
+          "ratio": 1.25
+        },
+        {
+          "color": "light.highlightBlue",
+          "on": "light.background",
+          "ratio": 1.3
+        },
+        {
+          "color": "light.highlightPink",
+          "on": "light.background",
+          "ratio": 1.35
+        },
+        {
+          "color": "dark.highlightGreen",
+          "on": "dark.background",
+          "ratio": 1.61
+        },
+        {
+          "color": "dark.highlightBlue",
+          "on": "dark.background",
+          "ratio": 1.62
+        },
+        {
+          "color": "dark.highlightPink",
+          "on": "dark.background",
+          "ratio": 1.56
         }
       ]
     }

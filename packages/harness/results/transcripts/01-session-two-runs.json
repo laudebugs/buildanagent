@@ -1,0 +1,115 @@
+{
+  "format": 2,
+  "example": "01-session-two-runs",
+  "file": "packages/harness/examples/01-session-two-runs.ts",
+  "harness": "packages/harness",
+  "pin": "@buildanagent/harness@workspace",
+  "mock": "@buildanagent/harness@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 19,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You keep notes."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Remember the codeword PELICAN."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 19,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Noted: PELICAN."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 21,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What was the codeword?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 21,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "The codeword was PELICAN."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "the first request carries one message, the question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 27,
+      "message": "the second request carries the first question and answer, then the new question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 28,
+      "message": "the first message is the first turn's question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "the second message is the first turn's answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "the log holds both turns",
+      "pass": true
+    }
+  ]
+}

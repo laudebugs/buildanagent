@@ -40,6 +40,12 @@ const nodeOnlyFiles = new Set([
   // The file spill store writes each capped tool result to a file, so it is Node-only too. It has its own entry,
   // `@buildanagent/harness/context/file`, and the portable `./context` entry never imports it.
   "context/file-spill.ts",
+  // The extension loader, the trust file and the lock file read and write files and import modules, so they are
+  // Node-only. They have their own entry, `@buildanagent/harness/extensions/node`, and the portable `./extensions`
+  // entry never imports them.
+  "extensions/load.ts",
+  "extensions/lock.ts",
+  "extensions/trust-file.ts",
 ]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.
