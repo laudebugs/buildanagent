@@ -6,6 +6,7 @@
 export { connectMcpServer } from "./connection.js";
 export { type McpCallFailure, McpError } from "./errors.js";
 export { createMcpManager } from "./manager.js";
+export { killMcpServersOnSignal } from "./stdio.js";
 export type {
   McpCallResult,
   McpChannel,

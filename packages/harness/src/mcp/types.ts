@@ -96,7 +96,10 @@ export interface McpTool {
   readonly name: string;
   /** The server's description, cut to 4,096 characters. */
   readonly description: string;
-  /** The tool's input schema, a JSON Schema object. */
+  /**
+   * The tool's input schema as the server sent it. The registered tool's schema leaves out `pattern`,
+   * `patternProperties` and `format`, so the harness never runs a server's regular expression.
+   */
   readonly inputSchema: Readonly<Record<string, unknown>>;
   /** The server's hints, such as `readOnlyHint`, kept for display only. */
   readonly annotations?: Readonly<Record<string, unknown>>;

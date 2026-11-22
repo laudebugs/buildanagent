@@ -20,10 +20,21 @@ const encoder = new TextEncoder();
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/**
+ * `text` cut to at most `max` UTF-16 units, with `…` after it when it was cut. It never splits a surrogate pair, since a
+ * lone half would make the canonical JSON that the record hashes refuse the text, and the server's whole list with it.
+ */
+export function cut(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const last = text.charCodeAt(max - 1);
+  const end = last >= 0xd800 && last <= 0xdbff ? max - 1 : max;
+  return `${text.slice(0, end)}…`;
+}
+
 /** A server's text cut to `max` characters, with its control characters replaced, for an error message. */
 export function shortText(text: string, max = MAX_ERROR_CHARS): string {
   const plain = [...text].map((char) => (isControl(char.codePointAt(0) ?? 0) ? " " : char)).join("");
-  return plain.length <= max ? plain : `${plain.slice(0, max)}…`;
+  return cut(plain, max);
 }
 
 function refuse(server: string, why: string): McpError {
@@ -56,7 +67,7 @@ function checkTool(server: string, tool: unknown, index: number): McpTool {
   const text = typeof description === "string" ? description : "";
   return {
     name,
-    description: text.length <= MAX_DESCRIPTION_CHARS ? text : `${text.slice(0, MAX_DESCRIPTION_CHARS)}…`,
+    description: cut(text, MAX_DESCRIPTION_CHARS),
     inputSchema,
     ...(isRecord(annotations) ? { annotations } : {}),
   };
@@ -81,6 +92,61 @@ export function checkToolList(server: string, tools: unknown, maxTools: number):
     seen.set(key, checked.name);
     return checked;
   });
+}
+
+// Keywords whose value is one subschema, a list of them, or a map of names to them. Everything else in a schema is
+// data, such as `enum` or `default`, and is copied as it is.
+const ONE_SCHEMA = new Set([
+  "additionalProperties",
+  "items",
+  "additionalItems",
+  "contains",
+  "propertyNames",
+  "unevaluatedProperties",
+  "unevaluatedItems",
+  "not",
+  "if",
+  "then",
+  "else",
+]);
+const SCHEMA_LIST = new Set(["allOf", "anyOf", "oneOf", "prefixItems"]);
+const SCHEMA_MAP = new Set(["properties", "dependentSchemas", "$defs", "definitions"]);
+// Keywords that make the validator run a regular expression the server wrote, or a format check, on the model's input.
+const REGEX_KEYWORDS = new Set(["pattern", "patternProperties", "format"]);
+const MAX_SCHEMA_DEPTH = 64;
+
+/**
+ * The server's input schema with every keyword removed that runs a regular expression on the model's input: `pattern`,
+ * `patternProperties` and `format`. The SDK checks a call's input against the schema before the permission gate, and a
+ * pattern such as `^(a+)+$` runs on a backtracking engine, so a server could freeze the harness with a schema alone. The
+ * server still checks its own input, and the model still reads the description. A schema nested deeper than 64 levels
+ * is refused, since no real tool needs one and walking it could exhaust the stack.
+ */
+export function safeSchema(schema: unknown, depth = 0): unknown {
+  if (depth > MAX_SCHEMA_DEPTH) throw new Error(`the input schema is nested deeper than ${MAX_SCHEMA_DEPTH} levels`);
+  if (!isRecord(schema)) return schema;
+  // Built from entries, so a key such as `__proto__` stays a plain property and never sets a prototype.
+  const entries = Object.entries(schema)
+    .filter(([key]) => !REGEX_KEYWORDS.has(key))
+    .map(([key, value]): [string, unknown] => [key, subschemas(key, value, depth + 1)]);
+  return Object.fromEntries(entries);
+}
+
+/** One keyword's value with its subschemas made safe, by the shape the keyword has. */
+function subschemas(key: string, value: unknown, depth: number): unknown {
+  const each = (map: Record<string, unknown>, visit: (item: unknown) => unknown) =>
+    Object.fromEntries(Object.entries(map).map(([name, item]) => [name, visit(item)]));
+  // Draft 7's `items` may be a list of schemas, one per position.
+  if ((ONE_SCHEMA.has(key) || SCHEMA_LIST.has(key)) && Array.isArray(value)) {
+    return value.map((item) => safeSchema(item, depth));
+  }
+  if (ONE_SCHEMA.has(key)) return safeSchema(value, depth);
+  if (SCHEMA_MAP.has(key) && isRecord(value)) return each(value, (item) => safeSchema(item, depth));
+  // Draft 7: each value is a schema or a list of property names.
+  if (key === "dependencies" && isRecord(value)) {
+    return each(value, (item) => (Array.isArray(item) ? item : safeSchema(item, depth)));
+  }
+  return value;
 }
 
 /** One content block of a result, as the model reads it. A kind the model can't read becomes a short note. */

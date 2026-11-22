@@ -212,7 +212,10 @@ export interface SkillLoadedEntry {
 export interface McpServerRecord {
   /** How the harness reached the server. */
   transport: "stdio" | "in_process";
-  /** For a stdio server: `sha256:` and the hex digest of the canonical JSON (RFC 8785) of `[command, ...args]`. */
+  /**
+   * For a stdio server: `sha256:` and the hex digest of the canonical JSON (RFC 8785) of `[command, ...args]`. It is not
+   * salted, so a reader of the log can confirm a guessed argument by hashing it; a secret never belongs in the args.
+   */
   commandHash?: string;
   /** The protocol era the server negotiated. */
   era: "2026-07-28" | "legacy";

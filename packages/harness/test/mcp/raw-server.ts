@@ -34,6 +34,22 @@ function toolsFor(): unknown[] {
       return [tool("bad\nname")];
     case "huge-schema":
       return [tool("big", { type: "object", description: "d".repeat(70 * 1024) })];
+    case "redos-input":
+      return [
+        tool("q", {
+          type: "object",
+          properties: {
+            q: { type: "string", pattern: "^(a+)+$", format: "email" },
+            pattern: { type: "string", description: "A property that happens to be named pattern." },
+          },
+          patternProperties: { "^(b+)+$": { type: "string" } },
+          items: [{ type: "string", pattern: "^(c+)+$" }],
+        }),
+      ];
+    case "surrogate":
+      return [{ ...tool("emoji"), description: `${"x".repeat(4095)}\u{1F600}` }];
+    case "pages":
+      return Array.from({ length: 100 }, (_, i) => tool(`p${listed}_${i}`));
     case "two-tools":
       return [tool("alpha"), tool("echo")];
     case "proto":
@@ -104,6 +120,7 @@ function callTool(id: unknown, name: string): void {
       process.exit(0);
       return;
     }
+    case "report-pid":
     case "ignore-term":
       result(id, { content: [{ type: "text", text: JSON.stringify({ pid: process.pid }) }] });
       return;
@@ -235,7 +252,9 @@ function handle(message: Request) {
   }
   // A 2026-07-28 list result carries its cache hints.
   if (method === "tools/list") {
-    return result(id, { tools: toolsFor(), ...(modern ? { ttlMs: 0, cacheScope: "private" } : {}) });
+    if (scenario === "pages") listed += 1;
+    const page = scenario === "pages" ? { nextCursor: `page-${listed}` } : {};
+    return result(id, { tools: toolsFor(), ...page, ...(modern ? { ttlMs: 0, cacheScope: "private" } : {}) });
   }
   if (method === "tools/call") return callTool(id, message.params?.name ?? "");
   write({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } });

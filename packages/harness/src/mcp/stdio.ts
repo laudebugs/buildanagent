@@ -6,8 +6,10 @@
  * starts, not by an import, so the `mcp` entry still loads on a runtime without them.
  *
  * Everything the child writes is bounded: a line longer than `maxLineBytes` closes the connection, a line that is not
- * a JSON object is dropped, and only the newest `maxStderrBytes` of standard error are kept. The child runs in its own
- * process group, so closing ends the server and anything it started.
+ * a JSON object is dropped, and only the newest `maxStderrBytes` of standard error are kept. On POSIX the child runs in
+ * its own process group, and closing kills the group: the server and whatever it started that stayed in the group. A
+ * descendant that leaves the group, by `setsid` or a detached spawn, survives the close. On Windows there are no process
+ * groups here, so closing ends the server alone and every descendant survives.
  */
 import { HarnessError } from "../errors.js";
 import { spawnEnv } from "../sandbox/spawn-env.js";
@@ -20,10 +22,11 @@ const NEWLINE = 0x0a;
 
 type ChildProcess = import("node:child_process").ChildProcess;
 
-// The process groups still running. The harness kills them if its own process exits, or if a signal would end it,
-// without closing them. Both handlers must be synchronous, and `process.kill()` is.
+// The process groups still running. The harness kills them if its own process exits without closing them; the exit
+// handler must be synchronous, and `process.kill()` is. A signal whose default action ends the process emits no `exit`
+// event, so a host that wants the groups killed on a signal opts in with `killMcpServersOnSignal()`.
 const live = new Set<number>();
-let hooked = false;
+let exitHooked = false;
 const SIGNALS: readonly NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
 
 function killGroup(pid: number, signal: NodeJS.Signals): void {
@@ -40,40 +43,55 @@ function killAll(): void {
   live.clear();
 }
 
-function unhook(): void {
-  if (!hooked) return;
-  hooked = false;
-  process.removeListener("exit", killAll);
-  for (const signal of SIGNALS) process.removeListener(signal, onSignal);
-}
-
-/**
- * Called on `SIGINT`, `SIGTERM` or `SIGHUP`. A server runs in its own process group, so the terminal's signal never
- * reaches it, and the handler always kills the groups: ending the harness's own children is never wrong. When this
- * handler is the signal's only listener, Node's default would have ended the process, so it removes itself and raises
- * the signal again, and the process ends as it would have. When any other listener exists, the process goes on as that
- * listener decides.
- */
-function onSignal(signal: NodeJS.Signals): void {
-  const alone = process.listenerCount(signal) === 1;
-  killAll();
-  unhook();
-  if (alone) process.kill(process.pid, signal);
-}
-
 function track(pid: number): void {
-  if (!hooked) {
-    hooked = true;
+  if (!exitHooked) {
+    exitHooked = true;
     process.once("exit", killAll);
-    for (const signal of SIGNALS) process.on(signal, onSignal);
   }
   live.add(pid);
 }
 
-/** Forgets a group that has ended, and removes the handlers once none is left. */
+/** Forgets a group that has ended, and removes the exit handler once none is left. */
 function untrack(pid: number): void {
   live.delete(pid);
-  if (live.size === 0) unhook();
+  if (live.size === 0 && exitHooked) {
+    exitHooked = false;
+    process.removeListener("exit", killAll);
+  }
+}
+
+let signalsHooked = false;
+
+function unhookSignals(): void {
+  signalsHooked = false;
+  for (const signal of SIGNALS) process.removeListener(signal, onSignal);
+}
+
+function onSignal(signal: NodeJS.Signals): void {
+  killAll();
+  unhookSignals();
+  // Raised again with this listener gone, the signal does what it would have done without it: Node's default exit when
+  // nothing else listens, and a library such as `signal-exit`, which re-raises only when it is alone, now is.
+  process.kill(process.pid, signal);
+}
+
+/**
+ * Opts this process in to ending every MCP server on `SIGINT`, `SIGTERM` or `SIGHUP`, for a host whose process those
+ * signals end, such as a one-shot command. The harness adds no signal listener unless asked, because a listener changes
+ * what a signal does to the host.
+ *
+ * On the first of those signals, the handler kills every server's process group, removes its listeners and raises the
+ * signal again, so the process then behaves as it would have without them: it ends when nothing else listens, and a
+ * listener that re-raises only when it is alone, as `signal-exit` does, sees itself alone. A host that handles `SIGINT`
+ * to cancel a turn should not opt in, since the first `SIGINT` ends its servers; such a host calls `manager.close()`.
+ * Returns a function that removes the listeners again.
+ */
+export function killMcpServersOnSignal(): () => void {
+  if (!signalsHooked) {
+    signalsHooked = true;
+    for (const signal of SIGNALS) process.on(signal, onSignal);
+  }
+  return unhookSignals;
 }
 
 function wholeNumber(name: string, value: number | undefined, fallback: number): number {

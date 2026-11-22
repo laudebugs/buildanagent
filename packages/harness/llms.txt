@@ -216,7 +216,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface ToolRegistry`: One registry for the tools of every source.
 - `toolSearchInterceptors()`: The interceptor that sends what tool search activated.
 - `interface ToolSearchOptions`: The options of `toolSearchTool()`.
-- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names and descriptions.
+- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, and the descriptions of trusted tools.
 - `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
 - `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
 
@@ -224,6 +224,7 @@ The sections of README.md and every public export, generated from this package's
 
 - `connectMcpServer()`: Connects one server and negotiates its era.
 - `createMcpManager()`: Creates the MCP client for a set of servers.
+- `killMcpServersOnSignal()`: Opts this process in to ending every MCP server on `SIGINT`, `SIGTERM` or `SIGHUP`, for a host whose process those signals end, such as a one-shot command.
 - `type McpCallFailure`: Why an MCP tool call ended without a result.
 - `interface McpCallResult`: What one tool call returned.
 - `interface McpChannel`: A message channel to a server in this process, such as an `InMemoryTransport` from `@modelcontextprotocol/server`.

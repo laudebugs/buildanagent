@@ -15,6 +15,7 @@ import { HarnessError } from "../errors.js";
 import type { ExtensionLoadedRecord } from "../extensions/types.js";
 import type { ToolRegistration } from "../tools/types.js";
 import { checkServerConfig, connectMcpServer } from "./connection.js";
+import { safeSchema } from "./content.js";
 import { McpError } from "./errors.js";
 import { mcpRecordOf } from "./record.js";
 import type {
@@ -35,7 +36,8 @@ function definitionOf(connection: McpConnection, tool: McpTool): ToolDefinition<
     name: PLACEHOLDER_NAME,
     description: tool.description,
     kind: "dynamic",
-    inputSchema: tool.inputSchema,
+    // The server's own schema runs no regular expression here: see safeSchema().
+    inputSchema: safeSchema(tool.inputSchema) as Readonly<Record<string, unknown>>,
     firstParty: false,
     // A server's hints are claims by code the harness does not control, so every call is treated as a write.
     effect: { kind: "write" },

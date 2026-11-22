@@ -123,16 +123,47 @@ class Connection implements McpConnection {
     return this.#closed;
   }
 
+  /**
+   * The server's tools, read one page at a time. The walk stops as soon as the list passes `maxTools` or runs past
+   * eight pages, so a server can make the harness hold at most one page beyond the limit, each page bounded by the
+   * line limit. The client's own walk would gather every page before anything counted them.
+   */
   async listTools(): Promise<readonly McpTool[]> {
-    let listed: unknown;
+    const listed: unknown[] = [];
+    let cursor: string | undefined;
+    for (let page = 1; ; page += 1) {
+      const result = await this.#page(cursor);
+      const tools = (result as { tools?: unknown }).tools;
+      if (!Array.isArray(tools)) return checkToolList(this.server, tools, this.#settings.maxTools);
+      listed.push(...tools);
+      // One past the limit is enough for checkToolList() to refuse, so no later page is asked for.
+      if (listed.length > this.#settings.maxTools) break;
+      const next = (result as { nextCursor?: unknown }).nextCursor;
+      if (typeof next !== "string" || next === "") break;
+      if (page >= MAX_LIST_PAGES) {
+        throw new McpError(
+          "mcp_tool_list_refused",
+          this.server,
+          `its tool list was refused, so none of its tools was registered: it runs past ${MAX_LIST_PAGES} pages`,
+        );
+      }
+      cursor = next;
+    }
+    return checkToolList(this.server, listed, this.#settings.maxTools);
+  }
+
+  async #page(cursor: string | undefined): Promise<unknown> {
+    const options = { timeout: this.#settings.requestMs };
     try {
-      listed = (await this.#client.listTools(undefined, { timeout: this.#settings.requestMs })).tools;
+      // The first page goes as a plain request, since the client's listTools() with no cursor walks every page itself.
+      return cursor === undefined
+        ? await this.#client.request({ method: "tools/list" }, options)
+        : await this.#client.listTools({ cursor }, options);
     } catch (error) {
       throw new McpError("mcp_tool_list_refused", this.server, `its tool list could not be read: ${describe(error)}`, {
         cause: error,
       });
     }
-    return checkToolList(this.server, listed, this.#settings.maxTools);
   }
 
   async callTool(name: string, args: unknown, signal: AbortSignal): Promise<McpCallResult> {
