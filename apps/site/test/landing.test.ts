@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, inject, test } from "vitest";
-import { layers } from "../figures/layers.js";
+import { layers, NARROW_WIDTH } from "../figures/layers.js";
 import { Drawing } from "../figures/lib/draw.js";
 import { tokenFiles } from "../scripts/token-files.js";
 import { copy } from "../src/landing/copy.js";
@@ -69,15 +69,15 @@ describe("the landing page", () => {
     }
     assert.ok(html.includes(`<figcaption>${copy.figure.caption}</figcaption>`));
     const css = cssOf(html);
-    // display:none keeps the hidden drawing out of the accessibility tree: narrow below 900 px, wide from 900 px.
+    // display:none keeps the hidden drawing out of the accessibility tree: narrow below 940 px, wide from 940 px.
     assert.match(css, /\.layers \.layers-wide\{display:none\}/);
     assert.match(css, /\.layers \.layers-narrow\{[^}]*max-width:440px/);
     const wide =
-      /@media\s*\((?:min-width:\s*900px|width>=\s*900px)\)\s*\{([\s\S]*?\.layers-narrow\{display:none\}[\s\S]*?)\}\s*(?:@media|\.|$)/.exec(
+      /@media\s*\((?:min-width:\s*940px|width>=\s*940px)\)\s*\{([\s\S]*?\.layers-narrow\{display:none\}[\s\S]*?)\}\s*(?:@media|\.|$)/.exec(
         css,
       );
-    assert.ok(wide?.[1]?.includes(".layers-wide{display:block}"), "wide shows from 900 px");
-    assert.ok(wide?.[1]?.includes(".layers-narrow{display:none}"), "narrow hides from 900 px");
+    assert.ok(wide?.[1]?.includes(".layers-wide{display:block}"), "wide shows from 940 px");
+    assert.ok(wide?.[1]?.includes(".layers-narrow{display:none}"), "narrow hides from 940 px");
   });
 
   test("shows the install command from the copy", () => {
@@ -147,17 +147,75 @@ describe("the figure's geometry", () => {
     }
   });
 
-  test("keeps the narrow drawing's labels inside 330 px at 13 px", () => {
+  test("keeps the narrow drawing's labels inside 300 units at 13 px, which render 12 px or more at 320 px", () => {
     const narrow = drawings.find((entry) => entry.path.endsWith("narrow.svg"))?.drawing;
     assert.ok(narrow !== undefined);
-    assert.equal(narrow.width, 330);
+    assert.equal(narrow.width, NARROW_WIDTH);
+    // A 320 px viewport leaves 320 - 32 (page padding) - 2 (border) = 286 px for the drawing.
+    assert.ok((13 * 286) / narrow.width >= 12);
     assert.equal(narrow.fontSize, 13);
     for (const label of narrow.labels)
-      assert.ok(label.rect.x >= 0 && label.rect.x + label.rect.width <= 330, label.text);
+      assert.ok(label.rect.x >= 0 && label.rect.x + label.rect.width <= NARROW_WIDTH, label.text);
+  });
+
+  test("switches to the wide drawing only where its 13 px labels render at 12 px or more", () => {
+    // From 940 px the wide drawing has 940 - 48 (page padding) - 2 (border) - 36 (figure padding) = 854 px for 900 units.
+    assert.ok((13 * (940 - 48 - 2 - 36)) / 900 >= 12);
+    assert.ok((13 * (940 - 15 - 48 - 2 - 36)) / 900 >= 12, "still 12 px beside a classic scrollbar");
   });
 
   test("keeps the wide drawing at the mock's 900 x 372", () => {
     assert.match(read("src/landing/layers-wide.svg"), /viewBox="0 0 900 372"/);
+  });
+
+  test("joins every arrow's line to its head and lands its tip on the box it points at", () => {
+    for (const { path, drawing } of drawings) {
+      assert.equal(drawing.arrows.length, 2, path);
+      assert.deepEqual(
+        drawing.problems().filter((problem) => /arrow|tip|head|line ends/.test(problem)),
+        [],
+        path,
+      );
+    }
+  });
+
+  test("reports an arrow whose line stops short of its head or whose tip floats off its box", () => {
+    const drawing = new Drawing({ width: 200, height: 100, alt: "test", className: "t" });
+    drawing.box("target", { x: 100, y: 20, width: 60, height: 40 });
+    drawing.arrow({
+      id: "short",
+      path: [
+        [10, 40],
+        [82, 40],
+      ],
+      tip: [99, 40],
+      direction: "right",
+      target: "target",
+    });
+    drawing.arrow({
+      id: "floats",
+      path: [
+        [10, 50],
+        [82, 50],
+      ],
+      tip: [90, 50],
+      direction: "right",
+      target: "target",
+    });
+    drawing.arrow({
+      id: "misses",
+      path: [
+        [10, 80],
+        [91, 80],
+      ],
+      tip: [99, 80],
+      direction: "right",
+      target: "target",
+    });
+    const found = drawing.problems().join("\n");
+    assert.match(found, /short: the line ends at 82,40 but its head's base is at 91,40/);
+    assert.match(found, /floats: the tip is at 90, not on the edge of target at 99/);
+    assert.match(found, /misses: the tip misses the side of target/);
   });
 
   test("reports a label that overlaps another or a mark it does not belong to", () => {
@@ -209,17 +267,23 @@ describe("the fonts", () => {
 });
 
 describe("colours", () => {
-  /** Every CSS, Astro, SVG and TypeScript file of the site's own code, except the generated tokens. */
-  function sources(dir: string): string[] {
-    return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
-      .filter((entry) => entry.isFile() && /\.(css|astro|svg|ts)$/.test(entry.name))
-      .map((entry) => relative(ROOT, join(entry.parentPath, entry.name)));
+  /** Every text file of the site's own code and content. Fonts and the favicon in public/ are binary or standalone. */
+  function sources(): string[] {
+    const skipped = /(^|\/)(node_modules|dist|\.astro|public)(\/|$)/;
+    return readdirSync(ROOT, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => relative(ROOT, join(entry.parentPath, entry.name)))
+      .filter((file) => !skipped.test(file));
   }
 
-  test("are written as hex only in tokens.css and the standalone favicon", () => {
-    const files = ["src", "figures", "scripts"].flatMap(sources).filter((file) => file !== "src/styles/tokens.css");
-    assert.ok(files.length > 10);
+  // A hex value may live in two generated files only: tokens.css, and theme-colors.json, which holds the two page
+  // backgrounds because a theme-color meta tag cannot read a custom property. public/favicon.svg is standalone and
+  // carries its own colours.
+  const ALLOWED = new Set(["src/styles/tokens.css", "src/landing/theme-colors.json"]);
+
+  test("are written as hex only in the generated token files and the standalone favicon", () => {
+    const files = sources().filter((file) => !ALLOWED.has(file));
+    assert.ok(files.length > 20, "scans the site's files");
     for (const file of files) assert.doesNotMatch(read(file), /#[0-9a-fA-F]{3,8}\b/, file);
-    assert.ok(statSync(join(ROOT, "public/favicon.svg")).size > 0);
   });
 });

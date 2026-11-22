@@ -2,6 +2,14 @@
 // yet exported its tokens module; L12a's `@buildanagent/manual` export replaces the relative import.
 import { readTokens, tokensCss } from "../../manual/src/design/tokens.js";
 
+/** The header the manual's generator writes, which names the manual's script and command. */
+const MANUAL_HEADER = `/* Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the
+   JSON file and run \`pnpm --filter @buildanagent/manual tokens\`. */`;
+
+/** The same header naming the site's own script and command. */
+const SITE_HEADER = `/* Generated from docs/design/book-tokens.json by apps/site/scripts/generate-tokens.ts. Do not edit: change the
+   JSON file and run \`pnpm --filter @buildanagent/site tokens\`. */`;
+
 /** A generated file: its path under apps/site and its exact content. */
 export interface TokenFile {
   readonly path: string;
@@ -14,9 +22,11 @@ export interface TokenFile {
  */
 export function tokenFiles(): TokenFile[] {
   const tokens = readTokens();
+  const css = tokensCss(tokens).replace(MANUAL_HEADER, SITE_HEADER);
+  if (css === tokensCss(tokens)) throw new Error("the manual's tokens.css header changed: update MANUAL_HEADER");
   const themeColors = { light: tokens.color.light.values.background, dark: tokens.color.dark.values.background };
   return [
-    { path: "src/styles/tokens.css", content: tokensCss(tokens) },
+    { path: "src/styles/tokens.css", content: css },
     { path: "src/landing/theme-colors.json", content: `${JSON.stringify(themeColors, null, 2)}\n` },
   ];
 }

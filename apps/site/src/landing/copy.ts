@@ -23,7 +23,7 @@ export const copy = {
     },
   },
   figure: {
-    alt: "The three layers, from top to bottom: harness, loop and gateway, with what each does. On the right, one turn of the loop: a model call, then tool calls, then results returned to the model.",
+    alt: "The three layers, from top to bottom: harness, loop and gateway, with what each does. One turn of the loop: a model call, then tool calls, then results returned to the model.",
     caption: "Figure 1. The three layers, and one turn of the loop.",
     labels: {
       harness: "harness",

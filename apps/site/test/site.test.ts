@@ -62,25 +62,39 @@ const IDS = new RegExp(`\\b(?:${[...new Set(todoIds())].join("|")})\\b`);
 const words = (text: string) => text.split(/\s+/).filter((word) => word !== "");
 const plain = (text: string) => text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
 
-/** The text a reader sees on a built page: inline tags removed, each block its own paragraph, code and figures left out. */
-function proseOfHtml(route: string): { description: string; paragraphs: string[]; text: string } {
+/** The text a reader sees on a built page: each block its own paragraph, inline tags replaced by a space, code and figures left out. */
+function proseOfHtml(route: string): { description: string; opening: string; paragraphs: string[]; text: string } {
   const html = htmlOf(route);
   const description = /<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? "";
   const main = /<main[\s\S]*?<\/main>/.exec(html)?.[0] ?? "";
-  const blocks = main
-    .replace(/<(svg|pre)[\s\S]*?<\/\1>/g, "\n")
-    .replace(/<\/?(?:a|em|i|b|strong|code|span)(?:\s[^>]*)?>/g, "")
-    .replace(/<[^>]+>/g, "\n")
-    .replace(/&amp;/g, "&")
-    .replace(/&#39;/g, "'")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line !== "");
-  return { description, paragraphs: blocks, text: `${description} ${blocks.join(" ")} ${FIGURE_ALT}` };
+  const clean = (fragment: string) =>
+    fragment
+      .replace(/<(svg|pre)[\s\S]*?<\/\1>/g, "\n")
+      .replace(/<\/?(?:a|em|i|b|strong|code|span)(?:\s[^>]*)?>/g, " ")
+      .replace(/<[^>]+>/g, "\n")
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .split("\n")
+      .map((line) =>
+        line
+          .replace(/\s+/g, " ")
+          .replace(/\s+([.,;:])/g, "$1")
+          .trim(),
+      )
+      .filter((line) => line !== "");
+  const blocks = clean(main);
+  // The lead is the paragraph the page opens its pitch with: the one with the `lead` class.
+  const lead = /<p class="lead">([\s\S]*?)<\/p>/.exec(main)?.[1] ?? "";
+  return {
+    description,
+    opening: clean(lead).join(" "),
+    paragraphs: blocks,
+    text: `${description} ${blocks.join(" ")} ${FIGURE_ALT}`,
+  };
 }
 
 /** A page's body: Markdown for a package page, the built HTML for the landing page. */
-function prose(route: string): { description: string; paragraphs: string[]; text: string } {
+function prose(route: string): { description: string; opening: string; paragraphs: string[]; text: string } {
   if (route === "") return proseOfHtml(route);
   const file = join(PAGES, `${route}.md`);
   const source = readFileSync(file, "utf8");
@@ -91,14 +105,15 @@ function prose(route: string): { description: string; paragraphs: string[]; text
     .flatMap((block) => (/^\s*-\s/.test(block) ? block.split(/\n(?=\s*-\s)/) : [block]))
     .map((block) => plain(block.replace(/^\s*-\s+/, "").replace(/\n/g, " ")).trim())
     .filter((block) => block !== "" && !block.startsWith("#"));
-  return { description, paragraphs, text: plain(`${description} ${body}`) };
+  return { description, opening: paragraphs[0] ?? "", paragraphs, text: plain(`${description} ${body}`) };
 }
 
 describe.each(ROUTES.map((route) => [route || "/", route] as const))("the copy of %s", (_name, route) => {
   test("opens with a paragraph of 50 words or fewer", () => {
-    const { description, paragraphs } = prose(route);
+    const { description, opening } = prose(route);
     assert.ok(description !== "", "has a description");
-    assert.ok(words(paragraphs[0] ?? "").length <= 50, paragraphs[0] ?? "no paragraph");
+    assert.ok(opening !== "", "has an opening paragraph");
+    assert.ok(words(opening).length <= 50, opening);
   });
 
   test("keeps sentences to 40 words and paragraphs to 100", () => {

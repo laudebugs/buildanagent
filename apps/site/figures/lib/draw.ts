@@ -20,6 +20,23 @@ const CLEARANCE = 2;
 /** Half the width of a stroked line, for the box a line occupies. */
 const HALF_STROKE = 1.25;
 
+/** How far an arrowhead reaches back from its tip, in the figure's units. */
+export const HEAD_LENGTH = 8;
+/** Half the stroke width of a box, which its outline adds outside the rectangle's own edge. */
+const BOX_HALF_STROKE = 1;
+/** How far an arrow's parts may sit from where they should meet. */
+const JOIN_TOLERANCE = 0.5;
+
+/** One arrow: a line that ends in a head whose tip touches the outline of the box it points at. */
+export interface Arrow {
+  readonly id: string;
+  readonly path: readonly [number, number][];
+  readonly tip: readonly [number, number];
+  readonly direction: "right" | "up";
+  /** The id of the box the tip lands on. */
+  readonly target: string;
+}
+
 interface Mark {
   readonly id: string;
   readonly rect: Rect;
@@ -62,6 +79,7 @@ export class Drawing {
   readonly #parts: string[] = [];
   readonly marks: Mark[] = [];
   readonly labels: Label[] = [];
+  readonly arrows: Arrow[] = [];
 
   constructor(options: { width: number; height: number; alt: string; className: string; fontSize?: number }) {
     this.width = options.width;
@@ -111,6 +129,13 @@ export class Drawing {
     );
   }
 
+  /** An accent arrow: its line, then its head. `problems()` checks that they meet and that the tip lands on its box. */
+  arrow(arrow: Arrow): void {
+    this.arrows.push(arrow);
+    this.line(arrow.id, arrow.path, 2.5);
+    this.head(`${arrow.id}-head`, arrow.tip, arrow.direction);
+  }
+
   /** A filled accent triangle whose tip is at `tip` and whose back points the other way, along `direction`. */
   head(id: string, tip: readonly [number, number], direction: "right" | "up"): void {
     const [x, y] = tip;
@@ -118,13 +143,13 @@ export class Drawing {
       direction === "right"
         ? [
             [x, y],
-            [x - 8, y - 5],
-            [x - 8, y + 5],
+            [x - HEAD_LENGTH, y - 5],
+            [x - HEAD_LENGTH, y + 5],
           ]
         : [
             [x, y],
-            [x - 5, y + 8],
-            [x + 5, y + 8],
+            [x - 5, y + HEAD_LENGTH],
+            [x + 5, y + HEAD_LENGTH],
           ];
     const xs = points.map(([px]) => px);
     const ys = points.map(([, py]) => py);
@@ -195,9 +220,35 @@ export class Drawing {
         if (touches(a.rect, b.rect)) found.push(`"${a.text}" overlaps "${b.text}"`);
       }
     });
+    for (const arrow of this.arrows) found.push(...this.#arrowProblems(arrow));
     for (const mark of this.marks) {
       if (!inside(mark.rect, canvas)) found.push(`${mark.id} leaves the ${this.width} x ${this.height} canvas`);
     }
+    return found;
+  }
+
+  #arrowProblems(arrow: Arrow): string[] {
+    const found: string[] = [];
+    const [tipX, tipY] = arrow.tip;
+    const end = arrow.path[arrow.path.length - 1];
+    const base: [number, number] =
+      arrow.direction === "right" ? [tipX - HEAD_LENGTH, tipY] : [tipX, tipY + HEAD_LENGTH];
+    if (end === undefined || Math.hypot(end[0] - base[0], end[1] - base[1]) > JOIN_TOLERANCE) {
+      found.push(`${arrow.id}: the line ends at ${end?.join(",")} but its head's base is at ${base.join(",")}`);
+    }
+    const target = this.marks.find((mark) => mark.id === arrow.target)?.rect;
+    if (target === undefined) return [...found, `${arrow.id} points at the unknown box ${arrow.target}`];
+    // The tip stops at the outside of the box's outline: the left edge for a head pointing right, the bottom edge for
+    // a head pointing up, and it must land within the side it touches.
+    const [edge, along, low, high] =
+      arrow.direction === "right"
+        ? [target.x - BOX_HALF_STROKE, tipY, target.y, target.y + target.height]
+        : [target.y + target.height + BOX_HALF_STROKE, tipX, target.x, target.x + target.width];
+    const tipEdge = arrow.direction === "right" ? tipX : tipY;
+    if (Math.abs(tipEdge - edge) > JOIN_TOLERANCE) {
+      found.push(`${arrow.id}: the tip is at ${tipEdge}, not on the edge of ${arrow.target} at ${edge}`);
+    }
+    if (along < low || along > high) found.push(`${arrow.id}: the tip misses the side of ${arrow.target}`);
     return found;
   }
 

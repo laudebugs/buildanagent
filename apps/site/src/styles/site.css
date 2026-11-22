@@ -258,8 +258,10 @@ body.landing {
   }
 }
 
-/* The figure: both drawings are inline and named for screen readers, and the stylesheet shows one. Below 900 px the
-   wide drawing's labels would shrink under 12 px, so the narrow drawing takes over there. */
+/* The figure: both drawings are inline and named for screen readers, and the stylesheet shows one. The wide drawing's
+   labels are 13 px in 900 units, and the figure box has the viewport less 48 px of page padding, 2 px of border and 36
+   px of padding, so at 940 px it shows 854 units, a scale of 0.949 and 12.3 px labels (12.1 px with a 15 px scrollbar).
+   Below 940 px the narrow drawing takes over: it is 300 units wide and keeps 12 px labels down to a 320 px viewport. */
 .layers {
   margin: 10px 0 26px;
   padding: 12px 0;
@@ -288,7 +290,7 @@ body.landing {
   font: 12px / 1.4 var(--font-code);
 }
 
-@media (min-width: 900px) {
+@media (min-width: 940px) {
   .layers {
     padding: 18px;
   }
@@ -381,7 +383,7 @@ body.landing {
   }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 940px) {
   .pkgs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

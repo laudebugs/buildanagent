@@ -1,5 +1,5 @@
-/* Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the
-   JSON file and run `pnpm --filter @buildanagent/manual tokens`. */
+/* Generated from docs/design/book-tokens.json by apps/site/scripts/generate-tokens.ts. Do not edit: change the
+   JSON file and run `pnpm --filter @buildanagent/site tokens`. */
 
 @font-face {
   font-family: "Instrument Serif";

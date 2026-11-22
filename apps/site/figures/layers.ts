@@ -88,65 +88,76 @@ function wide(): Drawing {
   drawing.box("tool-calls", toolBox);
   drawing.text(labels.modelCall, 667, 148, { anchor: "middle", on: "model-call" });
   drawing.text(labels.toolCalls, 817, 148, { anchor: "middle", on: "tool-calls" });
-  drawing.line(
-    "call-to-tools",
-    [
+  // Each arrow's tip stops on the outside of the box's 2 px outline, and its line ends where the head begins.
+  drawing.arrow({
+    id: "call-to-tools",
+    path: [
       [722, 143],
-      [752, 143],
+      [753, 143],
     ],
-    2.5,
-  );
-  drawing.head("call-to-tools-head", [760, 143], "right");
-  drawing.line(
-    "tools-to-call",
-    [
+    tip: [761, 143],
+    direction: "right",
+    target: "tool-calls",
+  });
+  drawing.arrow({
+    id: "tools-to-call",
+    path: [
       [817, 166],
       [817, 220],
       [667, 220],
-      [667, 176],
+      [667, 175],
     ],
-    2.5,
-  );
-  drawing.head("tools-to-call-head", [667, 168], "up");
+    tip: [667, 167],
+    direction: "up",
+    target: "model-call",
+  });
   drawing.text(labels.results, 742, 246, { anchor: "middle" });
   return drawing;
 }
 
-/** The narrow figure: each note under its slab, then the loop turn as two rows, for a phone at 330 px. */
+/**
+ * The narrow drawing's width. At a 320 px viewport the figure has 320 less 32 px of page padding and 2 px of border, so
+ * 286 px show 300 units, a scale of 0.953 and a 13 px label of 12.4 px, above the 12 px floor.
+ */
+export const NARROW_WIDTH = 300;
+
+/** The narrow figure: each note under its slab, then the loop turn as two rows, for a phone. */
 function narrow(): Drawing {
-  const drawing = new Drawing({ width: 330, height: 568, alt, className: "layers-narrow" });
+  const drawing = new Drawing({ width: NARROW_WIDTH, height: 568, alt, className: "layers-narrow" });
   LAYERS.forEach((layer, index) => {
-    const slab: Slab = { ...layer, cx: 165, top: 6 + index * 138, half: 84, thickness: 20 };
+    const slab: Slab = { ...layer, cx: NARROW_WIDTH / 2, top: 6 + index * 138, half: 84, thickness: 20 };
     drawSlab(drawing, slab);
-    drawing.text(layer.note, 165, slab.top + 124, { anchor: "middle" });
+    drawing.text(layer.note, NARROW_WIDTH / 2, slab.top + 124, { anchor: "middle" });
   });
-  const callBox = { x: 20, y: 440, width: 120, height: 44 };
-  const toolBox = { x: 190, y: 440, width: 120, height: 44 };
+  const callBox = { x: 10, y: 440, width: 120, height: 44 };
+  const toolBox = { x: 170, y: 440, width: 120, height: 44 };
   drawing.box("model-call", callBox);
   drawing.box("tool-calls", toolBox);
-  drawing.text(labels.modelCall, 80, 467, { anchor: "middle", on: "model-call" });
-  drawing.text(labels.toolCalls, 250, 467, { anchor: "middle", on: "tool-calls" });
-  drawing.line(
-    "call-to-tools",
-    [
-      [140, 462],
-      [172, 462],
+  drawing.text(labels.modelCall, 70, 467, { anchor: "middle", on: "model-call" });
+  drawing.text(labels.toolCalls, 230, 467, { anchor: "middle", on: "tool-calls" });
+  drawing.arrow({
+    id: "call-to-tools",
+    path: [
+      [130, 462],
+      [161, 462],
     ],
-    2.5,
-  );
-  drawing.head("call-to-tools-head", [190, 462], "right");
-  drawing.line(
-    "tools-to-call",
-    [
-      [250, 484],
-      [250, 524],
-      [80, 524],
-      [80, 494],
+    tip: [169, 462],
+    direction: "right",
+    target: "tool-calls",
+  });
+  drawing.arrow({
+    id: "tools-to-call",
+    path: [
+      [230, 484],
+      [230, 524],
+      [70, 524],
+      [70, 493],
     ],
-    2.5,
-  );
-  drawing.head("tools-to-call-head", [80, 486], "up");
-  drawing.text(labels.results, 165, 552, { anchor: "middle" });
+    tip: [70, 485],
+    direction: "up",
+    target: "model-call",
+  });
+  drawing.text(labels.results, NARROW_WIDTH / 2, 552, { anchor: "middle" });
   return drawing;
 }
 
