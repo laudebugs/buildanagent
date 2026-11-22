@@ -452,12 +452,12 @@ export function answerFor(session: Session) {
 }
 ```
 
-The model sees the tool's description and its `topic` argument, never `app`. If it sends `{ customerId: "cust-999" }` anyway, the tool still answers for `session.customerId`. A run whose tools declare an `app` type needs an `app` of that type, and leaving it out or passing another type fails to compile. The check relies on inference, so it does not apply when you give `run()` explicit type arguments, such as `run<Triage>()`: name both, `run<Triage, Session>()`, or none.
+The model sees the tool's description and its `topic` argument, never `app`. If it sends `{ topic: "billing", customerId: "cust-999" }` anyway, the tool still answers for `session.customerId`. A run whose tools declare an `app` type needs an `app` that has every declared type. One typed tool is enough, even beside tools that declare none, and leaving `app` out, passing `null` or passing another type fails to compile. The check reads the type of the `tools` list the call infers, so it does not apply when you give `run()` explicit type arguments, such as `run<Triage>()`.
 
 Five rules keep the value trusted:
 
 - **Build it for each request.** Take `app` from the request's authenticated session. A value built once at module level, or held in a shared variable, hands one user's identity to every request. The SDK itself shares nothing between runs.
-- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`. The process that resumes a run passes `app` again, from its own session: `continueRun()` is typed to require it, and where the check does not apply, a call that leaves it out gives its tools `ctx.app === undefined`.
+- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`, and a signed pending request does not bind it. A run that resumes after an approval runs its approved call with whatever `app` the resuming process passes, so the approver's session is the wrong source: the call would run as the approver. Store the original caller's `app`, or a reference to it, beside the stored `Context`, and pass that to `continueRun()`; name the approver in the resolution's `by`. Where the type check does not apply, a call that leaves `app` out gives its tools `ctx.app === undefined`.
 - **The SDK does not copy it.** Every call of a run, and a nested run you pass it to, gets the same object, so pass an immutable value, such as a frozen object, that no tool can change for the others.
 - **A nested run starts with none.** `nestedRunDepth(ctx)` does not carry it. A tool that starts another agent passes `app: ctx.app` itself, only when the child should act for the same user.
 - **It carries facts, not permission.** The tool or the system behind it still checks that this user may do what the call asks.
