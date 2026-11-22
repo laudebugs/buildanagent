@@ -216,14 +216,17 @@ export interface EscalationMachine<H = unknown> {
   pending(session: Session): Promise<PendingEscalation[]>;
   /**
    * Answers one waiting escalation. The answer is checked before anything is written: the signature under a key in the
-   * ring, the bound host context, the call and the record. A classifier's allow (`by: "classifier:…"`) never approves a
-   * rerun. The answer is written, the quorum policy decides, and an allow then goes through the permission pipeline
-   * again, so a deny rule added since the pause wins. The rerun runs once in a fresh sandbox under the recorded policy
-   * widened by exactly the recorded denial, and that sandbox is disposed after it. A second denial is the rerun's result.
+   * ring, the bound host context, the call and the record. An allow must name its approver in `by`, and a classifier's
+   * allow (`by: "classifier:…"`) never approves a rerun; both are refused with nothing written. `by` is not covered by
+   * the request's signature, so the host sets it only after it has authenticated the approver. The answer is written,
+   * the quorum policy decides the answer, and an allow then goes through the permission pipeline again, so a deny rule
+   * added since the pause wins. The rerun runs once in a fresh sandbox under the recorded policy widened by exactly the
+   * recorded denial, and that sandbox is disposed after it. A second denial is the rerun's result.
    *
    * It first settles every escalation a crash left open: a rerun that started and has no result is never run again.
-   * Throws `approval_not_pending` for a request that does not wait, `approval_refused` for one that fails its check or a
-   * classifier's allow, `approver_is_requester`, and `invalid_escalation` for a workspace with another root.
+   * Throws `approval_not_pending` for a request that does not wait, `approval_refused` for one that fails its check, an
+   * allow with no `by` or a classifier's allow, `approver_is_requester`, and `invalid_escalation` for a workspace with
+   * another root.
    */
   resolve(session: Session, resolution: Resolution, options: EscalationResolveOptions<H>): Promise<EscalationResult>;
 }
@@ -505,8 +508,12 @@ async function check<H>(
       "approval_refused",
       `the request for escalation ${found.id} failed its check (${cause}), so nothing ran and nothing was written`,
     );
-  if ("decision" in resolution && resolution.decision === "allow" && resolution.by?.startsWith("classifier:")) {
-    throw refuse("a classifier's allow does not cover a sandbox rerun");
+  if ("decision" in resolution && resolution.decision === "allow") {
+    // `by` is not signed, so the guard holds only as far as the host sets it truthfully; an allow that names no one
+    // is refused rather than read as a person's.
+    const by = typeof resolution.by === "string" ? resolution.by.trim().toLowerCase() : "";
+    if (by === "") throw refuse("an allow that names no approver does not cover a sandbox rerun");
+    if (by.startsWith("classifier:")) throw refuse("a classifier's allow does not cover a sandbox rerun");
   }
   const verified = await verifyResolution(found.requested.request, resolution, {
     signer: harness.signer as NonNullable<Harness<H>["signer"]>,

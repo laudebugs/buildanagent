@@ -455,6 +455,8 @@ describe("under on-request", () => {
       [{ kind: "network", target: "example.com", reason: "closed" }, denying("*")],
       [{ kind: "network", target: "example.com", reason: "closed" }, denying("*:22")],
       [{ kind: "network", target: "[2001:db8::1]:443", reason: "closed" }, denying("[2001:db8:0::1]")],
+      // A `*.name` entry also closes an IPv4 address that ends in `.name`, which srt would not match.
+      [{ kind: "network", target: "10.0.0.1", reason: "closed" }, denying("*.0.1")],
     ];
     for (const [denial, policy] of cases) {
       const backend = memoryBackend();
@@ -478,6 +480,15 @@ describe("under on-request", () => {
       ["db.corp.example", "*.db.corp.example"],
       ["api.example.com", "db.corp.example:5432"],
       ["[2001:db8::1]", "db.corp.example"],
+      // Canonical addresses and ordinary names still widen beside a loopback or alias entry that names another host.
+      ["10.0.0.1", "10.0.0.2"],
+      ["10.0.0.1", "10.2"],
+      ["93.184.216.34", "127.0.0.1"],
+      ["example.com", "localhost"],
+      ["api.example.com:8443", "[::1]"],
+      ["10.0.0.1", "*.example.com"],
+      ["0x7f.example.com", "127.0.0.1"],
+      ["[2001:db8::1]", "10.0.0.1"],
     ] as const) {
       const backend = memoryBackend();
       const { approvals } = await escalationHarness();
@@ -491,6 +502,65 @@ describe("under on-request", () => {
         "awaiting_approval",
       );
       assert.deepEqual(asked.widened.network, { allow: [target], deny: [deny] });
+      await session.close();
+    }
+  });
+
+  test("an address in a non-canonical form, or one that reaches the machine itself or its link, is never widened", async () => {
+    const network = (target: string): SandboxDenial => ({ kind: "network", target, reason: "closed" });
+    const cases: Array<[string, SandboxPolicy]> = [
+      // Short, whole-number, hex and leading-zero forms of 127.0.0.1, which a resolver reads as that address.
+      ["127.1", denying("127.0.0.1")],
+      ["2130706433", denying("127.0.0.1")],
+      ["0x7f.1", denying("127.0.0.1")],
+      ["0x7f.0.0.1", BASE_POLICY],
+      ["0177.0.0.1", BASE_POLICY],
+      ["127.0.0.01", BASE_POLICY],
+      ["010.0.0.1", BASE_POLICY],
+      ["10.1", BASE_POLICY],
+      ["1.2.3.4.5", BASE_POLICY],
+      ["10.0.0.256", BASE_POLICY],
+      ["example.123", BASE_POLICY],
+      // Loopback and link-local in every spelling, whether or not the deny list names an alias of them.
+      ["localhost", denying("[::1]")],
+      ["127.0.0.1", denying("[::1]")],
+      ["[::1]", denying("localhost")],
+      ["localhost", BASE_POLICY],
+      ["localhost:8080", BASE_POLICY],
+      ["api.localhost", BASE_POLICY],
+      ["127.0.0.1", BASE_POLICY],
+      ["127.255.0.9:443", BASE_POLICY],
+      ["0.0.0.0", BASE_POLICY],
+      ["169.254.169.254", BASE_POLICY],
+      ["[::1]", BASE_POLICY],
+      ["[0:0:0:0:0:0:0:1]", BASE_POLICY],
+      ["[::]", BASE_POLICY],
+      ["[fe80::1]", BASE_POLICY],
+      ["[febf::1]:22", BASE_POLICY],
+      // An IPv6 address that wraps an IPv4 one is that IPv4 address under another name.
+      ["[::ffff:127.0.0.1]", BASE_POLICY],
+      ["[::ffff:7f00:1]", BASE_POLICY],
+      ["[::ffff:10.0.0.1]", BASE_POLICY],
+      ["[::ffff:zz]", BASE_POLICY],
+      // A deny entry closes a canonical address it names in any spelling.
+      ["10.0.0.1", denying("10.1")],
+      ["10.0.0.1", denying("167772161")],
+      ["10.0.0.1", denying("0xa.0.0.1")],
+      ["10.0.0.1", denying("012.0.0.1:443")],
+      ["10.0.0.1", denying("[::ffff:10.0.0.1]")],
+      ["10.0.0.1:8443", denying("[::ffff:a00:1]:443")],
+    ];
+    for (const [target, policy] of cases) {
+      const backend = memoryBackend();
+      const { approvals } = await escalationHarness();
+      const refusing = refusingClient(network(target));
+      const session = await open(backend);
+      const denied = expectStatus(
+        await escalation({ approvalPolicy: "on-request", approvals }).run(session, runOf(refusing.client, { policy })),
+        "denied",
+      );
+      assert.match(denied.reason, /can't be widened/, `${target} is refused`);
+      assert.deepEqual(await entriesOf(backend), [], `nothing written for ${target}`);
       await session.close();
     }
   });
@@ -622,6 +692,29 @@ describe("who may approve the rerun", () => {
     assert.equal(client.execs.length, 1, "no rerun");
     assert.equal((await machine.pending(session)).length, 1, "still waiting");
     expectStatus(await machine.resolve(session, allow(asked.pending.id), resolveWith(spy.client)), "ran");
+    await session.close();
+  });
+
+  test("an allow that names no approver, or a classifier in any case, is refused with nothing written", async () => {
+    const backend = memoryBackend();
+    const { asked, session, machine, spy, client } = await paused(backend);
+    const before = (await entriesOf(backend)).length;
+    const requestId = asked.pending.id;
+    for (const resolution of [
+      { requestId, decision: "allow" },
+      { requestId, decision: "allow", by: "" },
+      { requestId, decision: "allow", by: "   " },
+      { requestId, decision: "allow", by: " Classifier:guard" },
+    ] as Resolution[]) {
+      const error = await rejectsWith(
+        machine.resolve(session, resolution, resolveWith(spy.client)),
+        "approval_refused",
+      );
+      assert.match(error.message, /approver|classifier/);
+    }
+    assert.equal((await entriesOf(backend)).length, before, "nothing written");
+    assert.equal(client.execs.length, 1, "no rerun");
+    assert.equal((await machine.pending(session)).length, 1, "still waiting");
     await session.close();
   });
 });
