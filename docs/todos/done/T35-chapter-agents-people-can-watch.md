@@ -81,6 +81,8 @@ Write the chapter "Agents people can watch: UIs, browsers and taking over" (`age
 
 The book's build and `check:book` in the CI `book` job; the harness tests for any example whose markers changed.
 
+> **Scope note (2026-11-22):** the chapter does not list `verify/cloudflare-agents/examples/04-chat-agent.ts`, because that example has no region markers and the event-log section already shows a typed stream with the AI SDK's `stream-parts` region. A listing of the Cloudflare chat agent is a candidate for the follow-up that adds our packages' tabs.
+
 ## Docs to update
 
 - The plan's §4 row if the chapter's sources or examples change
