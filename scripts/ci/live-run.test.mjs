@@ -1266,9 +1266,17 @@ test("live-diff reports a changed tool call, argument keys, stop reason and chec
 test("live-diff counts a missing live transcript as a difference and writes Markdown for the issue", () => {
   const results = compareAll(config, { liveDir: mkdtempSync(join(tmpdir(), "live-none-")) });
   assert.ok(results.every((r) => r.differences.length === 1));
-  const markdown = diffMarkdown(results, { examples: [{ file: results[0].file, outcome: "not run" }] });
+  const { file, provider } = results[0];
+  const markdown = diffMarkdown(results, { examples: [{ file, provider, outcome: "not run" }] });
   assert.match(markdown, new RegExp(`^${results.length} of ${results.length} live examples differ`));
   assert.match(markdown, /outcome: not run/);
+  // One file listed on both providers keeps each provider's outcome.
+  const both = results.filter((r) => r.file === SDK_TRIAGE);
+  assert.deepEqual(both.map((r) => r.provider).sort(), ["anthropic", "openai"]);
+  const outcomes = both.map((r) => ({ file: r.file, provider: r.provider, outcome: `${r.provider} outcome` }));
+  const split = diffMarkdown(both, { examples: outcomes });
+  assert.match(split, /anthropic `claude-haiku-5-5`, outcome: anthropic outcome/);
+  assert.match(split, /openai `gpt-5\.4-mini`, outcome: openai outcome/);
   assert.match(diffMarkdown([{ ...results[0], differences: [] }]), /^All 1 live examples kept the mock's flow/);
 });
 

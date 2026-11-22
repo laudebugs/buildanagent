@@ -13,7 +13,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { exampleOf, LIVE_EXAMPLES_FILE, REPO_ROOT, readLiveConfig } from "../live/config.mjs";
+import { entryName, exampleOf, LIVE_EXAMPLES_FILE, REPO_ROOT, readLiveConfig } from "../live/config.mjs";
 
 /** One tool call as the flow sees it: its name and its argument keys, sorted. */
 const callOf = (part) => {
@@ -87,9 +87,12 @@ export function compareAll(config, { root = REPO_ROOT, liveDir } = {}) {
   });
 }
 
-/** The comparison as Markdown, with the run's outcome per example when the run's report is given. */
+/**
+ * The comparison as Markdown, with the run's outcome per example when the run's report is given. One file may be
+ * listed on both providers, so an outcome is matched by its file and provider.
+ */
 export function diffMarkdown(results, report) {
-  const outcomes = new Map((report?.examples ?? []).map((e) => [e.file, e.outcome]));
+  const outcomes = new Map((report?.examples ?? []).map((e) => [entryName(e), e.outcome]));
   const differing = results.filter((r) => r.differences.length > 0);
   const lines = [
     differing.length === 0
@@ -98,7 +101,7 @@ export function diffMarkdown(results, report) {
         "real model varies between runs, so a difference is a prompt to look, not proof that the mock is wrong.",
   ];
   for (const result of differing) {
-    const outcome = outcomes.get(result.file);
+    const outcome = outcomes.get(entryName(result));
     lines.push(
       "",
       `### \`${result.file}\``,
