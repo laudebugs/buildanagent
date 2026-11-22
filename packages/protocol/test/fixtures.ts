@@ -1,0 +1,164 @@
+// One valid entry of every type, and the variants that use each optional field. `satisfies` makes the compiler check
+// each against `SessionEntry`; test/schema.test.ts validates each against the generated JSON Schema.
+import type { SessionEntry } from "@buildanagent/protocol";
+
+const MODEL = { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" };
+const USAGE = {
+  uncachedInput: 120,
+  cacheRead: 40,
+  cacheWrite: { "5m": 10, "1h": 0 },
+  output: 30,
+  reasoning: 5,
+  raw: { input_tokens: 120 },
+};
+
+let seq = 0;
+/** The base fields of the next entry in a chain, so each fixture follows the one before it. */
+function at(origin: SessionEntry["origin"]) {
+  seq += 1;
+  return {
+    id: `e${seq}`,
+    parentId: seq === 1 ? null : `e${seq - 1}`,
+    seq: seq - 1,
+    timestamp: "2026-11-22T03:00:00.000Z",
+    origin,
+  };
+}
+
+export const FIXTURES = [
+  {
+    ...at("harness"),
+    type: "session_header",
+    formatVersion: 1,
+    harnessVersion: "0.1.0",
+    sdkVersion: "0.1.0-alpha.21",
+    defaultsHash: "abc123",
+    capabilities: ["abort_v1", "steering_v1"],
+    ablationHash: "none",
+  },
+  { ...at("harness"), type: "turn_start", runId: "run-1", mode: "run", system: "You triage tickets." },
+  {
+    ...at("user"),
+    type: "message_block",
+    messageId: "m1",
+    role: "user",
+    index: 0,
+    block: { type: "text", text: "Triage it." },
+    delivery: "input",
+  },
+  {
+    ...at("model"),
+    type: "message_block",
+    messageId: "m2",
+    role: "assistant",
+    index: 0,
+    block: { type: "tool_call", callId: "c1", name: "lookup_customer", input: { topic: "plan" } },
+  },
+  {
+    ...at("model"),
+    type: "message_end",
+    messageId: "m2",
+    model: MODEL,
+    stopReason: "tool_calls",
+  },
+  {
+    ...at("model"),
+    type: "message_end",
+    messageId: "m3",
+    model: MODEL,
+    stopReason: "error",
+    error: {
+      kind: "retryable",
+      message: "overloaded",
+      status: 529,
+      code: "thinking_prefix_mismatch",
+      retryAfterMs: 2000,
+    },
+  },
+  {
+    ...at("tool"),
+    type: "tool_result",
+    callId: "c1",
+    tool: "lookup_customer",
+    content: [{ type: "text", text: "plan: pro" }],
+    isError: false,
+    details: { rows: 1 },
+    spill: { path: "spill/c1.txt", bytes: 70000 },
+    trust: "trusted",
+  },
+  {
+    ...at("harness"),
+    type: "permission_decision",
+    callId: "c2",
+    tool: "escalate",
+    decision: "ask",
+    rule: "write-needs-approval",
+    by: "on-call lead",
+    policyVersion: "p1",
+    inputHash: "sha256:abc",
+  },
+  {
+    ...at("harness"),
+    type: "usage",
+    source: "model_call",
+    usage: { ...USAGE, unreported: true },
+    cost: { total: null, basis: "unknown", currency: "USD" },
+  },
+  {
+    ...at("harness"),
+    type: "usage",
+    source: "summary",
+    usage: USAGE,
+    cost: { total: 0.0123, basis: "catalog", currency: "USD", catalogAsOf: "2026-11-01" },
+  },
+  { ...at("harness"), type: "turn_end", runId: "run-1", stopReason: "done", steps: 3 },
+  { ...at("harness"), type: "checkout", headId: "e4" },
+  {
+    ...at("harness"),
+    type: "compaction",
+    layer: "summarize",
+    summary: "The customer reported a 500 at checkout.",
+    firstKeptEntryId: "e3",
+    tokensBefore: 90000,
+    tokensAfter: 4000,
+    model: MODEL,
+    promptVersion: "v1",
+    usageEntryId: "e9",
+    focus: "checkout failures",
+  },
+  {
+    ...at("harness"),
+    type: "env_stamp",
+    cwd: "/work",
+    permissionMode: "default",
+    approvalPolicy: "on-request",
+    sandbox: "container",
+    model: MODEL,
+    effort: "high",
+  },
+  { ...at("harness"), type: "loadout", tools: ["read", "grep"], model: MODEL, effort: "low" },
+  {
+    ...at("harness"),
+    type: "completion_check",
+    checks: [{ command: "pnpm test", exitCode: 0 }],
+    passed: true,
+    flagged: [],
+  },
+  { ...at("harness"), type: "skill_loaded", name: "triage", path: ".agents/skills/triage/SKILL.md" },
+  { ...at("harness"), type: "extension_loaded", name: "audit", tier: "in_process", contentHash: "sha256:def" },
+  { ...at("harness"), type: "subagent_link", childSession: "s-child", spawningCallId: "c1", stepId: "step-2" },
+  { ...at("harness"), type: "shadow_call", callId: "c3", tool: "escalate", inputHash: "sha256:ghi" },
+  { ...at("harness"), type: "product_record", name: "triage.record", data: { category: "bug", priority: "high" } },
+  {
+    ...at("harness"),
+    type: "session_header",
+    formatVersion: 1,
+    harnessVersion: "0.1.0",
+    sdkVersion: "0.1.0-alpha.21",
+    defaultsHash: "abc123",
+    capabilities: [],
+    ablationHash: "none",
+    parent: { session: "s-parent", entryId: "e4" },
+    product: { name: "triage", version: "1.0.0", bundleHash: "sha256:jkl" },
+  },
+] as const satisfies readonly SessionEntry[];

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-puts-the-protocol-its-transports-and-the-cli-over-the-harness) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N2](../ongoing/N2-session-entries-schema.md), [B11](../done/B11-loop-core.md), [B15](../done/B15-signed-pauses.md) |
+| Depends on | [N2](../done/N2-session-entries-schema.md), [B11](../done/B11-loop-core.md), [B15](../done/B15-signed-pauses.md) |
 | Size | M |
 
 ## Goal
