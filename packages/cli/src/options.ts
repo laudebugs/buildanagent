@@ -16,7 +16,7 @@ export interface CliOptions {
   readonly model?: Model;
   /** Tools to register besides the harness's own. They run in process: a `client_request` tool's call fails. */
   readonly tools?: readonly ToolRegistration[];
-  /** Permission rules added to the harness's default ask rules. */
+  /** Deny, ask and allow rules added to the harness's defaults. */
   readonly rules?: HostRules;
   /** The `fetch` that `--otlp-endpoint` sends spans with. Default the global one. */
   readonly fetch?: typeof globalThis.fetch;

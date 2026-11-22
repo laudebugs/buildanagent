@@ -1,6 +1,7 @@
 /**
  * What a command reads and writes. The binary gives it the process's standard streams, environment and folder; a
- * test or a host program gives it its own, so every command runs without a terminal.
+ * test or a host program gives it its own. Every command except `rpc` runs without a terminal, and `rpc` needs the byte
+ * `streams`.
  */
 import type { StdioInput, StdioOutput } from "@buildanagent/harness/server";
 

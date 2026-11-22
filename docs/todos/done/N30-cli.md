@@ -1,4 +1,4 @@
-# N30: CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay
+# N30: CLI: one-shot JSON mode, line-mode chat, `sessions` list, show, search and replay, and `rpc` over stdio
 
 | Field | Value |
 | --- | --- |
@@ -67,6 +67,6 @@ Line-mode approval UX may be rough; the protocol keeps it replaceable.
 ## Outcome
 
 - `buildanagent` runs `run`, `chat`, `resume`, `sessions list|show|search|replay`, `keys rotate|prune`, `session unlock --force` and `rpc` over the harness's in-process and stdio transports, with a scripted model in every test and one spawn smoke test.
-- `--budget` caps each turn and each resume, not the session, because `turn/start` takes no budget; the README and help say so. The binary has no built-in tools until N21, and a `client_request` tool gets a tool error, since the CLI runs no client tools.
-- Known limit: if `approval/list` reads the log after a resume appends an answer but before its event arrives, the answer is dropped and a later settle is discarded.
-- The first code-review round found 10 findings (nine fixed; the tenth, the todo's place, was resolved by moving it after `rpc` landed).
+- `--budget` caps each turn and each resume, not the session, because `turn/start` carries no budget field, so the CLI sets the cap on the host instead; the README and help say so. The binary has no built-in tools until N21, and a `client_request` tool gets a tool error, since the CLI runs no client tools.
+- Known limit: a resume appends an answer to the log, and `approval/list` can read the log before that answer's event reaches the CLI. The CLI then drops the answer and ignores the turn's next settle. The user sees the chat print an awaiting-approval line while the turn still runs, and `resume <session>` recovers.
+- The approval prompt escapes control characters and shows every input field, because model text reaches it.

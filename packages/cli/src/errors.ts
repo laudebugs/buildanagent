@@ -1,29 +1,31 @@
-/**
- * `CliError`: the CLI's one error class. Each code maps to an exit status, so a script can tell a mistake in how the
- * command was called from a model or provider that could not be reached.
- */
+/** `CliError`: the CLI's one error class, with a `code` that says why the command could not run. */
 
 /** Why a `CliError` was thrown. */
 export type CliErrorCode =
+  /** An unknown command, flag or missing argument. */
   | "usage"
+  /** A command that calls a model was given no `--model`. */
   | "no_model"
+  /** The provider's key variable is unset. */
   | "missing_api_key"
+  /** Neither `--state-dir`, `XDG_STATE_HOME` nor `HOME` names a folder for sessions. */
   | "no_state_dir"
+  /** No stored session has the id given. */
   | "unknown_session"
+  /** The session refused a turn, such as one that another process is writing. */
   | "session_unavailable"
+  /** The `--otlp-endpoint` collector could not be reached or refused the spans. */
   | "otlp_failed"
+  /** `rpc` was run on a `CliIo` that gives no standard streams. */
   | "no_streams";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const CLI_ERROR = Symbol.for("buildanagent.cli.CliError");
 
 /**
- * Thrown for a command the CLI can't run as given. `usage`: an unknown command, flag or missing argument.
- * `no_model`: a command that calls a model was given no `--model`. `missing_api_key`: the provider's key variable is
- * unset. `no_state_dir`: neither `--state-dir`, `XDG_STATE_HOME` nor `HOME` names a folder for sessions.
- * `unknown_session`: no stored session has the id given. `session_unavailable`: the session refused a turn, such as one
- * that another process is writing. `otlp_failed`: the `--otlp-endpoint` collector could not be reached or refused
- * the spans. `no_streams`: `rpc` was run on a `CliIo` that gives no standard streams.
+ * Thrown for a command the CLI can't run as given. `runCli()` reports one on standard error and exits 2, so a script
+ * reads `code` to tell a bad command line from a missing key or a session it can't use. A model or provider failure
+ * during a turn is a stop reason, so it exits 1.
  */
 export class CliError extends Error {
   override readonly name = "CliError";

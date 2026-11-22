@@ -9,5 +9,5 @@ export type { HostRules } from "./host.js";
 export { type CliIo, type CliStreams, linesOf } from "./io.js";
 export type { CliOptions } from "./options.js";
 
-/** The package's npm name, `@buildanagent/cli`. */
+/** The package name, `@buildanagent/cli`. */
 export const PACKAGE_NAME = "@buildanagent/cli";

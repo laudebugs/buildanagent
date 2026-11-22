@@ -11,7 +11,7 @@ The sections of README.md and every public export, generated from this package's
 - [Watch the cost and the context fill](README.md#watch-the-cost-and-the-context-fill)
 - [List, show, search and replay stored sessions](README.md#list-show-search-and-replay-stored-sessions)
 - [Fix a stuck lock or change the approval keys](README.md#fix-a-stuck-lock-or-change-the-approval-keys)
-- [Nothing leaves your machine unless a flag says where](README.md#nothing-leaves-your-machine-unless-a-flag-says-where)
+- [Nothing leaves your machine except the model call and the collector you name](README.md#nothing-leaves-your-machine-except-the-model-call-and-the-collector-you-name)
 - [Serve the protocol to another program with `rpc`](README.md#serve-the-protocol-to-another-program-with-rpc)
 - [Run the CLI from your own program](README.md#run-the-cli-from-your-own-program)
 
@@ -26,5 +26,5 @@ The sections of README.md and every public export, generated from this package's
 - `interface HostRules`: The permission rules a host adds to the harness's default ask rules.
 - `isCliError()`: True for a `CliError`, including one from another copy of the package.
 - `linesOf()`: Splits a stream of text or bytes into lines at `\n`, dropping a `\r` before it.
-- `PACKAGE_NAME`: The package's npm name, `@buildanagent/cli`.
+- `PACKAGE_NAME`: The package name, `@buildanagent/cli`.
 - `runCli()`: Runs the `buildanagent` command line `argv`, the arguments after the program's name, and resolves with the exit status.
