@@ -4,7 +4,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/01-generate-text.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 737,
+    "ms": 2133,
     "modelCalls": 0,
     "tail": "ok - result.text is the model's answer\nok - one step without tools\nok - finishReason is 'stop'\nok - usage reports input and output tokens\nok - instructions arrive as the system message\nok - a system message in `messages` throws InvalidPromptError by default\nok - allowSystemInMessages: true accepts it"
   },
@@ -13,7 +13,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/02-tool-loop.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 635,
+    "ms": 1793,
     "modelCalls": 0,
     "tail": "ok - default: no final text, because the loop stopped after the tool step\nok - execute() gets parsed input with schema defaults applied\nok - two steps: tool call, then answer\nok - the tool result is sent back to the model\nok - the final step's text is the result\nok - invalid input: execute() is not called\nok - invalid input: the step records a tool-error\nok - invalid input: the loop continues so the model can recover"
   },
@@ -22,7 +22,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/03-tool-approval.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 701,
+    "ms": 2311,
     "modelCalls": 0,
     "tail": "ok - approved: the model then answers\nok - the first call ends with one manual approval request\nok - the tool has not run, and the loop stopped\nok - denied by the user: the tool never runs\nok - denied by the user: the model sees an execution-denied result\nok - denied by the user: the model can still answer\nok - 'denied' policy: the tool never runs\nok - 'denied' policy: the loop continues without asking"
   },
@@ -31,7 +31,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/04-prepare-step.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 568,
+    "ms": 2408,
     "modelCalls": 0,
     "tail": "ok - prepareStep(0) sees the 0 earlier step(s)\nok - prepareStep(1) sees the 1 earlier step(s)\nok - prepareStep runs before each step\nok - step 0: only the active tool is offered\nok - step 0: toolChoice forces the tool\nok - step 1: activeTools [] offers no tools\nok - the loop finishes with the model's answer"
   },
@@ -40,7 +40,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/05-structured-output.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 771,
+    "ms": 2057,
     "modelCalls": 0,
     "tail": "ok - result.output is the parsed, typed object\nok - the request asks for JSON with the schema's name\nok - the request carries the JSON Schema\nok - a response that fails the schema rejects with NoObjectGeneratedError\nok - result.output throws NoOutputGeneratedError when the last step ended on tool calls"
   },
@@ -49,7 +49,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/06-streaming.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 716,
+    "ms": 1851,
     "modelCalls": 0,
     "tail": "ok - textStream yields several chunks (4)\nok - the chunks join to the full text\nok - result.text resolves to the full text\nok - result.finishReason resolves after the stream\nok - result.stream yields lifecycle and text-delta parts\nok - text-delta parts carry the text in `text`\nok - onEnd fires once the stream is consumed"
   },
@@ -58,7 +58,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/07-agent-stop-conditions.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 678,
+    "ms": 2032,
     "modelCalls": 0,
     "tail": "ok - default: the agent stops after 20 steps\nok - default: hitting the cap logs a warning\nok - isStepCount(3) stops after 3 steps\nok - an explicit stopWhen logs no warning\nok - hasToolCall('finalAnswer') stops right after that tool's step\nok - the final tool result is on the result"
   },
@@ -67,7 +67,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/08-mcp-tools.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 656,
+    "ms": 1995,
     "modelCalls": 0,
     "tail": "ok - client.tools() exposes the server's tools by name\nok - the client initialises, then sends tools/call\nok - the MCP result goes back to the model\nok - the loop completes with the model's answer"
   },
@@ -76,7 +76,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/09-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 682,
+    "ms": 1228,
     "modelCalls": 0,
     "tail": "ok - step 1 looks up the order\nok - the refund waits for approval\nok - no refund before approval\nok - after approval the refund runs exactly once\nok - the agent returns a typed triage record\nok - three model calls in all: lookup, refund request, final answer\nok - the final call asks for JSON\nRefunded A-1 after a double charge."
   },
@@ -85,7 +85,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/10-streaming-usage.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 651,
+    "ms": 1469,
     "modelCalls": 0,
     "tail": "ok - result.text equals the folded deltas\nok - input tokens total the three input classes (3,000)\nok - usage reports the uncached input tokens (1,000)\nok - usage reports the cache-read tokens (1,500)\nok - usage reports the cache-write tokens (500)\nok - usage reports the output tokens (200)\nok - the four classes cost 5,400,000 nano-dollars ($0.0054)\nok - billing every input token at the uncached rate would cost more"
   },
@@ -94,7 +94,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/11-tuned-vs-cached.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 799,
+    "ms": 1153,
     "modelCalls": 0,
     "tail": "ok - the uncached base call costs $0.00216\nok - the base call with its prefix cached costs $0.00096\nok - the tuned call costs $0.00112\nok - the tuned model pays twice the base rate on every token class\nok - the uncached base call costs more than the tuned call\nok - the cached base call costs less than the tuned call\nok - against the uncached prompt, a $30 training run breaks even after 28,847 requests\nok - against the cached prompt, the training run never breaks even"
   },
@@ -103,7 +103,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 724,
+    "ms": 1561,
     "modelCalls": 0,
     "tail": "ok - a call that fits the budget alone ($0.0249) is refused ...\nok - ... because $0.0114 is already spent\nok - the refused call never reached the model\nok - over the Messages format, an HTTP 529 costs one retry (3 requests for two calls)\nok - over the Messages format, the first call writes the prefix\nok - over the Messages format, the repeated prefix reads from the cache\nok - over the Messages format, a call that fits the budget alone ($0.0249) is refused ...\nok - ... because $0.0108 is already spent, and no request was sent"
   },
@@ -112,7 +112,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/13-approval-tamper.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 480,
+    "ms": 1215,
     "modelCalls": 0,
     "tail": "ok - unsigned: the edited call is accepted\nok - unsigned: the refund runs for the edited order, not the one shown\nok - the run pauses before the refund\nok - signed: the edited call fails signature verification\nok - signed: the tool never runs\nok - the run pauses before the refund\nok - signed, unedited: the approval is accepted\nok - signed, unedited: the refund runs for the order the reviewer saw"
   },
@@ -121,7 +121,7 @@
     "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/14-weak-check.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 499,
+    "ms": 754,
     "modelCalls": 0,
     "tail": "ok - the scripted agent answered with nothing\nok - the agent answered\nok - the weak check passes on an empty answer\nok - the strong check fails on an empty answer"
   }
