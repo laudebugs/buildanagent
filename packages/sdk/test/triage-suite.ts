@@ -34,7 +34,7 @@ export const TRIAGE_TOOLS = ["escalate", "lookup_customer", "submit_triage"];
 
 export const TICKET = "user@example.com says checkout fails with a 500. Triage it.";
 export const REASON = "Checkout returns 500 for every pro customer.";
-export const LOOKUP: ScriptedCall = { name: "lookup_customer", input: { email: "user@example.com" } };
+export const LOOKUP: ScriptedCall = { name: "lookup_customer", input: {} };
 export const ESCALATE: ScriptedCall = { name: "escalate", input: { reason: REASON } };
 export const BUG: Triage = { category: "bug", priority: "high", summary: "Checkout returns 500 for a pro customer." };
 const QUESTION: Triage = { category: "question", priority: "low", summary: "A pro customer asked about checkout." };
@@ -46,6 +46,7 @@ export function world() {
   const deps = (model: Model): TriageDeps => ({
     model,
     signer: testSigner(),
+    customerEmail: "user@example.com",
     findCustomer: async (email) => {
       seen.lookups.push(email);
       return { plan: "pro", openTickets: 2 };
@@ -184,6 +185,17 @@ function changedInput(loop: Loop, backend: Backend) {
   });
 }
 
+function trustedIdentity(loop: Loop, backend: Backend) {
+  test(`${backend.name}: the lookup answers for the signed-in customer, whatever email the model sends`, async () => {
+    const victim: ScriptedCall = { name: "lookup_customer", input: { email: "victim@example.com" } };
+    const { result, fixture, process } = await start(loop, backend, [{ calls: [victim] }, { calls: [submit(BUG)] }]);
+    fixture.assertComplete();
+    assert.equal(result.stopReason, "done");
+    assert.deepEqual(process.seen.lookups, ["user@example.com"], "the caller's customer, not the model's");
+    assertSurface(fixture);
+  });
+}
+
 function systemPromptReachesModel(loop: Loop, backend: Backend) {
   test(`${backend.name}: the system prompt reaches the model on every request`, async () => {
     const { result, fixture } = await start(loop, backend, [{ calls: [LOOKUP] }, { calls: [submit(BUG)] }]);
@@ -261,6 +273,7 @@ export function triageSuite(loop: Loop, backends: readonly Backend[]): void {
     forgedSignature(loop, backend);
     changedInput(loop, backend);
     stepCapAndBudget(loop, backend);
+    trustedIdentity(loop, backend);
     systemPromptReachesModel(loop, backend);
     hostToolsDenied(loop, backend);
   }

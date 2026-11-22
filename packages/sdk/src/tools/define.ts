@@ -66,7 +66,7 @@ export function preparedSchemaOf(tool: ToolDefinition<unknown, unknown>): Prepar
  * a raw JSON Schema does not compile or names a draft other than 2020-12 or 7, or a Standard Schema cannot describe
  * itself as JSON Schema.
  */
-export function defineTool<I, S = unknown>(definition: ToolDefinition<I, S>): ToolDefinition<I, S> {
+export function defineTool<I, S = unknown, A = unknown>(definition: ToolDefinition<I, S, A>): ToolDefinition<I, S, A> {
   const tool = Object.freeze({ ...definition });
   // Method parameters are bivariant, so a tool of any input type is a ToolDefinition<unknown, unknown>.
   preparedSchemaOf(tool as ToolDefinition<unknown, unknown>);

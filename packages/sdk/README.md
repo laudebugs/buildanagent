@@ -429,6 +429,39 @@ The input schema is either a Standard Schema or a raw JSON Schema object. A Stan
 
 `defineTool()` checks the tool once, when you call it. A name outside the tool-name rule, 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`, throws an `SdkError`. So does a schema that does not compile.
 
+## Tools read the signed-in user from `app`, never from an argument
+
+A tool that reads customer data must not take the customer as an argument. The model fills in arguments, so a prompt injection can send any customer's id. Pass what you know about the caller as the run's `app` option instead, and each tool reads it as `ctx.app`. The tool's third type parameter names the type:
+
+```ts
+interface Session {
+  readonly customerId: string;
+}
+
+const planTool = defineTool<{ topic: string }, unknown, Session>({
+  name: "get_plan",
+  description: "Look up the signed-in customer's plan.",
+  inputSchema: z.object({ topic: z.string() }),
+  async execute(_input, ctx) {
+    return { content: [{ type: "text", text: await findPlan(ctx.app.customerId) }] };
+  },
+});
+
+export function answerFor(session: Session) {
+  return run({ model, system, input, tools: [planTool], app: session });
+}
+```
+
+The model sees the tool's description and its `topic` argument, never `app`. If it sends `{ customerId: "cust-999" }` anyway, the tool still answers for `session.customerId`. A run whose tools declare an `app` type needs an `app` of that type, and leaving it out or passing another type fails to compile. The check relies on inference, so it does not apply when you give `run()` explicit type arguments, such as `run<Triage>()`: name both, `run<Triage, Session>()`, or none.
+
+Five rules keep the value trusted:
+
+- **Build it for each request.** Take `app` from the request's authenticated session. A value built once at module level, or held in a shared variable, hands one user's identity to every request. The SDK itself shares nothing between runs.
+- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`. The process that resumes a run passes `app` again, from its own session: `continueRun()` is typed to require it, and where the check does not apply, a call that leaves it out gives its tools `ctx.app === undefined`.
+- **The SDK does not copy it.** Every call of a run, and a nested run you pass it to, gets the same object, so pass an immutable value, such as a frozen object, that no tool can change for the others.
+- **A nested run starts with none.** `nestedRunDepth(ctx)` does not carry it. A tool that starts another agent passes `app: ctx.app` itself, only when the child should act for the same user.
+- **It carries facts, not permission.** The tool or the system behind it still checks that this user may do what the call asks.
+
 ## A failed call becomes an error the model can fix
 
 Every tool call runs the same steps in order: find the tool by name, coerce the arguments, validate them, give `repair` one chance, then run `execute`. A failure the model caused, at any step, returns an error result to the model and throws nothing. When the model sends `"forty-two"` as the order number, it reads this:
@@ -583,7 +616,7 @@ Start each test file with `import "@buildanagent/gateway/testing/setup"`, which 
 
 ## The support-triage capstone shows the whole SDK working in one agent
 
-The capstone is the support-triage agent that each of the eight SDKs we verified implements, built on our SDK in [`examples/triage-agent.ts`](examples/triage-agent.ts). It gives the model a read-only `lookup_customer` tool, an `escalate` tool that waits for a person, and a `submit_triage` output tool. An audit observer records every call, the run stops after 8 steps, and a $0.25 budget stops it earlier. `startTriage()` runs the agent, and `resumeTriage()` resumes a paused run from its stored `context`, which can happen in another process that holds the same signing key.
+The capstone is the support-triage agent that each of the eight SDKs we verified implements, built on our SDK in [`examples/triage-agent.ts`](examples/triage-agent.ts). It gives the model a read-only `lookup_customer` tool that takes no identity argument, because it looks up the signed-in customer the caller set in `app`, an `escalate` tool that waits for a person, and a `submit_triage` output tool. An audit observer records every call, the run stops after 8 steps, and a $0.25 budget stops it earlier. `startTriage()` runs the agent, and `resumeTriage()` resumes a paused run from its stored `context`, which can happen in another process that holds the same signing key.
 
 The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a loop's `run` and `continueRun` and checks these behaviours on each backend. The backends are the scripted model and the Anthropic and Chat Completions mock transports:
 
@@ -594,6 +627,7 @@ The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a 
 - a stored input that no longer matches its signature runs nothing;
 - the step cap and the budget each end a runaway run;
 - every request offers only `lookup_customer`, `escalate` and `submit_triage`;
+- the lookup answers for the signed-in customer, whatever email the model sends;
 - a call to a host tool the agent never offered, such as `bash` or `write_file`, runs nothing and comes back to the model as an error;
 - the system prompt reaches the model on every request, on a resumed run too.
 
@@ -603,8 +637,8 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
-| Our capstone, the agent alone | 80 | 2 |
-| Our capstone with its cases and backends | 495 | 2 |
+| Our capstone, the agent alone | 83 | 2 |
+| Our capstone with its cases and backends | 510 | 2 |
 | Vercel AI SDK | 58 | |
 | Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |
