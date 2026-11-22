@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `N28` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-puts-the-protocol-its-transports-and-the-cli-over-the-harness) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N27](N27-dispatcher-core.md), [N13](../done/N13-signed-approvals.md) |
+| Depends on | [N27](../done/N27-dispatcher-core.md), [N13](../done/N13-signed-approvals.md) |
 | Size | M |
 
 ## Goal
