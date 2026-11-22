@@ -118,7 +118,7 @@ T22's first section, "A deny-first permission pipeline", teaches a pipeline that
 
 ADR 0036 is already in T22's Context, and U22 shows that neither ADR 0036 nor ADR 0039 treats a CI/CD diff differently from any other diff. That different treatment is U22 proposal 3, on hold with Round F, so the chapter may present the measured risk but not a rule we have adopted.
 
-**Proposed addition to `docs/todos/ready/T22-chapter-permissions-sandboxes-and-credentials.md`, `## Context`:**
+**Proposed addition to `docs/todos/ongoing/T22-chapter-permissions-sandboxes-and-credentials.md`, `## Context`:**
 
 > - [Agent research papers, tool-security section](../../research/papers/agent-research-papers.md#our-permission-pipeline-checks-what-a-tool-call-asks-to-do-but-not-what-the-tools-code-or-a-loaded-skill-actually-does) (U22): a permission pipeline judges a tool call by the tool's declared contract, and ACaM (arXiv 2611.23507) shows that contract can understate what the code does. Staron (arXiv 2611.23251) measured, across 932,791 coding-agent pull requests, far higher governance risk in changes to CI/CD workflows and permission settings than in application code. Both bear on the pipeline section and the incident opening; a stricter path for CI/CD diffs is U22 proposal 3, awaiting the owner, so present the risk, not a rule we have adopted.
 
