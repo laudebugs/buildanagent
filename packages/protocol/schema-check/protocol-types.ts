@@ -1,7 +1,7 @@
 // A compile-time check that `ProtocolMessage` and the type zod infers from the protocol schema's source accept the same
-// values, as schema-check/types.ts does for entries, under the same flag setting (see there). The one exception is the
-// SDK event inside an `event` notification, which the schema mirrors loosely, so those notifications are compared apart,
-// with the event left out and then with only the harness's own events.
+// values, as schema-check/types.ts does for entries, under the same flag setting (see schema-check/types.ts). The one
+// exception is the SDK event inside an `event` notification, which the schema mirrors loosely. So an `event`
+// notification is compared in two parts: first with the event left out, then with only the harness's own events.
 import type { HarnessEvent, ProtocolMessage } from "@buildanagent/protocol";
 import type { MirroredMessage } from "../scripts/protocol-schema.js";
 

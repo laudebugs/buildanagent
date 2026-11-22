@@ -86,7 +86,7 @@ None open. P4 moved the entry union into this package (R2), so the protocol neve
 
 **Decisions.**
 - **`push()` returns `FramedMessage[]`,** each `{ ok: true, value }` or `{ ok: false, error }`, and not the sketch's `unknown[]`. A throwing `push()` would lose the good lines after a bad one in the same chunk.
-- **The plan names only two results, so the rest are ours.** `session/create` and `session/open` return `{ session, head }`, `session/list` returns `{ sessions, nextCursor? }`, `turn/interrupt` returns `{ interrupted }`, `approval/list` returns `{ pending }`, and checkout and fork return `{ session, head }`. N27 implements them.
+- **The plan gives the results of two methods; we defined the rest.** `session/create` and `session/open` return `{ session, head }`, `session/list` returns `{ sessions, nextCursor? }`, `turn/interrupt` returns `{ interrupted }`, `approval/list` returns `{ pending }`, and checkout and fork return `{ session, head }`. N27 implements them.
 - **A server request's answer is `{ resolutions }` or `{ content, isError }`.** The plan left it open. An approval request is answered with the SDK's `Resolution`s, so one answer can settle a group.
 - **`TurnResultSummary` is `{ stopReason, steps, costUsd, error? }`.** The plan named the type without defining it.
 - **The SDK's `AgentEvent` is mirrored loosely in the schema.** Its 29 event types would be a second copy to keep in step with the SDK, so the schema checks `type` and the base fields, and a test compares the type list with the SDK's `AGENT_EVENT_TYPES`.
