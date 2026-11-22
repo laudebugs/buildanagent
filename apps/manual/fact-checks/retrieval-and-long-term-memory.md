@@ -180,12 +180,13 @@ The claims log for [`retrieval-and-long-term-memory.md`](../src/content/chapters
 | 123 | The harness plan's deferred tools and skills are covered by the chapter tools-at-scale, the next one, and that chapter's hardware-store clerk fetches tools from a back room | Carry | ✅ | `apps/manual/src/outline.ts`: `retrieval-and-long-term-memory` (line 76) precedes `tools-at-scale` (line 81); `tools-at-scale.md` line 48 opens with the hardware-store clerk who fetches from the back room. `memory-and-sessions` and `the-session-log-and-context` both precede this chapter in the outline, so their references stay in the past tense |
 | 124 | Exercise 3 reuses Exercise 2's script, so Exercise 2 keeps `examples/zz-recall.ts` and Exercise 3 ends by deleting it | Exercises | ✅ | Exercise 3 asks the reader to compute BM25's order "as you can compute with Exercise 2's script"; row 117 covers that the script runs offline from the harness folder |
 | 125 | The sentences of rows 12, 42 and 111 now carry "in our judgement", "our rule" or "in our reading" in the chapter, matching their ⚠️ verdicts | § Carry, § Rank, § Files | ✅ | Read in the chapter text after the edit; each ⚠️ row's reasoning is unchanged |
+| 126 | The writing review's three wording fixes change no claim: the harness plan's write rules now read as two sentences naming seven fields (row 72), the frozen prompt note says 'Freezing the prompt keeps the provider's prefix cache warm' (the note's claim is row 78's), and Exercise 1 is split into three labelled steps with the same instructions | § Memory, Exercises | ✅ | Compared the changed sentences with rows 72 and 78 and with the exercise text before the edit: the seven fields (subject, fact, source, type, created, last-validated, expiry), the frozen-prompt claim and every instruction of Exercise 1 are unchanged |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 112 |
+| ✅ confirmed | 113 |
 | ✏️ corrected | 3 (rows 11, 27 and 36) |
 | ⚠️ unverified: our inference or recommendation, marked as ours in the text, or an absence claim | 10 (rows 12, 13, 29, 42, 57, 89, 92, 103, 111 and 113) |
-| Total | 125 |
+| Total | 126 |
