@@ -20,7 +20,7 @@ The first research round could not fetch many of its seed sources because the ne
 - [Custom-harness notes](../../research/notes/custom-harness-architecture.md) and [frameworks notes](../../research/notes/oss-frameworks.md): the lists of unfetched seeds; left unchanged as historical notes
 - [R1 in the main fact-check](../../research/fact-check-2026-11-18.md#re-verification-against-primary-sources-r1): the corrections this round builds on
 - [MCP 2026-07-28 changelog](https://modelcontextprotocol.io/specification/2026-07-28/changelog): the primary source for every protocol claim
-- [N24](../ongoing/N24-mcp-stdio.md) and [N25](../ready/N25-mcp-http-background.md): the MCP client todos the findings bear on
+- [N24](../done/N24-mcp-stdio.md) and [N25](../ready/N25-mcp-http-background.md): the MCP client todos the findings bear on
 
 ## Scope
 

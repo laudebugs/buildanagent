@@ -50,6 +50,10 @@ const nodeOnlyFiles = new Set([
   "extensions/load.ts",
   "extensions/lock.ts",
   "extensions/trust-file.ts",
+  // The MCP client's stdio channel spawns a server as a child process, so it is Node-only by nature. It loads Node's
+  // modules with `process.getBuiltinModule()` when a server starts, so the `./mcp` entry still loads on every target,
+  // where an in-process server needs no Node.
+  "mcp/stdio.ts",
 ]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.

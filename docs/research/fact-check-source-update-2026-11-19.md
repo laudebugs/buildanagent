@@ -34,7 +34,7 @@ Legend: ✅ confirmed · ✏️ corrected in the report · ⚠️ unverified, wi
 | 20 | Clients must treat results without `resultType` as `"complete"` | MCP | ✅ | Changelog: "Clients MUST treat results from earlier-protocol servers that omit the field as 'complete'" |
 | 21 | List results carry `ttlMs` and `cacheScope` (SEP-2549); servers should order `tools/list` deterministically for prompt caching | MCP | ✅ | Changelog, "Minor changes"; the quotation matches |
 | 22 | `traceparent`, `tracestate` and `baggage` documented as `_meta` keys (SEP-414) | MCP | ✅ | Changelog, "Minor changes" |
-| 23 | N24 probes `server/discover` and falls back to `initialize` | MCP | ✅ | [N24](../todos/ongoing/N24-mcp-stdio.md), Scope |
+| 23 | N24 probes `server/discover` and falls back to `initialize` | MCP | ✅ | [N24](../todos/done/N24-mcp-stdio.md), Scope |
 | 24 | N25 already re-issues a request after a dropped stream | MCP | ✏️ | [N25](../todos/ready/N25-mcp-http-background.md), Tasks: "test a dropped stream with a re-issued request." That covers only the `subscriptions/listen` stream; corrected in row 69 |
 | 25 | Neither N24 nor N25 mentions `input_required`, the deprecated features, `ttlMs` or trace context | MCP | ✅ | `grep -i` for elicit, sampling, roots, MRTR, input_required, ttl and traceparent over both todos, `build-harness.md` and `build-coding-agent.md` finds none (the one "roots" hit is `writeRoots` in N17) |
 | 26 | The connectors report covers DCR deprecation and the passthrough ban | MCP | ✅ | [Connectors report](connectors/agent-connectors.md#mcp-2026-07-28-makes-the-connector-a-stateless-oauth-resource-server-and-deprecates-dynamic-registration) |
