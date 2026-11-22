@@ -32,6 +32,14 @@
     ],
     "example": "docs/plugins/index.md:161 Property 'beforeAgentCallback' in type 'CountInvocationPlugin' is not assignable to the same property in base type 'BasePlugin'."
   },
+  "call-shape": {
+    "errors": 2,
+    "files": [
+      "js__samples__flows__agent",
+      "js__samples__models__agent"
+    ],
+    "example": "adk-js/samples/flows/agent.ts:158 Argument of type 'import(\"/home/runner/work/buildanagent/buildanagent/node_modules/.pnpm/@google+genai@3.3.0_@modelcontextprotocol+sdk@1.32.2_@cfworker+json-sch"
+  },
   "state-get-default-narrows": {
     "errors": 1,
     "files": [

@@ -15,9 +15,9 @@
     "triage:docs": "node scripts/ahead-of-release.mjs && node scripts/mismatch-causes.mjs"
   },
   "dependencies": {
-    "@a2a-js/sdk": "0.3.14",
+    "@a2a-js/sdk": "1.3.0",
     "@google/adk": "2.5.0",
-    "@google/genai": "2.32.0",
+    "@google/genai": "3.3.0",
     "zod": "4.6.7"
   }
 }

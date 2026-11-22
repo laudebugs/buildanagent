@@ -394,14 +394,14 @@ importers:
   verify/google-adk:
     dependencies:
       '@a2a-js/sdk':
-        specifier: 0.3.14
-        version: 0.3.14(@grpc/grpc-js@1.14.7)(express@5.3.0)
+        specifier: 1.3.0
+        version: 1.3.0(@grpc/grpc-js@1.14.7)(express@5.3.0)
       '@google/adk':
         specifier: 2.5.0
         version: 2.5.0(@grpc/grpc-js@1.14.7)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7))(express@5.3.0)
       '@google/genai':
-        specifier: 2.32.0
-        version: 2.32.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7))
+        specifier: 3.3.0
+        version: 3.3.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7))
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -535,6 +535,34 @@ packages:
       '@grpc/grpc-js':
         optional: true
       express:
+        optional: true
+
+  '@a2a-js/sdk@1.3.0':
+    resolution: {integrity: sha512-OpK4nygUnLKlpTFZlM2IrYu7f3c/B7c4u4Z14+vgMq24lEINTVCxH/BqZx+GL92rNf7CoBL5oTP5UhNsl75yyg==}
+    engines: {node: '>=20'}
+    hasBin: true
+    peerDependencies:
+      '@bufbuild/protobuf': ^2.10.2
+      '@grpc/grpc-js': ^1.11.0
+      better-sqlite3: ^12.0.0 || ^13.0.0
+      express: ^4.21.2 || ^5.1.0
+      kysely: ^0.28.17 || ^0.29.0
+      mysql2: ^3.0.0
+      pg: ^8.0.0
+    peerDependenciesMeta:
+      '@bufbuild/protobuf':
+        optional: true
+      '@grpc/grpc-js':
+        optional: true
+      better-sqlite3:
+        optional: true
+      express:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
         optional: true
 
   '@ai-sdk/anthropic@4.0.96':
@@ -1789,6 +1817,15 @@ packages:
   '@google/genai@2.32.0':
     resolution: {integrity: sha512-60c79uXpR0a47bmGqDxbXEBuQUalNmwo5mx5kqb91jIW4FoqpsLSt86DeVhRhtH5+s/16Wqxt3sXzFQn2U1OHQ==}
     engines: {node: '>=20.0.0'}
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.25.2
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
+
+  '@google/genai@3.3.0':
+    resolution: {integrity: sha512-XLjXedj0X8UrULZz1GnlTMSQxBDFdr+NCKZkOBaSVVYqmK30C6FCnKW31Ppn0ItO9DpNspCHFui257kPNpumKQ==}
+    engines: {node: '>=22.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.25.2
     peerDependenciesMeta:
@@ -6399,6 +6436,13 @@ snapshots:
       '@grpc/grpc-js': 1.14.7
       express: 5.3.0
 
+  '@a2a-js/sdk@1.3.0(@grpc/grpc-js@1.14.7)(express@5.3.0)':
+    dependencies:
+      jose: 6.2.17
+    optionalDependencies:
+      '@grpc/grpc-js': 1.14.7
+      express: 5.3.0
+
   '@ai-sdk/anthropic@4.0.96(zod@4.6.7)':
     dependencies:
       '@ai-sdk/provider': 4.0.35
@@ -7789,6 +7833,19 @@ snapshots:
       - utf-8-validate
 
   '@google/genai@2.32.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7))':
+    dependencies:
+      google-auth-library: 10.9.1
+      p-retry: 4.6.2
+      protobufjs: 7.6.6
+      ws: 8.23.0
+    optionalDependencies:
+      '@modelcontextprotocol/sdk': 1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+
+  '@google/genai@3.3.0(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7))':
     dependencies:
       google-auth-library: 10.9.1
       p-retry: 4.6.2

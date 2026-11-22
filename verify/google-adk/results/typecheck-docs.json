@@ -5852,8 +5852,15 @@
     "complete": true,
     "probe": false,
     "elided": false,
-    "errors": [],
-    "status": "pass"
+    "errors": [
+      {
+        "line": 159,
+        "code": 2345,
+        "kind": "api",
+        "message": "Argument of type 'import(\"/home/runner/work/buildanagent/buildanagent/node_modules/.pnpm/@google+genai@3.3.0_@modelcontextprotocol+sdk@1.32.2_@cfworker+json-schema@4.1.6_zod@4.6.7_/node_modules/@google/genai/dist/genai\").GenerateContentResponse' is not assignable to parameter of type 'import(\"/home/runner/work/buildanagent/buildanagent/node_modules/.pnpm/@google+genai@2.32.0_@modelcontextprotocol+sdk@1.32.2_@cfworker+json-schema@4.1.6_zod@4.6.7_/node_modules/@google/genai/dist/genai\").GenerateContentResponse'."
+      }
+    ],
+    "status": "api-mismatch"
   },
   {
     "id": "js__samples__integrations__anthropic__agent",
@@ -6000,8 +6007,15 @@
     "complete": true,
     "probe": true,
     "elided": false,
-    "errors": [],
-    "status": "pass"
+    "errors": [
+      {
+        "line": 66,
+        "code": 2345,
+        "kind": "api",
+        "message": "Argument of type 'import(\"/home/runner/work/buildanagent/buildanagent/node_modules/.pnpm/@google+genai@3.3.0_@modelcontextprotocol+sdk@1.32.2_@cfworker+json-schema@4.1.6_zod@4.6.7_/node_modules/@google/genai/dist/genai\").GenerateContentResponse' is not assignable to parameter of type 'import(\"/home/runner/work/buildanagent/buildanagent/node_modules/.pnpm/@google+genai@2.32.0_@modelcontextprotocol+sdk@1.32.2_@cfworker+json-schema@4.1.6_zod@4.6.7_/node_modules/@google/genai/dist/genai\").GenerateContentResponse'."
+      }
+    ],
+    "status": "api-mismatch"
   },
   {
     "id": "js__samples__planners__agent",
