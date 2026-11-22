@@ -97,7 +97,9 @@ The harness now has a `SessionStore` with a memory and a JSONL backend and a con
 - `expectedLastId` is a compare-and-swap, where `null` means the session must not exist.
 - An entry over 64 KiB of JSON, in bytes, throws `EntryTooLargeError`, and a batch with one writes none of it.
 - The JSONL store writes one `appendFile` of whole lines and an `fsync`, then syncs the folder for a new file. A torn last line is skipped by `load()`, reported once, and cut off by the next append.
-- File names percent-encode every byte outside `A-Za-z0-9_-`, so `..` can't climb out of a user's folder.
+- File names percent-encode every byte outside `a-z0-9_-`, so `..` can't climb out of a user's folder and `Ada` can't collide with `ada` on a case-insensitive file system. A key whose encoded name is over 200 bytes is refused by both stores.
+- One process queues appends, loads and deletes per session, and keeps the state of the 64 logs used last.
+- A retry of a partly stored batch conflicts once another writer has extended the log.
 
 **Decisions.**
 - **`openSession` and `SessionLock.acquire` take the same `SessionKey`.** The todo recommended it, and the plan's sketch and N4's scope now say so, with N6 and N7 told to pass the key.

@@ -13,6 +13,7 @@ import {
   checkKey,
   DEFAULT_MAX_ENTRY_BYTES,
   type EntryInput,
+  encodeName,
   type LoadOptions,
   type LogState,
   planAppend,
@@ -24,7 +25,6 @@ import {
 } from "./store.js";
 
 const EXTENSION = ".jsonl";
-const MAX_NAME_BYTES = 200;
 
 /** The options of `jsonlStore()`. */
 export interface JsonlStoreOptions {
@@ -32,20 +32,6 @@ export interface JsonlStoreOptions {
   readonly dir: string;
   /** The bound on one entry's JSON, in bytes. Default 64 KiB. */
   readonly maxEntryBytes?: number;
-}
-
-// Every byte outside [A-Za-z0-9_-] becomes %XX, dots included, so no id can name `..` or climb out of its folder.
-function encodePart(part: string): string {
-  const name = [...new TextEncoder().encode(part)]
-    .map((byte) => {
-      const char = String.fromCharCode(byte);
-      return /[A-Za-z0-9_-]/.test(char) ? char : `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
-    })
-    .join("");
-  if (name.length > MAX_NAME_BYTES) {
-    throw new HarnessError("invalid_session_key", `a session name encodes to over ${MAX_NAME_BYTES} bytes`);
-  }
-  return name;
 }
 
 interface ReadLog {
@@ -120,6 +106,9 @@ interface Read {
   readonly exists: boolean;
 }
 
+// Enough for the sessions a process is working on; a log that falls out is read again from its file on the next append.
+const MAX_CACHED_LOGS = 64;
+
 class JsonlStore implements SessionStore {
   readonly #dir: string;
   readonly #maxBytes: number;
@@ -132,11 +121,33 @@ class JsonlStore implements SessionStore {
   }
 
   #userDir(userId: string): string {
-    return join(this.#dir, encodePart(userId));
+    return join(this.#dir, encodeName(userId));
   }
 
   #pathOf(key: SessionKey): string {
-    return join(this.#userDir(key.userId), `${encodePart(key.sessionId)}${EXTENSION}`);
+    return join(this.#userDir(key.userId), `${encodeName(key.sessionId)}${EXTENSION}`);
+  }
+
+  /** Runs `task` after every earlier task on this file, so one process's appends, deletes and loads never interleave. */
+  #queued<T>(path: string, task: () => Promise<T>): Promise<T> {
+    const turn = (this.#queues.get(path) ?? Promise.resolve()).then(task);
+    const tail = turn.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.#queues.set(path, tail);
+    // The entry is only needed while a task is waiting, so the map doesn't grow with every session ever touched.
+    void tail.then(() => {
+      if (this.#queues.get(path) === tail) this.#queues.delete(path);
+    });
+    return turn;
+  }
+
+  #remember(path: string, size: number, state: LogState): void {
+    this.#cache.delete(path);
+    this.#cache.set(path, { size, state });
+    const oldest = this.#cache.keys().next().value;
+    if (this.#cache.size > MAX_CACHED_LOGS && oldest !== undefined) this.#cache.delete(oldest);
   }
 
   /** The log's state, from the cache when the file is the size it was left at, and from the file otherwise. */
@@ -145,10 +156,10 @@ class JsonlStore implements SessionStore {
       (info) => info.size,
       () => -1,
     );
-    if (size < 0) return { state: stateOf([]), size: 0, torn: false, exists: false };
     const cached = this.#cache.get(path);
-    if (cached?.size === size) return { state: cached.state, size, torn: false, exists: true };
-    const log = (await readLog(path)) as ReadLog;
+    if (size >= 0 && cached?.size === size) return { state: cached.state, size, torn: false, exists: true };
+    const log = size < 0 ? undefined : await readLog(path);
+    if (log === undefined) return { state: stateOf([]), size: 0, torn: false, exists: false };
     return { state: stateOf(log.entries), size: log.goodBytes, torn: log.tornBytes > 0, exists: true };
   }
 
@@ -156,31 +167,33 @@ class JsonlStore implements SessionStore {
     const path = this.#pathOf(key);
     const { state, size, torn, exists } = await this.#read(path);
     const plan = planAppend(state, inputs, options, this.#maxBytes);
-    if (plan.fresh.length === 0) return plan.result;
-    await mkdir(this.#userDir(key.userId), { recursive: true });
+    if (plan.fresh.length === 0) return structuredClone(plan.result);
+    const created = await mkdir(this.#userDir(key.userId), { recursive: true });
+    // A folder this call made is only durable once the folder above it is.
+    if (created !== undefined) await Promise.all([syncFolder(join(created, "..")), syncFolder(this.#dir)]);
     // The unterminated tail was never acknowledged, so cutting it off loses nothing, and keeps the next line apart from it.
     if (torn) await truncate(path, size);
     const data = `${plan.fresh.map((entry) => JSON.stringify(entry)).join("\n")}\n`;
     await appendDurably(path, data, !exists);
-    const state2 = stateOf([...state.byId.values(), ...plan.fresh]);
-    this.#cache.set(path, { size: size + new TextEncoder().encode(data).length, state: state2 });
-    return plan.result;
+    this.#remember(
+      path,
+      size + new TextEncoder().encode(data).length,
+      stateOf([...state.byId.values(), ...plan.fresh]),
+    );
+    return structuredClone(plan.result);
   }
 
-  append(key: SessionKey, inputs: readonly EntryInput[], options?: AppendOptions): Promise<SessionEntry[]> {
+  async append(key: SessionKey, inputs: readonly EntryInput[], options?: AppendOptions): Promise<SessionEntry[]> {
     checkKey(key);
     const path = this.#pathOf(key);
-    const turn = (this.#queues.get(path) ?? Promise.resolve()).then(() => this.#appendNow(key, inputs, options));
-    this.#queues.set(
-      path,
-      turn.catch(() => undefined),
-    );
-    return turn;
+    return this.#queued(path, () => this.#appendNow(key, inputs, options));
   }
 
   async *load(key: SessionKey, options?: LoadOptions): AsyncGenerator<SessionEntry> {
     checkKey(key);
-    const log = await readLog(this.#pathOf(key));
+    const path = this.#pathOf(key);
+    // A load waits for the appends already queued, so it never sees a line that is still being written.
+    const log = await this.#queued(path, () => readLog(path));
     if (log === undefined) return;
     if (log.tornBytes > 0) options?.onTornLine?.({ bytes: log.tornBytes });
     const from = options?.fromSeq ?? 0;
@@ -191,21 +204,31 @@ class JsonlStore implements SessionStore {
     checkKey({ userId, sessionId: "-" });
     const dir = this.#userDir(userId);
     const files = await readdir(dir, { withFileTypes: true }).catch(() => []);
-    const names = files.filter((file) => file.isFile()).map((file) => file.name);
     const found: SessionSummary[] = [];
-    for (const name of names.filter((file) => file.endsWith(EXTENSION))) {
-      const sessionId = decodeURIComponent(name.slice(0, -EXTENSION.length));
-      const summary = summaryOf(sessionId, (await readLog(join(dir, name)))?.entries ?? []);
+    for (const file of files.filter((entry) => entry.isFile() && entry.name.endsWith(EXTENSION))) {
+      const summary = await this.#summary(dir, file.name);
       if (summary !== undefined) found.push(summary);
     }
     yield* found.sort(byAge);
   }
 
+  /** One file's summary, or `undefined` for a file the store didn't write or can't read, so one bad file hides no other. */
+  async #summary(dir: string, name: string): Promise<SessionSummary | undefined> {
+    try {
+      const sessionId = decodeURIComponent(name.slice(0, -EXTENSION.length));
+      return summaryOf(sessionId, (await readLog(join(dir, name)))?.entries ?? []);
+    } catch {
+      return undefined;
+    }
+  }
+
   async delete(key: SessionKey): Promise<void> {
     checkKey(key);
     const path = this.#pathOf(key);
-    this.#cache.delete(path);
-    await rm(path, { force: true });
+    await this.#queued(path, async () => {
+      this.#cache.delete(path);
+      await rm(path, { force: true });
+    });
   }
 }
 

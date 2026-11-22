@@ -148,6 +148,20 @@ function appendCases(open: (body: Body) => Promise<{ skipped: string } | undefin
 function conflictCases(open: (body: Body) => Promise<{ skipped: string } | undefined>): StoreCase[] {
   const cases: [string, Body][] = [
     [
+      "a retry of a partly stored batch conflicts once another writer has extended the log",
+      async ({ store }) => {
+        await store.append(ADA, [header()]);
+        await store.append(ADA, [record("a1", "h1")], { expectedLastId: "h1" });
+        await store.append(ADA, [record("b1", "a1")], { expectedLastId: "a1" });
+        await rejects(
+          () => store.append(ADA, [record("a1", "h1"), record("a2", "a1")], { expectedLastId: "h1" }),
+          (error) => error instanceof ConflictError,
+          "a1 is stored but is no longer the end of the log, so a2 must not be written after b1",
+        );
+        check(ids(await collect(store.load(ADA))).join() === "h1,a1,b1", "the retry wrote nothing");
+      },
+    ],
+    [
       "a stale expectedLastId is a ConflictError and writes nothing",
       async ({ store }) => {
         await rejects(
@@ -216,6 +230,72 @@ function validationCases(open: (body: Body) => Promise<{ skipped: string } | und
         );
         check((await collect(store.load(ADA))).length === 1, "the small entry before it was not written either");
         await store.append(ADA, [record("small", "h1", { text: "x".repeat(60 * 1024) })]);
+      },
+    ],
+  ];
+  return cases.map(([name, body]) => ({ name, run: () => open(body) }));
+}
+
+function identityCases(open: (body: Body) => Promise<{ skipped: string } | undefined>): StoreCase[] {
+  const cases: [string, Body][] = [
+    [
+      "a caller that changes an entry after appending it does not change the stored one",
+      async ({ store }) => {
+        const data = { a: 1 };
+        await store.append(ADA, [header(), record("r1", "h1", data)]);
+        data.a = 2;
+        const again = await store.append(ADA, [record("r1", "h1", { a: 1 })]);
+        check(again.length === 1, "a retry with the original content is still a retry");
+        await rejects(
+          () => store.append(ADA, [record("r1", "h1", { a: 2 })]),
+          (error) => error instanceof ConflictError,
+          "the changed content must conflict, because the stored entry did not change",
+        );
+        const [, stored] = await collect(store.load(ADA));
+        (stored as { data: { a: number } }).data.a = 9;
+        check(
+          ((await collect(store.load(ADA)))[1] as unknown as { data: { a: number } }).data.a === 1,
+          "a loaded entry is a copy",
+        );
+      },
+    ],
+    [
+      "ids that differ only in letter case are different users and sessions",
+      async ({ store }) => {
+        await store.append({ userId: "Ada", sessionId: "S1" }, [header("upper")]);
+        await store.append({ userId: "ada", sessionId: "s1" }, [header("lower")]);
+        check(
+          ids(await collect(store.load({ userId: "Ada", sessionId: "S1" }))).join() === "upper",
+          "Ada's S1 holds its own entries",
+        );
+        check(
+          ids(await collect(store.load({ userId: "ada", sessionId: "s1" }))).join() === "lower",
+          "and ada's s1 holds its own",
+        );
+        check((await collect(store.list("Ada"))).length === 1, "each user lists one session");
+      },
+    ],
+  ];
+  return cases.map(([name, body]) => ({ name, run: () => open(body) }));
+}
+
+function keyCases(open: (body: Body) => Promise<{ skipped: string } | undefined>): StoreCase[] {
+  const cases: [string, Body][] = [
+    [
+      "append rejects, and does not throw, for a key it can't use, and every store agrees on which keys those are",
+      async ({ store }) => {
+        const invalid = hasCode("invalid_session_key");
+        await rejects(
+          () => store.append({ userId: "", sessionId: "s" }, [header()]),
+          invalid,
+          "an empty user is refused",
+        );
+        await rejects(
+          () => store.append({ userId: "u", sessionId: "é".repeat(64) }, [header()]),
+          invalid,
+          "a name that encodes to over 200 bytes is refused by every store",
+        );
+        await store.append({ userId: "u", sessionId: "e".repeat(64) }, [header()]);
       },
     ],
     [
@@ -336,6 +416,8 @@ export function storeConformanceCases(factory: StoreFactory): readonly StoreCase
     ...appendCases(open),
     ...conflictCases(open),
     ...validationCases(open),
+    ...identityCases(open),
+    ...keyCases(open),
     ...listAndOwnerCases(open),
     ...tornCases(open),
   ];

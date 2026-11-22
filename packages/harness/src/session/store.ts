@@ -72,7 +72,22 @@ export interface SessionStore {
   delete(key: SessionKey): Promise<void>;
 }
 
-/** Throws a `HarnessError` with code `invalid_session_key` unless both parts are usable as a name. */
+/**
+ * A user or session id as a file name: every byte outside `[a-z0-9_-]` becomes `%XX`, capital letters and dots
+ * included, so no id can name `..`, climb out of its folder, or collide with another id on a file system that ignores case.
+ */
+export function encodeName(part: string): string {
+  return [...new TextEncoder().encode(part)]
+    .map((byte) => {
+      const char = String.fromCharCode(byte);
+      return /[a-z0-9_-]/.test(char) ? char : `%${byte.toString(16).toUpperCase().padStart(2, "0")}`;
+    })
+    .join("");
+}
+
+const MAX_NAME_BYTES = 200;
+
+/** Throws a `HarnessError` with code `invalid_session_key` unless both parts are usable as a name, in every backend. */
 export function checkKey(key: SessionKey): void {
   for (const [label, value] of [
     ["userId", key?.userId],
@@ -82,11 +97,12 @@ export function checkKey(key: SessionKey): void {
       typeof value !== "string" ||
       value === "" ||
       [...value].length > MAX_KEY_PART ||
-      [...value].some((char) => char.charCodeAt(0) < 32)
+      [...value].some((char) => char.charCodeAt(0) < 32) ||
+      encodeName(value).length > MAX_NAME_BYTES
     ) {
       throw new HarnessError(
         "invalid_session_key",
-        `a session ${label} must be 1 to ${MAX_KEY_PART} characters with no control characters`,
+        `a session ${label} must be 1 to ${MAX_KEY_PART} characters with no control characters, and fit in a file name once encoded`,
       );
     }
   }
@@ -129,7 +145,7 @@ function invalidEntry(why: string, cause?: unknown): never {
 /** Validates an entry with its assigned `seq`, through the protocol's own parser. */
 function validated(input: EntryInput, seq: number): SessionEntry {
   try {
-    return parseEntry({ ...input, seq });
+    return parseEntry(structuredClone({ ...input, seq }));
   } catch (cause) {
     return invalidEntry(`an entry is not valid: ${cause instanceof Error ? cause.message : String(cause)}`, cause);
   }
@@ -172,6 +188,9 @@ export function planAppend(
 ): AppendPlan {
   if (new Set(inputs.map((input) => input.id)).size !== inputs.length) invalidEntry("a batch repeats an entry id");
   const stored = storedPrefix(log, inputs);
+  if (stored.length > 0 && stored.length < inputs.length && stored.at(-1)?.id !== log.lastId) {
+    throw new ConflictError("the stored part of this batch is no longer the end of the log");
+  }
   if (stored.length === 0 && options?.expectedLastId !== undefined && options.expectedLastId !== log.lastId) {
     throw new ConflictError(
       `the log ends at ${JSON.stringify(log.lastId)}, not ${JSON.stringify(options.expectedLastId)}`,

@@ -173,3 +173,51 @@ test("a folder with files that aren't sessions is listed without them", async ()
     ["s1"],
   );
 });
+
+test("a delete queued behind an append leaves no log, and the session can be created again", async () => {
+  const store = jsonlStore({ dir: tempDir() });
+  await store.append(KEY, [header(), record("r1", "h1")]);
+  const appending = store.append(KEY, [record("r2", "r1")]);
+  const deleting = store.delete(KEY);
+  await Promise.all([appending, deleting]);
+  assert.deepEqual(await all(store.load(KEY)), [], "the delete ran after the append, so nothing is left");
+  await store.append(KEY, [header()], { expectedLastId: null });
+  assert.equal((await all(store.load(KEY))).length, 1);
+});
+
+test("a load that starts during an append waits for it, so it never sees a half-written line", async () => {
+  const store = jsonlStore({ dir: tempDir() });
+  const batch = [
+    header(),
+    ...Array.from({ length: 200 }, (_, i) => record(`r${i}`, i === 0 ? "h1" : `r${i - 1}`, { pad: "x".repeat(500) })),
+  ];
+  const appending = store.append(KEY, batch);
+  let torn = 0;
+  const loaded = await all(store.load(KEY, { onTornLine: () => (torn += 1) }));
+  await appending;
+  assert.equal(torn, 0);
+  assert.equal(loaded.length, batch.length);
+});
+
+test("one corrupt file, or a file the store didn't write, hides no other session from list()", async () => {
+  const dir = tempDir();
+  const store = jsonlStore({ dir });
+  await store.append(KEY, [header()]);
+  await store.append({ userId: "ada", sessionId: "bad" }, [header(), record("r1", "h1")]);
+  const bad = join(dir, "ada", "bad.jsonl");
+  const [first] = readFileSync(bad, "utf8").split("\n");
+  writeFileSync(bad, `${first}\n{"broken\n${first}\n`);
+  writeFileSync(join(dir, "ada", "50%.jsonl"), "{}\n");
+  assert.deepEqual(
+    (await all(store.list("ada"))).map((summary) => summary.sessionId),
+    ["s1"],
+  );
+});
+
+test("a rejected key rejects the promise and does not throw at the call", async () => {
+  for (const store of [memoryStore(), jsonlStore({ dir: tempDir() })]) {
+    const pending = store.append({ userId: "", sessionId: "s" }, [header()]);
+    assert.ok(pending instanceof Promise);
+    await assert.rejects(pending, (error) => isHarnessError(error) && error.code === "invalid_session_key");
+  }
+});
