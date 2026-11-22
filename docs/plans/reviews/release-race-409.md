@@ -28,7 +28,7 @@ Run A is [45067729944](https://github.com/laudebugs/buildanagent/actions/runs/45
 | 20:45:19 | B | The `publish` job fails; the `docs` job is skipped |
 | 20:45:40, 20:45:44 | | npm makes the harness and the CLI public |
 
-The npm times in the table are each version's entry in the package document's `time` field. For each package, that entry falls 75 to 187 seconds after run A's `npm publish` returned. The two earlier alphas show the same delay: the gateway at `0.1.0-alpha.26` went public 76 seconds after its publish returned, and at `0.1.0-alpha.27` 96 seconds after.
+The npm times in the table are each version's entry in the package document's `time` field. For each package, that entry falls 75 to 187 seconds after run A's `npm publish` returned, measured from the millisecond timestamps; the harness's 187 seconds run from 20:42:32.98 to 20:45:40.03, so the table's whole seconds read 188. The two earlier alphas show the same delay: the gateway at `0.1.0-alpha.26` went public 76 seconds after its publish returned, and at `0.1.0-alpha.27` 96 seconds after.
 
 ## The root cause is a 404 for a version npm has accepted but not yet made public
 
@@ -54,11 +54,14 @@ Two findings follow from the timeline:
 ```bash
 gh run list --repo laudebugs/buildanagent --workflow release.yml --branch main --limit 5 \
   --json databaseId,status,displayTitle --jq '.[] | select(.status != "completed")'
-version=$(node -p 'require("./packages/gateway/package.json").version')
-for pkg in gateway sdk agent-safety protocol harness cli; do npm view "@buildanagent/$pkg@$version" version; done
+version=$(gh api "repos/laudebugs/buildanagent/contents/packages/gateway/package.json?ref=main" \
+  -H "Accept: application/vnd.github.raw" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version')
+for pkg in gateway sdk agent-safety protocol harness cli; do
+  curl -fsS "https://registry.npmjs.org/@buildanagent%2f$pkg/$version" | node -p 'JSON.parse(require("fs").readFileSync(0, "utf8")).version'
+done
 ```
 
-The first check returns any release run that is queued, waiting or in progress. The second fails for a package npm hasn't made public yet. A coordinating session can run both before it merges anything into `main`.
+The first check returns any release run that is queued, waiting or in progress. The second reads the version from `main` itself, not from a local checkout that may be stale, and asks each package's version endpoint, which answers 404 until npm makes the version public; `curl -f` then fails, so the loop prints fewer than six version lines. A coordinating session can run both before it merges anything into `main`.
 
 The rule alone leaves a gap: two merges within seconds of each other, as here, can happen before anyone checks. Proposal (b) closes that gap in the workflow itself.
 
@@ -417,7 +420,9 @@ jobs:
 
   # Uploads the tarballs to npm through trusted publishing. Only a push to main gets here. The `release` environment
   # has no approval rule since the owner removed it on 2026-11-19, so the job runs unattended. It checks nothing out
-  # and installs nothing but npm. The timeout leaves room for the wait after a staged version (the publish step).
+  # and installs nothing but npm. The publish step waits for an accepted-but-not-public version only until one
+  # deadline, 10 minutes after the step starts, so the job's timeout stays well above the step's longest run and
+  # GitHub never cancels it mid-loop without an ::error:: line.
   publish:
     needs: pack
     if: >-
@@ -429,6 +434,8 @@ jobs:
     permissions:
       contents: write # the tag and the GitHub release
       id-token: write # the OIDC token npm exchanges for a short-lived publish token
+    outputs:
+      foreign: ${{ steps.publish.outputs.foreign }}
     env:
       VERSION: ${{ needs.pack.outputs.version }}
       TAG: ${{ needs.pack.outputs.tag }}
@@ -499,44 +506,82 @@ jobs:
       # A rerun after a partial failure skips what npm already holds. npm adds provenance on its own only from a public
       # repository; `--provenance` makes the publish fail instead of shipping a release without it. `--tag` names the
       # dist-tag, which npm requires for a prerelease, so an alpha never moves `latest`. The order is RELEASE_ORDER's,
-      # dependencies first, so npm never holds a package whose workspace dependency at that version is missing.
+      # dependencies first, so npm never accepts a package's upload before the uploads of its workspace dependencies at
+      # that version. The order holds for the uploads only: npm makes accepted versions public in its own order, so a
+      # package can be public for a few seconds while a dependency it names still answers 404.
       #
-      # npm makes an accepted publish public a minute or more after `npm publish` returns, and until then the version
+      # npm makes an accepted publish public about 1 to 3 minutes after `npm publish` returns. Until then the version
       # answers 404 but can't be published again: npm answers E409 "Cannot publish over previously staged version"
       # (docs/plans/reviews/release-race-409.md). A run that follows another's publish closely can see that 404. On
-      # that one error, and no other, the step waits for the version to go public and then accepts it only if it is
-      # the release this workflow makes: under the run's dist-tag, with SLSA provenance for the tarball npm holds, from
-      # this repository's release.yml on a push to main. Anything else fails the job, as any other npm error does.
+      # that one error, and no other, the step polls the package's registry document, the one the checker reads, until
+      # it holds the version under the run's dist-tag. It then accepts the version only if it is the release this
+      # workflow makes: with SLSA provenance for the tarball npm holds, from this repository's release.yml on a push to
+      # main. Every wait in the step shares one deadline, 10 minutes after the step starts. Anything else fails the job,
+      # as any other npm error does.
+      #
+      # An accepted version may have been built from another commit on main than this run's. The step then records
+      # foreign=true, and the next step creates no tag and no GitHub release, so a release never points at a commit
+      # whose code npm doesn't hold.
       - name: Publish each tarball, gateway first
+        id: publish
         env:
           REPO: ${{ github.repository }}
           REPO_ID: ${{ github.repository_id }}
         run: |
           set -euo pipefail
+          # Exit 0: accepted, with the provenance commit written to the file named by the last argument. Exit 2: not
+          # public yet, so poll again. Exit 1: a failed check, named in the ::error:: line.
           cat > "$RUNNER_TEMP/check-staged.mjs" <<'EOF'
-          const [name, version, distTag, repo, repoId] = process.argv.slice(2);
+          import { writeFileSync } from "node:fs";
+          const [name, version, distTag, repo, repoId, commitFile] = process.argv.slice(2);
           const SLSA = "https://slsa.dev/provenance/v1";
           const fail = (message) => {
             console.log(`::error::${name}@${version} ${message}, so this run won't treat it as released.`);
             process.exit(1);
           };
-          const get = async (url) => {
-            const response = await fetch(url, { headers: { accept: "application/json" } });
-            if (!response.ok) fail(`couldn't be checked: ${url} answered ${response.status}`);
-            return response.json();
+          const wait = (message) => {
+            console.log(`${name}@${version} ${message}; polling again.`);
+            process.exit(2);
           };
-          const packument = await get(`https://registry.npmjs.org/${name.replace("/", "%2f")}`);
+          const get = async (url, onError) => {
+            let response;
+            try {
+              response = await fetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(30000) });
+            } catch (error) {
+              wait(`couldn't be read: ${url} failed with ${error.message}`);
+            }
+            if (!response.ok) onError(`couldn't be checked: ${url} answered ${response.status}`);
+            try {
+              return await response.json();
+            } catch {
+              onError(`couldn't be checked: ${url} didn't answer JSON`);
+            }
+          };
+          const packument = await get(`https://registry.npmjs.org/${name.replace("/", "%2f")}`, wait);
           const manifest = packument.versions?.[version];
-          if (!manifest) fail("is missing from the package's registry document");
+          if (!manifest) wait("isn't in the package's registry document yet");
           const tagged = packument["dist-tags"]?.[distTag];
-          if (tagged !== version) fail(`isn't under the dist-tag ${distTag}, which names ${tagged}`);
+          if (tagged !== version) wait(`isn't under the dist-tag ${distTag} yet, which names ${tagged}`);
           const { attestations, integrity } = manifest.dist ?? {};
-          if (attestations?.provenance?.predicateType !== SLSA) fail("has no SLSA provenance");
-          const bundle = await get(attestations.url);
-          const slsa = bundle.attestations?.find((entry) => entry.predicateType === SLSA);
+          if (attestations?.provenance?.predicateType !== SLSA || typeof attestations.url !== "string") {
+            fail("has no SLSA provenance");
+          }
+          const bundle = await get(attestations.url, fail);
+          const slsa = Array.isArray(bundle?.attestations)
+            ? bundle.attestations.find((entry) => entry?.predicateType === SLSA)
+            : undefined;
           if (!slsa) fail("has no SLSA attestation at its attestations URL");
-          const statement = JSON.parse(Buffer.from(slsa.bundle.dsseEnvelope.payload, "base64").toString("utf8"));
-          const { externalParameters, internalParameters, resolvedDependencies } = statement.predicate.buildDefinition;
+          const payload = slsa.bundle?.dsseEnvelope?.payload;
+          if (typeof payload !== "string") fail("has an SLSA attestation without a DSSE payload");
+          let statement;
+          try {
+            statement = JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
+          } catch {
+            fail("has an SLSA attestation whose payload isn't JSON");
+          }
+          const buildDefinition = statement?.predicate?.buildDefinition;
+          if (!buildDefinition || typeof buildDefinition !== "object") fail("has an SLSA statement without a buildDefinition");
+          const { externalParameters, internalParameters, resolvedDependencies } = buildDefinition;
           const workflow = externalParameters?.workflow ?? {};
           const want = { repository: `https://github.com/${repo}`, path: ".github/workflows/release.yml", ref: "refs/heads/main" };
           for (const [key, value] of Object.entries(want)) {
@@ -546,14 +591,19 @@ jobs:
           if (github.event_name !== "push") fail(`was built on a ${github.event_name} event, not a push`);
           if (github.repository_id !== repoId) fail(`was built in repository id ${github.repository_id}, not ${repoId}`);
           const purl = `pkg:npm/${name.replace("@", "%40")}@${version}`;
-          const digest = statement.subject?.find((subject) => subject.name === purl)?.digest?.sha512;
+          const subjects = Array.isArray(statement.subject) ? statement.subject : [];
+          const digest = subjects.find((subject) => subject?.name === purl)?.digest?.sha512;
           const held = Buffer.from(String(integrity).replace(/^sha512-/, ""), "base64").toString("hex");
           if (!digest || digest !== held) fail("has provenance for a different tarball than the one npm holds");
-          const commit = resolvedDependencies?.[0]?.digest?.gitCommit;
+          const commit = Array.isArray(resolvedDependencies) ? resolvedDependencies[0]?.digest?.gitCommit : undefined;
+          if (typeof commit !== "string" || !/^[0-9a-f]{40}$/.test(commit)) fail("has provenance that names no commit");
+          writeFileSync(commitFile, commit);
           console.log(`${name}@${version} is on npm under ${distTag}, published by release.yml from ${commit}.`);
           EOF
+          deadline=$((SECONDS + 600))
+          foreign=false
           for pkg in gateway sdk agent-safety protocol harness cli; do
-            status=$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/@buildanagent%2f$pkg/$VERSION")
+            status=$(curl -sS --retry 3 --max-time 30 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/@buildanagent%2f$pkg/$VERSION")
             case "$status" in
               200) echo "@buildanagent/$pkg@$VERSION is already on npm; skipping it."; continue ;;
               404) ;;
@@ -566,24 +616,42 @@ jobs:
             if ! grep -q '^npm error code E409$' "$log" || ! grep -qF "Cannot publish over previously staged version \"$VERSION\"" "$log"; then
               exit 1
             fi
-            echo "npm holds a staged @buildanagent/$pkg@$VERSION from an earlier publish; waiting up to 8 minutes for it to go public."
-            deadline=$((SECONDS + 480))
-            until [ "$(curl -sS --retry 3 -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/@buildanagent%2f$pkg/$VERSION")" = "200" ]; do
+            echo "npm has accepted @buildanagent/$pkg@$VERSION from an earlier publish but not made it public; waiting for it until the step's deadline."
+            while :; do
+              rc=0
+              node "$RUNNER_TEMP/check-staged.mjs" "@buildanagent/$pkg" "$VERSION" "$DIST_TAG" "$REPO" "$REPO_ID" "$RUNNER_TEMP/commit-$pkg" || rc=$?
+              case "$rc" in
+                0) break ;;
+                2) ;;
+                *) exit 1 ;;
+              esac
               if [ "$SECONDS" -ge "$deadline" ]; then
-                echo "::error::@buildanagent/$pkg@$VERSION is still staged, not public, 8 minutes after npm refused to publish over it."
+                echo "::error::@buildanagent/$pkg@$VERSION still isn't public under $DIST_TAG 10 minutes after the publish step started. This run published nothing after it; a re-run of the publish job skips what npm holds by then."
                 exit 1
               fi
               sleep 15
             done
-            node "$RUNNER_TEMP/check-staged.mjs" "@buildanagent/$pkg" "$VERSION" "$DIST_TAG" "$REPO" "$REPO_ID"
+            commit=$(cat "$RUNNER_TEMP/commit-$pkg")
+            if [ "$commit" != "$SHA" ]; then
+              foreign=true
+              echo "::warning::@buildanagent/$pkg@$VERSION on npm was built from $commit, not from this run's commit $SHA, so this run creates no tag and no GitHub release."
+            fi
           done
+          echo "foreign=$foreign" >> "$GITHUB_OUTPUT"
       # Creating the release creates the tag at the released commit, the run's own. A tag that `release.yml` pushes
-      # with GITHUB_TOKEN starts no workflow, so the docs deploy is started by the next job instead.
+      # with GITHUB_TOKEN starts no workflow, so the docs deploy is started by the next job instead. When npm holds a
+      # version built from another commit, the step stops before it tags anything: a tag at this run's commit would
+      # name code that npm doesn't hold, and the provenance commit comes from a statement this job doesn't verify.
       - name: Tag the release and create its GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          FOREIGN: ${{ steps.publish.outputs.foreign }}
         run: |
+          if [ "$FOREIGN" != "false" ]; then
+            echo "::warning::npm holds $VERSION from another commit on main, so this run doesn't tag $TAG at $SHA. If the GitHub release $TAG doesn't exist, create it by hand at the commit the warnings above name."
+            exit 0
+          fi
           if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
             echo "The GitHub release $TAG already exists."
             exit 0
@@ -608,12 +676,13 @@ jobs:
 
   # Deploys the docs for the new tag (DS4). A workflow_dispatch sent with GITHUB_TOKEN still creates a run, unlike the
   # tag push. Skipped, not failed, while docs-deploy.yml doesn't exist yet (L8), and for a prerelease, because the
-  # production docs follow stable releases only; next.docs follows main in the meantime.
+  # production docs follow stable releases only; next.docs follows main in the meantime. Skipped too when the publish
+  # job created no tag, because npm held the version from another commit.
   docs:
     needs: [pack, publish]
     if: >-
       ${{ !cancelled() && needs.publish.result == 'success' && needs.pack.outputs.docs_deploy == 'true' &&
-      needs.pack.outputs.prerelease == 'false' }}
+      needs.pack.outputs.prerelease == 'false' && needs.publish.outputs.foreign == 'false' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
