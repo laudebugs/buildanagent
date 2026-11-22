@@ -120,7 +120,7 @@ Round L runs beside Round B. L1, L5 and L7 can start now. The release takes two 
 | [L4b](../todos/done/L4b-release-0-1-0.md) | Add the trusted publishers, publish 0.1.0-alpha.0 through trusted publishing, publish an alpha on every package change, switch on the changeset gate | L4a | S |
 | [L5](../todos/ready/L5-docs-app.md) | `apps/docs` on Starlight, with the docs structure and the first pages | B3 | M |
 | [L6](../todos/ready/L6-api-reference.md) | The API reference from TSDoc, and TypeDoc's undocumented-export check | L1, L5 | M |
-| [L7](../todos/ready/L7-website-app.md) | `apps/site`, the website for `buildanagent.fyi` | None | S |
+| [L7](../todos/done/L7-website-app.md) | `apps/site`, the website for `buildanagent.fyi` | None | S |
 | [L8](../todos/ready/L8-cloudflare-deploys.md) | Deploy workflows for both sites, with per-PR Previews | L5, L7 | M |
 
 B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff stay in B20; its revision moves the docs site and the first export diff here.
