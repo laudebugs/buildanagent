@@ -48,13 +48,19 @@ export interface JsonlStoreOptions {
   /**
    * How long to keep a session. Without it the store never deletes or moves a file. With it, the first time the store
    * touches a user's sessions, it archives or purges that user's expired ones (see `pruneSessions()`), and it never does
-   * so again in the background. An archived session is still listed and loaded, and a write restores it.
+   * so in the background. A pass that had an error runs again on the first touch at least a minute after it ended. An
+   * archived session is still listed and loaded, and a write restores the file it writes to.
    */
   readonly retention?: Retention;
   /** The writer lock, so that expiry leaves a session whose writer is running. Only used with `retention`. */
   readonly lock?: SessionLock;
-  /** Called with an error that stopped expiry, which never stops the session that triggered it. */
+  /**
+   * Called with each error of an expiry pass: one for each session that failed to expire, or the one that stopped the
+   * pass. Expiry never stops the call that triggered it, and an error this callback throws is ignored.
+   */
   readonly onRetentionError?: (error: unknown) => void;
+  /** The clock expiry reads, for its cutoff and for when a failed pass may run again. Default `new Date()`. */
+  readonly now?: () => Date;
 }
 
 interface ReadLog {
@@ -132,12 +138,23 @@ interface Read {
 
 // Enough for the sessions a process is working on; a log that falls out is read again from its file on the next append.
 const MAX_CACHED_LOGS = 64;
+// An archived file never changes in place, so its summary is kept by path, size and time; this bounds the memory.
+const MAX_CACHED_SUMMARIES = 1024;
+// How long a failed expiry pass waits before a touch of the same user runs it again.
+const RETRY_AFTER_MS = 60_000;
+
+interface Expiry {
+  readonly done: Promise<void>;
+  /** When a failed pass may run again, set once the pass has ended with an error. */
+  retryAt?: number;
+}
 
 class JsonlStore implements SessionStore {
   readonly #dir: string;
   readonly #maxBytes: number;
   readonly #options: JsonlStoreOptions;
-  readonly #expiry = new Map<string, Promise<void>>();
+  readonly #expiry = new Map<string, Expiry>();
+  readonly #archived = new Map<string, { size: number; mtimeMs: number; summary: SessionSummary | undefined }>();
   readonly #cache = new Map<string, { size: number; state: LogState }>();
   readonly #queues = new Map<string, Promise<unknown>>();
 
@@ -148,24 +165,52 @@ class JsonlStore implements SessionStore {
     if (options.retention !== undefined) checkRetention(options.retention);
   }
 
-  /** Expires a user's sessions once, the first time this store touches them. A failure is reported and never thrown. */
+  #now(): number {
+    return (this.#options.now?.() ?? new Date()).getTime();
+  }
+
+  /**
+   * Expires a user's sessions the first time this store touches them, and again after a failed pass once its wait is
+   * over. A failure is reported and never thrown, so the returned promise always resolves.
+   */
   #expire(userId: string): Promise<void> {
     const { retention } = this.#options;
     if (retention === undefined) return Promise.resolve();
-    let done = this.#expiry.get(userId);
-    if (done === undefined) {
-      done = pruneSessions({
+    const known = this.#expiry.get(userId);
+    if (known !== undefined && (known.retryAt === undefined || this.#now() < known.retryAt)) return known.done;
+    const expiry: Expiry = {
+      done: this.#prune(userId, retention).then((failed) => {
+        if (failed) expiry.retryAt = this.#now() + RETRY_AFTER_MS;
+      }),
+    };
+    this.#expiry.set(userId, expiry);
+    return expiry.done;
+  }
+
+  /** One expiry pass. Resolves to whether it had an error, and never rejects. */
+  async #prune(userId: string, retention: Retention): Promise<boolean> {
+    try {
+      const result = await pruneSessions({
         dir: this.#dir,
         userId,
         retention,
+        now: () => new Date(this.#now()),
         ...(this.#options.lock === undefined ? {} : { lock: this.#options.lock }),
-      }).then(
-        () => undefined,
-        (error: unknown) => this.#options.onRetentionError?.(error),
-      );
-      this.#expiry.set(userId, done);
+      });
+      for (const { error } of result.errors) this.#report(error);
+      return result.errors.length > 0;
+    } catch (error) {
+      this.#report(error);
+      return true;
     }
-    return done;
+  }
+
+  #report(error: unknown): void {
+    try {
+      this.#options.onRetentionError?.(error);
+    } catch {
+      /* the callback's own failure must not stop the session, nor every later call for the user */
+    }
   }
 
   /** The log in the live file, or else in its archive. */
@@ -330,18 +375,36 @@ class JsonlStore implements SessionStore {
       const sessionId = decodeURIComponent(basename(path).slice(0, -extension.length));
       if (seen.has(sessionId)) return undefined;
       seen.add(sessionId);
-      const log =
-        extension === EXTENSION ? await readLog(path) : parseLog((await readArchive(path)) ?? Buffer.alloc(0), path);
-      return summaryOf(sessionId, log?.entries ?? []);
+      if (extension === EXTENSION) return summaryOf(sessionId, (await readLog(path))?.entries ?? []);
+      return await this.#archivedSummary(sessionId, path);
     } catch {
       return undefined;
     }
+  }
+
+  /** An archived file's summary, unpacked once and then kept while the file keeps its size and modification time. */
+  async #archivedSummary(sessionId: string, path: string): Promise<SessionSummary | undefined> {
+    const info = await stat(path);
+    const cached = this.#archived.get(path);
+    if (cached !== undefined && cached.size === info.size && cached.mtimeMs === info.mtimeMs) {
+      return structuredClone(cached.summary);
+    }
+    const bytes = await readArchive(path);
+    if (bytes === undefined) return undefined;
+    const summary = summaryOf(sessionId, parseLog(bytes, path).entries);
+    this.#archived.delete(path);
+    this.#archived.set(path, { size: info.size, mtimeMs: info.mtimeMs, summary });
+    const oldest = this.#archived.keys().next().value;
+    if (this.#archived.size > MAX_CACHED_SUMMARIES && oldest !== undefined) this.#archived.delete(oldest);
+    return structuredClone(summary);
   }
 
   async delete(key: SessionKey): Promise<void> {
     checkKey(key);
     const path = this.#pathOf(key);
     await this.#queued(path, async () => {
+      // A delete waits for expiry like every other call, so a pass that is moving this file can't bring it back.
+      await this.#expire(key.userId);
       this.#cache.delete(path);
       await rm(path, { force: true });
       await rm(archivePath(this.#dir, key.userId, key.sessionId), { force: true });
@@ -355,7 +418,7 @@ class JsonlStore implements SessionStore {
  * the next append cuts off before it writes. Names are percent-encoded, so no id can reach another user's folder. A
  * log's state is cached by file size, so one process appends without rereading the file, and another process's write
  * is seen on the next append. Appends to one session from one process run one at a time, and a second process needs the
- * writer lock. With `retention`, expired sessions are gzipped into `<dir>/archive/<user>/` or deleted, and without it
+ * writer lock. With `retention`, expired sessions are gzipped into `<dir>/.archive/<user>/` or deleted, and without it
  * no file is ever deleted or moved.
  */
 export function jsonlStore(options: JsonlStoreOptions): SessionStore {
