@@ -1,6 +1,6 @@
 ---
 title: "Asking before acting: approvals, guardrails and prompt injection"
-summary: An approval pauses an agent before a risky tool call and resumes it from a saved copy of the run. This chapter shows how three SDKs save and resume that pause, what happens when someone edits the saved call, why an approval is only one gate beside guardrails, and why prompt injection can be contained but not prevented.
+summary: An approval pauses an agent before a risky tool call and resumes it from a saved copy of the run. This chapter shows how our SDK and three others save and resume that pause, what happens when someone edits the saved call, why an approval is only one gate beside guardrails, and why prompt injection can be contained but not prevented.
 opening: fact
 sources: [openai-agents-human-in-the-loop, ai-sdk-tool-approvals, langchain-human-in-the-loop, openai-practical-guide-to-building-agents, openai-agents-guardrails, owasp-llm01-prompt-injection, owasp-llm06-excessive-agency, willison-lethal-trifecta]
 glossary: [approval, guardrail, prompt-injection, lethal-trifecta]
@@ -15,9 +15,15 @@ An approval is therefore more than a click. It is a pause saved as data, a decis
 
 A model never runs a tool; it asks, and the SDK decides whether the call runs now. With approval switched on for a tool, the SDK decides "not yet". It ends the run with the call still pending and hands you what you need to continue later. The SDK has not refused the call, and nothing has run. The run is paused, and the next run starts from wherever you saved it.
 
-Each of the three SDKs below marks a tool in one line. The AI SDK takes a `toolApproval` rule per tool, the OpenAI Agents SDK takes a `needsApproval` function on the tool, and LangChain takes an `interruptOn` entry in its human-in-the-loop middleware [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
+The policy, resume and tamper listings in this chapter open on our own SDK and then show the same step on other SDKs. As of November 2026 our SDK, `@buildanagent/sdk`, is an alpha release, so its names may still change. It signs and checks pauses with code it copies byte for byte from `@buildanagent/agent-safety`, a private package that no listing can import, so every tab on our SDK runs that code. The guardrail listings further on stay single, and the section that holds them says why.
+
+Each SDK below marks a tool in one line. Our SDK runs a `beforeToolCall` gate that returns `ask` for the tool. The AI SDK takes a `toolApproval` rule per tool, the OpenAI Agents SDK takes a `needsApproval` function on the tool, and LangChain takes an `interruptOn` entry in its human-in-the-loop middleware [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
 
 ::::tabs
+:::listing[Our SDK]{#policy-ours file="packages/sdk/examples/11-approval-resume.ts" region="gate"}
+::note[The tool that changes data. Its `execute` runs only after approval.]{#tool}
+::note[The gate: `ask` pauses this tool's calls for a person, and `allow` runs any other tool's calls. The third decision is `deny`{checked=row-64}.]{#rule}
+:::
 :::listing[AI SDK]{#policy-ai file="verify/vercel-ai-sdk/examples/03-tool-approval.ts" region="approval-policy"}
 ::note[The tool that changes data. Its `execute` runs only after approval.]{#tool}
 ::note[The rule: this tool waits for a person. `"user-approval"` is one of four statuses; the others run the tool normally, approve it automatically or deny it.]{#rule}
@@ -37,9 +43,17 @@ Each SDK stops in a different shape, because each keeps the paused run in a diff
 ::svg{alt="Three columns. On the left, run 1: the model asks for the refund, and the SDK does not run the tool, so the run ends. In the middle, a store saved by your code holds the messages, the pending call issue_refund with order A-1, and an approval id. On the right, a person decides to approve or reject, run 2 starts from the stored copy, and an approved tool runs exactly once. A note says the decision may come hours later, in another process."}
 :::
 
-The AI SDK's pause is the message array itself: the first call returns a request for approval, you append the person's answer to the messages and call again. The OpenAI Agents SDK returns a list of `interruptions` and a `RunState` that serialises to a string; you approve or reject each interruption on that state and run again with it. LangChain interrupts the graph, saves its state under the thread's id, and resumes when you invoke the same thread with a `Command` that carries the decisions [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
+Our SDK ends the run with `stopReason` set to `awaiting_approval`, and the result holds one signed request for each waiting call. Its saved copy is the result's `context`, plain JSON that holds the messages, those requests and the input each one signs. You pass the context back to `continueRun()` with a list of resolutions, one answer per request. The AI SDK's pause is the message array itself: the first call returns a request for approval, you append the person's answer to the messages and call again. The OpenAI Agents SDK returns a list of `interruptions` and a `RunState` that serialises to a string; you approve or reject each interruption on that state and run again with it. LangChain interrupts the graph, saves its state under the thread's id, and resumes when you invoke the same thread with a `Command` that carries the decisions [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
 
 ::::tabs
+:::listing[Our SDK]{#resume-ours file="packages/sdk/examples/11-approval-resume.ts" region="resume"}
+::note[`scripted` puts our SDK's test model behind the gateway, as in [[ch:call-workflow-loop]], so the example needs no key. It plays back one call to `issue_refund`.]{#mock}
+::note[The run ends `awaiting_approval` with its request in `pending`, and the example's checks confirm that the tool has not run.]{#pause}
+::note[The context becomes a string, the thing you would store, and a second run reads it back.]{#save}
+::note[The second run builds its own signer over the same key, as a second server would. A signer over another key could not verify the first run's request.]{#signer}
+::note[The answer names its request by id. `decision` is `"allow"` or `"deny"`, and `by` records who answered; the SDK does not check it.]{#answer}
+::note[`continueRun()` verifies the request, and then runs the tool once with the input the request signs, or gives the model a denial.]{#resume}
+:::
 :::listing[AI SDK]{#resume-ai file="verify/vercel-ai-sdk/examples/03-tool-approval.ts" region="approval-response"}
 ::note[The first call ends with a request for approval, and the example's checks confirm that the tool has not run.]{#pause}
 ::note[The person's answer goes into the messages as a response to that request's id. `approved` is `true` or `false`.]{#answer}
@@ -56,9 +70,12 @@ The AI SDK's pause is the message array itself: the first call returns a request
 :::
 ::::
 
-All three keep the same promise. The tool does not run before the decision, and it runs exactly once after an approval. A rejection never runs it either: the AI SDK's model reads an `execution-denied`{checked=row-14} result, the OpenAI SDK's model receives the rejection message, and LangChain's model reads a tool message about the rejection, and each model can still answer [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop]. [[lst:approval-replay]] replays the AI SDK's pause so you can see where the run ends.
+All four keep the same promise. The tool does not run before the decision, and it runs exactly once after an approval. A rejection never runs it either: our SDK's model reads an error result that says the approver denied the call, the AI SDK's model reads an `execution-denied`{checked=row-14} result, the OpenAI SDK's model receives the rejection message, and LangChain's model reads a tool message about the rejection, and each model can still answer [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop]. [[lst:approval-replay-ours]] and [[lst:approval-replay]] replay the pause on our SDK and on the AI SDK so you can see where each run ends.
 
-::listing[The AI SDK pauses before the refund and runs it after the answer]{#approval-replay file="verify/vercel-ai-sdk/examples/03-tool-approval.ts" region="approval-response" replay}
+::::tabs
+::listing[Our SDK]{#approval-replay-ours file="packages/sdk/examples/11-approval-resume.ts" region="resume" replay}
+::listing[AI SDK]{#approval-replay file="verify/vercel-ai-sdk/examples/03-tool-approval.ts" region="approval-response" replay}
+::::
 
 A pause saved as data survives what a waiting process does not. OpenAI's guide describes the flow as "designed to be interruptible for longer periods of time without keeping your server running", and tells you to keep the serialised state "in application-controlled storage, such as a server-side database" [@openai-agents-human-in-the-loop]. A person can therefore answer after lunch, from a different server, in a Slack thread. The same fact is the risk: whatever sits in storage is what the second run will trust.
 
@@ -70,9 +87,15 @@ Think of :analogy[a bank's second signature on a large payment]{#second-signatur
 ::svg{alt="Two cards side by side with the word like between them. The left card is a payment order: pay Acme Ltd, amount 4,000, signed M. Okafor. The right card is an approved tool call: tool issue_refund, orderId A-1, signature HMAC. Under the left card, a note says that if the amount changes to 40,000 the teller refuses it. Under the right card, a note says that if the orderId changes to Z-9 the signature no longer matches. A line at the bottom says the signature covers exactly what will run."}
 :::
 
-A saved run does not behave like that by default. [[lst:tamper-ai]] and [[lst:tamper-openai]] each pause a refund for order A-1, edit the saved copy to order Z-9 and then approve.
+A saved run does not behave like that by default. [[lst:tamper-ours]], [[lst:tamper-ai]] and [[lst:tamper-openai]] each pause a refund for order A-1, edit the saved copy to order Z-9 and then approve.
 
 ::::tabs
+:::listing[Our SDK]{#tamper-ours file="packages/sdk/examples/12-approval-tamper.ts" region="tamper"}
+::note[Anyone who can write to the stored context can do this: the replacement changes the order id in the saved call and in the saved input that the request signs.]{#edit}
+::note[The resume is the same as in [[lst:resume-ours]], with an allow for the original request. The example turns the events into a list of causes so it can check them.]{#resume}
+::note[The edited input no longer matches the signed hash, so the run rejects the answer with the cause `input_changed` before the tool runs.]{#rejected}
+::note[The run pauses again with a new request, signed over the call as the edited context now reads. A person must decide on Z-9, and the old allow covers nothing.]{#again}
+:::
 :::listing[AI SDK]{#tamper-ai file="verify/vercel-ai-sdk/examples/13-approval-tamper.ts" region="tamper"}
 ::note[The pause is the same as in [[lst:resume-ai]].]{#pause}
 ::note[Anyone who can write to the stored messages can do this: one replacement changes the order id in the saved tool call.]{#edit}
@@ -84,7 +107,9 @@ A saved run does not behave like that by default. [[lst:tamper-ai]] and [[lst:ta
 :::
 ::::
 
-The outcome depends on the SDK and on one setting. With no secret, the AI SDK accepted the edited history and ran the refund for Z-9. The OpenAI SDK did the same, and its documentation says why: the restore does not authenticate the snapshot or the person submitting it, so the application must verify them [@openai-agents-human-in-the-loop]. With `experimental_toolApprovalSecret`{checked=row-19} set, the AI SDK rejected the edited call with an `InvalidToolApprovalSignatureError` before the tool ran. The SDK signs each approval request with an HMAC when it issues the request and verifies the signature when the approval comes back, and the signature binds the tool name, the call id and the input, so changing any one invalidates it [@ai-sdk-tool-approvals]. Its documentation asks for a random secret of at least 32 bytes, shared by every server instance that may handle a later request. The OpenAI and LangChain pages describe no such signature [@openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
+The outcome depends on the SDK and, for the AI SDK, on one setting. With no secret, the AI SDK accepted the edited history and ran the refund for Z-9. The OpenAI SDK did the same, and its documentation says why: the restore does not authenticate the snapshot or the person submitting it, so the application must verify them [@openai-agents-human-in-the-loop]. With `experimental_toolApprovalSecret`{checked=row-19} set, the AI SDK rejected the edited call with an `InvalidToolApprovalSignatureError` before the tool ran. The SDK signs each approval request with an HMAC when it issues the request and verifies the signature when the approval comes back, and the signature binds the tool name, the call id and the input, so changing any one invalidates it [@ai-sdk-tool-approvals]. Its documentation asks for a random secret of at least 32 bytes, shared by every server instance that may handle a later request. The OpenAI and LangChain pages describe no such signature [@openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
+
+Our SDK has no such setting, because `run()` signs every pause it writes. With no `signer` option it uses a random key that lives in the process, which suits one process, and `hmacSigner()` over a shared key serves a pause that another process resumes. The edit in [[lst:tamper-ours]] failed the check with the cause `input_changed`. The refund did not run for A-1 or for Z-9, and the run paused again with a new request for the call as the edited context now reads. A person who approves that new request would still run Z-9, so the signature protects the decision, not the reviewer's judgment. The example's other checks show two more edits that fail. A hash rewritten to match Z-9 fails with `signature_invalid`{checked=row-71}, because only the holder of the key can sign. An edit to the call in the transcript alone changes nothing, because an approved call runs with the input its request signs, never with the transcript's arguments.
 
 A safe SDK, or a safe server around an unsafe one, therefore does four things:
 
@@ -93,7 +118,9 @@ A safe SDK, or a safe server around an unsafe one, therefore does four things:
 3. **It learns who decided from the session, not from the request.** OpenAI's guide says to authenticate the reviewer with the application's session and "never obtain the authenticated identity from the approval request body" [@openai-agents-human-in-the-loop].
 4. **It lets a decision count once.** OpenAI's guide tells the server to consume the pending request atomically, so a replayed submission cannot resume the same snapshot twice [@openai-agents-human-in-the-loop].
 
-A reviewer may still change a call on purpose. LangChain's `edit`{checked=row-24} decision lets a person modify the arguments before the tool runs, and its documentation advises small changes, because a large one may make the model rethink its approach [@langchain-human-in-the-loop]. An edit like that is a decision the system records and the reviewer sees. The edit in [[lst:tamper-ai]] is a change nobody decided. Your code should be able to tell the two apart, and the signature is what lets it.
+Our SDK covers the first two of these four, and leaves the last two to your application. It signs the request over the call id, tool name and input hash, and a `recheck`{checked=row-73} function that you pass to `continueRun()` runs current policy just before an approved call runs. It does not know who answered, because `by` is text from your code that the signature does not cover. It refuses two answers for one request inside a single `continueRun()` call, but it cannot see your other processes, so your store must mark a request used before you resume.
+
+A reviewer may still change a call on purpose. LangChain's `edit`{checked=row-24} decision lets a person modify the arguments before the tool runs, and its documentation advises small changes, because a large one may make the model rethink its approach [@langchain-human-in-the-loop]. Our SDK has no edit decision: an answer is allow or deny, and a gate that wants another input returns it with `ask`, so the request signs that input. An edit like that is a decision the system records and the reviewer sees. The edit in [[lst:tamper-ai]] is a change nobody decided. Your code should be able to tell the two apart, and the signature is what lets it.
 
 ## An approval is one gate of several: guardrails check what goes in, what comes out and what a tool is about to do
 
@@ -114,6 +141,8 @@ The guide lists seven kinds. [[tbl:guardrail-types]] gives each in the guide's w
 :::
 
 The last row connects guardrails to approvals. The guide rates a tool by whether it only reads or also writes, whether the call can be undone, which account permissions it needs and what it costs, and it says to use the rating "to trigger automated actions, such as pausing for guardrail checks before executing high-risk functions or escalating to a human" [@openai-practical-guide-to-building-agents]. Its examples of calls that should reach a person are cancelling orders, authorising large refunds and making payments. The refund tool in this chapter is a high-risk tool by that rule, which is why it carries an approval.
+
+Our SDK has no guardrail feature, so the guardrail listings below and [[lst:injection-check]] show only the OpenAI Agents SDK. It has no input, output or tool guardrail objects, no tripwire exception and no parallel mode. Its checks are the six interceptors of [[ch:events-and-hooks]]: `beforeModelCall`{checked=row-75} can end a run before a model call by returning a stop, `afterModelCall`{checked=row-75} can replace the model's response, and the `beforeToolCall` gate from the first section is the tool check.
 
 The OpenAI Agents SDK turns the first rows of the table into three families that attach to an agent: input guardrails, output guardrails and tool guardrails [@openai-agents-guardrails]. The families run in different places. An input guardrail runs only for the first agent in a chain, an output guardrail only for the agent that gives the final answer, and a tool guardrail around each call of the function tool it is attached to, so a workflow with handoffs needs tool guardrails on the tools whose calls you want checked [@openai-agents-guardrails]. [[lst:guardrails-input]] shows a blocking input guardrail and [[lst:guardrails-output]] an output guardrail.
 
