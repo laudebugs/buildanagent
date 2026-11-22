@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { FAKE_GH } from "./fake-gh.mjs";
 import {
+  commandLine,
   lockfileProblems,
   manifestProblems,
   newestEligible,
@@ -299,6 +300,27 @@ describe("planMatrix", () => {
       "::error::verify/unmapped: names no package for unmapped",
     ]);
     assert.equal(allFailed, false);
+  });
+
+  test("registry text and error messages can't start a workflow command of their own", async () => {
+    const hostile = `^1\n::add-mask::secret\r::error::forged 100%\u001b[2J${String.fromCharCode(0x2028)}x`;
+    const docs = {
+      main: { versions: { "1.0.0": { dependencies: { dep: hostile } } }, time: { "1.0.0": OLD_TIME } },
+      dep: releases,
+    };
+    const reg = async (name) => {
+      if (name === "boom") throw new Error("HTTP 500\n::add-mask::token\n::warning::forged");
+      return docs[name];
+    };
+    const harnessLoad = (harness) => (harness === "bad" ? pinning("main", "boom") : pinning("main", "dep"));
+    const { log } = await planMatrix(["good", "bad"], harnessLoad, reg, NOW);
+    assert.deepEqual(log, [
+      "::warning::verify/good: holds dep at 1.0.0: main@1.0.0 declares ^1%0A::add-mask::secret%0D::error::forged 100%25\\x1b[2J\\x2028x, which this script can't evaluate",
+      "::error::verify/bad: HTTP 500%0A::add-mask::token%0A::warning::forged",
+    ]);
+    for (const line of log)
+      assert.ok(![...line].some((c) => c.codePointAt(0) < 0x20 || c.codePointAt(0) === 0x2028), line);
+    assert.equal(commandLine(undefined, "a\nb"), "a%0Ab");
   });
 
   test("the plan fails when every harness does", async () => {

@@ -637,6 +637,28 @@ function mainPackage(harness) {
 }
 
 /**
+ * One line for the job log: an `::error::` or `::warning::` workflow command when `command` names one, else plain
+ * text. Messages hold registry text, such as a range a release declares, paths from an update's patch and error
+ * messages, so the message is encoded as GitHub encodes command data (`%` as %25, CR as %0D, LF as %0A) and every
+ * other control character is written as `\xNN`. The line then can't end early and start a command of its own, such
+ * as `::add-mask::`.
+ */
+export function commandLine(command, message) {
+  const encoded = String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A");
+  let data = "";
+  for (const char of encoded) {
+    const code = char.codePointAt(0);
+    // C0 and C1 controls, DEL, and the Unicode line and paragraph separators.
+    const control = code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
+    data += control ? `\\x${code.toString(16).padStart(2, "0")}` : char;
+  }
+  return `${command ? `::${command}::` : ""}${data}`;
+}
+
+/** A commandLine about `harness`, prefixed with its folder so no message can begin the line. */
+const logLine = (command, harness, message) => commandLine(command, `verify/${harness}: ${message}`);
+
+/**
  * Plans every harness in `names`. `load(harness)` returns its `{ manifest, main }`. A harness whose plan throws, as on
  * a registry error, gets an `::error::` line and is left out, so the others' updates still reach the matrix. Returns
  * the matrix, the lines for the job log, and whether every harness failed.
@@ -651,11 +673,14 @@ export async function planMatrix(names, load, registry, now = Date.now()) {
       const { manifest, main } = load(harness);
       planned = await planBumps(manifest, main, registry, now);
     } catch (error) {
-      log.push(`::error::verify/${harness}: ${error.message}`);
+      log.push(logLine("error", harness, error?.message ?? error));
       failed++;
       continue;
     }
-    for (const note of planned.notes) log.push(note.replace(/^(::warning::)?/, `$1verify/${harness}: `));
+    for (const note of planned.notes) {
+      const warning = note.startsWith("::warning::");
+      log.push(logLine(warning ? "warning" : undefined, harness, warning ? note.slice("::warning::".length) : note));
+    }
     const { bumps } = planned;
     if (bumps.length > 0) include.push({ harness, bumps: bumps.map((b) => `${b.name}@${b.to}`).join(" ") });
   }
@@ -702,7 +727,7 @@ if (command === "plan") await plan();
 else if (command === "apply" && arg && rest.length === 1) await apply(arg, rest[0]);
 else if (command === "check" && arg && rest.length === 3) {
   const problems = checkUpdate(process.cwd(), arg, ...rest);
-  for (const problem of problems) process.stderr.write(`::error::sdk-updates check: ${problem}\n`);
+  for (const problem of problems) process.stderr.write(`${commandLine("error", `sdk-updates check: ${problem}`)}\n`);
   if (problems.length > 0) process.exit(1);
   process.stdout.write(`The ${arg} update changes only its pins, its results and the lockfile.\n`);
 } else if (command !== undefined) {
