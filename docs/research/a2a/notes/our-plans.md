@@ -37,7 +37,7 @@ The harness's wire protocol is a client-to-harness protocol (HD6), not an agent-
 - HD6: "Strict JSON-RPC 2.0 … Version 1 ships these client methods: `initialize`, `session/create`, … The server sends three requests: `approval/request`, `clarification/request` and `tool/call`" — [harness plan, HD6](../../../plans/build-harness.md#hd6-strict-json-rpc-20-with-the-jsonrpc-field-and-twelve-v1-methods).
 - Subagents are log links: `{ type: "subagent_link"; childSession: string; spawningCallId?: string; stepId?: string }` — [harness plan, line 323](../../../plans/build-harness.md).
 - The agent guide's fourth question: "Is the work broad, parallel, too large for one context and valuable enough to pay for it? Only then consider subagents." — [agent guide, line 30](../../../guides/agent.md).
-- T42 will show "an orchestrator that calls a subagent as a tool. The subagent works in its own context and returns only a summary" — [T42](../../../todos/ongoing/T42-example-subagent.md).
+- T42 will show "an orchestrator that calls a subagent as a tool. The subagent works in its own context and returns only a summary" — [T42](../../../todos/done/T42-example-subagent.md).
 - The MCP client lands in Stage 5 (N24, N25) on `@modelcontextprotocol/client`, and must handle MCP 2026-07-28's `input_required` result by pausing the turn through N13 — [source-update report](../../source-update-2026-11-19.md), the table of proposed changes.
 
 ## Open questions for the report

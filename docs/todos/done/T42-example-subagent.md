@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T42` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md) |
@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T17's todo, [T17](T17-chapter-choosing-the-shape.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T17's todo, [T17](../ready/T17-chapter-choosing-the-shape.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 
@@ -36,18 +36,18 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 ## Tasks
 
-- [ ] Use the pinned SDK's agents-as-tools pattern, `agent.asTool()` in `@openai/agents` 0.21.0 (`agent.d.ts`), with both agents on `ScriptedModel`.
-- [ ] Assert with `check()` that the subagent's messages never enter the orchestrator's transcript, that only the summary does, and that the usage of both runs is reported.
-- [ ] Script both models so that, without a real model, the example shows the token multiplier the chapter cites.
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Use the pinned SDK's agents-as-tools pattern, `agent.asTool()` in `@openai/agents` 0.21.0 (`agent.d.ts`), with both agents on `ScriptedModel`.
+- [x] Assert with `check()` that the subagent's messages never enter the orchestrator's transcript, that only the summary does, and that the usage of both runs is reported.
+- [x] Script both models so that, without a real model, the example shows the token multiplier the chapter cites.
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
 - [ ] Draft the example's header comment and README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts` or reference, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] No mock model in the example calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] No mock model in the example calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -62,11 +62,15 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 - The SDK may not support the behaviour offline; record the limit in the chapter todo and the harness README instead of writing an example that only pretends.
 
+## Outcome
+
+`verify/openai-agents-sdk/examples/12-subagent-as-tool.ts` runs an orchestrator and a research subagent, each on its own `ScriptedModel`, with the subagent behind `agent.asTool()`. Its checks pass offline: the orchestrator's transcript holds only the summary, each run's `rawResponses` report that run's tokens (800 and 2400), and the orchestrator's `result.state.usage` counts both (3200, 4× its own). The SDK supports the behaviour offline, so no limit needed recording; one finding goes to the chapter instead. The nested run shares the orchestrator's run context (`guides/context.mdx`), so the subagent's `state.usage` is the shared running total, and the example reads the subagent's own tokens from its `rawResponses`. The example's verdict joins `results/run-examples.json`, and its transcript is `results/transcripts/12-subagent-as-tool.json`; two runs wrote it byte for byte. The claims are logged in [the example's fact-check log](../../plans/reviews/fact-check-openai-subagent-example.md), rows T42-1 to T42-11. The writing review is left for the pull request, after the code reviews.
+
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
