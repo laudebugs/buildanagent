@@ -4,7 +4,7 @@
 // cases assert only what a loop without observers can show, because the reference loop has none. capstone.test.ts
 // checks the audit trail.
 import assert from "node:assert/strict";
-import type { Model } from "@buildanagent/gateway";
+import type { Message, Model } from "@buildanagent/gateway";
 import type { AgentEvent, Context, ContinueOptions, Resolution, RunInput, RunOptions } from "@buildanagent/sdk";
 import { testSigner } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
@@ -114,6 +114,7 @@ function approvedEscalation(loop: Loop, backend: Backend) {
     assert.deepEqual(second.process.seen.escalations, [REASON]);
     assert.deepEqual(first.process.seen.escalations, []);
     assert.deepEqual(second.process.seen.lookups, [], "the resume does not look the customer up again");
+    assert.deepEqual(second.fixture.systemPrompts(), [SYSTEM_PROMPT], "the resumed run keeps the system prompt");
     assertSurface(first.fixture, second.fixture);
   });
 }
@@ -183,6 +184,54 @@ function changedInput(loop: Loop, backend: Backend) {
   });
 }
 
+function systemPromptReachesModel(loop: Loop, backend: Backend) {
+  test(`${backend.name}: the system prompt reaches the model on every request`, async () => {
+    const { result, fixture } = await start(loop, backend, [{ calls: [LOOKUP] }, { calls: [submit(BUG)] }]);
+    fixture.assertComplete();
+    assert.equal(result.stopReason, "done");
+    const prompts = fixture.systemPrompts();
+    assert.equal(prompts.length, 2, "the run made two requests");
+    for (const prompt of prompts) assert.equal(prompt, SYSTEM_PROMPT);
+  });
+}
+
+/** Tools that a coding or shell agent offers, which a triage agent never defines. */
+const HOST_TOOLS: readonly ScriptedCall[] = [
+  { name: "bash", input: { command: "cat /etc/passwd" } },
+  { name: "read_file", input: { path: "/etc/passwd" } },
+  { name: "write_file", input: { path: "/tmp/x", content: "x" } },
+];
+
+function hostToolsDenied(loop: Loop, backend: Backend) {
+  test(`${backend.name}: a call to a host tool the agent never offered runs nothing and the model recovers`, async () => {
+    const { result, fixture, process } = await start(loop, backend, [
+      { calls: HOST_TOOLS },
+      { calls: [LOOKUP] },
+      { calls: [submit(BUG)] },
+    ]);
+    fixture.assertComplete();
+    assert.equal(result.stopReason, "done");
+    assert.deepEqual(outputOf(result), BUG);
+    const asked = result.messages.flatMap((m) =>
+      m.role === "assistant" ? m.content.filter((block) => block.type === "tool_call") : [],
+    );
+    for (const tool of HOST_TOOLS) {
+      const call = asked.find((block) => block.name === tool.name);
+      assert.ok(call, `the model asked for ${tool.name}`);
+      const answer: Message | undefined = result.messages.find((m) => m.role === "tool" && m.callId === call.callId);
+      assert.equal(answer?.role === "tool" && answer.isError, true, `${tool.name} came back as an error result`);
+      // The reference loop words its refusal differently from the real one, so the case reads only that it says the
+      // tool is unknown and names it.
+      const text: string = JSON.stringify(answer);
+      assert.match(text, /(unknown|no) tool/i);
+      assert.ok(text.includes(tool.name));
+    }
+    assert.deepEqual(process.seen.lookups, ["user@example.com"], "only the agent's own lookup ran");
+    assert.deepEqual(process.seen.escalations, []);
+    assertSurface(fixture);
+  });
+}
+
 function stepCapAndBudget(loop: Loop, backend: Backend) {
   test(`${backend.name}: the step cap ends a run that never submits`, async () => {
     const turns = Array.from({ length: MAX_STEPS }, () => ({ calls: [LOOKUP] }));
@@ -212,5 +261,7 @@ export function triageSuite(loop: Loop, backends: readonly Backend[]): void {
     forgedSignature(loop, backend);
     changedInput(loop, backend);
     stepCapAndBudget(loop, backend);
+    systemPromptReachesModel(loop, backend);
+    hostToolsDenied(loop, backend);
   }
 }
