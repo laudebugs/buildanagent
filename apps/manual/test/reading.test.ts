@@ -5,6 +5,7 @@ import { afterEach, test, vi } from "vitest";
 import {
   furthestId,
   KEY,
+  newest,
   parseStored,
   passedIndex,
   resumeHref,
@@ -75,6 +76,26 @@ test("the heading reached is the last one at or above the viewport's top, or non
   assert.equal(passedIndex([0, 900, 1800]), 0, "a heading that a fragment link put at the top counts as reached");
   assert.equal(passedIndex([-1200, -300, 400]), 1);
   assert.equal(passedIndex([-3000, -2000, -10]), 2);
+  assert.equal(passedIndex([-300, 200, 500], true), 2, "at the bottom, a short last section's heading is reached");
+  assert.equal(passedIndex([], true), -1);
+});
+
+test("over the cap, the places written longest ago go first, when read and when written", () => {
+  const many = Object.fromEntries(
+    Array.from({ length: 105 }, (_, n) => [`chapter-${n}`, { id: "a", text: "A", at: n }]),
+  );
+  const places = parseStored(stored(many));
+  assert.equal(places.size, 100);
+  assert.equal(places.has("chapter-4"), false);
+  assert.equal(places.has("chapter-5"), true);
+  assert.equal(places.has("chapter-104"), true);
+  const three = new Map<string, Place>([
+    ["a", { id: "x", text: "", at: 3 }],
+    ["b", { id: "x", text: "", at: 1 }],
+    ["c", { id: "x", text: "", at: 2 }],
+  ]);
+  assert.deepEqual([...newest(three, 2).keys()], ["a", "c"]);
+  assert.equal(newest(three), three, "under the cap the map comes back as it was");
 });
 
 test("the place kept is the furthest of the stored heading and the one reached, and a vanished id counts as the start", () => {
@@ -236,6 +257,86 @@ test("leaving a chapter while the scrolling settles still stores the place", () 
   assert.equal(read(win).get("tools")?.id, "first-section");
 });
 
+test("a chapter page records a new chapter when the store already holds the cap, dropping the oldest place", () => {
+  vi.useFakeTimers();
+  const win = page("https://manual.buildanagent.fyi/tools/", CHAPTER);
+  vi.spyOn(Date, "now").mockReturnValue(10_000);
+  win.localStorage.setItem(
+    KEY,
+    stored(Object.fromEntries(Array.from({ length: 100 }, (_, n) => [`chapter-${n}`, { id: "a", text: "A", at: n }]))),
+  );
+  scrollTo(win, { "first-section": -10 });
+  start(win as unknown as globalThis.Window);
+  const places = read(win);
+  assert.equal(places.size, 100);
+  assert.equal(places.get("tools")?.id, "first-section");
+  assert.equal(places.has("chapter-0"), false);
+});
+
+/** Lays the page out as scrolled `scrollY` px into a document `height` px tall, in a window 800 px high. */
+function layOut(win: Window, scrollY: number, height: number) {
+  Object.defineProperty(win, "scrollY", { configurable: true, value: scrollY });
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+  Object.defineProperty(win.document.documentElement, "scrollHeight", { configurable: true, value: height });
+}
+
+test("a reader who scrolls to the bottom reaches the last heading, though a short last section keeps it low", () => {
+  vi.useFakeTimers();
+  const win = page("https://manual.buildanagent.fyi/tools/", CHAPTER);
+  layOut(win, 0, 800);
+  scrollTo(win, { "first-section": 100, "a-subsection": 300, "second-section": 600 });
+  start(win as unknown as globalThis.Window);
+  assert.equal(win.localStorage.getItem(KEY), null, "a page that fits the window, unscrolled, records nothing");
+  layOut(win, 1000, 2400);
+  scrollTo(win, { "first-section": -900, "a-subsection": -10, "second-section": 500 });
+  vi.advanceTimersByTime(SETTLE_MS);
+  assert.equal(read(win).get("tools")?.id, "a-subsection", "short of the bottom, the last heading is not reached");
+  layOut(win, 1599.5, 2400);
+  scrollTo(win, { "first-section": -1500, "a-subsection": -600, "second-section": 300 });
+  vi.advanceTimersByTime(SETTLE_MS);
+  assert.equal(read(win).get("tools")?.id, "second-section");
+});
+
+/** A pageshow event as a browser sends it, `persisted` when the page came back from the back/forward cache. */
+function pageshow(win: Window, persisted: boolean) {
+  const event = new win.Event("pageshow");
+  Object.defineProperty(event, "persisted", { value: persisted });
+  win.dispatchEvent(event);
+}
+
+test("a chapter reopened from the back/forward cache becomes the chapter to resume again", () => {
+  vi.useFakeTimers();
+  const win = page("https://manual.buildanagent.fyi/tools/", CHAPTER);
+  const at = vi.spyOn(Date, "now").mockReturnValue(1000);
+  scrollTo(win, { "first-section": -10 });
+  start(win as unknown as globalThis.Window);
+  assert.equal(read(win).get("tools")?.at, 1000);
+  // The reader goes on to another chapter, then comes back here with Back.
+  const places = read(win);
+  places.set("call-workflow-loop", { id: "x", text: "X", at: 2000 });
+  win.localStorage.setItem(KEY, serializeStored(places));
+  at.mockReturnValue(3000);
+  pageshow(win, false);
+  assert.equal(read(win).get("tools")?.at, 1000, "a pageshow on a fresh load changes nothing");
+  pageshow(win, true);
+  assert.deepEqual(read(win).get("tools"), { id: "first-section", text: "The first section", at: 3000 });
+});
+
+test("the Contents page restored from the back/forward cache shows the place stored since", () => {
+  const win = page("https://manual.buildanagent.fyi/", CONTENTS);
+  start(win as unknown as globalThis.Window);
+  assert.equal(resumeLink(win)?.hidden, true);
+  win.localStorage.setItem(KEY, stored({ tools: { id: "a-subsection", text: "A subsection", at: 9 } }));
+  pageshow(win, false);
+  assert.equal(resumeLink(win)?.hidden, true, "only a restored page reads storage again");
+  pageshow(win, true);
+  assert.equal(resumeLink(win)?.hidden, false);
+  assert.equal(resumeLink(win)?.getAttribute("href"), "/tools/#a-subsection");
+  win.localStorage.setItem(KEY, stored({ "call-workflow-loop": { id: "older", text: "Older", at: 20 } }));
+  pageshow(win, true);
+  assert.equal(resumeLink(win)?.getAttribute("href"), "/call-workflow-loop/#older");
+});
+
 test("the Contents page shows one link to the most recent chapter's heading, named by the Contents entry", () => {
   const win = page("https://manual.buildanagent.fyi/", CONTENTS);
   win.localStorage.setItem(
@@ -255,6 +356,7 @@ test("the Contents page shows one link to the most recent chapter's heading, nam
     "Resume reading Chapter 3: A subsection",
     "a removed chapter is skipped, and the name says where the link goes",
   );
+  assert.deepEqual([...read(win).keys()], ["call-workflow-loop", "tools"], "the removed chapter's place is dropped");
   assert.deepEqual(requests, []);
 });
 
