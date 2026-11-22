@@ -72,7 +72,7 @@ async function resume(context: Context, requestId: string) {
     "the new request has a new id, so the old answer does not carry over",
   );
   check(
-    again !== undefined && JSON.stringify(resumed.result.pendingInputs?.[again.id]) === '{"orderId":"Z-9"}',
+    again !== undefined && JSON.stringify(resumed.result.context.pendingInputs?.[again.id]) === '{"orderId":"Z-9"}',
     "the new request signs the call as the edited context now reads, so the person sees Z-9",
   );
   // #endregion
