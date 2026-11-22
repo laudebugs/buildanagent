@@ -18,7 +18,7 @@ import { defineTool, hmacSigner } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
 import { BACKENDS, type Backend, KEY } from "../session/session-helpers.js";
-import { asTurn } from "./helpers.js";
+import { asTurn, tamper } from "./helpers.js";
 
 const SOURCE = "https://provider.test/pricing";
 const CATALOG: PriceCatalog = {
@@ -162,7 +162,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
       entries.map(
         ({ seq: _seq, ...rest }) =>
           (rest.type === "approval_requested"
-            ? { ...rest, request: { ...rest.request, signature: `${rest.request.signature.slice(0, -2)}AA` } }
+            ? { ...rest, request: { ...rest.request, signature: tamper(rest.request.signature) } }
             : rest) as EntryInput,
       ),
     );

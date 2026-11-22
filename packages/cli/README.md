@@ -2,7 +2,18 @@
 
 The `buildanagent` command runs the buildanagent harness in your terminal. Use `run --json` to script one turn, `chat` to work with an agent that asks before risky calls, and `sessions` to list, search and replay your stored sessions.
 
-As of November 2026 the package is private and not on npm, so you run it from a checkout of the repository. The package exports `runCli()`, which the binary calls, and the helpers and types around it. [Run the CLI from your own program](#run-the-cli-from-your-own-program) shows how to call it.
+The package exports `runCli()`, which the binary calls, and the helpers and types around it. [Run the CLI from your own program](#run-the-cli-from-your-own-program) shows how to call it.
+
+## Install the alpha with `pnpm add @buildanagent/cli@alpha`
+
+The CLI needs Node 22.19 or later. npm serves every release under the `alpha` dist-tag until the first stable one, and the package installs the `buildanagent` command, which `pnpm exec` runs from your project:
+
+```sh
+pnpm add @buildanagent/cli@alpha
+pnpm exec buildanagent --help
+```
+
+All six buildanagent packages share one version, and the CLI depends on that exact version of the gateway, the SDK, the protocol and the harness. Name the tag: a plain `pnpm add @buildanagent/cli` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release.
 
 ## Run one turn and read its events as JSON lines
 

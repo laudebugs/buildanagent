@@ -6,6 +6,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
+- [Install the alpha with `pnpm add @buildanagent/agent-safety@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentagent-safetyalpha)
 - [A failed write reports one of five outcomes](README.md#a-failed-write-reports-one-of-five-outcomes)
 - [Build an outcome with `writeOutcome()`](README.md#build-an-outcome-with-writeoutcome)
 - [The model reads a sentence and a payload](README.md#the-model-reads-a-sentence-and-a-payload)

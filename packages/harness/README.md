@@ -2,7 +2,17 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-As of November 2026 the package is private and not on npm. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server` and `testing` are built. `mcp`, `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp`, `server` and `testing` are built. `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+
+## Install the alpha with `pnpm add @buildanagent/harness@alpha`
+
+The package needs Node 22.19 or later. npm serves every release under the `alpha` dist-tag until the first stable one:
+
+```sh
+pnpm add @buildanagent/harness@alpha
+```
+
+All six buildanagent packages share one version, and the harness depends on that exact version of the gateway, the SDK, the protocol and `@buildanagent/agent-safety`. Name the tag: a plain `pnpm add @buildanagent/harness` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release.
 
 ## The session log holds twenty-one entry types
 
@@ -50,7 +60,7 @@ const result = await sandbox.exec(["pnpm", "test"], { env: spawnEnv([]), signal:
 console.log("denied" in result ? result.denied.reason : result.exitCode);
 ```
 
-`exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
+`exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124 and `timedOut: true`, so a command that exits with 124 itself is told apart, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
 
 The `none` backend starts each command in its own process group. A timeout, an abort or `dispose()` therefore kills the command and everything it started, and `exec` settles even when a background process still holds the output pipes.
 
@@ -91,7 +101,7 @@ The policy decides what is mounted, at the same path inside as outside. A write 
 
 The workspace must lie inside a root. The backend never mounts the Docker socket: a root that resolves to `/`, or that holds the daemon's socket (`/var/run/docker.sock`, `/run/docker.sock` or the one `dockerHost` names), is refused.
 
-The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows.
+The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows, so `provision()` refuses a policy whose `network.allow` names one.
 
 `provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
 
@@ -108,6 +118,30 @@ Five limits are worth knowing:
 - **The network lock rests on the daemon.** `--network none` is checked by inspecting the running container, because a test host with no bridge can't tell a closed network from a missing one.
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
+
+## A backend that claims a stop reads its policy back, and one that can't resume says so
+
+A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy throws too.
+
+One gap remains: a `denyWrite` that names a write root exactly. Docker mounts such a root read-only, but the read-back counts the caller's `denyWrite` as part of the request, so it still reads back as a write root and `provision()` accepts it. Nothing in that root is writable inside the container.
+
+The error's code is `sandbox_policy_mismatch`, and its `field` names the first field that differs, such as `network.allow`. The message never holds a path or a host. The code below catches the error and prints that field:
+
+```ts
+import { SandboxPolicyMismatchError } from "@buildanagent/harness/sandbox";
+import { srtSandbox } from "@buildanagent/harness/sandbox/srt";
+
+const attempt = srtSandbox().provision({ root: "/work/repo" }, policy);
+await attempt.catch((error) => console.log(error instanceof SandboxPolicyMismatchError ? error.field : error));
+```
+
+A client that claims a stop but gives its sandbox no read-back, or one whose read-back fails, makes `provision()` throw the same error, with the field `readBack`. `noneSandbox()` claims no stop, so it needs none.
+
+`stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`, and the message names the cause, such as that the policy allows all hosts, so the sandbox cannot stop exfiltration. `srtSandbox()` and `dockerSandbox()` both claim `mistakes` and `exfiltration`, so `provision()` refuses a policy that allows every host on either.
+
+A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
+
+None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
 
 ## The egress proxy keeps every credential outside the sandbox
 
@@ -134,6 +168,48 @@ Four limits are worth knowing:
 
 The package's tests run the proxy against a real HTTPS server on loopback, with a self-signed certificate that only the test trusts and a table in place of DNS.
 
+## An egress policy names a credential and never holds one
+
+`EgressPolicy` is plain data: an `allow` list of exact host names, and `routes` that each name the credential they inject. `compileEgressPolicy(policy, { secret })` checks it and returns the `allow` and `routes` that `startEgressProxy()` takes. The compiled routes call `secret(name)` for each request, on the host, so a rotated credential is used at once. The code below compiles one git route and starts a proxy with it:
+
+```ts
+import { compileEgressPolicy, startEgressProxy } from "@buildanagent/harness/credentials";
+
+const route = { kind: "git", route: "git", host: "github.com", repositories: ["acme/app"], pushRefs: ["refs/heads/agent/*"], credential: "GITHUB_TOKEN" } as const;
+const compiled = compileEgressPolicy({ allow: [], routes: [route] }, { secret: async (name) => process.env[name] ?? "" });
+const proxy = await startEgressProxy({ ...compiled, log: audit });
+```
+
+The compiler refuses anything that isn't plainly allowed, with the code `invalid_egress_options`, and its message names the place of the entry and never its value:
+
+- a field that a route kind doesn't have, such as `secret` or `token`;
+- a string that looks like a credential: a value, or a whitespace-separated token, that starts with `ghp_` or `sk-` and has a long enough body, or a whole 20-character AWS key id. A name that merely contains a prefix, like the repository `sk-labs/app`, is allowed;
+- a credential name that isn't upper case;
+- a wildcard or an address literal in `allow` or in a route's `host`;
+- a git route whose `host` is also in `allow`, or is the host of any other route, because a tunnel or a header route to that host would go around the ref filter. `startEgressProxy()` enforces the same rule on routes it is given directly.
+
+The scan for credential-shaped strings is defence in depth. The field allowlist and the upper-case credential name are the real guards, and a token that starts mid-word, like `acme/ghp_…`, or is base64-encoded passes the scan.
+
+The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`, and `srtSandbox()` keeps its own proxy.
+
+## A git route lets a push reach listed branches and nothing else
+
+A route of kind `git` carries git over HTTPS for the repositories it lists, and nothing else. The sandbox's remote is `http://x-access-token:<placeholder>@127.0.0.1:<port>/git/acme/app.git`, where `git` is the route's name and the placeholder is `proxy.sentinels.git`. The proxy swaps the placeholder for the credential and sends it to the host in HTTP Basic, with the route's `username`, which is `x-access-token` unless you set one. A request with no credential gets a 401 challenge, so git asks for one.
+
+A push is checked before anything is forwarded. The proxy reads the command list at the start of the body and refuses the whole push when one command breaks a rule:
+
+- a deletion, a tag, or a ref that no `pushRefs` pattern matches;
+- a push certificate, a body with a `content-encoding` other than `identity`, or a pkt-line that is malformed or not UTF-8;
+- a command list over 64 KiB (`GIT_MAX_COMMAND_BYTES`) or over 64 commands (`GIT_MAX_COMMANDS`).
+
+When a push is bigger than git's `http.postBuffer` (1 MiB by default), git first sends a probe whose body is a single flush packet. The proxy treats that body as an empty command list and forwards it, and it refuses any byte after the flush.
+
+The command list has two timeouts. `idleTimeoutMs` restarts on each chunk, so a stalled client is cut off and a slow one is not. It takes a whole number from 0 to 2,147,483,647, and 0 turns the idle timeout off, as for a socket's timeout; any other value makes `startEgressProxy()` throw `invalid_egress_options`. `pushCheckTimeoutMs` never restarts, and it covers the command list only, not the pack, so a client that sends one byte at a time is cut off too. Its default is 60,000 ms, and it takes a whole number from 1 to 2,147,483,647. The 64 KiB limit applies however the list is split across chunks. A refused push gets a 403 with `Connection: close`, and the proxy stops reading the rest of the body: it discards what is already in flight, up to 1 MiB or for 1 second, then ends the response, so a large pack cannot keep the connection open.
+
+A pattern is a branch such as `refs/heads/main`, or a prefix such as `refs/heads/agent/*`, which matches the branches under `agent/` and not `agent` itself. A route with no `pushRefs` refuses every push, and one with `fetch` left out refuses every fetch.
+
+A route has two limits. With `fetch` on, the sandbox can read every ref of a listed repository, because a fetch is allowed or refused for the whole route. And a route filters git's HTTP requests only, so it says nothing about what a pushed commit contains. The package's tests run a real `git push` over loopback to a fake GitHub on HTTPS: a push to an agent branch arrives with the token, and a push to `main`, a tag and a deletion never reach it.
+
 ## Every spawned process gets a cleared environment
 
 `spawnEnv(allow, extra)` builds the whole environment for a spawned process. It returns `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, the parent variables that `allow` names and the parent has, and `extra`. Nothing else is copied, so a key set in the parent never reaches a child. The caller removes the temp `HOME` when the process is done; an `extra.HOME` replaces it and no folder is made. `PATH` is the parent's with every entry that isn't absolute removed, so a `.` can't run a program from the working directory, and `TMPDIR` is the shared system temp directory, not a private one.
@@ -148,9 +224,9 @@ The check goes by name and can't catch a credential under an unremarkable one, s
 
 ## Test a sandbox with the fake and the conformance suite
 
-`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
+`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`, plus `find`, `grep` and `bash -c` or `sh -c` with one of those commands as the script, which is what the built-in tools run. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
 
-`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
+`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124 and `timedOut: true`, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
 
 A case that needs enforcement runs only when the backend's `stops` claim it:
 
@@ -158,6 +234,8 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - a symlink that points outside, where the factory passes a `symlink` function;
 - a working directory outside the workspace;
 - the network, where the caller passes two hosts it controls, such as two loopback listeners: the allowed one must be reached and the blocked one must not.
+
+Three more cases check the read-back and the capabilities: a backend that claims a stop reads its policy back equal to the request, a read-back that differs throws `sandbox_policy_mismatch` and disposes the sandbox, and a capability the backend doesn't list is refused with `sandbox_unsupported`. `fakeSandbox({ applied })` applies a policy in place of the request, as a provider that widens it would.
 
 `none` passes the rest and skips those with a reason, and a backend that can't start skips every case with its reason and fails none. The suite tells errors apart by `isHarnessError()` and the error's `code`, so a backend bundled separately from the suite still passes. `sandboxConformanceCases(factory)` returns the same cases one by one, for a runner that wants a test for each.
 
@@ -174,6 +252,44 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - **Host context.** `definitions(wrap, hostContext)` runs each tool through `wrap`, which can bind a write cap, shadow mode, a sandbox or the turn's host context. The registry sets the result's name and exposure, so a wrapper cannot rename or expose a tool. The host context reaches `execute` by the wrapper's closure, never through a schema, so it is in no request, event or saved context.
 - **Output trust.** A tool's `outputTrust` is `untrusted` for an MCP tool and for a tool registered with `remoteAgent: true`, `trusted` otherwise, and the value a registration declares wins. `approvalReuse` defaults to `both`, and `pattern` records whether the tool runs `in_process` or by a `client_request`.
 - **Preamble size.** `preambleTokens({ system })` estimates the tokens a request carries before any message: the system prompt and every `direct` tool. A `deferred` tool adds nothing, which is why the default for MCP is `deferred`. A `RegisteredTool` that `register()` returns is a snapshot, so call `get()` after `setExposure()` to read the current exposure.
+
+## The built-in tools reach files, commands and the web only through the sandbox and the egress proxy
+
+`builtinTools(sandbox, proxy, { root, policy })` returns up to seven tools for one provisioned sandbox: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `fetch`, which needs a proxy, so six without one. No tool touches the host. Files go through the sandbox's `readFile()` and `writeFile()`, commands through its `exec()`, and the web through the proxy's `fetch()`, so the backend and the allowlist decide what each call can reach. This coding agent binds them to a workspace and lets `read` open the write cap's spill files:
+
+```ts
+  const sandbox = await client.provision({ root: workspace }, policy);
+  const spill = fileSpillStore({ dir: spillDir });
+  const registry = createToolRegistry();
+  const spills = (path: string) => spill.read(key, path);
+  for (const tool of builtinTools(sandbox, proxy, { root: workspace, policy, spills })) registry.register(tool);
+  const harness = createHarness({ registry, model, system: SYSTEM, context: createContextPolicy({ spill }) });
+```
+
+Pass the `root` and `policy` the sandbox was provisioned with, because the sandbox interface reports neither. Leave `proxy` out, as `undefined`, and the set has no `fetch`. `env` is the whole environment of every command the tools run; it defaults to a `PATH` and a `LANG` alone, and on Node you pass `spawnEnv()`.
+
+Each tool's contract:
+
+- **`read`** takes `path` or `file_path`, relative to `root` or absolute, `offset` (the first line, from 1), `limit` (a line count) and `column` (where to start in the first line, from 1, to read on in a line too long for a page). With none of the three, it returns the whole file up to 2,000 lines and 32 KiB, and a longer file or a page ends with a line that names the next `offset`. The write cap counts bytes after JSON escaping, so `read` counts 32 KiB the same way (a quote, a backslash or a newline costs two bytes). A page therefore always passes the default 64 KiB cap whole. A line longer than a page is shown in parts, and each part's last line names the `offset` and `column` where the next starts, so a cut result that is one long line can still be read in full. Only an absolute path is offered to the `spills` reader, and a path it knows is served from the spill; a relative path always reads the workspace. A binary file is an error result.
+- **`write`** takes a path and `content`, makes the folders and replaces the whole file.
+- **`edit`** takes a path, `old_string` and `new_string`. `old_string` must occur exactly once: no match, or two matches without `replace_all: true`, returns an error result and leaves the file unchanged. `new_string` is inserted as written, so `$&` stays `$&`. A byte order mark is kept, and a binary file or one that is not UTF-8 is an error result, left unchanged, because writing it back as text would corrupt it.
+- **`bash`** runs `command` as `bash -c` inside the sandbox, from `root`, with a timeout of `timeout_ms` (default 120,000, at most 600,000). The model reads the output, standard error and exit code. A timeout or a denial is an error result, and each stream keeps at most 1 MiB. Only the sandbox's `timedOut` flag marks a timeout, so a command that exits with 124 itself reads as that exit code.
+- **`grep`** searches files for `pattern`, an extended regular expression, below `path` (default `root`), and prints `path:line:text`. `glob` narrows the files: a glob with no `/`, such as `*.ts`, matches the file name, and any other matches the path below `path`. `ignore_case` ignores case. Binary files are skipped (`grep -I`).
+
+  The matching lines stop at 1 MiB, across every `grep` command the call runs, and a result cut there says so, so the model can narrow the search. If the first matching line alone passes 1 MiB, the result still says that lines match, names the file and line, and suggests a narrower search or `read`; it never reports "no match". A file `grep` can't read, or a folder `find` can't list, keeps the matches found elsewhere and adds a line quoting the error; the call fails only when nothing matched.
+- **`glob`** lists the files below `path` whose path matches `pattern`, sorted. `*` matches inside one name, `**` across folders and `?` one character.
+- **`fetch`** sends a GET for an `https` `url` through `proxy.fetch()`. It returns the status line, the final URL, any `location`, the content type and, for a text body, up to 1 MiB of it. A body of another type is left out and reported by its size. Every secret the proxy knows is replaced by `[REDACTED]`, and a body cut at 1 MiB also loses any start of a secret left at its end.
+  - A text body is read in the charset its content type names, when `TextDecoder` knows that label, and as UTF-8 otherwise.
+  - A body with no content type, or with a charset label `TextDecoder` does not know, is shown only when it reads as UTF-8 text with no NUL byte.
+  - A request that takes over 30 seconds returns an error, as do a host off the allowlist and a URL that is not `https`. Plain HTTP is refused, which keeps the model off the proxy's credential routes.
+
+**Paths are checked before the sandbox sees them.** `read`, `grep` and `glob` accept a path inside a read or write root, and `write` and `edit` only inside a write root. A path with a backslash is refused, because the workspace is POSIX, where `\` is part of a name, while the permission rules read it as a separator. The check joins a relative path to `root` and removes `.` and `..`, so `../etc/passwd` and `/etc/passwd` are refused without a sandbox call, and the sandbox gets the checked path. A symlink is invisible to a check on text, so the sandbox's own check of the real path is the second line: its denial reaches the model as an error result. `grep` and `glob` list files with `find`, which never follows a symlink, and skip folders named `.git` and `node_modules` below the folder searched, so a search of `node_modules` itself still works.
+
+**Big results pass the write cap like any other.** The tools cap nothing themselves: the context policy's write cap cuts a long result and spills its full text, and `read` with `spills` opens that spill. Bind `spills` to one session, as `fileSpillStore().read(key, path)` already does, so one session cannot read another's spills.
+
+**Scheduling follows what each tool changes.** `read`, `grep`, `glob` and `fetch` are first-party and read-only, so their calls in one step run together. `write` and `edit` declare a write, so they wait for the file calls before them, and `bash` runs its step one call at a time. A crash during a write makes the next turn report its outcome as unknown. Only `fetch`'s output is `untrusted`, because a web page can carry instructions; the rest is `trusted`, though a workspace file or a command's output can carry instructions too.
+
+**The descriptions are versioned.** Every description, limit and default the tools use is in `BUILTIN_TOOL_DEFAULTS`, and `BUILTIN_TOOLS_HASH` changes whenever any of them does, so two runs with different hashes ran with different tools.
 
 ## One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer
 
@@ -396,7 +512,7 @@ const context = createContextPolicy({ spill: fileSpillStore({ dir: ".sessions/sp
 
 **Layer 1, the write cap.** A tool result whose text is over the cap is cut before the model reads it, and the full text goes to the `spill` store. The model reads the first part and a line that names the file, and the `tool_result` entry stores the same cut text with `spill: { path, bytes }`. If the store cannot write, the text is still cut, and the notice says the rest was not kept.
 
-The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
+The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests, with absolute paths under `/spill/`. `fileSpillStore().read()` reads only an absolute path inside the session's folder. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
 
 **Layer 2, stepped masking.** Before each model call, every tool result before a cutoff shrinks to its first 500 characters and a pointer line. The line names the spill file, or the log entry when the result was never spilled. A cut never leaves half of a surrogate pair. The cutoff is `floor((messages − 8) / 8) × 8`, so it moves once every eight messages. Between moves the view's prefix stays byte-identical, which keeps a provider's prompt cache hitting.
 
