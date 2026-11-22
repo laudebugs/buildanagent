@@ -205,13 +205,35 @@ export interface SkillLoadedEntry {
   path: string;
 }
 
+/**
+ * What an `extension_loaded` entry of tier `mcp` records about the server that connected. It holds hashes, never the
+ * command's arguments or any environment value, because either can carry a secret.
+ */
+export interface McpServerRecord {
+  /** How the harness reached the server. */
+  transport: "stdio" | "in_process";
+  /** For a stdio server: `sha256:` and the hex digest of the canonical JSON (RFC 8785) of `[command, ...args]`. */
+  commandHash?: string;
+  /** The protocol era the server negotiated. */
+  era: "2026-07-28" | "legacy";
+  /**
+   * `sha256:` and the hex digest of the canonical JSON of the registered tools, sorted by name, each as
+   * `{ name, description, inputSchema }`.
+   */
+  toolsHash: string;
+}
+
 /** An extension was loaded, with the hash of what ran. */
 export interface ExtensionLoadedEntry {
   /** The entry type name. @stable */
   type: "extension_loaded";
+  /** The extension's name, or the MCP server's name for tier `mcp`. */
   name: string;
   tier: "in_process" | "mcp" | "skill";
+  /** `sha256:` and a hex digest. For tier `mcp`, the digest of the canonical JSON of `mcp`. */
   contentHash: string;
+  /** Set for tier `mcp` only. */
+  mcp?: McpServerRecord;
 }
 
 /** A child session exists. It names the tool call or workflow step that started it, one of the two. */

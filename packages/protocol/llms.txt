@@ -48,6 +48,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface JsonlFramerOptions`: The options of `JsonlFramer`.
 - `type JsonRpcMessage`: A JSON-RPC message as `decode()` reads it: the envelope is checked, and `params` and `result` are not.
 - `interface LoadoutEntry`: The tools and model in force changed.
+- `interface McpServerRecord`: What an `extension_loaded` entry of tier `mcp` records about the server that connected.
 - `interface MessageBlockEntry`: One content block of a message.
 - `interface MessageEndEntry`: A message is complete: which model wrote it and why it stopped.
 - `type Origin`: Who produced an entry's content.

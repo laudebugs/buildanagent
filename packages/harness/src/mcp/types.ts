@@ -3,6 +3,7 @@
  * library, so the library can change without touching them (ADR 0021).
  */
 import type { ModelContent } from "@buildanagent/gateway";
+import type { ExtensionLoadedRecord } from "../extensions/types.js";
 import type { ToolExposure, ToolRegistry } from "../tools/types.js";
 
 /** The protocol era a server speaks: the 2026-07-28 revision, or `legacy` for the 2025 revisions and their `initialize`. */
@@ -164,6 +165,12 @@ export interface McpManager {
    * result. With `mcp: false` it resolves with an empty list.
    */
   connect(): Promise<readonly McpServerStatus[]>;
+  /**
+   * One `extension_loaded` record of tier `mcp` per connected server, in config order, for `HarnessOptions.extensionRecords`.
+   * A turn then writes an entry for each record its session's log does not hold yet. A server that failed to connect
+   * has no record: its status says why, and nothing of it ran in a turn.
+   */
+  records(): readonly ExtensionLoadedRecord[];
   /** The connection of a connected server, by name. */
   connection(server: string): McpConnection | undefined;
   /** Closes every connection and ends every server process. A tool of a closed server fails when called. */

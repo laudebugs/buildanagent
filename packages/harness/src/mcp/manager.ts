@@ -12,9 +12,11 @@
  */
 import { defineTool, type ToolDefinition } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
+import type { ExtensionLoadedRecord } from "../extensions/types.js";
 import type { ToolRegistration } from "../tools/types.js";
 import { checkServerConfig, connectMcpServer } from "./connection.js";
 import { McpError } from "./errors.js";
+import { mcpRecordOf } from "./record.js";
 import type {
   McpConnection,
   McpManager,
@@ -90,6 +92,7 @@ function checkServers(servers: readonly McpServerConfig[]): void {
 class Manager implements McpManager {
   readonly #options: McpManagerOptions;
   readonly #connections = new Map<string, McpConnection>();
+  readonly #records = new Map<string, ExtensionLoadedRecord>();
   // Every connection that exists, registered or not, so a close can end one whose tool list is still being read.
   readonly #open = new Set<McpConnection>();
   readonly #abort = new AbortController();
@@ -119,7 +122,14 @@ class Manager implements McpManager {
       this.#open.add(connection);
       // A close that began during the handshake must still end this server.
       if (this.#closing !== undefined) throw new McpError("mcp_connect_failed", config.name, "the manager was closed");
-      const registrations = registrationsOf(config, connection, await connection.listTools());
+      const listed = await connection.listTools();
+      const registrations = registrationsOf(config, connection, listed);
+      let record: ExtensionLoadedRecord;
+      try {
+        record = await mcpRecordOf(config, connection, listed);
+      } catch (error) {
+        throw refused(config.name, error);
+      }
       if (this.#closing !== undefined) throw new McpError("mcp_connect_failed", config.name, "the manager was closed");
       // Nothing awaits between this check and the registration, so another manager on the same registry can't
       // register the source in between, and registerAll() leaves nothing behind when any tool is refused.
@@ -134,6 +144,7 @@ class Manager implements McpManager {
         throw refused(config.name, error);
       }
       this.#connections.set(config.name, connection);
+      this.#records.set(config.name, record);
       return { server: config.name, status: "connected", era: connection.era, tools };
     } catch (error) {
       if (connection !== undefined) this.#open.delete(connection);
@@ -142,6 +153,10 @@ class Manager implements McpManager {
       log(`the MCP server "${config.name}" was not connected: ${failure.message}`);
       return { server: config.name, status: "failed", error: failure };
     }
+  }
+
+  records(): readonly ExtensionLoadedRecord[] {
+    return this.#options.servers.flatMap((config) => this.#records.get(config.name) ?? []);
   }
 
   connection(server: string): McpConnection | undefined {
