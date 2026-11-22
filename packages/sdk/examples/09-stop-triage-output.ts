@@ -35,6 +35,12 @@ check(result.steps === 2, "the answer that failed the schema spent one of the mo
 const sent = adapter.calls[1]?.context.messages.find((message) => message.role === "tool");
 check(sent?.role === "tool" && sent.isError === true, "the second request carries the failed call as an error result");
 check(JSON.stringify(sent).includes("/category"), "the error result names the field that failed");
+check(
+  JSON.stringify(adapter.calls[0]?.context.tools[0]?.inputSchema).includes('"urgent"'),
+  "the request carries the schema as the output tool's input schema",
+);
+// @ts-expect-error: only a done result carries output, so this line fails to compile until stopReason is checked.
+void result.output;
 adapter.assertComplete();
 
 // With one step, the failed answer is the last call the run may make, so the run ends max_steps with no output.
