@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Guidelines, Known gaps](../../guidelines/README.md#known-gaps) |
 | Round / milestone | Q (code quality, added 2026-11-19) |
 | Depends on | [Q1](../done/Q1-strict-compiler-and-lint.md) |
