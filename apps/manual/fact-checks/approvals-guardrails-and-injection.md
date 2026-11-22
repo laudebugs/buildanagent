@@ -1,6 +1,6 @@
 # Fact-check: Asking before acting: approvals, guardrails and prompt injection
 
-The claims log for [`approvals-guardrails-and-injection.md`](../src/content/chapters/approvals-guardrails-and-injection.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-22. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0`, `ai@7.0.162`, `langchain@1.6.1` with `@langchain/langgraph@1.6.0`. The mirrored docs under `docs/reference/<sdk>/source/` are the upstream pages at those pins (OpenAI at tag `v0.21.0`, the AI SDK at tag `ai@7.0.162`, LangChain at commit `9d9747d`).
+The claims log for [`approvals-guardrails-and-injection.md`](../src/content/chapters/approvals-guardrails-and-injection.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-22. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0`, `ai@7.0.162`, `langchain@1.6.6` with `@langchain/langgraph@1.7.4` (bumped from 1.6.1 and 1.6.0 on 2026-11-22; every LangChain row cites the docs mirror or an example check, and the bump changed neither). The mirrored docs under `docs/reference/<sdk>/source/` are the upstream pages at those pins (OpenAI at tag `v0.21.0`, the AI SDK at tag `ai@7.0.162`, LangChain at commit `9d9747d`).
 
 ## The research question, answered before drafting
 

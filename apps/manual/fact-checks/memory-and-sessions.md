@@ -1,6 +1,6 @@
 # Fact-check: Memory within a task: sessions, threads and resuming
 
-The claims log for [`memory-and-sessions.md`](../src/content/chapters/memory-and-sessions.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-19. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0` (with `@openai/agents-core@0.21.0`), `@anthropic-ai/claude-agent-sdk@0.3.327` (bundling Claude Code 2.1.327), `langchain@1.6.1` (with `@langchain/langgraph@1.6.0` and `@langchain/langgraph-checkpoint@1.2.3`), `@google/adk@2.5.0`, `agents@0.33.0` (Cloudflare), `@earendil-works/pi-coding-agent@1.5.2`, `@github/copilot-sdk@1.0.31` and `ai@7.0.162`. A file named as `dist/…` or `sdk.d.ts` sits inside that package as installed.
+The claims log for [`memory-and-sessions.md`](../src/content/chapters/memory-and-sessions.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-19. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0` (with `@openai/agents-core@0.21.0`), `@anthropic-ai/claude-agent-sdk@0.3.327` (bundling Claude Code 2.1.327), `langchain@1.6.6` (with `@langchain/langgraph@1.7.4` and `@langchain/langgraph-checkpoint@1.2.3`; bumped from 1.6.1 and 1.6.0 on 2026-11-22, with the checkpoint package unchanged), `@google/adk@2.5.0`, `agents@0.33.0` (Cloudflare), `@earendil-works/pi-coding-agent@1.5.2`, `@github/copilot-sdk@1.0.31` and `ai@7.0.162`. A file named as `dist/…` or `sdk.d.ts` sits inside that package as installed.
 
 ## The research question, answered before drafting
 
@@ -240,11 +240,19 @@ T59 turned `#session-openai`, `#thread-langchain` and `#resume-claude` into tabs
 | 140 | The Claude listing resumes a Claude Code session from its transcript file | § Saving and resuming | ✅ | Row 22 (the transcript is a JSONL file on local disk, quoted from the hosting guide) and `verify/claude-agent-sdk/examples/06-resume-session.ts` line 11, `resume: sessionId`. Replaces "resumes such a session". |
 | 141 | `apps/manual/README.md` (rewritten for clarity): `packages/sdk`'s recorder attaches to its own `ScriptedModel`, `packages/gateway`'s wraps the scripted model's adapter, and `packages/harness` uses the SDK's recorder attached to `ScriptedModel` and records its own package as the mock; eight `verify/` harnesses record transcripts; `@buildanagent/harness` is private and its caption shows `0.0.0` | Not a chapter claim | ✅ | `packages/sdk/examples/lib/transcript.ts` line 2 (attaches to `ScriptedModel`); `packages/gateway/examples/lib/transcript.ts` line 2 (`recordedAdapter()` wraps the scripted model's adapter); `packages/harness/results/transcripts/02-session-key.json` `"mock": "@buildanagent/harness@workspace"`; `ls verify` lists the eight harnesses; `packages/harness/package.json` (row 108). The rewrite changed no fact. |
 
+## Update to langchain@1.6.6 (2026-11-22)
+
+The weekly update moved `langchain` to 1.6.6 and `@langchain/langgraph` to 1.7.4. `@langchain/langgraph-checkpoint` stays at 1.2.3. Each row below re-reads a source that rows 12 to 14 cite.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 142 | Rows 13 and 14 still hold at the new pins: `MemorySaver` stores under `config.configurable?.thread_id`, `assertSafeStorageKey` refuses a non-string, an empty string and prototype keys, and a call without a thread throws at `put` and `putWrites` | § A session keeps the conversation | ✅ | `@langchain/langgraph-checkpoint@1.2.3` `dist/memory.js` (unchanged, read again on 2026-11-22): `assertSafeStorageKey` at line 46, its checks at lines 49–54, the "Failed to put checkpoint" throw at line 223 and the "Failed to put writes" throw at line 245. The replay in `05-thread-memory.json` differs from the 1.6.1 one only in its `pin` and `mock` fields (`git diff 794fbf39^ 794fbf39`), so the line numbers rows 14 cites hold |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 122 |
+| ✅ confirmed | 123 |
 | ✏️ corrected | 15 (rows 3, 16, 37, 42, 59, 61, 72, 87, 88, 89, 105, 112, 118, 119 and 122) |
 | ⚠️ unverified, our recommendation or reading, marked as ours in the text | 4 (rows 45, 74, 98 and 101) |
-| Total | 141 |
+| Total | 142 |

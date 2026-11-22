@@ -1,6 +1,6 @@
 # Fact-check: Talking to a model: messages, streams, tokens, instructions and model choice
 
-The claims log for [`talking-to-a-model.md`](../src/content/chapters/talking-to-a-model.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-19; package claims are checked against the harness pins of that date: `ai@7.0.162` (with `@ai-sdk/provider@4.0.35` and `@ai-sdk/provider-utils@5.0.74`), `langchain@1.6.1` (with `@langchain/core@1.3.4`) and `@github/copilot-sdk@1.0.31`.
+The claims log for [`talking-to-a-model.md`](../src/content/chapters/talking-to-a-model.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-19; package claims are checked against the harness pins of that date: `ai@7.0.162` (with `@ai-sdk/provider@4.0.35` and `@ai-sdk/provider-utils@5.0.74`), `langchain@1.6.6` (with `@langchain/core@1.4.1`; bumped from 1.6.1 and 1.3.4 on 2026-11-22, and the LangChain rows cite example transcripts that differ only in their version fields) and `@github/copilot-sdk@1.0.31`.
 
 ## The research question, answered before drafting
 
