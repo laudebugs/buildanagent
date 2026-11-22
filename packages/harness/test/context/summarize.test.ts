@@ -230,6 +230,21 @@ describe("the summary call's guards", () => {
     assert.ok(records.some((r) => r.detail.includes("hook broke")));
   });
 
+  test("an afterCompact hook that throws synchronously leaves the compaction in place and the turn going", async () => {
+    const { records, harness, session, entries } = await setup({
+      hooks: {
+        afterCompact() {
+          throw new Error("after broke");
+        },
+      },
+    });
+    await runTurn(session, harness, { input: LONG });
+    const result = await runTurn(session, harness, { input: "Next?" });
+    assert.equal(result.stopReason, "done");
+    assert.equal((await entries()).filter((e) => e.type === "compaction").length, 1);
+    assert.ok(records.some((r) => r.detail.includes("after broke")));
+  });
+
   test("a summary the model cut off at its output limit is not stored", async () => {
     const cutOff = new ScriptedModel([{ content: [{ type: "text", text: "## Goal\nFix the" }], stopReason: "length" }]);
     const { records, harness, session, entries } = await setup({}, { model: model(cutOff, "summary-model") });

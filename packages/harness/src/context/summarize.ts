@@ -230,8 +230,10 @@ export async function compact(input: CompactInput): Promise<boolean> {
     detail: `${p.before} tokens before, ${tokensOfChars(keptChars)} kept`,
   });
   // The entry is written, so a failing hook is reported and the compaction stands.
-  await Promise.resolve(hooks.afterCompact?.(entry as CompactionEntry)).catch((error: unknown) =>
-    skipped(`afterCompact failed: ${error instanceof Error ? error.message : String(error)}`),
-  );
+  await Promise.resolve()
+    .then(() => hooks.afterCompact?.(entry as CompactionEntry))
+    .catch((error: unknown) =>
+      skipped(`afterCompact failed: ${error instanceof Error ? error.message : String(error)}`),
+    );
   return true;
 }
