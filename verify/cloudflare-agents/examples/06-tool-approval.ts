@@ -21,15 +21,17 @@ export class RefundAgent extends AIChatAgent<Env> {
       model: this.mock.model,
       messages: await convertToModelMessages(this.messages),
       tools: {
+        // #region needs-approval
         refund: tool({
           description: "Refund an order",
           inputSchema: z.object({ orderId: z.string(), amount: z.number() }),
-          needsApproval: async ({ amount }) => amount > 100,
+          needsApproval: async ({ amount }) => amount > 100, // book:note rule
           execute: async ({ orderId, amount }) => {
-            this.refunds.push(`${orderId}:${amount}`);
+            this.refunds.push(`${orderId}:${amount}`); // book:note effect
             return { refunded: amount };
           },
         }),
+        // #endregion
       },
       stopWhen: stepCountIs(5),
     });
@@ -60,10 +62,12 @@ export async function test(env: Env, h: Harness) {
     const res = await agent.saveMessages([
       { id: "u1", role: "user", parts: [{ type: "text", text: "Refund order A1 ($250)." }] },
     ]);
+    // #region paused
     check(res.status === "completed", `the turn ends while waiting for approval (status ${res.status})`);
     let part = refundPart(await agent.getMessages());
-    check(part?.state === "approval-requested", "the gated call is persisted as 'approval-requested'");
-    check((await agent.report()).refunds.length === 0, "the gated tool has not executed");
+    check(part?.state === "approval-requested", "the gated call is persisted as 'approval-requested'"); // book:note pending
+    check((await agent.report()).refunds.length === 0, "the gated tool has not executed"); // book:note not-run
+    // #endregion
 
     // The client answers over the WebSocket protocol, as useAgentChat's addToolApprovalResponse does.
     const ws = await connect(agent);
