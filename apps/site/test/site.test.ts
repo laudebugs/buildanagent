@@ -85,7 +85,7 @@ describe.each(ROUTES.map((route) => [route || "/", route] as const))("the copy o
 
   test("opens with a paragraph of 50 words or fewer", () => {
     assert.ok(description !== "", "has a description");
-    assert.ok(words(paragraphs[0] ?? "").length <= 50, paragraphs[0]);
+    assert.ok(words(paragraphs[0] ?? "").length <= 50, paragraphs[0] ?? "no paragraph");
   });
 
   test("keeps sentences to 40 words and paragraphs to 100", () => {
