@@ -78,7 +78,7 @@ const weather = tool({
 
 **[verified: 02]** Function tools also take their own `inputGuardrails` and `outputGuardrails`, and a `needsApproval` predicate (sections 7 and 8). Hosted tools, tool search and namespaced or deferred tools need OpenAI's Responses API, so they stop working when you move to another provider (`tools.mdx`, `models.mdx`).
 
-> **Gotcha.** `toolChoice: 'required'` forces the model to call one of the agent's tools, even for a request that needs none. For a read-only request, expose only read-only tools: if a user asks for a ticket's status and the only tools add a comment or close the ticket, a forced call can change the ticket. With the default `resetToolChoice`, the SDK clears the forced choice only after the agent has used a tool, so use `'auto'` when the model may also answer without one (`guides/agents.mdx`, "Forcing tool use", added in v0.22.0; not run by our examples).
+> **Gotcha.** `toolChoice: 'required'` forces the model to call one of the agent's tools, even for a request that needs none. For a read-only request, expose only read-only tools: if a user asks for a ticket's status and the only tools add a comment or close the ticket, a forced call can change the ticket. With the default `resetToolChoice`, the SDK clears the forced choice only after the agent has used a tool, so use `'auto'` when the model may also answer without one. Source: `guides/agents.mdx`, "Forcing tool use", added in v0.22.0; none of our examples runs it.
 
 ## 6. Handoffs transfer the conversation to another agent
 

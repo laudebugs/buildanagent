@@ -90,11 +90,11 @@ The retrieval and memory research (U18) read the memory typings of `@openai/agen
 
 ## TypeScript parity
 
-Python `openai-agents` is the SDK's primary implementation, so the [TypeScript gap report](../../comparison/typescript-gaps.md#openai-agents-sdk-typescript-lacks-storage-backends-the-voice-pipeline-and-developer-utilities) compares 0.21.0 (checked on 0.21.0; not redone for 0.22.0) with Python 0.24.0 at tag `v0.24.0`. The core loop is at parity: tools, guardrails, handoffs, approvals, MCP, tracing, realtime and sandbox agents all exist in both. The JavaScript package lacks nine Python features, among them the SQLite, Redis, SQLAlchemy and other database sessions, `EncryptedSession`, nested handoff history, the `VoicePipeline`, `run_demo_loop` and `draw_graph`. Two more are weaker: no run-level history limit, and five listed tracing integrations against Python's 31. In the other direction, only JavaScript has the browser WebRTC transport, the Twilio and Cloudflare realtime transports and the `aisdk()` bridge. Plan to write your own durable `Session`, because only memory and OpenAI-hosted sessions ship.
+Python `openai-agents` is the SDK's primary implementation, so the [TypeScript gap report](../../comparison/typescript-gaps.md#openai-agents-sdk-typescript-lacks-storage-backends-the-voice-pipeline-and-developer-utilities) compares 0.21.0 (not redone for 0.22.0) with Python 0.24.0 at tag `v0.24.0`. The core loop is at parity: tools, guardrails, handoffs, approvals, MCP, tracing, realtime and sandbox agents all exist in both. The JavaScript package lacks nine Python features, among them the SQLite, Redis, SQLAlchemy and other database sessions, `EncryptedSession`, nested handoff history, the `VoicePipeline`, `run_demo_loop` and `draw_graph`. Two more are weaker: no run-level history limit, and five listed tracing integrations against Python's 31. In the other direction, only JavaScript has the browser WebRTC transport, the Twilio and Cloudflare realtime transports and the `aisdk()` bridge. Plan to write your own durable `Session`, because only memory and OpenAI-hosted sessions ship.
 
 ## Update to 0.22.0 (2026-11-22)
 
-The weekly update moved the pin from 0.21.0 to 0.22.0 (docs tag `v0.22.0`, commit `8aeac0e`). Every tier reran, and none changed its result:
+The weekly update moved the pin from 0.21.0 to 0.22.0 (docs tag `v0.22.0`, commit `8aeac0e`). Tiers 1 to 3 reran in full and tier 4 in part, and none changed its result:
 
 - **Tier 1:** the same 182 sources, 178 pass and 4 fragments, with no API error. One example file changed: `extensions/ai-sdk-ui-message-stream.ts` gained an explicit return type.
 - **Tier 2:** the same 66 runs, 41 with a model answer, 9 without, 14 skipped and 2 errors.
