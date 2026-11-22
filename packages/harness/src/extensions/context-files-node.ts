@@ -3,8 +3,6 @@ import { join, resolve } from "node:path";
 import {
   CONTEXT_FILE_MAX_BYTES,
   type ContextFile,
-  droppedNotice,
-  fitContextFiles,
   PLAN_FILE,
   type PlanFiles,
   type PlanSource,
@@ -12,10 +10,15 @@ import {
 } from "./context-files.js";
 import { projectDirs, readProjectFile } from "./project-dirs.js";
 
-/** The context files found, and why any were left out. */
+/** The context files found, and why any were skipped. */
 export interface FoundContextFiles {
-  /** Outermost folder first, so the file nearest the working directory comes last. `AGENTS.md` comes before `CLAUDE.md` in a folder. */
+  /**
+   * Every file read, outermost folder first, so the file nearest the working directory comes last. `AGENTS.md` comes
+   * before `CLAUDE.md` in a folder. They are not yet held to `CONTEXT_FILES_MAX_TOTAL_BYTES`: `projectContext()` does
+   * that and says in the block which it left out.
+   */
   readonly files: ContextFile[];
+  /** One line for each file skipped, such as a link that leaves the project. */
   readonly notices: string[];
 }
 
@@ -26,8 +29,9 @@ const NAMES = ["AGENTS.md", "CLAUDE.md"];
  * folder with a `.git`; with none, `cwd` alone). These files load whether or not the project is trusted, because they
  * are text and not code, and `projectContext()` labels them untrusted. A `CLAUDE.md` that links to the `AGENTS.md`
  * beside it is read once. A link that leaves the project is skipped with a notice, so a cloned repository cannot pull
- * in a file such as `~/.ssh/id_rsa`. Each file is cut at 64 KiB, and past 128 KiB together the outermost files are
- * left out, with a notice.
+ * in a file such as `~/.ssh/id_rsa`. Each file is cut at 64 KiB. Every file read is returned, however long they are
+ * together: pass them to `projectContext()`, which holds them to 128 KiB, leaves out the outermost first and tells
+ * the model in the block which it left out.
  */
 export async function contextFiles(cwd: string): Promise<FoundContextFiles> {
   const dirs = await projectDirs(cwd);
@@ -48,9 +52,7 @@ export async function contextFiles(cwd: string): Promise<FoundContextFiles> {
       result.files.push({ path, text: read.text, truncated: read.truncated });
     }
   }
-  const { kept, dropped } = fitContextFiles(result.files);
-  const left = droppedNotice(dropped);
-  return { files: kept, notices: left === undefined ? result.notices : [...result.notices, left] };
+  return result;
 }
 
 /**

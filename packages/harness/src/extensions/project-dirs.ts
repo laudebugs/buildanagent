@@ -1,6 +1,7 @@
 /** Where a project's own files are looked for: the folders from the working directory up to the repository root. Node-only. */
 import { lstat, open, realpath, stat } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
+import { attribute } from "./context-files.js";
 
 /** Whether `path` exists, without following a link. */
 async function exists(path: string): Promise<boolean> {
@@ -57,8 +58,9 @@ async function readStart(handle: import("node:fs/promises").FileHandle, limit: n
 
 /**
  * The text of a project file and its real path, or why it was not read. A file whose real path leaves `root` is
- * refused: a link in a cloned repository must not pull a file such as `~/.ssh/id_rsa` into a prompt. A missing file, a
- * folder or anything else that is not a regular file is not an error and gives `undefined`. At most `maxBytes` and one
+ * refused: a link in a cloned repository must not pull a file such as `~/.ssh/id_rsa` into a prompt. The refusal's
+ * notice percent-encodes the paths it names wherever they hold a quote, `<`, `>`, `&`, `%` or a control character. A
+ * missing file, a folder or anything else that is not a regular file is not an error and gives `undefined`. At most `maxBytes` and one
  * more are read, however long the file is: a longer file is cut at the start of the character that crosses `maxBytes`,
  * so `text` never ends in half a character, and `bytes` holds exactly the bytes `text` was decoded from.
  */
@@ -74,7 +76,8 @@ export async function readProjectFile(
     return undefined;
   }
   if (!isInside(await realpath(root), real)) {
-    return { notice: `${path} is skipped: it is a link to ${real}, outside ${root}` };
+    // The notice can reach the model's text, so the names in it, which the project chose, are kept to one line.
+    return { notice: `${attribute(path)} is skipped: it is a link to ${attribute(real)}, outside ${attribute(root)}` };
   }
   try {
     // Opening a pipe would wait for a writer, so only a regular file is opened.
