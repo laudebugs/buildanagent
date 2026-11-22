@@ -12,9 +12,9 @@ const NANOS_PER_DOLLAR = 1_000_000_000;
 const policy = Array.from({ length: 400 }, (_, i) => `Refund rule ${i}: refund within 30 days.`).join("\n");
 
 // #region wire
-const stub = anthropicStub(); // book:note stub
-const adapter = anthropicOver(stub); // book:note adapter
-const model = createModel({ adapter, id: "claude-sonnet-5-5", sleep: instantly }); // book:note instant
+const stub = anthropicStub();
+const adapter = anthropicOver(stub);
+const model = createModel({ adapter, id: "claude-sonnet-5-5", sleep: instantly });
 // #endregion
 
 // #region ask

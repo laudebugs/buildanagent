@@ -42,12 +42,6 @@
         "parts": []
       },
       "finish": "error",
-      "usage": {
-        "uncachedInput": 0,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "output": 0
-      },
       "modelId": "claude-sonnet-5-5"
     },
     {
@@ -125,12 +119,6 @@
         "parts": []
       },
       "finish": "error",
-      "usage": {
-        "uncachedInput": 0,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "output": 0
-      },
       "modelId": "claude-sonnet-5-5"
     },
     {
@@ -166,12 +154,6 @@
         "parts": []
       },
       "finish": "error",
-      "usage": {
-        "uncachedInput": 0,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "output": 0
-      },
       "modelId": "claude-sonnet-5-5"
     },
     {
@@ -191,12 +173,6 @@
         "parts": []
       },
       "finish": "error",
-      "usage": {
-        "uncachedInput": 0,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "output": 0
-      },
       "modelId": "claude-sonnet-5-5"
     },
     {

@@ -56,7 +56,7 @@ The brief named eight listings; `#wire-listing` is a ninth in the chapter and qu
 - [x] Each of the nine listings in the table is a tabs block whose first tab comes from `packages/` and whose other tab is the listing the chapter showed before, with the same file, region, notes and replay
 - [x] Our tabs for `#cache-hit` and `#prepare-step` replay our packages' committed transcripts
 - [x] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
-- [x] The fact-check log has a block of rows for the tabs (rows 115 to 140), and its tally matches its rows
+- [x] The fact-check log has a block of rows for the tabs (rows 115 to 144), and its tally matches its rows
 - [x] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, `pnpm check`, `pnpm typecheck`, `pnpm test`, the CI scripts' tests and the results-drift check pass offline
 - [ ] The pull request records the writing review's 5C scores, before and after
 
@@ -76,5 +76,5 @@ The brief named eight listings; `#wire-listing` is a ninth in the chapter and qu
 - **The SDK examples.** `packages/sdk/examples/11-prepare-step.ts` (`beforeModelCall` returning `activeTools`) and `12-budget.ts` (`run()` with `budgetUsd`, over `pricedScripted()`, a `ScriptedModel` that the gateway prices as Claude Sonnet 5.5). Transcripts are `11-prepare-step.json` and `12-budget.json`.
 - **Differences the chapter now says.** Our `ask` uses the portable `cacheRetention` option where the AI SDK's uses an Anthropic `cacheControl` mark. A failed call ends in an error message of kind `retryable`, not a `RetryError`. The budget is a `run()` option, not a wrapper. Our SDK has no forced tool choice. The figure draws the AI SDK tab's amounts, and the text gives ours ($0.01024 spent, $0.021088 projected, $0.025 budget).
 - **Mutation checks.** Each example's checks fail when the behaviour breaks: 529 no longer retryable, 401 made retryable, 429 made fatal, the system cache mark removed, the cache-read rate changed, `activeTools` ignored, the budget check always allowing, and the scripted adapter's `done` event removed.
-- **Fact-check.** Rows 115 to 140 in `apps/manual/fact-checks/the-model-gateway.md`, all ✅; the tally reads 140 rows.
+- **Fact-check.** Rows 115 to 144 in `apps/manual/fact-checks/the-model-gateway.md`; rows 136 and 129 are ✏️ corrections of a wrong sum and a line citation (rows 141 and 142), the rest ✅; the tally reads 144 rows.
 - **Follow-ups for the owner.** The gateway's stub and the SDK's `pricedScripted()` duplicate plumbing the two packages' `lib/check.ts` already hold. The manual's `check-book` tests time out at their 60-second limit when `pnpm test` runs every package in parallel on a loaded machine, and pass alone (the real-book test takes about 29 seconds alone).

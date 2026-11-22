@@ -68,12 +68,15 @@ export function anthropicStub(): AnthropicStub {
 /** A sleep that returns at once, so the gateway's 2 and 4 second backoffs cost the example nothing. */
 export const instantly: Sleep = async () => {};
 
+/** The classes the stub's Messages stream reports. */
+const REPORTED = { uncachedInput: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+
 /**
  * The gateway's own `anthropic({ apiKey, transport })` adapter on the stub's transport, with the book's transcript
- * recorder around it when the test preloads one. The recorder lists every usage class as reported, because the
- * stub reports all four.
+ * recorder around it when the test preloads one. The recorder lists the four usage classes only for an answer the
+ * stub streamed, because a failed attempt reports none, and the gateway's zero for it would read as a measurement.
  */
 export function anthropicOver(stub: AnthropicStub): ModelAdapter {
   const adapter = anthropic({ apiKey: "not-a-real-key", transport: stub.transport });
-  return recordedAdapter(adapter, { uncachedInput: 0, cacheRead: 0, cacheWrite: 0, output: 0 });
+  return recordedAdapter(adapter, (event) => (event.type === "done" ? REPORTED : undefined));
 }

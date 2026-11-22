@@ -82,8 +82,14 @@ export interface ScriptedUsage {
   output?: number;
 }
 
+/** What a script reports: the same classes for every answer, or a choice made per terminal event. */
+export type UsageSource =
+  | ScriptedUsage
+  | ((event: Extract<ModelEvent, { type: "done" | "error" }>) => ScriptedUsage | undefined);
+
 /** The usage classes the script reported, which the transcript records; the gateway splits cache writes by lifetime. */
-function usageOf(event: Extract<ModelEvent, { type: "done" | "error" }>, script: ScriptedUsage | undefined) {
+function usageOf(event: Extract<ModelEvent, { type: "done" | "error" }>, source: UsageSource | undefined) {
+  const script = typeof source === "function" ? source(event) : source;
   const { usage } = event.message;
   if (usage.unreported || script === undefined) return undefined;
   const counts = {
@@ -100,7 +106,7 @@ function usageOf(event: Extract<ModelEvent, { type: "done" | "error" }>, script:
 async function* recorded(
   adapter: object,
   events: AsyncIterable<ModelEvent>,
-  script: ScriptedUsage | undefined,
+  script: UsageSource | undefined,
 ): AsyncGenerator<ModelEvent> {
   for await (const event of events) {
     if (event.type === "done" || event.type === "error") {
@@ -122,7 +128,7 @@ async function* recorded(
  * The adapter with a recorder around its `stream()`. `usage` is what the example's script reported, because the
  * gateway fills every count a stream leaves out with a zero, and a zero would read as a measurement.
  */
-export function recordedAdapter(adapter: ModelAdapter, usage: ScriptedUsage | undefined): ModelAdapter {
+export function recordedAdapter(adapter: ModelAdapter, usage: UsageSource | undefined): ModelAdapter {
   if (!recording) return adapter;
   const wrapped: ModelAdapter = {
     specificationVersion: adapter.specificationVersion,
