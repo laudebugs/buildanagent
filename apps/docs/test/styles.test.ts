@@ -123,3 +123,8 @@ test("headings use the display face at its one weight", () => {
     /h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6,\s*\.site-title\s*\{\s*font-family: var\(--font-display\);\s*font-weight: 400;/,
   );
 });
+
+test("inline code inside a link keeps the link's colour", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  assert.match(css, /\.sl-markdown-content a code:not\(:where\(\.not-content \*\)\) \{\s*color: inherit;/);
+});

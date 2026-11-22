@@ -105,6 +105,11 @@ h6,
   border-radius: 0.2rem;
 }
 
+/* Code inside a link keeps the link's colour, so a linked name still reads as a link on the panel shade. */
+.sl-markdown-content a code:not(:where(.not-content *)) {
+  color: inherit;
+}
+
 /* An aside is a highlight from the book: its pale background under the text colour, and a left rule in the edge
    shade, which reaches 3:1 on the page. Note is blue, tip green, caution amber and danger pink. */
 .starlight-aside {
