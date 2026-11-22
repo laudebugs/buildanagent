@@ -59,7 +59,7 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md` that ou
 - [x] Update the prose and notes around each block so they describe both tabs.
 - [x] Check `loop-bench`'s step order against our loop transcript; rebuild and audit the figure if it changes.
 - [x] Fact-check every changed claim into `apps/manual/fact-checks/call-workflow-loop.md` as a new block, with corrections as their own rows, and update the tally.
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
@@ -68,7 +68,7 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md` that ou
 - [x] Each of our tabs carries notes that describe its code, and our tabs for `#one-call`, `#workflow` and `#tool-loop` replay our packages' committed transcripts
 - [x] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
 - [x] The fact-check log has a block of rows for the tabs, and its tally matches its rows
-- [ ] The pull request records the writing review's 5C scores, before and after
+- [x] The pull request records the writing review's 5C scores, before and after
 - [x] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
 
@@ -95,8 +95,8 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
@@ -105,4 +105,5 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 - **The examples.** Four files hold the five regions: `01-one-call.ts` (`call`), `02-workflow.ts` (`sequential`), `03-tool-loop.ts` (`tool` and `loop`, plus a `maxSteps: 1` run) and `04-scripted-model.ts` (`scripted`). The todo's table said "five examples"; the tool and the loop share a file, as they do in the AI SDK harness.
 - **The chapter.** Five listings are tabs blocks with our tab first and the earlier listing, its notes and its replay unchanged; `#pi-hello` stays a single Pi listing. Our tabs for `#one-call`, `#workflow` and `#tool-loop` replay our committed transcripts. The descriptive captions moved into the sentences that introduce each block. The prose names both tabs where they differ: `complete()` against `generateText`, a workflow in plain code against `SequentialAgent`, `maxSteps` (20 by default) against `stopWhen`, and `ScriptedModel` against the AI SDK harness's helper. A new source, `buildanagent-sdk-readme`, joins the register.
 - **The bench.** Our loop's transcript records the six steps in the AI SDK loop's order, so `loop-bench` is unchanged; the chapter says both replays follow that order.
-- **Fact-check.** Rows 106–135 in `apps/manual/fact-checks/call-workflow-loop.md`: rows 106–133 ✅, and rows 134 and 135 ✏️ corrections from the first code review; the tally reads 135 rows.
+- **Fact-check.** Rows 106–136 in `apps/manual/fact-checks/call-workflow-loop.md`: rows 106–133 and 136 ✅, and rows 134 and 135 ✏️ corrections from the first code review; the tally reads 136 rows.
+- **Writing review** (5Cs) of the chapter and the changed copy, before → after: coherence 4 → 5, continuity 4 → 5, clarity 4 → 5, concision 4 → 5, cadence 4 → 5.

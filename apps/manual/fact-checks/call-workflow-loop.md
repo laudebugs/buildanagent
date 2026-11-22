@@ -209,12 +209,13 @@ T50 turned five of the chapter's six listings into tabs blocks, with a listing o
 | 133 | Our package and the three harnesses record every example's run, and CI fails when a recording no longer matches its code | The box | ✅ | `packages/sdk/test/book-examples.test.ts` runs each numbered example and writes its transcript through `scripts/transcripts/write.mjs`; `scripts/ci/results-drift.mjs` compares `packages/*/results/transcripts/*.json` as it compares `verify/*/results/transcripts/*.json`, and `ci.yml` runs it after `pnpm test` (`AGENTS.md`, Layout). The three harnesses are row 70 |
 | 134 | Row 118's evidence counts the messages our loop's second request repeats before its `tool-result` | § The loop, [[fig:loop-bench]] | ✏️ | Row 118 first said two repeated messages; `packages/sdk/results/transcripts/03-tool-loop.json` records `"repeated": 3`, the system prompt, the question and the tool call, so row 118 now says three. The order of the steps, and the chapter's claim, are unchanged |
 | 135 | The README rows 119–131 cite is the one at the tag `v0.1.0-alpha.19`, which matches this branch's `packages/sdk/README.md` | Our SDK's tabs | ✏️ | The register entry and these rows first linked the README on `main`, which changes with each merge. They now link the tag; `git diff v0.1.0-alpha.19 HEAD -- packages/sdk/README.md` is empty on 2026-11-22 |
+| 136 | After the writing review, the reworded sentences keep their claims: our SDK has no workflow class (row 114), and our `maxSteps: 1` run ends after one model call that ran the tool but brought no answer (row 125) | § Workflow; § The loop | ✅ | Re-read against the same sources on 2026-11-22; the review split two paragraphs and reordered two sentences, and changed no claim |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 122 |
+| ✅ confirmed | 123 |
 | ✏️ corrected | 9 (rows 26, 42, 61, 70, 85, 86, 98, 134 and 135) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 11, 41, 63 and 97) |
-| Total | 135 |
+| Total | 136 |
