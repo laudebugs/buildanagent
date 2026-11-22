@@ -1,5 +1,6 @@
 import type { AssistantMessage, CatalogEntry, ContentBlock, ModelEvent, RateTier } from "@buildanagent/gateway";
 import { emptyUsage } from "@buildanagent/gateway";
+import { type MockTransport, markMockTransport } from "@buildanagent/gateway/testing";
 
 export function message(
   stopReason: AssistantMessage["stopReason"],
@@ -63,4 +64,18 @@ export function fakeEntry(overrides: Partial<CatalogEntry> = {}): CatalogEntry {
     },
     ...overrides,
   };
+}
+
+/**
+ * A transport that passes every request to `inner` and keeps the headers exactly as the adapter sent them. A mock
+ * transport records them redacted, so a test of which key goes out, and where, reads them here instead.
+ */
+export function withSentHeaders(inner: MockTransport): MockTransport & { readonly sent: Record<string, string>[] } {
+  const sent: Record<string, string>[] = [];
+  const transport = (request: Request): Promise<Response> => {
+    sent.push(Object.fromEntries(request.headers.entries()));
+    return inner(request);
+  };
+  // `requests` is one array for the transport's whole life, so the wrapper can share it.
+  return markMockTransport(Object.assign(transport, { requests: inner.requests, sent }));
 }
