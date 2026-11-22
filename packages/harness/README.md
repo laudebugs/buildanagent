@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-As of November 2026 the package is private and not on npm. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server` and `testing` are built. `mcp`, `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+As of November 2026 the package is private and not on npm. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp` (stdio and in-process servers), `server` and `testing` are built. `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
 
 ## The session log holds twenty-one entry types
 
