@@ -350,8 +350,8 @@ export async function unlockSession(
  * A `SessionLock` over lock files in `options.dir`. `acquire()` creates `<user>/<session>.lock` with the exclusive-create
  * flag and writes `{ pid, host, token, leaseUntil }`, and the holder renews the lease every `renewMs`. A second
  * `acquire()` returns `"would_block"` at once. A lock is stale only when its lease has lapsed and, on the same host, its
- * process no longer exists, so a lock whose holder is alive is never taken, and one from another host only by
- * `unlockSession()`. Readers never lock.
+ * process no longer exists, so `acquire()` never takes a lock whose holder is alive or one from another host; only
+ * `unlockSession()` removes those. Readers never lock.
  */
 export function fileLock(options: FileLockOptions): SessionLock {
   return new FileLock(options);

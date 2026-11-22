@@ -6,8 +6,8 @@ export interface LockHandle {
   /** A random value that names this hold, so a release or a renewal only ever touches its own lock. */
   readonly token: string;
   /**
-   * Whether this writer still holds the lock. It turns `false` when a renewal finds another writer's token in the lock,
-   * which means the lease lapsed and someone took over. A writer that sees `false` must stop writing.
+   * Whether this writer still holds the lock. It turns `false` when a renewal finds the lock gone or holding another writer's
+   * token, for example after the lease lapsed and someone took over. A writer that sees `false` must stop writing.
    */
   held(): boolean;
   /** Gives the lock up and stops renewing it. It is safe to call again, and it never frees another writer's lock. */

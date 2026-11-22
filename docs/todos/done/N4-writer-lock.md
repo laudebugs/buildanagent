@@ -77,9 +77,9 @@ The harness now has a file-backed writer lock in `packages/harness/src/session/f
 **Behavior.**
 - `acquire(key)` takes the store's `SessionKey` and names the lock file `<dir>/<user>/<session>.lock` with `encodeName()`, so a lock can't reach another user's session.
 - It creates the file with `open(path, "wx")`, writes `{ pid, host, token, leaseUntil }`, and returns `"would_block"` at once when the file exists and is not stale.
-- A lock is stale when its lease has lapsed and its host is this host and its pid is gone (`process.kill(pid, 0)`; `EPERM` counts as alive). A lock from another host is never stale to `acquire()`.
+- A lock is stale when its lease has lapsed and, on this host, its pid is gone (`process.kill(pid, 0)`; `EPERM` counts as alive). A lock from another host is never stale to `acquire()`.
 - The holder renews on a timer that doesn't keep the process alive. The renewal overwrites the lock's record, padded to a fixed 1 KiB, in place through an open handle.
-- A takeover runs under a `<lock>.reclaim` guard created with the exclusive-create flag, which a process that died during a takeover leaves for ten seconds, after which a cleaner moves it aside and deletes it. File ages use the wall clock, and only the lease uses the injected one.
+- A takeover runs under a `<lock>.reclaim` guard created with the exclusive-create flag. A guard older than ten seconds was left by a process that died mid-takeover, so a cleaner moves it aside and deletes it. File ages use the wall clock, and only the lease uses the injected one.
 - `unlockSession()` removes a lock whatever its state and returns what it held.
 - Lock options that can't work (a non-finite lease, a renewal not shorter than the lease, a timer over 2^31-1 ms) throw a `HarnessError` with the new code `invalid_lock_options`.
 
