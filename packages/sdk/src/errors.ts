@@ -18,7 +18,6 @@ export type SdkErrorCode =
   | "hook_failed"
   | "run_stopped"
   | "undelivered_message"
-  | "app_mismatch"
   | "unexpected_model_call"
   | "invalid_recording"
   | "recording_expired"
@@ -39,8 +38,6 @@ const SDK_ERROR = Symbol.for("buildanagent.sdk.SdkError");
  * threw while the run fails closed. The run catches it and ends with an `error` result whose `error.kind` is `hook`,
  * so it never reaches your code. `run_stopped`: `runOrThrow()` was given a run that did not finish (a
  * `RunStoppedError`).
- * `app_mismatch`: `continueRun()` resumed a run whose pending request is bound to app data, and the `app` it received was
- * missing or different. The run stops before any approved call runs, and the error carries no app data.
  * `undelivered_message`: `steer()` or `followUp()` was called on a run that had ended, or the run ended before it
  * could apply the message.
  * `unexpected_model_call`: a `ScriptedModel` was called more times than its script allows (an

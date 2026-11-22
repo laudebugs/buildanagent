@@ -29,10 +29,11 @@ export interface PendingRequestFields {
   /** Why the call needs a person, as shown to the approver. It is not signed. */
   readonly reason?: string;
   /**
-   * `canonicalInputHash()` of the app data the call runs for. It is signed, so `continueRun()` resumes the call only
-   * when its `app` has the same canonical JSON. Leave it out for a request that binds no app data.
+   * The app data the call runs for. The request signs a MAC of its canonical JSON and never stores the data, so
+   * `continueRun()` resumes the call only when its `app` has the same canonical JSON. Leave it out for a request that
+   * binds no app data.
    */
-  readonly appHash?: string;
+  readonly app?: unknown;
 }
 
 /** The one call the SDK signs a pending request through, from the loop and from `createPendingRequest()`. */
@@ -54,7 +55,7 @@ export function isSigner(signer: unknown): signer is ApprovalSigner {
 /**
  * Signs an approval request for a tool call outside a run, such as a call your own code wants to make, with the
  * payload a run writes when a gate returns `ask`: for the same fields, id and signer, the two requests and their
- * signatures are identical. Store the request, and check a person's answer against it before the call runs.
+ * signatures are identical, an `appHash` included when `fields.app` is the run's `app`. Store the request, and check a person's answer against it before the call runs.
  *
  * `options.generateId` makes the request's id (default `crypto.randomUUID()`) and `options.now` its `createdAt`
  * (default the current time). Rejects with an `SdkError` with code `invalid_run_options` for a `kind` other than
@@ -76,7 +77,7 @@ export function createPendingRequest(
       new SdkError("invalid_run_options", "createPendingRequest() needs an ApprovalSigner, such as hmacSigner()"),
     );
   }
-  const { kind, callId, tool, input, policyVersion, reason, appHash } = fields;
+  const { kind, callId, tool, input, policyVersion, reason, app } = fields;
   return signPause(
     {
       kind,
@@ -85,7 +86,7 @@ export function createPendingRequest(
       input,
       ...(policyVersion === undefined ? {} : { policyVersion }),
       ...(reason === undefined ? {} : { reason }),
-      ...(appHash === undefined ? {} : { appHash }),
+      ...(app === undefined ? {} : { app }),
     },
     signer,
     options,

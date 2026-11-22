@@ -1,12 +1,13 @@
 /**
  * The signed pending request: what an agent stores when a tool call waits for a person, and what it checks before the
  * call runs. The signature covers D5's six fields in D5's order (request id, kind, call id, tool name, input hash and
- * the optional policy version), so a stored pause whose call, tool or input changed no longer verifies. The shapes
- * match build-sdk.md §3.3 field for field, because our SDK re-exports them.
+ * the optional policy version) and, for a request bound to a caller, a seventh, the app MAC, so a stored pause whose
+ * call, tool, input or caller changed no longer verifies. The shapes match build-sdk.md §3.3 field for field, because
+ * our SDK re-exports them.
  */
 import { constantTimeEqual } from "./bytes.js";
 import { SafetyError } from "./errors.js";
-import { canonicalInputHash } from "./hash.js";
+import { canonicalInputHash, canonicalJson } from "./hash.js";
 import type { ApprovalSigner } from "./signer.js";
 
 /**
@@ -28,9 +29,11 @@ export interface SignedPendingRequest {
   /** The version of the policy that asked for the pause, if the host versions its policy. */
   policyVersion?: string;
   /**
-   * `canonicalInputHash()` of the app data the run held when it paused, such as the signed-in customer, when it held
-   * any. The signature covers it, so the call runs only for the caller whose app data the host passes back. A request
-   * without it, such as one signed before this field existed, binds no app data.
+   * A MAC of the app data the run held when it paused, such as the signed-in customer, when it held any: the signer's
+   * signature over the app's canonical JSON, under the key `keyId` names and a domain tag of its own. The request's
+   * signature covers it, so the call runs only for the caller whose app data the host passes back. It is keyed, so
+   * reading it reveals nothing about a small value such as a customer id. A request without it, such as one signed
+   * before this field existed, binds no app data.
    */
   appHash?: string;
   /** The question a clarification asks. */
@@ -58,8 +61,11 @@ export interface PendingFields {
   /** The tool call's input. `signPending()` stores its `canonicalInputHash()`, never the input itself. */
   readonly input: unknown;
   readonly policyVersion?: string;
-  /** `canonicalInputHash()` of the caller's app data, which `signPending()` signs and stores as it is. */
-  readonly appHash?: string;
+  /**
+   * The caller's app data. `signPending()` signs its canonical JSON with the signer, stores the MAC as `appHash`, and
+   * never stores the data itself. Two values are the same app when their RFC 8785 canonical JSON is the same.
+   */
+  readonly app?: unknown;
   readonly question?: string;
   readonly reason?: string;
 }
@@ -107,18 +113,21 @@ export interface VerifyResolutionOptions {
   /** The call about to run, as the host has it now, not as the pending request records it. */
   readonly call: PendingCall;
   /**
-   * `canonicalInputHash()` of the app data the host has now. A request that is bound to app data is refused with
-   * `app_mismatch` unless this equals the bound hash, so leaving it out refuses a bound request. A request that binds
-   * none ignores it.
+   * The app data the host has now. A request that is bound to app data is refused with `app_mismatch` unless the
+   * signer, under the request's own key, verifies this data's canonical JSON against the bound MAC, so leaving it
+   * out refuses a bound request. A request that binds none ignores it.
    */
-  readonly appHash?: string;
+  readonly app?: unknown;
 }
 
 // Ties a signature to this record and its layout, so it can't verify as some other signed record of this package. A
-// request with no app hash keeps the first layout, so every request signed before the hash existed still verifies; a
+// request with no app MAC keeps the first layout, so every request signed before the MAC existed still verifies; a
 // request with one signs a second layout that adds it, which a reader of the first layout refuses.
 const PAYLOAD_TAG = "buildanagent.pending.v1";
 const APP_PAYLOAD_TAG = "buildanagent.pending.v2";
+// Ties an app MAC to this use, so the signer's signature over an app can't verify as a pending request or any other
+// payload it signs.
+const APP_MAC_TAG = "buildanagent.app.v1";
 const KINDS: readonly string[] = ["approval", "clarification"];
 const INPUT_HASH = /^[0-9a-f]{64}$/;
 const ENCODER = new TextEncoder();
@@ -141,7 +150,7 @@ function isWellFormed(value: unknown): value is SignedPendingRequest {
     typeof p.inputHash === "string" &&
     INPUT_HASH.test(p.inputHash) &&
     [p.policyVersion, p.question, p.reason].every(isOptionalText) &&
-    (p.appHash === undefined || (typeof p.appHash === "string" && INPUT_HASH.test(p.appHash)))
+    (p.appHash === undefined || isText(p.appHash))
   );
 }
 
@@ -170,9 +179,11 @@ function checkFields(fields: PendingFields, id: unknown): void {
   for (const field of ["policyVersion", "question", "reason"] as const) {
     if (!isOptionalText(fields[field])) throw bad(`${field} must be a non-empty, well-formed string when it is set`);
   }
-  if (fields.appHash !== undefined && !(typeof fields.appHash === "string" && INPUT_HASH.test(fields.appHash))) {
-    throw bad("appHash must be 64 lowercase hex digits when it is set");
-  }
+}
+
+/** The bytes the signer signs to MAC an app: a tag, then the app's canonical JSON. Throws `invalid_input` for an app with no canonical form. */
+export function appPayload(app: unknown): Uint8Array {
+  return ENCODER.encode(JSON.stringify([APP_MAC_TAG, canonicalJson(app)]));
 }
 
 /**
@@ -192,7 +203,8 @@ export async function signPending(
   const inputHash = await canonicalInputHash(fields.input);
   const signed = { id, kind: fields.kind, callId: fields.callId, tool: fields.tool, inputHash };
   const withPolicy = fields.policyVersion === undefined ? signed : { ...signed, policyVersion: fields.policyVersion };
-  const bound = fields.appHash === undefined ? withPolicy : { ...withPolicy, appHash: fields.appHash };
+  const appHash = fields.app === undefined ? undefined : await signer.sign(appPayload(fields.app));
+  const bound = appHash === undefined ? withPolicy : { ...withPolicy, appHash };
   const signature = await signer.sign(pendingPayload(bound));
   return {
     ...bound,
@@ -211,10 +223,18 @@ function fitsKind(pending: SignedPendingRequest, resolution: Resolution): boolea
   return "answer" in resolution && typeof resolution.answer === "string";
 }
 
-/** A request bound to app data needs the host's app hash to equal it; a request that binds none accepts any. */
-function appMatches(pending: SignedPendingRequest, appHash: string | undefined): boolean {
+/**
+ * A request bound to app data needs the host's app to verify under the request's own key; a request that binds none
+ * accepts any. An app with no canonical form can't match, and the check never throws.
+ */
+async function appMatches(pending: SignedPendingRequest, app: unknown, signer: ApprovalSigner): Promise<boolean> {
   if (pending.appHash === undefined) return true;
-  return appHash !== undefined && constantTimeEqual(ENCODER.encode(appHash), ENCODER.encode(pending.appHash));
+  if (app === undefined) return false;
+  try {
+    return await signer.verify(pending.keyId, appPayload(app), pending.appHash);
+  } catch {
+    return false;
+  }
 }
 
 async function inputMatches(pending: SignedPendingRequest, input: unknown): Promise<boolean> {
@@ -228,9 +248,11 @@ async function inputMatches(pending: SignedPendingRequest, input: unknown): Prom
 
 /**
  * Checks a resolution against its stored pending request before the call runs, failing closed. It accepts only when
- * the request is well formed, the resolution names it, the signature verifies under a key the signer holds, the call
- * id and tool match the call about to run, that call's input hashes to the signed hash, and the resolution fits the
- * request's kind. Otherwise it returns `ok: false` with the first cause it found, and never throws for bad input.
+ * the request is well formed, the resolution names it, the signature verifies under a key the signer holds, a request
+ * bound to app data gets the same app data back, the call id and tool match the call about to run, that call's input
+ * hashes to the signed hash, and the resolution fits the request's kind. The app is checked right after the
+ * signature, so a host resuming as another caller is told so whatever else is wrong with the request. Otherwise it
+ * returns `ok: false` with the first cause it found, and never throws for bad input.
  *
  * A passing check says the request is authentic and unchanged. It doesn't say current policy still allows the call:
  * check that separately, just before the call runs.
@@ -248,10 +270,12 @@ export async function verifyResolution(
   if (!(await options.signer.verify(pending.keyId, pendingPayload(pending), pending.signature))) {
     return { ok: false, cause: "signature_invalid" };
   }
+  // Once the signature holds, the bound app is trusted, so it is checked before the call and the input: a request
+  // refused for any other reason would otherwise be asked again, and signed for whoever resumed it.
+  if (!(await appMatches(pending, options.app, options.signer))) return { ok: false, cause: "app_mismatch" };
   const { call } = options;
   if (call.callId !== pending.callId || call.tool !== pending.tool) return { ok: false, cause: "call_mismatch" };
   if (!(await inputMatches(pending, call.input))) return { ok: false, cause: "input_changed" };
-  if (!appMatches(pending, options.appHash)) return { ok: false, cause: "app_mismatch" };
   if (!fitsKind(pending, resolution)) return { ok: false, cause: "resolution_mismatch" };
   return { ok: true, resolution };
 }

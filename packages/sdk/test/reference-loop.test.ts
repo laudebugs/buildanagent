@@ -60,10 +60,10 @@ test("the line counter counts code, not comments, and reads strings as code", ()
   assert.equal(codeLines(sample), 6);
 });
 
-// The cap was 400 until the loop began binding a pause to the run's app data, which takes about ten lines.
-test("the reference loop stays under 410 non-blank, non-comment lines", () => {
+// The cap was 400 until the loop began binding a pause to the run's app data and refusing a resume as another caller.
+test("the reference loop stays under 430 non-blank, non-comment lines", () => {
   const lines = codeLines(source);
-  assert.ok(lines < 410, `the reference loop has ${lines} code lines`);
+  assert.ok(lines < 430, `the reference loop has ${lines} code lines`);
 });
 
 test("the reference loop imports only the public exports of the gateway and the SDK", () => {
@@ -282,6 +282,15 @@ function setup(steps: ScriptStep[], extra: Partial<RunOptions<Triage>> = {}) {
   return { adapter, seen, options: { ...triageOptions(deps(model)), ...extra } };
 }
 
+/**
+ * The options without app data. A run that has app data refuses a request that fails its signature instead of asking
+ * again, so the tests of that asking-again path run without it.
+ */
+function withoutApp<T extends object>(options: T): T {
+  const { app: _app, ...rest } = options as T & { app?: unknown };
+  return rest as T;
+}
+
 /** A context whose last response calls `calls` and waits on `pending`, signed or forged. */
 function pausedContext(
   calls: ReturnType<typeof call>[],
@@ -326,7 +335,8 @@ describe("the reference loop resumes as the real loop does", () => {
           return { content: [{ type: "text", text: "ran" }] };
         },
       });
-      const { adapter, options } = setup([answer]);
+      const { adapter, options: withApp } = setup([answer]);
+      const options = withoutApp(withApp);
       const context = pausedContext([call("hidden", { x: 1 }, "c1")], [forged("r1", "c1", "hidden")], { r1: { x: 1 } });
       const tools = [...(options.tools ?? []), hidden];
       const { result } = await drive(loop.continueRun(context, { ...options, tools } as ContinueOptions<Triage>));
@@ -337,7 +347,7 @@ describe("the reference loop resumes as the real loop does", () => {
     });
 
     test(`${loop.name}: a request asked again never takes the id of one that still waits`, async () => {
-      const { options } = setup([]);
+      const options = withoutApp(setup([]).options);
       const signer = testSigner();
       const input = { reason: "r" };
       const held = await createPendingRequest({ kind: "approval", callId: "c1", tool: "escalate", input }, signer, {

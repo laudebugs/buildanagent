@@ -354,13 +354,12 @@ test("the root entry doesn't export the fixed-key test signer; only ./testing do
   assert.equal("TEST_KEY_ID" in root, false);
 });
 
-const APP_HASH = "a".repeat(64);
-const OTHER_APP_HASH = "b".repeat(64);
+const APP = { customerId: "cust-1", region: "eu" };
 
-test("a request bound to app data signs a second layout that adds the hash last, and a request without one is unchanged", async () => {
-  const bound = await signPending({ kind: "approval", ...CALL, appHash: APP_HASH }, testSigner(), FIXED);
+test("a request bound to app data signs a second layout that adds the app MAC last, and a request without one is unchanged", async () => {
+  const bound = await signPending({ kind: "approval", ...CALL, app: APP }, testSigner(), FIXED);
   const bare = await signPending({ kind: "approval", ...CALL }, testSigner(), FIXED);
-  assert.equal(bound.appHash, APP_HASH);
+  assert.ok(typeof bound.appHash === "string" && bound.appHash !== "");
   assert.ok(!("appHash" in bare));
   const payload = JSON.parse(DECODER.decode(pendingPayload(bound))) as unknown[];
   assert.deepEqual(payload, [
@@ -371,7 +370,7 @@ test("a request bound to app data signs a second layout that adds the hash last,
     "refund",
     bound.inputHash,
     null,
-    APP_HASH,
+    bound.appHash,
   ]);
   assert.equal(JSON.parse(DECODER.decode(pendingPayload(bare)))[0], "buildanagent.pending.v1");
   const independent = createHmac("sha256", "buildanagent testSigner fixed key, never for production")
@@ -380,45 +379,107 @@ test("a request bound to app data signs a second layout that adds the hash last,
   assert.equal(bound.signature, independent);
 });
 
-test("verifyResolution binds a request to its app hash: the same one passes, another or none is refused", async () => {
+test("the app MAC is an HMAC of the tagged canonical JSON under the signing key, so the same app gives the same MAC and another gives another", async () => {
   const signer = testSigner();
-  const request = await signPending({ kind: "approval", ...CALL, appHash: APP_HASH }, signer, FIXED);
-  const verify = (p: unknown, appHash?: string) =>
-    verifyResolution(p, allow(request), { signer, call: CALL, ...(appHash === undefined ? {} : { appHash }) });
-  const outcome = async (p: unknown, appHash?: string) => {
-    const check = await verify(p, appHash);
-    return check.ok ? "ok" : check.cause;
-  };
-  assert.equal(await outcome(request, APP_HASH), "ok");
-  assert.equal(await outcome(request, OTHER_APP_HASH), "app_mismatch");
-  assert.equal(await outcome(request), "app_mismatch", "a host that passes no app data is refused");
-  // The hash is signed: changing, adding or removing it breaks the signature before the app check runs.
-  assert.equal(await outcome({ ...request, appHash: OTHER_APP_HASH }, OTHER_APP_HASH), "signature_invalid");
-  const { appHash: _removed, ...stripped } = request;
-  assert.equal(await outcome(stripped), "signature_invalid");
-  const unbound = await signPending({ kind: "approval", ...CALL }, signer, FIXED);
-  assert.equal(await outcome({ ...unbound, appHash: APP_HASH }, APP_HASH), "signature_invalid");
-  assert.equal(await outcome({ ...request, appHash: "not-a-hash" }, APP_HASH), "malformed");
+  const one = await signPending({ kind: "approval", ...CALL, app: APP }, signer, FIXED);
+  const reordered = await signPending(
+    { kind: "approval", ...CALL, app: { region: "eu", customerId: "cust-1" } },
+    signer,
+    FIXED,
+  );
+  const other = await signPending(
+    { kind: "approval", ...CALL, app: { customerId: "cust-2", region: "eu" } },
+    signer,
+    FIXED,
+  );
+  assert.equal(one.appHash, reordered.appHash, "key order does not change the MAC");
+  assert.notEqual(one.appHash, other.appHash);
+  const independent = createHmac("sha256", "buildanagent testSigner fixed key, never for production")
+    .update(JSON.stringify(["buildanagent.app.v1", await canonicalJsonOf(APP)]))
+    .digest("base64url");
+  assert.equal(one.appHash, independent, "a plain HMAC over the tagged canonical JSON");
+  // Keyed: the unkeyed SHA-256 of the same JSON is not the MAC, so a guess can't be tested without the key.
+  assert.notEqual(one.appHash, await canonicalInputHash(APP));
 });
 
-test("a request that binds no app data accepts any app hash, which is how a pause signed before the field resumes", async () => {
+async function canonicalJsonOf(value: unknown): Promise<string> {
+  // The canonical text is the sorted-key JSON the hash covers; plain JSON.stringify of a sorted object matches it.
+  const sorted = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(sorted)
+      : v !== null && typeof v === "object"
+        ? Object.fromEntries(
+            Object.entries(v as object)
+              .sort(([a], [b]) => (a < b ? -1 : 1))
+              .map(([k, x]) => [k, sorted(x)]),
+          )
+        : v;
+  return JSON.stringify(sorted(value));
+}
+
+test("verifyResolution binds a request to its app: the same app passes, another or none is refused, and the app is checked right after the signature", async () => {
+  const signer = testSigner();
+  const request = await signPending({ kind: "approval", ...CALL, app: APP }, signer, FIXED);
+  const outcome = async (p: unknown, app?: unknown, call: PendingCall = CALL) => {
+    const check = await verifyResolution(p, allow(request), { signer, call, ...(app === undefined ? {} : { app }) });
+    return check.ok ? "ok" : check.cause;
+  };
+  assert.equal(await outcome(request, APP), "ok");
+  assert.equal(await outcome(request, { region: "eu", customerId: "cust-1" }), "ok", "key order does not matter");
+  assert.equal(await outcome(request, { customerId: "cust-2", region: "eu" }), "app_mismatch");
+  assert.equal(await outcome(request), "app_mismatch", "a host that passes no app data is refused");
+  assert.equal(await outcome(request, new Date(0)), "app_mismatch", "an app with no canonical form matches nothing");
+  // The app comes before the call and the input, so a resume as another caller is told so whatever else is wrong.
+  assert.equal(await outcome(request, { other: 1 }, { ...CALL, callId: "call_2" }), "app_mismatch");
+  assert.equal(await outcome(request, { other: 1 }, { ...CALL, input: { order: 1 } }), "app_mismatch");
+  assert.equal(
+    await outcome(request, APP, { ...CALL, input: { order: 1 } }),
+    "input_changed",
+    "with the right app, the input check still runs",
+  );
+  // The MAC is signed: changing, adding or removing it breaks the signature before the app check runs.
+  assert.equal(await outcome({ ...request, appHash: `${request.appHash}x` }, APP), "signature_invalid");
+  const { appHash: _removed, ...stripped } = request;
+  assert.equal(await outcome(stripped, APP), "signature_invalid");
+  const unbound = await signPending({ kind: "approval", ...CALL }, signer, FIXED);
+  assert.equal(await outcome({ ...unbound, appHash: request.appHash }, APP), "signature_invalid");
+  assert.equal(await outcome({ ...request, appHash: "" }, APP), "malformed");
+});
+
+test("the app is verified under the request's own key, so a rotated ring still resumes and a key outside the ring is refused", async () => {
+  const ringA = hmacSigner({ keys: { a: KEY_A }, current: "a" });
+  const request = await signPending({ kind: "approval", ...CALL, app: APP }, ringA, FIXED);
+  const rotated = hmacSigner({ keys: { a: KEY_A, b: KEY_B }, current: "b" });
+  const check = (signer: ApprovalSigner) => verifyResolution(request, allow(request), { signer, call: CALL, app: APP });
+  assert.equal((await check(rotated)).ok, true, "key a stays in the ring, so its MAC still verifies");
+  const outside = hmacSigner({ keys: { b: KEY_B }, current: "b" });
+  const refused = await check(outside);
+  assert.equal(refused.ok, false);
+  assert.equal(
+    refused.ok ? undefined : refused.cause,
+    "signature_invalid",
+    "a key outside the ring cannot verify the request",
+  );
+  const swapped = hmacSigner({ keys: { a: KEY_B }, current: "a" });
+  assert.equal((await check(swapped)).ok, false, "another key under the same id refuses it");
+});
+
+test("a request that binds no app data accepts any app, which is how a pause signed before the field resumes", async () => {
   const signer = testSigner();
   const unbound = await signPending({ kind: "approval", ...CALL }, signer, FIXED);
-  for (const appHash of [undefined, APP_HASH]) {
+  for (const app of [undefined, APP]) {
     const check = await verifyResolution(unbound, allow(unbound), {
       signer,
       call: CALL,
-      ...(appHash === undefined ? {} : { appHash }),
+      ...(app === undefined ? {} : { app }),
     });
     assert.equal(check.ok, true);
   }
 });
 
-test("signPending refuses an app hash that is not 64 lowercase hex digits", async () => {
-  for (const appHash of ["", "abc", "A".repeat(64), 7 as unknown as string]) {
-    await assert.rejects(
-      signPending({ kind: "approval", ...CALL, appHash }, testSigner(), FIXED),
-      assertSafetyError("invalid_pending"),
-    );
-  }
+test("signPending refuses an app with no canonical JSON form", async () => {
+  await assert.rejects(
+    signPending({ kind: "approval", ...CALL, app: { signedInAt: new Date(0) } }, testSigner(), FIXED),
+    assertSafetyError("invalid_input"),
+  );
 });

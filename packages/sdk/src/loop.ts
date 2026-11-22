@@ -81,8 +81,6 @@ export interface LoopSetup {
   readonly parentRun?: { readonly runId: string; readonly callId: string };
   /** The caller's app data for the tools. It goes to no request, event or saved context. */
   readonly app?: unknown;
-  /** The fingerprint of `app`, which signed pending requests bind; `undefined` when the run has no app data. */
-  readonly appFingerprint: () => Promise<string | undefined>;
   readonly modelOptions: CallOptions;
   /** Whether each model call asks for the provider's raw events, which the run emits as `raw` events. */
   readonly includeRaw: boolean;
@@ -174,7 +172,7 @@ class LoopState {
       stepIndex: () => this.stepIndex,
       send: (body) => this.send(body),
       signer: setup.signer,
-      appFingerprint: setup.appFingerprint,
+      app: setup.app,
       nextId: setup.nextId,
     });
   }
@@ -821,9 +819,12 @@ async function resume(state: LoopState, setup: ResumeSetup): Promise<Outcome | u
  * gate but never running.
  */
 async function settle(state: LoopState, setup: ResumeSetup): Promise<Outcome | undefined> {
-  const { signer, appFingerprint } = state.setup;
+  const { signer, app } = state.setup;
   state.hooks.reserveRequestIds(setup.open.map((entry) => entry.request.id));
-  const verdicts = await judgeOpenCalls(setup, { signer, appFingerprint, send: (body) => state.send(body) });
+  const judged = await judgeOpenCalls(setup, { signer, app, send: (body) => state.send(body) });
+  // A refusal ends the run as an error result, so observers still see run_end, before any approved call runs.
+  if ("refused" in judged) return { stopReason: "error", error: judged.refused };
+  const verdicts = judged;
   const of = <K extends Verdict["kind"]>(kind: K) =>
     verdicts.filter((verdict): verdict is Extract<Verdict, { kind: K }> => verdict.kind === kind);
   for (const { call, result } of of("result")) {
