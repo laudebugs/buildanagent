@@ -2,7 +2,7 @@
 title: "Talking to a model: messages, streams, tokens, instructions and model choice"
 summary: A model call sends the whole conversation and gets back one message, often as a stream of pieces, with a bill in four token classes. This chapter reads each part of that exchange, then shows what belongs in the system prompt, how to choose a model, and why thinking goes back to the model untouched.
 opening: code
-sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, ghosh-truthgate, anthropic-prefix-checks, openai-practical-guide-to-building-agents, anthropic-preserved-thinking, anthropic-glossary]
+sources: [anthropic-working-with-messages, ai-sdk-prompts, anthropic-how-tool-use-works, ai-sdk-generating-text, ai-sdk-stream-text, langchain-streaming, copilot-streaming-events, anthropic-pricing, anthropic-thinking, anthropic-prompt-caching, anthropic-effective-context-engineering, ghosh-truthgate, anthropic-prefix-checks, openai-practical-guide-to-building-agents, anthropic-preserved-thinking, anthropic-glossary, buildanagent-gateway-readme]
 glossary: [token, system-prompt, delta, prompt-cache, thinking-block]
 switchTo: [B4, B5]
 ---
@@ -27,7 +27,7 @@ That small request holds most of this chapter. You send a list of messages, each
 
 ## A call sends the whole conversation, and every message has a role
 
-Each request is a list of messages, and each message has a role that says who is speaking. The AI SDK, whose listings this chapter uses most, types four roles. A `system` message holds the builder's instructions, a `user` message holds what a person asked, an `assistant` message holds an answer the model gave, and a `tool` message carries the result of a tool the model asked for, which [[ch:tools]] covers. Providers spell the roles their own way on the wire. Anthropic's API, for instance, takes the system prompt in its own `system` field beside the messages [@anthropic-working-with-messages], and it expects tool results back inside a `user` message [@anthropic-how-tool-use-works]. The SDK translates for you.
+Each request is a list of messages, and each message has a role that says who is speaking. The AI SDK, whose listings this chapter uses most, types four roles. A `system` message holds the builder's instructions, a `user` message holds what a person asked, an `assistant` message holds an answer the model gave, and a `tool` message carries the result of a tool the model asked for, which [[ch:tools]] covers. Providers spell the roles their own way on the wire. Anthropic's API, for instance, takes the system prompt in its own `system` field beside the messages [@anthropic-working-with-messages], and it expects tool results back inside a `user` message [@anthropic-how-tool-use-works]. The SDK translates for you. Our gateway types three message roles instead: a user message, an assistant message and a tool result, with the system prompt in a `system` field of the call itself [@buildanagent-gateway-readme].
 
 [[fig:resent-history]] shows what statelessness does to a conversation once a tool joins it. The run comes from the LangChain example that the next section streams. Its first request carries one message, the user's "Find it", and the model answers with a call to a `lookup`{checked=row-10} tool. The second request then carries three messages: the user's question again, the model's own tool call, and the tool's result, "found". Only with all three in hand does the model answer "Here it is."
 
@@ -47,20 +47,29 @@ The replay shows the refusal happening before anything reaches the network. The 
 
 The AI SDK's documentation explains why the default refuses: opting in "can create a prompt injection risk where users can override or set the system prompt by injecting system messages", so "only trusted server-side code should set system instructions via the `instructions`{checked=row-11} property" [@ai-sdk-prompts]. We recommend the same rule when you store conversations: your code writes the system prompt, and nothing a user typed should go back to the model under that role.
 
+[[lst:system-in-messages]] has no tab on our gateway, because the gateway draws the line in its types and not at run time. A message with the role `system` is a type error there, since a `Message` has no such role, and the gateway has no option that opts in. The `system` field of `ModelContext` is the only place its system prompt goes.
+
 Because the model keeps nothing, everything it needs rides in each request, and that has two consequences. First, a request can grow only as large as the model's context window, "the amount of text a language model can look back on" [@anthropic-glossary], and [[ch:the-session-log-and-context]] covers what to do when a conversation outgrows it. Second, every token a request carries is billed on every call, the whole conversation, each tool result and the system prompt included. The section after next counts that bill.
 
 ## A stream hands you the answer in pieces, and the message at the end is the one that counts
 
 Watch :analogy[a news ticker]{#news-ticker} crawl along the bottom of a television screen. The words arrive a few at a time, and you can start reading before the sentence is done. Nobody files the ticker, though. The record is the article published once the story is complete, and the crawl was only a way to see it early.
 
-Streaming gives your code the ticker's head start. Instead of waiting for the whole answer, your code receives it as a run of deltas, small pieces of text sent as the model produces them, and folds them together as they arrive. [[lst:text-stream]] streams one answer with the AI SDK's `streamText`.
+Streaming gives your code the ticker's head start. Instead of waiting for the whole answer, your code receives it as a run of deltas, small pieces of text sent as the model produces them, and folds them together as they arrive. [[lst:text-stream-ours]] and [[lst:text-stream]] each stream one answer, the first through our gateway's `stream()` and the second with the AI SDK's `streamText`. The first tab of this listing and of [[lst:stream-usage-ours]] runs on `@buildanagent/gateway`, and the second tab runs the same step on the AI SDK, so you can see what changes between SDKs and what stays. As of November 2026 the gateway is a `0.1.0` alpha release, so its names may still change.
 
-:::listing[A streamed answer arrives as deltas that your code collects]{#text-stream file="verify/vercel-ai-sdk/examples/06-streaming.ts" region="text-stream" replay}
+::::tabs
+:::listing[Our gateway]{#text-stream-ours file="packages/gateway/examples/01-text-stream.ts" region="text-stream" replay}
+::note[`scripted` gives the gateway's own Anthropic adapter a scripted Messages stream, so the call needs no key and sends nothing over the network.]{#scripted}
+::note[`model.stream(context)` yields events, and each `"text_delta"` event holds one piece of the text in `delta`. This loop keeps them in order.]{#deltas}
+::note[The last event is `"done"`, or `"error"` when the call failed, and it carries the whole `AssistantMessage`.]{#closing}
+:::
+:::listing[AI SDK]{#text-stream file="verify/vercel-ai-sdk/examples/06-streaming.ts" region="text-stream" replay}
 ::note[`streamText` returns at once, without `await`. The call is already under way, and its text reaches you through the result's streams and promises.]{#returns-at-once}
 ::note[`result.textStream` yields each text delta as it arrives; this loop keeps them in order.]{#deltas}
 :::
+::::
 
-The scripted answer, "Streams arrive in pieces.", reached the loop as four deltas, because this book's mock model splits its text after each space. A real provider sends pieces of whatever size it produces. The AI SDK's documentation says `streamText` "immediately starts streaming" [@ai-sdk-generating-text]. The checks under the region then show the fold: the four deltas join to the full text, and `result.text`, a promise, resolves to that same text once the stream ends. So does `result.finishReason`{checked=row-22}, which says why the model stopped, something no single delta can tell you [@ai-sdk-stream-text].
+The scripted answer, "Streams arrive in pieces.", reached the loop as four deltas, because this book's mock models split their text after each space. A real provider sends pieces of whatever size it produces. The AI SDK's documentation says `streamText` "immediately starts streaming" [@ai-sdk-generating-text]. The checks under the region then show the fold: the four deltas join to the full text, and `result.text`, a promise, resolves to that same text once the stream ends. So does `result.finishReason`{checked=row-22}, which says why the model stopped, something no single delta can tell you [@ai-sdk-stream-text]. Our tab's checks show the same fold: the deltas join to the full text, and the closing message holds that text and carries its `stopReason`{checked=row-137}.
 
 The ticker's lesson holds in every SDK, though each one cuts the stream at its own grain. The three tabs below stream one run each:
 
@@ -76,7 +85,7 @@ The ticker's lesson holds in every SDK, though each one cuts the stream at its o
 
 The Copilot SDK draws the line between the two kinds of event most sharply. Its documentation calls each delta "ephemeral": "streamed in real time but **not** persisted to the session log" and "Not replayed on session resume". The complete `"assistant.message"`, by contrast, is persisted [@copilot-streaming-events]. The example's own checks make the same point from the other side. With streaming on, the session emitted two deltas that join to the final message; with streaming off, it emitted none, and the final message was the same. Streaming changes how early you see the answer, never what the answer is.
 
-A ticker and a stream differ in one way that matters. A news crawl reports facts that already happened, while a delta is provisional: the stream can stop short or end in an error, and only the message at the end says what the model finished saying. We recommend that your code show deltas to people as they arrive but store, bill and act on the final message alone. This book's own gateway, `@buildanagent/gateway`, builds that rule into its stream: as of November 2026, every stream ends with exactly one closing event, `"done"` or `"error"`, and that event carries the assistant message, with whatever content arrived before a failure.
+A ticker and a stream differ in one way that matters. A news crawl reports facts that already happened, while a delta is provisional: the stream can stop short or end in an error, and only the message at the end says what the model finished saying. We recommend that your code show deltas to people as they arrive but store, bill and act on the final message alone. This book's own gateway, `@buildanagent/gateway`, builds that rule into its stream, as [[lst:text-stream-ours]] shows: as of November 2026, every stream ends with exactly one closing event, `"done"` or `"error"`, and that event carries the assistant message, with whatever content arrived before a failure.
 
 ## Every call runs a meter, and tokens fall into four classes with four prices
 
@@ -86,17 +95,24 @@ A model call has a fare, and the provider charges it like :analogy[a taxi meter 
 ::svg{alt="A taxi travels between two boxes, your code on the left and the model on the right. An arrow out to the model is labelled out: 3,000 input tokens, and an arrow back is labelled back: 200 output tokens. Below, the meter reads out leg: $0.0034, back leg: $0.0020, fare: $0.0054."}
 :::
 
-The input leg has more fare classes than a taxi does. A provider counts input three ways: tokens read from its prompt cache, tokens written to that cache for later calls, and the rest, which it reads uncached. With the output, that makes four token classes, and the bill for one call is each class's count times its rate, summed. The AI SDK reports the three input classes as `noCacheTokens`, `cacheReadTokens` and `cacheWriteTokens` in `usage.inputTokenDetails`, and the output beside them in `usage.outputTokens` [@ai-sdk-stream-text]. [[lst:stream-usage]] streams one answer, reads its usage and prices it.
+The input leg has more fare classes than a taxi does. A provider counts input three ways: tokens read from its prompt cache, tokens written to that cache for later calls, and the rest, which it reads uncached. With the output, that makes four token classes, and the bill for one call is each class's count times its rate, summed. The AI SDK reports the three input classes as `noCacheTokens`, `cacheReadTokens` and `cacheWriteTokens` in `usage.inputTokenDetails`, and the output beside them in `usage.outputTokens` [@ai-sdk-stream-text]. Our gateway names the same classes `uncachedInput`, `cacheRead` and `cacheWrite` in the `Usage` of the message that closes the stream, beside `output`. Its `cacheWrite` holds one count for each cache lifetime [@buildanagent-gateway-readme]. [[lst:stream-usage-ours]] and [[lst:stream-usage]] each stream one answer, read its usage and price it.
 
-:::listing[A streamed call's usage, priced class by class]{#stream-usage file="verify/vercel-ai-sdk/examples/10-streaming-usage.ts" region="stream-usage" replay}
+::::tabs
+:::listing[Our gateway]{#stream-usage-ours file="packages/gateway/examples/02-stream-usage.ts" region="stream-usage" replay}
+::note[The usage arrives on the stream's closing message, so it is readable only once the loop has ended.]{#usage-at-end}
+::note[The four classes. The mock reports 1,000 uncached, 1,500 read from the cache and 500 written to the 5-minute cache, which `cacheWrite` counts under `"5m"`, plus 200 output.]{#four-classes}
+::note[The gateway has already priced the message: `total` is 0.0054 dollars and `basis` is `"catalog"`, because the cost came from the catalog's rates for the model id.]{#priced}
+:::
+:::listing[AI SDK]{#stream-usage file="verify/vercel-ai-sdk/examples/10-streaming-usage.ts" region="stream-usage" replay}
 ::note[The usage arrives with the stream's last part, so this promise resolves only once the stream has ended.]{#usage-at-end}
 ::note[The three input classes. The mock reports 1,000 uncached, 1,500 read from the cache and 500 written to it.]{#input-classes}
 ::note[Each class times its own rate, from [[lst:sonnet-rates]]: the call costs 5,400,000 nano-dollars, or $0.0054.]{#price-the-classes}
 :::
+::::
 
 ::listing[Claude Sonnet 5.5's rates as of November 2026, in nano-dollars per token]{#sonnet-rates file="verify/vercel-ai-sdk/examples/lib/rates.ts" region="rates"}
 
-The rates in [[lst:sonnet-rates]] are Anthropic's published prices for Claude Sonnet 5.5, as of November 2026. Per million tokens, an uncached input token costs $2, a five-minute cache write $2.50, a cache read $0.10 and an output token $10 [@anthropic-pricing]. Work the sum by hand once and the four classes stop being abstract. The 1,000 uncached tokens cost $0.002, the 1,500 cache reads $0.00015, the 500 cache writes $0.00125 and the 200 output tokens $0.002, which totals $0.0054. Billed as if none of the 3,000 input tokens touched the cache, the same call would cost $0.008, and the example's last check confirms that the cached bill is lower.
+The rates in [[lst:sonnet-rates]] are Anthropic's published prices for Claude Sonnet 5.5, as of November 2026. Our tab has no rates file, because the gateway's shipped price catalog holds the same four rates, copied from the same pricing page on 2026-11-19, and prices every message from them [@buildanagent-gateway-readme]. Per million tokens, an uncached input token costs $2, a five-minute cache write $2.50, a cache read $0.10 and an output token $10 [@anthropic-pricing]. Work the sum by hand once and the four classes stop being abstract. The 1,000 uncached tokens cost $0.002, the 1,500 cache reads $0.00015, the 500 cache writes $0.00125 and the 200 output tokens $0.002, which totals $0.0054. Billed as if none of the 3,000 input tokens touched the cache, the same call would cost $0.008, and the last check of each example confirms that the cached bill is lower.
 
 [[fig:stream-fold]] puts the whole call on one page: the deltas, the message they fold into, and the usage that came with the stream's last part.
 
@@ -108,7 +124,7 @@ Two facts about these prices explain most agent bills. First, output costs five 
 
 Thinking, which the last section covers, goes on the output side of the meter: Anthropic bills the tokens a model spends reasoning "as output tokens, even when the thinking text isn't returned to you" [@anthropic-thinking], and the AI SDK counts them in `usage.outputTokenDetails.reasoningTokens`{checked=row-48} [@ai-sdk-stream-text].
 
-The replay beside [[lst:stream-usage]] shows the token counts on the model's answer itself. Under the answer's text, the replay names the model id the mock reported, `claude-sonnet-5-5`. It also lists the four counts the answer's usage carried: 1,000 uncached input tokens, 1,500 read from the cache, 500 written to it and 200 output tokens. Because the example's script set those counts, the checks that follow repeat them: 3,000 input tokens in all, each class on its own, and a cost of $0.0054. The transcript also keys the request and the answer by `model-1`, its recorder's name for the first model the example called, and keeps the reported id beside that name.
+The replay beside either tab shows the token counts on the model's answer itself. Under the answer's text, the replay names the model id the mock reported, `claude-sonnet-5-5`. It also lists the four counts the answer's usage carried: 1,000 uncached input tokens, 1,500 read from the cache, 500 written to it and 200 output tokens. Because the example's script set those counts, the checks that follow repeat them: 3,000 input tokens in all, each class on its own, and a cost of $0.0054. The transcript also keys the request and the answer by `model-1`, its recorder's name for the first model the example called, and keeps the reported id beside that name.
 
 The meter and the bill disagree at one point, the cache. A taxi has no fare for a stretch of road it drove an hour ago, but a model provider does: a cached input token is billed at a fraction of the uncached rate, and only while the cache holds it. By default a cache entry lives at least five minutes, and each read refreshes it [@anthropic-prompt-caching], so the discount rewards a conversation that keeps its front unchanged. The next section is about the part of the front that should never change.
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T13](../done/T13-chapter-stopping-and-structured-output.md), [B11](../done/B11-loop-core.md), [B14](../done/B14-budget-progress.md), [T50](T50-chapter-call-workflow-loop-on-our-sdk.md) |
+| Depends on | [T13](../done/T13-chapter-stopping-and-structured-output.md), [B11](../done/B11-loop-core.md), [B14](../done/B14-budget-progress.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
 | Size | M |
 
 ## Goal
@@ -18,7 +18,7 @@ Our SDK fits this chapter closely. B11's `run()` counts `maxSteps` in model call
 ## Context
 
 - [T13's Outcome](../done/T13-chapter-stopping-and-structured-output.md#outcome): the chapter's listings, replays, figures and fact-check log.
-- [T50](T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
+- [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
 - `packages/sdk/README.md` ("How a run ends", the output tool and `shouldStop`) and `packages/sdk/src/loop.ts`, `result.ts` and `budget.ts`.
 
 ## Scope
