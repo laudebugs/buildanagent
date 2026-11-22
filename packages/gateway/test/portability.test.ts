@@ -9,6 +9,8 @@ const packagesRoot = fileURLToPath(new URL("../..", import.meta.url));
 // The offline guards run only in our Node test process, so they may use Node APIs. The mock server opens a socket,
 // which needs Node's `http` module; it imports it only when a test starts a server, so the export loads everywhere.
 const nodeOnlyFiles = new Set([
+  // The CLI binary reads the process arguments and writes to standard output, so it is Node-only by nature.
+  "bin.ts",
   "testing/guards.ts",
   "testing/setup.ts",
   "testing/mock-server.ts",
