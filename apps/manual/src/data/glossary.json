@@ -154,10 +154,46 @@
     "sources": ["langgraph-checkpointers"]
   },
   {
+    "id": "context-window",
+    "term": "context window",
+    "definition": "The most text, counted in tokens, that a model can read in one request: the system prompt, the messages and the tool results together. Whatever the harness leaves out of the request, the model does not see.",
+    "sources": ["anthropic-effective-context-engineering"]
+  },
+  {
+    "id": "compaction",
+    "term": "compaction",
+    "definition": "Shortening a conversation that nears the context window by having a model summarize its older part and sending the summary in place of those messages. In a harness that keeps a session log, the summary is one more entry, and the older entries stay in the log.",
+    "sources": ["anthropic-effective-context-engineering", "pi-compaction"]
+  },
+  {
+    "id": "writer-lock",
+    "term": "writer lock",
+    "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
+    "sources": ["buildanagent-harness-readme"]
+  },
+  {
     "id": "permission-pipeline",
     "term": "permission pipeline",
     "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
     "sources": ["claude-agent-sdk-permissions"]
+  },
+  {
+    "id": "tool-registry",
+    "term": "tool registry",
+    "definition": "The one place a harness records every tool of every origin, built-in, extension, client or MCP. It gives each tool one canonical name, decides whether a request carries the tool's definition, and holds what permission rules and the log need to know about it.",
+    "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "deferred-tool",
+    "term": "deferred tool",
+    "definition": "A tool whose name the model can see but whose description and schema stay out of the request until the model searches for it and the harness loads the match.",
+    "sources": ["claude-agent-sdk-tool-search"]
+  },
+  {
+    "id": "skill",
+    "term": "skill",
+    "definition": "A folder with a SKILL.md file of instructions. Its name and description sit in the model's prompt, and the model reads the body only when the task matches, so a skill costs a few tokens until it is opened.",
+    "sources": ["anthropic-agent-skills-overview"]
   },
   {
     "id": "idempotency-key",

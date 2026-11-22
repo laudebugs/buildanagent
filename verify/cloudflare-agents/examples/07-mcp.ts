@@ -22,17 +22,18 @@ function createServer() {
 }
 const handler = createMcpHandler(createServer);
 
+// #region mcp-client
 export class McpUser extends Agent<Env> {
   async link() {
     // Not named connect(): a Durable Object stub reserves connect() (TCP sockets) and fetch().
-    const r = await this.addMcpServer("orders", "http://localhost/mcp");
+    const r = await this.addMcpServer("orders", "http://localhost/mcp"); // book:note add
     return { state: r.state, id: r.id };
   }
   tools() {
-    return this.mcp.listTools().map((t) => ({ name: t.name, serverId: t.serverId }));
+    return this.mcp.listTools().map((t) => ({ name: t.name, serverId: t.serverId })); // book:note list
   }
   aiToolNames() {
-    return Object.keys(this.mcp.getAITools());
+    return Object.keys(this.mcp.getAITools()); // book:note ai-tools
   }
   async call(serverId: string, orderId: string) {
     const r: any = await this.mcp.callTool({ serverId, name: "lookupOrder", arguments: { orderId } });
@@ -42,6 +43,7 @@ export class McpUser extends Agent<Env> {
     return Object.values(this.getMcpServers().servers).map((s) => ({ name: s.name, state: s.state }));
   }
 }
+// #endregion
 
 export default {
   fetch(request: Request, env: Env, ctx: ExecutionContext) {
