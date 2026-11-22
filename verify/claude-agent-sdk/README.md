@@ -14,6 +14,16 @@ The SDK spawns the bundled `claude` CLI, which honours `ANTHROPIC_BASE_URL`. Poi
 
 Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)). This harness has no transcript recorder yet, because its mock answers over HTTP to the `claude` CLI, which the SDK runs in a child process, so the book cannot replay its examples; [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md) adds one.
 
+## Transcripts record each example's run for the book's replays
+
+`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model. The transcript holds each request the example sent, each answer and each `check()` with its result.
+
+The Claude Code program calls the mock, not the example, so the mock server records the model exchange. `scripts/mock-anthropic.mjs` reports each request and answer to a sink that `scripts/run-examples.mjs` gives it. The example's own process loads the transcript recorder from [`scripts/transcripts/`](../../scripts/transcripts/), which records each `check()` from the `ok - ` line it prints, and only when the call stack shows `check()` printed it. After the process exits, the runner merges the two lists by the millisecond each event happened at, with the mock's event first when two share one, because an example checks an answer after it arrives. The program's own events carry no example line, so the replay shows "no source line" for them.
+
+Each request keeps only the conversation: the prompts, the model's answers, and each tool call with its result. The program wraps every request in system reminders and an environment note, which hold the working directory, the OS version and settings, so they differ by machine and by day, and the recorder leaves them out. The tools list names the tools the request offers, as the program's pinned version sends them. A tool-use id the mock chose stays as written, and the mock counts them per server, so one example's ids do not depend on which examples run beside it. `09-skills.ts` puts its project folder inside the run's own working directory, so its path becomes `<cwd>/skills-project`. Two runs, on one worker or four, write the same bytes.
+
+Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
+
 ## Two examples read what reached the model
 
 Both read the mock's request log through `examples/lib/mock-log.ts` and assert on what each request carried.

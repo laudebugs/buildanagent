@@ -32,6 +32,16 @@ The harness runs on Linux only (user and network namespaces).
 
 Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)). This harness has no transcript recorder yet, because its mock answers over HTTP to the Copilot runtime, which the SDK runs in a child process, so the book cannot replay its examples; [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md) adds one.
 
+## Transcripts record each example's run for the book's replays
+
+`pnpm test` also writes `results/transcripts/<example>.json` for each example that calls the mock model; `00-sandbox.ts` calls none, so it has no transcript. The transcript holds each request the example sent, each answer and each `check()` with its result.
+
+The runtime calls the mock, not the example, but the sandbox preload starts the mock inside the example's own process. `scripts/run-examples.mjs` loads the transcript recorder from [`scripts/transcripts/`](../../scripts/transcripts/) before the preload, so the preload hands the mock a sink for its requests and answers, and the recorder keeps them beside each `check()`, which it records from the `ok - ` line it prints, and only when the call stack shows `check()` printed it. The runtime's own events carry no example line, so the replay shows "no source line" for them.
+
+Each request keeps only the conversation. The runtime puts a system reminder block before each prompt and a clock reading ahead of the prompt's text, which differ by machine and run, so the recorder drops both and keeps the prompt as the example wrote it, including the `mock-reply:` and `mock-args` lines that steer the mock. The tools list names the tools the request offers, including the runtime's built-ins, which the mock never calls. A tool-use id the mock chose stays as written. A second session that sends the same first prompt as an earlier one shows that prompt as repeated history, because the transcript tells the sessions apart only by model name. Two runs, on one worker or four, write the same bytes. The examples run on Linux only, inside `unshare`, so record and check these transcripts on a Linux machine or in CI.
+
+Commit the transcripts with the change that alters them, unlike a regenerated `run-examples.json`, which holds local paths and is restored before committing. CI's results-drift check fails when a committed transcript differs from the one a fresh run writes, and the book's replays read these files ([replays](../../apps/manual/README.md#a-replay-steps-through-a-recorded-run)).
+
 ## Scripts
 
 | Command | Does |
