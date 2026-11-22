@@ -54,6 +54,10 @@ describe.each(pages.map((page) => [page.path, page] as const))("%s", (_path, pag
     assert.ok(words(opening).length <= MAX_OPENING_WORDS, `${words(opening).length} words: ${opening}`);
   });
 
+  test("keeps every front matter text, such as a hero tagline, to 40 words", () => {
+    for (const text of page.texts) assert.ok(words(text).length <= MAX_SENTENCE_WORDS, text);
+  });
+
   test("keeps sentences to 40 words and paragraphs to 100", () => {
     for (const paragraph of paragraphs(page)) {
       assert.ok(words(paragraph).length <= MAX_PARAGRAPH_WORDS, `a paragraph of ${words(paragraph).length} words`);
@@ -65,13 +69,13 @@ describe.each(pages.map((page) => [page.path, page] as const))("%s", (_path, pag
 
   test("names no todo, decision or round id, and no repository path", () => {
     // A link's address is a site path, not reader text, so only the link's words count.
-    const text = plain(`${page.frontmatter.title} ${page.frontmatter.description} ${page.body}`);
+    const text = plain(`${page.frontmatter.title} ${page.texts.join(" ")} ${page.body}`);
     assert.equal(IDS.exec(text)?.[0], undefined, "an id leaked into reader text");
     assert.equal(LEAKS.exec(text)?.[0], undefined, "a path or CI leaked into reader text");
   });
 
   test("uses none of the banned words", () => {
-    const text = `${page.frontmatter.description} ${page.body}`;
+    const text = `${page.frontmatter.title} ${page.texts.join(" ")} ${page.body}`;
     assert.equal(BANNED.exec(text)?.[0], undefined);
   });
 
@@ -117,17 +121,20 @@ describe("the sidebar", () => {
     assert.deepEqual(labels, ["Start", "Concepts", "Guides", "Testing", "Reference"]);
   });
 
-  test("ends every page with a link to the next, except the home page", () => {
+  test("ends every page with a link to the next page in the sidebar", () => {
+    const order = [...slugs];
     for (const page of pages.filter((candidate) => candidate.path !== "index.md")) {
-      const last = paragraphs(page).at(-1) ?? "";
-      assert.match(last, /^(?:Next|Start with)/, page.path);
-      const link = /\]\((\/[^)]+)\)/.exec(
+      const slug = page.path.replace(/\.mdx?$/, "");
+      const closer =
         page.body
           .split("\n")
           .filter((line) => /^(?:Next|Start with)/.test(line))
-          .at(-1) ?? "",
-      );
-      assert.ok(link, `${page.path} has no next link`);
+          .at(-1) ?? "";
+      const target = /\]\(\/([^)]+?)\/?\)/.exec(closer)?.[1];
+      assert.ok(target, `${page.path} has no next link`);
+      const next = order[order.indexOf(slug) + 1];
+      // The last page points back to where a reader starts.
+      assert.equal(target, next ?? "start/first-agent", `${page.path} should link to the next page, ${next}`);
     }
   });
 });

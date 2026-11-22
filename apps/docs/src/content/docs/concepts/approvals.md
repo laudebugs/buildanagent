@@ -21,4 +21,4 @@ A person answers each request with a resolution: `allow` or `deny` for an approv
 
 A request is meant to be answered once, but the SDK cannot see your other processes. Single use is your store's job: mark a request used before you resume it.
 
-Next, [pause a run for approval](/guides/pause-for-approval/).
+Next, [add a tool of your own](/guides/add-a-tool/).

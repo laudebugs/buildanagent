@@ -25,4 +25,4 @@ A tool that reads customer data must not take the customer as an argument, becau
 
 When the model asks for several tools in one response, the run checks them in order and then starts them together. Results enter the transcript in the model's order, whichever call finishes first.
 
-Next, [add a tool of your own](/guides/add-a-tool/).
+Next, see [how approvals work](/concepts/approvals/).

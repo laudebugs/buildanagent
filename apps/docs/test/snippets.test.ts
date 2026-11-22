@@ -15,7 +15,8 @@ import { readPages } from "../src/plugins/pages.js";
 const TSC = join(dirname(createRequire(import.meta.url).resolve("typescript/package.json")), "bin", "tsc");
 const APP = fileURLToPath(new URL("..", import.meta.url));
 
-test("every inline TypeScript block type-checks against the packages", () => {
+// The type-check reads the gateway's sources too, so it gets more than the default 5 seconds on a busy runner.
+test("every inline TypeScript block type-checks against the packages", { timeout: 60_000 }, () => {
   const blocks = readPages().flatMap((page) =>
     page.fences
       .filter((fence) => ["ts", "typescript"].includes(fence.lang) && parseExampleRef(fence.meta) === undefined)

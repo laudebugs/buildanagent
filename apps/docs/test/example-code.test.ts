@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { codeOf, exampleSource, exampleTitle, parseExampleRef } from "../src/plugins/example-code.js";
+import { codeOf, exampleSource, exampleTitle, parseExampleRef, rewriteMeta } from "../src/plugins/example-code.js";
 
 test("a fence's meta names the file and the region", () => {
   assert.deepEqual(parseExampleRef('file="packages/sdk/examples/a.ts" region="run"'), {
@@ -38,4 +38,14 @@ test("a region that holds another region is refused, because the first end marke
     "// #region outer\nconst a = 1;\n// #region inner\nconst b = 2;\n// #endregion\nconst c = 3;\n// #endregion\n";
   assert.throws(() => codeOf(text, { file: "a.ts", region: "outer" }), /holds another region/);
   assert.equal(codeOf(text, { file: "a.ts", region: "inner" }), "const b = 2;");
+});
+
+test("a region that holds no code is refused", () => {
+  assert.throws(() => codeOf("// #region empty\n// #endregion\n", { file: "a.ts", region: "empty" }), /holds no code/);
+});
+
+test("a fence keeps its other attributes, and gets the file's name as its title unless it has one", () => {
+  const ref = { file: "packages/sdk/examples/a.ts", region: "run" };
+  assert.equal(rewriteMeta('file="packages/sdk/examples/a.ts" region="run" {2-3}', ref), '{2-3} title="a.ts"');
+  assert.equal(rewriteMeta('file="packages/sdk/examples/a.ts" title="Mine"', ref), 'title="Mine"');
 });

@@ -65,7 +65,22 @@ export function exampleSource(ref: ExampleRef): string {
 /** The code `ref` names in `text`, the content of its file. */
 export function codeOf(text: string, ref: ExampleRef): string {
   const lines = text.split("\n");
-  return tidy(ref.region === undefined ? lines : regionLines(lines, ref.region, ref.file));
+  const code = tidy(ref.region === undefined ? lines : regionLines(lines, ref.region, ref.file));
+  if (code === "")
+    throw new Error(`${ref.file}${ref.region === undefined ? "" : `, region ${ref.region}`} holds no code`);
+  return code;
+}
+
+/**
+ * A fence's meta string with its `file` and `region` attributes removed and a `title` of the file's name added, so the
+ * attributes that Starlight reads, such as a line highlight or a title of the page's own, stay.
+ */
+export function rewriteMeta(meta: string | null | undefined, ref: ExampleRef): string {
+  const rest = (meta ?? "")
+    .replace(/(?:^|\s)file="[^"]*"/, " ")
+    .replace(/(?:^|\s)region="[^"]*"/, " ")
+    .trim();
+  return /(?:^|\s)title=/.test(rest) ? rest : `${rest} title="${exampleTitle(ref)}"`.trim();
 }
 
 /** The title a fence shows: the file's name, never its path. */

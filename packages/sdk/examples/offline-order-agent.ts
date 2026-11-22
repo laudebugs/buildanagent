@@ -1,4 +1,4 @@
-// Tests the order agent without a model or an API key. A ScriptedModel plays the model's two answers, the first a call
+// Runs the order agent without a model or an API key. A ScriptedModel plays the model's two answers, the first a call
 // to lookup_order and the second the reply, so the run gives the same result every time.
 import { createModel } from "@buildanagent/gateway";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
