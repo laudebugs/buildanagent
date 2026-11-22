@@ -57,7 +57,9 @@ export type HarnessErrorCode =
   | "mcp_call_failed"
   | "invalid_memory_options"
   | "memory_path_refused"
-  | "memory_corrupt";
+  | "memory_corrupt"
+  | "invalid_telemetry_options"
+  | "budget_unknown";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -109,7 +111,9 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * handshake in time, or closed before it did (`McpError`). `mcp_tool_list_refused`: an MCP server listed tools the
  * harness refuses, such as two with one name, so none of its tools was registered (`McpError`). `mcp_call_failed`: an
  * MCP tool call ended without a result, because the server closed, timed out, asked for input or answered with an
- * error (`McpError`).
+ * error (`McpError`). `invalid_telemetry_options`: a span projection's or a budget meter's setting can't be used, such as a
+ * negative cap or an empty hashing key. `budget_unknown`: a session with a cap has spent an unknown amount, so a budgeted
+ * turn is refused.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";

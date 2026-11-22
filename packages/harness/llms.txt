@@ -41,6 +41,7 @@ The sections of README.md and every public export, generated from this package's
 - [A summary replaces an outgrown span between turns, and the log keeps every original](README.md#a-summary-replaces-an-outgrown-span-between-turns-and-the-log-keeps-every-original)
 - [Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow](README.md#two-more-triggers-compact-inside-a-turn-at-90-of-a-small-window-and-after-a-provider-overflow)
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
+- [The log projects to OpenTelemetry spans with content off, and a meter warns at 80% of the session cap](README.md#the-log-projects-to-opentelemetry-spans-with-content-off-and-a-meter-warns-at-80-of-the-session-cap)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
 - [MCP servers connect side by side, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-side-by-side-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
 - [A remote server is reached over HTTPS to a public address, and every byte it sends is bounded](README.md#a-remote-server-is-reached-over-https-to-a-public-address-and-every-byte-it-sends-is-bounded)
@@ -461,6 +462,16 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/telemetry`
 
+- `interface BudgetMeter`: A session's running spend against its cap.
+- `budgetMeterFromEntries()`: Rebuilds a meter from the entries of one branch, such as a session reopened after a restart.
+- `interface BudgetMeterOptions`: Options for `createBudgetMeter()`.
+- `type BudgetWarning`: The protocol event a meter emits when the spend reaches the warning threshold.
+- `BUILDANAGENT_ATTRIBUTES`: The `buildanagent.*` attribute names, keyed by what each holds.
+- `type ContentLevel`: The content a plan carries: nothing, the text itself, or the ids of the entries that hold it.
+- `createBudgetMeter`: Creates a meter with nothing spent.
+- `DEFAULT_WARN_AT`: The fraction of the cap at which the meter warns, unless the caller sets another.
+- `projectSpans()`: Projects a session's entries onto spans: `invoke_agent` for the session, a `turn` for each run or resume, a `chat` span for each model call and an `execute_tool` span for each tool call, with an `approval_wait` span under a call that waited for a person, from its `approval_requested` entry to its `approval_resolved` entry.
+- `interface ProjectSpansOptions`: Options for `projectSpans()`.
 
 ## Exports from `@buildanagent/harness/server`
 

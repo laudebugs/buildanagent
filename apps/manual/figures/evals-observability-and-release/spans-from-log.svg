@@ -29,7 +29,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <rect x="10" y="28" width="240" height="34" rx="4" class="fig-paper"/>
 <text x="130" y="49.2" text-anchor="middle" class="fig-text">turn_start … turn_end</text>
 <rect x="320" y="28" width="190" height="34" rx="4" class="fig-paper fig-paper--accent"/>
-<text x="415" y="49.2" text-anchor="middle" class="fig-text">invoke_agent</text>
+<text x="415" y="49.2" text-anchor="middle" class="fig-text">turn</text>
 <path d="M250 45 L313.37 45" class="fig-line"/>
 <path d="M320 45 L312.63 41.88 L312.63 48.12 Z" class="fig-head"/>
 <rect x="10" y="76" width="240" height="34" rx="4" class="fig-paper"/>
