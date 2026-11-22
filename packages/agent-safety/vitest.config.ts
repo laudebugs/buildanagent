@@ -7,10 +7,15 @@ import { defineConfig } from "vitest/config";
 // it, so `source` (our workspace packages' src/ entries, ADR 0050) comes first and Vite's `defaultServerConditions`
 // follow. `vitest/config` doesn't re-export them, so they are spelled out, and
 // packages/gateway/test/vite-conditions.test.ts fails if they drift from the Vite that Vitest runs on.
+//
+// This package's list leaves out `module`, the one condition the gateway test allows it to drop. Vitest also hands the
+// list to Node as `--conditions` for the packages it loads natively, and the AWS SDK's `module` builds, which the
+// DynamoDB stores import, refer to their own files without a `.js` extension, so Node's ESM loader can't load them.
+// Their `node` builds are CommonJS and load. Every other package these tests import ships a `node` or `default` build.
 export default defineConfig({
   ssr: {
     resolve: {
-      conditions: ["source", "module", "node", "development|production"],
+      conditions: ["source", "node", "development|production"],
     },
   },
   test: {

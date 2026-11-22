@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent platform §5.1](../../plans/build-agent-platform.md#51-stage-f-a-builds-everything-that-needs-no-engine) |
 | Round / milestone | Round F (build the agent platform), M8 |
-| Depends on | [E7](E7-safety-portability.md) |
+| Depends on | [E7](../done/E7-safety-portability.md) |
 | Size | M |
 
 ## Goal
@@ -62,7 +62,7 @@ Both SDKs move; the package pins exact versions (ADR 0038).
 
 ## History
 
-The SDK-gaps revision of 2026-11-18 moved this todo's build scope into Round E and its **Depends on** from B15 to [E7](E7-safety-portability.md); plan review 2 (2026-11-19) folded it into the sections above, with five outcomes per SG3 and the signer from E3.
+The SDK-gaps revision of 2026-11-18 moved this todo's build scope into Round E and its **Depends on** from B15 to [E7](../done/E7-safety-portability.md); plan review 2 (2026-11-19) folded it into the sections above, with five outcomes per SG3 and the signer from E3.
 
 ## Definition of done
 
