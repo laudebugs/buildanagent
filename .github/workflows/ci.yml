@@ -36,6 +36,13 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      # The maintainability checks (docs/guidelines/maintainability.md, "How it's checked"): an import cycle or a
+      # relative import between packages, a repeated block, an unused file, export or dependency, and a todo id in a
+      # comment.
+      - run: pnpm check:deps
+      - run: pnpm check:duplicates
+      - run: pnpm check:unused
+      - run: pnpm check:ids
       # Checks row ids, verdicts, row citations and totals in docs/plans/reviews/fact-check-*.md; needs no install.
       # `pnpm fact-check-logs --write` fixes a wrong totals line.
       - run: node scripts/ci/fact-check-log.mjs
