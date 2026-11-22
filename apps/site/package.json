@@ -1,0 +1,23 @@
+{
+  "name": "@buildanagent/site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The buildanagent website, published at buildanagent.fyi.",
+  "license": "Apache-2.0 OR MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "astro": "7.4.11"
+  },
+  "devDependencies": {
+    "@buildanagent/gateway": "workspace:*"
+  }
+}
