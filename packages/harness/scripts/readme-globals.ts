@@ -11,7 +11,9 @@ import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
 import type * as sessions from "@buildanagent/harness/session";
 import type * as jsonl from "@buildanagent/harness/session/jsonl";
+import type * as telemetry from "@buildanagent/harness/telemetry";
 import type * as tools from "@buildanagent/harness/tools";
+import type * as protocol from "@buildanagent/protocol";
 import type * as sdk from "@buildanagent/sdk";
 
 declare global {
@@ -44,6 +46,10 @@ declare global {
   const pruneSessions: typeof jsonl.pruneSessions;
   const recordsOf: typeof extensions.recordsOf;
   const registerExtensionTools: typeof extensions.registerExtensionTools;
+
+  const loggedEntries: protocol.SessionEntry[];
+  const projectSpans: typeof telemetry.projectSpans;
+  const createBudgetMeter: typeof telemetry.createBudgetMeter;
 
   const SYSTEM: string;
   const audit: (entry: unknown) => void;

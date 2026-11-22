@@ -1,6 +1,6 @@
 # 0017. Pin semconv-genai at `d28355d`, and name cost attributes in our own namespace
 
-- **Status:** Accepted (P4 review, 2026-11-18); names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19)
+- **Status:** Accepted (P4 review, 2026-11-18); names amended by [0044](0044-rename-to-buildanagent.md) (2026-11-19); cache-token attributes amended by todo N31 (2026-11-22)
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD7](../plans/build-harness.md#hd7-pin-semconv-genai-d28355d-and-name-cost-in-our-own-namespace-with-sdk-d3)
 
@@ -10,7 +10,7 @@ Harness decision 7 asks which OTel GenAI commit to pin and what to call cost; it
 
 ## Decision
 
-The telemetry projection pins `open-telemetry/semantic-conventions-genai` at `d28355d`, the HEAD read on 2026-11-18, and stamps it as `agent_speak.semconv.genai.commit`. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)`, and records cost as `agent_speak.cost.usd` (omitted when `Cost.total` is `null`) with `agent_speak.cost.basis`, plus our cache-token attributes, all outside `gen_ai.*`.
+The telemetry projection pins `open-telemetry/semantic-conventions-genai` at `d28355d`, the HEAD read on 2026-11-18, and stamps it as `agent_speak.semconv.genai.commit`. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)`, and records cost as `agent_speak.cost.usd` (omitted when `Cost.total` is `null`) with `agent_speak.cost.basis`, plus two cache-token attributes of ours, all outside `gen_ai.*` (superseded below). *Amended (N31, 2026-11-22): the projection drops the two `buildanagent.usage.cache_*` attributes. The cache-token counts use the conventions' `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens`, which the SDK's live observer writes, so live and projected spans agree. Only cost stays in our namespace.*
 
 ## Consequences
 

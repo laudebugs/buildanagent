@@ -1,6 +1,7 @@
 /**
  * Turns the SDK's transcript into the JSON the GenAI conventions describe for content attributes: messages with
- * typed `parts`. Only the observer reads this, and only when `captureContent` is on.
+ * typed `parts`. The observer reads this when `captureContent` is on, and the harness's log projection reads the same
+ * functions, so a span from a live run and a span rebuilt from the log hold content in one format.
  */
 import type { ContentBlock, Message, ModelContent } from "@buildanagent/gateway";
 

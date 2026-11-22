@@ -83,6 +83,7 @@ export const CONFIG = {
     register: "a ToolRegistry method",
     registerAll: "a ToolRegistry method",
     release: "a LockHandle method",
+    remainingUsd: "a BudgetMeter method",
     resolve: "an approvals method",
     rotate: "a key store method",
     secrets: "an option of createApprovals()",

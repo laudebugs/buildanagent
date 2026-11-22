@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp`, `server` and `testing` are built. `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp`, `server`, `telemetry` and `testing` are built. `memory` and `ablation` are empty stubs that hold their place until their components arrive.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -643,6 +643,38 @@ Without the key, the harness runs the `package.json` scripts `typecheck`, `test`
 A test file is a code file (such as `.ts`, `.js`, `.py`, `.go`, `.rs`, `.java` or `.rb`) in a `test`, `tests` or `__tests__` folder, or a file named `*.test.*`, `*.spec.*`, `*_test.*` or `test_*.py` anywhere. A fixture or snapshot in a test folder, such as `test/fixtures/sample.json`, is not one, so deleting it raises no flag. A line counts as added when the file has more copies of it than before, so moving a line flags nothing. These patterns have honest causes, which is why they never stop a run: expect false positives, and read a flag as a prompt to look.
 
 **The diff needs a way to snapshot the workspace.** The default, `gitSnapshotter`, lists `git ls-files --cached --others --exclude-standard` in the sandbox and reads each file up to 256 KiB as UTF-8 text, at most 5,000 files. The second snapshot reads the first one's paths again and adds the new ones. A file left out for its size, its encoding or the cap, or one it could not read for any reason but its absence (a policy refusal, a sandbox error), is ignored by the diff, so none is reported as deleted. The listing and each read stop after 60 seconds (`SNAPSHOT_TIMEOUT_MS`), and a read that times out is skipped. In a workspace that is no repository, or when the listing times out, it returns nothing, and the entry then has checks and no diff flags. Pass `snapshotter` in `completion` to diff another way.
+
+## The log projects to OpenTelemetry spans with content off, and a meter warns at 80% of the session cap
+
+Telemetry is a projection of the log, so it never becomes a second record: `projectSpans()` from `@buildanagent/harness/telemetry` turns a session's entries into spans, and the same entries give the same spans in any process, on any day. A change to what you export needs no change to what you store, and a session recorded before you added a backend can still be traced.
+
+```ts
+import { context, type Span, trace } from "@opentelemetry/api";
+await projectSpans(loggedEntries, {
+  tracer: trace.getTracer("my-agent"),
+  childContext: (parent) => trace.setSpan(context.active(), parent as Span),
+});
+```
+
+The harness imports nothing from OpenTelemetry, so you pass `childContext` to build each child's context.
+
+**The tree has four levels.** `invoke_agent` covers the session. Under it, a `turn` span covers each run or resume, with the run id, the mode (`run` or `continue`), the stop reason and the step count. Under a turn, a `chat` span covers each model call, from the entry before the answer's first block to its `message_end`, and an `execute_tool` span covers each tool call, from the `message_end` that asked for it to its `tool_result`. A call that waited for a person has an `approval_wait` span beneath it, from the `approval_requested` entry to the `approval_resolved` entry, with the request id and the decision. A tool span is a sibling of the model call that asked for it, as in the SDK's live observer. A call that waited ends in the turn that resumed it, so its span can outlive the turn that started it.
+
+**Special calls and damaged logs get their own spans.** A summary or judge call writes a `chat` span with `buildanagent.usage.source` set to `summary` or `judge`. A host's code call (a `code_call` entry) writes an `execute_tool` span with `buildanagent.tool.code_call` set to `true`. The spans carry the entries' own timestamps, so a duration is what the log recorded. Only an entry right after a message's end prices that message's call; any other model-call `usage` entry belongs to a superseded call and gets its own `chat` span. A span whose closing entry is missing closes at the log's last timestamp and carries `buildanagent.span.unfinished`. Three cases leave a span unfinished: a call still waiting when the log ends, a turn that no `turn_end` closed, and a model call that streamed blocks and never reached its `message_end`, as after a crash.
+
+**The attribute names come from the SDK, and ours sit in their own namespace.** The conventions' names and the pinned commit (`d28355d`, as of November 2026) come from `@buildanagent/sdk/otel`, which the live observer shares, so a rename upstream is one change. `gen_ai.usage.input_tokens` counts every input token, cached ones included, and the cache split uses the conventions' own `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens`, which the SDK's live observer writes too. No convention names cost, so `buildanagent.cost.usd` holds the price of a call, and the sum on a turn and on the session's root span, with `buildanagent.cost.basis` of `provider`, `catalog` or `unknown`. A price that is unknown has the basis `unknown` and no `buildanagent.cost.usd`, and so does every sum that includes it. A usage the provider did not report writes no token counts. The root span also carries `buildanagent.semconv.genai.commit`; a tracer provider's resource is yours, so stamp the same value there if you want it on every span. `BUILDANAGENT_ATTRIBUTES` lists our names.
+
+**Content is off until you ask for it.** With the defaults, no span holds a prompt, a message, a tool argument or a tool result. `content: "attributes"` writes the system prompt, the messages of each call and each tool's result as the conventions' content attributes. A call's messages are what the model was sent, rebuilt from the log the way a resume rebuilds them: after a compaction they are the summary and the messages it kept, and a host code call's result is never among them. `content: "refs"` writes `buildanagent.content.ref` instead, the ids of the entries that hold the content: the turn's system prompt, the compaction that applies, the entry each input message starts at and the answer's own entries. A backend that can fetch entries from the session store holds no text this way. Tool arguments have their own switch, `toolArguments`, which is off by default and independent of `content`, because arguments carry what a user asked for: a path, a query, a customer id. With `content: "attributes"` and `toolArguments: false`, the messages show each tool call's name and leave its arguments out.
+
+**`hashAttributes` keeps a value out of the export and keeps spans groupable.** Name the attributes in `hashAttributes: { key, names }`, and each named attribute carries the HMAC-SHA-256 of its value under `key`, as lower-case hex, instead of the value. Two spans with the same value get the same hash, so a backend can still group by user or tool. A string is hashed as it is, a number or boolean as its text and a list as its JSON. A span's name leaves out a hashed tool name or request model, which it would otherwise repeat. At content level `attributes` the messages repeat a tool's name, call id, arguments and result in plain text, so `projectSpans()` throws a `HarnessError` with code `invalid_telemetry_options` when `hashAttributes` names any content attribute, or the tool's name or call id, at that level; use `refs` or `none`. The key never leaves your process; if you lose it, hashes made with it can no longer be matched against new ones.
+
+**A meter folds the `usage` entries and warns once.** `createBudgetMeter({ capUsd, warnAt, onWarning })` adds each call's cost with `record` or `observe`, and calls `onWarning` once, with the `budget_warning` event the harness sends clients, when the spend first reaches `warnAt` of the cap (80% by default).
+
+```ts
+const meter = createBudgetMeter({ capUsd: 5, onWarning: ({ spentUsd, capUsd }) => console.log(spentUsd, capUsd) });
+```
+
+The `remainingUsd` method returns the cap less the spend, never below zero, to pass as a turn's `budgetUsd`. A call whose price is unknown makes the spend unknown for good: the meter never warns again, and `remainingUsd` throws a `HarnessError` with code `budget_unknown`, because a turn with a limit it cannot measure against has no limit. `budgetMeterFromEntries(entries, options)` rebuilds the meter from a branch after a restart. It stays quiet about spend the log already holds, since a client that heard the warning once need not hear it again, and warns once if later calls reach the threshold. The meter reports and the caller enforces: nothing here stops a turn, and the SDK's per-call check against `budgetUsd` does that.
 
 ## An extension adds hooks and tools in the harness's own process, and project trust only gates loading
 

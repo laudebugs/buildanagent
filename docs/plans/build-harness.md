@@ -140,7 +140,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 [SDK D3][sdk-d3] settles the guide's in-memory-field question with four token classes and `totalInput()`.
 
-**Harness side.** The telemetry projection pins `open-telemetry/semantic-conventions-genai` at commit `d28355d`, the HEAD the observability note read on 2026-11-18, and stamps it as the resource attribute `buildanagent.semconv.genai.commit`. The commit constant and the `gen_ai.*` names come from `@buildanagent/sdk/otel` (`SEMCONV_GENAI_COMMIT`, `GEN_AI_ATTRIBUTES`), so the live observer and the log projection share one module. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)` and `gen_ai.usage.output_tokens` as `usage.output`. Our own attributes are `buildanagent.cost.usd` (omitted when `Cost.total` is `null`), `buildanagent.cost.basis` and `buildanagent.usage.cache_read_tokens` and `.cache_write_tokens`. They sit outside `gen_ai.*`, so a future convention cannot collide with them.
+**Harness side.** The telemetry projection pins `open-telemetry/semantic-conventions-genai` at commit `d28355d`, the HEAD the observability note read on 2026-11-18, and stamps it as `buildanagent.semconv.genai.commit` (see the Revision below). The commit constant and the `gen_ai.*` names come from `@buildanagent/sdk/otel` (`SEMCONV_GENAI_COMMIT`, `GEN_AI_ATTRIBUTES`), so the live observer and the log projection share one module. It writes `gen_ai.usage.input_tokens` as `totalInput(usage)` and `gen_ai.usage.output_tokens` as `usage.output`. Our own attributes are `buildanagent.cost.usd` (omitted when `Cost.total` is `null`) and `buildanagent.cost.basis`. They sit outside `gen_ai.*`, so a future convention cannot collide with them. **Revision (N31, 2026-11-22):** the cache token counts use the conventions' own `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens`, which the SDK's live observer writes, so a span rebuilt from the log and a live span carry the same names. The projection no longer writes the two `buildanagent.usage.cache_*` names. The commit stamp goes on the root span, not on a resource, because a tracer provider's resource belongs to the caller; the README tells callers to stamp the same value on their resource.
 
 **Evidence.** The conventions are Development-only and had no tags on 2026-11-18, so a version means a commit ([harness guide §9][hg9]; [observability note §2][n-obs-2]). OTel's `input_tokens` "SHOULD include cached tokens", and no convention names cost, so the cost attribute is ours to name ([harness guide §9][hg9]). SDK D3 already ran the guide's settling test, writing the projection and the cost fold against both conventions ([SDK plan, D3][sdk-d3]). Cost keeps its `basis`, because Claude calls its costs "client-side estimates, not authoritative billing data" ([harness guide §9][hg9]).
 
@@ -687,11 +687,12 @@ declare function webSocketTransport(dispatcher: Dispatcher, socket: WebSocketLik
 // Revision (N29b, 2026-11-22): the options gain writeTimeoutMs (30,000 ms by default), and the dispatcher answers a command whose params break the protocol schema with InvalidParams
 
 // @buildanagent/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @buildanagent/sdk/otel.
-declare function projectSpans(entries: AsyncIterable<SessionEntry>, options: {
+declare function projectSpans(entries: AsyncIterable<SessionEntry> | Iterable<SessionEntry>, options: {
   tracer: TracerLike; content?: "none" | "attributes" | "refs";      // "none" by default
+  childContext: (parent: SpanLike) => unknown; parentContext?: unknown;  // Revision (N31, 2026-11-22): the SDK observer's option; the harness imports no OpenTelemetry
   toolArguments?: boolean;                                          // gated apart from prompts; false by default
   hashAttributes?: { key: Uint8Array; names: string[] };            // Revision (agent AH12): HMAC-SHA-256 per named attribute
-}): Promise<void>;    // invoke_agent → turn → model call → execute_tool (+ approval_wait child)
+}): Promise<void>;    // invoke_agent → turn → chat and execute_tool (siblings), + an approval_wait child of the tool span
 
 // @buildanagent/evals (guide §10; HD8)
 interface EvalRow {                                    // guide sketch; Revision: costUsd may be null
@@ -830,7 +831,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N31](../todos/ready/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
+| [N31](../todos/done/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
 | [N32](../todos/done/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
 | [N33](../todos/done/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
 | [N34](../todos/ready/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |
