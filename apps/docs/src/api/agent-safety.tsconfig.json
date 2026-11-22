@@ -1,0 +1,4 @@
+{
+  "extends": "../../../../packages/agent-safety/tsconfig.json",
+  "include": ["../../../../packages/agent-safety/src/**/*.ts"]
+}

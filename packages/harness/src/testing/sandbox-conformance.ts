@@ -35,6 +35,7 @@ export interface SandboxConformanceOptions {
   readonly network?: {
     readonly allowed: string;
     readonly blocked: string;
+    /** The command that exits 0 if it reaches `host`. */
     readonly command: (host: string) => readonly string[];
   };
   /**
@@ -49,13 +50,17 @@ export interface SandboxConformanceOptions {
    * is still running. Without it the case skips, because a portable command that forks doesn't exist.
    */
   readonly processTree?: {
+    /** The command that starts a background process, writes its id to `pid` and waits for it. */
     readonly command: readonly string[];
+    /** Whether the process with id `pid` is still running. */
     readonly isAlive: (pid: number) => boolean | Promise<boolean>;
   };
 }
 
+/** One case of the sandbox conformance suite, which a runner can register as a test of its own. */
 export type SandboxCase = RunnableCase;
 
+/** The report the sandbox conformance suite returns: which cases passed, which skipped with a reason and which failed. */
 export type SandboxConformanceReport = CaseReport;
 
 const STOPS = ["mistakes", "exfiltration", "hostile_process"];

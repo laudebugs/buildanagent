@@ -14,11 +14,13 @@ import { lostClaim } from "./lost-claim.js";
 
 /** What a query returns here: the rows, and `RETURNING` makes the written ones count. */
 export interface SqlCursorLike {
+  /** Every row the statement returned, each as an object keyed by column name. */
   toArray(): Record<string, unknown>[];
 }
 
 /** The part of `SqlStorage` (`ctx.storage.sql`) these stores use. */
 export interface SqlStorageLike {
+  /** Runs one SQL statement with its `?` placeholders bound, in order, to `bindings`. */
   exec(query: string, ...bindings: unknown[]): SqlCursorLike;
 }
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L10` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Publish and docs §2, PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L9](../done/L9-publish-protocol-harness-cli-decision.md), which records the owner's choice to publish `agent-safety` ([ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md), decision 9) |
@@ -46,24 +46,24 @@ Bring `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and
 
 ## Tasks
 
-- [ ] Compare each of the four packages' manifest and `tsconfig.build.json` with the gateway's and SDK's, and fix the gaps.
-- [ ] Write each package's README, with tested examples from `examples/` where a block runs more than five lines ([examples.md](../../guidelines/examples.md)), and generate its `llms.txt`.
-- [ ] Add TSDoc to every export, and extend `check:api-docs` to the four packages.
-- [ ] Extend `packages-pack.test.mjs` for the four packages, and add the protocol-imports test, the dependency-outside-the-six test and the CLI binary test.
-- [ ] Run the throwaway-branch fixed-group test, and record its result.
-- [ ] Add the four packages to the fixed group, only if that test passed; otherwise record why the change moved to L11.
-- [ ] Check that `changeset-gate.test.mjs` and the release plan still pass with the new group. The gate needs no changeset for the four while they are private, so the changeset for their changes moves to L11 (`release-plan.mjs` `isPendingChangeset` only counts names in `RELEASE_ORDER`, so a changeset naming only private members is not pending until L11).
+- [x] Compare each of the four packages' manifest and `tsconfig.build.json` with the gateway's and SDK's, and fix the gaps.
+- [x] Write each package's README, with tested examples from `examples/` where a block runs more than five lines ([examples.md](../../guidelines/examples.md)), and generate its `llms.txt`.
+- [x] Add TSDoc to every export, and extend `check:api-docs` to the four packages.
+- [x] Extend `packages-pack.test.mjs` for the four packages, and add the protocol-imports test, the dependency-outside-the-six test and the CLI binary test.
+- [x] Run the throwaway-branch fixed-group test, and record its result.
+- [x] Add the four packages to the fixed group, only if that test passed; otherwise record why the change moved to L11. The test did not pass (Changesets skips private members), so the change moved to L11.
+- [x] Check that `changeset-gate.test.mjs` and the release plan still pass with the new group. The gate needs no changeset for the four while they are private, so the changeset for their changes moves to L11 (`release-plan.mjs` `isPendingChangeset` only counts names in `RELEASE_ORDER`, so a changeset naming only private members is not pending until L11).
 
 ## Acceptance criteria
 
-- [ ] `pnpm build` writes `dist/` for all six packages that will publish, and `pnpm pack` for each yields only the files ADR 0050 allows
-- [ ] Each README's TypeScript blocks type-check, and `scripts/docs-check.mjs` passes for all four
-- [ ] `pnpm check:api-docs` fails on an undocumented export in any of the four packages
-- [ ] The pack test fails when the packed protocol imports the gateway or SDK, and passes today
-- [ ] The pack test fails when one of the six packages that will publish depends on a workspace package outside the six, and passes today
-- [ ] The packed CLI's binary starts with a shebang and prints help offline
-- [ ] `private: true` is still set on all four, and `release-plan.mjs plan` still publishes nothing
-- [ ] `pnpm check`, `pnpm typecheck`, `pnpm test` and the four maintainability checks pass offline from the repo root
+- [x] `pnpm build` writes `dist/` for all six packages that will publish, and `pnpm pack` for each yields only the files ADR 0050 allows
+- [x] Each README's TypeScript blocks type-check, and `scripts/docs-check.mjs` passes for all four
+- [x] `pnpm check:api-docs` fails on an undocumented export in any of the four packages
+- [x] The pack test fails when the packed protocol imports the gateway or SDK, and passes today
+- [x] The pack test fails when one of the six packages that will publish depends on a workspace package outside the six, and passes today
+- [x] The packed CLI's binary starts with a shebang and prints help offline
+- [x] `private: true` is still set on all four, and `release-plan.mjs plan` still publishes nothing
+- [x] `pnpm check`, `pnpm typecheck`, `pnpm test` and the four maintainability checks pass offline from the repo root
 
 ## Tests
 
@@ -81,9 +81,15 @@ The package READMEs, AGENTS.md's layout paragraph (which packages are published;
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- The four packages meet the publish standard with `private: true` still set: docs checks, tested examples, `llms.txt`, TSDoc under `pnpm check:api-docs`, the CLI `bin`, and pack tests against a six-name list.
+- The fixed-group test failed in the way the todo planned for: Changesets skips private members of a fixed group (no error, no bump, no changelog), so `.changeset/config.json` is unchanged and L11 adds the four in the commit that drops `private`.
+- The first code-review round found 6 findings (all fixed); the second found none. The writing review's findings were fixed apart from three left on purpose: the protocol README's long list items, its field-list sentence, and the harness audit-extension lead-in, which the code does not support rewording.

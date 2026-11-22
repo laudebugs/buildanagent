@@ -1,0 +1,378 @@
+# @buildanagent/harness
+
+> The buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop.
+
+The sections of README.md and every public export, generated from this package's README and declaration files in the same commit as its code.
+
+## Docs
+
+- [The session log holds twenty entry types](README.md#the-session-log-holds-twenty-entry-types)
+- [A sandbox says what it stops, and the host decides what it may touch](README.md#a-sandbox-says-what-it-stops-and-the-host-decides-what-it-may-touch)
+- [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
+- [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
+- [The egress proxy keeps every credential outside the sandbox](README.md#the-egress-proxy-keeps-every-credential-outside-the-sandbox)
+- [Every spawned process gets a cleared environment](README.md#every-spawned-process-gets-a-cleared-environment)
+- [Test a sandbox with the fake and the conformance suite](README.md#test-a-sandbox-with-the-fake-and-the-conformance-suite)
+- [One registry names, defers and wraps every tool](README.md#one-registry-names-defers-and-wraps-every-tool)
+- [One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer](README.md#one-pipeline-decides-every-tool-call-and-a-call-no-rule-settles-is-denied-when-nobody-can-answer)
+- [A session belongs to a user, and every store call names both](README.md#a-session-belongs-to-a-user-and-every-store-call-names-both)
+- [One writer holds a session's lock, and a lock outlives a crash only by its lease](README.md#one-writer-holds-a-sessions-lock-and-a-lock-outlives-a-crash-only-by-its-lease)
+- [HEAD moves by entries, and a fork or a revert writes a new file and never edits an old one](README.md#head-moves-by-entries-and-a-fork-or-a-revert-writes-a-new-file-and-never-edits-an-old-one)
+- [Nothing is deleted unless you set a retention period](README.md#nothing-is-deleted-unless-you-set-a-retention-period)
+- [`runTurn()` writes one SDK run into the log, and the user entry goes first](README.md#runturn-writes-one-sdk-run-into-the-log-and-the-user-entry-goes-first)
+- [One dispatcher answers every client, and a client in the same process needs no framing](README.md#one-dispatcher-answers-every-client-and-a-client-in-the-same-process-needs-no-framing)
+  - [A request for a person goes to every watching client once its entry is durable, and the first answer wins](README.md#a-request-for-a-person-goes-to-every-watching-client-once-its-entry-is-durable-and-the-first-answer-wins)
+  - [A client tool's call goes to the client that started the turn](README.md#a-client-tools-call-goes-to-the-client-that-started-the-turn)
+  - [Either side cancels its own request with `$/cancelRequest`](README.md#either-side-cancels-its-own-request-with-cancelrequest)
+  - [Each connection's queues are bounded at 128, and only events are dropped](README.md#each-connections-queues-are-bounded-at-128-and-only-events-are-dropped)
+  - [`session/open` with `fromSeq` replays the entries a client missed](README.md#sessionopen-with-fromseq-replays-the-entries-a-client-missed)
+  - [A client that reconnects finds its pending requests in `initialize` and is asked again on open](README.md#a-client-that-reconnects-finds-its-pending-requests-in-initialize-and-is-asked-again-on-open)
+  - [`stdioTransport()` serves one client over a pair of byte streams](README.md#stdiotransport-serves-one-client-over-a-pair-of-byte-streams)
+- [The log is the only state, so a turn rebuilds its context from it](README.md#the-log-is-the-only-state-so-a-turn-rebuilds-its-context-from-it)
+  - [A crash leaves open calls, and the next turn settles them by what they could have done](README.md#a-crash-leaves-open-calls-and-the-next-turn-settles-them-by-what-they-could-have-done)
+- [Two cheap layers keep a long run small: a write cap that spills, and masking in steps](README.md#two-cheap-layers-keep-a-long-run-small-a-write-cap-that-spills-and-masking-in-steps)
+- [A summary replaces an outgrown span between turns, and the log keeps every original](README.md#a-summary-replaces-an-outgrown-span-between-turns-and-the-log-keeps-every-original)
+- [Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow](README.md#two-more-triggers-compact-inside-a-turn-at-90-of-a-small-window-and-after-a-provider-overflow)
+- [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
+- [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
+- [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
+  - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
+  - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
+  - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
+
+## Exports from `@buildanagent/harness`
+
+- `class HarnessError`: Thrown for a mistake in how the harness is called, and for a sandbox that is unavailable or refuses a file operation.
+- `type HarnessErrorCode`: Why a `HarnessError` was thrown.
+- `isHarnessError()`: True for a `HarnessError`, including one from another copy of the package.
+- `PACKAGE_NAME`: The package's npm name, `@buildanagent/harness`.
+
+## Exports from `@buildanagent/harness/session`
+
+- `ABORTED_EXIT_CODE`: The exit code recorded for a check that never finished because the turn's signal aborted (130, as for SIGINT).
+- `interface AppendOptions`: The options of `append()`.
+- `ApprovalPolicy`: re-exported from `@buildanagent/protocol`.
+- `interface Approvals`: The approvals of one harness.
+- `interface ApprovalsOptions`: The options of `createApprovals()`.
+- `interface CheckConfig`: The parts of the workspace that decide what a check does, as text: the config file, the bodies of the `package.json` scripts discovery names and the resolved checks run (with their `pre` and `post` hooks), and the `Makefile` `test` rule.
+- `CheckoutEntry`: re-exported from `@buildanagent/protocol`.
+- `type ChildLink`: What links a child session to the session that started it: a tool call, or a workflow step.
+- `interface ClientToolCall`: One call to a `client_request` tool, as `TurnOptions.clientTool` receives it.
+- `type ClientToolRunner`: Runs a `client_request` tool's call by asking the client that holds the tool, and resolves with its result.
+- `CompactionEntry`: re-exported from `@buildanagent/protocol`.
+- `CompletionCheckEntry`: re-exported from `@buildanagent/protocol`.
+- `type CompletionOutcome`: What a check found: the body of the `completion_check` entry.
+- `interface CompletionSettings`: What a turn needs to check its own completion.
+- `interface CompletionStart`: What a turn recorded before the model ran.
+- `class ConflictError`: Thrown by `append()` when the log is not in the state the caller expected: `expectedLastId` is stale, an entry id is already stored with different content, or a batch is partly stored out of order.
+- `createApprovals()`: Creates the approvals of `harness`, which needs a `signer` to check the requests it resumes.
+- `DEFAULT_CHECK_TIMEOUT_MS`: How long one check may run before it is stopped with exit code 124.
+- `DEFAULT_MAX_ENTRY_BYTES`: The default bound on one entry's JSON, in bytes.
+- `DEFAULT_PLATFORM_HINT`: Where a read-only store's error sends the owner when no hint is given.
+- `DENIED_EXIT_CODE`: The exit code recorded for a check that the sandbox's policy refused to run.
+- `DERIVED`: The prefix of the name of a file that holds part of a session, such as a revert's or a migration's file.
+- `DISCOVERED_SCRIPTS`: The `package.json` scripts discovery runs, in the order it runs them.
+- `effectScope()`: The `EffectScope` a guarded write takes for `toolCallId`.
+- `EntryBase`: re-exported from `@buildanagent/protocol`.
+- `type EntryInput`: An entry as a caller writes it.
+- `class EntryTooLargeError`: Thrown by `append()` when an entry's JSON is over the store's bound, which is 64 KiB unless the store sets another.
+- `EnvStampEntry`: re-exported from `@buildanagent/protocol`.
+- `ExtensionLoadedEntry`: re-exported from `@buildanagent/protocol`.
+- `flagChanges()`: Compares the workspace at the start of a turn with the end, and returns one sentence for each pattern the plan names: an added skip marker (`.skip(`, `xit(` or `@pytest.mark.skip`), an added placeholder (`TODO` or `FIXME` in capitals, or "not implemented" in any case), a new file whose name has `mock`, `stub` or `fake` in it, a deleted test file, and a test file with fewer assertion lines than before.
+- `FORMAT_VERSION`: re-exported from `@buildanagent/protocol`.
+- `gitSnapshotter`: The default snapshotter: every file git tracks or would track (so untracked files that `.gitignore` leaves out stay out), read as UTF-8 text up to `MAX_SNAPSHOT_FILE_BYTES` each and `MAX_SNAPSHOT_FILES` files.
+- `HARNESS_CONFIG_PATH`: Where a project lists its checks, relative to the workspace root.
+- `isDerivedFile`: Whether a file id names a derived file.
+- `isProtocolError`: re-exported from `@buildanagent/protocol`.
+- `isTestFile()`: Whether a path looks like a test file: a code file (by its extension, such as `.ts`, `.py` or `.go`) in a `test`, `tests` or `__tests__` folder, or a file named as a test anywhere.
+- `interface KeyChangeOptions`: The options of `rotateKeys()` and `pruneKeys()`.
+- `listSessions()`: The user's sessions, oldest first, without the files that only hold part of a session (a revert's or a migration's).
+- `interface LoadOptions`: The options of `load()`.
+- `LoadoutEntry`: re-exported from `@buildanagent/protocol`.
+- `interface LockHandle`: What `acquire()` returns to the writer that got the lock.
+- `MAX_FLAGS`: The most flags one check records.
+- `MAX_SNAPSHOT_FILE_BYTES`: The largest file a snapshot keeps, in bytes.
+- `MAX_SNAPSHOT_FILES`: The most files a snapshot keeps.
+- `memoryIndex()`: A pointer index in memory, for tests and for a process that keeps its sessions in `memoryStore()`.
+- `memoryStore()`: A store that keeps sessions in memory, for tests and for a process that doesn't need them after it ends.
+- `interface MemoryStoreOptions`: The options of `memoryStore()`.
+- `MessageBlockEntry`: re-exported from `@buildanagent/protocol`.
+- `MessageEndEntry`: re-exported from `@buildanagent/protocol`.
+- `interface MigrateOptions`: The options of `migrateSession()`.
+- `migrateSession()`: Migrates the session's current file to the current format.
+- `interface Migration`: One step of format change: it maps each entry of a file at format `from` to an entry at format `to`.
+- `type MigrationResult`: What `migrateSession()` did.
+- `oneResolution`: The default policy: the latest answer decides.
+- `openSession()`: Opens a session.
+- `interface OpenSessionOptions`: The options of `openSession()`.
+- `Origin`: re-exported from `@buildanagent/protocol`.
+- `parseEntry`: re-exported from `@buildanagent/protocol`.
+- `interface PendingApproval`: A request that waits for a person, with the input its call would run with once approved.
+- `PermissionDecisionEntry`: re-exported from `@buildanagent/protocol`.
+- `PermissionMode`: re-exported from `@buildanagent/protocol`.
+- `processScheduler()`: A `Scheduler` for a host that stays up: each wake is a timer, and the handlers registered with `onWake()` receive it.
+- `interface ProcessScheduler`: A scheduler that delivers its wakes in this process, to handlers registered with `onWake()`.
+- `interface ProcessSchedulerOptions`: The options of `processScheduler()`.
+- `ProductRecordEntry`: re-exported from `@buildanagent/protocol`.
+- `ProtocolError`: re-exported from `@buildanagent/protocol`.
+- `ProtocolErrorCode`: re-exported from `@buildanagent/protocol`.
+- `pruneKeys()`: Calls `store.prune(inUse)` and returns the ids it removed.
+- `quorumOf()`: A policy that needs `needed` allows from distinct approvers, named by `Resolution.by`.
+- `interface QuorumPolicy`: Decides when a request has enough answers.
+- `type QuorumVerdict`: What a quorum policy says about one request: its answers are enough, not yet, a refusal, or too old.
+- `rerunFrom()`: Re-runs from an entry: HEAD moves to `entryId` with a `checkout` entry, and a new turn follows it as a new branch of the same log.
+- `resolveChecks()`: Finds what checks the task.
+- `interface ResolvedChecks`: The checks to run, and whether the project named them or the harness found them.
+- `interface ResolveOptions`: The settings a resume takes besides the answers: a turn's settings, and what the answers cover.
+- `rotateKeys()`: Adds a new current key to `store` and returns its id.
+- `runCompletionCheck()`: Runs the checks `start` resolved before the turn, in the sandbox, one after another and all of them even when one fails, and compares the workspace and the check config with `start`.
+- `runTurn()`: Runs one turn on a session and writes it to the log.
+- `SandboxTier`: re-exported from `@buildanagent/protocol`.
+- `interface Scheduler`: Promises a wake at a time.
+- `secretKeyStore()`: A `KeyStore` whose `load()` calls `read()` and parses the text it returns.
+- `interface SecretKeyStoreOptions`: The options of `secretKeyStore()`.
+- `class Session`: One session.
+- `SESSION_ENTRY_TYPES`: re-exported from `@buildanagent/protocol`.
+- `SessionEntry`: re-exported from `@buildanagent/protocol`.
+- `SessionHeaderEntry`: re-exported from `@buildanagent/protocol`.
+- `interface SessionIndex`: Where each session's current file is.
+- `interface SessionKey`: Which session: its user and its id.
+- `interface SessionLock`: Keeps two writers from extending one session's log at once.
+- `interface SessionStore`: Where a session's entries live.
+- `interface SessionSummary`: What `list()` says about a session, read from its header and its last entry.
+- `ShadowCallEntry`: re-exported from `@buildanagent/protocol`.
+- `SkillLoadedEntry`: re-exported from `@buildanagent/protocol`.
+- `SNAPSHOT_TIMEOUT_MS`: How long the listing, and each file read, may take before the snapshot gives up on it.
+- `interface SnapshotOptions`: What a snapshotter needs to run a command in the sandbox.
+- `snapshotStart()`: Takes the turn's start state, once, before the run: it resolves the checks, reads the check config and snapshots the workspace.
+- `type Snapshotter`: Takes a snapshot, or returns `undefined` when the workspace can't be listed, so no diff flags are raised.
+- `SubagentLinkEntry`: re-exported from `@buildanagent/protocol`.
+- `ToolResultEntry`: re-exported from `@buildanagent/protocol`.
+- `TurnEndEntry`: re-exported from `@buildanagent/protocol`.
+- `interface TurnOptions`: The options of one turn.
+- `type TurnResult`: What a turn returns: the SDK's result, and where the turn left the log.
+- `TurnStartEntry`: re-exported from `@buildanagent/protocol`.
+- `UsageEntry`: re-exported from `@buildanagent/protocol`.
+- `type WakeHandler`: What receives a wake: the id it was asked for and the time it was asked for.
+- `interface WorkspaceSnapshot`: What the workspace held at one moment.
+
+## Exports from `@buildanagent/harness/session/jsonl`
+
+- `defaultKeyPath()`: Where the ring is when no path is given: `$XDG_STATE_HOME/buildanagent/keys.json`, or under `~/.local/state`.
+- `fileIndex()`: A pointer index in files under `options.dir`.
+- `interface FileIndexOptions`: The options of `fileIndex()`.
+- `fileKeyStore()`: A key ring in the file at `path` (default `defaultKeyPath()`).
+- `fileLock()`: A `SessionLock` over lock files in `options.dir`.
+- `interface FileLockOptions`: The options of `fileLock()` and `unlockSession()`.
+- `jsonlStore()`: A store that keeps each session in `<dir>/<user>/<session>.jsonl`, one JSON entry per line.
+- `interface JsonlStoreOptions`: The options of `jsonlStore()`.
+- `type KeptReason`: Why an expired session was left alone.
+- `interface LockRecord`: What a lock file holds.
+- `interface PruneOptions`: The options of `pruneSessions()`.
+- `interface PruneResult`: What `pruneSessions()` did, by session id.
+- `pruneSessions()`: Expires the user's sessions: each one whose last entry is more than `retention.days` old is archived or purged, and with no `retention` nothing happens.
+- `type RemovedLock`: What `unlockSession()` removed: the lock's record, or `"unreadable"` when the file held no valid record.
+- `interface Retention`: How long to keep a session after its last entry, and what to do with it then.
+- `unlockSession()`: Removes a session's lock whatever its state: the library behind `buildanagent session unlock --force`.
+
+## Exports from `@buildanagent/harness/context`
+
+- `interface CompactEvent`: What `hooks.beforeCompact` receives: the span about to be summarised.
+- `type CompactionLog`: Called with each record of a compaction or a skipped one.
+- `interface CompactionRecord`: What a layer reports when it compacts or declines to.
+- `interface ContextFill`: How full the request view is: an estimate, so a display can warn before the window does.
+- `interface ContextHooks`: Hooks around a compaction.
+- `interface ContextPolicy`: A context policy: the layers, built once and applied to every turn of a harness.
+- `interface ContextPolicyOptions`: The settings of `createContextPolicy()`.
+- `createContextPolicy()`: Creates a context policy.
+- `cutoffFor()`: The message index before which tool results are masked: it moves forward in whole steps as the transcript grows.
+- `type LayerName`: The five context layers, cheapest first.
+- `maskMessages()`: The messages with every tool result before the cutoff masked, and where the cutoff stands.
+- `memorySpillStore()`: A spill store in memory, for tests and for a process that keeps its sessions in `memoryStore()`.
+- `interface SpillStore`: Where the full text of a capped tool result goes, so the model keeps a pointer and nothing is lost.
+- `interface SummarizeSettings`: The settings of the summary layer.
+- `SUMMARY_PROMPT_VERSION`: The version of the template below.
+- `interface TurnContext`: The policy's hooks and state for one turn.
+- `interface TurnContextOptions`: What the policy knows about one turn.
+
+## Exports from `@buildanagent/harness/context/file`
+
+- `fileSpillStore()`: A spill store that writes `<dir>/<user>/<session>/<callId>.txt` and returns that path.
+
+## Exports from `@buildanagent/harness/tools`
+
+- `type ApprovalReuse`: Which approvals may cover later calls: a sticky one, a grouped one, both, or none, so each call asks.
+- `createToolRegistry()`: Creates an empty registry.
+- `class DuplicateToolError`: Thrown by `register()` when a registry already holds a tool, or an alias, by that name.
+- `type HostPattern`: How a tool's code is reached: in this process, or by asking the client through a `tool/call` server request.
+- `type OutputTrust`: Whether a tool's output may carry instructions an attacker wrote.
+- `interface PreambleOptions`: The options of `preambleTokens()`.
+- `interface RegisteredTool`: A tool as the registry holds it, with its canonical name and every default resolved.
+- `type ToolExposure`: Whether a request sends the tool: `direct` always, `deferred` once tool search names it, `hidden` only when named.
+- `interface ToolRegistration`: What `register()` takes: the tool, where it comes from, and any default it overrides.
+- `interface ToolRegistry`: One registry for the tools of every source.
+- `toolSearchInterceptors()`: The interceptor that sends what tool search activated.
+- `interface ToolSearchOptions`: The options of `toolSearchTool()`.
+- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names and descriptions.
+- `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
+- `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
+
+## Exports from `@buildanagent/harness/mcp`
+
+
+## Exports from `@buildanagent/harness/permissions`
+
+- `createPermissionPipeline()`: Creates the pipeline.
+- `interface Decision`: The pipeline's decision on one call.
+- `defaultAskRules`: The ask rules the harness ships: a change to a test file, and a change to a hook, CI configuration or a rules file.
+- `interface HookDecision`: What a hook may return: a refusal or a question, never an allow.
+- `interface PermissionConfig`: The pipeline's settings.
+- `class PermissionConfigError`: Thrown when a permission configuration could never work as written.
+- `type PermissionHook`: A hook that can deny or ask about a call and cannot allow it, by type and at run time.
+- `PermissionMode`: re-exported from `@buildanagent/protocol`.
+- `interface PermissionPipeline`: The pipeline `createPermissionPipeline()` returns.
+- `interface PolicyContext`: What a hook or the host callback receives: `PolicyInput` plus the pipeline's own mode and policy version.
+- `interface PolicyInput`: What a decision may read: the session, the turn's host context and the session's entries.
+- `interface PolicySession`: The part of a session the permission code needs: somewhere to append the entries it writes.
+- `type RecordedEntry`: The entries the permission code writes.
+- `interface Rule`: A rule that matches tool calls.
+- `interface ToolCall`: One tool call to decide.
+
+## Exports from `@buildanagent/harness/sandbox`
+
+- `type ApprovalPolicy`: When a denied action may be asked for again, which is the host's decision and never the sandbox's.
+- `interface ExecOptions`: The options of `Sandbox.exec()`.
+- `type ExecResult`: What a command did: its exit status and output, or the denial that stopped it.
+- `NONE_SANDBOX_WARNING`: The warning written when a sandbox starts.
+- `noneSandbox()`: Builds the `none` backend.
+- `interface NoneSandboxOptions`: The options of `noneSandbox()`.
+- `interface Sandbox`: A provisioned sandbox.
+- `interface SandboxClient`: A sandbox backend.
+- `interface SandboxDenial`: What the policy refused.
+- `class SandboxDeniedError`: Thrown when the policy refuses a file read or write.
+- `interface SandboxPolicy`: What a sandbox may touch.
+- `type SandboxStop`: What a backend claims to stop.
+- `type SandboxTier`: How strongly a backend confines a process.
+- `class SandboxUnavailableError`: Thrown by `provision()` when a backend can't start, such as a missing binary.
+- `spawnEnv()`: The environment for a spawned process: `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, plus the parent variables named in `allow` that are set, plus every `extra`.
+- `interface WorkspaceManifest`: The workspace a sandbox is provisioned for: its root directory and the files to put there first.
+
+## Exports from `@buildanagent/harness/sandbox/srt`
+
+- `SRT_ADDED_ENVIRONMENT`: The variables `srt` 0.0.83 adds to a command's environment, which are its proxy settings and the few that go with them.
+- `SRT_SYSTEM_READ_ROOTS`: The system folders a program needs to start.
+- `interface SrtPathEntry`: A path that `srt` must read as written.
+- `srtSandbox()`: Builds the `srt` backend.
+- `interface SrtSandboxOptions`: The options of `srtSandbox()`.
+- `srtSettings()`: Denies every read and then allows the policy's read and write roots, the system folders and the helper folders back.
+- `interface SrtSettings`: The settings `srt` reads from its `--settings` file.
+- `interface SrtSettingsInput`: What the settings are built from, beyond the policy.
+
+## Exports from `@buildanagent/harness/sandbox/docker`
+
+- `DOCKER_PROXY_SOCKET_PATH`: Where a command finds the proxy socket, when the caller mounts one.
+- `dockerSandbox()`: Builds the Docker backend.
+- `interface DockerSandboxOptions`: The options of `dockerSandbox()`.
+
+## Exports from `@buildanagent/harness/credentials`
+
+- `interface CredentialRoute`: One credential route: where a request for `/<route>/…` goes, and how the proxy adds the credential.
+- `interface EgressProxy`: A running egress proxy.
+- `interface EgressProxyOptions`: The options of `startEgressProxy()`.
+- `interface EgressRecord`: One line of the egress log.
+- `isAddressLiteral()`: Whether `text` is an IPv4 or IPv6 address, as a host name that must not be looked up.
+- `isPublicAddress()`: Whether `address` is a public one a proxy may connect to.
+- `REDACTED`: What replaces a secret.
+- `scrubSecrets()`: Returns a copy of `entry` with every secret replaced by `[REDACTED]`, in every string value and every key, at any depth.
+- `startEgressProxy()`: Starts the egress proxy on `127.0.0.1` with a port the system picks, or on `socketPath`.
+
+## Exports from `@buildanagent/harness/extensions`
+
+- `composeExtensions()`: Joins the extensions' interceptors, in the order given, by the SDK's composition rules, and their observers.
+- `interface Extension`: An in-process extension: hooks and tools that run in the harness's own process with its permissions.
+- `interface ExtensionLoadedRecord`: What the log records about a loaded extension, so a session shows which code ran.
+- `type ExtensionTool`: One tool an extension adds.
+- `memoryTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself.
+- `recordsOf()`: The records for extensions written in code: their hash covers the name and version, since there are no files.
+- `registerExtensionTools()`: Registers every extension's tools in `registry` with source `extension`.
+- `sha256()`: The digest of `text`, as `sha256:` and hex.
+- `interface TrustStore`: Which project folders may load their own extensions.
+
+## Exports from `@buildanagent/harness/extensions/node`
+
+- `fileTrustStore()`: A trust store in the file at `file`, created on the first `trust()`.
+- `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
+- `interface LoadOptions`: What `loadProjectExtensions()` needs to decide.
+- `loadProjectExtensions()`: Loads the extensions in a project, or skips them with a notice.
+- `pinProjectExtensions()`: Writes the lock file for every extension folder as it is now.
+- `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
+- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file.
+- `writeLock()`: Writes the lock file for these pins, replacing the old one in one step.
+
+## Exports from `@buildanagent/harness/memory`
+
+
+## Exports from `@buildanagent/harness/telemetry`
+
+
+## Exports from `@buildanagent/harness/server`
+
+- `interface Connection`: One client's end of the dispatcher: send it messages, and it calls back with what the server sends.
+- `interface ConnectOptions`: What `Dispatcher.connect()` takes besides `send`.
+- `createDispatcher()`: Creates the dispatcher that serves `options.harness` over the protocol's commands.
+- `createHarness()`: Creates a harness.
+- `type Deliver`: Takes one message.
+- `interface Dispatcher`: The dispatcher `createDispatcher()` returns.
+- `interface DispatcherOptions`: The settings of `createDispatcher()`.
+- `EXPERIMENTAL_METHODS`: The methods a client must opt into, by listing each in the `capabilities` of its `initialize`.
+- `interface Harness`: A harness: its options with the defaults filled in.
+- `interface HarnessEnv`: What the session's `env_stamp` records about where the turns run.
+- `interface HarnessOptions`: The options of `createHarness()`.
+- `interface InProcessClient`: What a client sees: calls that resolve with a result, the server's messages, and a way to answer its requests.
+- `inProcessTransport()`: Connects a new client to `dispatcher`.
+- `interface NodeInput`: A Node `Readable` as the transport reads it, such as `process.stdin`.
+- `interface NodeOutput`: A Node `Writable` as the transport writes to it, such as `process.stdout`.
+- `interface RequestOptions`: What `InProcessClient.request()` takes besides the method and its params.
+- `class RpcFailure`: A command the server answered with an error.
+- `type StdioInput`: The bytes the transport reads: a Node `Readable` such as `process.stdin`, or a Web `ReadableStream`.
+- `interface StdioIo`: The streams `stdioTransport()` serves a client over.
+- `interface StdioOptions`: What `stdioTransport()` takes besides the dispatcher and the streams.
+- `type StdioOutput`: Where the transport writes: a Node `Writable` such as `process.stdout`, or a Web `WritableStream`.
+- `stdioTransport()`: Serves one client over a pair of byte streams, one JSON-RPC 2.0 message per line, and resolves once the client is done.
+
+## Exports from `@buildanagent/harness/ablation`
+
+
+## Exports from `@buildanagent/harness/testing`
+
+- `interface DeliveredWake`: One wake a scheduler delivered.
+- `FAKE_COMMANDS`: The commands the fake runs, in the form `[name, ...arguments]`: `echo` prints its arguments, `env` prints the environment it was given as `NAME=value` lines, `cat <path>` prints a file, `write <path> <text>` writes one, `true` and `false` exit with 0 and 1, `sleep <seconds>` waits and honours the timeout and the signal, and `net-probe <host>` reaches a host only if the policy allows it.
+- `fakeSandbox()`: Builds a fake backend with the tier `os` and the stops `mistakes` and `exfiltration`, because it enforces the policy's file roots and network allowlist in memory.
+- `interface FakeSandboxClient`: A fake backend, and what it has seen.
+- `interface FakeSandboxOptions`: The options of `fakeSandbox()`.
+- `type KeyStoreCase`: One key store case.
+- `keyStoreConformanceCases()`: The cases, each run against a store from `factory`.
+- `type KeyStoreConformanceReport`: What `runKeyStoreConformance()` reports.
+- `type KeyStoreFactory`: Makes a fresh store for each case.
+- `interface KeyStoreUnderTest`: What a factory returns: the store under test.
+- `interface RecordedExec`: One command the fake received, with what the caller passed.
+- `runKeyStoreConformance()`: Runs every case and reports which passed, which skipped and which failed.
+- `runSandboxConformance()`: Runs every case against backends from `factory` and reports which passed, which skipped with a reason and which failed.
+- `runSchedulerConformance()`: Runs every case and reports which passed, which skipped and which failed.
+- `runStoreConformance()`: Runs every case and reports which passed, which skipped with a reason and which failed.
+- `type SandboxCase`: One case of the sandbox conformance suite, which a runner can register as a test of its own.
+- `sandboxConformanceCases()`: The cases, for a backend from `factory`.
+- `interface SandboxConformanceOptions`: The options of the suite.
+- `type SandboxConformanceReport`: The report the sandbox conformance suite returns: which cases passed, which skipped with a reason and which failed.
+- `type SandboxFactory`: Makes a fresh backend and workspace for each case.
+- `interface SandboxUnderTest`: What a factory returns: the backend, and the absolute folder to use as the workspace root.
+- `type SchedulerCase`: One case of the scheduler conformance suite, which a runner can register as a test of its own.
+- `schedulerConformanceCases()`: The cases, each run against a scheduler from `factory`.
+- `type SchedulerConformanceReport`: The report the scheduler conformance suite returns: which cases passed, which skipped with a reason and which failed.
+- `type SchedulerFactory`: Makes a fresh scheduler for each case.
+- `interface SchedulerUnderTest`: What a factory returns: the scheduler, and the means to move its clock and read what it delivered.
+- `type StoreCase`: One case of the store conformance suite, which a runner can register as a test of its own.
+- `storeConformanceCases()`: Every conformance case, each against a store from `factory`.
+- `type StoreConformanceReport`: The report the store conformance suite returns: which cases passed, which skipped with a reason and which failed.
+- `type StoreFactory`: Makes a fresh store for each case.
+- `interface StoreUnderTest`: What a factory returns: a fresh, empty store, and optionally a way to tear a log's last line.

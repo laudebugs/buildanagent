@@ -26,8 +26,10 @@ export interface SchedulerUnderTest {
 /** Makes a fresh scheduler for each case. */
 export type SchedulerFactory = () => SchedulerUnderTest | Promise<SchedulerUnderTest>;
 
+/** One case of the scheduler conformance suite, which a runner can register as a test of its own. */
 export type SchedulerCase = RunnableCase;
 
+/** The report the scheduler conformance suite returns: which cases passed, which skipped with a reason and which failed. */
 export type SchedulerConformanceReport = CaseReport;
 
 function check(condition: boolean, message: string): asserts condition {

@@ -2,7 +2,7 @@
 
 When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, lets a person approve a whole plan once before a step that can't be undone, keeps every model call on the user's own key, and refuses a model call before it is sent when the call could push a run past its USD cap.
 
-As of November 2026 the package is not on npm yet. It holds the write outcomes, `renderOutcome()`, `canonicalInputHash()`, the approval signers, the adapters for the Vercel AI SDK, which also serve Cloudflare's `AIChatAgent`, the guards that keep model calls on the user's key, `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write, `costGuard()`, which caps what AI SDK model calls may spend, and the signed plan approval, which expires when the state a plan was computed from changes. Running a plan and compensating its steps come next.
+As of November 2026 the package is private and not on npm. It holds the write outcomes (`renderOutcome()`, `canonicalInputHash()`) and the approval signers. `guardedWrite()` keeps a crash or a regenerated turn from repeating a write, and `runPlan()` runs and compensates an approved plan. For model calls, its guards keep each call on the user's key, and `costGuard()` caps what AI SDK calls may spend. Adapters for the Vercel AI SDK hand all of this to an AI SDK agent, and they also serve Cloudflare's `AIChatAgent`.
 
 ## A failed write reports one of five outcomes
 
@@ -82,16 +82,28 @@ Any changed value gives a different hash. A property set to `undefined` counts a
 
 ## A write gets its identity before it runs, and a crash leaves it `unknown`
 
-A crash or a regenerated model turn can repeat an email, an application or a refund. The process may die after the payment API accepted a refund and before the agent recorded it, and a harness that regenerates the lost turn gets a fresh tool call id for the same refund. `guardedWrite()` closes both gaps with one rule. It stores an effect record before the write runs and settles it with the outcome after, and it treats a record that never settled as `unknown`, never as an error to retry:
+A crash or a regenerated model turn can repeat an email, an application or a refund. The process may die after the payment API accepted a refund and before the agent recorded it, and a harness that regenerates the lost turn gets a fresh tool call id for the same refund. `guardedWrite()` closes both gaps with one rule. It stores an effect record before the write runs and settles it with the outcome after, and it treats a record that never settled as `unknown`, never as an error to retry. This refund tool passes the effect key to the payment API as its idempotency key, and finds an earlier attempt by the same key:
 
 ```ts
-const outcome = await guardedWrite({
-  store, scope: { tenant, session, branch, toolCallId }, businessKey: `refund:${input.orderId}`,
-  operation: "refund_create", input, dedupe: "idempotency_key",
-  run: (key) => payments.refunds.create(input, { idempotencyKey: key }),
-  toOutcome: (refund) => writeOutcome({ kind: "applied", operation: "refund_create", next: `Tell the user ${refund.id} is issued` }),
-  reconcile: async (key) => ((await payments.refunds.findByKey(key)) ? appliedOutcome : "not_found"),
-});
+/** Issues the refund at most once, whatever crashes or repeats around it, and returns the outcome the model reads. */
+export function refundOnce(store: EffectStore, scope: EffectScope, payments: Payments, input: RefundInput) {
+  const issued = (id: string): WriteOutcome =>
+    writeOutcome({ kind: "applied", operation: "refund_create", next: `Tell the user refund ${id} is issued` });
+  return guardedWrite({
+    store,
+    scope,
+    businessKey: `refund:${input.orderId}`,
+    operation: "refund_create",
+    input,
+    dedupe: "idempotency_key",
+    run: (key) => payments.refunds.create(input, { idempotencyKey: key }),
+    toOutcome: (refund) => issued(refund.id),
+    reconcile: async (key) => {
+      const found = await payments.refunds.findByKey(key);
+      return found === undefined ? "not_found" : issued(found.id);
+    },
+  });
+}
 ```
 
 `guardedWrite()` answers each call from the record it finds under the write's effect key:
@@ -149,12 +161,13 @@ Each target has an `EffectStore` and a `PlanLedger` that keep their records acro
 | Vercel, or any Postgres | `./stores/postgres` | `postgresEffectStore()`, `postgresPlanLedger()` | A client with `query(text, values)`, such as `pg`'s `Pool`, and `POSTGRES_SCHEMA` run once |
 | Local Node | the root entry | `memoryEffectStore()`, `memoryPlanLedger()` | Nothing; the records vanish with the process |
 
+On Cloudflare, a Durable Object makes its tables once, in its constructor, and passes the store to `guardedWrite()`:
+
 ```ts
 import { createCloudflareTables, durableObjectEffectStore } from "@buildanagent/agent-safety/stores/cloudflare";
 
-// In a Durable Object's constructor:
-createCloudflareTables(this.ctx.storage.sql);
-const store = durableObjectEffectStore(this.ctx.storage.sql); // pass it to guardedWrite() as `store`
+createCloudflareTables(ctx.storage.sql); // once, in the Durable Object's constructor, where ctx is this.ctx
+const store = durableObjectEffectStore(ctx.storage.sql); // pass it to guardedWrite() as `store`
 ```
 
 Every change is one conditional write that the database decides, so two processes that race for one record can't both win. The Durable Object stores run their statements with no `await` between them, so no other event in the object runs between two of them, and each statement is conditional as well. The Postgres stores use `INSERT … ON CONFLICT` and `UPDATE … WHERE attempt = …` with `RETURNING`. The DynamoDB effect store puts items under a condition expression, and its ledger claims a step in one transaction that checks the step before and puts this one. The AWS SDK may send a write twice when a response is lost. Each effect-store put therefore carries a token that names the call, so the call recognises its own retried write, and each ledger claim carries a `ClientRequestToken`, so DynamoDB treats the retry as the same claim. A transaction that DynamoDB cancels for another reason than a false condition, such as a conflict or throttling, is thrown and never read as an out-of-order claim.
@@ -173,15 +186,17 @@ This package's own tests run the cases on every store, each on the nearest thing
 
 A DynamoDB test proves the request shapes and the store's reading of DynamoDB's answers, not DynamoDB's own atomicity. PGlite and the fake run one request at a time, so their concurrent cases are serialized. A live check of the DynamoDB conditions belongs with the first deploy.
 
-The package's portable tests also run inside workerd, in a Worker that loads each test file with a small runner in place of Vitest, so the same files that pass on Node 22 pass on the Workers runtime. `test/workerd-suite.test.ts` lists the files that stay in Node and why, and fails when a new test file is in neither list.
+The package's portable tests also run inside workerd, in a Worker that loads each test file with a small runner in place of Vitest, so the same files that pass on Node 22 pass on the Workers runtime. A test lists the files that stay in Node and why, and fails when a new test file is in neither list.
 
 ## On Cloudflare, repair an interrupted write as `unknown`
 
 `AIChatAgent` (`@cloudflare/ai-chat` 0.12.2) repairs a tool call left without a result before each turn, such as one whose `execute()` died with an evicted isolate. Its default repair stores an error, "The tool call was interrupted before a result was recorded.", which the model reads as a failure it may retry. For a write, override `repairInterruptedToolPart` with `repairInterruptedWrite()` from `./ai`:
 
 ```ts
-protected override repairInterruptedToolPart(part: UIMessage["parts"][number]) {
-  return repairInterruptedWrite(part, new Set(["send_email", "refund"])) ?? super.repairInterruptedToolPart(part);
+class SupportAgent extends AIChatAgent {
+  protected override repairInterruptedToolPart(part: UIMessage["parts"][number]) {
+    return repairInterruptedWrite(part, new Set(["send_email", "refund"])) ?? super.repairInterruptedToolPart(part);
+  }
 }
 ```
 
@@ -242,10 +257,10 @@ The adapter takes a request whenever its call comes back approved, even when the
 
 ## On Cloudflare, settle denied approvals before the next turn
 
-Pass the adapter as `toolApproval` to the `streamText` call in your `AIChatAgent`'s `onChatMessage`, and the client's approval over the agent's WebSocket gets the same checks. One difference remains as of `agents` 0.33.0: the agent drops the denial chunk for a part it already marked as approved. The stored part therefore keeps its approval, and the model's next step fails because that call has no result. To fix the stored history, collect the denied call ids from `onRejected`, keep them in the agent's storage, and pass them to `settleDeniedApprovals()` before converting the messages:
+Pass the adapter as `toolApproval` to the `streamText` call in your `AIChatAgent`'s `onChatMessage`, and the client's approval over the agent's WebSocket gets the same checks. One difference remains as of `agents` 0.33.0: the agent drops the denial chunk for a part it already marked as approved. The stored part therefore keeps its approval, and the model's next step fails because that call has no result. To fix the stored history, collect the denied call ids from `onRejected`, keep them in the agent's storage, and pass them to `settleDeniedApprovals()` with the agent's messages before converting them:
 
 ```ts
-const messages = settleDeniedApprovals(this.messages, deniedCallIds);
+const messages = settleDeniedApprovals(agent.messages, deniedCallIds);
 ```
 
 `settleDeniedApprovals()` moves those parts to `output-denied` and marks their approval `approved: false`, the form `ai`'s own UI message validator requires for that state; each approval keeps its id and the person's reason. Store the result if it changed, then convert it for the model.
@@ -258,7 +273,7 @@ The adapter rests on two functions in the root entry, which any host can call. `
 
 A per-call approval breaks a plan with an irreversible step. Suppose an agent marks an order, refunds it and then emails the customer. If the person approves the email only after the refund has gone out, a rejected or edited email strands the plan past a step nobody can take back. A plan approval asks once, before the first step, and its signature covers every step's exact input. Before each step runs, `verifyPlanBeforeStep()` checks that the step is the signed one and, until the irreversible step has run, that the state the plan was computed from still holds.
 
-These rules follow our [sagas research](../../docs/research/reversible-actions/sagas.md#approval-belongs-before-the-first-compensable-step-and-covers-the-whole-plan). They are our own synthesis, not a vendor design: no vendor source the sagas report read discusses approval relative to a pivot.
+These rules follow our [sagas research](https://github.com/laudebugs/buildanagent/blob/main/docs/research/reversible-actions/sagas.md#approval-belongs-before-the-first-compensable-step-and-covers-the-whole-plan). They are our own synthesis, not a vendor design: no vendor source the sagas report read discusses approval relative to a pivot.
 
 ## Classify every step as compensable, the pivot, or retryable
 
@@ -273,23 +288,31 @@ Each step gets one of three classes, after the saga terms the sagas report takes
 The refund-then-email plan from the sagas report has four steps. The email must come after the refund, because a "your refund is on its way" message followed by a failed refund leaves a promise no step can take back:
 
 ```ts
-const plan: PlanFields = {
-  steps: [
-    { id: "mark", tool: "order_update", class: "compensable", input: { orderId, status: "refund_pending" },
-      summary: `Mark order ${orderId} as refund_pending` },
-    { id: "refund", tool: "refund_create", class: "pivot", input: { orderId, amountCents, currency: "usd" },
-      businessKey: `refund:${orderId}`, summary: `Refund ${amount} to the card on order ${orderId}` },
-    { id: "email", tool: "send_email", class: "retryable", input: { to, subject, body },
-      businessKey: `email:${orderId}:refund`, summary: `Tell ${to} the refund is on its way` },
-    { id: "close", tool: "order_update", class: "retryable", input: { orderId, status: "refunded" },
-      summary: `Mark order ${orderId} as refunded` },
-  ],
-  state: [
-    { source: "orders", key: `order:${orderId}:refundable_cents`, value: refundableCents },
-    { source: "payments", key: `order:${orderId}:refunded_cents`, value: refundedCents },
-  ],
-  expiresInMs: 15 * 60 * 1000,
-};
+/** The four-step plan that refunds what is left on `order` and tells the customer. */
+export function refundPlan(order: Order): PlanFields {
+  const { id: orderId, customerEmail: to, refundableCents, refundedCents } = order;
+  const amountCents = refundableCents - refundedCents;
+  const amount = `$${(amountCents / CENTS_PER_DOLLAR).toFixed(CENT_DIGITS)}`;
+  const subject = "Your refund";
+  const body = `We have refunded ${amount} to your card.`;
+  return {
+    steps: [
+      { id: "mark", tool: "order_update", class: "compensable", input: { orderId, status: "refund_pending" },
+        summary: `Mark order ${orderId} as refund_pending` },
+      { id: "refund", tool: "refund_create", class: "pivot", input: { orderId, amountCents, currency: "usd" },
+        businessKey: `refund:${orderId}`, summary: `Refund ${amount} to the card on order ${orderId}` },
+      { id: "email", tool: "send_email", class: "retryable", input: { to, subject, body },
+        businessKey: `email:${orderId}:refund`, summary: `Tell ${to} the refund is on its way` },
+      { id: "close", tool: "order_update", class: "retryable", input: { orderId, status: "refunded" },
+        summary: `Mark order ${orderId} as refunded` },
+    ],
+    state: [
+      { source: "orders", key: `order:${orderId}:refundable_cents`, value: refundableCents },
+      { source: "payments", key: `order:${orderId}:refunded_cents`, value: refundedCents },
+    ],
+    expiresInMs: APPROVAL_TTL_MS,
+  };
+}
 ```
 
 ## List in `state` every value the plan's inputs were computed from
@@ -322,7 +345,7 @@ const ledger = memoryPlanLedger();
 const check = await verifyPlanBeforeStep(approval, { stepId: "refund", tool: "refund_create", input }, {
   signer, ledger, readState: (reads) => readValues(reads),
 });
-if (check !== "ok") return check; // stop; compensate the steps that ran only if the pivot never ran
+if (check === "ok") await runRefund(input); // otherwise stop, and compensate the steps that ran only if the pivot never ran
 ```
 
 Every step must pass the same first checks. The signature must verify under a key the signer holds, the step id must be in the plan, and the tool and input must match what was signed. Steps up to and including the pivot then check two more things: the approval hasn't passed `expiresAt`, and `readState` returns values that hash to the signed state hash. Steps after the pivot skip the clock and the state, because the pivot itself changes the state, as a refund changes the refunded amount, and nothing after the pivot may wait on a person or a clock. The function returns the first failure it finds:
@@ -350,7 +373,7 @@ The ledger records that a step passed its check, not that the step ran. A step a
 
 ```ts
 const outcome = await runPlan({ approval, steps, store, scope, signer, ledger, readState });
-return planWriteOutcome(outcome); // the WriteOutcome the model reads, or renderPlanOutcome(outcome) for its text
+const forModel = planWriteOutcome(outcome); // the WriteOutcome the model reads; renderPlanOutcome(outcome) gives its text
 ```
 
 The rules, in the order the steps meet them:
@@ -423,19 +446,27 @@ A route through Cloudflare AI Gateway passes only with `byok_only: true` and its
 
 ## A model call that could pass the USD cap is never sent
 
-An agent loop that checks its spend after each response stops only once a response has already crossed the cap, so it overshoots by the whole cost of that call. The AI SDK has `stopWhen` but no spend cap at all. `costGuard()` from the `./cost` subpath checks before each call instead. It is a language-model middleware: before the provider sees a request, the guard projects the most the request can cost and throws `BudgetExceeded` if the spend so far plus that projection would pass `capUsd`. In `ai` 7.0.162 every step of `generateText` and `streamText`, and every retry, calls the model's `doGenerate` or `doStream`, so the guard sees each request. Because it wraps the model, the same guard caps a Cloudflare `AIChatAgent` that calls `streamText` in `onChatMessage`:
+An agent loop that checks its spend after each response stops only once a response has already crossed the cap, so it overshoots by the whole cost of that call. The AI SDK has `stopWhen` but no spend cap at all. `costGuard()` from the `./cost` subpath checks before each call instead. It is a language-model middleware: before the provider sees a request, the guard projects the most the request can cost and throws `BudgetExceeded` if the spend so far plus that projection would pass `capUsd`. In `ai` 7.0.162 every step of `generateText` and `streamText`, and every retry, calls the model's `doGenerate` or `doStream`, so the guard sees each request. Because it wraps the model, the same guard caps a Cloudflare `AIChatAgent` that calls `streamText` in `onChatMessage`.
+
+This run caps its spend at 50 cents and says so when the cap stops it. Build `provider` with `explicitProvider()`, as above:
 
 ```ts
-import { budgetRefusal, costGuard, guardedProvider, memorySpend } from "@buildanagent/agent-safety/cost";
-
-const guard = costGuard({ capUsd: 0.5, spend: memorySpend() });
-const models = guardedProvider(explicitProvider({ provider: "anthropic", apiKey: userKey, baseURL }), guard);
-try {
-  await generateText({ model: models.languageModel(modelId), prompt, tools, stopWhen: isStepCount(20) });
-} catch (error) {
-  const refused = budgetRefusal(error);
-  if (refused === undefined) throw error;
-  // The run stopped at its cap: refused.spentUsd, refused.projectedUsd and refused.capUsd say why.
+/** Answers `prompt` on `modelId` from `provider`, or says why the cap stopped the run. */
+export async function cappedAnswer(provider: GuardableProvider, modelId: string, prompt: string): Promise<string> {
+  const guard = costGuard({ capUsd: CAP_USD, spend: memorySpend() });
+  const models = guardedProvider(provider, guard);
+  try {
+    const { text } = await generateText({
+      model: models.languageModel(modelId),
+      prompt,
+      stopWhen: isStepCount(MAX_STEPS),
+    });
+    return text;
+  } catch (error) {
+    const refused = budgetRefusal(error);
+    if (refused === undefined) throw error;
+    return `Stopped at the cap of ${refused.capUsd} USD: ${refused.spentUsd} spent, ${refused.projectedUsd} more projected`;
+  }
 }
 ```
 
@@ -471,4 +502,4 @@ Build every model a run uses from the guarded provider, the models `prepareStep`
 
 The root entry of `@buildanagent/agent-safety` imports no package at all, so it runs anywhere Web Crypto does: Node 22, Cloudflare Workers and other edge runtimes. Adapters for other SDKs live in subpaths. `./ai` needs `ai` and `@ai-sdk/provider-utils`, `./byok` needs `@ai-sdk/anthropic` and `@ai-sdk/openai`, and `./cost` needs `ai`; all four are optional peer dependencies. `./cost` also imports `@buildanagent/gateway` for its price catalog and cost projection, and the gateway is the package's one dependency. `egressGuard()` and `checkModelRoutes()` sit in the root entry, so a host without the AI SDK can use them. `./agents` will hold adapters that need Cloudflare `agents` itself, and it holds none yet, because `AIChatAgent` works through the `./ai` adapters. `./testing` holds `testSigner()` and the `EffectStore` conformance cases, and imports no third-party SDK either.
 
-To see how the model runs these tools, read the [SDK's README](../sdk/README.md).
+To see how the model runs these tools, read the [SDK's README](https://github.com/laudebugs/buildanagent/blob/main/packages/sdk/README.md).

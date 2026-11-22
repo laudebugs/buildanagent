@@ -25,6 +25,7 @@ export type QuorumVerdict = "met" | "pending" | "rejected" | "expired";
  * the call, `rejected` and `expired` turn it into a denial, and `pending` leaves it waiting.
  */
 export interface QuorumPolicy {
+  /** Decides one waiting request from every answer recorded for it so far, oldest first. */
   evaluate(request: SignedPendingRequest, resolutions: readonly Resolution[]): Promise<QuorumVerdict> | QuorumVerdict;
 }
 
