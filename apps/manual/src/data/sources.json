@@ -723,5 +723,15 @@
     "version": "v2",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-authorization",
+    "title": "Authorization: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
   }
 ]

@@ -120,6 +120,15 @@ The specification pages were fetched on 2026-11-22 in their Markdown form (`.md`
 | 87 | Our file-based skills adapt Voyager's idea by keeping skills as files the model finds by name and description in the prompt, with no vector database, and nothing in the design verifies a skill by running it | § Skills | ⚠️ | Our reading of [`agent-harness.md`](../../../docs/guides/agent-harness.md#7-extensions-come-in-three-trust-tiers-and-project-trust-gates-loading-not-execution) §7 and the todo's note that our layout "adapts" Voyager; no source compares them, so the chapter marks it as ours |
 | 88 | The service-manual analogy needs no source; where it breaks (a skill read into context stays and costs tokens in every later request) rests on row 76 | § Skills (analogy) | ⚠️ | An analogy, owner-approved on 2026-11-19; the break note restates row 76 |
 
+## "Signing in to a remote MCP server is a credential problem, so it belongs after the credential boundary"
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 89 | Authorization is optional in MCP; an HTTP-based transport should follow the specification's OAuth flow, a stdio server should not and should take its credentials from the environment, and a protected MCP server acts as an OAuth 2.1 resource server | § Sign-in | ✅ | [Authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization), read as HTML on 2026-11-22: "Authorization is OPTIONAL for MCP implementations … Implementations using an STDIO transport SHOULD NOT follow this specification, and instead retrieve credentials from the environment"; "A protected MCP server acts as an OAuth 2.1 resource server" |
+| 90 | Dynamic client registration is deprecated, so how a client registers with an authorization server is a live design question | § Sign-in | ✅ | Row 54 |
+| 91 | The permissions chapter holds the credential boundary and connector OAuth, and it is not written yet | § Sign-in | ✅ | [Book plan](../../../docs/plans/build-book.md) §4 row 13 ("Connector OAuth and token custody moved to the permissions chapter, after the credential boundary") and `apps/manual/src/outline.ts`, slug `permissions-sandboxes-and-credentials` |
+| 92 | One rule carries over: an MCP server's tools and output stay untrusted whatever token signed the client in | § Sign-in | ✅ | Rows 14 and 59: the registry marks MCP output untrusted, and the specification tells clients to treat tool annotations as untrusted unless they come from trusted servers |
+
 ## Tally
 
 | Verdict | Rows |
