@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { canonicalInputHash } from "@buildanagent/agent-safety";
 import { createModel, type Model } from "@buildanagent/gateway";
-import { isHarnessError } from "@buildanagent/harness";
+import { HarnessError, isHarnessError } from "@buildanagent/harness";
 import { createContextPolicy, memorySpillStore } from "@buildanagent/harness/context";
 import { fileSpillStore } from "@buildanagent/harness/context/file";
 import { type EgressRecord, startEgressProxy } from "@buildanagent/harness/credentials";
@@ -357,6 +357,28 @@ describe("read", () => {
     assert.equal(past.isError, true);
   });
 
+  test("a failed file call's message is one sentence with one stop, whether or not the message ends in one", async () => {
+    const { sandbox: inner } = await setup();
+    for (const [message, shown] of [
+      ["could not read /work/a.txt.", "Could not read /work/a.txt."],
+      ["could not read /work/a.txt", "Could not read /work/a.txt."],
+    ]) {
+      const failing: Sandbox = {
+        ...inner,
+        readFile: async () => {
+          throw new HarnessError("sandbox_io_failed", message as string);
+        },
+      };
+      const read = builtinTools(failing, undefined, { root: ROOT, policy: POLICY }).find(
+        (entry) => entry.name === "read",
+      );
+      assert.ok(read !== undefined);
+      const result = await call(read.definition, { path: "a.txt" });
+      assert.equal(result.isError, true);
+      assert.equal(textOf(result), shown);
+    }
+  });
+
   test("two different paths, no path, and a binary file are error results", async () => {
     const { sandbox, tool } = await setup();
     assert.equal((await call(tool("read"), { path: "a", file_path: "b" })).isError, true);
@@ -408,47 +430,76 @@ describe("a big result passes the write cap, and read opens its spill", () => {
     assert.equal(textOf(full), `${big}\n[exit code 0]`);
   });
 
-  test("a single line of 900 KB that the cap cut is read back from its spill, page by page, in full", async () => {
-    const line = Array.from({ length: 90_000 }, (_, index) => `${index % 10}abcdefghi`).join("");
-    const spill = memorySpillStore();
-    const client = fakeSandbox();
-    const sandbox = await client.provision({ root: ROOT, files: { "line.txt": line } }, POLICY);
-    const tools = builtinTools(sandbox, undefined, { root: ROOT, policy: POLICY, spills: (path) => spill.read(path) });
-    let spillPath = "";
-    const steps: ScriptStep[] = [
-      toolCall("bash", { command: "cat line.txt" }, "c1"),
-      (request) => {
-        spillPath = spillPathIn(request);
-        return toolCall("read", { path: spillPath }, "c2") as never;
-      },
-      done,
-    ];
-    const { entries } = await runTools(steps, tools, createContextPolicy({ spill }));
-    const [capped, firstPage] = results(entries);
-    assert.ok(capped?.spill !== undefined && firstPage !== undefined);
-    assert.equal(firstPage.spill, undefined, "a page of a spill fits under the write cap");
-    const read = tools.find((tool) => tool.name === "read")?.definition;
-    assert.ok(read !== undefined);
-    // Read every page, as the model would, following each notice, and join what the pages show.
-    let joined = "";
-    let next: Record<string, number> = {};
-    for (let pages = 0; pages < 100; pages += 1) {
-      const text = textOf(await call(read, { path: spillPath, ...next }));
-      const notice =
-        /\n\[(?:line \d+ of \d+ goes on|lines \d+ to \d+ of \d+); read on with offset (\d+)(?: and column (\d+))?\]$/.exec(
-          text,
-        );
-      if (notice === null) {
-        joined += text;
-        break;
+  // The second line is all quotes and backslashes, each two bytes in the log, so a page counted in raw bytes overflows.
+  const lines = {
+    plain: Array.from({ length: 90_000 }, (_, index) => `${index % 10}abcdefghi`).join(""),
+    "quote-dense": '"\\'.repeat(450_000),
+  };
+  const room = 65_536 - 1024;
+  const logBytes = (text: string): number => new TextEncoder().encode(JSON.stringify(text)).length - 2;
+
+  test.each(Object.entries(lines))(
+    "a %s line of 900 KB that the cap cut is read back from its spill, page by page, in full",
+    async (_, line) => {
+      const spill = memorySpillStore();
+      const client = fakeSandbox();
+      const sandbox = await client.provision({ root: ROOT, files: { "line.txt": line } }, POLICY);
+      const tools = builtinTools(sandbox, undefined, {
+        root: ROOT,
+        policy: POLICY,
+        spills: (path) => spill.read(path),
+      });
+      let spillPath = "";
+      const steps: ScriptStep[] = [
+        toolCall("bash", { command: "cat line.txt" }, "c1"),
+        (request) => {
+          spillPath = spillPathIn(request);
+          return toolCall("read", { path: spillPath }, "c2") as never;
+        },
+        done,
+      ];
+      const { entries } = await runTools(steps, tools, createContextPolicy({ spill }));
+      const [capped, firstPage] = results(entries);
+      assert.ok(capped?.spill !== undefined && firstPage !== undefined);
+      assert.equal(firstPage.spill, undefined, "a page of a spill fits under the write cap");
+      const read = tools.find((tool) => tool.name === "read")?.definition;
+      assert.ok(read !== undefined);
+      // Read every page, as the model would, following each notice, and join what the pages show.
+      let joined = "";
+      let next: Record<string, number> = {};
+      for (let pages = 0; pages < 100; pages += 1) {
+        const text = textOf(await call(read, { path: spillPath, ...next }));
+        assert.ok(logBytes(text) <= room, "every page fits under the default write cap");
+        const notice =
+          /\n\[(?:line \d+ of \d+ goes on|lines \d+ to \d+ of \d+); read on with offset (\d+)(?: and column (\d+))?\]$/.exec(
+            text,
+          );
+        if (notice === null) {
+          joined += text;
+          break;
+        }
+        const body = text.slice(0, notice.index);
+        joined += notice[2] === undefined ? `${body}\n` : body;
+        next = { offset: Number(notice[1]), ...(notice[2] === undefined ? {} : { column: Number(notice[2]) }) };
       }
-      const body = text.slice(0, notice.index);
-      joined += notice[2] === undefined ? `${body}\n` : body;
-      next = { offset: Number(notice[1]), ...(notice[2] === undefined ? {} : { column: Number(notice[2]) }) };
-    }
-    // The spill is the command's output and its exit line; a page always ends its last line.
-    assert.equal(joined, `${spill.read(spillPath)}\n`);
-    assert.equal(joined, `${line}\n[exit code 0]\n`);
+      // The spill is the command's output and its exit line; a page always ends its last line.
+      assert.equal(joined, `${spill.read(spillPath)}\n`);
+      assert.equal(joined, `${line}\n[exit code 0]\n`);
+    },
+  );
+
+  test("a page of a file dense with newlines and quotes reaches the model whole, under the default write cap", async () => {
+    const dense = `${'"\\"'.repeat(3)}\n`.repeat(20_000);
+    const client = fakeSandbox();
+    const sandbox = await client.provision({ root: ROOT, files: { "dense.txt": dense } }, POLICY);
+    const tools = builtinTools(sandbox, undefined, { root: ROOT, policy: POLICY });
+    const steps = [toolCall("read", { path: "dense.txt", limit: 20_000 }), done];
+    const { entries } = await runTools(steps, tools, createContextPolicy({ spill: memorySpillStore() }));
+    const [page] = results(entries);
+    assert.ok(page !== undefined);
+    assert.equal(page.spill, undefined, "the page was not cut by the write cap");
+    assert.ok(logBytes(entryText(page)) <= BUILTIN_TOOL_DEFAULTS.read.maxBytes + 256);
+    assert.match(entryText(page), /\n\[lines 1 to \d+ of 20000; read on with offset \d+\]$/);
   });
 
   test("a relative path reads the workspace file, even when a spill of the session has its name", async () => {
@@ -563,6 +614,16 @@ describe("grep and glob", () => {
         assert.equal(exec.timeoutMs, BUILTIN_TOOL_DEFAULTS.grep.timeoutMs);
       }
     }
+  });
+
+  test("a match on a line longer than the output cap is reported as a match too long to show, never as no match", async () => {
+    const { maxOutputBytes } = BUILTIN_TOOL_DEFAULTS.grep;
+    const { tool } = await setup({}, undefined, { "dist/min.js": `${"x".repeat(maxOutputBytes * 1.2)}needle\n` });
+    const text = textOf(await call(tool("grep"), { pattern: "needle" }));
+    assert.doesNotMatch(text, /No line/);
+    assert.match(text, /^Lines under \/work match needle, but the first matching line is longer than \d+ bytes/);
+    assert.match(text, /The first is in \/work\/dist\/min\.js, on line 1\. Narrow the pattern, path or glob, or read/);
+    assert.match(text, /\[the matches passed \d+ bytes/);
   });
 
   test("a grep or find that fails on part of the tree keeps what it found and warns", async () => {
@@ -701,6 +762,38 @@ describe("fetch", () => {
       assert.match(text, /\[a body of 4 bytes with no content type was left out, because it is not text\]$/, name);
     }
     assert.match(textOf(await call(tool("fetch"), { url: "https://api.example.com/text" })), /\n\nplain words$/);
+  });
+
+  test("a body is read in the charset its content type names, and an unknown charset is shown only as UTF-8", async () => {
+    const { maxBodyBytes } = BUILTIN_TOOL_DEFAULTS.fetch;
+    const latin1 = new Uint8Array([0x63, 0x61, 0x66, 0xe9]);
+    // Two copyright signs end the cut body: in ISO-8859-1 each is the one byte 0xa9, which UTF-8 reads as a
+    // continuation byte, so a cut that backed off as UTF-8 does would drop the first one.
+    const longLatin1 = new Uint8Array(maxBodyBytes + 1).fill(0x61);
+    longLatin1.set([0xa9, 0xa9], maxBodyBytes - 1);
+    const bodies: Record<string, () => Response> = {
+      "https://api.example.com/latin1": () =>
+        new Response(latin1, { headers: { "content-type": 'text/plain; charset="ISO-8859-1"' } }),
+      "https://api.example.com/bogus-latin1": () =>
+        new Response(latin1, { headers: { "content-type": "text/plain; charset=bogus" } }),
+      "https://api.example.com/bogus-utf8": () =>
+        new Response(new TextEncoder().encode("café"), { headers: { "content-type": "text/plain; charset=bogus" } }),
+      "https://api.example.com/long": () =>
+        new Response(longLatin1, { headers: { "content-type": "text/plain; charset=iso-8859-1" } }),
+    };
+    const proxy: FetchProxy = {
+      fetch: async (input) => (bodies[String(input)] ?? (() => new Response("", { status: 404 })))(),
+      knownSecrets: async () => [],
+    };
+    const { tool } = await setup({}, proxy);
+    const get = async (name: string) => textOf(await call(tool("fetch"), { url: `https://api.example.com/${name}` }));
+    assert.match(await get("latin1"), /\n\ncafé$/);
+    assert.match(
+      await get("bogus-latin1"),
+      /\[a body of 4 bytes in an unknown charset was left out, because it is not text\]$/,
+    );
+    assert.match(await get("bogus-utf8"), /\n\ncafé$/);
+    assert.match(await get("long"), /a©\n\[the body was cut at \d+ bytes\]$/);
   });
 
   test("without a proxy there is no fetch tool", async () => {

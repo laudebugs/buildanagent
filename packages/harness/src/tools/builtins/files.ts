@@ -4,7 +4,7 @@
  * names `path`, `file_path`, `offset` and `limit`, which the skill loader matches when it records a skill as loaded.
  */
 import { defineTool, type ToolDefinition, type ToolResult } from "@buildanagent/sdk";
-import { byteLength, headBytes } from "../../context/write-cap.js";
+import { escapedBytes } from "../../context/write-cap.js";
 import { normalizePath } from "../../permissions/match.js";
 import type { Sandbox } from "../../sandbox/types.js";
 import { BUILTIN_TOOL_DEFAULTS } from "./descriptions.js";
@@ -47,10 +47,23 @@ interface ReadInput {
   readonly limit?: number;
 }
 
-/** The start of `text` that fits in `bytes` UTF-8 bytes without splitting a character, and never less than one. */
+/**
+ * The longest start of `text` whose JSON-escaped form fits in `bytes`, without splitting a character, and never less
+ * than one character. Every character takes at least one byte, so the start is at most `bytes` characters long, and a
+ * binary search over that range finds it in a few measures.
+ */
 function headOf(text: string, bytes: number): string {
-  const head = headBytes(text, bytes);
-  return head === "" ? String.fromCodePoint(text.codePointAt(0) ?? 0) : head;
+  let low = 0;
+  let high = Math.min(text.length, bytes);
+  while (low < high) {
+    const middle = (low + high + 1) >> 1;
+    if (escapedBytes(text.slice(0, middle)) <= bytes) low = middle;
+    else high = middle - 1;
+  }
+  // A start that ends on the first half of a surrogate pair would split its character.
+  const code = text.charCodeAt(low - 1);
+  const end = low > 0 && code >= 0xd800 && code <= 0xdbff ? low - 1 : low;
+  return end === 0 ? String.fromCodePoint(text.codePointAt(0) ?? 0) : text.slice(0, end);
 }
 
 /** Where a page starts and how far it may go: 0-based line indexes, and the column of the first line to start at. */
@@ -60,9 +73,14 @@ interface Span {
   readonly last: number;
 }
 
+// A page is measured as the write cap measures a result: by its bytes inside the log's JSON string. A quote, a
+// backslash or a newline takes two bytes there and a control character six, so a page budgeted by raw bytes could pass
+// the cap, be cut and spilled again, and a spill read that way would never show its whole text.
+const NEWLINE_BYTES = escapedBytes("\n");
+
 /**
- * The lines of `span`, at most `maxBytes` of them, with a line that says where to read on when some are left. A first
- * line longer than a page is shown in part, with the column the next part starts at.
+ * The lines of `span`, at most `maxBytes` of them once JSON-escaped, with a line that says where to read on when some
+ * are left. A first line longer than a page is shown in part, with the column the next part starts at.
  */
 function pageOf(lines: readonly string[], path: string, span: Span): ToolResult {
   const { start, column, last } = span;
@@ -73,10 +91,10 @@ function pageOf(lines: readonly string[], path: string, span: Span): ToolResult 
   let line = start;
   for (; line < last; line += 1) {
     const piece = line === start ? (lines[line] ?? "").slice(column) : (lines[line] ?? "");
-    const size = byteLength(piece) + 1;
+    const size = escapedBytes(piece) + NEWLINE_BYTES;
     if (size > budget && line > start) break;
     if (size > budget) {
-      const part = headOf(piece, budget - 1);
+      const part = headOf(piece, budget - NEWLINE_BYTES);
       const more = `[line ${line + 1} of ${total} goes on; read on with offset ${line + 1} and column ${column + part.length + 1}]`;
       return textResult(`${part}\n${more}`, { path, from: line + 1, to: line + 1, ...from, lines: total });
     }
@@ -88,9 +106,9 @@ function pageOf(lines: readonly string[], path: string, span: Span): ToolResult 
 }
 
 /**
- * The part of `text` that `offset`, `column` and `limit` select, at most `maxBytes` of it. A line longer than a page is
- * shown in parts, each naming the column the next starts at, so every byte of a long result can be read, even one that
- * is a single line.
+ * The part of `text` that `offset`, `column` and `limit` select, at most `maxBytes` of it once JSON-escaped. A line
+ * longer than a page is shown in parts, each naming the column the next starts at, so every byte of a long result can
+ * be read, even one that is a single line.
  */
 function page(text: string, path: string, input: ReadInput): ToolResult {
   const { defaultLimit, maxBytes } = BUILTIN_TOOL_DEFAULTS.read;
@@ -99,7 +117,8 @@ function page(text: string, path: string, input: ReadInput): ToolResult {
   if (text.endsWith("\n")) lines.pop();
   const total = lines.length;
   const unpaged = input.offset === undefined && input.limit === undefined && input.column === undefined;
-  if (unpaged && total <= defaultLimit && byteLength(text) <= maxBytes) return textResult(text, { path, lines: total });
+  if (unpaged && total <= defaultLimit && escapedBytes(text) <= maxBytes)
+    return textResult(text, { path, lines: total });
   const start = (input.offset ?? 1) - 1;
   if (start >= total)
     return errorResult(`The offset ${start + 1} is past the end of ${path}, which has ${total} lines.`);

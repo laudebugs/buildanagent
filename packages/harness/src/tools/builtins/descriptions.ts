@@ -18,8 +18,9 @@ export const BUILTIN_TOOL_DEFAULTS = deepFreeze({
     /** The most lines one call returns when it names no `limit`. */
     defaultLimit: 2000,
     /**
-     * The most bytes of text one call returns, kept under the context policy's default write cap of 64 KiB, so a page
-     * reaches the model whole and reading a cut result's spill in pages returns all of it.
+     * The most bytes of text one call returns, counted as the write cap counts them, inside the log's JSON string, and
+     * kept under the context policy's default write cap of 64 KiB, so a page reaches the model whole and reading a cut
+     * result's spill in pages returns all of it, however many quotes or newlines it holds.
      */
     maxBytes: 32 * 1024,
     description:

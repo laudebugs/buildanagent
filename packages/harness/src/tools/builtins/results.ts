@@ -34,7 +34,9 @@ const MODEL_FAILURES: ReadonlySet<string> = new Set([
 /** The error result for a failure the model caused, or the error itself, rethrown, for any other. */
 export function failureResult(error: unknown): ToolResult {
   if (isHarnessError(error) && MODEL_FAILURES.has(error.code)) {
-    return errorResult(`${error.message.charAt(0).toUpperCase()}${error.message.slice(1)}.`);
+    const sentence = `${error.message.charAt(0).toUpperCase()}${error.message.slice(1)}`;
+    // A message that already ends a sentence keeps its own stop, so the model never reads "x..".
+    return errorResult(/[.!?]$/.test(sentence) ? sentence : `${sentence}.`);
   }
   throw error;
 }

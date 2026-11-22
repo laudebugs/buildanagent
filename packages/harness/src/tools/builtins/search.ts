@@ -134,10 +134,25 @@ interface GrepInput {
   readonly ignore_case?: boolean;
 }
 
-/** What the grep commands found: the matching lines, and the notices that say what they may have missed. */
+/**
+ * What the grep commands found: the matching lines, the notices that say what they may have missed, and, when matches
+ * were found but none fits whole, where the first one is.
+ */
 interface Found {
   readonly lines: string;
   readonly notes: string;
+  readonly tooLong?: { readonly path?: string; readonly line?: number };
+}
+
+/**
+ * Where grep's first match in `stdout` is: the file of `batch` that the output starts with, and its line number. grep
+ * prints `path:line:text`, and a path may itself hold a colon, so the path is matched against the files searched.
+ */
+function firstMatch(stdout: string, batch: readonly string[]): { path?: string; line?: number } {
+  const path = batch.find((file) => stdout.startsWith(`${file}:`));
+  if (path === undefined) return {};
+  const line = /^(\d+):/.exec(stdout.slice(path.length + 1))?.[1];
+  return line === undefined ? { path } : { path, line: Number(line) };
 }
 
 /** The longest start of `text` that ends a line and fits in `bytes` UTF-8 bytes. */
@@ -188,7 +203,8 @@ async function grepFiles(
   let failed: Extract<ExecResult, { exitCode: number }> | undefined;
   const warning = () => (failed === undefined ? "" : warningOf("grep", failed));
   for (let at = 0; at < files.length; at += filesPerCommand) {
-    const result = await grepBatch(deps, flags, files.slice(at, at + filesPerCommand), signal);
+    const batch = files.slice(at, at + filesPerCommand);
+    const result = await grepBatch(deps, flags, batch, signal);
     if ("result" in result) return result;
     // grep exits with 1 when nothing matched, and with 2 for an error, such as a file it can't read or a bad pattern.
     if (result.exitCode > 1) failed ??= result;
@@ -196,11 +212,28 @@ async function grepFiles(
     const kept = wholeLines(result.stdout, maxOutputBytes - size);
     lines += kept;
     size += ENCODER.encode(kept).length;
-    if (result.truncated === true || kept.length < result.stdout.length)
-      return { lines, notes: `${CUT_NOTICE}${warning()}` };
+    if (result.truncated === true || kept.length < result.stdout.length) {
+      // A match whose line alone passes the cap leaves no whole line to show, but it is still a match: say so, so the
+      // model never reads that the pattern matched nothing.
+      const tooLong = lines === "" && result.stdout !== "" ? { tooLong: firstMatch(result.stdout, batch) } : {};
+      return { lines, notes: `${CUT_NOTICE}${warning()}`, ...tooLong };
+    }
   }
   if (failed !== undefined && lines === "") return { result: errorResult(`grep failed: ${failed.stderr.trim()}`) };
   return { lines, notes: warning() };
+}
+
+/** The sentence for matches whose lines are each too long to show: they exist, where the first is, and what to do. */
+function tooLongSentence(base: string, pattern: string, first: { path?: string; line?: number }): string {
+  const { maxOutputBytes } = BUILTIN_TOOL_DEFAULTS.grep;
+  const where =
+    first.path === undefined
+      ? ""
+      : ` The first is in ${first.path}${first.line === undefined ? "" : `, on line ${first.line}`}.`;
+  return (
+    `Lines under ${base} match ${pattern}, but the first matching line is longer than ${maxOutputBytes} bytes, so ` +
+    `none can be shown.${where} Narrow the pattern, path or glob, or read the matching file with read, in parts.`
+  );
 }
 
 async function grep(deps: SearchDeps, input: GrepInput, signal: AbortSignal): Promise<ToolResult> {
@@ -214,6 +247,8 @@ async function grep(deps: SearchDeps, input: GrepInput, signal: AbortSignal): Pr
   if ("result" in found) return found.result;
   const cut = listing.cut ? "\n[the file listing was cut, so some files were not searched]" : "";
   const notes = `${found.notes}${cut}${listing.warning}`;
+  if (found.tooLong !== undefined)
+    return textResult(`${tooLongSentence(checked.path, input.pattern, found.tooLong)}${notes}`);
   if (found.lines === "") return textResult(`No line under ${checked.path} matches ${input.pattern}.${notes}`);
   return textResult(`${found.lines.trimEnd()}${notes}`);
 }
