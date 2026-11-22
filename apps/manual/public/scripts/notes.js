@@ -1816,6 +1816,8 @@ class Notes {
     // The field is the reader's while a note is being written or edited, which a plain highlight always is.
     const writing = this.popEditing || (this.popItem?.note ?? "") === "";
     if (!writing) this.popField.value = item.note;
+    // Typed text on a highlight that gained a note in another tab stays in the field as an edit, not dropped.
+    else if (!this.popEditing && item.note !== "" && this.popField.value.trim() !== "") this.popEditing = true;
     this.popItem = { ...item };
     const active = this.doc.activeElement;
     const color = this.pop.contains(active) ? active?.getAttribute?.("data-color") : null;

@@ -1456,6 +1456,20 @@ test("a refresh keeps what a reader typed in a plain highlight's field, and a sa
   assert.equal(hide.mock.calls.length > 0, true);
 });
 
+test("a draft typed on a plain highlight stays as an edit when another tab adds a note to it", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "My draft";
+  win.localStorage.setItem(KEY, stored({ tools: [{ ...CONTRACT, note: "From tab B" }, FAILED] }));
+  const event = new win.Event("storage");
+  Object.defineProperty(event, "key", { value: KEY });
+  win.dispatchEvent(event);
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  assert.equal(field.hidden, false, "the field stays open");
+  assert.equal(field.value, "My draft");
+  assert.equal(popAction(win, "cancel").hidden, false, "Cancel can drop it for the other tab's note");
+});
+
 test("a wide window places the popover beside the passage, with no sheet attribute", () => {
   const { win } = stage([CONTRACT, FAILED]);
   click(win, q(win, "article p:last-of-type"), 50, 310);
