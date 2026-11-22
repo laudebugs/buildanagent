@@ -11,7 +11,7 @@ import { inProcessTransport, stdioTransport } from "@buildanagent/harness/server
 import { memoryBackend } from "../session/memory-backend.js";
 import { approvalSetup, callTool, reply, type Steps } from "./server-helpers.js";
 
-/** The session the `flood` mode watches from inside the child; the test creates it under this id (stdio-child.ts). */
+/** The session the `flood` mode creates and watches from inside the child; the test opens it (stdio-child.ts). */
 const FLOOD_SESSION = "flood";
 /**
  * The `flood` reply: four text blocks of 25,000 characters, 25,000 deltas at four characters each. Each block is its
@@ -44,8 +44,13 @@ const store =
     : backend.store;
 const { dispatcher } = approvalSetup(steps, [], {}, { ...backend, store });
 
-/** In `flood` mode, watches the session from inside the child and reports stdout's largest backlog once it settles. */
-async function reportFlood(): Promise<void> {
+/**
+ * In `flood` mode, creates the session from inside the child and reports stdout's largest backlog once its turn
+ * settles. It creates the session before the transport reads a line, so it watches the turn from its first event: a
+ * watcher that opened the session only after the client created it could open it after the turn had settled, and then
+ * never report.
+ */
+async function watchFlood(): Promise<void> {
   let most = 0;
   const sample = setInterval(() => {
     most = Math.max(most, process.stdout.writableLength);
@@ -60,16 +65,9 @@ async function reportFlood(): Promise<void> {
     }
   });
   await watcher.request("initialize", { clientInfo: { name: "watcher", version: "0" }, capabilities: [] });
-  for (;;) {
-    try {
-      await watcher.request("session/open", { session: FLOOD_SESSION, cwd: "/work" });
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 5));
-    }
-  }
+  await watcher.request("session/create", { session: FLOOD_SESSION, cwd: "/work" });
 }
-if (mode === "flood") void reportFlood();
+if (mode === "flood") await watchFlood();
 
 await stdioTransport(
   dispatcher,
