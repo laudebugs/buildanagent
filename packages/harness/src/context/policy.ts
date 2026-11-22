@@ -133,7 +133,8 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
         await ledger.learn();
         const compactedBefore = midTurn.applied;
         const base = await midTurn.view(event);
-        // A mid-turn compaction changes which results the view holds, so the spills are counted again from the log.
+        // A mid-turn compaction changes which results the view holds, so the spills are counted again from the log. The
+        // step's tool calls have all finished by now, so no result is being remembered while the ledger reloads.
         if (!compactedBefore && midTurn.applied) await ledger.reload();
         const view = masking ? maskMessages(base, mask, (id, nth) => ledger.where(id, nth)) : base;
         // After a compaction the last response's usage describes the context before it, so it no longer counts.
