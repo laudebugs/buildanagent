@@ -605,6 +605,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T55](../todos/done/T55-book-transcript-usage-and-model-id.md) | Record token usage and the model id in the book's transcripts, at the mock layer and deterministically | T5 | M |
 | [T56](../todos/ready/T56-example-langchain-thread-owner.md) | Example: a LangChain server that refuses another user's thread with the same "not found" as a missing one | T5, T15 | S |
 | [T57](../todos/done/T57-chapter-events-and-hooks-on-our-sdk.md) | Add our own SDK to Chapter 10's hook, steering and event listings as tabs (BK8) | T19, B13, B16, B17, T50 | M |
+| [T59](../todos/done/T59-chapter-memory-and-sessions-on-our-packages.md) | Add our own packages to Chapter 5's listings as tabs (BK8) | T15, N3, N6, T50 | M |
 | [T60](../todos/done/T60-chapter-approvals-guardrails-and-injection-on-our-packages.md) | Add our own packages to Chapter 6's listings as tabs (BK8) | T14, B15, E3, T50 | M |
 | [T61](../todos/done/T61-chapter-testing-offline-and-a-first-agent-on-our-packages.md) | Add our own packages to Chapter 7's listings as tabs (BK8) | T16, B18, B19, T50 | M |
 | [T64](../todos/done/T64-live-run-triage-prompts.md) | Make the live list's triage capstones ask for the gated step their checks test, and hand the owner the workflow fix (BK18) | T27 | S |
