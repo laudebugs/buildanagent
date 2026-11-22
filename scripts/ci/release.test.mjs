@@ -497,9 +497,13 @@ describe("release-plan.mjs", () => {
     assert.deepEqual(plan.toPublish, NAMES);
     assert.equal(plan.distTag, pre?.mode === "pre" ? pre.tag : "latest");
     assert.equal(plan.prerelease, pre?.mode === "pre");
+    // GitHub first: no release v<version> yet, so the plan asks npm about each package.
     assert.deepEqual(
-      calls,
-      RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/${realVersion}`),
+      [...calls],
+      [
+        `https://api.github.com/repos/${repo}/releases/tags/v${realVersion}`,
+        ...RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/${realVersion}`),
+      ],
     );
     // Every version's notes hold a section per package. Only 0.1.0-alpha.0's hold the first-release text: in pre mode,
     // a later prerelease's notes hold only the changesets it consumed.
@@ -519,16 +523,16 @@ describe("release-plan.mjs", () => {
     assert.equal(plan.pending, true);
   });
 
-  test("publishes what npm lacks, in order, and nothing once npm holds all six", async () => {
+  test("publishes what npm lacks, in order, and nothing once the GitHub release exists", async () => {
     const root = fixture();
-    const none = await planRelease({ root, fetchImpl: registry().fetchImpl });
+    const none = await planRelease({ root, repo, fetchImpl: registry().fetchImpl });
     assert.equal(none.publish, true);
     assert.deepEqual(none.toPublish, NAMES);
     assert.match(
       none.reason,
       /^npm doesn't hold @buildanagent\/gateway, .*, @buildanagent\/harness and @buildanagent\/cli at/,
     );
-    const partial = await planRelease({ root, fetchImpl: registry(NAMES.slice(0, 3)).fetchImpl });
+    const partial = await planRelease({ root, repo, fetchImpl: registry(NAMES.slice(0, 3)).fetchImpl });
     assert.deepEqual(partial.toPublish, NAMES.slice(3));
     const all = await planRelease({
       root,
@@ -536,7 +540,7 @@ describe("release-plan.mjs", () => {
       fetchImpl: registry(NAMES, undefined, { releases: ["v0.1.0"] }).fetchImpl,
     });
     assert.equal(all.publish, false);
-    assert.match(all.reason, /release v0\.1\.0 exists/);
+    assert.match(all.reason, /^v0\.1\.0 is already released$/);
   });
 
   test("six packages at one version publish in dependency order, each after the workspace packages it imports", async () => {
@@ -553,13 +557,16 @@ describe("release-plan.mjs", () => {
       }
     }
     const { fetchImpl, calls } = registry();
-    const plan = await planRelease({ root: fixture({ version: "0.1.0-alpha.28", pre: alpha }), fetchImpl });
+    const plan = await planRelease({ root: fixture({ version: "0.1.0-alpha.28", pre: alpha }), repo, fetchImpl });
     assert.equal(plan.publish, true, plan.reason);
     assert.equal(plan.version, "0.1.0-alpha.28");
     assert.deepEqual(plan.toPublish, NAMES);
     assert.deepEqual(
-      calls,
-      RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/0.1.0-alpha.28`),
+      [...calls],
+      [
+        `https://api.github.com/repos/${repo}/releases/tags/v0.1.0-alpha.28`,
+        ...RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/0.1.0-alpha.28`),
+      ],
     );
   });
 
@@ -639,34 +646,66 @@ describe("release-plan.mjs", () => {
     assert.equal(calls.auth, "Bearer t");
   });
 
+  // Run 45067734004 planned 12 seconds after the run ahead of it had created the release v0.1.0-alpha.28, while npm
+  // still answered 404 for all six uploads it had accepted, and its publish then failed with E409. The release decides.
+  test("skips a version whose GitHub release exists without asking npm, even while npm answers 404 for all six", async () => {
+    const { fetchImpl, calls } = registry([], undefined, { releases: ["v0.1.0-alpha.28"] });
+    const plan = await planRelease({ root: fixture({ version: "0.1.0-alpha.28", pre: alpha }), repo, fetchImpl });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.reason, "v0.1.0-alpha.28 is already released");
+    assert.deepEqual(plan.toPublish, []);
+    assert.match(formatOutputs(plan), /^publish=false$/m);
+    assert.deepEqual([...calls], [`https://api.github.com/repos/${repo}/releases/tags/v0.1.0-alpha.28`]);
+  });
+
+  // Deliberate: a release means released, so a package missing from npm behind an existing release stays missing
+  // until someone deletes the release and its tag and re-runs (docs/plans/ci.md §3f).
+  test("skips a version whose GitHub release exists even when npm lacks a package, without asking npm", async () => {
+    const { fetchImpl, calls } = registry(NAMES.slice(0, 5), undefined, { releases: ["v0.1.0-alpha.28"] });
+    const plan = await planRelease({ root: fixture({ version: "0.1.0-alpha.28", pre: alpha }), repo, fetchImpl });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.reason, "v0.1.0-alpha.28 is already released");
+    assert.deepEqual(plan.toPublish, []);
+    assert.deepEqual([...calls], [`https://api.github.com/repos/${repo}/releases/tags/v0.1.0-alpha.28`]);
+  });
+
+  test("without a release, publishes whatever npm lacks, from one package to all six", async () => {
+    const root = fixture({ version: "0.1.0-alpha.28", pre: alpha });
+    for (const held of [[], NAMES.slice(0, 4), NAMES.slice(0, 5)]) {
+      const { fetchImpl, calls } = registry(held);
+      const plan = await planRelease({ root, repo, fetchImpl });
+      assert.equal(plan.publish, true, plan.reason);
+      assert.deepEqual(plan.toPublish, NAMES.slice(held.length));
+      assert.equal(calls.length, 1 + NAMES.length);
+    }
+  });
+
   test("fails on a GitHub error, or without a repository, instead of guessing whether the release exists", async () => {
-    const published = NAMES;
-    await assert.rejects(
-      planRelease({
-        root: fixture(),
-        repo,
-        fetchImpl: registry(published, undefined, { githubStatus: 502 }).fetchImpl,
-      }),
-      /answered 502/,
-    );
+    // Whatever npm holds, the release check comes first, so its error stops the plan before any registry request.
+    for (const published of [[], NAMES]) {
+      const { fetchImpl, calls } = registry(published, undefined, { githubStatus: 502 });
+      await assert.rejects(planRelease({ root: fixture(), repo, fetchImpl }), /answered 502/);
+      assert.equal(calls.length, 1);
+      await assert.rejects(planRelease({ root: fixture(), fetchImpl }), /GITHUB_REPOSITORY/);
+    }
     await assert.rejects(
       hasGitHubRelease(repo, "v0.1.0", { fetchImpl: registry([], undefined, { githubStatus: 403 }).fetchImpl }),
       /answered 403/,
     );
-    await assert.rejects(
-      planRelease({ root: fixture(), fetchImpl: registry(published).fetchImpl }),
-      /GITHUB_REPOSITORY/,
-    );
   });
 
   test("fails on a registry error instead of reading it as unpublished", async () => {
-    await assert.rejects(planRelease({ root: fixture(), fetchImpl: registry([], 503).fetchImpl }), /answered 503/);
+    await assert.rejects(
+      planRelease({ root: fixture(), repo, fetchImpl: registry([], 503).fetchImpl }),
+      /answered 503/,
+    );
     await assert.rejects(isPublished("@buildanagent/sdk", "0.1.0", registry([], 429).fetchImpl), /answered 429/);
   });
 
   test("in pre mode, publishes the prerelease under the pre tag and leaves the consumed changesets alone", async () => {
     const plan = await planRelease({
       root: fixture({ version: "0.1.0-alpha.3", pre: alpha }),
+      repo,
       fetchImpl: registry().fetchImpl,
     });
     assert.equal(plan.publish, true);
@@ -682,7 +721,7 @@ describe("release-plan.mjs", () => {
   });
 
   test("outside pre mode, publishes under latest", async () => {
-    const plan = await planRelease({ root: fixture(), fetchImpl: registry().fetchImpl });
+    const plan = await planRelease({ root: fixture(), repo, fetchImpl: registry().fetchImpl });
     assert.equal(plan.distTag, "latest");
     assert.equal(plan.prerelease, false);
   });
@@ -760,7 +799,7 @@ describe("release-plan.mjs", () => {
   });
 
   test("reports whether docs-deploy.yml exists, and formats the outputs", async () => {
-    const plan = await planRelease({ root: fixture({ docsDeploy: true }), fetchImpl: registry().fetchImpl });
+    const plan = await planRelease({ root: fixture({ docsDeploy: true }), repo, fetchImpl: registry().fetchImpl });
     assert.equal(plan.docsDeploy, true);
     const outputs = formatOutputs(plan);
     assert.match(outputs, /^version=0\.1\.0$/m);

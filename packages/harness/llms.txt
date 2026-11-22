@@ -9,6 +9,7 @@ The sections of README.md and every public export, generated from this package's
 - [Install the alpha with `pnpm add @buildanagent/harness@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentharnessalpha)
 - [The session log holds twenty-one entry types](README.md#the-session-log-holds-twenty-one-entry-types)
 - [A sandbox says what it stops, and the host decides what it may touch](README.md#a-sandbox-says-what-it-stops-and-the-host-decides-what-it-may-touch)
+- [A denied command becomes a signed request, and an approved one reruns once](README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
@@ -288,13 +289,30 @@ The sections of README.md and every public export, generated from this package's
 
 - `type ApprovalPolicy`: When a denied action may be asked for again, which is the host's decision and never the sandbox's.
 - `confirmPolicy()`: Reads back the policy `sandbox` applied and compares it with `requested`.
+- `escalation()`: Creates the escalation machine for a harness's approvals.
+- `ESCALATION_EVENTS`: Every event.
+- `ESCALATION_STATES`: Every state, in the order a command that escalates passes through them.
+- `ESCALATION_TOOL`: The tool name an escalation's signed request carries.
+- `ESCALATION_TRANSITIONS`: The legal edges.
+- `type EscalationEvent`: What moves a command between states.
+- `interface EscalationMachine`: The machine `escalation()` returns.
+- `interface EscalationOptions`: The options of `escalation()`.
+- `interface EscalationRecord`: What an escalation's request signs, as the input of its `approval_requested` entry: the call the command ran for, the command, the workspace root, the policy it ran under and the denial.
+- `interface EscalationResolveOptions`: The options of `EscalationMachine.resolve()`: where the rerun runs, which the log does not hold.
+- `type EscalationResult`: How an escalation call ended.
+- `interface EscalationRule`: One rule of a `granular` policy: a denial of `kind` for `tool` may be asked about (`on-request`) or goes back to the caller (`never`).
+- `interface EscalationRun`: One command to run in a sandbox, for one tool call, and what the host provisions the sandbox with.
+- `type EscalationState`: Where a sandboxed command stands.
+- `interface EscalationTransition`: One legal edge: from a state, on an event, to a state, and when the machine takes it.
 - `interface ExecOptions`: The options of `Sandbox.exec()`.
 - `type ExecResult`: What a command did: its exit status and output, or the denial that stopped it.
 - `hasCapability()`: Whether `client` lists `capability`.
+- `nextEscalationState()`: The state `event` moves `from` to.
 - `NONE_SANDBOX_WARNING`: The warning written when a sandbox starts.
 - `noneSandbox()`: Builds the `none` backend.
 - `interface NoneSandboxOptions`: The options of `noneSandbox()`.
 - `pauseSandbox()`: Pauses `sandbox` until `resumeSandbox()` with its `id`, or throws `SandboxUnsupportedError`.
+- `interface PendingEscalation`: An escalation that waits for an answer: its id, its signed request and the record the request signs.
 - `policyDifference()`: The first field in which `applied` differs from `requested`, or `undefined` when they hold the same entries.
 - `resumeSandbox()`: Reattaches to a sandbox by its id, or starts one from a snapshot's id, then confirms its policy as `provision()` does and sets the sandbox's `stops` to what the confirmed policy delivers.
 - `interface Sandbox`: A provisioned sandbox.
