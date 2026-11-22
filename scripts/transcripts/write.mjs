@@ -244,10 +244,10 @@ function transcriptFile({ harnessDir, exampleFile, outDir, live }) {
 }
 
 /**
- * Whether a run finished: its process exited 0 and its output holds at least one `ok - ` line, which `check()` prints
- * and an example could also print itself, so the line shows only that a check was meant to run. A run that failed a
- * check, threw or was killed leaves a partial exchange, such as a refused call that reached the model, so its
- * transcript would show the opposite of what the example demonstrates.
+ * Whether a run finished: its process exited 0 and its output holds at least one `ok - ` line. `check()` prints that
+ * line, but an example could print it itself, so the line shows only that a check was meant to run. A run that failed
+ * a check, threw or was killed leaves a partial exchange, such as a refused call that reached the model. Recording it
+ * would make an example that proves a refusal look as if the call had gone through.
  */
 export const finishedRun = ({ exit, out }) => exit === 0 && /^ok - /m.test(out ?? "");
 
@@ -258,8 +258,8 @@ export const finishedRun = ({ exit, out }) => exit === 0 && /^ok - /m.test(out ?
  * file is deleted and the problem printed, so the results-drift check reports it instead of passing on an old run.
  *
  * `ran` says whether the run finished (`finishedRun()`), and a mock run must pass it. A run that did not finish writes
- * nothing and leaves an earlier transcript as it was, because the results-drift check compares only with the committed
- * file and would pass on a partial transcript that was committed. A live run is compared with its mock transcript
+ * nothing and leaves an earlier transcript as it was. The results-drift check compares output only with the committed
+ * file, so a committed partial transcript would pass it. A live run is compared with its mock transcript
  * after it ends, so it is exempt.
  *
  * `live`, `{ provider, model, secrets }`, marks the transcript of a live run (scripts/live/run.mjs), which goes to
@@ -315,9 +315,10 @@ export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, o
 
 /**
  * Prepares one run of an example for recording: adds the recorder to the node arguments, after tsx's `--import`, and
- * the raw file to the environment. Returns `write`, which the runner calls once the process has exited, with its
- * `exit` code and `out`put, and `discard`, which a runner that records no transcript for the run calls instead: it
- * deletes the raw events and the example's earlier transcript, so no file from an older run stands in for this one.
+ * the raw file to the environment. Returns two functions. The runner calls `write` once the process has exited,
+ * passing the process's `exit` code and its `out` text. A runner that records no transcript for the run calls `discard`
+ * instead, which deletes the raw events and the example's earlier transcript, so no file from an older run stands in
+ * for this one.
  */
 export function transcriptRun(args, env) {
   const raw = join(mkdtempSync(join(tmpdir(), "transcript-")), "events.json");
