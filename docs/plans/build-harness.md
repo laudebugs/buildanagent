@@ -665,11 +665,12 @@ declare function webSocketTransport(dispatcher: Dispatcher, socket: WebSocketLik
 // Revision (N29b, 2026-11-22): the options gain writeTimeoutMs (30,000 ms by default), and the dispatcher answers a command whose params break the protocol schema with InvalidParams
 
 // @buildanagent/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @buildanagent/sdk/otel.
-declare function projectSpans(entries: AsyncIterable<SessionEntry>, options: {
+declare function projectSpans(entries: AsyncIterable<SessionEntry> | Iterable<SessionEntry>, options: {
   tracer: TracerLike; content?: "none" | "attributes" | "refs";      // "none" by default
+  childContext: (parent: SpanLike) => unknown; parentContext?: unknown;  // Revision (N31, 2026-11-22): the SDK observer's option; the harness imports no OpenTelemetry
   toolArguments?: boolean;                                          // gated apart from prompts; false by default
   hashAttributes?: { key: Uint8Array; names: string[] };            // Revision (agent AH12): HMAC-SHA-256 per named attribute
-}): Promise<void>;    // invoke_agent → turn → model call → execute_tool (+ approval_wait child)
+}): Promise<void>;    // invoke_agent → turn → chat and execute_tool (siblings), + an approval_wait child of the tool span; Revision (N31, 2026-11-22): a tool is a sibling of the model call that asked for it
 
 // @buildanagent/evals (guide §10; HD8)
 interface EvalRow {                                    // guide sketch; Revision: costUsd may be null
@@ -807,7 +808,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N31](../todos/ongoing/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
+| [N31](../todos/done/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
 | [N32](../todos/done/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
 | [N33](../todos/done/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
 | [N34](../todos/ready/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |

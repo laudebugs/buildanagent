@@ -1,12 +1,15 @@
 /**
  * Turns the SDK's transcript into the JSON the GenAI conventions describe for content attributes: messages with
- * typed `parts`. Only the observer reads this, and only when `captureContent` is on.
+ * typed `parts`. The observer reads this when `captureContent` is on, and the harness's log projection reads the same
+ * functions, so a span from a live run and a span rebuilt from the log hold content in one format.
  */
 import type { ContentBlock, Message, ModelContent } from "@buildanagent/gateway";
 
-type Part = Readonly<Record<string, unknown>>;
+/** One typed part of a message, as the conventions' content attributes hold it. */
+export type ContentPart = Readonly<Record<string, unknown>>;
 
-function blockPart(block: ContentBlock): Part {
+/** One content block as a part. An image keeps its type and drops its bytes, which would swamp a span. */
+export function blockPart(block: ContentBlock): ContentPart {
   switch (block.type) {
     case "text":
       return { type: "text", content: block.text };
@@ -21,11 +24,11 @@ function blockPart(block: ContentBlock): Part {
 }
 
 /** The parts of a result's content, as the conventions' `gen_ai.tool.call.result` or a tool message holds them. */
-export function resultParts(content: readonly ModelContent[]): readonly Part[] {
+export function resultParts(content: readonly ModelContent[]): readonly ContentPart[] {
   return content.map(blockPart);
 }
 
-function messageOf(message: Message): { readonly role: string; readonly parts: readonly Part[] } {
+function messageOf(message: Message): { readonly role: string; readonly parts: readonly ContentPart[] } {
   if (message.role === "tool") {
     return {
       role: "tool",

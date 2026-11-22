@@ -68,6 +68,7 @@ export const CONFIG = {
     provision: "a SandboxClient method",
     prune: "a key store method",
     register: "a ToolRegistry method",
+    remainingUsd: "a BudgetMeter method",
     release: "a LockHandle method",
     resolve: "an approvals method",
     rotate: "a key store method",

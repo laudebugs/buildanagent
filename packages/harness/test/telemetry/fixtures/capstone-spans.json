@@ -1,0 +1,136 @@
+{
+  "name": "invoke_agent",
+  "kind": 0,
+  "error": false,
+  "durationMs": 19750,
+  "attributes": {
+    "buildanagent.cost.basis": "catalog",
+    "buildanagent.cost.usd": 0.01299,
+    "buildanagent.semconv.genai.commit": "d28355d",
+    "buildanagent.usage.cache_read_tokens": 800,
+    "buildanagent.usage.cache_write_tokens": 200,
+    "gen_ai.operation.name": "invoke_agent",
+    "gen_ai.usage.input_tokens": 3000,
+    "gen_ai.usage.output_tokens": 400
+  },
+  "children": [
+    {
+      "name": "turn",
+      "kind": 0,
+      "error": false,
+      "durationMs": 12250,
+      "attributes": {
+        "buildanagent.cost.basis": "catalog",
+        "buildanagent.cost.usd": 0.006495,
+        "buildanagent.run.id": "e-6",
+        "buildanagent.turn.mode": "run",
+        "buildanagent.turn.steps": 1,
+        "buildanagent.turn.stop_reason": "awaiting_approval",
+        "buildanagent.usage.cache_read_tokens": 400,
+        "buildanagent.usage.cache_write_tokens": 100,
+        "gen_ai.usage.input_tokens": 1500,
+        "gen_ai.usage.output_tokens": 200
+      },
+      "children": [
+        {
+          "name": "chat priced",
+          "kind": 2,
+          "error": false,
+          "durationMs": 8750,
+          "attributes": {
+            "buildanagent.cost.basis": "catalog",
+            "buildanagent.cost.usd": 0.006495,
+            "buildanagent.usage.cache_read_tokens": 400,
+            "buildanagent.usage.cache_write_tokens": 100,
+            "buildanagent.usage.source": "model_call",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "scripted",
+            "gen_ai.request.model": "priced",
+            "gen_ai.response.finish_reasons": ["tool_calls"],
+            "gen_ai.usage.input_tokens": 1500,
+            "gen_ai.usage.output_tokens": 200
+          },
+          "children": []
+        },
+        {
+          "name": "execute_tool lookup",
+          "kind": 0,
+          "error": false,
+          "durationMs": 2500,
+          "attributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.id": "c1",
+            "gen_ai.tool.name": "lookup",
+            "gen_ai.tool.type": "function"
+          },
+          "children": []
+        },
+        {
+          "name": "execute_tool refund",
+          "kind": 0,
+          "error": false,
+          "durationMs": 5250,
+          "attributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.id": "c2",
+            "gen_ai.tool.name": "refund",
+            "gen_ai.tool.type": "function"
+          },
+          "children": [
+            {
+              "name": "approval_wait",
+              "kind": 0,
+              "error": false,
+              "durationMs": 1750,
+              "attributes": {
+                "buildanagent.approval.decision": "allow",
+                "buildanagent.approval.request_id": "e-16"
+              },
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "turn",
+      "kind": 0,
+      "error": false,
+      "durationMs": 5250,
+      "attributes": {
+        "buildanagent.cost.basis": "catalog",
+        "buildanagent.cost.usd": 0.006495,
+        "buildanagent.run.id": "e-21",
+        "buildanagent.turn.mode": "continue",
+        "buildanagent.turn.steps": 1,
+        "buildanagent.turn.stop_reason": "done",
+        "buildanagent.usage.cache_read_tokens": 400,
+        "buildanagent.usage.cache_write_tokens": 100,
+        "gen_ai.usage.input_tokens": 1500,
+        "gen_ai.usage.output_tokens": 200
+      },
+      "children": [
+        {
+          "name": "chat priced",
+          "kind": 2,
+          "error": false,
+          "durationMs": 3250,
+          "attributes": {
+            "buildanagent.cost.basis": "catalog",
+            "buildanagent.cost.usd": 0.006495,
+            "buildanagent.usage.cache_read_tokens": 400,
+            "buildanagent.usage.cache_write_tokens": 100,
+            "buildanagent.usage.source": "model_call",
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "scripted",
+            "gen_ai.request.model": "priced",
+            "gen_ai.response.finish_reasons": ["stop"],
+            "gen_ai.usage.input_tokens": 1500,
+            "gen_ai.usage.output_tokens": 200
+          },
+          "children": []
+        }
+      ]
+    }
+  ]
+}

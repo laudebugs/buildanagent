@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N31` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N7](../done/N7-rebuild-resume-replay.md), [N13](../done/N13-signed-approvals.md), [B17](B17-otel-observer.md) |
@@ -37,8 +37,8 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 
 ## Tasks
 
-- [ ] First confirm the in-memory span exporter's export name in `@opentelemetry/sdk-trace` 2.12.1. Then test with that exporter as an exact-pinned dev dependency. *(Revised in plan review 2, 2026-11-19: `@opentelemetry/sdk-trace-base` is deprecated in favour of `@opentelemetry/sdk-trace`, the line the OTLP exporter 0.223.2 already pulls.)*
-- [ ] Import the SDK's attribute module; define no `gen_ai.*` name in the harness.
+- [x] First confirm the in-memory span exporter's export name in `@opentelemetry/sdk-trace` 2.12.1. Then test with that exporter as an exact-pinned dev dependency. *(Revised in plan review 2, 2026-11-19: `@opentelemetry/sdk-trace-base` is deprecated in favour of `@opentelemetry/sdk-trace`, the line the OTLP exporter 0.223.2 already pulls.)*
+- [x] Import the SDK's attribute module; define no `gen_ai.*` name in the harness.
 
 ## Acceptance criteria
 
@@ -58,6 +58,19 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 ## Docs to update
 
 `packages/harness/README.md`: attributes and content levels. The plan's todo table in [build-harness.md §4](../../plans/build-harness.md#4-rounds-and-todos).
+
+## Outcome
+
+`@buildanagent/harness/telemetry` holds `projectSpans()`, `createBudgetMeter()`, `budgetMeterFromEntries()` and `BUILDANAGENT_ATTRIBUTES`.
+
+- The in-memory span exporter's export name in `@opentelemetry/sdk-trace` 2.12.1 is `InMemorySpanExporter`, which the SDK's own tests already import. The harness takes `@opentelemetry/api` and `@opentelemetry/sdk-trace` as exact-pinned dev dependencies. Their ES builds import files without extensions, so the harness's Vitest config bundles them through Vite, as the SDK's does.
+- `projectSpans()` takes one more option than the plan sketched: a required `childContext`, because the harness imports nothing from OpenTelemetry and cannot build a parent context itself. The SDK's observer has the same option. The plan's sketch is revised.
+- `execute_tool` is a sibling of the `chat` span that asked for it, under the `turn`, as in the SDK's observer. The plan's arrow chain read as a child, but a tool starts when its model call ends, so a child would begin after its parent. A call that waited for a person ends in the turn that resumed it, so its span can outlive the turn that started it.
+- HD7 says the commit is a resource attribute. A tracer provider's resource belongs to the caller, so the projection writes `buildanagent.semconv.genai.commit` on the root span and the README tells callers to stamp the same value on their resource.
+- Content has three levels, and tool arguments have their own switch that applies at every level, including to the tool calls inside message content. `refs` writes the ids of the entries that hold the content.
+- The SDK now exports its content helpers (`blockPart`, `resultParts`, `systemInstructionsJson`, `jsonValue` and `ContentPart`) from `@buildanagent/sdk/otel`. The harness first copied them, and `pnpm check:duplicates` found the copy, so the one format has one home. That is a public SDK change with a changeset.
+- The meter reports and the caller enforces. Wiring it into the runner's `budgetUsd` is left to the caller, and nothing in this todo stops a turn. A rebuilt meter does not repeat a warning for spend the log already holds.
+- Two error codes are new: `invalid_telemetry_options` and `budget_unknown`.
 
 ## Risks and open questions
 

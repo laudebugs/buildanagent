@@ -46,7 +46,9 @@ export type HarnessErrorCode =
   | "invalid_session_key"
   | "invalid_retention"
   | "session_corrupt"
-  | "invalid_completion_config";
+  | "invalid_completion_config"
+  | "invalid_telemetry_options"
+  | "budget_unknown";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -86,7 +88,9 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * `invalid_session_key`: a user or session id the store can't use. `invalid_retention`: a retention period that is not a
  * positive number, or an action other than `archive` and `purge`. `session_corrupt`: a log file has a bad line before
  * its last line. `invalid_completion_config`: `.agents/harness.json` is not JSON, or its `completionChecks` is not a list
- * of commands.
+ * of commands. `invalid_telemetry_options`: a span projection's or a budget meter's setting can't be used, such as a
+ * negative cap or an empty hashing key. `budget_unknown`: a session with a cap has spent an unknown amount, so a budgeted
+ * turn is refused.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";
