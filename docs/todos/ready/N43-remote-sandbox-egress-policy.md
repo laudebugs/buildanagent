@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
-| Depends on | [N15](../done/N15-sandbox-interface.md), [N20](N20-credential-proxy.md) |
+| Depends on | [N15](../done/N15-sandbox-interface.md), [N20](../ongoing/N20-credential-proxy.md) |
 | Size | M |
 
 ## Goal

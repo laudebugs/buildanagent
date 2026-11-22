@@ -728,7 +728,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N17](../todos/done/N17-docker-backend.md) | Docker backend | N15 | M |
 | [N18](../todos/ready/N18-sandbox-escalation.md) | Sandbox escalation state machine | N15, N13 | M |
 | [N19](../todos/ready/N19-sandbox-measurement.md) | Measure `srt` and Docker cold start and per-call overhead (HD4) | N16, N17 | S |
-| [N20](../todos/ready/N20-credential-proxy.md) | Credential proxy: default-deny egress, sentinel routes, gated fetch, secret scrub | N15 | M |
+| [N20](../todos/ongoing/N20-credential-proxy.md) | Credential proxy: default-deny egress, sentinel routes, gated fetch, secret scrub | N15 | M |
 | [N21](../todos/ready/N21-builtin-tools.md) | Built-in tools: `read`, `write`, `edit`, `bash`, `fetch` and the read-only `grep` and `glob` through the sandbox | N11, N15, N20, N8 | M |
 
 ### 4.5 Stage 5 adds extensions, skills and the MCP client
