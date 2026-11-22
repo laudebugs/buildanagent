@@ -90,5 +90,16 @@
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - the escalation is waiting for approval\nok - the gated escalate tool has not run\nok - it still has not run while nobody answers\n[Agent] TriageAgent: sending instance name \"ticket-42\" to clients via sendIdentityOnConnect (the name is not visible in the URL with custom routing). If this name is sensitive, add `static options = { sendIdentityOnConnect: false }` to opt out. Set it to true to silence this message.\nok - approval moved the escalation to output-available\nok - the escalate tool ran exactly once, after approval\nok - the structured turn returns a value matching the TriageResult schema\nok - the typed result reflects the approved escalation"
+  },
+  {
+    "id": "10-durable-wake",
+    "durableObjects": {
+      "Reminders": "Reminders",
+      "Probe": "Probe"
+    },
+    "ms": 4977,
+    "modelCalls": 0,
+    "outcome": "ran",
+    "tail": "ok - the state was reloaded from storage on the new instance\nok - the in-memory field did not survive eviction\nok - the schedule's callback ran with its payload after the eviction\nok - the callback ran on a new instance (the agent had started again)\nok - it ran at or after the schedule's due time\nok - it ran before any request reached the agent, so the alarm woke it\nok - the callback ran once\nok - the one-shot schedule was removed after it ran"
   }
 ]

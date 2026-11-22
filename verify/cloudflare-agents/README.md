@@ -25,6 +25,12 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 | `skipped` | Needs something the harness does not provide; `reason` says what (React or client code, containers, Workflows, a credential, a package outside the pinned set) |
 | `error`, `timeout`, `bundle-error` | A real failure, to be triaged |
 
+## One example evicts an agent that has a wake scheduled
+
+`10-durable-wake.ts` has an agent store a note in `this.state`, schedule a callback and set an in-memory field. The harness then evicts the Durable Object, and the example sends no request for 3.5 seconds. The schedule's alarm wakes a new instance, which runs the callback and writes a row that names its own start count. The example then reads the agent and checks that the note survived, the in-memory field did not, the callback ran once with its payload before any request arrived, and the one-shot schedule is gone. It carries `// #region` and `// book:note` markers for Chapter T24.
+
+Only Cloudflare's runtime runs here. A Durable Object's alarm is the SDK's wake, so the example shows the same wake on AWS and Vercel only once our own packages run on them, which is when the chapter's switch todos N47a and N48a land. The example makes no model call, so it records no transcript.
+
 ## Region markers feed the book's listings
 
 Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).

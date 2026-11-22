@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T33](T33-example-durability.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T33](../done/T33-example-durability.md) |
 | Size | M |
 
 ## Goal
@@ -31,7 +31,7 @@ Write the chapter "Durable and portable agents, and how work reaches them" (`dur
 
 - `apps/manual/src/content/chapters/durable-and-portable-agents.md`, with `switchTo: [N41–N48]` and `opening: code` in its front matter
 - Sections: Durability: state, wake and resume on Cloudflare (the only target `verify/` runs); The seven seams of ADR 0033 plus `EffectStore` from ADR 0043, and what AWS and Vercel need; Ingress and triggers: one design, deduplicated by id (12-factor agents, factor 11; coding agent plan CA7)
-- Listings and at least one replay from: `verify/cloudflare-agents/examples/02-sql.ts`, `verify/cloudflare-agents/examples/03-scheduling.ts`, `verify/cloudflare-agents/examples/08-hibernation.ts`, the durability example from [T33](T33-example-durability.md)
+- Listings and at least one replay from: `verify/cloudflare-agents/examples/02-sql.ts`, `verify/cloudflare-agents/examples/03-scheduling.ts`, `verify/cloudflare-agents/examples/08-hibernation.ts`, the durability example from [T33](../done/T33-example-durability.md), `verify/cloudflare-agents/examples/10-durable-wake.ts`, which evicts an agent and lets its scheduled alarm wake it (the AWS and Vercel durability behaviours are not runnable in `verify/`; N47a and N48a add them to our own packages)
 - Figures: a flat figure of the seven seams plus `EffectStore`, and their implementation on each target; a flat analogy illustration of shipping containers
 - Exercise: Schedule a wake, hibernate, and list what the agent must reload; then send the same trigger twice and show one task starts.
 - `apps/manual/fact-checks/durable-and-portable-agents.md`, the chapter's claims log
