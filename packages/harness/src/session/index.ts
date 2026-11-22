@@ -42,6 +42,17 @@ export {
 export { ConflictError, EntryTooLargeError } from "./errors.js";
 export type { LockHandle, SessionLock } from "./lock.js";
 export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
+export { type MigrateOptions, type Migration, type MigrationResult, migrateSession } from "./migrate.js";
+export { memoryIndex, type SessionIndex } from "./pointer.js";
+export {
+  type ChildLink,
+  DERIVED,
+  isDerivedFile,
+  listSessions,
+  type OpenSessionOptions,
+  openSession,
+  Session,
+} from "./session.js";
 export {
   type AppendOptions,
   DEFAULT_MAX_ENTRY_BYTES,

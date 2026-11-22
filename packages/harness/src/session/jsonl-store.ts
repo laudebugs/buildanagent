@@ -6,7 +6,7 @@
 import { Buffer } from "node:buffer";
 import { mkdir, open, readdir, readFile, rm, stat, truncate } from "node:fs/promises";
 import { join } from "node:path";
-import { parseEntry, type SessionEntry } from "@buildanagent/protocol";
+import { isProtocolError, parseEntry, type SessionEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
 import {
   type AppendOptions,
@@ -54,7 +54,13 @@ function parseLog(buffer: Buffer, path: string): ReadLog {
     try {
       entries.push(parseEntry(line));
     } catch (cause) {
-      throw new HarnessError("session_corrupt", `${path} has a bad entry on line ${index + 1}`, { cause });
+      // A header from another format isn't corruption: the file is whole and needs a migration or a newer harness.
+      const format = isProtocolError(cause) && cause.code === "unsupported_format_version";
+      throw new HarnessError(
+        format ? "unsupported_format" : "session_corrupt",
+        `${path} has ${format ? "a log in a format this harness doesn't read" : "a bad entry"} on line ${index + 1}`,
+        { cause },
+      );
     }
   }
   return { entries, goodBytes: end, tornBytes: buffer.length - end };
@@ -195,6 +201,34 @@ class JsonlStore implements SessionStore {
     if (log.tornBytes > 0) options?.onTornLine?.({ bytes: log.tornBytes });
     const from = options?.fromSeq ?? 0;
     for (const entry of log.entries) if (entry.seq >= from) yield entry;
+  }
+
+  loadRaw(key: SessionKey): AsyncGenerator<unknown> {
+    checkKey(key);
+    return this.#raw(key);
+  }
+
+  async *#raw(key: SessionKey): AsyncGenerator<unknown> {
+    const path = this.#pathOf(key);
+    const buffer = await this.#queued(path, () =>
+      readFile(path).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return undefined;
+        throw error;
+      }),
+    );
+    if (buffer === undefined) return;
+    const complete = buffer
+      .subarray(0, buffer.lastIndexOf(0x0a) + 1)
+      .toString("utf8")
+      .split("\n");
+    complete.pop();
+    for (const [index, line] of complete.entries()) {
+      try {
+        yield JSON.parse(line);
+      } catch (cause) {
+        throw new HarnessError("session_corrupt", `${path} has a bad entry on line ${index + 1}`, { cause });
+      }
+    }
   }
 
   list(userId: string): AsyncGenerator<SessionSummary> {

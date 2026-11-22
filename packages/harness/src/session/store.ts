@@ -71,6 +71,12 @@ export interface SessionStore {
   list(userId: string): AsyncIterable<SessionSummary>;
   /** Deletes the session. A session that doesn't exist, or belongs to another user, is left alone and is no error. */
   delete(key: SessionKey): Promise<void>;
+  /**
+   * The entries as they were written, without the protocol's format check, so a migration can read a log from a format
+   * this harness no longer reads. A store that can't leave the check out doesn't offer this method, and `migrateSession()` refuses to migrate a session
+   * in such a store.
+   */
+  loadRaw?(key: SessionKey): AsyncIterable<unknown>;
 }
 
 /**
