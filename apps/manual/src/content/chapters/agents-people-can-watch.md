@@ -2,7 +2,7 @@
 title: "Agents people can watch: UIs, browsers and taking over"
 summary: A person who watches an agent needs to see what it did, steer it and take over when it is about to act. This chapter shows an agent UI as views over one event log, what undo can and cannot cover, how a browser is described to a model, how a person watches and takes over, and why the network and the credential, not the model, are the browser's boundary.
 opening: question
-sources: [acp-readme, playwright-mcp-snapshots, cdp-browser-protocol, meta-rule-of-two, willison-lethal-trifecta, openai-agents-human-in-the-loop, claude-for-chrome, nist-agent-hijacking-evaluations, google-architecting-agentic-security]
+sources: [acp-readme, playwright-mcp-snapshots, cdp-browser-protocol, meta-rule-of-two, willison-lethal-trifecta, openai-agents-human-in-the-loop, claude-for-chrome, nist-agent-hijacking-evaluations, google-architecting-agentic-security, stivers-turn-taking, robot-turn-taking, full-duplex-bench, tau-voice]
 glossary: [accessibility-snapshot, session-log]
 switchTo: [N44]
 ---
@@ -79,6 +79,40 @@ A browser is the textbook case of Willison's lethal trifecta: an agent that comb
 So the designs that hold do not rely on the model to refuse. Meta's Rule of Two lets an agent combine at most two of untrusted input, sensitive access and external state change [@meta-rule-of-two], and its browsing assistant avoids sensitive access by running in a restrictive sandbox without preloaded session data. Google says its Chrome agent runs a deterministic check that restricts model-generated URLs to known, public ones [@google-architecting-agentic-security]. Logins belong to the host: Google also says Chrome's agent signs in through its password manager, with no direct model access to what is stored. The pattern is the one of the earlier chapter on sandboxes and credentials, and three rules hold. A deterministic gate outside the model decides each consequential action. The host adds the credential outside the sandbox. The egress allowlist refuses the metadata address and every private range before the browser reaches them.
 
 The click on Pay shows what the chapter built. A person who watches sees the page, the plan and the pending approval, all drawn from one log. Steering means editing the plan or rejecting the call, and taking over means a relay that the agent pauses for. What the page says cannot widen what the agent may do, because the network it can reach and the credentials it can use were fixed before the page loaded.
+
+## A voice agent runs as a session of events, and four things differ from the text loop
+
+Think of :analogy[a phone call where either side can cut in]{#phone-call-cut-in}. Nobody waits for the other to finish a paragraph. Each side starts talking when it thinks the other is done, stops when it is interrupted, and remembers only what it heard. A voice agent has to behave this way, and four things change from the text loop. The examples below run offline, so they show the SDK's side and not a real model or microphone.
+
+**First, the loop becomes a session driven by events.** A voice agent takes one of three shapes. In speech-to-speech, one model hears and speaks in a single session. In a chained pipeline, speech is transcribed, an ordinary text agent runs, and the reply is spoken. In the third, a speaking front model delegates reasoning to a text agent. The tool loop survives in all three. The number to remember is 208 milliseconds: the mean gap people leave between turns across ten languages [@stivers-turn-taking], which is far shorter than a text agent's thinking time. [[lst:realtime-session]] gives an OpenAI realtime agent two tools over a scripted transport that records what the session sends and lets the example emit what a server would.
+
+:::listing[A realtime agent with two tools, over a transport that is only an in-memory recorder]{#realtime-session file="verify/openai-agents-sdk/examples/14-realtime-session.ts" region="session"}
+::note[The transport stands in for a WebRTC or WebSocket connection to OpenAI. No model, audio or network is involved.]{#scripted-transport}
+:::
+
+The chained shape is one Cloudflare Durable Object in [[lst:voice-pipeline]]. A turn is transcribed, run through a `streamText` loop with one tool, and spoken. The tool runs inside the turn, before any audio is sent. `agents/voice` is experimental at `agents`{checked=row-48} 0.33.0 as of November 2026, and the docs say it will break between releases.
+
+:::listing[A chained voice pipeline: the turn's text goes through an ordinary tool loop, and its signal reaches the speech]{#voice-pipeline file="verify/cloudflare-agents/examples/13-voice-pipeline.ts" region="voice-agent"}
+::note[The turn's abort signal. The mixin aborts it when the person interrupts.]{#signal}
+::note[The loop returns its stream of parts, which the mixin turns into speech.]{#stream}
+::note[The fake speech provider holds this sentence until the abort signal arrives, like speech still playing.]{#hold}
+:::
+
+**Second, turn detection predicts the end of a turn.** The agent cannot know the person has finished, so it guesses. OpenAI's `server_vad`{checked=row-49} waits 500 milliseconds of silence by default, and a shorter wait "may jump in on short pauses". The trade is a short threshold that cuts people off against a long one that makes the reply late. In a study of a robot's turn-taking, predictive models cut the median response time from 2.7 s to 1.5 s and interruptions from 16.6% to 6.9% [@robot-turn-taking]. The simple escape is push-to-talk, where the person marks the end of the turn.
+
+**Third, barge-in stops the speech, settles the tools and keeps only the heard words.** A server produces audio faster than it plays, so when the person cuts in, text the model wrote may never have been heard, and the context must not keep it. Over WebRTC and SIP the server truncates the reply itself. Over a WebSocket the client stops playback, records how many milliseconds were heard and sends `conversation.item.truncate`{checked=row-52} with `audio_end_ms`{checked=row-52}. The scripted transport cannot show that. [[lst:realtime-interrupt]] shows the session sending the interrupt, and [[lst:realtime-interrupted]] shows the event that comes back.
+
+:::listing[The session sends an interrupt request]{#realtime-interrupt file="verify/openai-agents-sdk/examples/14-realtime-session.ts" region="interrupt"}
+::note[On the scripted transport, interrupt() only records the call. The real WebSocket transport also emits audio_interrupted itself and truncates.]{#interrupt}
+:::
+
+:::listing[The event that tells the session a reply was cut off]{#realtime-interrupted file="verify/openai-agents-sdk/examples/14-realtime-session.ts" region="interrupted"}
+::note[A scripted audio_interrupted reaches the session's listener once. Neither event causes the other on this transport.]{#interrupted}
+:::
+
+What happens to a tool in flight differs by vendor. GPT-Live leaves backend work running on interruption, and the app must confirm a cancellation before telling the person it happened. Gemini's Live API sends a cancellation for tools in flight when a client interrupts. Yielding fast has a cost: in one benchmark, as of 2026, a version of OpenAI's realtime model (`gpt-4o-realtime-preview-2024-12-17`, tested in 2025) stopped in 0.23 s on a real interruption, and it also answered 93% of background speech [@full-duplex-bench].
+
+**Fourth, tools must not silence the agent.** A person on a call cannot tell a thinking agent from a dead line. So a voice agent announces a slow tool, runs it in the background, or delegates to a text agent while the voice keeps talking. Gemini's Live API has a non-blocking mode with scheduling options. GPT-Live can continue speaking while the application reviews a backend result, and a realtime handoff cannot change the model, so the SDK says to use delegation through tools for a reasoning model. The stakes are measured: on the same tasks in clean audio, GPT-5 in text completed 85% and voice agents 31 to 51%, as the τ-Voice abstract reports [@tau-voice]. We therefore recommend that a voice agent read back the arguments of any consequential call before it runs. No source states that rule, and the click on Pay from earlier in this chapter is the case it covers.
 
 ## Exercises
 

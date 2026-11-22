@@ -68,12 +68,35 @@ The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents
 | 42 | After the rewording: Anthropic's 23.6% and 11.2% and NIST's 11% and 81% are given as figures from different tests that do not compare directly | § The network and the credential | ✅ | Re-check of rows 32 and 33: same figures and sources, with the non-comparison stated before the second figure |
 | 43 | A takeover needs three things the example does not show: the agent stops sending input while a person drives, the harness records the takeover and the handback, and the next turn starts from the page the person left | § A person can watch | ⚠️ | Our design requirements from the analogy's "where it breaks" entry; row 29 |
 
+## "A voice agent runs as a session of events, and four things differ from the text loop" (T38)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 44 | A voice agent takes one of three shapes (speech-to-speech in one session; a chained pipeline of speech-to-text, a text agent and text-to-speech; a speaking front model that delegates reasoning to a text agent), and the tool loop survives in all three | § A voice agent | ✅ | [Voice log](../../../docs/research/voice/fact-check-voice-and-realtime.md) rows 6, 11 and 41: OpenAI's guide lists the realtime session and the chained pipeline, LangChain's "Sandwich architecture" is the chained shape, and GPT-Live's delegation guide describes the third |
+| 45 | The mean gap people leave between turns is about 208 ms across ten languages | § A voice agent | ✅ | [Stivers et al. 2009](https://pmc.ncbi.nlm.nih.gov/articles/PMC2705608/), voice log rows 3 and 20: "The mean response offset for the full dataset is +208 ms" |
+| 46 | The OpenAI example runs a `RealtimeSession` over `ScriptedRealtimeTransport`, an in-memory transport that records the session's calls and lets the example emit server events, with no model, audio or network | § A voice agent | ✅ | `verify/openai-agents-sdk/examples/14-realtime-session.ts`, header and the `session` region |
+| 47 | In the Cloudflare example a turn is transcribed, run through a `streamText` loop with one tool that runs inside the turn before any audio is sent, and spoken | § A voice agent | ✅ | `verify/cloudflare-agents/examples/13-voice-pipeline.ts`, header ("Turn 1 asserts that the tool ran inside the turn and before any audio was sent") |
+| 48 | `agents/voice` is experimental at `agents` 0.33.0 as of November 2026, and the docs say it "will break between releases" | § A voice agent | ✅ | The example's header comment, which quotes the docs |
+| 49 | OpenAI's `server_vad` waits 500 ms of silence by default, and a shorter wait "may jump in on short pauses" | § A voice agent | ✅ | [OpenAI client secrets reference](https://developers.openai.com/api/reference/resources/realtime/subresources/client_secrets/methods/create), voice log row 22 |
+| 50 | In a study of a robot's turn-taking, predictive models cut the median response time from 2.7 s to 1.5 s and interruptions from 16.6% to 6.9% | § A voice agent | ✅ | [arXiv 2501.08946](https://arxiv.org/abs/2501.08946), voice log row 24 (corrected there against Table I, where the whole paper was read) |
+| 51 | Push-to-talk, where the person marks the end of the turn, is the simple escape from guessing it | § A voice agent | ⚠️ | The todo's scope names it; no source in the voice log states it. Our reasoning |
+| 52 | A server produces audio faster than it plays, so text the model wrote may never be heard; over WebRTC and SIP the server truncates, and over a WebSocket the client stops playback, records the milliseconds heard and sends `conversation.item.truncate` with `audio_end_ms` | § A voice agent | ✅ | [OpenAI client events and Realtime conversations](https://developers.openai.com/api/docs/guides/realtime-conversations), voice log rows 36, 37 and 38 |
+| 53 | On the scripted transport, `interrupt()` only records the call, a scripted `audio_interrupted` reaches the listener once, and neither causes the other; the real WebSocket transport emits `audio_interrupted` itself and truncates | § A voice agent | ✅ | The example's header and its checks ("interrupt() sends the request but does not itself raise audio_interrupted"; "a scripted audio_interrupted reaches the session's listener once"); the real-transport half is voice log row 38 |
+| 54 | GPT-Live leaves backend work running on interruption, and the app must confirm a cancellation before telling the person it happened | § A voice agent | ✅ | [OpenAI GPT-Live delegation](https://developers.openai.com/api/docs/guides/live-delegation), voice log row 41 |
+| 55 | Gemini's Live API sends a tool-call cancellation when a client interrupts a turn with tools in flight | § A voice agent | ✅ | Voice log row 147: `@google/genai`'s `LiveServerToolCallCancellation` comment, quoted in the ADK SDK notes |
+| 56 | `gpt-4o-realtime-preview-2024-12-17` stopped in 0.23 s on a real interruption and answered 93% of background speech, in a benchmark whose latest version is dated 2026 | § A voice agent | ✅ | [arXiv 2507.23159](https://arxiv.org/abs/2507.23159), voice log rows 44 and 45 (both corrected there against Table 2, where the whole paper was read); the model is named by its snapshot and the test year |
+| 57 | Gemini's Live API has a non-blocking tool mode with scheduling options; GPT-Live can continue speaking while the application reviews a backend result; a realtime handoff cannot change the model, so the SDK says to use delegation through tools for a reasoning model | § A voice agent | ✅ | Voice log rows 57, 60 and 59 |
+| 58 | On the same tasks in clean audio, GPT-5 in text completed 85% and voice agents 31 to 51%, as the τ-Voice abstract reports | § A voice agent | ⚠️ | [arXiv 2603.13686](https://arxiv.org/abs/2603.13686) abstract only; voice log row 5 corrected the wording from the abstract. A claim checked against an abstract is unverified under the repository's paper rule, so the chapter attributes it to the abstract |
+| 59 | A voice agent should read back the arguments of a consequential call before it runs; no source states the rule | § A voice agent | ⚠️ | Voice log rows 66 and 124: our recommendation, which the report labels as ours |
+| 60 | A voice agent should announce a slow tool, run it in the background or delegate while the voice keeps talking, because a person cannot tell a thinking agent from a dead line | § A voice agent | ⚠️ | Our synthesis of rows 56 and 57; the report's teaching point, voice log row 100 |
+| 61 | In a phone call either side can cut in, stops when interrupted and remembers only what it heard | § A voice agent | ⚠️ | The analogy's own claim and its "where it breaks" entry, ours |
+
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 30 |
+| ✅ confirmed | 43 |
 | ✏️ corrected | 0 |
-| ⚠️ unverified, our design or a claim not re-checked here, marked as ours or as the report's in the text | 13 |
-| Total | 43 |
+| ⚠️ unverified, our design or a claim not re-checked here, marked as ours or as the report's in the text | 18 |
+| Total | 61 |
