@@ -55,7 +55,7 @@ test("every text pair on both pages and both panels meets WCAG AA and matches it
       pairs += 1;
     }
   }
-  assert.equal(pairs, 36);
+  assert.equal(pairs, 38);
 });
 
 // The keys the decorative list names (rule, grid, border) and the backgrounds are the only colours that carry no text.

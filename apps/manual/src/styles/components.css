@@ -1429,33 +1429,39 @@
   outline-offset: 2px;
 }
 
-/* The popover opens beside the passage a reader clicks. It is a native popover, so it closes on a click outside and on
-   Escape, and the script places it through the style object, which the content security policy allows. */
+/* The popover opens beside the passage a reader clicks, or as a bottom sheet on a narrow window. It is a native popover,
+   so it closes on a click outside and on Escape, and the script places it through the style object, which the content
+   security policy allows. */
 .notes-pop {
   position: fixed;
   inset: auto;
   box-sizing: border-box;
-  width: max-content;
-  max-width: min(26rem, calc(100vw - 1rem));
+  display: grid;
+  gap: 10px;
+  width: 330px;
+  max-width: calc(100vw - 1rem);
   margin: 0;
-  padding: 0.6rem;
+  padding: 12px 14px;
   border: 1px solid var(--color-text-muted);
   border-radius: 6px;
   background-color: var(--color-background);
   color: var(--color-text);
 }
 
-.notes-pop__quote {
-  margin: 0 0 0.5rem;
-  font-size: var(--size-note);
-  line-height: 1.45;
+/* The grid display above would otherwise defeat the browser's own display:none on a closed popover. */
+.notes-pop[hidden],
+.notes-pop:not(:popover-open) {
+  display: none;
+}
+
+.notes-pop__grab {
+  display: none;
 }
 
 .notes-colors {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: 0 0 0.5rem;
 }
 
 .notes-swatch {
@@ -1492,14 +1498,139 @@
   outline-offset: 1px;
 }
 
+/* In the popover a colour is an 18px circle in a 24px target, its name kept for assistive technology, and the current
+   colour is ringed. */
+.notes-pop .notes-colors {
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+
+.notes-pop .notes-swatch {
+  gap: 0;
+  justify-content: center;
+  inline-size: 24px;
+  min-block-size: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0;
+}
+
+.notes-pop .notes-swatch::before {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+.notes-pop .notes-swatch[aria-pressed="true"] {
+  outline: 0;
+}
+
+.notes-pop .notes-swatch[aria-pressed="true"]::before {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.notes-pop .notes-swatch:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+
+/* The passage is a small quotation: upright, muted, with a 3px bar in the highlight's edge shade, and cut to three
+   lines (two in a sheet). Its full text is the tooltip. */
+.notes-pop__quote {
+  --notes-edge: var(--color-highlight-edge);
+  display: -webkit-box;
+  margin: 0;
+  padding-inline-start: 10px;
+  border-inline-start: 3px solid var(--notes-edge);
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow-wrap: anywhere;
+}
+
+.notes-pop__quote[data-color="green"] {
+  --notes-edge: var(--color-highlight-edge-green);
+}
+
+.notes-pop__quote[data-color="blue"] {
+  --notes-edge: var(--color-highlight-edge-blue);
+}
+
+.notes-pop__quote[data-color="pink"] {
+  --notes-edge: var(--color-highlight-edge-pink);
+}
+
+/* The note is the main text, at the body size. */
+.notes-pop__note {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.notes-pop__field {
+  box-sizing: border-box;
+  inline-size: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 4px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15.5px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
 .notes-pop__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 14px;
+  align-items: center;
+  padding-block-start: 9px;
+  border-block-start: 1px solid var(--color-rule);
+  font-family: var(--font-code);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.notes-pop__act {
+  min-block-size: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-soft);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.notes-pop__act:hover {
+  text-decoration: underline;
+}
+
+.notes-pop__act:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.notes-pop__act--remove {
+  margin-inline-start: auto;
+  color: var(--color-danger);
 }
 
 .notes-pop__message {
-  margin: 0.5rem 0 0;
+  margin: 0;
   font-size: var(--size-note);
   line-height: 1.45;
   color: var(--color-text-soft);
@@ -1509,11 +1640,57 @@
   display: none;
 }
 
+/* On a touch screen the colours and actions are 44px targets. */
 @media (pointer: coarse) {
-  .notes-pop .control,
+  .notes-pop .notes-swatch {
+    inline-size: 44px;
+    min-block-size: 44px;
+  }
+
+  .notes-pop__act {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
   .notes-toolbar .control {
     min-block-size: 44px;
   }
+}
+
+/* On a narrow window the popover is a bottom sheet: full width, rounded at the top, with a handle to swipe down. The
+   quotation is cut to two lines. */
+.notes-pop[data-sheet] {
+  inset: auto 0 0;
+  inline-size: 100%;
+  max-inline-size: none;
+  padding: 8px 16px max(16px, env(safe-area-inset-bottom));
+  border-inline: 0;
+  border-block-end: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+.notes-pop[data-sheet]::backdrop {
+  background-color: rgb(0 0 0 / 0.3);
+}
+
+.notes-pop[data-sheet] .notes-pop__grab {
+  display: grid;
+  place-items: center;
+  block-size: 24px;
+  margin-block: -4px -6px;
+  touch-action: none;
+}
+
+.notes-pop[data-sheet] .notes-pop__grab span {
+  inline-size: 36px;
+  block-size: 4px;
+  border-radius: 2px;
+  background-color: var(--color-text-muted);
+}
+
+.notes-pop[data-sheet] .notes-pop__quote {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 /* The toolbar sits beside the selection and the Notes button in the window's corner, both fixed, so neither moves the
