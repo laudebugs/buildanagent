@@ -75,7 +75,7 @@ async function runExample(
         done({ exit, out });
       });
     });
-    transcript.write({ harnessDir: options.packageDir, exampleFile: join(examplesDir, file), cwd });
+    transcript.write({ harnessDir: options.packageDir, exampleFile: join(examplesDir, file), cwd, ...result });
     return result;
   } finally {
     rmSync(cwd, { recursive: true, force: true });
