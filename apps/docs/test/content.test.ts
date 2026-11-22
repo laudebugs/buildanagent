@@ -128,8 +128,9 @@ describe("the sidebar", () => {
       const closer =
         page.body
           .split("\n")
-          .filter((line) => /^(?:Next|Start with)/.test(line))
+          .filter((line) => line.trim() !== "")
           .at(-1) ?? "";
+      assert.match(closer, /^(?:Next|Start with)/, `${page.path} must end with its next link`);
       const target = /\]\(\/([^)]+?)\/?\)/.exec(closer)?.[1];
       assert.ok(target, `${page.path} has no next link`);
       const next = order[order.indexOf(slug) + 1];

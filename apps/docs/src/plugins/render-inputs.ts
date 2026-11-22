@@ -3,12 +3,13 @@
  * file, so an edit to an example file or to the plugin that fills a fence would otherwise leave the old code on the
  * page. The config hashes these files and clears the cache when the hash changes.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { REPO_ROOT } from "./example-code.js";
 import { DOCS_DIR, pagePaths } from "./pages.js";
 
-const PLUGINS_DIR = new URL(".", import.meta.url).pathname;
+const PLUGINS_DIR = fileURLToPath(new URL(".", import.meta.url));
 
 /** Every plugin file, and every example file that a page's `file=` fence names, sorted. */
 export function renderInputFiles(): string[] {
@@ -20,5 +21,6 @@ export function renderInputFiles(): string[] {
       resolve(REPO_ROOT, (match[1] ?? "").split("/").join(sep)),
     ),
   );
-  return [...new Set([...plugins, ...examples])].sort();
+  // A file that does not exist is left out, so the plugin that fills the fence reports the real error with the path.
+  return [...new Set([...plugins, ...examples.filter((file) => existsSync(file))])].sort();
 }
