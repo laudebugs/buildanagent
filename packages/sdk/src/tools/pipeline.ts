@@ -29,6 +29,8 @@ export interface PipelineContext {
   readonly depth: number;
   readonly maxDepth: number;
   readonly clock: Clock;
+  /** The caller's app data, which every tool receives as `ctx.app`. */
+  readonly app?: unknown;
   /**
    * The gate: asked once for each call that passed validation, one call at a time in model order, and before any call
    * of the step executes. It returns `{ blocked }` to stop the call with that result, `{ paused, input }` to hold the
@@ -204,6 +206,7 @@ async function execute(tool: AnyTool, call: ToolCall, input: unknown, ctx: Pipel
     depth: ctx.depth,
     maxDepth: ctx.maxDepth,
     clock: ctx.clock,
+    app: ctx.app,
     update: (details: unknown) => ctx.onUpdate?.(call.callId, details),
   };
   let result: unknown;

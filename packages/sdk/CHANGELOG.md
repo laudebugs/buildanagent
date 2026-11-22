@@ -1,5 +1,15 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.22
+
+### Minor Changes
+
+- a4ba3cb: Breaking Changes: `ToolContext` now has an `app` field, so a `ToolContext` you build by hand in a test needs one. The field comes from a new `app` option on `run()` and `continueRun()`, and `ToolDefinition` and `defineTool()` take a third type parameter for its type. The caller sets `app` when a run starts, each tool reads it as `ctx.app`, and the model never sees it. A run whose tools declare its type must pass it.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.22
+
 ## 0.1.0-alpha.21
 
 ### Patch Changes
