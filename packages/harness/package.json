@@ -186,7 +186,7 @@
     "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts"
+    "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.83",

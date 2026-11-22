@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 4](../../plans/build-harness.md#44-stage-4-adds-the-sandbox-backends-and-the-credential-proxy) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N16](../done/N16-srt-backend.md), [N17](../ongoing/N17-docker-backend.md) |
+| Depends on | [N16](../done/N16-srt-backend.md), [N17](../done/N17-docker-backend.md) |
 | Size | S |
 
 ## Goal

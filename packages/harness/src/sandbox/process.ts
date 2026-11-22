@@ -149,6 +149,11 @@ export interface ProcessSpec {
    * ends what is left. Without it the group is killed at once.
    */
   readonly graceMs?: number;
+  /**
+   * Runs, and is awaited, when a timeout, an abort or `stopAll()` ends the process, before its group is killed. A
+   * backend whose commands run outside the process's group, such as in a container, ends them here.
+   */
+  readonly onStop?: () => Promise<void>;
 }
 
 /** A finished process: the `ExecResult` fields, and the raw bytes of standard output. */
@@ -188,7 +193,12 @@ export class ProcessRunner {
   }
 
   /** Ends the process's group: at once, or with a `SIGTERM` first and a `SIGKILL` after `graceMs` for what is left. */
-  private async end(child: import("node:child_process").ChildProcess, graceMs: number): Promise<void> {
+  private async end(
+    child: import("node:child_process").ChildProcess,
+    graceMs: number,
+    onStop?: () => Promise<void>,
+  ): Promise<void> {
+    await onStop?.().catch(() => {});
     const running = child.exitCode === null && child.signalCode === null;
     if (graceMs > 0 && process.platform !== "win32" && child.pid !== undefined && running) {
       const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
@@ -237,7 +247,7 @@ export class ProcessRunner {
       let stopping: Promise<void> | undefined;
       const stop = (settle: () => void): Promise<void> => {
         if (stopping !== undefined || settled) return stopping ?? Promise.resolve();
-        stopping = this.end(child, spec.graceMs ?? 0).then(() => {
+        stopping = this.end(child, spec.graceMs ?? 0, spec.onStop).then(() => {
           child.stdout.destroy();
           child.stderr.destroy();
           done(settle);

@@ -1,0 +1,23 @@
+# Fact-check: the Docker sandbox backend
+
+This log checks the claims that `packages/harness/src/sandbox/docker/`, the harness README's Docker section and todo N17's outcome make on 2026-11-22, against Docker 29.10.0 (client `--help` output and the daemon's `inspect`) and runs on this host: Ubuntu 24.04, a rootful `dockerd` started in the session with `--storage-driver=vfs`, cgroup v1, iptables off and no bridge network.
+
+Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| N17-1 | `docker create` takes `--cap-drop`, `--read-only`, `--network`, `--security-opt`, `--ipc`, `--pids-limit`, `--cpus`, `--memory-swap`, `--tmpfs`, `--pull`, `--entrypoint`, `--mount` and `--rm`, and `docker start --attach` forwards signals | ✅ | `docker create --help` and `docker start --help` on 29.10.0 list each flag |
+| N17-2 | The daemon applies them: no network, all capabilities dropped, a read-only root, no new privileges, the given process, CPU and memory limits with no swap, no IPC, no privileged mode, and no Docker socket mount | ✅ | The `docker.test.ts` case reads `docker inspect --format '{{json .HostConfig}}'` and `.Mounts` of a running container and compares each value; changing `--network none` to `bridge` fails it |
+| N17-3 | Inside the container a command has no effective capability, `NoNewPrivs` is 1 and no network device but loopback is listed | ✅ | The `docker.test.ts` case reads `/proc/self/status` (`CapEff: 0000000000000000`, `NoNewPrivs: 1`) and `/proc/net/dev` inside the container |
+| N17-4 | A command that uses more memory than the limit is killed, and one that starts more processes than the limit can't fork | ✅ | `docker.test.ts`: a Node process that allocates in a loop under a 64 MB limit exits 137, and a shell that starts 60 sleeps under a limit of 20 reports a fork failure |
+| N17-5 | Only mounted folders exist in the container, so a path outside the roots can't be read, and a `denyWrite` folder is read-only inside a write root | ✅ | `docker.test.ts`: `cat` of a file in the sibling folder fails, a write to the denied folder fails inside the container and through `writeFile`, and a write to the workspace succeeds on the host's files |
+| N17-6 | `env -i -- NAME=VALUE command` gives the command exactly the given variables and treats a first word that starts with `-` as a program, in BusyBox 1.37 | ✅ | A run in the pinned BusyBox image: `env -i -- -x` printed "can't execute '-x'", `env -i -- A=1 env` printed `A=1`. GNU env's `--` is documented the same way; only BusyBox was run |
+| N17-7 | The backend's container for a stopped `docker run` could be left behind in the `Created` state, and creating first, then starting, avoids it | ✅ | Runs before the change left up to five `Created` containers after the conformance suite; three runs after it left none (`docker ps --all`) |
+| N17-8 | Creating a container can take long enough for a stop to arrive first | ✅ | On the `vfs` storage driver, which copies the image for each container, `docker create` of the 168 MB Node image took seconds. We don't claim a time for other drivers |
+| N17-9 | Docker Hub refused unauthenticated pulls from this host, and `mirror.gcr.io` served the same images | ✅ | `docker pull busybox:1.37` printed `toomanyrequests`; `mirror.gcr.io/library/busybox:1.37` and `node:22-alpine` pulled, with the digests the test pins |
+| N17-10 | The image digests the tests pin are the ones the mirror served on 2026-11-22 | ✅ | `docker images --digests`: busybox `sha256:a7dbc319…`, node:22-alpine `sha256:1314fb30…` |
+| N17-11 | The backend runs as this process's user and group by default | ✅ | `lockdownFlags` builds `--user uid:gid` from `process.getuid()`; the offline test checks an explicit `--user 1000:1000` reaches the call |
+| N17-12 | The `docker` client holds only a `PATH`, a private empty `HOME` and `DOCKER_HOST` | ✅ | The offline test records the client's environment with a fake `docker` and finds no other name, and no host secret |
+| N17-13 | Rootless Docker mounts differently from a rootful daemon | ⚠️ | The todo's risk note, repeated in the README; no rootless daemon was available to run, so it is untested |
+
+**Totals:** 13 claims: 12 ✅, 0 ✏️, 1 ⚠️.
