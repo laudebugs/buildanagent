@@ -3,7 +3,7 @@ title: "Events and hooks: one event union, interceptors and observers"
 summary: A run can show what happens inside it and let your code change it, and the two jobs need different surfaces. This chapter shows how an SDK should stream one closed set of events that only describes the run, where it should let code step in, and why observers that only watch belong apart from interceptors that can change a run.
 opening: question
 sources: [pi-json-events, copilot-streaming-events, buildanagent-sdk-hooks, buildanagent-copilot-sdk-check, langchain-middleware-custom, adk-callback-types, copilot-hooks-overview, pi-extensions, copilot-pre-tool-use-hook, copilot-post-tool-use-hook, adk-plugins, pi-agent-core-readme]
-glossary: [delta, interceptor]
+glossary: [delta, interceptor, observer]
 switchTo: [B13, B16, B17]
 ---
 
@@ -97,6 +97,44 @@ Pi's docs say a steer waits until the current assistant message's tool calls hav
 
 Six moments, a return value that replaces, a default that fails closed and a record kept by events give code the power to change a run without hiding that it did. The remaining question is what code should do when it only needs to watch.
 
+## Observers only watch, so a failing one can never fail the run
+
+:analogy[Traffic cameras]{#traffic-cameras} record every car that passes and stop none. An observer is a camera on the run: a function that the SDK calls with each event, in order, and whose return value the run never reads. A camera that jams still cannot close the road, and that is the second half of the design. An SDK has to isolate its observers, or a logging bug becomes an outage.
+
+Every SDK in this chapter already has a way to watch. Pi has `session.subscribe`, Copilot has `session.on`{checked=row-57}, ADK's runner returns events, and LangChain streams updates. The trouble starts where a team watches with a hook instead, because a hook that can change a run cannot be told from one that only looks. Copilot's own logging example sits in `onPreToolUse` and returns `{ permissionDecision: "allow" }` [@copilot-hooks-overview]. ADK lists "Observe & Debug" as the first use of its callbacks, beside "Customize & Control" [@adk-callback-types]. LangChain's docs recommend node-style hooks for logging, and [[lst:block-langchain]]'s `beforeModel` only records that it ran [@langchain-middleware-custom]. Pi comes closest to separating them, because its docs mark each event as one that notifies or one that transforms, and say a notification's return value is ignored [@pi-extensions].
+
+The cost shows up the first time a logger is edited. A hook that was meant to log, and that returns a decision or an object, now gates or rewrites. ADK's Python docs give a small case: a before-tool callback that returns an empty `dict`{checked=row-32} skips the tool, so a logger that returns `{}`{checked=row-32} by habit vetoes every call [@adk-callback-types].
+
+Our SDK gives watching its own type. An `Observer`{checked=row-59} is `(event) => void | Promise<void>`{checked=row-59}, passed in the `observers`{checked=row-59} option, or added with `run.on()`{checked=row-59}, which returns the function that removes it [@buildanagent-sdk-hooks]. Four rules keep it a camera:
+
+1. **Each observer sees every event in order,** and waits for its own promise before it gets the next. Observers do not wait for each other, so a slow one delays only itself.
+2. **Each gets a frozen copy of the event,** so it cannot change the run's own data.
+3. **A throw or a rejection becomes a `hook_error`{checked=row-62} event** that names the hook as `observer`{checked=row-62}, and the run goes on to its normal end. A failure while handling `run_end`{checked=row-13} is dropped, because nothing may follow that event.
+4. **The run waits for observers only twice,** at `agent_settled` and at `run_end`{checked=row-13}, and for at most `observerTimeoutMs`{checked=row-63}, 10 seconds by default. An observer that has not caught up by then is removed and reported.
+
+The fourth rule answers the one place where the camera comparison breaks. A camera cannot close the road, but an observer that never returns can hold a run open, unless the SDK bounds the wait. Pi's docs show the pressure from the other side: listeners of `Agent.subscribe()`{checked=row-65} are awaited, and a run settles only after its awaited `agent_end`{checked=row-65} listeners finish, which suits final work such as flushing a session but leaves a hung listener holding the run [@pi-agent-core-readme]. The same docs say nothing about a listener that throws, so this chapter claims nothing about it for Pi, Copilot, LangChain or ADK.
+
+The best observers are projections of the stream. Our `otelObserver()`{checked=row-67} turns events into OpenTelemetry spans: one `invoke_agent`{checked=row-67} span for the run, one `chat`{checked=row-67} span for each model call and one `execute_tool`{checked=row-67} span for each tool call, sent only to the tracer you pass, with prompts and tool results left out unless you set `captureContent`{checked=row-67} [@buildanagent-sdk-hooks]. It needs no hook into the loop, because the end events already carry the finished items. A tracer that throws is one more `hook_error`{checked=row-62}.
+
+The test for choosing between the two kinds is what the job needs to do to the run. [[tbl:hook-jobs]] sorts seven jobs by that test.
+
+:::table[Seven jobs, and the weakest hook that does each]{#hook-jobs}
+| Job | Weakest hook that works | Why |
+| --- | --- | --- |
+| Log every tool call | Observer | It needs to see `tool_call_end`{checked=row-36}, not to answer it |
+| Draw a progress screen | Observer | The deltas are for display, and nothing flows back |
+| Export traces | Observer | A projection of the events, with the tracer isolated from the run |
+| Mask old tool output in a long conversation | `transformContext`{checked=row-19} | It changes the view for one request and leaves the transcript alone |
+| Refuse a conversation you do not trust | `beforeModelCall`{checked=row-19} with `{ stop }`{checked=row-20} | Only a hook before the call can end the run before anything is sent |
+| Block a tool during a change freeze | `beforeToolCall`{checked=row-19} | Only the gate can answer `deny` before the tool runs |
+| Redact a secret from a tool result | `afterToolCall`{checked=row-19} | It replaces what the model reads, and a crash withholds the result |
+:::
+
+Start each job as an observer, and promote it to an interceptor only when it needs a veto or a replacement. An observer that watches costs the run nothing, an interceptor that changes it costs a decision about order and failure, and the type tells the next reader which of the two you wrote.
+
 ## Exercises
 
-1. **Read the stream's last event.** In `verify/pi/examples/01-hello-session.ts`, print `events` after the prompt returns. Which event comes last, and which event closes the model's message? Say which one a log should treat as the end of the run, and why the other would be the wrong choice.
+1. **Move one hook from an interceptor to an observer, and say what it can no longer do.** In `verify/copilot-sdk/examples/08-hooks.ts`, change `onPostToolUse` so that it only logs the tool's name and returns `null`, as an observer would. Predict which check fails and what the model now reads for `read_ticket`, then run `pnpm test` in `verify/copilot-sdk`. Say what the hook can still do and what it lost. Restore the folder with `git checkout -- examples results` when you are done.
+2. **Turn a gate into a logger.** In `verify/langchain/examples/07-middleware.ts`, delete the `if` block in `wrapToolCall` so that it only records the call and returns `handler(request)`. Run `pnpm test` in `verify/langchain` and name the first check that fails. Which sentence of the chapter says what stands between the model and `restart_service` now? Restore the folder with `git checkout -- examples results` when you are done.
+3. **Read the last event.** In `verify/pi/examples/01-hello-session.ts`, print `events` after the prompt returns. Which event comes last, and which event closes the model's message? Say which one a log should treat as the end of the run, and why the other is the wrong choice. Restore the folder when you are done.
+4. **Sort five jobs.** Count tokens for each run, deny `delete_account`{checked=row-73}, post to a chat channel when a run ends, mask card numbers in tool results, and stop a run after five refunds. For each job, name the weakest hook that does it and the moment it needs. Which job needs both an observer and an interceptor?

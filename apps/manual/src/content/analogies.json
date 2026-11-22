@@ -158,5 +158,13 @@
     "chapter": "events-and-hooks",
     "illustration": "toll-booths",
     "breaks": "A toll booth leaves the car as it is. An interceptor can rewrite the request itself, as if the attendant swapped the driver's destination, so the run records which replacement it used."
+  },
+  {
+    "id": "traffic-cameras",
+    "concept": "observers",
+    "analogy": "traffic cameras that only watch",
+    "chapter": "events-and-hooks",
+    "illustration": null,
+    "breaks": "A camera that jams cannot close the road, but an observer that throws or never returns can still break a run unless the SDK isolates it and bounds the wait."
   }
 ]
