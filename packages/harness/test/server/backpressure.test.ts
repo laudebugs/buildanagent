@@ -80,20 +80,60 @@ describe("the command queue", () => {
     assert.ok("result" in (responses(wire).at(-1) as Response));
   });
 
-  test("a command keeps its place until its response has gone out, so a client that never reads is refused", async () => {
+  test("a command keeps its place until its response has gone out, so a client that doesn't read is refused", async () => {
     const dispatcher = dispatcherWith(memoryBackend().store, 4);
     const delivered: ServerMessage[] = [];
-    const never = new Promise<void>(() => undefined);
-    // The first message the client is sent never finishes going out, so nothing after it does either.
+    const held = gate();
+    // The first message the client is sent doesn't finish going out until the test lets it, so nothing after it does.
     const connection = dispatcher.connect((message) => {
       delivered.push(message);
-      return never;
+      return delivered.length === 1 ? held.promise : undefined;
     });
     for (let id = 1; id <= 5; id++) {
       await connection.receive({ jsonrpc: "2.0", id, method: "session/list", params: {} });
     }
     assert.equal(delivered.length, 1);
-    connection.close();
+    held.open();
+    await until(() => delivered.length === 5, "the responses");
+    assert.deepEqual(
+      responses(delivered).map((message) => [message.id, isQueueFull(message)]),
+      [
+        [1, false],
+        [2, false],
+        [3, false],
+        [4, false],
+        [5, true],
+      ],
+    );
+  });
+
+  test("a refused command takes no place, so the queue is whole again once its commands are answered", async () => {
+    const held = gate();
+    const dispatcher = dispatcherWith(blockingList(memoryBackend().store, held.promise), 2);
+    const wire: ServerMessage[] = [];
+    const connection = dispatcher.connect((message) => {
+      wire.push(message);
+    });
+    const list = (id: number) => connection.receive({ jsonrpc: "2.0", id, method: "session/list", params: {} });
+    const sent = [list(1), list(2)];
+    for (let id = 3; id <= 6; id++) await list(id);
+    held.open();
+    await Promise.all(sent);
+    const next = [list(7), list(8)];
+    await Promise.all(next);
+    assert.deepEqual(
+      responses(wire).map((message) => [message.id, isQueueFull(message)]),
+      [
+        [3, true],
+        [4, true],
+        [5, true],
+        [6, true],
+        [1, false],
+        [2, false],
+        [7, false],
+        [8, false],
+      ],
+    );
   });
 
   test("a queue size that is not a whole number of at least 1 is refused", () => {

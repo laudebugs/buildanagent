@@ -56,10 +56,13 @@ export class Failure extends Error {
 }
 
 type EventMessage = Extract<ServerNotification, { method: "event" }>;
+type SettledMessage = Extract<ServerNotification, { method: "turn/settled" }>;
 
-/** Live events that arrived while a `session/open` was reading the log, waiting to go out after its replay. */
+/** What a session sent while a `session/open` was reading its log, waiting to go out after the replay. */
 interface Held {
-  readonly events: EventMessage[];
+  readonly messages: (EventMessage | SettledMessage)[];
+  /** How many of `messages` are events, which count against the bound; a `turn/settled` is always kept. */
+  events: number;
   dropped: number;
   lastDroppedSeq: number;
 }
@@ -91,9 +94,16 @@ export class ServerConnection {
     return this.#open;
   }
 
-  /** Sends a message that is not an event: a response, a `turn/settled` or a cancel. */
+  /** Sends a message that belongs to no session's stream: a response or a cancel. */
   send(message: ServerMessage): void {
     this.#outbox.push(message);
+  }
+
+  /** Sends a session's `turn/settled` to a connection that watches it, after any replay that is being prepared. */
+  settled(message: SettledMessage): void {
+    const held = this.#held.get(message.params.session);
+    if (held !== undefined) held.messages.push(message);
+    else if (this.#watching.has(message.params.session)) this.#outbox.push(message);
   }
 
   /** Sends a live event of a session this connection watches, or holds it while the session is being opened. */
@@ -104,8 +114,10 @@ export class ServerConnection {
       return;
     }
     // A hold lasts one read of the log, and is bounded as the queue is: past the bound, events are counted as dropped.
-    if (held.events.length < this.#limit) held.events.push(message);
-    else {
+    if (held.events < this.#limit) {
+      held.messages.push(message);
+      held.events += 1;
+    } else {
       held.dropped += 1;
       held.lastDroppedSeq = Math.max(held.lastDroppedSeq, message.params.seq);
     }
@@ -123,7 +135,7 @@ export class ServerConnection {
   /** Starts holding a session's live events, so none is lost or sent early while its log is read. False if one is already held. */
   hold(session: string): boolean {
     if (this.#held.has(session)) return false;
-    this.#held.set(session, { events: [], dropped: 0, lastDroppedSeq: -1 });
+    this.#held.set(session, { messages: [], events: 0, dropped: 0, lastDroppedSeq: -1 });
     return true;
   }
 
@@ -133,7 +145,7 @@ export class ServerConnection {
   }
 
   /**
-   * Watches the session: sends `replay`, which is never dropped, then the events held since `hold()`, leaving out an
+   * Watches the session: sends `replay`, which is never dropped, then what was held since `hold()`, leaving out an
    * appended entry whose `seq` is at or before `replayedTo` because the replay already carried it.
    */
   release(session: string, replay: readonly EventMessage[], replayedTo: number): void {
@@ -141,9 +153,10 @@ export class ServerConnection {
     this.#held.delete(session);
     this.#watching.add(session);
     for (const message of replay) this.#outbox.push(message, { keep: true });
-    for (const message of held?.events ?? []) {
-      const { event, seq } = message.params;
-      if (event.type === "entry_appended" && seq <= replayedTo) continue;
+    for (const message of held?.messages ?? []) {
+      if (message.method === "event" && message.params.event.type === "entry_appended") {
+        if (message.params.seq <= replayedTo) continue;
+      }
       this.#outbox.push(message);
     }
     if (held !== undefined && held.dropped > 0) this.#outbox.markGap(session, held.dropped, held.lastDroppedSeq);

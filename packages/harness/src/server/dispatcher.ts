@@ -285,8 +285,8 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
   }
 
   settled(session: string, turn: string, result: TurnResultSummary): void {
-    for (const connection of this.#watchers(session)) {
-      connection.send({ jsonrpc: "2.0", method: "turn/settled", params: { session, turn, result } });
+    for (const connection of this.#connections) {
+      connection.settled({ jsonrpc: "2.0", method: "turn/settled", params: { session, turn, result } });
     }
   }
 

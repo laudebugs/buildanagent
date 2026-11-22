@@ -217,6 +217,56 @@ describe("session/open with fromSeq", () => {
     assert.ok(!("method" in (wire[0] as ServerMessage)), "the open's response comes before any event");
   });
 
+  test("entries written after the replay's read and before the open's response arrive once, after the replay", async () => {
+    const backend = memoryBackend();
+    const held = gate();
+    let snapshotTaken!: () => void;
+    const snapshot = new Promise<void>((resolve) => {
+      snapshotTaken = resolve;
+    });
+    // The replay's read takes its entries at once and then waits, as a slow disk would, so entries written meanwhile
+    // reach the opening client only through the events held for it.
+    const store = {
+      ...backend.store,
+      load(key: Parameters<typeof backend.store.load>[0], options?: Parameters<typeof backend.store.load>[1]) {
+        if (options?.fromSeq !== 1) return backend.store.load(key, options);
+        return (async function* () {
+          const entries = [];
+          for await (const entry of backend.store.load(key, options)) entries.push(entry);
+          snapshotTaken();
+          await held.promise;
+          yield* entries;
+        })();
+      },
+    };
+    const harness = createHarness({
+      registry: createToolRegistry(),
+      model: scripted([reply("One."), reply("Two.")]),
+      system: "s",
+    });
+    const dispatcher = createDispatcher({ harness, ...backend, store, userId: "ada" });
+    const writer = recorded(dispatcher);
+    await init(writer.client);
+    const { session } = await writer.client.request("session/create", { cwd: "/work" });
+    await writer.client.request("turn/start", { session, input: text("a") });
+    await until(() => settledCount(writer.seen) === 1, "the first turn");
+    const joiner = recorded(dispatcher);
+    const opened = joiner.client.request("session/open", { session, cwd: "/work", fromSeq: 2 });
+    await snapshot;
+    await writer.client.request("turn/start", { session, input: text("b") });
+    await until(() => settledCount(writer.seen) === 2, "the second turn");
+    held.open();
+    await opened;
+    // The second turn's turn/settled was held too, so it comes after its entries.
+    await until(() => settledCount(joiner.seen) === 1, "the held turn/settled");
+    assert.deepEqual(
+      entrySeqs(joiner.seen),
+      entrySeqs(writer.seen).filter((seq) => seq >= 2),
+    );
+    const last = joiner.seen.at(-1);
+    assert.ok(last !== undefined && "method" in last && last.method === "turn/settled");
+  });
+
   test("a fromSeq one past the last entry replays nothing, 0 replays the file, and one further or negative is refused", async () => {
     const { dispatcher } = plainSetup([reply("One.")]);
     const writer = recorded(dispatcher);
@@ -256,11 +306,13 @@ describe("session/open with fromSeq", () => {
     const ada = createDispatcher({ harness, ...backend, userId: "ada" });
     const bob = createDispatcher({ harness, ...backend, userId: "bob" });
     const writer = recorded(ada);
+    // A client connected to the same dispatcher, and to the same user, that never opens the session.
+    const bystander = recorded(ada);
     await init(writer.client);
+    await init(bystander.client);
     const { session } = await writer.client.request("session/create", { cwd: "/work" });
     await writer.client.request("turn/start", { session, input: text("a") });
     await until(() => settledCount(writer.seen) === 1, "the turn");
-    const bystander = recorded(ada);
     const opener = recorded(ada);
     await opener.client.request("session/open", { session, cwd: "/work", fromSeq: 0 });
     await until(() => entrySeqs(opener.seen).length > 0, "the replay");
