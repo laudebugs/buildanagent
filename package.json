@@ -16,12 +16,20 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
     "verify": "pnpm -r --if-present verify",
-    "fact-check-logs": "node scripts/ci/fact-check-log.mjs"
+    "fact-check-logs": "node scripts/ci/fact-check-log.mjs",
+    "check:deps": "depcruise packages --config .dependency-cruiser.json",
+    "check:duplicates": "jscpd --config .jscpd.json",
+    "check:unused": "knip --no-progress",
+    "check:ids": "node scripts/ci/todo-ids.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
     "@changesets/cli": "3.0.3",
+    "@swc/core": "1.16.22",
     "@types/node": "26.6.6",
+    "dependency-cruiser": "18.7.2",
+    "jscpd": "5.4.3",
+    "knip": "6.45.1",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vitest": "5.1.0",

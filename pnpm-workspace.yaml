@@ -8,6 +8,8 @@ onlyBuiltDependencies:
   - esbuild
   - workerd
 ignoredBuiltDependencies:
+  # @swc/core (dependency-cruiser's parser for TypeScript 7): its install script only checks the prebuilt binary
+  - "@swc/core"
   - "@google/genai"
   - protobufjs
   - core-js-pure

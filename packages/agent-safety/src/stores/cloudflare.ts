@@ -10,6 +10,7 @@
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
 import { assertStepIndex } from "../plan-ledger.js";
+import { lostClaim } from "./lost-claim.js";
 
 /** What a query returns here: the rows, and `RETURNING` makes the written ones count. */
 export interface SqlCursorLike {
@@ -53,13 +54,7 @@ export function durableObjectEffectStore(sql: SqlStorageLike): EffectStore {
     const [row] = sql.exec("SELECT record FROM effect_records WHERE key = ?", key).toArray();
     return row === undefined ? undefined : parse(row.record);
   };
-  const lost = (key: string): EffectClaim => {
-    const existing = read(key);
-    // A record that vanished between the failed write and this read would mean that another process won and was then
-    // deleted, which no store method does. The claim can't be answered, so this throws.
-    if (existing === undefined) throw new Error(`the effect record ${key} changed while it was being claimed`);
-    return { existing };
-  };
+  const lost = (key: string): EffectClaim => lostClaim(key, read(key));
   return {
     async begin(record) {
       const rows = sql

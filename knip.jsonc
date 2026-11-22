@@ -1,0 +1,40 @@
+// Unused files, exports and dependencies in packages/ (todo Q2, maintainability.md). Each package's entry points come
+// from its `exports` map, which knip reads itself; the workspaces below add only what that map can't name.
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // An export that only its own file uses is a helper that grew an `export` for no reader, not dead code, so it
+  // is left to review; an export that nothing uses at all fails.
+  "ignoreExportsUsedInFile": true,
+  "ignoreWorkspaces": ["apps/*", "verify/*"],
+  // The vendored anatomy skill has its own scripts and test dependencies, and is copied unchanged from upstream.
+  "ignore": [".agents/**"],
+  "workspaces": {
+    ".": {
+      "entry": [],
+      "project": [],
+      // The tools the check:* scripts run; dependency-cruiser loads @swc/core by name, as its TypeScript 7 parser.
+      "ignoreDependencies": ["@swc/core"],
+      "ignoreBinaries": ["wrangler"]
+    },
+    "packages/*": {
+      "project": ["src/**/*.ts", "scripts/**/*.mjs", "test/**/*.ts"]
+    },
+    "packages/agent-safety": {
+      // The Workers that the Cloudflare tests bundle with esbuild and run in workerd, named by path in those tests.
+      "entry": ["test/workerd/*-agent.ts"]
+    },
+    "packages/sdk": {
+      // The README checks load this globals file by the path their config names, and the examples are run by path
+      // (`pnpm exec tsx examples/01-one-call.ts`), so nothing imports them.
+      "entry": ["scripts/readme-globals.ts", "examples/*.ts"]
+    },
+    "packages/protocol": {
+      // The schema-check file is type-checked by `tsc` and never imported: it fails the build when the hand-written
+      // types and the schemas drift apart.
+      "entry": ["schema-check/*.ts"]
+    },
+    // Scaffolds that name the packages they will import once their todos land.
+    "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] },
+    "packages/harness": { "ignoreDependencies": ["@buildanagent/sdk"] }
+  }
+}
