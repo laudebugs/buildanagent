@@ -128,7 +128,7 @@
       }
     },
     {
-      "includes": ["apps/manual/**/*.astro", "apps/site/**/*.astro"],
+      "includes": ["apps/manual/**/*.astro", "apps/docs/**/*.astro", "apps/site/**/*.astro"],
       "linter": {
         "rules": {
           "correctness": {

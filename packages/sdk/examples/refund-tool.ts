@@ -23,6 +23,7 @@ function outcomeOf(order: number, reply: RefundReply): WriteOutcome {
   return { ...base, kind: "not_applied", retry: "never", applied: [], reason: reply.code, next };
 }
 
+// #region tool
 /** Builds the `refund_create` tool over your payment provider. */
 export function refundTool(issueRefund: IssueRefund) {
   return defineTool({
@@ -36,3 +37,4 @@ export function refundTool(issueRefund: IssueRefund) {
     },
   });
 }
+// #endregion

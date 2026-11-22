@@ -16,10 +16,10 @@ import { check, runner } from "./lib/check.ts";
   // #region input-guardrail
   const homework: InputGuardrail = {
     name: "No homework",
-    runInParallel: false,
+    runInParallel: false, // book:note blocking
     execute: async ({ input }) => ({
       outputInfo: null,
-      tripwireTriggered: JSON.stringify(input).includes("solve for x"),
+      tripwireTriggered: JSON.stringify(input).includes("solve for x"), // book:note input-trip
     }),
   };
   const agent = new Agent({ name: "Support", model, inputGuardrails: [homework] });
@@ -41,7 +41,7 @@ import { check, runner } from "./lib/check.ts";
     name: "No secrets",
     execute: async ({ agentOutput }) => ({
       outputInfo: null,
-      tripwireTriggered: String(agentOutput).includes("password"),
+      tripwireTriggered: String(agentOutput).includes("password"), // book:note output-trip
     }),
   };
   const agent = new Agent({ name: "Support", model, outputGuardrails: [noSecrets] });

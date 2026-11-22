@@ -4,7 +4,7 @@ content in the repository.
 Code: Apache-2.0 OR MIT, at your option
   Scripts (scripts/), our packages (packages/), the verification harnesses and
   their examples (verify/), the book's code and figure generators (apps/manual/),
-  the code of the website (apps/site/),
+  the code of the docs app (apps/docs/) and of the website (apps/site/),
   the CI workflows (.github/), the configuration files, and the code blocks in
   the agent skills (.agents/skills/) are licensed under either of
 
@@ -25,8 +25,9 @@ Code from the garment engineering textbook: Apache-2.0 only
 
 Documentation: CC BY 4.0
   The documents under docs/, the book's prose and figures (apps/manual/), the
-  website's pages (apps/site/src/pages/), the READMEs, the prose of the agent skills
-  (.agents/skills/) and AGENTS.md are licensed under the Creative Commons Attribution 4.0 International licence
+  docs pages (apps/docs/src/content/docs/), the website's pages (apps/site/src/pages/),
+  the READMEs, the prose of the agent skills (.agents/skills/) and AGENTS.md are
+  licensed under the Creative Commons Attribution 4.0 International licence
   (LICENSE-DOCS).
 
   SPDX-License-Identifier: CC-BY-4.0
