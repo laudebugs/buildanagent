@@ -1255,6 +1255,9 @@
           "$ref": "#/$defs/shape-ee4fe95261"
         },
         {
+          "$ref": "#/$defs/shape-577dea7485"
+        },
+        {
           "$ref": "#/$defs/shape-5c323794ce"
         },
         {
@@ -1663,6 +1666,45 @@
         "isError",
         "trust"
       ],
+      "additionalProperties": false
+    },
+    "shape-577dea7485": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/shape-f0ebe3aa93"
+        },
+        "parentId": {
+          "$ref": "#/$defs/shape-174e29b899"
+        },
+        "seq": {
+          "$ref": "#/$defs/shape-83f6485d0d"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/shape-4a251fc3b0"
+        },
+        "origin": {
+          "$ref": "#/$defs/shape-3a32340578"
+        },
+        "type": {
+          "type": "string",
+          "const": "code_call"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "input": {},
+        "inputHash": {
+          "type": "string"
+        },
+        "compensates": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "parentId", "seq", "timestamp", "origin", "type", "callId", "tool", "input", "inputHash"],
       "additionalProperties": false
     },
     "shape-5c323794ce": {
