@@ -33,8 +33,12 @@ const answer = (content: AssistantScript["content"], input: number, output: numb
 const call = (callId: string, name: string, input: unknown) => [{ type: "tool_call" as const, callId, name, input }];
 const text = (words: string) => [{ type: "text" as const, text: words }];
 /** The tokens a run used. */
-const tokens = (usage: { uncachedInput: number; cacheRead: number; output: number }) =>
-  usage.uncachedInput + usage.cacheRead + usage.output;
+const tokens = (usage: {
+  uncachedInput: number;
+  cacheRead: number;
+  cacheWrite: { "5m": number; "1h": number };
+  output: number;
+}) => usage.uncachedInput + usage.cacheRead + usage.cacheWrite["5m"] + usage.cacheWrite["1h"] + usage.output;
 
 // #region subagent
 const research = scripted([
@@ -57,7 +61,10 @@ const researchTool = defineTool({
       signal: ctx.signal,
       ...nestedRunDepth(ctx),
     }).result;
-    subagentTokens = tokens(child.usage); // book:note own-usage
+    subagentTokens += tokens(child.usage); // book:note own-usage
+    if (child.stopReason !== "done") {
+      return { content: [{ type: "text", text: `The research run ended ${child.stopReason}.` }], isError: true };
+    }
     const last = child.messages.at(-1);
     const summary = last?.role === "assistant" ? last.content.flatMap((b) => (b.type === "text" ? [b.text] : [])) : [];
     return { content: [{ type: "text", text: summary.join("") }] }; // book:note summary
@@ -109,7 +116,7 @@ console.log(`with these scripted counts, the run's total is ${runTokens / orches
 // #endregion
 check(
   result.steps === lead.adapter.calls.length && research.adapter.calls.length === 3,
-  "each run's usage covers only its own model calls",
+  "the orchestrator's result counts its own 2 model calls and the subagent's run made 3",
 );
 check(
   orchestratorTokens === 800 && subagentTokens === 2400,
