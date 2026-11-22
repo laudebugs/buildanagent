@@ -330,6 +330,15 @@ describe("purge", () => {
     assert.deepEqual((await pruneSessions(options)).purged, ["old"]);
   });
 
+  test("a derived file whose header can't be read is listed in skipped once", async () => {
+    const { dir } = await setup();
+    const junk = join(dir, "ada", "%7Ejunk.jsonl");
+    await writeFile(junk, "not json\n");
+    const result = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" }, now: NOW });
+    assert.deepEqual(result.skipped, [junk]);
+    assert.ok(existsSync(junk));
+  });
+
   test("a session whose writer holds the lock is kept", async () => {
     const { dir } = await setup();
     const lock = fileLock({ dir: join(dir, "locks") });

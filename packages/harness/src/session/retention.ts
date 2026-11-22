@@ -359,7 +359,9 @@ function looseFiles(found: Scan, owner: Map<string, string>): Map<string, Sessio
     if (owner.has(file.id)) continue;
     const { home, path } = homeOf(file, found, owner);
     if (home === undefined) {
-      found.skipped.push(file.live ?? file.archived ?? file.id);
+      // A file whose header can't be read is in `skipped` already, from the scan.
+      const name = file.live ?? file.archived ?? file.id;
+      if (!found.skipped.includes(name)) found.skipped.push(name);
       continue;
     }
     for (const member of path) owner.set(member.id, home);
