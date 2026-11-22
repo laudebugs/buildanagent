@@ -88,25 +88,25 @@
     },
     {
       "kind": "check",
-      "line": 72,
+      "line": 74,
       "message": "PreToolUse hook saw the lookup tool call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 74,
+      "line": 76,
       "message": "auto-approved lookup never reached canUseTool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 75,
+      "line": 77,
       "message": "agent finished successfully",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 77,
+      "line": 79,
       "message": "structured_output matches the Triage schema",
       "pass": true
     }
