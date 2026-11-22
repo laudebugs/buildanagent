@@ -53,6 +53,12 @@ export type AgentEventBody =
       /** `CAPABILITIES`: the behaviours this SDK release supports, such as `steering_v1`. */
       readonly capabilities: readonly string[];
       readonly model: ModelRef;
+      /**
+       * The run and tool call that started this run, when its options carried `parentRun`, which `nestedRunDepth()`
+       * supplies. Left out for a top-level run. An observer parents this run under the calling tool call with them.
+       */
+      readonly parentRunId?: string;
+      readonly parentCallId?: string;
     }
   | { readonly type: "run_end"; readonly result: RunResult }
   /** Fires once nothing is running any more, retries and tools included; `run_end` follows it. */

@@ -135,7 +135,7 @@ async function execute(input: { task: string }, ctx: ToolContext) {
 }
 ```
 
-Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
+`nestedRunDepth(ctx)` also sets `parentRun`, the calling run's id and call id, which the child's `run_start` event carries as `parentRunId` and `parentCallId`. Pass `signal: ctx.signal` so the child stops when the parent's call is aborted. The parent's `budgetUsd` counts only the parent's own model calls, so give each child a budget of its own. A tool running at `depth === maxDepth` that starts a child run this way makes `run()` throw `max_depth_exceeded`. Since the throw happens inside `execute`, the model reads it as an error result and can answer without the sub-agent.
 
 ## Steer a running agent with `run.steer()`, or queue a follow-up with `run.followUp()`
 
@@ -206,6 +206,7 @@ A program versioned apart from the SDK, such as a harness that talks to the agen
 - **`usd_budget_v1`**: `budgetUsd` stops a run before a call that could exceed it.
 - **`progress_policy_v1`**: the progress policy ends a run that repeats a failing call, with `no_progress`.
 - **`depth_cap_v1`**: `nestedRunDepth()` and `maxDepth` cap a tree of agents.
+- **`parent_run_v1`**: `run_start` carries `parentRunId` and `parentCallId` for a run that a tool started.
 - **`output_tool_v1`**: `outputTool()` ends a run with a validated answer in `output`.
 - **`write_outcomes_v1`**: a tool's `outcome` tells the model what a write did and whether a retry is safe.
 - **`turn_retries_v1`**: `turnRetries` re-issues a model call that ended with a `retryable` error, and marks each retry with a `retry` event whose `layer` is `turn`.
@@ -395,7 +396,7 @@ Spans hold no content unless you ask. With `captureContent: true`, the `chat` sp
 
 A run's `result` rejects for a programmer error, such as a tool that returns a malformed result. That run sends no `run_end`, so its spans stay open. Call `telemetry.endRun(started.id, error)` in your `catch` to end them as failed and let the observer forget the run.
 
-One limit applies to nested runs. A run that a tool starts is another run to the observer, so its span starts in `parentContext` and is not a child of the calling tool's span, because events carry no parent run id.
+A run that a tool starts with `nestedRunDepth(ctx)` has its `invoke_agent` span placed under the calling tool's `execute_tool` span, because its `run_start` names the calling run and call. This needs the same observer on both runs: an observer that never saw the tool call start, or a run started without `parentRun`, starts the span in `parentContext`.
 
 The names come from one constants file. `GEN_AI_ATTRIBUTES` holds every attribute name the observer writes, and `SEMCONV_GENAI_COMMIT` (`"d28355d"`) names the commit of `open-telemetry/semantic-conventions-genai` they follow. The conventions are at Development stability as of November 2026, so a rename upstream changes only that file. Your tests can import the same constants.
 

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { totalInput } from "@buildanagent/gateway";
 import type { AgentEvent, RunResult } from "@buildanagent/sdk";
-import { defineTool, isSdkError, run } from "@buildanagent/sdk";
+import { defineTool, isSdkError, nestedRunDepth, run } from "@buildanagent/sdk";
 import {
   GEN_AI_ATTRIBUTES,
   GEN_AI_CONTENT_ATTRIBUTES,
@@ -18,7 +18,7 @@ import { context, type Span, SpanStatusCode, trace } from "@opentelemetry/api";
 import { InMemorySpanExporter, type ReadableSpan, SimpleSpanProcessor, TracerProvider } from "@opentelemetry/sdk-trace";
 import { expect, test } from "vitest";
 import { drivenRun, SYSTEM } from "./hook-helpers.js";
-import { determinism, lookup, scripted, text, toolCall } from "./run-helpers.js";
+import { determinism, drive, lookup, scripted, text, toolCall } from "./run-helpers.js";
 
 const USAGE_ONE = { uncachedInput: 100, cacheRead: 40, cacheWrite: { "5m": 10, "1h": 5 }, output: 30, reasoning: 7 };
 const USAGE_TWO = { uncachedInput: 20, cacheRead: 150, cacheWrite: { "5m": 0, "1h": 0 }, output: 12, reasoning: 0 };
@@ -524,4 +524,72 @@ test("@opentelemetry/api is not a runtime dependency, and no source file imports
     const source = readFileSync(new URL(`../src/otel/${file}.ts`, import.meta.url), "utf8");
     assert.equal(/from "@opentelemetry/.test(source), false, file);
   }
+});
+
+/** A tool that runs a nested agent with `nestedRunDepth(ctx)` under the same observer. */
+function delegateTool(observer: ReturnType<typeof otelObserver>, parent: boolean) {
+  return defineTool({
+    name: "delegate",
+    description: "Hands the task to a sub-agent.",
+    inputSchema: { type: "object", properties: {} },
+    async execute(_input, ctx) {
+      const { model } = scripted([text("Sub done.")]);
+      const { parentRun, ...depths } = nestedRunDepth(ctx);
+      const child = run({
+        model,
+        system: SYSTEM,
+        input: "Sub-task.",
+        observers: [observer],
+        ...depths,
+        ...(parent ? { parentRun } : {}),
+        ...determinism(),
+        // Ids that differ from the parent's, as in production: an observer keys its spans by run id.
+        idGenerator: sequentialIds("child"),
+      });
+      await drive(child);
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  });
+}
+
+test("a nested run's invoke_agent span is a child of the calling execute_tool span", async () => {
+  const { exporter, observer } = setup();
+  const { model } = scripted([toolCall("delegate", {}), text("Top done.")]);
+  await drive(
+    run({
+      model,
+      system: SYSTEM,
+      input: "Go.",
+      tools: [delegateTool(observer, true)],
+      observers: [observer],
+      ...determinism(),
+    }),
+  );
+  const spans = exporter.getFinishedSpans();
+  const [tool] = byOperation(spans, "execute_tool");
+  const agents = byOperation(spans, "invoke_agent");
+  assert.equal(agents.length, 2);
+  const nested = agents.find((span) => span.parentSpanContext?.spanId === tool?.spanContext().spanId);
+  assert.ok(nested, "one invoke_agent span has the execute_tool span as its parent");
+  assert.equal(nested.spanContext().traceId, tool?.spanContext().traceId);
+  const outer = agents.find((span) => span !== nested);
+  assert.equal(outer?.parentSpanContext, undefined, "the top-level run's span stays a root");
+});
+
+test("a nested run that names no parent starts its own trace, as before", async () => {
+  const { exporter, observer } = setup();
+  const { model } = scripted([toolCall("delegate", {}), text("Top done.")]);
+  await drive(
+    run({
+      model,
+      system: SYSTEM,
+      input: "Go.",
+      tools: [delegateTool(observer, false)],
+      observers: [observer],
+      ...determinism(),
+    }),
+  );
+  const agents = byOperation(exporter.getFinishedSpans(), "invoke_agent");
+  assert.equal(agents.length, 2);
+  for (const span of agents) assert.equal(span.parentSpanContext, undefined);
 });
