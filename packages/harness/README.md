@@ -90,7 +90,7 @@ The policy decides what is mounted, at the same path inside as outside. A write 
 
 The workspace must lie inside a root. The backend never mounts the Docker socket: a root that resolves to `/`, or that holds the daemon's socket (`/var/run/docker.sock`, `/run/docker.sock` or the one `dockerHost` names), is refused.
 
-The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows.
+The container has no network, so a command reaches a host only through `proxySocket`: a Unix socket on the host, mounted at `DOCKER_PROXY_SOCKET_PATH` (`/run/harness/proxy.sock`), that the credential proxy listens on. The program in the image has to speak to that socket itself. Without `proxySocket`, no host is reachable, including the ones the policy allows, so `provision()` refuses a policy whose `network.allow` names one.
 
 `provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
 
@@ -107,6 +107,26 @@ Five limits are worth knowing:
 - **The network lock rests on the daemon.** `--network none` is checked by inspecting the running container, because a test host with no bridge can't tell a closed network from a missing one.
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
+
+## A backend that claims a stop reads its policy back, and one that can't resume says so
+
+A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy fails it too.
+
+The error's code is `sandbox_policy_mismatch`, and its `field` names the first field that differs, such as `network.allow`. The message never holds a path or a host. The code below catches the error and prints that field:
+
+```ts
+import { SandboxPolicyMismatchError } from "@buildanagent/harness/sandbox";
+import { srtSandbox } from "@buildanagent/harness/sandbox/srt";
+
+const attempt = srtSandbox().provision({ root: "/work/repo" }, policy);
+await attempt.catch((error) => console.log(error instanceof SandboxPolicyMismatchError ? error.field : error));
+```
+
+A client that claims a stop but gives its sandbox no read-back, or one whose read-back fails, is refused the same way, with the field `readBack`. `noneSandbox()` claims no stop, so it needs none. `stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`.
+
+A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
+
+None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
 
 ## The egress proxy keeps every credential outside the sandbox
 
@@ -133,6 +153,42 @@ Four limits are worth knowing:
 
 The package's tests run the proxy against a real HTTPS server on loopback, with a self-signed certificate that only the test trusts and a table in place of DNS.
 
+## An egress policy names a credential and never holds one
+
+`EgressPolicy` is plain data: an `allow` list of exact host names, and `routes` that each name the credential they inject. `compileEgressPolicy(policy, { secret })` checks it and returns the `allow` and `routes` that `startEgressProxy()` takes. The compiled routes call `secret(name)` for each request, on the host, so a rotated credential is used at once. The code below compiles one git route and starts a proxy with it:
+
+```ts
+import { compileEgressPolicy, startEgressProxy } from "@buildanagent/harness/credentials";
+
+const route = { kind: "git", route: "git", host: "github.com", repositories: ["acme/app"], pushRefs: ["refs/heads/agent/*"], credential: "GITHUB_TOKEN" } as const;
+const compiled = compileEgressPolicy({ allow: [], routes: [route] }, { secret: async (name) => process.env[name] ?? "" });
+const proxy = await startEgressProxy({ ...compiled, log: audit });
+```
+
+The compiler refuses anything that isn't plainly allowed, with the code `invalid_egress_options`, and its message names the place of the entry and never its value:
+
+- a field that a route kind doesn't have, such as `secret` or `token`;
+- a string that looks like a credential, such as one that starts with `ghp_` or `sk-`;
+- a credential name that isn't upper case;
+- a wildcard or an address literal in `allow` or in a route's `host`;
+- a git route whose `host` is also in `allow`, because a tunnel to that host would go around the ref filter.
+
+Nothing here puts a credential value in a sandbox. The policy holds names, the proxy reads the value on the host, and the sandbox sees a random placeholder. Nothing here authenticates a caller either: any process that knows the placeholder can use the route. The policy is not part of `SandboxPolicy` yet, and `srtSandbox()` keeps its own proxy.
+
+## A git route lets a push reach listed branches and nothing else
+
+A route of kind `git` carries git over HTTPS for the repositories it lists, and nothing else. The sandbox's remote is `http://x-access-token:<placeholder>@127.0.0.1:<port>/git/acme/app.git`, where `git` is the route's name and the placeholder is `proxy.sentinels.git`. The proxy swaps the placeholder for the credential and sends it to the host in HTTP Basic, with the route's `username`, which is `x-access-token` unless you set one. A request with no credential gets a 401 challenge, so git asks for one.
+
+A push is checked before anything is forwarded. The proxy reads the command list at the start of the body and refuses the whole push when one command breaks a rule:
+
+- a deletion, a tag, or a ref that no `pushRefs` pattern matches;
+- a push certificate, a body with a `content-encoding`, or a pkt-line that is malformed or not UTF-8;
+- a command list over 64 KiB (`GIT_MAX_COMMAND_BYTES`) or over 64 commands (`GIT_MAX_COMMANDS`).
+
+A pattern is a branch such as `refs/heads/main`, or a prefix such as `refs/heads/agent/*`, which matches the branches under `agent/` and not `agent` itself. A route with no `pushRefs` refuses every push, and one with `fetch` left out refuses every fetch.
+
+Two limits are worth knowing. A fetch is allowed or refused for the whole route, so with `fetch` on, the sandbox can read every ref of a listed repository. And a route filters git's HTTP requests only, so it says nothing about what a pushed commit contains. The package's tests run a real `git push` over loopback to a fake GitHub on HTTPS: a push to an agent branch arrives with the token, and a push to `main`, a tag and a deletion never reach it.
+
 ## Every spawned process gets a cleared environment
 
 `spawnEnv(allow, extra)` builds the whole environment for a spawned process. It returns `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, the parent variables that `allow` names and the parent has, and `extra`. Nothing else is copied, so a key set in the parent never reaches a child. The caller removes the temp `HOME` when the process is done; an `extra.HOME` replaces it and no folder is made. `PATH` is the parent's with every entry that isn't absolute removed, so a `.` can't run a program from the working directory, and `TMPDIR` is the shared system temp directory, not a private one.
@@ -157,6 +213,8 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - a symlink that points outside, where the factory passes a `symlink` function;
 - a working directory outside the workspace;
 - the network, where the caller passes two hosts it controls, such as two loopback listeners: the allowed one must be reached and the blocked one must not.
+
+Three more cases check the read-back and the capabilities: a backend that claims a stop reads its policy back equal to the request, a read-back that differs throws `sandbox_policy_mismatch` and disposes the sandbox, and a capability the backend doesn't list is refused with `sandbox_unsupported`. `fakeSandbox({ applied })` applies a policy in place of the request, as a provider that widens it would.
 
 `none` passes the rest and skips those with a reason, and a backend that can't start skips every case with its reason and fails none. The suite tells errors apart by `isHarnessError()` and the error's `code`, so a backend bundled separately from the suite still passes. `sandboxConformanceCases(factory)` returns the same cases one by one, for a runner that wants a test for each.
 
