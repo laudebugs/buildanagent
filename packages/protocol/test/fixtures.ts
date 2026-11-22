@@ -173,6 +173,18 @@ export const FIXTURES = [
     resolution: { requestId: "req-1", decision: "allow", reason: "Fine.", by: "ada" },
   },
   { ...at("harness"), type: "approval_resolved", resolution: { requestId: "req-2", answer: "Billing", by: "ada" } },
+  {
+    ...at("harness"),
+    type: "approval_resolved",
+    resolution: { requestId: "req-3", decision: "allow", by: "ada" },
+    sticky: "session",
+    allowance: {
+      tool: "bash",
+      inputHash: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      commandPrefix: ["git", "status"],
+    },
+    groupId: "grp-1",
+  },
   { ...at("harness"), type: "shadow_call", callId: "c3", tool: "escalate", inputHash: "sha256:ghi" },
   { ...at("harness"), type: "product_record", name: "triage.record", data: { category: "bug", priority: "high" } },
   {

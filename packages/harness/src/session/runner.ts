@@ -11,6 +11,7 @@ import {
   type AgentEvent,
   CAPABILITIES,
   type CallOptions,
+  canonicalInputHash,
   composeInterceptors,
   continueRun,
   DEFAULTS_HASH,
@@ -31,6 +32,7 @@ import type { PolicySession } from "../permissions/types.js";
 import { contextOf } from "./rebuild.js";
 import { settleOpenCalls, unansweredCalls } from "./resume.js";
 import type { Session } from "./session.js";
+import { findSticky } from "./sticky.js";
 import type { EntryInput } from "./store.js";
 
 /** The options of one turn. Anything left out takes the harness's setting. */
@@ -348,12 +350,14 @@ function interceptorsOf<H>(
   turnModel: Model,
 ): Interceptors {
   const policySession: PolicySession = { append: (entry) => writer.write("harness", entry) };
-  const gate = harness.pipeline?.gate(async () => {
+  const pipelineGate = harness.pipeline?.gate(async () => {
     // The model's message and the earlier results are queued first, so the gate's entries follow them in the log.
     recorder.flush();
     await writer.settled();
     return { session: policySession, hostContext, entries: await session.path() };
   });
+  const gate =
+    pipelineGate === undefined ? undefined : withStickyAllowances(pipelineGate, harness, session, writer, recorder);
   const composed = composeInterceptors(harness.interceptors ?? {}, gate ?? {});
   const inner = composed.beforeModelCall;
   return {
@@ -372,6 +376,42 @@ function interceptorsOf<H>(
         );
       }
       return patch;
+    },
+  };
+}
+
+/**
+ * The pipeline's gate with the sticky allowances applied: a call the pipeline would ask about, and that a person's
+ * earlier sticky `allow` covers, runs. A deny stays a deny, and the pipeline's own entry for the ask stays in the log
+ * beside the entry that records the allowance.
+ */
+function withStickyAllowances<H>(
+  gate: NonNullable<ReturnType<NonNullable<Harness<H>["pipeline"]>["gate"]>>,
+  harness: Harness<H>,
+  session: Session,
+  writer: EntryWriter,
+  recorder: EventRecorder,
+): Pick<Interceptors, "beforeToolCall"> {
+  return {
+    async beforeToolCall(event) {
+      // The pipeline's gate always has a `beforeToolCall`; a gate without one has nothing to ask.
+      const decision = (await gate.beforeToolCall?.(event)) ?? { decision: "allow" as const };
+      if (decision.decision !== "ask") return decision;
+      recorder.flush();
+      await writer.settled();
+      const covered = await findSticky(await session.path(), event, harness.registry);
+      if (covered === undefined) return decision;
+      await writer.write("harness", {
+        type: "permission_decision",
+        callId: event.callId,
+        tool: harness.registry.get(event.tool)?.canonicalName ?? event.tool,
+        decision: "allow",
+        rule: `sticky:${covered}`,
+        by: "sticky",
+        policyVersion: decision.policyVersion ?? "",
+        inputHash: await canonicalInputHash(event.input),
+      });
+      return { decision: "allow", reason: "a sticky allowance a person gave earlier covers this call" };
     },
   };
 }
@@ -515,9 +555,23 @@ export async function rerunFrom<H = unknown>(
   return runTurn(session, harness, options);
 }
 
+/** One `approval_resolved` entry as written: the answer, and what it covers beyond its own call. */
+export interface ResolutionRecord {
+  readonly resolution: Resolution;
+  readonly sticky?: "run" | "session";
+  readonly allowance?: { tool: string; inputHash?: string; commandPrefix?: string[] };
+  readonly groupId?: string;
+}
+
 /** What resuming a paused turn takes: the answers, and the same per-turn settings a turn has. */
 export interface ResumeOptions<H = unknown> extends RunSettings<H> {
+  /** The answers the SDK checks and applies: one per request whose answer is settled. */
   readonly resolutions: readonly Resolution[];
+  /**
+   * The `approval_resolved` entries to write before the run, with what each covers. Left out, each resolution is
+   * written as it is. A request a quorum still waits on has a record here and no resolution.
+   */
+  readonly records?: readonly ResolutionRecord[];
   /**
    * The caller's app data. A request bound to app data when it paused runs only when the resume passes the same value,
    * so this is the caller's identity. The tools are the paused turn's, from the log. The model is the harness's, or
@@ -586,7 +640,8 @@ export async function resumeTurn<H = unknown>(
     ...(names?.type === "loadout" ? { tools: names.tools } : {}),
     ...(options.hostContext === undefined ? {} : { hostContext: options.hostContext }),
   });
-  for (const resolution of options.resolutions) await writer.write("user", { type: "approval_resolved", resolution });
+  const records = options.records ?? options.resolutions.map((resolution) => ({ resolution }));
+  for (const record of records) await writer.write("user", { type: "approval_resolved", ...record });
   const model = options.model ?? harness.model;
   await recordLoadout(harness, writer, model, tools, path);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, context.system, newId, "continue");

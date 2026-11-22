@@ -240,6 +240,12 @@ export interface ApprovalResolvedEntry {
   /** The entry type name. @stable */
   type: "approval_resolved";
   resolution: Resolution;
+  /** Set on an allow that also covers the same call later: for this run (the turn and its resumes) or this session. */
+  sticky?: "run" | "session";
+  /** What a sticky allowance matches: the tool and the call's input hash, or a command prefix for a shell tool. */
+  allowance?: { tool: string; inputHash?: string; commandPrefix?: string[] };
+  /** Set when one answer covered several requests of one step that share a tool and an input. */
+  groupId?: string;
 }
 
 /** A call that shadow mode recorded and did not run. */

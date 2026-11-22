@@ -188,7 +188,18 @@ export const SessionEntry = z.discriminatedUnion("type", [
     stepId: z.string().optional(),
   }),
   entry("approval_requested", { request: SignedPendingRequest, input: z.unknown() }),
-  entry("approval_resolved", { resolution: Resolution }),
+  entry("approval_resolved", {
+    resolution: Resolution,
+    sticky: z.enum(["run", "session"]).optional(),
+    allowance: z
+      .strictObject({
+        tool: z.string(),
+        inputHash: z.string().optional(),
+        commandPrefix: z.array(z.string()).optional(),
+      })
+      .optional(),
+    groupId: z.string().optional(),
+  }),
   entry("shadow_call", { callId: z.string(), tool: z.string(), inputHash: z.string() }),
   entry("product_record", { name: z.string(), data: z.unknown() }),
 ]);
