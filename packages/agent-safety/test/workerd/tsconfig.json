@@ -1,5 +1,5 @@
 {
-  // The Workers that test/cloudflare-approval.test.ts, test/cloudflare-cost-guard.test.ts and
+  // The Workers that test/cloudflare-approval.test.ts, test/cloudflare-cost-guard.test.ts (two Workers) and
   // test/cloudflare-interrupted.test.ts run in workerd, checked against the Workers runtime's globals rather than
   // Node's, with the package's own strict flags.
   "extends": "../../../../tsconfig.packages.json",
@@ -8,5 +8,12 @@
     "types": ["@cloudflare/workers-types"],
     "allowImportingTsExtensions": true
   },
-  "include": ["approval-agent.ts", "cost-agent.ts", "interrupted-agent.ts", "scenario.ts"]
+  "include": [
+    "approval-agent.ts",
+    "cost-agent.ts",
+    "cost-model.ts",
+    "interrupted-agent.ts",
+    "scenario.ts",
+    "think-agent.ts"
+  ]
 }
