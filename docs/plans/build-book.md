@@ -47,6 +47,7 @@ This repository already holds most of what a book on building agents needs. It h
 | BK20 | New `verify/` examples fill the example gaps the coverage review found | Accepted (owner, 2026-11-19) | none |
 | BK21 | Every section is fact-checked before the next is drafted, then the whole chapter is reviewed and fixed | Accepted (owner, 2026-11-19) | none |
 | BK22 | The writing is not dry: varied openings, distinct analogies with their limits, used where they make a concept clearer, and illustrated analogies | Accepted (owner, 2026-11-19); analogies made optional (owner, 2026-11-19) | none |
+| BK23 | The book remembers the furthest section heading a reader reached in each chapter, in that browser's localStorage only, and the Contents page offers a link back to the chapter read most recently | Proposed (asked for by the owner in issue #174, 2026-11-21) | none |
 
 ### BK1. A textbook in two parts, with figures and code from this repository (accepted)
 
@@ -453,6 +454,18 @@ Every chapter, section todo and research report follows these steps in order:
   The pull request records the voice scores beside the 5C scores, before and after.
 
 Each chapter todo lists its planned analogies with where each breaks and whether it gets an illustration, all distinct across the book. The owner approved the lists, and each chapter draws from its own.
+
+### BK23. A reader's place stays in their browser (proposed)
+
+**The owner's request (issue [#174](https://github.com/laudebugs/buildanagent/issues/174), 2026-11-21):** "Store the furthest point a reader has reached in a chapter (e.g. the last heading scrolled into view) in `localStorage`, keyed by chapter slug, written by a small script in the same style as `public/scripts/theme.js`. Then show a "Resume reading" link back to that chapter and position". The issue left three questions open, and this decision answers them.
+
+- **Granularity: the section heading.** The script stores the last section heading, an `h2` or `h3` with an id, whose top has scrolled past the top of the window. A heading survives a change of font, width or zoom, where a raw scroll offset would land somewhere else, and it gives the link a fragment, `/<chapter>/#<heading id>`, that a browser already knows how to open. A heading inside a tab, listing, replay or figure names a block, not a section, so it never counts.
+- **One link, on the Contents page.** Every chapter keeps its own furthest place, and the chapter written most recently is the one the link offers. The site header carries no second link, because the header wraps on a narrow screen and a link that appeared after load would push the page down. Progress marks per chapter on the Contents list are a follow-up.
+- **Its own script.** `public/scripts/reading.js` sits beside `theme.js` rather than inside it. The theme script blocks the first paint on purpose, and the reading script has no reason to.
+
+**What leaves the browser: nothing.** The place lives in one localStorage key, `manual-reading`, in the reader's own browser, which keeps a separate store for each origin. Each browser and device therefore keeps its own places, and a reader removes them by clearing the site's data. The script sets no cookie, makes no request, and the book's Worker never sees the value, so §1's non-goal of collecting nothing about readers still holds. When storage is blocked or full, the browser throws, the script catches it, and the page reads as usual with the link hidden. The link renders hidden, so a reader without JavaScript sees none.
+
+[`apps/manual/README.md`](../../apps/manual/README.md#a-readers-place-stays-in-their-own-browser) describes the script, its stored value and its tests.
 
 ## 3. Every chapter is written section by section, each fact-checked before the next
 
