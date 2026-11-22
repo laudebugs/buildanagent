@@ -68,7 +68,7 @@ async function writeWorkerTranscript(t, out, cwd, nonce) {
   await rm(dir, { recursive: true, force: true });
 }
 // Bundles must live inside the package: workerd fails to load modules from some outside paths. The folder is
-// per process for our own examples, because two runs at once (the CI scripts' tests start several) would
+// per process for our own examples, because two runs at once would
 // otherwise delete each other's bundles. The docs run keeps a fixed name, which its committed results mention,
 // so two docs runs at once are not supported.
 const WORK = join(PKG, ".tmp", ownExamples ? `examples-${process.pid}` : "docs");
