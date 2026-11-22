@@ -15,13 +15,13 @@ The claims log for [`evals-observability-and-release.md`](../src/content/chapter
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
 | 1 | Under pass@k a task counts when any attempt passes, and under pass^k only when all k attempts pass | Opening; § pass^k | ✅ | [Demystifying evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents), [agent log row 11](../../../docs/research/agent/fact-check.md): the page defines both and computes "(0.75)³ ≈ 42%"; τ-bench defines pass^k as the consistency metric ([agent log row 4](../../../docs/research/agent/fact-check.md)) |
-| 2 | An agent that passes 75% of single attempts passes three in a row about 42% of the time, since 0.75 cubed is 0.42 | § pass^k | ✅ | Agent log row 11: the page computes "(0.75)³ ≈ 42%"; 0.75³ = 0.421875 |
+| 2 | An agent that passes 75% of single attempts passes three in a row about 42% of the time, since 0.75 cubed is 0.42, assuming independent attempts | § pass^k | ✅ | Agent log row 11: the page computes "(0.75)³ ≈ 42%"; 0.75³ = 0.421875 |
 | 3 | The same agent's pass@3 is 98%: 1 minus 0.25 cubed | § pass^k | ✅ | Arithmetic: 1 − 0.25³ = 0.984375. The figure's values for k=1 to 5 are 1 − 0.25^k (75.0, 93.8, 98.4, 99.6, 99.9) and 0.75^k (75.0, 56.3, 42.2, 31.6, 23.7) |
 | 4 | τ-bench's abstract says agents "like gpt-4o succeed on <50% of the tasks, and are quite inconsistent (pass^8 <25% in retail)" | § pass^k | ⚠️ | [arXiv 2406.12045](https://arxiv.org/abs/2406.12045), abstract, [agent log row 4](../../../docs/research/agent/fact-check.md). A claim about what the abstract says, checked against the abstract only, so the row is ⚠️ and the chapter attributes it to the abstract |
 | 5 | Our guide's gate runs each task five times in a clean environment, blocks when a regression task that passed pass^5 now fails it or a safety task fails a single attempt, and these numbers are our proposals | § pass^k | ✅ | [Agent guide §6](../../../docs/guides/agent.md#6-evals-30-real-tickets-graded-on-final-state-released-on-passk-with-cost-beside-every-score): "The suite, k=5 and the 15% budgets are our proposals" |
 | 6 | Anthropic's advice for a first suite is "20-50 simple tasks drawn from real failures", with evals balanced because "one-sided evals create one-sided optimization" | § pass^k | ✅ | Agent log row 11: all passages found on the page |
 | 7 | A suite that small cannot resolve small gains, so the gate blocks on a single task flipping and reads each flip as a transcript | § pass^k | ⚠️ | Agent guide §6: "aggregate scores cannot resolve small changes … The gate therefore blocks on individual task flips"; our design reasoning, and the page's "45 tasks catch a 13-point gap only half the time" was not re-checked here |
-| 8 | Every capstone in `verify/` runs against a scripted model that fails in the same way on every run, so its pass^5 is 0 or 1 | § pass^k | ✅ | `AGENTS.md`, "Mock models"; the capstones' scripted models in `verify/*/examples/` (example headers); the rest is arithmetic |
+| 8 | Every capstone in `verify/` runs against a scripted model that fails in the same way on every run, so its pass^5 is 0 or 1 | § pass^k | ⚠️ | `AGENTS.md`, "Mock models" says only that mock models must not call host tools. The determinism of each harness's scripted model was not checked file by file for this chapter, so the row is ⚠️ and the chapter states it of a scripted model in general; the rest is arithmetic |
 | 9 | The capstones' `check()` assertions are shaped like evals, and a scripted failure tests the harness and does not measure the agent | § pass^k | ⚠️ | Our reading, stated as such in the chapter |
 
 ## "An LLM judge grades against a rubric, and its grading code rejects an answer that contradicts itself"
@@ -43,7 +43,7 @@ The claims log for [`evals-observability-and-release.md`](../src/content/chapter
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
-| 20 | The example turns on the OpenTelemetry integration for one AI SDK tool-calling run and keeps the spans in an in-memory exporter, with no collector | § A run's spans | ✅ | `verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts`, the `tracing` region and the file's header ("An in-memory exporter holds them, so the example reads the tree back and needs no collector") |
+| 20 | The `tracing` region of the example turns on the OpenTelemetry integration for one AI SDK tool-calling run and keeps the spans in an in-memory exporter, with no collector | § A run's spans | ✅ | `verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts`, the `tracing` region and the file's header ("An in-memory exporter holds them, so the example reads the tree back and needs no collector") |
 | 21 | One agent span is the root; two steps are its children; each model call is a child of a step; the tool call is a child of the step that asked for it; each model call carries 100 input and 20 output tokens and the agent span carries 200 and 40; the first call ended asking for a tool and the second with an answer | § A run's spans | ✅ | The example's checks, all passed in `pnpm test` (`verify/vercel-ai-sdk`) on the pinned `ai` 7.0.162 and `@ai-sdk/otel` 1.0.162 |
 | 22 | Our SDK's `otelObserver()` turns a run's events into one `invoke_agent` span, one `chat` span for each model call and one `execute_tool` span for each tool call, the model and tool spans being direct children of the run's span with no step level, following the OpenTelemetry GenAI conventions | § A run's spans | ✅ | `packages/sdk/README.md`, "Export a run as OpenTelemetry spans with `otelObserver()`", which the package's docs check runs against the declarations; `packages/sdk/src/otel/` exports the observer |
 | 23 | It records token counts on each model call and the sums on the run's span, and records no content unless `captureContent` is on | § A run's spans | ✅ | The same README section: "The model and tool spans are children of the run's span", "The run's span carries the sums over all calls" and "Spans hold no content unless you ask" |
@@ -77,7 +77,7 @@ The claims log for [`evals-observability-and-release.md`](../src/content/chapter
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 30 |
+| ✅ confirmed | 29 |
 | ✏️ corrected | 0 |
-| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 13 |
+| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 14 |
 | Total | 43 |
