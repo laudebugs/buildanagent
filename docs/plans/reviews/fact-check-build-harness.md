@@ -351,4 +351,18 @@ Checked on 2026-11-22 against the branch after merging `main`.
 | N29b-13 | A missing `params` is checked as `{}`, and the check covers `params` only, so envelope members are left to `decode()`. | Harness README; plan §6.4 answer 1; todo Outcome | ✅ | `paramsProblem()` in `params.ts` substitutes `{}` for `undefined` and compiles only the branch's `params` schema; `params.test.ts` has `session/list` without `params` accepted and `session/create` without it refused with `/params/cwd fails required`. |
 | N29b-14 | The schema types `fromSeq` as an integer with a minimum of 0, so the handler's own check is gone and the schema answers -1 with `minimum` and 0.5 or 1.5 with `type`. | Plan §6.4 answer 1; todo Outcome | ✅ | `reconnect.test.ts` asserts the schema's answers for -1, 0.5 and 1.5; `dispatcher.ts` line 444 notes the schema check runs first. |
 
-**Totals:** 255 claims: 176 ✅, 57 ✏️, 22 ⚠️.
+## N44: the WebSocket transport and the Web-stream cases (branch `todo/N44-websocket-transport`)
+
+Checked on 2026-11-22 against the branch at `66588c9` after merging `main`.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| N44-1 | `webSocketTransport()` takes the standard WebSocket interface, adds no dependency and imports no Node module. | README; todo Outcome | ✅ | `packages/harness/src/server/websocket.ts` imports only the protocol, `errors.js` and sibling server files; `git diff origin/main --stat` shows no `package.json`, tsconfig or lockfile change; the gateway's portability test passes. |
+| N44-2 | The defaults are `maxMessageBytes` 8 MiB, `maxBufferedBytes` 1 MiB and `writeTimeoutMs` 30,000 ms, and the send buffer is polled every 25 ms. | README; todo Outcome | ✅ | `DEFAULT_MAX_MESSAGE_BYTES`, `DEFAULT_MAX_BUFFERED_BYTES` and `POLL_MS` in `websocket.ts`, and the `writeTimeoutMs` TSDoc. |
+| N44-3 | The transport closes the socket with 1009 after a frame over the bound, 1008 for 128 unread answers, a closed connection or a buffer that never drains, 1000 when `signal` aborts, and does not close it after the peer closes or errors. | README; todo Outcome | ✅ | `NORMAL`, `POLICY_VIOLATION` and `MESSAGE_TOO_BIG` in `websocket.ts` and the TSDoc at lines 120-135; `websocket-transport.test.ts` has a case for each, and the builder's mutations (no 1009 close, 1008 on abort) failed them. |
+| N44-4 | `@modelcontextprotocol/client` 2.4.0 has no WebSocket transport, and its `ReadBuffer` needs a newline, so the framing check reads each WebSocket frame with `deserializeMessage` and uses `ReadBuffer` only over Web streams. | Todo Outcome | ⚠️ | From the builder's report and `websocket-framing.test.ts`; I did not re-read the 2.4.0 package for a WebSocket transport. |
+| N44-5 | The transport authenticates nobody: whoever holds the socket acts as the dispatcher's user and `Resolution.by` is passed on as sent. | README; todo Outcome | ✅ | The dispatcher is the one built for stdio (`userId` in its options, `Resolution.by` unchecked, plan §6.4 answer 3), and `webSocketTransport()` adds no identity input to its options. |
+| N44-6 | Twenty mutations each failed their test. | Todo Outcome | ⚠️ | The builder's own count; it lists them in its report, and one (characters instead of bytes) survived until the test was fixed. I re-ran none. |
+| N44-7 | The global `WebSocket` fits `WebSocketLike`, checked by a type test; a Workers or `ws` socket was not checked. | Todo Outcome | ✅ | The builder's report names the type test; the TSDoc names neither Workers nor `ws`. |
+
+**Totals:** 262 claims: 181 ✅, 57 ✏️, 24 ⚠️.
