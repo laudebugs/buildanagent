@@ -41,8 +41,10 @@ export {
 } from "@buildanagent/protocol";
 export {
   ABORTED_EXIT_CODE,
+  type CheckConfig,
   type CompletionOutcome,
   type CompletionSettings,
+  type CompletionStart,
   DEFAULT_CHECK_TIMEOUT_MS,
   DENIED_EXIT_CODE,
   DISCOVERED_SCRIPTS,
@@ -56,6 +58,7 @@ export {
   type ResolvedChecks,
   resolveChecks,
   runCompletionCheck,
+  SNAPSHOT_TIMEOUT_MS,
   type SnapshotOptions,
   type Snapshotter,
   snapshotStart,

@@ -5,7 +5,7 @@
  */
 import type { CompletionCheckEntry } from "@buildanagent/protocol";
 import type { Sandbox } from "../sandbox/types.js";
-import { resolveChecks } from "./checks.js";
+import { type CheckConfig, configChanges, type ResolvedChecks, readCheckConfig, resolveChecks } from "./checks.js";
 import { flagChanges, type WorkspaceSnapshot } from "./flags.js";
 import { gitSnapshotter, type Snapshotter } from "./snapshot.js";
 
@@ -55,12 +55,56 @@ async function snapshotWorkspace(
   }
 }
 
-/** Takes the turn's start state, once, before the run. `undefined` means the workspace can't be diffed. */
-export function snapshotStart(
-  settings: CompletionSettings,
-  signal: AbortSignal,
-): Promise<WorkspaceSnapshot | undefined> {
-  return snapshotWorkspace(settings, signal);
+/**
+ * What a turn recorded before the model ran. The checks are resolved here, so a turn that edits `.agents/harness.json`
+ * can't change which commands run, and the check config is kept so an edit to it is flagged.
+ */
+export interface CompletionStart {
+  /** The workspace, or `undefined` when it can't be diffed. */
+  readonly workspace: WorkspaceSnapshot | undefined;
+  /** The checks that will run, or `undefined` when they could not be resolved; `failures` then says why. */
+  readonly checks: ResolvedChecks | undefined;
+  /** The check config's text, or `undefined` when it could not be read. */
+  readonly config: CheckConfig | undefined;
+  /** One flag for each part of the start state that could not be taken. */
+  readonly failures: readonly string[];
+}
+
+/** The flag for a completion check that could not do its work, for whatever reason `error` gives. */
+export function completionFailure(error: unknown): string {
+  return `completion check failed: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+/**
+ * Takes the turn's start state, once, before the run: it resolves the checks, reads the check config and snapshots the
+ * workspace. It never throws. What it could not take is recorded in `failures`, and the turn still runs.
+ */
+export async function snapshotStart(settings: CompletionSettings, signal: AbortSignal): Promise<CompletionStart> {
+  const failures: string[] = [];
+  let checks: ResolvedChecks | undefined;
+  let config: CheckConfig | undefined;
+  let workspace: WorkspaceSnapshot | undefined;
+  try {
+    checks = await resolveChecks(settings.sandbox);
+  } catch (error) {
+    failures.push(completionFailure(error));
+  }
+  try {
+    config = await readCheckConfig(settings.sandbox);
+  } catch (error) {
+    failures.push(completionFailure(error));
+  }
+  try {
+    workspace = await snapshotWorkspace(settings, signal);
+  } catch (error) {
+    failures.push(completionFailure(error));
+  }
+  return { workspace, checks, config, failures };
+}
+
+function abortedCheck(text: string, checks: CompletionOutcome["checks"], denials: string[]): void {
+  checks.push({ command: text, exitCode: ABORTED_EXIT_CODE });
+  denials.push(`check aborted before it finished: ${text}`);
 }
 
 async function runChecks(
@@ -72,6 +116,11 @@ async function runChecks(
   const denials: string[] = [];
   for (const command of commands) {
     const text = command.join(" ");
+    // A check after the abort is recorded without being started, whatever the sandbox does with an aborted signal.
+    if (signal.aborted) {
+      abortedCheck(text, checks, denials);
+      continue;
+    }
     let result: Awaited<ReturnType<Sandbox["exec"]>>;
     try {
       result = await settings.sandbox.exec(command, {
@@ -81,9 +130,7 @@ async function runChecks(
       });
     } catch (error) {
       if (!signal.aborted) throw error;
-      // An abort rejects the running check and every one after it. Each is recorded, so the entry shows what never ran.
-      checks.push({ command: text, exitCode: ABORTED_EXIT_CODE });
-      denials.push(`check aborted before it finished: ${text}`);
+      abortedCheck(text, checks, denials);
       continue;
     }
     if ("denied" in result) {
@@ -96,28 +143,54 @@ async function runChecks(
   return { checks, denials };
 }
 
+/** The flags for what the turn changed in the check config, or a failure flag when it can't be read again. */
+async function configFlags(sandbox: Sandbox, before: CheckConfig | undefined): Promise<string[]> {
+  if (before === undefined) return [];
+  try {
+    return configChanges(before, await readCheckConfig(sandbox));
+  } catch (error) {
+    return [completionFailure(error)];
+  }
+}
+
+/** The diff flags against the start's workspace, none after an abort, or a failure flag when the end snapshot throws. */
+async function diffFlags(settings: CompletionSettings, start: WorkspaceSnapshot | undefined, signal: AbortSignal) {
+  if (start === undefined || signal.aborted) return [];
+  try {
+    const end = await snapshotWorkspace(settings, signal, start);
+    return end === undefined ? [] : flagChanges(start, end);
+  } catch (error) {
+    return [completionFailure(error)];
+  }
+}
+
 /**
- * Runs the project's checks in the sandbox, one after another and all of them even when one fails, and compares the
- * workspace with `start`, the snapshot taken before the turn. `passed` is true when every check exited 0, and so it is
- * also true when the project has no checks; `checks` is then empty. A check that timed out has exit code 124, and one the
- * sandbox's policy refused has `DENIED_EXIT_CODE` and a flag that names the refusal. When `signal` aborts, the check
- * running and each one after it has `ABORTED_EXIT_CODE` and a flag, no diff is made, and the call still returns. `flagged` holds the diff patterns
- * and is empty when `start` is `undefined`.
- * Throws a `HarnessError` with code `invalid_completion_config` when `.agents/harness.json` is unusable.
+ * Runs the checks `start` resolved before the turn, in the sandbox, one after another and all of them even when one
+ * fails, and compares the workspace and the check config with `start`. `passed` is true when every check exited 0, and
+ * so it is also true when the project has no checks; `checks` is then empty. `passed` is false when the checks could
+ * not be resolved before the turn. A check that timed out has exit code 124, and one the sandbox's policy refused has
+ * `DENIED_EXIT_CODE` and a flag that names the refusal. When `signal` aborts, the check running and each one after it
+ * has `ABORTED_EXIT_CODE` and a flag, no diff is made, and the call still returns. `flagged` holds, in order, the
+ * start's failures, the refusals and aborts, a `check config changed` flag for each part of the check config the turn
+ * edited, and the diff patterns.
+ *
+ * With `start` `undefined`, the checks are resolved now and nothing is compared; that throws a `HarnessError` with code
+ * `invalid_completion_config` when `.agents/harness.json` is unusable. A sandbox error from a check throws.
  */
 export async function runCompletionCheck(
   settings: CompletionSettings,
-  start: WorkspaceSnapshot | undefined,
+  start: CompletionStart | undefined,
   signal: AbortSignal,
 ): Promise<CompletionOutcome> {
-  const { commands } = await resolveChecks(settings.sandbox);
-  const { checks, denials } = await runChecks(settings, commands, signal);
+  const resolved = start === undefined ? await resolveChecks(settings.sandbox) : start.checks;
+  const { checks, denials } =
+    resolved === undefined ? { checks: [], denials: [] } : await runChecks(settings, resolved.commands, signal);
   // The checks ran first, so what they wrote (a build, a coverage report) is in the end state; git ignores most of it.
-  const end = start === undefined ? undefined : await snapshotWorkspace(settings, signal, start);
-  const flagged = start === undefined || end === undefined ? [] : flagChanges(start, end);
+  const changed = await configFlags(settings.sandbox, start?.config);
+  const diff = await diffFlags(settings, start?.workspace, signal);
   return {
     checks,
-    passed: checks.every((check) => check.exitCode === 0),
-    flagged: [...denials, ...flagged],
+    passed: resolved !== undefined && checks.every((check) => check.exitCode === 0),
+    flagged: [...(start?.failures ?? []), ...denials, ...changed, ...diff],
   };
 }

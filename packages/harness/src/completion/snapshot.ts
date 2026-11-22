@@ -2,6 +2,7 @@
  * Snapshots of the workspace's text files, taken inside the sandbox with `git ls-files`, so a turn's changes can be
  * diffed against its start state without a second copy of the workspace.
  */
+import { HarnessError } from "../errors.js";
 import type { Sandbox } from "../sandbox/types.js";
 import type { WorkspaceSnapshot } from "./flags.js";
 
@@ -20,7 +21,12 @@ export interface SnapshotOptions {
   readonly known?: ReadonlySet<string>;
   /** Paths an earlier snapshot skipped. They stay skipped and are not read again. */
   readonly skipped?: ReadonlySet<string>;
+  /** The longest the listing, and each file read, may take, in milliseconds. Default `SNAPSHOT_TIMEOUT_MS`. */
+  readonly timeoutMs?: number;
 }
+
+/** How long the listing, and each file read, may take before the snapshot gives up on it. */
+export const SNAPSHOT_TIMEOUT_MS = 60 * 1000;
 
 /** The largest file a snapshot keeps, in bytes. A bigger file is left out of both snapshots, so it is never flagged. */
 export const MAX_SNAPSHOT_FILE_BYTES = 256 * 1024;
@@ -30,16 +36,29 @@ export const MAX_SNAPSHOT_FILES = 5000;
 const DECODER = new TextDecoder("utf-8", { fatal: true });
 const BATCH = 32;
 
-/** The text of a file, `"gone"` for one no longer on disk, or `"skipped"` for one that is binary, not UTF-8 or too large. */
-async function readText(sandbox: Sandbox, path: string): Promise<string | "gone" | "skipped"> {
-  let bytes: Uint8Array;
+/** Settles with `promise`, or with `fallback` once `ms` pass, so one hung read can't hold up the turn. */
+function within<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * The text of a file, `"gone"` for one no longer on disk, or `"skipped"` for one that is binary, not UTF-8, too large,
+ * or that could not be read for any other reason (a policy refusal, a sandbox error, a read that timed out).
+ */
+async function readText(sandbox: Sandbox, path: string, timeoutMs: number): Promise<string | "gone" | "skipped"> {
+  let bytes: Uint8Array | "skipped";
   try {
-    bytes = await sandbox.readFile(path);
-  } catch {
-    // A tracked file the turn deleted is listed by git but no longer on disk, so a failed read counts as gone.
-    return "gone";
+    bytes = await within<Uint8Array | "skipped">(sandbox.readFile(path), timeoutMs, "skipped");
+  } catch (error) {
+    // A tracked file the turn deleted is listed by git but no longer on disk. Any other failure says nothing about
+    // whether the file is there, so it is skipped, and the diff never reports it as deleted.
+    return error instanceof HarnessError && error.code === "sandbox_not_found" ? "gone" : "skipped";
   }
-  if (bytes.length > MAX_SNAPSHOT_FILE_BYTES || bytes.includes(0)) return "skipped";
+  if (bytes === "skipped" || bytes.length > MAX_SNAPSHOT_FILE_BYTES || bytes.includes(0)) return "skipped";
   try {
     return DECODER.decode(bytes);
   } catch {
@@ -50,13 +69,16 @@ async function readText(sandbox: Sandbox, path: string): Promise<string | "gone"
 /**
  * The default snapshotter: every file git tracks or would track (so untracked files that `.gitignore` leaves out stay
  * out), read as UTF-8 text up to `MAX_SNAPSHOT_FILE_BYTES` each and `MAX_SNAPSHOT_FILES` files. A file it leaves out
- * for its size, its encoding or the cap goes in `skipped`, and the diff ignores it. It returns `undefined` where `git`
- * is missing or the workspace is no repository.
+ * for its size, its encoding or the cap, or that it could not read, goes in `skipped`, and the diff ignores it. Only a
+ * read that fails with `sandbox_not_found` counts as a deleted file. The listing and each read stop after `timeoutMs`.
+ * It returns `undefined` where `git` is missing, the workspace is no repository, or the listing timed out.
  */
 export const gitSnapshotter: Snapshotter = async (sandbox, options) => {
+  const timeoutMs = options.timeoutMs ?? SNAPSHOT_TIMEOUT_MS;
   const listed = await sandbox.exec(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"], {
     env: options.env,
     signal: options.signal,
+    timeoutMs,
   });
   if ("denied" in listed || listed.exitCode !== 0) return undefined;
   const skipped = new Set(options.skipped);
@@ -69,7 +91,7 @@ export const gitSnapshotter: Snapshotter = async (sandbox, options) => {
   const files = new Map<string, string>();
   for (let start = 0; start < paths.length; start += BATCH) {
     const batch = paths.slice(start, start + BATCH);
-    const texts = await Promise.all(batch.map((path) => readText(sandbox, path)));
+    const texts = await Promise.all(batch.map((path) => readText(sandbox, path, timeoutMs)));
     for (const [index, text] of texts.entries()) {
       const path = batch[index] as string;
       if (text === "skipped") skipped.add(path);

@@ -73,18 +73,23 @@ async function packageRunner(sandbox: Sandbox): Promise<string> {
   return "npm";
 }
 
+/** The `scripts` object of a `package.json`, or `undefined` when the text is not JSON or holds no such object. */
+function scriptsOf(text: string): Record<string, unknown> | undefined {
+  try {
+    const scripts = (JSON.parse(text) as { scripts?: unknown }).scripts;
+    return typeof scripts === "object" && scripts !== null ? (scripts as Record<string, unknown>) : undefined;
+  } catch {
+    // A package.json that is not JSON has no scripts to run; the project's own tools will say what is wrong with it.
+    return undefined;
+  }
+}
+
 /** The scripts of a `package.json` that discovery looks for, or none when the file is missing or unreadable as JSON. */
 async function discoveredScripts(sandbox: Sandbox): Promise<string[]> {
   const text = await readText(sandbox, "package.json");
-  if (text === undefined) return [];
-  try {
-    const scripts = (JSON.parse(text) as { scripts?: unknown }).scripts;
-    if (typeof scripts !== "object" || scripts === null) return [];
-    return DISCOVERED_SCRIPTS.filter((name) => typeof (scripts as Record<string, unknown>)[name] === "string");
-  } catch {
-    // A package.json that is not JSON has no scripts to run; the project's own tools will say what is wrong with it.
-    return [];
-  }
+  const scripts = text === undefined ? undefined : scriptsOf(text);
+  if (scripts === undefined) return [];
+  return DISCOVERED_SCRIPTS.filter((name) => typeof scripts[name] === "string");
 }
 
 /**
@@ -107,4 +112,58 @@ export async function resolveChecks(sandbox: Sandbox): Promise<ResolvedChecks> {
     return { source: "discovered", commands: [["make", "test"]] };
   }
   return { source: "discovered", commands: [] };
+}
+
+/**
+ * The parts of the workspace that decide what a check does, as text: the config file, the bodies of the `package.json`
+ * scripts discovery names, and the `Makefile` `test` rule. Each is `undefined` when absent.
+ */
+export interface CheckConfig {
+  readonly harnessConfig: string | undefined;
+  readonly scripts: ReadonlyMap<string, string | undefined>;
+  readonly makeTestRule: string | undefined;
+}
+
+/** The `test` rule of a `Makefile`: its target line and the tab-indented recipe lines after it. */
+function makeTestRule(makefile: string): string | undefined {
+  const match = MAKE_TEST_TARGET.exec(makefile);
+  if (match === null) return undefined;
+  const lines = makefile.slice(match.index).split("\n");
+  const end = lines.findIndex((line, index) => index > 0 && !line.startsWith("\t"));
+  return lines.slice(0, end === -1 ? lines.length : end).join("\n");
+}
+
+/** Reads the check config. Throws what the sandbox throws for a file it can't read, except a missing one. */
+export async function readCheckConfig(sandbox: Sandbox): Promise<CheckConfig> {
+  const harnessConfig = await readText(sandbox, HARNESS_CONFIG_PATH);
+  const packageJson = await readText(sandbox, "package.json");
+  const makefile = await readText(sandbox, "Makefile");
+  const scripts = packageJson === undefined ? undefined : scriptsOf(packageJson);
+  return {
+    harnessConfig,
+    scripts: new Map(
+      DISCOVERED_SCRIPTS.map((name) => {
+        const body = scripts?.[name];
+        return [name, typeof body === "string" ? body : undefined];
+      }),
+    ),
+    makeTestRule: makefile === undefined ? undefined : makeTestRule(makefile),
+  };
+}
+
+/**
+ * One flag for each part of the check config that differs between `before` and `after`. The harness runs the checks it
+ * resolved before the turn, but a package runner reads a script's body when it runs, and `make` reads the `Makefile`,
+ * so an edit to either changes what a check does even though the command is the same.
+ */
+export function configChanges(before: CheckConfig, after: CheckConfig): string[] {
+  const flags: string[] = [];
+  if (before.harnessConfig !== after.harnessConfig) flags.push(`check config changed: ${HARNESS_CONFIG_PATH}`);
+  for (const name of DISCOVERED_SCRIPTS) {
+    if (before.scripts.get(name) !== after.scripts.get(name)) {
+      flags.push(`check config changed: package.json script ${name}`);
+    }
+  }
+  if (before.makeTestRule !== after.makeTestRule) flags.push("check config changed: Makefile test target");
+  return flags;
 }

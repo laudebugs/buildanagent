@@ -19,6 +19,8 @@ const PLACEHOLDER_MARKER = /\b(?:TODO|FIXME)\b/;
 const NOT_IMPLEMENTED = /not implemented/i;
 const FAKE_NAME = /mock|stub|fake/i;
 const TEST_DIRECTORY = /(?:^|\/)(?:tests?|__tests__)\//;
+// Only code in a test folder counts, so a fixture or snapshot there (`test/fixtures/sample.json`) is not a test file.
+const CODE_FILE = /\.(?:[cm]?[jt]sx?|py|go|rs|java|kt|rb|php|cs|swift|scala|c|cc|cpp|h|hpp)$/;
 const TEST_NAME = /(?:\.(?:test|spec)\.[a-z]+|_test\.[a-z]+)$|^test_.*\.py$/;
 // An assertion line: `expect(`, `assert(`, `assert.x(`, `assertEqual(`, `self.assertX(` or a Python `assert` statement.
 const ASSERTION = /\bexpect\s*\(|\bassert\w*\s*[.(]|^\s*assert\s/;
@@ -26,9 +28,12 @@ const LINE_LIMIT = 80;
 
 const baseName = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
 
-/** Whether a path looks like a test file: in a `test`, `tests` or `__tests__` folder, or named as a test. */
+/**
+ * Whether a path looks like a test file: a code file (by its extension, such as `.ts`, `.py` or `.go`) in a `test`,
+ * `tests` or `__tests__` folder, or a file named as a test anywhere. A data file in a test folder is not one.
+ */
 export function isTestFile(path: string): boolean {
-  return TEST_DIRECTORY.test(path) || TEST_NAME.test(baseName(path));
+  return (TEST_DIRECTORY.test(path) && CODE_FILE.test(path)) || TEST_NAME.test(baseName(path));
 }
 
 const clip = (line: string): string => {
