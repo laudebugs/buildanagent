@@ -89,7 +89,7 @@ A real model may still choose a different path, such as escalating without looki
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources.
+- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources. Left unticked: this todo's prose was drafted by hand, not with the skill, so it reaches the writing standard only through the pull request's `/anthropic-skills:writing-review` pass below. The changed claims were re-checked against their sources (rows T65-1 to T65-26).
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
