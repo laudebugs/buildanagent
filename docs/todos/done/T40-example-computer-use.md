@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T35's todo, [T35](../ready/T35-chapter-agents-people-can-watch.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T35's todo, [T35](../done/T35-chapter-agents-people-can-watch.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 - [OpenAI Agents SDK fact-check](../../reference/openai-agents-sdk/fact-check.md), line 38: the scripted model "calls only function tools you define, never hosted, computer, shell, apply-patch or sandbox tools", and `ScriptedModel`'s helpers cover only `functionCall` and `assistantMessage`
