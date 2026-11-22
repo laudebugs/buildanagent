@@ -191,8 +191,9 @@ export type HarnessEvent =
   | { type: "completion_check"; entry: SessionEntry }
   /**
    * The server dropped `count` events of this session because the client was not taking them fast enough. The
-   * notification's `seq` is the last dropped event's. A client recovers the dropped entries with `session/open` and a
-   * `fromSeq` one past the last `seq` it received.
+   * notification's `seq` is the last dropped event's. Live events go on after the marker. A client recovers the dropped
+   * entries with `session/open` and a `fromSeq` one past the last `seq` it received before the marker, and drops by
+   * `seq` any entry it then gets twice.
    */
   | { type: "events_dropped"; count: number };
 

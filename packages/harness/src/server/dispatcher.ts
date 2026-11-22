@@ -136,6 +136,8 @@ interface Opened {
   branching?: boolean;
   /** The first answer to each signed request, by its id, until a resume has applied it. */
   readonly answers: Map<string, Answer>;
+  /** Counts each answer taken and each resume ended, so a read of the waiting requests can tell it went stale. */
+  generation: number;
 }
 
 /** The command whose method union holds `M`, for the methods that share one command shape. */
@@ -151,7 +153,13 @@ type EventMessage = Extract<ServerNotification, { method: "event" }>;
 
 const failure = (code: number, message: string): Failure => new Failure(code, message);
 
-const newOpened = (cwd: string): Opened => ({ cwd, answers: new Map() });
+const newOpened = (cwd: string): Opened => ({ cwd, answers: new Map(), generation: 0 });
+
+/** How many times `#armFor` reads the log before it gives up on a read that answers keep making stale. */
+const ARM_READS = 3;
+
+/** What `turn/settled` says about a resume stopped before it wrote anything. */
+const ABORTED: TurnResultSummary = { stopReason: "aborted", steps: 0, costUsd: null };
 
 const completionOf = (completion: CompletionSettings | undefined): { completion?: CompletionSettings } =>
   completion === undefined ? {} : { completion };
@@ -510,11 +518,14 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     }
     const running = this.#claim(opened, connection);
     // The client may cancel the turn by the id of its turn/start until the turn settles.
-    connection.trackTurn(requestId, () => running.controller.abort("the client cancelled the turn"));
+    const cancel = () => running.controller.abort("the client cancelled the turn");
+    connection.trackTurn(requestId, cancel);
     const refuse = () => {
-      connection.untrackTurn(requestId);
+      connection.untrackTurn(requestId, cancel);
       opened.running = undefined;
       running.finish();
+      // An answer that came while this turn was taking the lock waited for the session; it is free again.
+      this.#pump(session);
     };
     let handle: Session;
     try {
@@ -536,7 +547,9 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     const started = new Promise<void>((resolve) => {
       begin = resolve;
     });
-    void this.#run(handle, session, opened, running, input, started).finally(() => connection.untrackTurn(requestId));
+    void this.#run(handle, session, opened, running, input, started).finally(() =>
+      connection.untrackTurn(requestId, cancel),
+    );
     return { result: { accepted: true, turn: running.turn } satisfies Disposition, after: begin };
   }
 
@@ -685,21 +698,36 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     );
   }
 
-  /** Asks one connection about every request of the session that still waits, as the log says now. */
+  /**
+   * Asks one connection about every request of the session that still waits, as the log says now. An answer taken or
+   * applied while the log was being read makes that read stale, so the log is read again before anyone is asked.
+   */
   async #armFor(connection: ServerConnection, session: string): Promise<void> {
-    let waiting: SignedPendingRequest[];
-    try {
-      const reader = await openSession({
-        store: this.#options.store,
-        index: this.#options.index,
-        key: this.key(session),
-      });
-      waiting = pendingApprovals(await reader.path()).map((entry) => entry.request);
-    } catch {
-      // A session with no file yet has nothing to ask, and an unreadable one is listed by initialize as it can be.
-      return;
+    const opened = this.#opened.get(session);
+    if (opened === undefined) return;
+    let waiting: SignedPendingRequest[] = [];
+    for (let read = 0; read < ARM_READS; read++) {
+      const generation = opened.generation;
+      try {
+        waiting = await this.#waiting(session);
+      } catch {
+        // A session with no file yet has nothing to ask, and an unreadable one is listed by initialize as it can be.
+        return;
+      }
+      if (opened.generation === generation) break;
+      // Answers kept changing for every read: ask nothing now, since the next resume asks again.
+      if (read === ARM_READS - 1) return;
     }
     for (const request of waiting) this.#ask(connection, session, request);
+  }
+
+  async #waiting(session: string): Promise<SignedPendingRequest[]> {
+    const reader = await openSession({
+      store: this.#options.store,
+      index: this.#options.index,
+      key: this.key(session),
+    });
+    return pendingApprovals(await reader.path()).map((entry) => entry.request);
   }
 
   /**
@@ -717,6 +745,7 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
       return;
     }
     opened.answers.set(request.id, { resolution, by: connection, applying: false });
+    opened.generation += 1;
     for (const other of this.#connections) other.withdrawPending(request.id);
     this.#pump(session);
   }
@@ -746,7 +775,12 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
         const resolutions = answers.flatMap(([id, answer]) => (waiting.has(id) ? [answer.resolution] : []));
         if (resolutions.length > 0) {
           await this.#seed(handle, session);
-          summary = summaryOf(await this.#approvals.resolve(handle, resolutions, this.#turnHooks(session, running)));
+          // A close or an interrupt while the lock was being taken leaves the answers unwritten, so the log never shows
+          // an answer that no run applied.
+          summary =
+            running.controller.signal.aborted || this.#closed
+              ? ABORTED
+              : summaryOf(await this.#approvals.resolve(handle, resolutions, this.#turnHooks(session, running)));
         }
       } finally {
         await handle.close().catch(() => undefined);
@@ -755,13 +789,14 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
       summary = summaryOf(undefined, error);
     } finally {
       for (const [id] of answers) opened.answers.delete(id);
+      opened.generation += 1;
       this.#release(opened, running);
     }
     if (summary !== undefined) this.settled(session, running.turn, summary);
     running.finish();
     // A request the resume left waiting, such as one a quorum still needs, is asked again; a failed resume asks nothing,
     // so a client is not asked in a loop while another process holds the session.
-    if (summary !== undefined && summary.error === undefined) {
+    if (summary !== undefined && summary.error === undefined && summary !== ABORTED) {
       for (const connection of this.#watchers(session)) void this.#armFor(connection, session);
     }
     this.#pump(session);

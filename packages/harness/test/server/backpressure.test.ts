@@ -136,6 +136,40 @@ describe("the command queue", () => {
     );
   });
 
+  test("a client that writes 10,000 commands and reads nothing is closed, so the queue stays bounded", async () => {
+    const dispatcher = dispatcherWith(memoryBackend().store, 4);
+    const delivered: ServerMessage[] = [];
+    const held = gate();
+    const connection = dispatcher.connect((message) => {
+      delivered.push(message);
+      return delivered.length === 1 ? held.promise : undefined;
+    });
+    for (let id = 1; id <= 10_000; id++) {
+      await connection.receive({ jsonrpc: "2.0", id, method: "session/list", params: {} });
+    }
+    held.open();
+    await new Promise((resolve) => setImmediate(resolve));
+    // Closing dropped what waited: the first message is all the client ever got.
+    assert.equal(delivered.length, 1);
+  });
+
+  test("a client that reads keeps its connection however many commands the full queue refuses", async () => {
+    const held = gate();
+    const dispatcher = dispatcherWith(blockingList(memoryBackend().store, held.promise));
+    const wire: ServerMessage[] = [];
+    const connection = dispatcher.connect((message) => {
+      wire.push(message);
+    });
+    const list = (id: number) => connection.receive({ jsonrpc: "2.0", id, method: "session/list", params: {} });
+    const sent = Array.from({ length: 128 }, (_, i) => list(i + 1));
+    for (let id = 129; id <= 10_000; id++) await list(id);
+    assert.equal(responses(wire).filter(isQueueFull).length, 10_000 - 128);
+    held.open();
+    await Promise.all(sent);
+    await list(10_001);
+    assert.ok("result" in (responses(wire).at(-1) as Response));
+  });
+
   test("a queue size that is not a whole number of at least 1 is refused", () => {
     for (const queueSize of [0, -1, 1.5]) {
       assert.throws(

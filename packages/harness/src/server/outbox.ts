@@ -79,6 +79,14 @@ export class Outbox {
     }
   }
 
+  /** Queues the marker for `count` dropped events of `session` now, after whatever already waits. */
+  pushGap(session: string, count: number, seq: number): void {
+    if (this.#closed) return;
+    this.markGap(session, count, seq);
+    this.#flushGap(session);
+    this.#pump();
+  }
+
   /** Drops everything still queued and refuses what comes after. */
   close(): void {
     this.#closed = true;

@@ -9,9 +9,9 @@ import {
   type InProcessClient,
   inProcessTransport,
 } from "@buildanagent/harness/server";
-import { createApprovals } from "@buildanagent/harness/session";
+import { createApprovals, type LoadOptions, type SessionStore } from "@buildanagent/harness/session";
 import { createToolRegistry, type ToolRegistration } from "@buildanagent/harness/tools";
-import type { ServerMessage, ServerRequest } from "@buildanagent/protocol";
+import type { ServerMessage, ServerRequest, SessionEntry } from "@buildanagent/protocol";
 import { defineTool, hmacSigner, type ToolDefinition } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { type Backend, memoryBackend } from "../session/session-helpers.js";
@@ -165,4 +165,37 @@ export function gate(): { promise: Promise<void>; open: () => void } {
     open = resolve;
   });
   return { promise, open };
+}
+
+/**
+ * A store whose chosen loads take their entries at once and then wait for `held`, as a slow disk would, so entries
+ * written meanwhile are missing from what the load yields. `blocks` picks the loads, given each one's options and how
+ * many loads came before it; `taken` resolves when the first chosen load has taken its entries.
+ */
+export function snapshotLoads(
+  store: SessionStore,
+  blocks: (options: LoadOptions | undefined, count: number) => boolean,
+  held: Promise<void>,
+): { store: SessionStore; taken: Promise<void> } {
+  let count = 0;
+  let markTaken!: () => void;
+  const taken = new Promise<void>((resolve) => {
+    markTaken = resolve;
+  });
+  return {
+    taken,
+    store: {
+      ...store,
+      load(key, options) {
+        if (!blocks(options, count++)) return store.load(key, options);
+        return (async function* () {
+          const entries: SessionEntry[] = [];
+          for await (const entry of store.load(key, options)) entries.push(entry);
+          markTaken();
+          await held;
+          yield* entries;
+        })();
+      },
+    },
+  };
 }

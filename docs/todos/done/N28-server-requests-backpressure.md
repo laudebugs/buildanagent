@@ -91,7 +91,8 @@ The dispatcher in `@buildanagent/harness/server` now asks clients for approvals,
 - **The log is the replay window.** The plan asked for a replay window per session. An in-memory window would be stale as soon as a second process wrote the session, and empty after a restart. The log holds every entry, so `fromSeq` replays from the session's current file, and no `fromSeq` is too old. One past the last entry replays nothing, and anything further is refused with `InvalidParams`. Only entries are replayed: streamed events such as text deltas are transient, and the entries after them hold the same content.
 - **An open holds the session's live events until its replay has gone out.** Events and `turn/settled` that arrive while the log is read wait, and an entry the replay already carried is left out, so nothing is lost, sent twice or sent before the response.
 - **One `queueSize` bounds both queues, and a command keeps its place until its response has gone out.** Counting until delivery means a client that doesn't read gets `QueueFull` instead of growing the server's memory. Only live events are dropped. Responses, server requests, `turn/settled`, cancels, markers and replays are never dropped, and what produces each bounds it. A `send` that returns a promise is what makes a client slow; the in-process transport takes each message at once and never loses an event.
-- **Only `turn/start` can be cancelled by the client.** Its id stays live until the turn settles, so a cancel after the disposition still aborts the run. A cancel for any other request does nothing and that request is answered as usual, which JSON-RPC allows. Answering a cancelled request with an error would have needed a new code such as LSP's -32800.
+- **Refusals are bounded by closing the connection.** A `QueueFull` refusal takes no command's place but waits to go out like any response. Once 128 refusals wait undelivered, the client is neither reading nor waiting, and the server closes the connection. Dropping or merging refusals would leave a client waiting on an id that never gets an answer.
+- **Only `turn/start` can be cancelled by the client.** Its id stays live until the turn settles, so a cancel after the disposition still aborts the run. A client that reuses the id for a later `turn/start` cancels the later turn, and the earlier turn's end does not remove it. A cancel for any other request does nothing and that request is answered as usual, which JSON-RPC allows. Answering a cancelled request with an error would have needed a new code such as LSP's -32800.
 - **The dispatcher announces only entries written to the session's current file.** Before, a child session's header written through the same store would have reached its parent's stream with the child file's sequence numbers, and replay would have disagreed with the live stream.
 
 **N27's named limits.**
@@ -111,3 +112,14 @@ The dispatcher in `@buildanagent/harness/server` now asks clients for approvals,
 
 - Should the protocol carry the approver's identity in a way the server checks, rather than trusting `by`?
 - Proposed change 6 of the [connectors report](../../research/connectors/agent-connectors.md) adds an "authorization required" server request to this todo. It was a proposal when N28 started, so N28 does not implement it; it needs its own decision and todo.
+
+**Review fixes (first round).** The first code review found eight problems, and each fix has a test that fails without it:
+
+- An answer that waited while a `turn/start` took the lock never resumed when that start failed; the refused start now frees the session for the answer.
+- A failed `session/open` by a connection that already watched the session dropped what it held, `turn/settled` included; it now delivers it.
+- The `events_dropped` marker from a full hold went out late, and after messages held later than the drops; it now goes out at once, where the drops were.
+- `QueueFull` refusals could grow the outbox without bound; they are now bounded as above.
+- A resume stopped by `close()` while it took the lock still wrote its answers; it now writes none and settles `aborted`.
+- A reused `turn/start` id lost its canceller when the earlier turn settled; removal now checks that the canceller is its own.
+- Asking again on open could send a request another client had resolved during the read; the read is repeated when an answer is taken or applied meanwhile.
+- The recovery advice for `events_dropped` named the wrong `fromSeq`: live events go on after the marker, so the client reopens one past the last `seq` it received before the marker and drops repeated entries by `seq`.

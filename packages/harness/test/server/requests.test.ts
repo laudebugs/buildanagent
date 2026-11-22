@@ -20,6 +20,7 @@ import {
   scripted,
   settledCount,
   settledMessages,
+  snapshotLoads,
   text,
   until,
 } from "./server-helpers.js";
@@ -371,5 +372,148 @@ describe("$/cancelRequest from the client", () => {
     await client.request("turn/start", { session, input: text("Hi") });
     await until(() => settledCount(seen) === 1, "the turn");
     assert.equal(settledMessages(seen)[0]?.result.stopReason, "done");
+  });
+});
+
+describe("answers that race other work in the session", () => {
+  test("an answer that waited on a turn/start that then failed to take the lock still resumes", async () => {
+    const base = memoryBackend();
+    const lockHeld = gate();
+    let refuseNext = false;
+    // The next lock taken after `refuseNext` waits for the test, then reports another writer.
+    const lock = {
+      async acquire(key: Parameters<typeof base.lock.acquire>[0]) {
+        if (!refuseNext) return base.lock.acquire(key);
+        refuseNext = false;
+        await lockHeld.promise;
+        return "would_block" as const;
+      },
+    };
+    const setup = approvalSetup(REFUND, [], {}, { ...base, lock });
+    const { client, seen } = recorded(setup.dispatcher);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Refund o1") });
+    await until(() => settledCount(seen) === 1, "the pause");
+    const [asked] = requestsOf(seen);
+    assert.ok(asked !== undefined);
+    refuseNext = true;
+    const second = client.request("turn/start", { session, input: text("Anything else?") });
+    // The answer arrives while the second turn holds the session and waits for the lock.
+    client.respond<"approval/request">(asked.id, allow(asked));
+    lockHeld.open();
+    assert.deepEqual(await second, { accepted: false, reason: "locked" });
+    await until(() => settledCount(seen) === 2, "the resume");
+    assert.equal(settledMessages(seen)[1]?.result.stopReason, "done");
+    assert.deepEqual(setup.refunds, [{ id: "o1" }]);
+  });
+
+  test("a dispatcher closed while a resume takes the lock writes no answer, so the request still waits", async () => {
+    const setup = approvalSetup(REFUND);
+    const { client, seen } = recorded(setup.dispatcher);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Refund o1") });
+    await until(() => settledCount(seen) === 1, "the pause");
+    const [asked] = requestsOf(seen);
+    assert.ok(asked !== undefined);
+    client.respond<"approval/request">(asked.id, allow(asked));
+    await setup.dispatcher.close();
+    assert.equal(setup.resolved.length, 0);
+    assert.deepEqual(setup.refunds, []);
+    const log = await logOf(setup, session);
+    assert.equal(log.filter((entry) => entry.type === "approval_resolved").length, 0);
+    const later = recorded(approvalSetup(REFUND, [], {}, setup.backend).dispatcher);
+    assert.equal((await init(later.client)).pending.length, 1);
+  });
+
+  test("a client asked again on open gets no request that another client's answer resolved during the read", async () => {
+    const base = memoryBackend();
+    const held = gate();
+    let armed = false;
+    let plain = 0;
+    // Once armed, the second load with no options is the open's own read of the waiting requests.
+    const slow = snapshotLoads(base.store, (options) => armed && options === undefined && ++plain === 2, held.promise);
+    const setup = approvalSetup(REFUND, [], {}, { ...base, store: slow.store });
+    const first = recorded(setup.dispatcher);
+    await init(first.client);
+    const { session } = await first.client.request("session/create", { cwd: "/work" });
+    await first.client.request("turn/start", { session, input: text("Refund o1") });
+    await until(() => settledCount(first.seen) === 1, "the pause");
+    const [asked] = requestsOf(first.seen);
+    assert.ok(asked !== undefined);
+    armed = true;
+    const second = recorded(setup.dispatcher);
+    await second.client.request("session/open", { session, cwd: "/work" });
+    await slow.taken;
+    first.client.respond<"approval/request">(asked.id, allow(asked));
+    await until(() => settledCount(first.seen) === 2, "the resume");
+    held.open();
+    for (let i = 0; i < 50; i++) await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(requestsOf(second.seen), []);
+  });
+});
+
+describe("turn ids a client reuses", () => {
+  test("a turn/start id reused for a second turn cancels the second, even after the first settles", async () => {
+    const gates = [gate(), gate()];
+    let calls = 0;
+    const slow = {
+      name: "slow",
+      source: "builtin" as const,
+      definition: defineTool({
+        name: "slow",
+        description: "Waits.",
+        inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+        async execute(_input, ctx) {
+          const held = gates[calls++]?.promise;
+          await Promise.race([held, new Promise((resolve) => ctx.signal.addEventListener("abort", resolve))]);
+          return { content: [{ type: "text", text: "waited" }] };
+        },
+      }) as ToolDefinition<unknown, unknown, unknown>,
+    };
+    const setup = approvalSetup(
+      [
+        { content: [callTool("a1", "slow", { id: "a" })] },
+        { content: [callTool("b1", "slow", { id: "b" })] },
+        reply("A done."),
+        reply("B done."),
+      ],
+      [slow],
+    );
+    const wire: ServerMessage[] = [];
+    const raw = setup.dispatcher.connect((message) => {
+      wire.push(message);
+    });
+    const ask = (id: number, method: string, params: object) =>
+      raw.receive({ jsonrpc: "2.0", id, method, params } as never);
+    await ask(1, "session/create", { session: "A", cwd: "/work" });
+    await ask(2, "session/create", { session: "B", cwd: "/work" });
+    const started = (session: string) =>
+      wire.some(
+        (m) =>
+          "method" in m &&
+          m.method === "event" &&
+          m.params.session === session &&
+          m.params.event.type === "tool_call_start",
+      );
+    await ask(7, "turn/start", { session: "A", input: text("a") });
+    await until(() => started("A"), "A's tool");
+    // The client reuses id 7 now that A's turn/start has its response.
+    await ask(7, "turn/start", { session: "B", input: text("b") });
+    await until(() => started("B"), "B's tool");
+    gates[0]?.open();
+    await until(() => settledCount(wire) === 1, "A's turn");
+    await raw.receive({ jsonrpc: "2.0", method: "$/cancelRequest", params: { id: 7 } });
+    await until(() => settledCount(wire) === 2, "B's turn");
+    gates[1]?.open();
+    const bySession = new Map(settledMessages(wire).map((settled) => [settled.session, settled.result.stopReason]));
+    assert.deepEqual(
+      [...bySession],
+      [
+        ["A", "done"],
+        ["B", "aborted"],
+      ],
+    );
   });
 });

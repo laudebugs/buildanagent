@@ -21,6 +21,7 @@ import {
   scripted,
   settledCount,
   settledMessages,
+  snapshotLoads,
   text,
   until,
 } from "./server-helpers.js";
@@ -341,5 +342,125 @@ describe("session/open with fromSeq", () => {
       entrySeqs(later.seen),
       entrySeqs(first.seen).filter((seq) => seq >= 2),
     );
+  });
+});
+
+describe("what an open holds", () => {
+  test("a client that already watches a session keeps its live stream when its open fails", async () => {
+    const base = memoryBackend();
+    const held = gate();
+    // An open from 1000 reads from 999, which this store holds back until the test lets it go.
+    const slow = snapshotLoads(base.store, (options) => options?.fromSeq === 999, held.promise);
+    const harness = createHarness({
+      registry: createToolRegistry(),
+      model: scripted([reply("One."), reply("Two.")]),
+      system: "s",
+    });
+    const dispatcher = createDispatcher({ harness, ...base, store: slow.store, userId: "ada" });
+    const { client, seen } = recorded(dispatcher);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("a") });
+    await until(() => settledCount(seen) === 1, "the first turn");
+    const failed = client.request("session/open", { session, cwd: "/work", fromSeq: 1000 });
+    await slow.taken;
+    // A turn settles while the open is reading the log.
+    await client.request("turn/start", { session, input: text("b") });
+    for (let i = 0; i < 50; i++) await new Promise((resolve) => setImmediate(resolve));
+    held.open();
+    await assert.rejects(failed, (error: unknown) => error instanceof RpcFailure);
+    await until(() => settledCount(seen) === 2, "the second turn's turn/settled");
+    assert.equal(settledMessages(seen)[1]?.result.stopReason, "done");
+  });
+
+  test("events dropped from a full hold are marked where the drops were, and the marker goes out at once", async () => {
+    const base = memoryBackend();
+    const held = gate();
+    const slow = snapshotLoads(base.store, (options) => options?.fromSeq === 1, held.promise);
+    const harness = createHarness({
+      registry: createToolRegistry(),
+      model: scripted([reply("One."), reply("z".repeat(200))]),
+      system: "s",
+    });
+    const dispatcher = createDispatcher({ harness, ...base, store: slow.store, userId: "ada", queueSize: 4 });
+    const writer = recorded(dispatcher);
+    await init(writer.client);
+    const { session } = await writer.client.request("session/create", { cwd: "/work" });
+    await writer.client.request("turn/start", { session, input: text("a") });
+    await until(() => settledCount(writer.seen) === 1, "the first turn");
+    const wire: ServerMessage[] = [];
+    const joiner = dispatcher.connect((message) => {
+      wire.push(message);
+    });
+    const opened = joiner.receive({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "session/open",
+      params: { session, cwd: "/work", fromSeq: 2 },
+    });
+    await slow.taken;
+    await writer.client.request("turn/start", { session, input: text("b") });
+    await until(() => settledCount(writer.seen) === 2, "the second turn");
+    held.open();
+    await opened;
+    for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+    const kinds = wire.map((m) =>
+      !("method" in m) ? "response" : m.method === "event" ? m.params.event.type : m.method,
+    );
+    const marker = kinds.indexOf("events_dropped");
+    assert.ok(marker > 0, "the marker went out");
+    assert.ok(marker < kinds.indexOf("turn/settled"), "the marker comes before the turn/settled held after it");
+  });
+
+  test("a marker for drops at the end of a hold goes out even when nothing follows it", async () => {
+    const base = memoryBackend();
+    const held = gate();
+    const toolHeld = gate();
+    const slow = snapshotLoads(base.store, (options) => options?.fromSeq === 1, held.promise);
+    const harness = createHarness({
+      registry: (() => {
+        const registry = createToolRegistry();
+        registry.register({ name: "wait", source: "builtin", definition: heldTool(toolHeld.promise) });
+        return registry;
+      })(),
+      model: scripted([
+        reply("One."),
+        { content: [{ type: "text", text: "z".repeat(200) }, callTool("c1", "wait", { id: "x" })] },
+        reply("Done."),
+      ]),
+      system: "s",
+    });
+    const dispatcher = createDispatcher({ harness, ...base, store: slow.store, userId: "ada", queueSize: 4 });
+    const writer = recorded(dispatcher);
+    await init(writer.client);
+    const { session } = await writer.client.request("session/create", { cwd: "/work" });
+    await writer.client.request("turn/start", { session, input: text("a") });
+    await until(() => settledCount(writer.seen) === 1, "the first turn");
+    const wire: ServerMessage[] = [];
+    const joiner = dispatcher.connect((message) => {
+      wire.push(message);
+    });
+    const opened = joiner.receive({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "session/open",
+      params: { session, cwd: "/work", fromSeq: 2 },
+    });
+    await slow.taken;
+    await writer.client.request("turn/start", { session, input: text("b") });
+    // The second turn streams its reply and then waits in its tool, so it sends nothing once the open is released.
+    await until(
+      () => writer.seen.some((m) => "method" in m && m.method === "event" && m.params.event.type === "tool_call_start"),
+      "the tool to start",
+    );
+    held.open();
+    await opened;
+    for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
+    const dropped = wire.filter(
+      (m) => "method" in m && m.method === "event" && m.params.event.type === "events_dropped",
+    );
+    assert.equal(dropped.length, 1);
+    toolHeld.open();
+    await until(() => settledCount(wire) === 1, "the second turn");
   });
 });

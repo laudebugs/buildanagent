@@ -2,7 +2,8 @@
  * One client's end of the dispatcher: what it may see, what it has asked, and what the server has asked it. A
  * connection receives only the events of the sessions it created or opened. It holds at most `limit` commands at a
  * time, counting each until its response has gone out, so a client that sends faster than it reads is refused with
- * `QueueFull` instead of growing the queue. The server requests it holds are bounded by what waits: one per pending
+ * `QueueFull` instead of growing the queue. At most `limit` refusals wait to go out, and past that the connection is
+ * closed, because a client that neither reads nor waits would otherwise grow the queue with refusals. The server requests it holds are bounded by what waits: one per pending
  * approval or clarification of a session it watches, and one per `client_request` tool call a turn it started makes.
  */
 import {
@@ -65,6 +66,8 @@ interface Held {
   events: number;
   dropped: number;
   lastDroppedSeq: number;
+  /** How many of `messages` came before the first drop, so the marker goes out where the drops were. */
+  gapAt: number | undefined;
 }
 
 const isId = (value: unknown): value is Id =>
@@ -81,6 +84,7 @@ export class ServerConnection {
   readonly #asked = new Map<string, Asked>();
   readonly #turns = new Map<Id, () => void>();
   #inFlight = 0;
+  #refusals = 0;
   #open = true;
 
   constructor(host: ConnectionHost, deliver: Deliver, limit: number) {
@@ -118,6 +122,7 @@ export class ServerConnection {
       held.messages.push(message);
       held.events += 1;
     } else {
+      held.gapAt ??= held.messages.length;
       held.dropped += 1;
       held.lastDroppedSeq = Math.max(held.lastDroppedSeq, message.params.seq);
     }
@@ -135,13 +140,18 @@ export class ServerConnection {
   /** Starts holding a session's live events, so none is lost or sent early while its log is read. False if one is already held. */
   hold(session: string): boolean {
     if (this.#held.has(session)) return false;
-    this.#held.set(session, { messages: [], events: 0, dropped: 0, lastDroppedSeq: -1 });
+    this.#held.set(session, { messages: [], events: 0, dropped: 0, lastDroppedSeq: -1, gapAt: undefined });
     return true;
   }
 
-  /** Drops what a failed open held, and leaves the session as watched or unwatched as it was. */
+  /**
+   * Ends the hold of a failed open, and leaves the session as watched or unwatched as it was. A connection that
+   * already watched the session still gets what was held, because those messages are its live stream; one that did
+   * not gets nothing.
+   */
   unhold(session: string): void {
-    this.#held.delete(session);
+    if (this.#watching.has(session)) this.release(session, [], -1);
+    else this.#held.delete(session);
   }
 
   /**
@@ -153,13 +163,17 @@ export class ServerConnection {
     this.#held.delete(session);
     this.#watching.add(session);
     for (const message of replay) this.#outbox.push(message, { keep: true });
-    for (const message of held?.messages ?? []) {
+    for (const [index, message] of (held?.messages ?? []).entries()) {
+      // The drops began once the hold was full, so their marker goes out before what was held after them.
+      if (index === held?.gapAt) this.#outbox.pushGap(session, held.dropped, held.lastDroppedSeq);
       if (message.method === "event" && message.params.event.type === "entry_appended") {
         if (message.params.seq <= replayedTo) continue;
       }
       this.#outbox.push(message);
     }
-    if (held !== undefined && held.dropped > 0) this.#outbox.markGap(session, held.dropped, held.lastDroppedSeq);
+    if (held?.gapAt !== undefined && held.gapAt >= held.messages.length) {
+      this.#outbox.pushGap(session, held.dropped, held.lastDroppedSeq);
+    }
   }
 
   optIn(methods: readonly string[]): void {
@@ -203,8 +217,9 @@ export class ServerConnection {
     this.#turns.set(id, cancel);
   }
 
-  untrackTurn(id: Id): void {
-    this.#turns.delete(id);
+  /** Stops tracking a turn, unless a later `turn/start` that reused the id has replaced its canceller. */
+  untrackTurn(id: Id, cancel: () => void): void {
+    if (this.#turns.get(id) === cancel) this.#turns.delete(id);
   }
 
   close(): void {
@@ -233,6 +248,31 @@ export class ServerConnection {
     await this.#command(message as ClientCommand & { id: Id });
   }
 
+  /**
+   * Answers a command the full queue can't take with `QueueFull`. The refusal takes no command's place, but it waits to
+   * go out like any response, so a client that keeps sending without reading would grow the queue: once `limit`
+   * refusals wait, the server closes the connection instead.
+   */
+  #refuse(id: Id): void {
+    if (this.#refusals >= this.#limit) {
+      this.close();
+      return;
+    }
+    this.#refusals += 1;
+    this.#outbox.push(
+      {
+        jsonrpc: "2.0",
+        id,
+        error: { code: ErrorCodes.QueueFull, message: `the queue holds ${this.#limit} commands; send again later` },
+      },
+      {
+        onSent: () => {
+          this.#refusals -= 1;
+        },
+      },
+    );
+  }
+
   /** A client's answer to a server request. One with an id this connection is not waiting on is ignored. */
   #answered(message: Exclude<ClientMessage, ClientCommand>): void {
     if (typeof message.id !== "string") return;
@@ -248,11 +288,7 @@ export class ServerConnection {
 
   async #command(command: ClientCommand & { id: Id }): Promise<void> {
     if (this.#inFlight >= this.#limit) {
-      this.send({
-        jsonrpc: "2.0",
-        id: command.id,
-        error: { code: ErrorCodes.QueueFull, message: `the queue holds ${this.#limit} commands; send again later` },
-      });
+      this.#refuse(command.id);
       return;
     }
     this.#inFlight += 1;
