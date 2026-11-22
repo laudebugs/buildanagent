@@ -95,7 +95,7 @@ describe("the harness's own signals", () => {
     assert.ok(await eventually(() => !alive(server)), "the server outlived its host");
   }, 30_000);
 
-  test("a host with its own SIGTERM listener keeps control, and its close ends the server", async () => {
+  test("a host with its own SIGTERM listener keeps control of its exit, and the server still ends", async () => {
     const { child, exited, ready } = runHost("own-handler");
     const server = await ready();
     child.kill("SIGTERM");
@@ -103,6 +103,27 @@ describe("the harness's own signals", () => {
     assert.equal(exit.code, 0);
     assert.ok(await eventually(() => !alive(server)));
   }, 30_000);
+
+  test("a host whose SIGTERM listener does nothing stays up, and its server group is killed anyway", async () => {
+    const { child, exited, ready } = runHost("noop-listener");
+    const server = await ready();
+    child.kill("SIGTERM");
+    try {
+      assert.ok(await eventually(() => !alive(server), 5000), "the server outlived the signal");
+      assert.equal(child.exitCode, null, "the host's own listener kept it running");
+    } finally {
+      child.kill("SIGKILL");
+      await exited;
+    }
+  }, 30_000);
+
+  test("the signal listeners are removed once the last server closes", async () => {
+    const before = process.listenerCount("SIGTERM");
+    const connection = await connectMcpServer(stdioServer("lib", "library", ["legacy"]));
+    assert.equal(process.listenerCount("SIGTERM"), before + 1);
+    await connection.close();
+    assert.equal(process.listenerCount("SIGTERM"), before);
+  });
 });
 
 describe("registration is all or none against the real registry", () => {
@@ -151,6 +172,41 @@ describe("registration is all or none against the real registry", () => {
 });
 
 describe("config checks", () => {
+  test("a registry without list() or registerAll() is refused before anything starts", () => {
+    const registry = createToolRegistry();
+    for (const missing of ["list", "registerAll"] as const) {
+      const partial = {
+        register: registry.register.bind(registry),
+        registerAll: registry.registerAll.bind(registry),
+        list: registry.list.bind(registry),
+        [missing]: undefined,
+      };
+      assert.throws(
+        () => createMcpManager({ registry: partial as never, servers: [] }),
+        (error: unknown) =>
+          isHarnessError(error) && error.code === "invalid_mcp_config" && error.message.includes(missing),
+      );
+    }
+  });
+
+  for (const [name, transport] of [
+    ["a cwd that is not a string", { cwd: 42 }],
+    ["a NUL in the command", { command: "node\0x" }],
+    ["a NUL in an argument", { args: ["a\0b"] }],
+    ["a NUL in the cwd", { cwd: "/tmp\0x" }],
+  ] as const) {
+    test(`${name} is an invalid MCP config when the manager is made`, () => {
+      assert.throws(
+        () =>
+          createMcpManager({
+            registry: createToolRegistry(),
+            servers: [stdioServer("lib", "library", ["legacy"], { transport: transport as never })],
+          }),
+        (error: unknown) => isHarnessError(error) && error.code === "invalid_mcp_config",
+      );
+    });
+  }
+
   test("a refused variable name is an invalid MCP config", () => {
     assert.throws(
       () =>

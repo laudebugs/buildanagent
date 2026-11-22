@@ -82,7 +82,7 @@ The 2.4.0 client may not expose a per-connection era; read it from the negotiate
 - **The MCP code adds no pipeline of its own.** A tool's `execute` is the only path to `callTool()`, and the turn runs `execute` only after the permission gate allows the call. Its result then passes the write cap like any tool result. The tests check this end to end: the server's own call log, and the stored `tool_result` with its spill.
 - **A request for user input fails the call.** The client runs with `inputRequired: { autoFulfill: false }`, so an `input_required` result rejects with `UNSUPPORTED_RESULT_TYPE`. The harness maps that to `McpError` with `failure: "input_required"`, and the model reads a fixed sentence. The source-update report's proposal, a signed pause through N13, waits on the owner's decision (question 1 below). The client declares no capabilities, so a 2.4.0 server refuses its own input requests before it sends them.
 - **A server's output schema is never compiled.** The client validates a tool's structured content against the output schema in its cached tool list, which runs the server's patterns. The harness reads only `content`, so it gives the client a validator that accepts everything. A test with the pattern `^(a+)+$` hangs without it.
-- **Signals end the servers only when they would end the process.** Each server runs in its own process group, so the terminal's `SIGINT` never reaches it, and Node emits no `exit` event when a signal's default action ends the process. The harness listens for `SIGINT`, `SIGTERM` and `SIGHUP`. When its listener is the signal's only one, it kills the groups, removes itself and raises the signal again, so the process ends as it would have. When the host has a listener too, the harness does nothing, and the host must call `close()`. Killing on every signal was the alternative; it would end servers under a host that handles `SIGINT` to cancel a turn.
+- **Signals end the servers only when they would end the process.** Each server runs in its own process group, so the terminal's `SIGINT` never reaches it, and Node emits no `exit` event when a signal's default action ends the process. The harness listens for `SIGINT`, `SIGTERM` and `SIGHUP`. On each of them it kills every group, since ending its own children is never wrong. When its listener is the signal's only one, it then raises the signal again, so the process ends as it would have; when any other listener exists, the process goes on as that listener decides. The listeners are removed once the last server closes. The first version left the servers alone whenever the host had any listener, which a logger's no-op listener was enough to trigger (medium review).
 - **A server's exit waits for the rest of its output.** Node does not promise that a child's output has been read when it exits, so the channel keeps reading until standard output ends, for at most `closeGraceMs`. The first version closed at the exit and lost output that came after it.
 - **A close aborts handshakes.** `manager.close()` aborts every connect still running and closes every open connection, so a server that hangs can't hold up shutdown.
 - **A changed tool list is logged, never applied.** The manager registers a handler for `notifications/tools/list_changed` that only calls `log`. N25 owns the pin and the diff, and re-registering here would have put HD14's revision, tools that change silently, back in place.
@@ -123,12 +123,20 @@ The first code review's fixes have their own mutations, and each fails its test:
 | R7 close waits for the handshakes | a hung handshake can't hold shutdown | fails |
 | A1 the client's own validator | output schema never compiled | fails: the call hangs on the pattern |
 
+The medium review's fixes, each with a mutation that fails its test:
+
+| Mutation | Fix | Result |
+| --- | --- | --- |
+| M-1 check only `register()` | a registry without `registerAll()` or `list()` is refused when the manager is made | fails |
+| M-3 kill only when the harness's listener is alone; M-3b never remove the listeners | groups end under a host's no-op listener; listeners leave with the last server | both fail |
+| M-4 no `cwd` check; M-4b no NUL check | a bad `cwd`, or a NUL in the command, an argument or `cwd`, is an invalid config | both fail |
+
 **Named limits.**
 
 - A request for user input fails the call, so a server that needs a confirmation can't finish its tool.
 - A server that exits stays down until the harness connects it again; nothing reconnects it.
 - A tool-list change is logged, and the registered tools stay as they were.
-- If the harness process is killed with `SIGKILL`, no handler can run, and a server that ignores its closed input outlives it. Under a host that listens for `SIGINT`, `SIGTERM` or `SIGHUP` itself, the host must call `close()`.
+- If the harness process is killed with `SIGKILL`, no handler can run, and a server that ignores its closed input outlives it. Under a host that listens for `SIGINT`, `SIGTERM` or `SIGHUP` itself, the servers end on the signal and the host decides whether the process does; a host that means to keep working after such a signal reconnects its servers.
 - A tool list is counted after the client gathers it: up to 8 pages, each at most `maxLineBytes`, are held before `maxTools` applies.
 - A stdio server runs on the host, with the harness's user, outside any sandbox. `spawnEnv()` limits what it inherits, not what it can do.
 - A server that exits with a non-zero code on the probe is not started again, and fails to connect.

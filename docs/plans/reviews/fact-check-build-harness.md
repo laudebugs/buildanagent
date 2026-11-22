@@ -333,6 +333,7 @@ Claims about `@modelcontextprotocol/client` and `@modelcontextprotocol/server` w
 | N24-27 | A child's standard output can arrive after its `exit` event, so a channel that closes at the exit loses it | N24 Outcome | ✅ | Mutation R1: the `late-output` server exits and a child in its group writes the answer 150 ms later; closing at the exit fails the call as `closed` |
 | N24-28 | A process that a signal's default action ends emits no `exit` event, so an exit handler alone leaves a server that ignores its input running after `SIGTERM` | N24 Outcome, harness README | ✅ | Mutation R2: without the signal listeners, the host dies by `SIGTERM` and the server it started outlives it |
 | N24-29 | A Node signal listener replaces the signal's default exit, so the harness re-raises the signal only when its listener is the only one | `stdio.ts`, harness README | ✅ | The `plain` host test: with the harness's listener alone, the host still exits by `SIGTERM`; the `own-handler` test shows the host's listener keeping control (mutation R2b fails it) |
+| N24-30 | The harness kills every server group on `SIGINT`, `SIGTERM` and `SIGHUP`, re-raises only when its listener is the signal's only one, and removes its listeners once the last server closes (corrects row N24-29's design, which left the servers to any host with a listener) | harness README, N24 Outcome | ✏️ | `stdio.ts` `onSignal`, `untrack`; `hardening.test.ts`: the `noop-listener` host stays up while its server group is killed, and `process.listenerCount("SIGTERM")` returns to its baseline after the last close; mutations M-3 and M-3b fail them |
 
 ## §6.4 questions from N29
 
@@ -367,4 +368,4 @@ Checked on 2026-11-22 on branch `docs/n29-open-questions`, off `main` at `a3516b
 | docs/n29-open-questions-25 | §2 now says no HD decision waits on the owner, and L10 is in `docs/todos/done/` | `build-harness.md` §2 and §6.3 question 7 | ✅ | `ls docs/todos/done \| grep L10` finds it; the link now points there. L11 is still in `ready/`, so its link stays. |
 | docs/n29-open-questions-26 | Row docs/n29-open-questions-2's reason now says `@cfworker/json-schema` is a dependency of `packages/protocol` and a dev dependency of `packages/sdk`, and the harness does not import it (writing-review fix; row 15's reason now points to row 24) | `packages/protocol/package.json`; `packages/sdk/package.json`; `packages/harness/src` | ✏️ | `grep cfworker packages/*/package.json` finds protocol and sdk and not harness; `grep -rn cfworker packages/harness/src` finds nothing. The review's other fixes split sentences and move clauses without changing a claim. |
 
-**Totals:** 270 claims: 195 ✅, 55 ✏️, 20 ⚠️.
+**Totals:** 271 claims: 195 ✅, 56 ✏️, 20 ⚠️.

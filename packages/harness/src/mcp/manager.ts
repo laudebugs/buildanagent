@@ -162,11 +162,15 @@ class Manager implements McpManager {
 
 /**
  * Creates the MCP client for a set of servers. It checks every config now and starts nothing until `connect()`.
- * Throws a `HarnessError`, code `invalid_mcp_config`, for a config that can't be used or two servers with one name.
+ * Throws a `HarnessError`, code `invalid_mcp_config`, for a config that can't be used, two servers with one name, or a
+ * registry without `register()`, `registerAll()` and `list()`.
  */
 export function createMcpManager(options: McpManagerOptions): McpManager {
-  if (typeof options?.registry?.register !== "function") {
-    throw new HarnessError("invalid_mcp_config", "createMcpManager() needs a tool registry");
+  const registry = options?.registry;
+  for (const method of ["register", "registerAll", "list"] as const) {
+    if (typeof registry?.[method] !== "function") {
+      throw new HarnessError("invalid_mcp_config", `createMcpManager() needs a tool registry with ${method}()`);
+    }
   }
   checkServers(options.servers);
   return new Manager(options);

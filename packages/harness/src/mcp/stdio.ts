@@ -40,19 +40,25 @@ function killAll(): void {
   live.clear();
 }
 
+function unhook(): void {
+  if (!hooked) return;
+  hooked = false;
+  process.removeListener("exit", killAll);
+  for (const signal of SIGNALS) process.removeListener(signal, onSignal);
+}
+
 /**
- * Called on a signal that would end the process. A server runs in its own process group, so the terminal's signal never
- * reaches it. When this handler is the signal's only listener, Node's default is to exit, so the handler kills the
- * groups, removes itself and raises the signal again, and the process ends as it would have. When the host listens for
- * the signal too, the host decides whether the process ends, so the handler does nothing and the host must call
- * `close()`.
+ * Called on `SIGINT`, `SIGTERM` or `SIGHUP`. A server runs in its own process group, so the terminal's signal never
+ * reaches it, and the handler always kills the groups: ending the harness's own children is never wrong. When this
+ * handler is the signal's only listener, Node's default would have ended the process, so it removes itself and raises
+ * the signal again, and the process ends as it would have. When any other listener exists, the process goes on as that
+ * listener decides.
  */
 function onSignal(signal: NodeJS.Signals): void {
-  if (process.listenerCount(signal) > 1) return;
+  const alone = process.listenerCount(signal) === 1;
   killAll();
-  for (const each of SIGNALS) process.removeListener(each, onSignal);
-  hooked = false;
-  process.kill(process.pid, signal);
+  unhook();
+  if (alone) process.kill(process.pid, signal);
 }
 
 function track(pid: number): void {
@@ -62,6 +68,12 @@ function track(pid: number): void {
     for (const signal of SIGNALS) process.on(signal, onSignal);
   }
   live.add(pid);
+}
+
+/** Forgets a group that has ended, and removes the handlers once none is left. */
+function untrack(pid: number): void {
+  live.delete(pid);
+  if (live.size === 0) unhook();
 }
 
 function wholeNumber(name: string, value: number | undefined, fallback: number): number {
@@ -82,6 +94,21 @@ function concat(chunks: readonly Uint8Array[], size: number): Uint8Array {
   return all;
 }
 
+/** Checks that a stdio server's command, args and cwd are strings without a NUL, which no program name can hold. */
+function checkText(transport: McpStdioTransport, args: readonly string[]): void {
+  if (transport.cwd !== undefined && typeof transport.cwd !== "string") {
+    throw new HarnessError("invalid_mcp_config", "a stdio server's cwd must be a string");
+  }
+  for (const [field, value] of [
+    ["command", transport.command],
+    ["cwd", transport.cwd ?? ""],
+    ...args.map((arg) => ["args", arg] as const),
+  ] as const) {
+    if (value.includes("\0"))
+      throw new HarnessError("invalid_mcp_config", `a stdio server's ${field} holds a NUL character`);
+  }
+}
+
 /** Checks a stdio transport's settings, so a typo fails when the manager is made and not when the server starts. */
 export function checkStdioTransport(transport: McpStdioTransport): void {
   if (typeof transport.command !== "string" || transport.command === "") {
@@ -91,6 +118,7 @@ export function checkStdioTransport(transport: McpStdioTransport): void {
   if (!Array.isArray(args) || args.some((arg) => typeof arg !== "string")) {
     throw new HarnessError("invalid_mcp_config", "a stdio server's args must be a list of strings");
   }
+  checkText(transport, args);
   if (transport.env !== undefined && !Array.isArray(transport.env)) {
     throw new HarnessError("invalid_mcp_config", "a stdio server's env must be a list of variable names");
   }
@@ -262,7 +290,7 @@ export class StdioChannel implements McpChannel {
       // The server may have left children in its group, and they hold nothing the harness needs.
       killGroup(pid, "SIGKILL");
       await this.#exitWithin(this.#grace);
-      live.delete(pid);
+      untrack(pid);
       child.stdout?.destroy();
       child.stderr?.destroy();
       child.stdin?.destroy();
