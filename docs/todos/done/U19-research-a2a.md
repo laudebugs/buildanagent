@@ -13,7 +13,7 @@
 
 ## Goal
 
-Research agent-to-agent protocols (a2a) so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T21, todo [T37](../ready/T37-section-a2a.md). **Research question:** What does A2A 1.0.0 standardize, how does it divide work with MCP, which of our SDKs support it in TypeScript as of the research date, and when should an agent call or expose another agent over A2A?
+Research agent-to-agent protocols (a2a) so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T21, todo [T37](../done/T37-section-a2a.md). **Research question:** What does A2A 1.0.0 standardize, how does it divide work with MCP, which of our SDKs support it in TypeScript as of the research date, and when should an agent call or expose another agent over A2A?
 
 ## Context
 
