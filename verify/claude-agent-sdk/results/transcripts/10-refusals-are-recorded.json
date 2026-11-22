@@ -129,37 +129,37 @@
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 42,
       "message": "the refused send_email never ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 43,
       "message": "the run still ends in a result: a refusal is not an error",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 44,
+      "line": 45,
       "message": "the result records one refused call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 45,
+      "line": 46,
       "message": "the record names the refused tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 47,
       "message": "the record keeps the refused call's input",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 50,
+      "line": 51,
       "message": "the model's next request carries the refusal as an error result",
       "pass": true
     },
@@ -282,13 +282,13 @@
     },
     {
       "kind": "check",
-      "line": 59,
+      "line": 61,
       "message": "the allowed read_notes ran",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 60,
+      "line": 62,
       "message": "an allowed call leaves permission_denials empty",
       "pass": true
     }

@@ -38,6 +38,7 @@ const { result } = await collect(
   }),
 );
 // #endregion
+// #region refusal-checks
 check(ran.send === 0, "the refused send_email never ran");
 check(result?.subtype === "success", "the run still ends in a result: a refusal is not an error"); // book:note result
 const denials = result?.permission_denials ?? [];
@@ -46,8 +47,9 @@ check(denials[0]?.tool_name === "mcp__mail__send_email", "the record names the r
 check(denials[0] !== undefined && "to" in denials[0].tool_input, "the record keeps the refused call's input");
 const refusal = modelRequests()
   .flatMap((request) => request.blocks)
-  .find((block) => block.type === "tool_result" && block.is_error === true);
-check(refusal !== undefined, "the model's next request carries the refusal as an error result"); // book:note model
+  .find((block) => block.type === "tool_result" && block.tool_use_id === denials[0]?.tool_use_id);
+check(refusal?.is_error === true, "the model's next request carries the refusal as an error result"); // book:note model
+// #endregion
 
 // A call that a rule allows runs, and the result records no refusal.
 const allowed = await collect(

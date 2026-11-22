@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](../done/T7-book-isometric-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T31](T31-example-sandbox-behaviour.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](../done/T7-book-isometric-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T31](../done/T31-example-sandbox-behaviour.md) |
 | Size | M |
 
 ## Goal
@@ -32,7 +32,7 @@ Write the chapter "Permissions, sandboxes and credentials, and the lethal trifec
 
 - `apps/manual/src/content/chapters/permissions-sandboxes-and-credentials.md`, with `switchTo: [N12–N20]` and `opening: incident` in its front matter
 - Sections: A deny-first permission pipeline; Sandboxes and egress; The credential boundary, then connector OAuth and token custody (moved from the tools chapter); Prompt injection contained: the lethal trifecta and cutting the outbound leg (agent guide §5)
-- Listings and at least one replay from: `verify/claude-agent-sdk/examples/03-permission-order.ts`, `verify/copilot-sdk/examples/03-permission-deny.ts`, `verify/copilot-sdk/examples/04-restrict-builtins.ts`, `verify/pi/examples/07-extension-gate.ts`, `verify/copilot-sdk/examples/00-sandbox.ts` (labelled as our harness's network self-check, not an SDK feature), the sandbox example from [T31](T31-example-sandbox-behaviour.md)
+- Listings and at least one replay from: `verify/claude-agent-sdk/examples/03-permission-order.ts`, `verify/copilot-sdk/examples/03-permission-deny.ts`, `verify/copilot-sdk/examples/04-restrict-builtins.ts`, `verify/pi/examples/07-extension-gate.ts`, `verify/copilot-sdk/examples/00-sandbox.ts` (labelled as our harness's network self-check, not an SDK feature), `verify/claude-agent-sdk/examples/10-refusals-are-recorded.ts` from [T31](../done/T31-example-sandbox-behaviour.md), which shows a call the SDK refuses and records in `permission_denials`, not an operating-system sandbox (the mock never calls the host tools a sandbox confines, so the sandbox tier stays prose)
 - Figures: a flat analogy illustration of the lab glovebox, placed just before the centerpiece; an isometric centerpiece of an exact technical diagram of the deny-first permission pipeline, the sandbox and its egress allowlist, with real labels; a flat figure of where the credential is added, outside the sandbox
 - Exercise: Add a deny rule after an approval and predict which calls it blocks; then remove the outbound tool and show the injected instruction has nowhere to go.
 - `apps/manual/fact-checks/permissions-sandboxes-and-credentials.md`, the chapter's claims log
