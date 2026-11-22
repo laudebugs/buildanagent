@@ -12,7 +12,9 @@ export type HarnessErrorCode =
   | "sandbox_not_found"
   | "unsafe_sandbox_not_acknowledged"
   | "invalid_sandbox_options"
-  | "invalid_spawn_env";
+  | "invalid_spawn_env"
+  | "duplicate_tool"
+  | "invalid_tool_registration";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -23,7 +25,9 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * refused a file read or write (`SandboxDeniedError`). `sandbox_disposed`: the sandbox was disposed before the call.
  * `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe: true`. `invalid_sandbox_options`: a
  * sandbox option, manifest or command is unusable. `invalid_spawn_env`: `spawnEnv()` was given a name or value that
- * can't be part of a clean environment.
+ * can't be part of a clean environment. `duplicate_tool`: a tool registry already holds a tool or alias by that name
+ * (`DuplicateToolError`). `invalid_tool_registration`: a tool registration or a registry option is unusable, such as a
+ * name that breaks the canonical rule or an unknown source.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";

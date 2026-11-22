@@ -1,6 +1,6 @@
 # Plan: build our agent harness as four packages around one session log, in 55 todos that start on the SDK's seams
 
-- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment. Revised on 2026-11-19 from the [retrieval and memory report][u18] (U18), whose twelve proposed changes the owner approved that day: HD17 and todo N52 add file-based long-term memory, N21 gains read-only `grep` and `glob` built-ins, HD11 is amended so a memory delete reaches the session log ([ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md)), and HD17 records the memory side of the untrusted-source decision that plan review 2 proposes as HD16. Revised on 2026-11-19 from the A2A (U19) and voice (U20) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 records that v1 ships no A2A client or server, §3.3 defaults remote-agent tools to untrusted output, and HD6 records what a voice front end would need from the protocol and the log. Revised on 2026-11-19 from the book's Chapter 5, by the owner's decision that day ("yes, i accept these"): §3.2 and N3 key every session lookup by user and session id. Revised on 2026-11-22 by N2: §3.2's entry union is built in `@buildanagent/protocol`, which also owns `PermissionMode`, `ApprovalPolicy` and `SandboxTier`.
+- **Status:** Draft (P2, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets ([ADR 0033](../decisions/0033-three-deployment-targets.md), [coding agent plan §4](build-coding-agent.md#4-changes-to-the-sdk-and-harness-plans)): stage 8 (§4.8) adds todos N41–N49. Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md), Anthropic's thinking prefix check (HD3), MCP tool pinning (HD14) and the owner's HD8 amendment. Revised on 2026-11-19 from the [retrieval and memory report][u18] (U18), whose twelve proposed changes the owner approved that day: HD17 and todo N52 add file-based long-term memory, N21 gains read-only `grep` and `glob` built-ins, HD11 is amended so a memory delete reaches the session log ([ADR 0056](../decisions/0056-file-based-memory-and-log-purge.md)), and HD17 records the memory side of the untrusted-source decision that plan review 2 proposes as HD16. Revised on 2026-11-19 from the A2A (U19) and voice (U20) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 records that v1 ships no A2A client or server, §3.3 defaults remote-agent tools to untrusted output, and HD6 records what a voice front end would need from the protocol and the log. Revised on 2026-11-19 from the book's Chapter 5, by the owner's decision that day ("yes, i accept these"): §3.2 and N3 key every session lookup by user and session id. Revised on 2026-11-22 by N2: §3.2's entry union is built in `@buildanagent/protocol`, which also owns `PermissionMode`, `ApprovalPolicy` and `SandboxTier`. Revised on 2026-11-22 by N11: §3.3's registry is built, with `remoteAgent` as a flag, `preambleTokens()` taking the system prompt and not a model, and tool search taking an explicit `activated` set.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [harness guide][hg] (G2b), its [reference architecture][hg12] and its [twelve open decisions][hg13], and the [SDK plan][sdk] (P1), whose [seams][sdk34] this plan consumes by name
@@ -413,6 +413,7 @@ interface RegisteredTool {
   exposure: "direct" | "deferred" | "hidden";             // written to ToolDefinition.exposure
   outputTrust?: "trusted" | "untrusted";                  // Revision (agent AH10): default "untrusted" for mcp:*, else "trusted"; revision (U19, 2026-11-19): also "untrusted" for any tool that calls a remote agent
   approvalReuse?: "sticky" | "group" | "both" | "none";   // Revision (R8): default "both"; "none" refuses sticky and grouped resolutions
+  remoteAgent?: boolean;                                  // revision (N11): marks a tool that calls a remote agent, so its output defaults to "untrusted"
   definition: ToolDefinition<any, any>;
 }
 interface ToolRegistry {
@@ -421,10 +422,11 @@ interface ToolRegistry {
   setExposure(source: ToolSource, exposure: RegisteredTool["exposure"]): void;    // MCP defaults to "deferred"
   definitions<H>(wrap: ToolWrapper<H>, hostContext: H): ToolDefinition<any, any>[]; // per turn, for RunOptions.tools
   activeTools(activated: ReadonlySet<string>): string[];                         // for ModelCallPatch.activeTools
-  preambleTokens(model: Model): number;                                          // printed at session start
+  preambleTokens(options?: { system?: string }): number;                         // printed at session start; revision (N11): no model, the estimate is character-based
 }
 type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding; the turn's host context
-declare function toolSearchTool(registry: ToolRegistry): ToolDefinition<{ query: string }, { activated: string[] }>;
+declare function toolSearchTool(registry: ToolRegistry, options?: { activated?: Set<string>; maxResults?: number }): ToolDefinition<{ query: string }, { activated: string[] }>; // revision (N11): the caller owns the activated set
+declare function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors; // sends every direct tool plus the activated ones
 declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch, grep, glob
 
 // @buildanagent/harness/mcp (guide §4; HD14)
@@ -703,7 +705,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N11](../todos/ongoing/N11-tool-registry.md) | Tool registry: canonical names, exposure, tool search and host tools | N1, B12 | M |
+| [N11](../todos/done/N11-tool-registry.md) | Tool registry: canonical names, exposure, tool search and host tools | N1, B12 | M |
 | [N12](../todos/ready/N12-permission-pipeline.md) | Permission pipeline: order, rules, modes and the no-match default | N11, B13 | M |
 | [N13](../todos/ready/N13-signed-approvals.md) | Signed approvals in the log: key ring, pause, resume with re-evaluation | N12, N7 | M |
 | [N14](../todos/ready/N14-sticky-grouped-quorum.md) | Sticky allowances, grouped approvals and the quorum hook | N13 | M |
