@@ -90,8 +90,9 @@ export interface ToolRegistry {
   list(): readonly RegisteredTool[];
   /**
    * Sets the exposure of every tool of `source`, and of each one registered after. An explicit exposure on a tool is
-   * replaced. A `RegisteredTool` that `register()` or `get()` returned earlier is a snapshot, so call `get()` again to
-   * read the current exposure.
+   * replaced. A run keeps the exposure `definitions()` gave its tools, so take `definitions()` again for the next run.
+   * A `RegisteredTool` that `register()` or `get()` returned earlier is a snapshot, so call `get()` again to read the
+   * current exposure.
    */
   setExposure(source: ToolSource, exposure: ToolExposure): void;
   /**
@@ -100,8 +101,9 @@ export interface ToolRegistry {
    */
   definitions<H = undefined>(wrap?: ToolWrapper<H>, hostContext?: H): ToolDefinition<unknown, unknown, unknown>[];
   /**
-   * The complete list of names a request sends, for `ModelCallPatch.activeTools`: every `direct` tool and every tool
-   * named in `activated`, in registration order. A name the registry doesn't hold is left out.
+   * The registry's own tools a request sends: every `direct` tool and every tool named in `activated`, in
+   * registration order, and a name the registry doesn't hold is left out. It is not the complete list when the run also
+   * has tools from outside the registry, so `toolSearchInterceptors()` builds its list from the request instead.
    */
   activeTools(activated: ReadonlySet<string>): string[];
   /**

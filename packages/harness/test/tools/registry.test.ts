@@ -332,3 +332,20 @@ test("only an MCP tool may take a name that starts with mcp__", () => {
   registry.register(registration("search", "mcp:github"));
   assert.equal(registry.get("mcp__github__search")?.name, "search", "the registered name stays on the tool");
 });
+
+test("an MCP tool whose own name is not canonical still registers, and an alias may not take the mcp__ prefix", () => {
+  const registry = createToolRegistry();
+  const raw = { ...tool("source_name", "Reads."), name: "files.read" };
+  assert.match(
+    registry.register({ name: "files.read", source: "mcp:fs", definition: raw }).canonicalName,
+    /^mcp__fs__files_read_/,
+  );
+  const long = { ...tool("source_name", "Long."), name: "x".repeat(80) };
+  registry.register({ name: "x".repeat(80), source: "mcp:fs", definition: long });
+  for (const alias of ["mcp__github__search", "MCP__github__search"]) {
+    assert.throws(
+      () => registry.register({ ...registration("gh_search", "extension"), alias }),
+      (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
+    );
+  }
+});

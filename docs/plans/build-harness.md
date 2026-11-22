@@ -409,7 +409,7 @@ declare function createContextPolicy(session: Session, options?: ContextPolicyOp
 type ToolSource = "builtin" | "extension" | `mcp:${string}` | "client";
 type HostPattern = "in_process" | "client_request";       // the third pattern is deferred (§1)
 interface RegisteredTool {
-  canonicalName: string; alias?: string; source: ToolSource; pattern: HostPattern;
+  canonicalName: string; name: string; alias?: string; source: ToolSource; pattern: HostPattern;
   exposure: "direct" | "deferred" | "hidden";             // written to ToolDefinition.exposure
   outputTrust?: "trusted" | "untrusted";                  // Revision (agent AH10): default "untrusted" for mcp:*, else "trusted"; revision (U19, 2026-11-19): also "untrusted" for any tool that calls a remote agent
   approvalReuse?: "sticky" | "group" | "both" | "none";   // Revision (R8): default "both"; "none" refuses sticky and grouped resolutions
@@ -421,7 +421,7 @@ interface ToolRegistry {
   // throws DuplicateToolError; an MCP collision gets a deterministic suffix; replacing a built-in needs override: true
   setExposure(source: ToolSource, exposure: RegisteredTool["exposure"]): void;    // MCP defaults to "deferred"
   definitions<H>(wrap: ToolWrapper<H>, hostContext: H): ToolDefinition<any, any>[]; // per turn, for RunOptions.tools
-  activeTools(activated: ReadonlySet<string>): string[];                         // for ModelCallPatch.activeTools
+  activeTools(activated: ReadonlySet<string>): string[];                         // the registry's own tools a request sends; revision (N11): toolSearchInterceptors() builds its list from the request, so a tool from outside the registry stays
   preambleTokens(options?: { system?: string }): number;                         // printed at session start; revision (N11): no model, the estimate is character-based
 }
 type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding; the turn's host context
