@@ -62,10 +62,12 @@ export function asTurn<T extends object>(result: T): Exclude<T, { status: unknow
 }
 
 /**
- * A signature that differs from the original in its first character, which carries the top six bits of the first
- * decoded byte, so the decoded signature always changes. Rewriting the last two characters left a signature that
- * already ended in the replacement unchanged about once in 1,024 runs: a 32-byte MAC encodes to 43 characters, and
- * the last one holds four data bits and two zero bits, so it takes 16 values and `AA` ends 1/64 x 1/16 of them.
+ * Returns a signature that differs from `signature` in its first character. That character carries the top six
+ * bits of the first decoded byte, so the decoded signature always changes. Throws if the value comes back unchanged.
+ *
+ * Rewriting the last two characters to `AA` failed about once in 1,024 runs, because the signature already ended
+ * in `AA`. A 32-byte MAC encodes to 43 characters. The next-to-last character takes 64 values, so `A` is 1 in 64.
+ * The last holds four data bits and two zero bits, so it takes 16 values, and `A` is 1 in 16.
  */
 export function tamper(signature: string): string {
   const changed = `${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
