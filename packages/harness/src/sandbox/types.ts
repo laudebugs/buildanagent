@@ -44,8 +44,15 @@ export interface SandboxDenial {
   readonly reason: string;
 }
 
-/** What a command did: its exit status and output, or the denial that stopped it. A failing command is a result. */
-export type ExecResult = { exitCode: number; stdout: string; stderr: string } | { denied: SandboxDenial };
+/**
+ * What a command did: its exit status and output, or the denial that stopped it. A failing command is a result.
+ * `exitCode` is 124 for a timeout, 127 for a program that can't be found, and 128 plus the signal's number for a
+ * command that a signal killed, with `signal` naming it. `truncated` is `true` when the output passed the cap and the
+ * rest was dropped.
+ */
+export type ExecResult =
+  | { exitCode: number; stdout: string; stderr: string; signal?: string; truncated?: boolean }
+  | { denied: SandboxDenial };
 
 /** The options of `Sandbox.exec()`. */
 export interface ExecOptions {
@@ -53,10 +60,12 @@ export interface ExecOptions {
   readonly cwd?: string;
   /** The command's whole environment. Build it with `spawnEnv()`: nothing else is added. */
   readonly env: Readonly<Record<string, string>>;
-  /** Aborts the command. An already aborted signal rejects before the command runs. */
+  /** Aborts the command and every process it started. An already aborted signal rejects before the command runs. */
   readonly signal: AbortSignal;
-  /** Stops a command that runs longer than this, with exit code 124. */
+  /** Stops a command, and every process it started, that runs longer than this, with exit code 124. */
   readonly timeoutMs?: number;
+  /** The most bytes of each of standard output and standard error to keep. Defaults to 8 MiB; the rest is dropped. */
+  readonly maxOutputBytes?: number;
 }
 
 /** A provisioned sandbox. */
@@ -67,7 +76,7 @@ export interface Sandbox {
   readFile(path: string): Promise<Uint8Array>;
   /** Writes a file by path relative to the workspace root, or absolute, making its folders. */
   writeFile(path: string, data: Uint8Array): Promise<void>;
-  /** Releases the sandbox. Calling it again does nothing, and any other call afterwards rejects. */
+  /** Stops what is still running, and releases the sandbox. Calling it again does nothing, and any other call afterwards rejects. */
   dispose(): Promise<void>;
 }
 

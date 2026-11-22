@@ -5,14 +5,18 @@
  * import no test runner and no Node module, so any runner can call them, in workerd too.
  */
 import { isHarnessError } from "../errors.js";
-import { SandboxDeniedError, SandboxUnavailableError } from "../sandbox/errors.js";
-import type { ExecResult, Sandbox, SandboxClient, SandboxPolicy } from "../sandbox/types.js";
+import type { ExecResult, Sandbox, SandboxClient, SandboxDenial, SandboxPolicy } from "../sandbox/types.js";
 
 /** What a factory returns: the backend, and the absolute folder to use as the workspace root. */
 export interface SandboxUnderTest {
   readonly client: SandboxClient;
   /** An absolute folder that exists, empty. A sibling named `<root>-outside` stands for a path the policy refuses. */
   readonly root: string;
+  /**
+   * Makes `link` an absolute path inside the workspace that stands for `target`, as a symlink does, before or after the
+   * sandbox starts. Without it the symlink case skips, because a portable command to make one doesn't exist.
+   */
+  readonly symlink?: (link: string, target: string) => void | Promise<void>;
 }
 
 /** Makes a fresh backend and workspace for each case. */
@@ -21,10 +25,25 @@ export type SandboxFactory = () => SandboxUnderTest | Promise<SandboxUnderTest>;
 /** The options of the suite. */
 export interface SandboxConformanceOptions {
   /**
-   * Builds a command that tries to reach `host` and exits 0 if it can, for the network case. Without it that case skips,
-   * because a portable command to open a connection doesn't exist.
+   * The network case: `command(host)` is a command that exits 0 if it reaches `host`. The policy allows only `allowed`,
+   * so both hosts must accept a connection from the test, such as two loopback listeners the test owns: a host that never
+   * resolves would fail with no policy at all and prove nothing. The case checks that `allowed` is reached and `blocked`
+   * is not. Without it that case skips, because a portable command to open a connection doesn't exist.
    */
-  readonly networkProbe?: (host: string) => readonly string[];
+  readonly network?: {
+    readonly allowed: string;
+    readonly blocked: string;
+    readonly command: (host: string) => readonly string[];
+  };
+  /**
+   * The case that checks an abort and a timeout end the command's whole tree. `command` starts a background process,
+   * writes its process id to the file `pid` in the workspace and then waits for it, and `isAlive` says whether a process
+   * is still running. Without it the case skips, because a portable command that forks doesn't exist.
+   */
+  readonly processTree?: {
+    readonly command: readonly string[];
+    readonly isAlive: (pid: number) => boolean | Promise<boolean>;
+  };
 }
 
 /** One conformance case: a name a test runner can show, and a check that rejects if the backend breaks the rule. */
@@ -43,6 +62,7 @@ export interface SandboxConformanceReport {
 
 const STOPS = ["mistakes", "exfiltration", "hostile_process"];
 const ALLOWED_HOST = "allowed.test";
+const SETTLE_MS = 5000;
 // Variables a program may add to its own environment on start, which a case ignores when it counts the variables.
 const ADDED_BY_RUNTIMES = new Set(["PWD", "OLDPWD", "SHLVL", "_"]);
 const CREDENTIALS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GITHUB_TOKEN", "AWS_SECRET_ACCESS_KEY"];
@@ -64,13 +84,47 @@ interface Context {
   readonly outside: string;
 }
 
+/** The error's `code` when it is a `HarnessError`, which works across two bundled copies of this package. */
+function codeOf(error: unknown): string | undefined {
+  return isHarnessError(error) ? error.code : undefined;
+}
+
+/** The denial a `sandbox_denied` error carries, or `undefined` for any other error. */
+function denialOf(error: unknown): SandboxDenial | undefined {
+  return codeOf(error) === "sandbox_denied" ? (error as { denial?: SandboxDenial }).denial : undefined;
+}
+
 /** Provisions a sandbox for a case, or the skip that a backend reporting itself unavailable gets. */
 async function provision(context: Context): Promise<Sandbox | Skip> {
   try {
     return await context.under.client.provision({ root: context.under.root }, context.policy);
   } catch (error) {
-    if (error instanceof SandboxUnavailableError) return { skipped: error.message };
+    if (codeOf(error) === "sandbox_unavailable") return { skipped: (error as Error).message };
     throw error;
+  }
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Polls until `test` is true, for at most `SETTLE_MS`. */
+async function eventually(test: () => boolean | Promise<boolean>): Promise<boolean> {
+  const stop = Date.now() + SETTLE_MS;
+  while (Date.now() < stop) {
+    if (await test()) return true;
+    await sleep(50);
+  }
+  return test();
+}
+
+/** Runs `action` and returns the denial it ended in, as a thrown error or as a command's `denied` result. */
+async function denialFrom(action: () => Promise<unknown>): Promise<SandboxDenial | undefined> {
+  try {
+    const result = await action();
+    return typeof result === "object" && result !== null && "denied" in result
+      ? (result as { denied: SandboxDenial }).denied
+      : undefined;
+  } catch (error) {
+    return denialOf(error);
   }
 }
 
@@ -86,7 +140,7 @@ function withSandbox(
     const policy: SandboxPolicy = {
       readRoots: [root],
       writeRoots: [root],
-      network: { allow: [ALLOWED_HOST], deny: [] },
+      network: { allow: [options.network?.allowed ?? ALLOWED_HOST], deny: [] },
     };
     const context: Context = { under, options, policy, outside: `${root}-outside` };
     const sandbox = await provision(context);
@@ -102,11 +156,12 @@ function withSandbox(
 async function exec(
   sandbox: Sandbox,
   command: readonly string[],
-  extra: { env?: Record<string, string>; timeoutMs?: number; signal?: AbortSignal } = {},
+  extra: { env?: Record<string, string>; timeoutMs?: number; signal?: AbortSignal; cwd?: string } = {},
 ): Promise<ExecResult> {
   return sandbox.exec(command, {
     env: extra.env ?? {},
     signal: extra.signal ?? never(),
+    ...(extra.cwd === undefined ? {} : { cwd: extra.cwd }),
     ...(extra.timeoutMs === undefined ? {} : { timeoutMs: extra.timeoutMs }),
   });
 }
@@ -231,44 +286,127 @@ function disposeCases(factory: SandboxFactory, options: SandboxConformanceOption
   ];
 }
 
-/** The cases that run in a provisioned sandbox. */
+const MISTAKES = "the backend does not claim to stop mistakes";
+
+/** The name of the workspace's folder, for a path that climbs out of it and back into its sibling. */
+function outsideViaParent(context: Context): string {
+  const root = context.under.root;
+  return `../${root.slice(root.lastIndexOf("/") + 1)}-outside`;
+}
+
+/** The cases that need a backend to enforce its policy, which run only when its `stops` claim it. */
 function policyCases(sandboxed: Sandboxed): readonly SandboxCase[] {
   return [
     {
       name: "a write outside the write roots is denied",
       run: sandboxed(async (sandbox, context) => {
-        if (!context.under.client.stops.includes("mistakes"))
-          return { skipped: "the backend does not claim to stop mistakes" };
-        let denied = false;
-        await sandbox.writeFile(`${context.outside}/x.txt`, new Uint8Array([1])).catch((error: unknown) => {
-          denied = error instanceof SandboxDeniedError && error.denial.kind === "filesystem_write";
-        });
-        check(denied, "a write outside the write roots must be denied");
+        if (!context.under.client.stops.includes("mistakes")) return { skipped: MISTAKES };
+        const denial = await denialFrom(() => sandbox.writeFile(`${context.outside}/x.txt`, new Uint8Array([1])));
+        check(denial?.kind === "filesystem_write", "a write outside the write roots must be denied");
         return undefined;
       }),
     },
     {
       name: "a read outside the read roots is denied",
       run: sandboxed(async (sandbox, context) => {
-        if (!context.under.client.stops.includes("mistakes"))
-          return { skipped: "the backend does not claim to stop mistakes" };
-        let denied = false;
-        await sandbox.readFile(`${context.outside}/x.txt`).catch((error: unknown) => {
-          denied = error instanceof SandboxDeniedError && error.denial.kind === "filesystem_read";
-        });
-        check(denied, "a read outside the read roots must be denied");
+        if (!context.under.client.stops.includes("mistakes")) return { skipped: MISTAKES };
+        const denial = await denialFrom(() => sandbox.readFile(`${context.outside}/x.txt`));
+        check(denial?.kind === "filesystem_read", "a read outside the read roots must be denied");
+        return undefined;
+      }),
+    },
+    {
+      name: "a path that climbs out of the workspace with .. is denied for reads and writes",
+      run: sandboxed(async (sandbox, context) => {
+        if (!context.under.client.stops.includes("mistakes")) return { skipped: MISTAKES };
+        const climb = `${outsideViaParent(context)}/x.txt`;
+        const write = await denialFrom(() => sandbox.writeFile(climb, new Uint8Array([1])));
+        check(write?.kind === "filesystem_write", "a write that climbs out with .. must be denied");
+        const read = await denialFrom(() => sandbox.readFile(climb));
+        check(read?.kind === "filesystem_read", "a read that climbs out with .. must be denied");
+        return undefined;
+      }),
+    },
+    {
+      name: "a symlink in the workspace that points outside it is denied for reads and writes",
+      run: sandboxed(async (sandbox, context) => {
+        if (!context.under.client.stops.includes("mistakes")) return { skipped: MISTAKES };
+        const symlink = context.under.symlink;
+        if (symlink === undefined) return { skipped: "the factory gave no symlink function" };
+        await symlink(`${context.under.root}/link`, context.outside);
+        const write = await denialFrom(() => sandbox.writeFile("link/x.txt", new Uint8Array([1])));
+        check(write?.kind === "filesystem_write", "a write through a symlink that points outside must be denied");
+        const read = await denialFrom(() => sandbox.readFile("link/x.txt"));
+        check(read?.kind === "filesystem_read", "a read through a symlink that points outside must be denied");
+        return undefined;
+      }),
+    },
+    {
+      name: "a working directory outside the workspace is denied",
+      run: sandboxed(async (sandbox, context) => {
+        if (!context.under.client.stops.includes("mistakes")) return { skipped: MISTAKES };
+        const denial = await denialFrom(() => exec(sandbox, ["echo", "hi"], { cwd: "../.." }));
+        check(denial !== undefined, "a command whose cwd climbs out of the workspace must be denied");
         return undefined;
       }),
     },
     {
       name: "the network is denied unless the host is on the allowlist",
       run: sandboxed(async (sandbox, context) => {
-        const probe = context.options.networkProbe;
+        const network = context.options.network;
         if (!context.under.client.stops.includes("exfiltration"))
           return { skipped: "the backend does not claim to stop exfiltration" };
-        if (probe === undefined) return { skipped: "no networkProbe was given" };
-        const blocked = await exec(sandbox, probe("blocked.test"));
+        if (network === undefined) return { skipped: "no network probe was given" };
+        const reached = await exec(sandbox, network.command(network.allowed));
+        check(!("denied" in reached) && reached.exitCode === 0, "the allowed host must be reached");
+        const blocked = await exec(sandbox, network.command(network.blocked));
         check("denied" in blocked || blocked.exitCode !== 0, "a host that is not allowed must not be reached");
+        return undefined;
+      }),
+    },
+  ];
+}
+
+type ProcessTree = NonNullable<SandboxConformanceOptions["processTree"]>;
+
+/** Starts the tree's command, stops it by `stop`, and checks that exec settled the right way and the tree is dead. */
+async function endTree(sandbox: Sandbox, tree: ProcessTree, stop: "abort" | "timeout"): Promise<void> {
+  // Clear the previous round's id, so a stale one can't pass for this round's.
+  await sandbox.writeFile("pid", new Uint8Array());
+  const controller = new AbortController();
+  const running = exec(sandbox, tree.command, {
+    signal: controller.signal,
+    ...(stop === "timeout" ? { timeoutMs: 1500 } : {}),
+  }).then(
+    (result) => ({ result }),
+    (error: unknown) => ({ error }),
+  );
+  let pid = Number.NaN;
+  const wrote = await eventually(async () => {
+    pid = Number(text(await sandbox.readFile("pid").catch(() => new Uint8Array())).trim());
+    return Number.isInteger(pid) && pid > 0;
+  });
+  check(wrote, "the command must write its background process's id");
+  if (stop === "abort") controller.abort(new Error("stop"));
+  const outcome = await Promise.race([running, sleep(SETTLE_MS).then(() => undefined)]);
+  check(outcome !== undefined, `exec must settle after ${stop}, though a background process held its pipes`);
+  check(
+    stop === "abort" ? "error" in outcome : "result" in outcome,
+    `${stop} must ${stop === "abort" ? "reject" : "resolve"}`,
+  );
+  check(await eventually(async () => !(await tree.isAlive(pid))), `the background process must die on ${stop}`);
+}
+
+/** The case that checks an abort and a timeout end a command's whole process tree. */
+function processCases(sandboxed: Sandboxed): readonly SandboxCase[] {
+  return [
+    {
+      name: "an abort and a timeout end the command's whole process tree, and exec settles",
+      run: sandboxed(async (sandbox, context) => {
+        const tree = context.options.processTree;
+        if (tree === undefined) return { skipped: "no processTree was given" };
+        await endTree(sandbox, tree, "abort");
+        await endTree(sandbox, tree, "timeout");
         return undefined;
       }),
     },
@@ -284,6 +422,7 @@ export function sandboxConformanceCases(
   return [
     ...honestyCases(factory),
     ...workspaceCases(sandboxed),
+    ...processCases(sandboxed),
     ...disposeCases(factory, options),
     ...policyCases(sandboxed),
   ];

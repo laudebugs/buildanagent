@@ -3,6 +3,7 @@
  * is given, and it stops no mistake, no exfiltration and no hostile process, so its `stops` is empty and it refuses to
  * be built without `unsafe: true` (HD4, ADR 0020). It exists for a machine that is already disposable and for tests of
  * the rest of the harness. It is Node-only: it loads Node's modules by `process.getBuiltinModule()` when it is used.
+ * It starts each command in its own process group, so a timeout, an abort or a dispose ends the command's whole tree.
  */
 import { HarnessError } from "../errors.js";
 import { SandboxUnavailableError } from "./errors.js";
@@ -24,10 +25,14 @@ export const NONE_SANDBOX_WARNING =
 const TIMEOUT_EXIT_CODE = 124;
 // The exit code a shell gives for a program it can't find.
 const NOT_FOUND_EXIT_CODE = 127;
+// A shell reports a command that a signal killed as 128 plus the signal's number.
+const SIGNAL_EXIT_BASE = 128;
+const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 
 type Modules = {
   readonly cp: typeof import("node:child_process");
   readonly fs: typeof import("node:fs/promises");
+  readonly os: typeof import("node:os");
   readonly path: typeof import("node:path");
 };
 
@@ -41,6 +46,7 @@ function nodeModules(): Modules {
   return {
     cp: process.getBuiltinModule("node:child_process"),
     fs: process.getBuiltinModule("node:fs/promises"),
+    os: process.getBuiltinModule("node:os"),
     path: process.getBuiltinModule("node:path"),
   };
 }
@@ -51,10 +57,44 @@ function checkCommand(command: readonly string[]): void {
   }
 }
 
+/** Keeps the first `limit` bytes of a stream and drops the rest, but keeps reading so the child never blocks. */
+function capture(stream: NodeJS.ReadableStream, limit: number) {
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  let truncated = false;
+  stream.on("data", (chunk: Uint8Array) => {
+    const room = limit - size;
+    if (chunk.length <= room) {
+      chunks.push(chunk);
+      size += chunk.length;
+    } else {
+      if (room > 0) chunks.push(chunk.subarray(0, room));
+      size = limit;
+      truncated = true;
+    }
+  });
+  return {
+    get truncated() {
+      return truncated;
+    },
+    text(): string {
+      const all = new Uint8Array(size);
+      let at = 0;
+      for (const chunk of chunks) {
+        all.set(chunk, at);
+        at += chunk.length;
+      }
+      return new TextDecoder().decode(all);
+    },
+  };
+}
+
 class NoneSandbox implements Sandbox {
   private disposed = false;
   private readonly root: string;
   private readonly modules: Modules;
+  // What stops each command still running, so `dispose()` can end them.
+  private readonly running = new Set<() => void>();
 
   constructor(root: string, modules: Modules) {
     this.root = root;
@@ -69,61 +109,102 @@ class NoneSandbox implements Sandbox {
     return this.modules.path.resolve(this.root, path);
   }
 
+  /** Kills the command's whole process group, or just the command where the platform has no groups. */
+  private kill(child: import("node:child_process").ChildProcess): void {
+    const pid = child.pid;
+    if (pid === undefined) return;
+    try {
+      if (process.platform === "win32") child.kill("SIGKILL");
+      else process.kill(-pid, "SIGKILL");
+    } catch {
+      // The group is already gone, so there is nothing left to kill.
+    }
+  }
+
+  /** The working directory as an absolute path, or an error when it isn't an existing folder. */
+  private async workingDirectory(options: ExecOptions): Promise<string> {
+    const cwd = this.resolve(options.cwd ?? ".");
+    const stats = await this.modules.fs.stat(cwd).catch(() => undefined);
+    if (!stats?.isDirectory()) {
+      throw new HarnessError("invalid_sandbox_options", `the working directory ${cwd} is not an existing folder`);
+    }
+    return cwd;
+  }
+
   async exec(command: readonly string[], options: ExecOptions): Promise<ExecResult> {
     this.live();
     checkCommand(command);
     options.signal.throwIfAborted();
-    const [program, ...args] = command as [string, ...string[]];
+    const cwd = await this.workingDirectory(options);
+    // The sandbox or the signal may have changed while the folder was checked.
+    this.live();
+    options.signal.throwIfAborted();
+    return this.run(command as [string, ...string[]], cwd, options);
+  }
+
+  private run([program, ...args]: [string, ...string[]], cwd: string, options: ExecOptions): Promise<ExecResult> {
+    const limit = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
     return new Promise((resolve, reject) => {
       const child = this.modules.cp.spawn(program, args, {
-        cwd: this.resolve(options.cwd ?? "."),
+        cwd,
         env: { ...options.env },
         stdio: ["ignore", "pipe", "pipe"],
+        detached: true,
       });
-      let stdout = "";
-      let stderr = "";
-      let timedOut = false;
-      child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
-        stdout += chunk;
+      const out = capture(child.stdout, limit);
+      const err = capture(child.stderr, limit);
+      const output = (note = "") => ({
+        stdout: out.text(),
+        stderr: `${err.text()}${note}`,
+        ...(out.truncated || err.truncated ? { truncated: true } : {}),
       });
-      child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
-        stderr += chunk;
-      });
-      const timer =
-        options.timeoutMs === undefined
-          ? undefined
-          : setTimeout(() => {
-              timedOut = true;
-              child.kill("SIGKILL");
-            }, options.timeoutMs);
-      const aborted = () => {
-        child.kill("SIGKILL");
-        reject(options.signal.reason);
-      };
-      options.signal.addEventListener("abort", aborted, { once: true });
-      const finish = () => {
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const done = (settle: () => void) => {
+        if (settled) return;
+        settled = true;
         clearTimeout(timer);
-        options.signal.removeEventListener("abort", aborted);
+        options.signal.removeEventListener("abort", onAbort);
+        this.running.delete(onDispose);
+        settle();
       };
+      // Ends the whole tree and stops waiting for the pipes, which a surviving grandchild would hold open.
+      const stop = (settle: () => void) => {
+        this.kill(child);
+        child.stdout.destroy();
+        child.stderr.destroy();
+        done(settle);
+      };
+      const onAbort = () => stop(() => reject(options.signal.reason));
+      const onDispose = () => stop(() => reject(new HarnessError("sandbox_disposed", "the sandbox was disposed")));
+      options.signal.addEventListener("abort", onAbort, { once: true });
+      this.running.add(onDispose);
+      if (options.timeoutMs !== undefined) {
+        const note = `timed out after ${options.timeoutMs} ms\n`;
+        timer = setTimeout(
+          () => stop(() => resolve({ exitCode: TIMEOUT_EXIT_CODE, ...output(note) })),
+          options.timeoutMs,
+        );
+      }
       child.on("error", (error: NodeJS.ErrnoException) => {
-        finish();
-        if (error.code === "ENOENT") {
-          resolve({ exitCode: NOT_FOUND_EXIT_CODE, stdout, stderr: `${stderr}command not found: ${program}\n` });
-        } else {
-          reject(error);
-        }
+        done(() => {
+          if (error.code === "ENOENT") {
+            resolve({ exitCode: NOT_FOUND_EXIT_CODE, stdout: "", stderr: `command not found: ${program}\n` });
+          } else {
+            reject(error);
+          }
+        });
       });
-      child.on("close", (code) => {
-        finish();
-        if (timedOut)
-          resolve({
-            exitCode: TIMEOUT_EXIT_CODE,
-            stdout,
-            stderr: `${stderr}timed out after ${options.timeoutMs} ms\n`,
-          });
-        else resolve({ exitCode: code ?? 1, stdout, stderr });
+      child.on("close", (code, signal) => {
+        done(() => resolve({ ...this.exit(code, signal), ...output() }));
       });
     });
+  }
+
+  /** The exit code, and the signal's name when a signal killed the command. */
+  private exit(code: number | null, signal: NodeJS.Signals | null): { exitCode: number; signal?: string } {
+    if (signal === null) return { exitCode: code ?? 1 };
+    return { exitCode: SIGNAL_EXIT_BASE + (this.modules.os.constants.signals[signal] ?? 0), signal };
   }
 
   async readFile(path: string): Promise<Uint8Array> {
@@ -140,6 +221,8 @@ class NoneSandbox implements Sandbox {
 
   async dispose(): Promise<void> {
     this.disposed = true;
+    for (const stop of [...this.running]) stop();
+    this.running.clear();
   }
 }
 

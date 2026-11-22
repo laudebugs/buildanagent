@@ -4,7 +4,7 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/01-function-tool.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5521,
+    "ms": 6964,
     "modelCalls": 0,
     "tail": "ok - the tool body ran only for the valid call\nok - a string result is wrapped as {result: ...}\nok - each tool result triggers another model call\nok - the model sees the tool result as a functionResponse part\nok - the last event is the final answer\nok - ADK prepends an identity preamble to the instruction\nok - both calls from one model turn get a functionResponse\nok - the second call starts only after the first finishes (sequential, not parallel)"
   },
@@ -13,7 +13,7 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/02-workflow-agents.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5533,
+    "ms": 6619,
     "modelCalls": 0,
     "tail": "ok - ParallelAgent runs every sub-agent\nok - each parallel sub-agent runs on its own branch (fan.a, fan.b)\nok - a parallel sibling's reply is not in the other's context\nok - both branches write to the shared session state\nok - LoopAgent stops after maxIterations (3 model calls)\nok - exit_loop ends the loop in the iteration that calls it\nok - the exit_loop tool result carries actions.escalate\nok - constructing each workflow agent logs a deprecation warning pointing to Workflow"
   },
@@ -22,7 +22,7 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/03-graph-workflow.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5704,
+    "ms": 6737,
     "modelCalls": 0,
     "tail": "ok - a node's return value is the next node's input (START gets the user text)\nok - route DIGITS runs only the digits node\nok - route WORDS runs the LlmAgent node\nok - the agent node's reply is an event\nok - JoinNode waits for every branch and passes {nodeName: output}\nok - RequestInput pauses the workflow with a long-running call\nok - the pause is an adk_request_input function call\nok - the next user message resumes the paused node with that text"
   },
@@ -31,7 +31,7 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/04-sessions-state.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5545,
+    "ms": 6678,
     "modelCalls": 0,
     "tail": "ok - user: keys are shared across a user's sessions\nok - app: keys are shared by every user; user: keys are not\nok - unprefixed keys belong to one session\nok - appendEvent applies the event's stateDelta\nok - appendEvent drops temp: keys, as the docs' example says\nok - mutating a fetched Session's state does not change the stored session\nok - the session keeps every event of the run (user, call, response, answer)\nok - listSessions returns a user's sessions"
   },
@@ -40,16 +40,16 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/05-callbacks.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4638,
+    "ms": 4552,
     "modelCalls": 0,
-    "tail": "ok - afterToolCallback returning an object replaces the tool result\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-22T03:44:53.896Z Plugin 'guard' registered.\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-22T03:44:53.900Z Plugin 'positional' registered.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-22T03:44:53.907Z Method BasePlugin.beforeToolSelection is experimental and may change in the future.\nok - a plugin's beforeToolCallback can block a tool\nok - when a plugin hook returns a value, the agent-level callback is skipped\nok - a positional (agent, context) plugin hook gets context === undefined\nok - the first argument is the params object {agent, callbackContext}, not the agent"
+    "tail": "ok - afterToolCallback returning an object replaces the tool result\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-22T03:55:45.197Z Plugin 'guard' registered.\n\u001b[32mINFO\u001b[39m: [ADK] 2026-11-22T03:55:45.203Z Plugin 'positional' registered.\n\u001b[33mWARN\u001b[39m: [ADK] 2026-11-22T03:55:45.204Z Method BasePlugin.beforeToolSelection is experimental and may change in the future.\nok - a plugin's beforeToolCallback can block a tool\nok - when a plugin hook returns a value, the agent-level callback is skipped\nok - a positional (agent, context) plugin hook gets context === undefined\nok - the first argument is the params object {agent, callbackContext}, not the agent"
   },
   {
     "id": "06-structured-output",
     "file": "/home/user/buildanagent/verify/google-adk/examples/06-structured-output.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4449,
+    "ms": 4668,
     "modelCalls": 0,
     "tail": "ok - a non-JSON reply is stored in outputKey as raw text\nok - the parse failure is only logged\nok - JSON that violates the schema is stored anyway\nok - the schema violation is only logged\nok - with tools, ADK offers a set_model_response tool\nok - with tools, no responseSchema is sent (Gemini API backend)\nok - set_model_response's arguments become the final text answer\nok - and the parsed object lands in outputKey"
   },
@@ -58,7 +58,7 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/07-tool-confirmation.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5241,
+    "ms": 5128,
     "modelCalls": 0,
     "tail": "ok - the paused turn makes no further model call\nok - confirmed: true runs the tool with the original arguments\nok - the result goes to the model, which answers\nok - confirmed: false never runs the tool\nok - the model sees a rejection error as the tool result\nok - requireConfirmation's predicate can let a call through\nok - a confirmation with an unknown call id does not run the tool\nok - instead the turn starts over and the tool asks for confirmation again"
   },
@@ -67,7 +67,7 @@
     "file": "/home/user/buildanagent/verify/google-adk/examples/08-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4538,
+    "ms": 4925,
     "modelCalls": 0,
     "tail": "ok - the other customer's record never reaches the model\nok - escalate_to_human pauses for approval and has not run\nok - after approval the escalation runs once, for the session's customer\nok - the typed result parses with zod and records the escalation\nok - a rejected escalation never runs\nok - the typed result says the ticket was not escalated\nok - without user:customer_id in state the lookup returns an error, not a guess\nok - no host tool is ever offered to the model"
   }

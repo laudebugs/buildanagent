@@ -35,6 +35,8 @@ export interface FakeSandboxClient extends SandboxClient {
   readonly execs: readonly RecordedExec[];
   /** The files of the latest sandbox, by absolute path. */
   files(): ReadonlyMap<string, Uint8Array>;
+  /** Makes `link` an absolute path that stands for `target` in the latest sandbox, as a symlink does. */
+  symlink(link: string, target: string): void;
 }
 
 /**
@@ -66,6 +68,7 @@ const within = (path: string, root: string): boolean => {
 class FakeSandbox implements Sandbox {
   private disposed = false;
   readonly store = new Map<string, Uint8Array>();
+  readonly links = new Map<string, string>();
   private readonly root: string;
   private readonly policy: SandboxPolicy;
   private readonly log: RecordedExec[];
@@ -80,8 +83,13 @@ class FakeSandbox implements Sandbox {
     if (this.disposed) throw new HarnessError("sandbox_disposed", "the sandbox was disposed");
   }
 
-  resolve(path: string): string {
-    return normalize(path.startsWith("/") ? path : `${this.root}/${path}`);
+  /** The absolute path a name stands for: joined to the root, tidied of `.` and `..`, then followed through links. */
+  resolve(path: string, base = this.root): string {
+    const tidy = normalize(path.startsWith("/") ? path : `${base}/${path}`);
+    for (const [link, target] of this.links) {
+      if (tidy === link || tidy.startsWith(`${link}/`)) return normalize(`${target}${tidy.slice(link.length)}`);
+    }
+    return tidy;
   }
 
   private readDenial(path: string): SandboxDenial | undefined {
@@ -130,6 +138,9 @@ class FakeSandbox implements Sandbox {
       throw new HarnessError("invalid_sandbox_options", "a sandbox command is a non-empty list of strings");
     }
     options.signal.throwIfAborted();
+    const cwd = this.resolve(options.cwd ?? ".");
+    const denial = this.readDenial(cwd);
+    if (denial) return { denied: denial };
     this.log.push({ command: [...command], cwd: options.cwd, env: { ...options.env }, timeoutMs: options.timeoutMs });
     const [name = "", ...args] = command;
     return this.run(name, args, options);
@@ -221,6 +232,9 @@ export function fakeSandbox(options: FakeSandboxOptions = {}): FakeSandboxClient
     stops: ["mistakes", "exfiltration"],
     execs,
     files: () => latest?.store ?? new Map(),
+    symlink(link: string, target: string) {
+      latest?.links.set(normalize(link), normalize(target));
+    },
     async provision(manifest: WorkspaceManifest, policy: SandboxPolicy) {
       if (options.unavailable !== undefined) throw new SandboxUnavailableError("fake", options.unavailable);
       const sandbox = new FakeSandbox(manifest.root, policy, execs);

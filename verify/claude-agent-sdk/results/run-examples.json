@@ -5,7 +5,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 3166,
+    "ms": 4060,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "ok - first SystemMessage has subtype 'init'\nok - ResultMessage subtype is 'success'\nok - `result` text is present on success\nok - ResultMessage carries session_id\nok - ResultMessage carries total_cost_usd and num_turns"
@@ -16,7 +16,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 4214,
+    "ms": 4226,
     "modelRequests": 3,
     "toolResults": 3,
     "tail": "ok - custom tool handler ran exactly once\nok - handler received Zod-validated arguments\nok - SDK yielded a UserMessage carrying the tool_result\nok - run finished with success"
@@ -27,10 +27,10 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 16503,
+    "ms": 16773,
     "modelRequests": 13,
     "toolResults": 12,
-    "tail": "ok - c) disallowedTools blocks the tool even in bypassPermissions\nok - c) denied call never reaches canUseTool\n(node:5925) [CLAUDE_SDK_CAN_USE_TOOL_SHADOWED] Warning: canUseTool will not be invoked for: mcp__ops__restart_service. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.\nok - d) PreToolUse hook 'deny' blocks a tool that allowedTools would approve\nok - e) hook 'allow' does not skip deny rules\nok - f) dontAsk denies without calling canUseTool"
+    "tail": "ok - c) disallowedTools blocks the tool even in bypassPermissions\nok - c) denied call never reaches canUseTool\n(node:15824) [CLAUDE_SDK_CAN_USE_TOOL_SHADOWED] Warning: canUseTool will not be invoked for: mcp__ops__restart_service. Bare allowedTools entries auto-approve the whole tool before the callback is consulted. To gate every tool call, use a PreToolUse hook; or remove the bare names from allowedTools so they fall through to canUseTool. Allow rules from settings files can also shadow the callback but are not visible here.\nok - d) PreToolUse hook 'deny' blocks a tool that allowedTools would approve\nok - e) hook 'allow' does not skip deny rules\nok - f) dontAsk denies without calling canUseTool"
   },
   {
     "id": "04-max-turns",
@@ -38,7 +38,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 4292,
+    "ms": 4129,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "ok - result subtype is error_max_turns\nok - no `result` text on the error variant\nok - error results still carry session_id and cost\nok - query() throws 'Reached maximum number of turns' after yielding the result"
@@ -49,7 +49,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 3762,
+    "ms": 4716,
     "modelRequests": 1,
     "toolResults": 0,
     "tail": "ok - model answers through the StructuredOutput tool\nok - result is success\nok - structured_output validates against the Zod schema"
@@ -60,7 +60,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 7826,
+    "ms": 8746,
     "modelRequests": 2,
     "toolResults": 0,
     "tail": "ok - first run returned a session_id\nok - resumed run succeeded\nok - resume keeps the same session_id\nok - resumed model request contains the earlier turn"
@@ -71,7 +71,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 4262,
+    "ms": 4941,
     "modelRequests": 2,
     "toolResults": 1,
     "tail": "ok - PreToolUse hook saw the lookup tool call\nok - every request offers only: mcp__support__*, StructuredOutput, DeferredToolPlaceholder\nok - auto-approved lookup never reached canUseTool\nok - agent finished successfully\nok - structured_output matches the Triage schema\ntriage: {\"category\":\"bug\",\"priority\":\"low\",\"summary\":\"example\"}"
@@ -82,7 +82,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 7424,
+    "ms": 7713,
     "modelRequests": 5,
     "toolResults": 4,
     "tail": "ok - the tool result went back to the model\nok - alwaysLoad run finished with success\nok - alwaysLoad: all three definitions are in the first request\nok - alwaysLoad: with nothing left to defer, ToolSearch is not offered and the model never calls it\nok - one loaded definition is smaller than the three definitions alwaysLoad sends up front\nok - every request offers only: ToolSearch, DeferredToolPlaceholder, mcp__weather__*"
@@ -93,7 +93,7 @@
     "outcome": "ran",
     "patchedPlaceholders": false,
     "exit": 0,
-    "ms": 4536,
+    "ms": 4281,
     "modelRequests": 2,
     "toolResults": 1,
     "tail": "ok - every request offers only: Skill, DeferredToolPlaceholder\nok - the skill left out of `skills` never reached the model\nok - the first request lists the skill's name and description\nok - the first request does not carry the skill's body\nok - the model called the Skill tool\nok - after the call, the body is in every request"

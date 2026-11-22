@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
@@ -82,6 +82,32 @@ test("exec runs a real program with exactly the environment given, in the worksp
   await assert.rejects(sandbox.exec([], { env, signal }), /non-empty list/);
 });
 
+const alive = (pid: number) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Starts a background process that holds the output pipes open, then waits for it, as `pnpm test` does with its workers.
+const TREE = ["sh", "-c", "sleep 30 & echo $! > pid; wait"];
+
+async function pidOf(root: string): Promise<number> {
+  for (let tries = 0; tries < 100; tries += 1) {
+    const text = existsSync(join(root, "pid")) ? readFileSync(join(root, "pid"), "utf8").trim() : "";
+    if (text !== "") return Number(text);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error("the command never wrote its pid");
+}
+
+async function waitDead(pid: number): Promise<void> {
+  for (let tries = 0; tries < 100 && alive(pid); tries += 1) await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.ok(!alive(pid), `process ${pid} is still running`);
+}
+
 test("a timeout stops a command with 124, and an abort rejects with the signal's reason", async () => {
   const client = noneSandbox({ unsafe: true, warn: () => {} });
   const sandbox = await client.provision({ root: workspace() }, POLICY);
@@ -92,6 +118,64 @@ test("a timeout stops a command with 124, and an abort rejects with the signal's
   const running = sandbox.exec(["sleep", "30"], { env, signal: controller.signal });
   setTimeout(() => controller.abort(new Error("cancelled")), 50);
   await assert.rejects(running, /cancelled/);
+});
+
+test("a timeout settles and kills the whole tree, though a background process holds the pipes", async () => {
+  const root = workspace();
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root }, POLICY);
+  const result = await sandbox.exec(TREE, { env: spawnEnv([]), signal: new AbortController().signal, timeoutMs: 500 });
+  assert.ok(!("denied" in result) && result.exitCode === 124);
+  await waitDead(await pidOf(root));
+});
+
+test("an abort kills the whole tree, and a dispose kills what is still running", async () => {
+  const root = workspace();
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root }, POLICY);
+  const controller = new AbortController();
+  const aborted = sandbox.exec(TREE, { env: spawnEnv([]), signal: controller.signal });
+  const first = await pidOf(root);
+  controller.abort(new Error("cancelled"));
+  await assert.rejects(aborted, /cancelled/);
+  await waitDead(first);
+
+  rmSync(join(root, "pid"), { force: true });
+  const running = sandbox.exec(TREE, { env: spawnEnv([]), signal: new AbortController().signal });
+  const second = await pidOf(root);
+  await sandbox.dispose();
+  await assert.rejects(running, (error: unknown) => isHarnessError(error) && error.code === "sandbox_disposed");
+  await waitDead(second);
+});
+
+test("a command that a signal kills reports 128 plus the signal's number and names the signal", async () => {
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
+  const result = await sandbox.exec([process.execPath, "-e", "process.kill(process.pid, 'SIGTERM')"], {
+    env: spawnEnv([]),
+    signal: new AbortController().signal,
+  });
+  assert.ok(!("denied" in result));
+  assert.deepEqual([result.exitCode, result.signal], [143, "SIGTERM"]);
+});
+
+test("output past the cap is dropped and marked truncated, and the command still finishes", async () => {
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
+  const result = await sandbox.exec([process.execPath, "-e", "process.stdout.write('x'.repeat(100000))"], {
+    env: spawnEnv([]),
+    signal: new AbortController().signal,
+    maxOutputBytes: 1000,
+  });
+  assert.ok(!("denied" in result));
+  assert.deepEqual([result.exitCode, result.stdout.length, result.truncated], [0, 1000, true]);
+  const small = await sandbox.exec(["echo", "ok"], { env: spawnEnv([]), signal: new AbortController().signal });
+  assert.ok(!("denied" in small) && small.truncated === undefined);
+});
+
+test("a working directory that doesn't exist is an error, not a command that can't be found", async () => {
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
+  await assert.rejects(
+    sandbox.exec(["echo", "hi"], { cwd: "missing", env: spawnEnv([]), signal: new AbortController().signal }),
+    (error: unknown) =>
+      isHarnessError(error) && error.code === "invalid_sandbox_options" && /missing/.test(error.message),
+  );
 });
 
 test("a sandbox that was disposed rejects every call but a second dispose", async () => {
