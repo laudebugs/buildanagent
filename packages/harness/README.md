@@ -506,7 +506,8 @@ Skills are inside the project-trust gate, as the guide says, and `trust` is requ
 ```ts
 const { files } = await contextFiles(cwd);
 const context = projectContext({ files, plan: planFileSource(cwd) });
-const harness = createHarness({ registry, model, system: withPlanConvention(system), interceptors: context.interceptors });
+const { interceptors } = composeExtensions([context]);
+const harness = createHarness({ registry, model, system: withPlanConvention(system), interceptors });
 ```
 
 `projectContext()` returns an extension whose `transformContext` hook puts the files at the start of the first user message of every request. Each file sits in an `<untrusted-project-context source="…">` section under a note that says the text is the project's and not the user's, and a file's own text can't open or close a label: the tag's name after `<`, `&lt;` or a numeric entity for `<`, with or without a `/` and spaces, in any case, is escaped, and the `source` path is percent-encoded wherever it holds a quote, `<`, `>`, `&` or a control character. The text is rebuilt from the files for each request and is not written to the log, so a compaction that replaces the early messages with a summary can't remove it: the first request after a compaction holds the `AGENTS.md` text again, beside the summary. The cost is that the log doesn't hold the context files' text, so a replay needs the same files.
