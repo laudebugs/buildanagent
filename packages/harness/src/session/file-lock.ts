@@ -10,6 +10,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { HarnessError } from "../errors.js";
 import type { LockHandle, SessionLock } from "./lock.js";
+import { type ProcessScheduler, processScheduler } from "./scheduler.js";
 import { checkKey, encodeName, type SessionKey } from "./store.js";
 
 const EXTENSION = ".lock";
@@ -46,6 +47,11 @@ export interface FileLockOptions {
   readonly host?: string;
   /** This process's id. Default `process.pid`. */
   readonly pid?: number;
+  /**
+   * What wakes a hold to renew its lease. Default: a scheduler of this lock's own, which uses timers. A host that shares
+   * a scheduler across locks passes it here; each renewal's id starts with `lease:`, so the host's own wakes don't clash.
+   */
+  readonly scheduler?: ProcessScheduler;
 }
 
 function processExists(pid: number): boolean {
@@ -125,6 +131,7 @@ class FileLock implements SessionLock {
   readonly #isAlive: (pid: number) => boolean;
   readonly #host: string;
   readonly #pid: number;
+  readonly #scheduler: ProcessScheduler;
 
   constructor(options: FileLockOptions) {
     this.#dir = options.dir;
@@ -134,6 +141,7 @@ class FileLock implements SessionLock {
     this.#isAlive = options.isAlive ?? processExists;
     this.#host = options.host ?? hostname();
     this.#pid = options.pid ?? process.pid;
+    this.#scheduler = options.scheduler ?? processScheduler();
     const ok =
       Number.isFinite(this.#leaseMs) && this.#leaseMs > 0 && this.#renewMs > 0 && this.#renewMs < this.#leaseMs;
     if (!ok || this.#renewMs > MAX_TIMER_MS) {
@@ -231,6 +239,8 @@ class FileLock implements SessionLock {
       now: this.#now,
       host: this.#host,
       pid: this.#pid,
+      scheduler: this.#scheduler,
+      leaseId: leaseId(key),
     });
   }
 
@@ -252,6 +262,13 @@ interface HoldOptions {
   readonly now: () => number;
   readonly host: string;
   readonly pid: number;
+  readonly scheduler: ProcessScheduler;
+  readonly leaseId: string;
+}
+
+/** The scheduler id of a session's lease renewals, prefixed so it never meets a wake the host asks for the session. */
+function leaseId(key: SessionKey): string {
+  return `lease:${encodeName(key.userId)}/${encodeName(key.sessionId)}`;
 }
 
 class Hold implements LockHandle {
@@ -259,16 +276,34 @@ class Hold implements LockHandle {
   #held = true;
   #renewing: Promise<void> | undefined;
   readonly #path: string;
-  readonly #timer: ReturnType<typeof setInterval>;
   readonly #options: HoldOptions;
+  // Each hold's own id, so a hold that loses its lock never cancels the wake of a newer hold on the same session.
+  readonly #wakeId: string;
+  readonly #stopListening: () => void;
+  // The time of the renewal wake this hold is waiting for. A duplicate of a delivered wake carries an older time.
+  #armedAt = 0;
 
   constructor(path: string, token: string, options: HoldOptions) {
     this.token = token;
     this.#path = path;
     this.#options = options;
-    // A renewal must not keep a process alive that has nothing else to do.
-    this.#timer = setInterval(() => void this.#tick(), options.renewMs);
-    this.#timer.unref();
+    this.#wakeId = `${options.leaseId}/${token}`;
+    this.#stopListening = options.scheduler.onWake((id, at) => {
+      if (id !== this.#wakeId || at.getTime() !== this.#armedAt || !this.#held) return;
+      this.#arm();
+      void this.#tick();
+    });
+    this.#arm();
+  }
+
+  /** Asks the scheduler for the next renewal. The scheduler may wake twice, so a wake only counts at the time asked for. */
+  #arm(): void {
+    // Each ask has its own time, even when the clock has not moved, so a wake delivered twice is told from the next.
+    const { scheduler, renewMs } = this.#options;
+    const at = new Date(Math.max(scheduler.now() + renewMs, this.#armedAt + 1));
+    this.#armedAt = at.getTime();
+    // A scheduler that refuses the wake leaves no renewal coming, so the hold reports itself lost and the writer stops.
+    scheduler.wake(at, this.#wakeId).catch(() => this.#lose());
   }
 
   held(): boolean {
@@ -310,7 +345,8 @@ class Hold implements LockHandle {
 
   #lose(): void {
     this.#held = false;
-    clearInterval(this.#timer);
+    this.#stopListening();
+    this.#options.scheduler.cancel(this.#wakeId).catch(() => undefined);
   }
 
   async release(): Promise<void> {
