@@ -34,7 +34,8 @@ export const PROVIDERS = {
 /**
  * The harnesses whose scripts/run-examples.mjs has a --live mode. The Claude Agent SDK and Copilot SDK make their model
  * calls from a child process, so their live mode sends them through proxy.mjs; the other five wrap each call in the
- * example's process (live.ts), and so does packages/sdk, whose runner drives the SDK's book examples (its README).
+ * example's process (live.ts), and so does packages/sdk, whose runner, packages/sdk/scripts/run-examples.mjs, drives
+ * the SDK's book examples (apps/manual/README.md, "Changing the live list").
  * google-adk reaches no provider the run holds a key for.
  */
 export const LIVE_HARNESSES = [
