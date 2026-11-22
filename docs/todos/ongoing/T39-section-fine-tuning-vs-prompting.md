@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T39` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [U21](../done/U21-research-fine-tuning-vs-prompting.md), [T11](../done/T11-chapter-talking-to-a-model.md), [T28](../done/T28-example-streaming-usage.md) |
