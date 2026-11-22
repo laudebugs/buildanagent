@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12n` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | None |
@@ -32,14 +32,14 @@ Give the docs redesign ([L12](L12-docs-redesign.md)) its writing rules before th
 
 ## Tasks
 
-- [ ] Draft the section with `/anthropic-skills:writing`, in the file's existing MUST/SHOULD style.
-- [ ] Say in each rule how a reviewer checks it.
-- [ ] Add a short pointer from [examples.md](../../guidelines/examples.md) if a tab rule touches example files.
+- [x] Draft the section with `/anthropic-skills:writing`, in the file's existing MUST/SHOULD style.
+- [x] Say in each rule how a reviewer checks it.
+- [x] Add a short pointer from [examples.md](../../guidelines/examples.md) if a tab rule touches example files.
 
 ## Acceptance criteria
 
-- [ ] `docs/guidelines/docs-writing.md` has the new section, and every rule is MUST or SHOULD with a way to check it.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root (the docs app's writing-rule test reads this file's rules).
+- [x] `docs/guidelines/docs-writing.md` has the new section, and every rule is MUST or SHOULD with a way to check it.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root (the docs app's writing-rule test reads this file's rules).
 
 ## Tests
 
@@ -56,8 +56,12 @@ A rule the docs test cannot check stays advice; say so in the rule.
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Code review: this is copy only, so the writing review and the fact-check cover it
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Code review: this is copy only, so the writing review and the fact-check cover it
 - [ ] Copy reviewed with `/anthropic-skills:writing-review`, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`docs-writing.md` has three new sections: when a figure earns a place (one idea, alt text that states the point, a caption, 12 px labels, token colours, no fact only in the picture), what each callout kind is for, and when code tabs fit. Each rule is MUST or SHOULD, says how a reviewer checks it and says whether the docs test enforces it; none of the new rules is machine-checked today, and only the existing long-block test covers tab code. `examples.md` points to the tab rule, and the claims are logged in `fact-check-docs-guidelines.md` as rows L12n-1 to L12n-9.

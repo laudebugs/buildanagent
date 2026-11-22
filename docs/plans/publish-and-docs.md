@@ -156,7 +156,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L9](../todos/done/L9-publish-protocol-harness-cli-decision.md) | The decision to publish the protocol, harness, CLI and agent-safety: ADR 0058, PB4, and todos L10 and L11 | None | S |
 | [L10](../todos/done/L10-make-protocol-harness-cli-publishable.md) | Make the four packages publishable while they stay private: built `dist/`, docs checks, pack tests, the fixed group | L9 | L |
 | [L11](../todos/done/L11-bootstrap-and-release-protocol-harness-cli.md) | Drop `private`, hand the owner the new `release.yml`, and publish the four together through trusted publishing | L9, L10, N29, N30 | M |
-| [L12n](../todos/ongoing/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
+| [L12n](../todos/done/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
 
 B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff stay in B20; its revision moves the docs site and the first export diff here.
 
