@@ -68,6 +68,21 @@ test("sessions search finds a message in a recorded session", async () => {
   );
 });
 
+test("sessions search cuts its snippet around the match when lower case would change the text's length", async () => {
+  const state = stateDir();
+  cleanups.push(state.cleanup);
+  // \u0130 lowers to two code units, so a match found in lowered text sits further right than in the original.
+  const answer = `${"\u0130".repeat(100)} needle ${"x".repeat(200)}`;
+  assert.equal(await cli(terminal(), state.dir, ["run", "Hi"], { model: scripted([reply(answer)]).model }), 0);
+  const term = terminal();
+  assert.equal(await cli(term, state.dir, ["sessions", "search", "NEEDLE"]), 0);
+  const [line] = term.lines();
+  assert.match(line ?? "", /: …\u0130{59} needle x{59}…$/);
+  const exact = terminal();
+  assert.equal(await cli(exact, state.dir, ["sessions", "search", "\u0130\u0130 needle"]), 0);
+  assert.equal(exact.lines().length, 1);
+});
+
 test("sessions search exits 1 when no message holds the text", async () => {
   const { dir } = await recorded();
   const term = terminal();

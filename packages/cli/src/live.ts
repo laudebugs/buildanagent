@@ -10,6 +10,7 @@ import { modelFromSpec } from "./model.js";
 import type { CommandContext } from "./options.js";
 import { Output } from "./output.js";
 import { liveRenderer } from "./render.js";
+import { visible } from "./visible.js";
 import { type EventListener, openStored, SessionWatch, WAITING_REASONS } from "./watch.js";
 
 /** The version `initialize` reports for this client. */
@@ -101,7 +102,7 @@ export async function withLive<T>(live: Live, body: () => Promise<T>): Promise<T
 /** Reports how a turn settled, with the meter's totals. */
 export function reportSettled(live: Live, result: TurnResultSummary): void {
   const reading = live.meter.reading();
-  const why = result.error === undefined ? "" : `: ${result.error.message}`;
+  const why = result.error === undefined ? "" : `: ${visible(result.error.message)}`;
   const waiting = WAITING_REASONS.has(result.stopReason)
     ? ` · answer with: buildanagent resume ${live.watch.session}`
     : "";

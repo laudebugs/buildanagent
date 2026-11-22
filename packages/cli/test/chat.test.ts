@@ -77,7 +77,7 @@ test("calls of one tool with the same input are asked about once, as a group", a
   const term = terminal(["Refund twice", "y"]);
   const { model, adapter } = scripted([
     {
-      content: [callTool("c1", "bash", { command: "git  status" }), callTool("c2", "bash", { command: "git status" })],
+      content: [callTool("c1", "bash", { command: "git status" }), callTool("c2", "bash", { command: "git status" })],
     },
     reply("Both ran."),
   ]);
@@ -87,6 +87,20 @@ test("calls of one tool with the same input are asked about once, as a group", a
   const stderr = term.stderr.join("");
   assert.match(stderr, /2 calls of bash need your approval: A command can change files\.\n {4}git status\n/);
   assert.equal(stderr.match(/Allow\? \[y\/n\]/g)?.length, 1);
+});
+
+test("calls whose commands differ only in spaces are asked about apart, each with its own answer", async () => {
+  const ran: unknown[] = [];
+  const term = terminal(["Check twice", "y", "n"]);
+  const { model } = scripted([
+    {
+      content: [callTool("c1", "bash", { command: "git  status" }), callTool("c2", "bash", { command: "git status" })],
+    },
+    reply("One ran."),
+  ]);
+  assert.equal(await cli(term, fresh(), ["chat"], { model, ...refundTool(ran) }), 0);
+  assert.equal(ran.length, 1);
+  assert.equal(term.stderr.join("").match(/Allow\? \[y\/n\]/g)?.length, 2);
 });
 
 test("a chained command is shown one command per line, with its operators", async () => {

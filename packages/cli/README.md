@@ -70,7 +70,7 @@ Every session lives on your machine, under `$XDG_STATE_HOME/buildanagent` or `~/
 | `sessions search <text>` | Each message or tool result that holds the text, ignoring case. It exits 1 when none does. |
 | `sessions replay <session>` | The conversation as the log recorded it, with the cost it ran up. |
 
-A replay reads the log back and makes no model call, so it costs nothing and shows exactly what happened. With `--json`, `sessions replay` prints the same event lines a live `run --json` prints, and the other three print one JSON object per result.
+A replay reads the log back and makes no model call, so it costs nothing and shows exactly what happened. With `--json`, `sessions replay` prints one `{"type":"event"}` line per log entry, each holding an `entry_appended` event, then one `{"type":"replayed"}` line with the entry count and the meter. A live `run --json` prints `entry_appended` lines like these too, among its streaming events such as `text_delta`, but a replay has no streaming events to print. The other three commands print one JSON object per result.
 
 ## Fix a stuck lock or change the approval keys
 

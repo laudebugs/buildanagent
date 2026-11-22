@@ -35,9 +35,12 @@ const VALUE_FLAGS: Readonly<Record<string, "model" | "stateDir" | "otlpEndpoint"
   "--budget": "budgetUsd",
 };
 
+// Decimal digits only: `Number()` would also read `0x10`, `1e3` and ` 2 ` as amounts nobody meant to type.
+const DECIMAL = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+
 function budgetOf(text: string): number {
   const value = Number(text);
-  if (text.trim() === "" || !Number.isFinite(value) || value <= 0) {
+  if (!DECIMAL.test(text) || !Number.isFinite(value) || value <= 0) {
     throw new CliError("usage", `--budget takes a positive number of US dollars, got ${JSON.stringify(text)}`);
   }
   return value;
@@ -58,14 +61,22 @@ function readFlag(flags: MutableFlags, word: string, next: string | undefined): 
   const value = inline ?? next;
   // An empty value, as in `--state-dir=`, would otherwise fall back to a default the caller never asked for.
   if (value === undefined || value === "") throw new CliError("usage", `${name} needs a value`);
+  // A flag or `--` after a value flag means its value was left out, as in `--model --json hi`; taking the next word
+  // would swallow it. A value that starts with a dash is still possible written as `--name=value`.
+  if (inline === undefined && value.startsWith("-")) {
+    throw new CliError(
+      "usage",
+      `${name} needs a value, got ${JSON.stringify(value)}; write ${name}=<value> for a value that starts with -`,
+    );
+  }
   if (valued === "budgetUsd") flags.budgetUsd = budgetOf(value);
   else flags[valued] = value;
   return inline === undefined ? 2 : 1;
 }
 
 /**
- * Reads `argv`, the arguments after the program name. Throws a `CliError` with code `usage` for an unknown flag or a
- * missing or empty value.
+ * Reads `argv`, the arguments after the program name. Throws a `CliError` with code `usage` for an unknown flag, or
+ * for a missing or empty value, including one where the next word is another flag or `--`.
  */
 export function parseArgs(argv: readonly string[]): ParsedArgs {
   const positionals: string[] = [];

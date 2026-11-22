@@ -4,10 +4,11 @@ import { linesOf } from "@buildanagent/cli";
 import type { SessionEntry } from "@buildanagent/protocol";
 import { describe, test } from "vitest";
 import { parseArgs } from "../src/args.js";
-import { groupRequests } from "../src/ask.js";
+import { groupRequests, inputLines } from "../src/ask.js";
 import { chainedCommands } from "../src/command-lines.js";
 import { Meter, readingText, warningText } from "../src/meter.js";
 import { modelFromSpec } from "../src/model.js";
+import { otlpTracer } from "../src/otlp.js";
 
 describe("parseArgs", () => {
   test("flags go anywhere, take a value after a space or an equals sign, and -- ends them", () => {
@@ -22,6 +23,22 @@ describe("parseArgs", () => {
     assert.throws(() => parseArgs(["--nope"]), /unknown flag "--nope"/);
     assert.throws(() => parseArgs(["--model"]), /--model needs a value/);
     assert.throws(() => parseArgs(["--budget", "0"]), /--budget takes a positive number/);
+  });
+
+  test("a value flag followed by another flag or -- is missing its value, unless the value is given with =", () => {
+    assert.throws(() => parseArgs(["run", "--model", "--json", "hi"]), /--model needs a value, got "--json"/);
+    assert.throws(() => parseArgs(["--state-dir", "--", "x"]), /--state-dir needs a value, got "--"/);
+    assert.throws(() => parseArgs(["--budget", "-1"]), /--budget needs a value, got "-1"/);
+    assert.equal(parseArgs(["--state-dir=-odd"]).flags.stateDir, "-odd");
+  });
+
+  test("--budget takes decimal dollars only, not hex, exponents or padding", () => {
+    for (const text of ["0x10", "1e3", " 2", "2 ", "Infinity", "1_000", "+2"]) {
+      assert.throws(() => parseArgs([`--budget=${text}`]), /--budget takes a positive number/, text);
+    }
+    assert.equal(parseArgs(["--budget", "0.25"]).flags.budgetUsd, 0.25);
+    assert.equal(parseArgs(["--budget", ".5"]).flags.budgetUsd, 0.5);
+    assert.equal(parseArgs(["--budget", "3"]).flags.budgetUsd, 3);
   });
 
   test("an empty value is a usage error, not a silent fall back to the default", () => {
@@ -58,6 +75,31 @@ describe("chainedCommands", () => {
     assert.deepEqual(chainedCommands("rm foo\\ "), [{ operator: "", command: "rm foo\\ " }]);
   });
 
+  test("keeps the inside of $(...), (...) and backticks as written, line breaks included", () => {
+    assert.deepEqual(chainedCommands("echo $(id\nrm   -rf ~)"), [{ operator: "", command: "echo $(id\nrm   -rf ~)" }]);
+    assert.deepEqual(chainedCommands("(cd  a;\n  make)   &&  x"), [
+      { operator: "", command: "(cd  a;\n  make)" },
+      { operator: "&&", command: "x" },
+    ]);
+    assert.deepEqual(chainedCommands("echo `id\nrm  -rf ~`"), [{ operator: "", command: "echo `id\nrm  -rf ~`" }]);
+  });
+
+  test("only a space or a tab is a blank: a no-break space stays part of its word", () => {
+    assert.deepEqual(chainedCommands("rm a\u00a0b\t c"), [{ operator: "", command: "rm a\u00a0b c" }]);
+  });
+
+  test("a comment runs to the end of its line, and a quote in it hides no command after it", () => {
+    assert.deepEqual(chainedCommands("ls # it's\nrm -rf ~"), [
+      { operator: "", command: "ls # it's" },
+      { operator: ";", command: "rm -rf ~" },
+    ]);
+    // `$#` and `a#b` start no comment.
+    assert.deepEqual(chainedCommands("echo $# a#b; c"), [
+      { operator: "", command: "echo $# a#b" },
+      { operator: ";", command: "c" },
+    ]);
+  });
+
   test("reads the & and | of a redirection as part of the command, not as an operator", () => {
     assert.deepEqual(chainedCommands("make test 2>&1 | tee log"), [
       { operator: "", command: "make test 2>&1" },
@@ -82,17 +124,33 @@ describe("groupRequests", () => {
       params: { request: { id, kind: "approval", tool: "bash", inputHash: `hash-${id}` } },
     }) as never;
 
-  test("commands that differ only in an escaped space are two groups, each with its own answer", () => {
+  const ids = (groups: ReturnType<typeof groupRequests>) =>
+    groups.map((group) => group.requests.map((request) => request.params.request.id));
+
+  test("only calls with the same raw input share a group, so commands that read alike never share an answer", () => {
     const inputs = new Map<string, unknown>([
       ["r1", { command: "rm foo\\  bar" }],
       ["r2", { command: "rm foo\\ bar" }],
       ["r3", { command: "rm  foo\\ bar" }],
+      ["r4", { command: "rm foo\\ bar" }],
     ]);
-    const groups = groupRequests([bash("r1"), bash("r2"), bash("r3")], inputs);
-    assert.deepEqual(
-      groups.map((group) => group.requests.map((request) => request.params.request.id)),
-      [["r1"], ["r2", "r3"]],
-    );
+    assert.deepEqual(ids(groupRequests([bash("r1"), bash("r2"), bash("r3"), bash("r4")], inputs)), [
+      ["r1"],
+      ["r2", "r4"],
+      ["r3"],
+    ]);
+  });
+
+  test("a line break inside $(...) keeps its own group and its own displayed line", () => {
+    const two = { command: "echo $(id\nrm -rf ~)" };
+    const one = { command: "echo $(id rm -rf ~)" };
+    const inputs = new Map<string, unknown>([
+      ["r1", two],
+      ["r2", one],
+    ]);
+    assert.deepEqual(ids(groupRequests([bash("r1"), bash("r2")], inputs)), [["r1"], ["r2"]]);
+    assert.deepEqual(inputLines(two), ["echo $(id\\nrm -rf ~)"]);
+    assert.deepEqual(inputLines(one), ["echo $(id rm -rf ~)"]);
   });
 });
 
@@ -148,4 +206,23 @@ test("modelFromSpec builds a model for a known provider whose key is set, and re
   assert.deepEqual([model.ref.provider, model.ref.id], ["anthropic", "claude-sonnet-5-5"]);
   assert.throws(() => modelFromSpec("acme:m", {}), /--model takes anthropic:<model id> or openai:<model id>/);
   assert.throws(() => modelFromSpec("openai:gpt-x", {}), /OPENAI_API_KEY, which is not set/);
+});
+
+test("a span ended twice is sent once, with its first end time", async () => {
+  const bodies: string[] = [];
+  const tracer = otlpTracer({
+    endpoint: "http://127.0.0.1:4318",
+    now: () => 1,
+    fetch: async (_url, init) => {
+      bodies.push(String(init?.body));
+      return new Response(null, { status: 200 });
+    },
+  });
+  const span = tracer.startSpan("step");
+  span.end(5);
+  span.end(9);
+  await tracer.flush();
+  const spans = JSON.parse(bodies[0] as string).resourceSpans[0].scopeSpans[0].spans;
+  assert.equal(spans.length, 1);
+  assert.equal(spans[0].endTimeUnixNano, "5000000");
 });

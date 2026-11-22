@@ -1,11 +1,13 @@
 /**
- * Asks the person at the terminal about the requests a turn paused on. Calls of one tool with the same input, after
- * a command's spaces are normalised, are shown as one group and take one answer, and a chained command is shown one
- * command per line, so an approver sees every command an approval would run.
+ * Asks the person at the terminal about the requests a turn paused on. Calls of one tool with the same input are shown
+ * as one group and take one answer, and a chained command is shown one command per line, so an approver sees every
+ * command an approval would run. Everything the model or the log supplied passes through `visible()` on its way to
+ * the terminal, so a control character in it can't rewrite the prompt the approver reads.
  */
 import type { SignedPendingRequest } from "@buildanagent/sdk";
 import { chainedCommands, commandOf } from "./command-lines.js";
 import type { CliIo } from "./io.js";
+import { visible } from "./visible.js";
 import type { PersonRequest, SessionWatch } from "./watch.js";
 
 /** Several requests that one answer settles. */
@@ -14,11 +16,12 @@ interface Group {
   readonly input: unknown;
 }
 
-/** What tells two calls apart: the tool and the input, with a command's chain laid out as the approver reads it. */
+/**
+ * What tells two calls apart: the tool and the input exactly as the call would run it. A key from the laid-out text
+ * would let two commands that run differently but read alike share one answer, so only identical calls group.
+ */
 function groupKey(request: SignedPendingRequest, input: unknown): string {
-  const command = commandOf(input);
-  const shown = command === undefined ? input : { ...(input as object), command: chainedCommands(command) };
-  return `${request.tool}\u0000${JSON.stringify(shown) ?? request.inputHash}`;
+  return `${request.tool}\u0000${JSON.stringify(input) ?? request.inputHash}`;
 }
 
 /** The approvals grouped by tool and input, in the order they were asked; each clarification stands alone. */
@@ -41,8 +44,8 @@ export function groupRequests(requests: readonly PersonRequest[], inputs: Readon
 /** The lines that describe a group's input: each chained command on its own line, or the input as JSON. */
 export function inputLines(input: unknown): string[] {
   const command = commandOf(input);
-  if (command === undefined) return [JSON.stringify(input) ?? "(no input)"];
-  return chainedCommands(command).map((part) => `${part.operator} ${part.command}`.trim());
+  if (command === undefined) return [visible(JSON.stringify(input) ?? "(no input)")];
+  return chainedCommands(command).map((part) => visible(`${part.operator} ${part.command}`.trim()));
 }
 
 function describe(group: Group): string {
@@ -50,8 +53,10 @@ function describe(group: Group): string {
   const signed = (first as PersonRequest).params.request;
   const count = group.requests.length;
   const who =
-    count === 1 ? `${signed.tool} needs your approval` : `${count} calls of ${signed.tool} need your approval`;
-  const reason = signed.reason === undefined ? "" : `: ${signed.reason}`;
+    count === 1
+      ? `${visible(signed.tool)} needs your approval`
+      : `${count} calls of ${visible(signed.tool)} need your approval`;
+  const reason = signed.reason === undefined ? "" : `: ${visible(signed.reason)}`;
   const shown = group.input === undefined ? [`(input hash ${signed.inputHash})`] : inputLines(group.input);
   return `${who}${reason}\n${shown.map((line) => `    ${line}\n`).join("")}`;
 }
@@ -69,7 +74,8 @@ async function readDecision(io: CliIo): Promise<"allow" | "deny" | undefined> {
 }
 
 async function askClarification(io: CliIo, watch: SessionWatch, request: PersonRequest): Promise<boolean> {
-  io.error(`The agent asks: ${request.params.request.question ?? "(no question)"}\n`);
+  const { question } = request.params.request;
+  io.error(`The agent asks: ${question === undefined ? "(no question)" : visible(question)}\n`);
   for (;;) {
     io.error("answer> ");
     const line = await io.readLine();

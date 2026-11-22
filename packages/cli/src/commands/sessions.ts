@@ -10,6 +10,7 @@ import { Meter, readingText } from "../meter.js";
 import type { CommandContext } from "../options.js";
 import { Output } from "../output.js";
 import { entryLine } from "../render.js";
+import { visible } from "../visible.js";
 import { openStored, SessionWatch } from "../watch.js";
 
 const SNIPPET_CHARS = 60;
@@ -34,7 +35,12 @@ async function listAll(host: Host): Promise<SessionListItem[]> {
   return all;
 }
 
-/** Every entry of the session's current file, read back through `session/open`. */
+/**
+ * Every entry of the session's current file, read back through `session/open`. The open takes no writer lock, so a
+ * read never stops another process's turn. The dispatcher does keep the session open for this connection, watching
+ * its events and asking it about waiting requests, and the protocol has no call to close one session, so that state
+ * lasts until the command closes the host, which ends it for every session read.
+ */
 async function entriesOf(context: CommandContext, host: Host, session: string): Promise<SessionEntry[]> {
   const entries: SessionEntry[] = [];
   const watch = new SessionWatch(host.client, session, (event) => {
@@ -97,6 +103,17 @@ function searchable(entry: SessionEntry): { who: string; text: string } | undefi
   return undefined;
 }
 
+/**
+ * `text` in lower case where that keeps its length, character by character. `toLowerCase()` turns some characters
+ * into longer ones, such as `İ` into `i̇`, so a match found in the lowered text would sit at another index of the
+ * original; a character like that is compared as it is written instead.
+ */
+const folded = (text: string): string =>
+  Array.from(text, (char) => {
+    const lower = char.toLowerCase();
+    return lower.length === char.length ? lower : char;
+  }).join("");
+
 function snippet(text: string, at: number, length: number): string {
   const start = Math.max(0, at - SNIPPET_CHARS);
   const end = Math.min(text.length, at + length + SNIPPET_CHARS);
@@ -105,16 +122,21 @@ function snippet(text: string, at: number, length: number): string {
 }
 
 async function search(context: CommandContext, host: Host, out: Output, query: string): Promise<number> {
-  const needle = query.toLowerCase();
+  const needle = folded(query);
   let found = 0;
   for (const { session } of await listAll(host)) {
     for (const entry of await entriesOf(context, host, session)) {
       const hit = searchable(entry);
-      const at = hit?.text.toLowerCase().indexOf(needle) ?? -1;
+      const at = hit === undefined ? -1 : folded(hit.text).indexOf(needle);
       if (hit === undefined || at < 0) continue;
       found += 1;
       const text = snippet(hit.text, at, needle.length);
-      out.result(`${session} #${entry.seq} ${hit.who}: ${text}`, { session, seq: entry.seq, who: hit.who, text });
+      out.result(`${session} #${entry.seq} ${visible(`${hit.who}: ${text}`)}`, {
+        session,
+        seq: entry.seq,
+        who: hit.who,
+        text,
+      });
     }
   }
   if (found === 0) out.note(`no message holds ${JSON.stringify(query)}`, { type: "no_match", query });

@@ -106,6 +106,8 @@ export function otlpTracer(options: OtlpTracerOptions): OtlpTracer {
         record.status = { code: status.code, ...(status.message === undefined ? {} : { message: status.message }) };
       },
       end: (endTime) => {
+        // OpenTelemetry ignores a second end(), so a span ended twice is still one span on the collector.
+        if (record.end !== undefined) return;
         record.end = endTime ?? now();
         ended.push(record);
       },
