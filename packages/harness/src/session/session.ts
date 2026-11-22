@@ -245,6 +245,20 @@ export class Session {
     return path.reverse();
   }
 
+  /** Whether the log's last entry is a `checkout`, so HEAD was moved and the path's end is not where the log ends. */
+  headMoved(): boolean {
+    return this.#entries.at(-1)?.type === "checkout";
+  }
+
+  /**
+   * The name of the branch HEAD is on: the file the log is in, and, after a checkout, that checkout's id, so a re-run
+   * that replays a call id gets a branch of its own.
+   */
+  branch(): string {
+    const moved = this.#entries.findLast((entry) => entry.type === "checkout");
+    return moved === undefined ? this.#file : `${this.#file}@${moved.id}`;
+  }
+
   /**
    * The SDK context the entries from the root to `headId` (default HEAD) stand for: the messages in order, and the
    * system prompt of the latest turn, which is the one the model saw. Pass it to `continueRun()`, in any process,

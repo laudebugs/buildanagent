@@ -116,6 +116,9 @@ function schemaProperties(node: unknown, found = new Set<string>()): Set<string>
     const properties = record.properties as Record<string, unknown> | undefined;
     // A session entry's own fields are covered by the entry schema's test, not repeated here.
     if (isEntryType((properties?.type as { const?: string } | undefined)?.const)) return found;
+    // The token counts of a `usage` entry. Two entry fields share the shape, so the schema names it once in `$defs`,
+    // and no message fixture reaches it outside an entry.
+    if (properties !== undefined && "uncachedInput" in properties) return found;
     for (const name of Object.keys(properties ?? {})) found.add(name);
     for (const value of Object.values(record)) schemaProperties(value, found);
   }
@@ -139,24 +142,7 @@ test("every property the schema lists, optional ones included, is used by a fixt
   // Outside the schema by design: the SDK's event fields beyond its base fields, which the loose mirror lets through, and
   // the contents of a tool's free-form input.
   const sdkEventFields = new Set(["index", "delta", "path"]);
-  // The token counts a `usage` entry holds. Two entry fields share the shape, so the schema names it once in `$defs`,
-  // and no message fixture reaches it outside an entry, whose own fields the entry schema's test covers.
-  const usageShapeFields = new Set([
-    "uncachedInput",
-    "cacheRead",
-    "cacheWrite",
-    "5m",
-    "1h",
-    "output",
-    "reasoning",
-    "raw",
-    "unreported",
-  ]);
-  assert.deepEqual(
-    [...listed].filter((name) => !used.has(name) && !usageShapeFields.has(name)).sort(),
-    [],
-    "a field no fixture uses",
-  );
+  assert.deepEqual([...listed].filter((name) => !used.has(name)).sort(), [], "a field no fixture uses");
   assert.deepEqual(
     [...used].filter((name) => !listed.has(name) && !sdkEventFields.has(name)).sort(),
     [],

@@ -64,7 +64,8 @@ Make the log the only state: rebuild the SDK `Context` from entries in any proce
 - `runTurn()` takes `history` from the log when the caller gives none, so the conversation lives only in the log.
 - `rerunFrom` is a function next to `runTurn`, not a `Session` method, because it needs the harness. It refuses an entry that follows open tool calls.
 - Resume settles calls in `runTurn()` before it writes anything. The unknown outcome comes from the safety package's `renderOutcome`, so the harness now depends on `@buildanagent/agent-safety`.
-- `Harness.tenant` (default `local`) and `effectScope()` give the `EffectScope`. Its branch is the log's file, so a re-run on the same file shares its branch and relies on the business key.
+- `Harness.tenant` (default `local`) and `effectScope()` give the `EffectScope`. Its branch is the log's file plus its latest checkout, so a re-run gets a branch of its own.
+- The first criterion holds for a run that didn't pause: a paused run's `context.pending` and `pendingInputs` are in no entry, and N13 records them.
 - `TurnOptions.clock` and `newId` make a turn deterministic.
 - Not covered: approvals that a crash left waiting (N13), and a crash in the middle of a `guardedWrite` whose record stayed `started`.
 

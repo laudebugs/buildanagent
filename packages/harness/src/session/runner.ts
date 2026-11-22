@@ -25,6 +25,7 @@ import type { Clock } from "@buildanagent/sdk/testing";
 import { HarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import type { PolicySession } from "../permissions/types.js";
+import { contextOf } from "./rebuild.js";
 import { settleOpenCalls } from "./resume.js";
 import type { Session } from "./session.js";
 import type { EntryInput } from "./store.js";
@@ -138,20 +139,14 @@ function toolsOf<H>(harness: Harness<H>, options: TurnOptions<H>): ToolDefinitio
   return all.filter((definition) => allowed.has(definition.name));
 }
 
-async function lastLoadout(session: Session): Promise<SessionEntry | undefined> {
-  const path = await session.path();
-  return path.findLast((entry) => entry.type === "loadout");
-}
-
 /** Writes what a new session starts with, and a `loadout` when the tools or the model differ from the last one recorded. */
 async function recordLoadout<H>(
-  session: Session,
   harness: Harness<H>,
   writer: EntryWriter,
   model: Model,
   tools: readonly ToolDefinition<unknown, unknown, unknown>[],
+  started: readonly SessionEntry[],
 ): Promise<void> {
-  const started = await session.path();
   if (started.length === 0) {
     await writer.write("harness", {
       type: "session_header",
@@ -167,7 +162,7 @@ async function recordLoadout<H>(
     await writer.write("harness", { type: "env_stamp", ...harness.env, model: model.ref });
   }
   const names = tools.map((tool) => tool.name);
-  const last = await lastLoadout(session);
+  const last = started.findLast((entry) => entry.type === "loadout");
   const same =
     last?.type === "loadout" &&
     last.model !== undefined &&
@@ -422,9 +417,16 @@ export async function runTurn<H = unknown>(
     () => stop.abort(),
   );
   // What a crash left open is settled first, so the log reads as a whole and the context has no call without a result.
-  await settleOpenCalls(await session.path(), harness, (origin, body) => writer.write(origin, body as Body));
-  await recordLoadout(session, harness, writer, model, tools);
-  const history = options.history ?? (await session.toContext()).messages;
+  let path = await session.path();
+  const wrote = await settleOpenCalls(
+    path,
+    harness,
+    (origin, body) => writer.write(origin, body as Body),
+    !session.headMoved(),
+  );
+  if (wrote) path = await session.path();
+  await recordLoadout(harness, writer, model, tools, path);
+  const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId);
   const observer: Observer = (event) => recorder.handle(event);

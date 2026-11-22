@@ -57,6 +57,7 @@ class MessageBuilder {
   }
 
   end(entry: Extract<SessionEntry, { type: "message_end" }>): void {
+    this.#settleEnded(undefined);
     if (this.#open?.role !== "assistant" || this.#open.id !== entry.messageId) {
       // A message with no blocks has no open message to close.
       this.#closeUser();

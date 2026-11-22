@@ -5,10 +5,10 @@ import type { Session } from "./session.js";
 
 /**
  * The `EffectScope` a guarded write takes for `toolCallId`. The tenant is the harness's, the session is the session's
- * id, and the branch is the file the session's log is in, which a fork or a revert changes, so a branch that replays a
- * call id gets its own key. A write with a business key shares one key across all of them, which is what makes a
+ * id, and the branch is the file the log is in plus its latest checkout, which a fork, a revert or a re-run changes, so a
+ * branch that replays a call id gets its own key. A write with a business key shares one key across all of them, which is what makes a
  * resumed run's repeated write recognisable.
  */
 export function effectScope(session: Session, harness: Pick<Harness, "tenant">, toolCallId: string): EffectScope {
-  return { tenant: harness.tenant, session: session.key.sessionId, branch: session.file(), toolCallId };
+  return { tenant: harness.tenant, session: session.key.sessionId, branch: session.branch(), toolCallId };
 }
