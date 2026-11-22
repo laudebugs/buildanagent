@@ -345,7 +345,8 @@ declare function unlockSession(options: { dir: string }, key: SessionKey): Promi
 
 interface Session {
   readonly key: SessionKey;
-  head(): string;                                            // the entry id HEAD points at
+  head(): string | null;                                     // the entry id HEAD points at; null before the first entry (revision N5)
+  append(entries: EntryInput[]): Promise<SessionEntry[]>;    // revision (N5): extends the current file under the writer lock and moves HEAD
   path(headId?: string): Promise<SessionEntry[]>;            // root → head, following parentId
   checkout(entryId: string): Promise<void>;                  // appends a checkout entry
   fork(entryId: string): Promise<Session>;                   // a new file whose header names the parent prefix
@@ -355,7 +356,9 @@ interface Session {
   playback(): AsyncIterable<SessionEntry>;                   // no model or tool calls
   rerunFrom(entryId: string, options: TurnOptions): Promise<TurnResult>; // branches, then calls the model again
 }
-declare function openSession(options: { store: SessionStore; lock: SessionLock; key: SessionKey }): Promise<Session>; // revision (N3): the key names the user
+declare function openSession(options: { store: SessionStore; index: SessionIndex; key: SessionKey; lock?: SessionLock }): Promise<Session>; // revision (N3, N5): the key names the user; with a lock the session writes, without one it only reads
+interface SessionIndex { get(key: SessionKey): Promise<string | undefined>; set(key: SessionKey, file: string): Promise<void> } // revision (N5): the one mutable pointer, to the session's current file; memoryIndex(), fileIndex({ dir }) replaces it by rename
+declare function migrateSession(options: { store: SessionStore; index: SessionIndex; key: SessionKey; migrations: Migration[] }): Promise<MigrationResult>; // revision (N5): writes, verifies and publishes a new file
 ```
 
 **Amended by the owner on 2026-11-19 ("yes, i accept these"): every session lookup takes the user.** The book's Chapter 5 found that a session id finds a session but proves nothing about who may open it, and that of our eight SDKs only ADK's `getSession` scopes a lookup by user ([Chapter 5, "A session id finds a session; your server decides whose it is"](../../apps/manual/src/content/chapters/memory-and-sessions.md)). So `SessionStore` keys each session by its user and its id: `append`, `load` and `delete` take both, `list` takes the user, and a session under another user looks exactly like a missing one. No method finds a session by its id alone, so no caller can forget the owner check. [N3](../todos/done/N3-session-store.md) built the store that way and updated the sketch above. N3 also settled the open point: `openSession({ key })` and `SessionLock.acquire(key)` take the same `{ userId, sessionId }`, so neither an open nor a lock can reach another user's session.
@@ -692,7 +695,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N2](../todos/done/N2-session-entries-schema.md) | Session entry union in `@buildanagent/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
 | [N3](../todos/done/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/done/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
-| [N5](../todos/ready/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
+| [N5](../todos/done/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
 | [N6](../todos/ready/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
 | [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15b, E2 | M |
 

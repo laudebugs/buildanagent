@@ -95,7 +95,7 @@ The report's thesis holds: every rewind mechanism we checked restores only state
 | 56 | The plan review raised no finding on rollback, undo, compensation or idempotency | "Our plans repeat…" | ✅ | [plan-review.md](../../plans/reviews/plan-review.md): a search for those words finds only "duplicate" in an editorial cut list (line 196) |
 | 57 | "The 'exactly once' claims in N13, N40, B15b and the A15 capstone" | "Three risks…" | ✏️ | N40:55 and A15:43 say "exactly once"; N13:48 and B15b:48 say "runs once". Now "runs once" and "exactly once" |
 | 58 | A crash after the helpdesk accepts a reply but before the `tool_result` is appended makes N7 write an "aborted error result" | "Three risks…" | ✏️ | N7:29 covers "open tool calls" in a turn. The reply is a code-initiated call ([build-agent.md](../../plans/build-agent.md) line 78, AD1), and no todo states a crash rule for a `code_call` with no result. Now says both, and that either way the log cannot tell whether the reply went out |
-| 59 | `revert` is log-only and leaves the original file byte-identical | "Three risks…" | ✅ | [N5](../../todos/ready/N5-head-fork-revert.md) line 44 |
+| 59 | `revert` is log-only and leaves the original file byte-identical | "Three risks…" | ✅ | [N5](../../todos/done/N5-head-fork-revert.md) line 44 |
 | 60 | A13 maps every stop to a handoff "without retry" | "Three risks…" | ✅ | [A13](../../todos/ready/A13-triage-workflow.md) line 30 |
 | 61 | The helpdesk has not been chosen (A24) | "Three risks…"; conclusion | ✅ | [AD14](../../plans/build-agent.md#ad14-one-helpdesk-interface-is-the-agents-only-way-out-with-a-fake-for-tests-a-shadow-wrapper-for-rollout-and-a-real-adapter-the-owner-names-accepted) line 239; [A24](../../todos/ready/A24-real-helpdesk-adapter.md) line 27 |
 
