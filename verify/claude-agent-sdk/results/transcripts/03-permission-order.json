@@ -287,13 +287,13 @@
     },
     {
       "kind": "check",
-      "line": 62,
+      "line": 63,
       "message": "c) disallowedTools blocks the tool even in bypassPermissions",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 64,
       "message": "c) denied call never reaches canUseTool",
       "pass": true
     },
@@ -409,7 +409,7 @@
     },
     {
       "kind": "check",
-      "line": 93,
+      "line": 95,
       "message": "d) PreToolUse hook 'deny' blocks a tool that allowedTools would approve",
       "pass": true
     },
@@ -436,7 +436,7 @@
     },
     {
       "kind": "check",
-      "line": 119,
+      "line": 122,
       "message": "e) hook 'allow' does not skip deny rules",
       "pass": true
     },
@@ -552,7 +552,7 @@
     },
     {
       "kind": "check",
-      "line": 125,
+      "line": 129,
       "message": "f) dontAsk denies without calling canUseTool",
       "pass": true
     }

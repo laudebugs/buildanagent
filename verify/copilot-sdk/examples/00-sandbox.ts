@@ -16,6 +16,7 @@ check(
   `HOME is a temp dir, not the real home, and cwd is inside it (${process.env.HOME})`,
 );
 
+// #region network-check
 const dial = (host: string, port: number) =>
   new Promise<string>((resolve) => {
     const s = connect({ host, port, timeout: 3000 });
@@ -30,16 +31,17 @@ const dial = (host: string, port: number) =>
     s.on("error", (e: NodeJS.ErrnoException) => resolve(e.code ?? e.message));
   });
 const outbound = await dial("140.82.112.3", 443); // a github.com address
-check(outbound === "ENETUNREACH", `a raw TCP connection to a public address fails (${outbound})`);
+check(outbound === "ENETUNREACH", `a raw TCP connection to a public address fails (${outbound})`); // book:note raw
 const dns = await lookup("api.github.com").then(
   () => "resolved",
   (e: NodeJS.ErrnoException) => e.code ?? "error",
 );
-check(dns !== "resolved", `DNS lookups fail (${dns})`);
+check(dns !== "resolved", `DNS lookups fail (${dns})`); // book:note dns
 const blocked = await fetch("https://api.github.com").then(
   () => "fetched",
   (e: Error) => e.message,
 );
 check(blocked.includes("blocked fetch"), "the preload rejects non-local fetch()");
 const local = await fetch(`${process.env.COPILOT_MOCK_URL}/v1/models`).then((r) => r.status);
-check(local === 200, "loopback still works (the mock answers)");
+check(local === 200, "loopback still works (the mock answers)"); // book:note loopback
+// #endregion

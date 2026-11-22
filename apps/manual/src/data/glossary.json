@@ -154,6 +154,12 @@
     "sources": ["langgraph-checkpointers"]
   },
   {
+    "id": "permission-pipeline",
+    "term": "permission pipeline",
+    "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
+    "sources": ["claude-agent-sdk-permissions"]
+  },
+  {
     "id": "tool-registry",
     "term": "tool registry",
     "definition": "The one place a harness records every tool of every origin, built-in, extension or MCP. It gives each tool one canonical name, decides whether a request carries the tool's definition, and holds what permission rules and the log need to know about it.",
