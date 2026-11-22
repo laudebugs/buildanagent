@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T38` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [U20](../done/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md), [T46](../done/T46-example-realtime-session.md), [T47](../done/T47-example-voice-pipeline.md) |
