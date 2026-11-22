@@ -31,12 +31,45 @@ export function isDenial(value: unknown): value is SandboxDenial {
   );
 }
 
+/** The host of a host-and-port entry, in lower case: brackets off an IPv6 address, and any `:port` and trailing dot off. */
+function hostOf(entry: string): string {
+  const lower = entry.trim().toLowerCase();
+  if (lower.startsWith("[")) {
+    const close = lower.indexOf("]");
+    return close < 0 ? lower : lower.slice(1, close);
+  }
+  const colon = lower.lastIndexOf(":");
+  // Two or more colons are an IPv6 address without brackets, which has no port to take off.
+  const host = colon >= 0 && lower.indexOf(":") === colon ? lower.slice(0, colon) : lower;
+  return host.endsWith(".") ? host.slice(0, -1) : host;
+}
+
+const isIpv6 = (host: string): boolean => host.includes(":");
+
+/**
+ * True when an entry of `deny` closes `target` on some port. An entry matches as `srt` matches a denied domain: `*`
+ * matches every host, `*.name` every name under `name` but not `name` itself, and any other entry the host alone, with
+ * case ignored. A `*.name` entry also closes an IPv4 address that ends in `.name`, which `srt` would not match, so
+ * the check errs towards asking no one. An entry's port is ignored, so a host closed on one port is never widened on any. An IPv6 address
+ * counts as closed while `deny` names any IPv6 address, because one address has many spellings.
+ */
+function isClosed(deny: readonly string[], target: string): boolean {
+  const host = hostOf(target);
+  return deny.some((entry) => {
+    const pattern = hostOf(entry);
+    if (pattern === "*") return true;
+    if (isIpv6(host)) return isIpv6(pattern);
+    if (pattern.startsWith("*.")) return host.endsWith(pattern.slice(1));
+    return host === pattern;
+  });
+}
+
 const plus = (list: readonly string[], item: string): string[] => (list.includes(item) ? [...list] : [...list, item]);
 
 /**
  * `policy` with exactly the denial's target added, or `undefined` when the denial can't be widened: a path that is the
- * root, relative or untidy, a host with a wildcard or anything but a host and port, or a host the policy's own
- * `network.deny` names, since the host closed it on purpose.
+ * root, relative or untidy, a host with a wildcard or anything but a host and port, or a host an entry of the policy's
+ * own `network.deny` closes (see `isClosed()`), since the host closed it on purpose and the rerun would be denied again.
  */
 export function widenPolicy(policy: SandboxPolicy, denial: SandboxDenial): SandboxPolicy | undefined {
   const { readRoots, writeRoots, network } = policy;
@@ -52,7 +85,7 @@ export function widenPolicy(policy: SandboxPolicy, denial: SandboxDenial): Sandb
       return isWidenablePath(denial.target) ? { ...base, writeRoots: plus(writeRoots, denial.target) } : undefined;
     case "network": {
       const host = denial.target;
-      if (!isWidenableHost(host) || network.deny.includes(host)) return undefined;
+      if (!isWidenableHost(host) || isClosed(network.deny, host)) return undefined;
       return { ...base, network: { ...base.network, allow: plus(network.allow, host) } };
     }
     default:

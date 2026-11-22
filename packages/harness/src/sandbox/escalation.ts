@@ -126,7 +126,11 @@ export interface EscalationResolveOptions<H = unknown> {
   readonly manifest: WorkspaceManifest;
   /** The rerun's whole environment, from `spawnEnv()`. */
   readonly env: Readonly<Record<string, string>>;
-  /** Aborts the rerun. An aborted signal before the answer is written writes nothing. */
+  /**
+   * Aborts the call and its rerun. A signal aborted when `resolve()` is called writes nothing. One aborted later, but
+   * before the answer is written, writes no answer and runs nothing, so the request still waits. One aborted after the
+   * answer is written only reaches the rerun, as `Sandbox.exec()` takes a signal, and the approval is spent.
+   */
   readonly signal: AbortSignal;
   /** The same host context the request was made with, when it bound one. */
   readonly hostContext?: H;
@@ -204,7 +208,11 @@ export interface EscalationMachine<H = unknown> {
    * canonical JSON form, before anything is written.
    */
   run(session: Session, run: EscalationRun<H>): Promise<EscalationResult>;
-  /** The escalations of the session that wait for an answer. */
+  /**
+   * The escalations of the session that wait for an answer. The quorum policy is asked about each one with the answers
+   * written so far, and one it says has expired is left out. Listing writes nothing, so such an escalation stays in the
+   * log until it is answered: `resolve()` then writes the policy's denial, and it never reruns.
+   */
   pending(session: Session): Promise<PendingEscalation[]>;
   /**
    * Answers one waiting escalation. The answer is checked before anything is written: the signature under a key in the
@@ -305,20 +313,28 @@ const ranResult = (exec: Extract<ExecResult, { exitCode: number }>, keep = (valu
     ...(exec.signal === undefined ? {} : { signal: exec.signal }),
   });
 
+/**
+ * Where an escalation's result text came from. `command`: the rerun's output. `quoted`: a sentence of the harness's
+ * that quotes text it did not write, such as a backend's denial, an error's message or an approver's reason. `fixed`:
+ * one of the harness's own fixed sentences.
+ */
+type ResultSource = "command" | "quoted" | "fixed";
+
 /** Writes the escalation's result, which ends it: the model never reads it, and the host gets it back. */
-async function writeResult(io: Io, id: string, result: ToolResult<unknown>, fromCommand: boolean): Promise<void> {
+async function writeResult(io: Io, id: string, result: ToolResult<unknown>, source: ResultSource): Promise<void> {
   const first = result.content[0];
   // The streams were clipped one by one already; this bounds the whole text, the exit line included.
   const body = first?.type === "text" ? clip(first.text, 2 * STORED_CHARS + 256) : "";
-  await io.write(fromCommand ? "tool" : "harness", {
+  await io.write(source === "command" ? "tool" : "harness", {
     type: "tool_result",
     callId: id,
     tool: ESCALATION_TOOL,
     content: [{ type: "text", text: body }],
     isError: result.isError === true,
     ...(result.details === undefined ? {} : { details: result.details }),
-    // A command's output can carry instructions an attacker wrote; the harness's own sentences can't.
-    trust: fromCommand ? "untrusted" : "trusted",
+    // A command's output, a backend's message or a quoted reason can carry instructions an attacker wrote; only the
+    // harness's fixed sentences can't.
+    trust: source === "fixed" ? "trusted" : "untrusted",
   });
 }
 
@@ -330,7 +346,7 @@ async function settleOpen(path: readonly EscalationLogRecord[], io: Io): Promise
   for (const record of path) {
     if (record.result !== undefined || !(record.answered || record.started)) continue;
     nextEscalationState(record.started ? "rerun" : "requested", "settled");
-    await writeResult(io, record.id, text(record.started ? INTERRUPTED : NEVER_RAN, true), false);
+    await writeResult(io, record.id, text(record.started ? INTERRUPTED : NEVER_RAN, true), "fixed");
   }
 }
 
@@ -522,7 +538,7 @@ async function decideAgain<H>(machine: Machine<H>, io: Io, id: string, record: E
 async function refuseRerun(io: Io, checked: Checked, walk: Walker, reason: string): Promise<EscalationResult> {
   walk.step("refused");
   const ended = walk.end(reason);
-  await writeResult(io, checked.found.id, ended.result, false);
+  await writeResult(io, checked.found.id, ended.result, "quoted");
   return {
     status: "denied",
     reason,
@@ -547,6 +563,9 @@ async function resolveQueued<H>(
   const { found, record, widened } = checked;
   const walk = walker("requested");
   const outcome = await settled(machine.quorum, [found.requested], answersByRequest(path), [{ resolution }]);
+  // The check and the quorum policy may await, so an abort since the call began stops it here, before the answer is
+  // written: once it is, the approval is spent, and an abort then can only stop the rerun.
+  options.signal?.throwIfAborted();
   for (const entry of outcome.records) await io.write("user", { type: "approval_resolved", ...entry });
   const answer = outcome.forRun[0];
   if (answer === undefined) {
@@ -590,23 +609,37 @@ async function rerun<H>(
   } catch (error) {
     // The rerun started, so it gets a result and is never run again, and the caller still sees why it failed.
     const reason = `The rerun failed: ${error instanceof Error ? error.message : String(error)}`;
-    await writeResult(io, id, text(reason, true), false);
+    await writeResult(io, id, text(reason, true), "quoted");
     throw error;
   }
   walk.step("ran");
   if ("denied" in exec) {
     const reason = `${what(exec.denied)} This was the approved rerun, so no one is asked again.`;
     const ended = walk.end(reason);
-    await writeResult(io, id, ended.result, false);
+    await writeResult(io, id, ended.result, "quoted");
     return { status: "denied", reason, denial: exec.denied, rerun: true, escalationId: id, ...ended };
   }
   await writeResult(
     io,
     id,
     ranResult(exec, (value) => clip(value)),
-    true,
+    "command",
   );
   return { status: "ran", exec, rerun: true, escalationId: id, states: walk.states, result: ranResult(exec) };
+}
+
+/** The escalations that wait, less the ones the quorum policy says have expired. It writes nothing. */
+async function pendingOf<H>(machine: Machine<H>, session: Session): Promise<PendingEscalation[]> {
+  const path = await session.path();
+  const answers = answersByRequest(path);
+  const found: PendingEscalation[] = [];
+  for (const { id, requested } of waitingEscalations(path)) {
+    if (!isEscalationRecord(requested.input)) continue;
+    const verdict = await machine.quorum.evaluate(requested.request, answers.get(requested.request.id) ?? []);
+    if (verdict === "expired") continue;
+    found.push({ escalationId: id, request: requested.request, record: requested.input });
+  }
+  return found;
 }
 
 /**
@@ -625,13 +658,7 @@ export function escalation<H = unknown>(options: EscalationOptions<H>): Escalati
     approvalPolicy: options.approvalPolicy,
     transitions: ESCALATION_TRANSITIONS,
     run: (session, call) => runCommand(machine, session, call),
-    async pending(session) {
-      return waitingEscalations(await session.path()).flatMap(({ id, requested }) =>
-        isEscalationRecord(requested.input)
-          ? [{ escalationId: id, request: requested.request, record: requested.input }]
-          : [],
-      );
-    },
+    pending: (session) => pendingOf(machine, session),
     resolve(session, resolution, resolveOptions) {
       return inCodeCallQueue(session, () => resolveQueued(machine, session, resolution, resolveOptions));
     },
