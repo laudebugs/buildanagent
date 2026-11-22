@@ -375,6 +375,9 @@ importers:
 
   verify/google-adk:
     dependencies:
+      '@a2a-js/sdk':
+        specifier: 0.3.14
+        version: 0.3.14(@grpc/grpc-js@1.14.7)(express@5.3.0)
       '@google/adk':
         specifier: 2.5.0
         version: 2.5.0(@grpc/grpc-js@1.14.7)(@modelcontextprotocol/sdk@1.32.2(@cfworker/json-schema@4.1.6)(zod@4.6.7))(express@5.3.0)
