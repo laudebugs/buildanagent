@@ -155,7 +155,8 @@ class FakeRemote {
     if (record === undefined) throw new HarnessError("sandbox_not_found", "no sandbox has that id");
     record.paused = false;
     const handle = new RemoteHandle(id, record, this);
-    handle.stops = await confirmPolicy(this.client, handle, policy);
+    // A mismatch leaves the paused sandbox to the caller, as `resumeSandbox()` does.
+    handle.stops = await confirmPolicy(this.client, handle, policy, { dispose: false });
     return handle;
   }
 }

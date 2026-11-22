@@ -59,37 +59,55 @@ export function policyDifference(requested: SandboxPolicy, applied: SandboxPolic
   return undefined;
 }
 
-/** Disposes the sandbox, ignoring a failure, and throws the mismatch. */
-async function refuse(sandbox: Sandbox, field: string, cause?: unknown): Promise<never> {
-  await sandbox.dispose().catch(() => undefined);
-  throw new SandboxPolicyMismatchError(field, cause === undefined ? undefined : { cause });
+// Why the applied policy can't deliver each stop, in words that hold no path or host from either policy.
+const UNDELIVERED: Record<SandboxStop, string> = {
+  mistakes: "the policy reads or writes the whole disk, so the sandbox cannot stop mistakes",
+  exfiltration: "the policy allows all hosts, so the sandbox cannot stop exfiltration",
+  hostile_process: "this tier shares a kernel with the host, so the sandbox cannot stop a hostile process",
+};
+
+/** The options of `confirmPolicy()`. */
+interface ConfirmOptions {
+  /** Whether a mismatch disposes the sandbox before it is thrown. Defaults to `true`. */
+  readonly dispose?: boolean;
 }
 
 /**
  * Reads back the policy `sandbox` applied and compares it with `requested`. It resolves with the stops the applied
- * policy delivers, and it disposes the sandbox and throws `SandboxPolicyMismatchError` when a field differs, when the
- * client claims a stop that the applied policy doesn't deliver (`stops`), or when a client that claims a stop has no
- * read-back or its read-back fails (`readBack`). A client that claims no stop needs no read-back.
+ * policy delivers, and it throws `SandboxPolicyMismatchError` when a field differs, when the client claims a stop that
+ * the applied policy doesn't deliver (`stops`, with the cause in the message), or when a client that claims a stop has
+ * no read-back or its read-back fails (`readBack`, or the read-back's own field when it threw a mismatch). A client
+ * that claims no stop needs no read-back. It disposes the sandbox before it throws, unless `options.dispose` is
+ * `false`, which leaves the sandbox to the caller.
  */
 export async function confirmPolicy(
   client: SandboxClient,
   sandbox: Sandbox,
   requested: SandboxPolicy,
+  options: ConfirmOptions = {},
 ): Promise<readonly SandboxStop[]> {
+  const refuse = async (field: string, more?: { cause?: unknown; reason?: string }): Promise<never> => {
+    if (options.dispose !== false) await sandbox.dispose().catch(() => undefined);
+    throw new SandboxPolicyMismatchError(field, more);
+  };
   if (typeof sandbox.readBack !== "function") {
     if (client.stops.length === 0) return [];
-    return refuse(sandbox, "readBack");
+    return refuse("readBack");
   }
   let applied: SandboxPolicy;
   try {
     applied = await sandbox.readBack();
   } catch (error) {
-    return refuse(sandbox, "readBack", error);
+    // A read-back that found the mismatch itself, such as a settings file with another write root, names its field.
+    return refuse(error instanceof SandboxPolicyMismatchError ? error.field : "readBack", { cause: error });
   }
   const field = policyDifference(requested, applied);
-  if (field !== undefined) return refuse(sandbox, field);
+  if (field !== undefined) return refuse(field);
   const delivered = stopsFor(client.tier, applied);
-  if (!client.stops.every((stop) => delivered.includes(stop))) return refuse(sandbox, "stops");
+  const missing = client.stops.filter((stop) => !delivered.includes(stop));
+  if (missing.length > 0) {
+    return refuse("stops", { reason: [...new Set(missing)].map((stop) => UNDELIVERED[stop]).join("; ") });
+  }
   return delivered;
 }
 
@@ -100,15 +118,21 @@ export function hasCapability(client: SandboxClient, capability: SandboxCapabili
 
 /**
  * Reattaches to a sandbox by its id, or starts one from a snapshot's id, then confirms its policy as `provision()`
- * does. It throws `SandboxUnsupportedError` when the client doesn't list `resume` or has no `resume()`, and
- * `SandboxPolicyMismatchError` when the resumed sandbox's policy differs from `policy`.
+ * does and sets the sandbox's `stops` to what the confirmed policy delivers. It throws `SandboxUnsupportedError` when
+ * the client doesn't list `resume` or has no `resume()`, and `SandboxPolicyMismatchError` when the resumed sandbox's
+ * policy differs from `policy`. A mismatch does not dispose the sandbox, which may be a paused one worth keeping: the
+ * caller decides whether to dispose it, and must not run anything in it under the requested policy.
  */
 export async function resumeSandbox(client: SandboxClient, id: string, policy: SandboxPolicy): Promise<Sandbox> {
   if (!hasCapability(client, "resume") || typeof client.resume !== "function") {
     throw new SandboxUnsupportedError("resume", client.tier);
   }
   const sandbox = await client.resume(id, policy);
-  await confirmPolicy(client, sandbox, policy);
+  const stops = await confirmPolicy(client, sandbox, policy, { dispose: false });
+  const set = Reflect.defineProperty(sandbox, "stops", { value: stops, enumerable: true, configurable: true });
+  if (!set && !sameEntries(sandbox.stops ?? [], stops)) {
+    throw new SandboxPolicyMismatchError("stops", { reason: "the resumed sandbox's stops can't be set" });
+  }
   return sandbox;
 }
 

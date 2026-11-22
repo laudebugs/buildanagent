@@ -255,7 +255,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface NoneSandboxOptions`: The options of `noneSandbox()`.
 - `pauseSandbox()`: Pauses `sandbox` until `resumeSandbox()` with its `id`, or throws `SandboxUnsupportedError`.
 - `policyDifference()`: The first field in which `applied` differs from `requested`, or `undefined` when they hold the same entries.
-- `resumeSandbox()`: Reattaches to a sandbox by its id, or starts one from a snapshot's id, then confirms its policy as `provision()` does.
+- `resumeSandbox()`: Reattaches to a sandbox by its id, or starts one from a snapshot's id, then confirms its policy as `provision()` does and sets the sandbox's `stops` to what the confirmed policy delivers.
 - `interface Sandbox`: A provisioned sandbox.
 - `type SandboxCapability`: What a backend can do besides provisioning.
 - `interface SandboxClient`: A sandbox backend.

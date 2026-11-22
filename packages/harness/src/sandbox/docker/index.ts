@@ -320,6 +320,10 @@ class DockerSandbox extends BackendSandbox {
    * The policy the mounts and flags apply, which are what every command's container is created with. The network is
    * closed unless the caller mounted a proxy socket, and then the proxy on it enforces the requested allowlist. A
    * read-only mount the request doesn't explain reads back as a read root it didn't ask for.
+   *
+   * One narrowing is not caught: a write root that the caller's `denyWrite` names exactly is mounted read-only but still
+   * reads back as a write root, because the read-back takes the caller's own `denyWrite` as part of the request. So
+   * `provision()` accepts it, and nothing in that root is writable inside the container.
    */
   async readBack(): Promise<SandboxPolicy> {
     this.live();

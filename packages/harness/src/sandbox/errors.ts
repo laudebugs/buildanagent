@@ -30,20 +30,30 @@ export class SandboxDeniedError extends HarnessError {
 
 /**
  * Thrown when the policy a backend read back from what it applied differs from the policy it was asked for, after
- * `provision()` or a resume. The sandbox is disposed before the error is thrown, so nothing runs under the wrong policy.
- * `field` names the first field that differs, such as `network.allow`. The message names only the field, never a path
- * or host from either policy.
+ * `provision()` or a resume. After `provision()` the sandbox is disposed before the error is thrown, so nothing runs
+ * under the wrong policy; after `resumeSandbox()` it is left to the caller, who decides whether to dispose it. `field`
+ * names the first field that differs, such as `network.allow`. The message names only the field and, for `stops`, the
+ * cause, never a path or host from either policy.
  */
 export class SandboxPolicyMismatchError extends HarnessError {
   override readonly name = "SandboxPolicyMismatchError";
-  /** The first field that differs: `readRoots`, `writeRoots`, `network.allow`, `network.deny` or `stops`. */
+  /**
+   * What differs: `readRoots`, `writeRoots`, `network.allow` or `network.deny` for the first field that differs;
+   * `stops` when the applied policy can't deliver a stop the backend claims; `readBack` when a backend that claims a
+   * stop has no read-back or its read-back fails; and `settings` when a settings file isn't in the shape its backend
+   * writes.
+   */
   readonly field: string;
 
-  constructor(field: string, options?: ErrorOptions) {
+  /** `options.reason` says why a claimed stop isn't delivered, and must not hold a path or host of either policy. */
+  constructor(field: string, options?: ErrorOptions & { readonly reason?: string }) {
+    const { reason, ...rest } = options ?? {};
     super(
       "sandbox_policy_mismatch",
-      `the sandbox applied a policy that differs from the one requested, in ${field}`,
-      options,
+      reason === undefined
+        ? `the sandbox applied a policy that differs from the one requested, in ${field}`
+        : `the sandbox can't deliver the ${field} its backend claims: ${reason}`,
+      rest,
     );
     this.field = field;
   }

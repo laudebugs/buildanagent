@@ -8,8 +8,9 @@ import {
   pauseSandbox,
   policyDifference,
   resumeSandbox,
+  type Sandbox,
   type SandboxPolicy,
-  type SandboxPolicyMismatchError,
+  SandboxPolicyMismatchError,
   snapshotSandbox,
   stopsFor,
 } from "@buildanagent/harness/sandbox";
@@ -190,7 +191,11 @@ test("a paused sandbox refuses calls until it is resumed, and the resume checks 
   const wider = { ...policy, network: { allow: ["other.test"], deny: [] } };
   const mismatch = await reject(() => resumeSandbox(client, sandbox.id ?? "", wider));
   assert.equal((mismatch as SandboxPolicyMismatchError).field, "network.allow");
-  assert.deepEqual(client.held(), [], "a resume that fails its check disposes the sandbox");
+  assert.deepEqual(client.held(), [sandbox.id], "a resume that fails its check leaves the sandbox to the caller");
+  const resumed = await resumeSandbox(client, sandbox.id ?? "", policy);
+  assert.equal(decoder.decode(await resumed.readFile("a.txt")), "kept", "the kept sandbox resumes with its files");
+  await resumed.dispose();
+  assert.deepEqual(client.held(), []);
   const unknown = await reject(() => resumeSandbox(client, "sbx-404", policy));
   assert.equal(codeOf(unknown), "sandbox_not_found");
 });
@@ -253,4 +258,82 @@ test("resumeSandbox checks the read-back itself, even when the backend's resume 
   };
   const error = await reject(() => resumeSandbox(careless, "sbx-1", policy));
   assert.equal((error as SandboxPolicyMismatchError).field, "network.allow");
+});
+
+test("resumeSandbox leaves a mismatched sandbox undisposed, and sets a resumed sandbox's stops from its read-back", async () => {
+  let disposed = 0;
+  let applied: SandboxPolicy = { ...policy, network: { allow: ["other.test"], deny: [] } };
+  const inner = await fakeSandbox().provision({ root: ROOT }, policy);
+  const client = {
+    tier: "microvm" as const,
+    stops: ["mistakes" as const],
+    capabilities: ["resume" as const],
+    provision: () => Promise.reject(new Error("not used")),
+    // Reattaches without checking or setting stops, as a thin hosted client might.
+    resume: async () => ({
+      exec: inner.exec.bind(inner),
+      readFile: inner.readFile.bind(inner),
+      writeFile: inner.writeFile.bind(inner),
+      dispose: async () => {
+        disposed += 1;
+      },
+      readBack: async () => applied,
+    }),
+  };
+  const error = await reject(() => resumeSandbox(client, "sbx-1", policy));
+  assert.equal((error as SandboxPolicyMismatchError).field, "network.allow");
+  assert.equal(disposed, 0, "the caller decides whether to dispose it");
+  applied = policy;
+  const resumed = await resumeSandbox(client, "sbx-1", policy);
+  assert.deepEqual(resumed.stops, ["mistakes", "exfiltration", "hostile_process"]);
+  assert.equal(disposed, 0);
+  await inner.dispose();
+});
+
+/** `inner`'s methods with another read-back, as a hosted provider's report would give. */
+const withReadBack = (inner: Sandbox, readBack: () => Promise<SandboxPolicy>): Sandbox => ({
+  exec: inner.exec.bind(inner),
+  readFile: inner.readFile.bind(inner),
+  writeFile: inner.writeFile.bind(inner),
+  dispose: inner.dispose.bind(inner),
+  readBack,
+});
+
+test("a provision whose read-back can't deliver a claimed stop is disposed, and the message names the cause", async () => {
+  for (const [allow, readRoots, cause] of [
+    [["*"], [ROOT], /allows all hosts, so the sandbox cannot stop exfiltration/],
+    [["0.0.0.0/0"], [ROOT], /allows all hosts/],
+    [["::/0"], [ROOT], /allows all hosts/],
+    [["allowed.test"], ["/"], /whole disk, so the sandbox cannot stop mistakes/],
+  ] as const) {
+    const wide: SandboxPolicy = {
+      readRoots: [...readRoots],
+      writeRoots: [ROOT],
+      network: { allow: [...allow], deny: [] },
+    };
+    const inner = await fakeSandbox({ stops: [] }).provision({ root: ROOT }, wide);
+    const sandbox = withReadBack(inner, async () => wide);
+    const error = (await reject(() =>
+      confirmPolicy(fakeRemoteSandbox({ stops: ["mistakes", "exfiltration"] }), sandbox, wide),
+    )) as SandboxPolicyMismatchError;
+    assert.equal(error.field, "stops");
+    assert.match(error.message, cause);
+    assert.doesNotMatch(error.message, /0\.0\.0\.0|::\/0|\*|allowed\.test|\/workspace/, "no value is echoed");
+    assert.equal(codeOf(await reject(() => inner.readFile("a.txt"))), "sandbox_disposed", "the sandbox is disposed");
+  }
+});
+
+test("a read-back that throws a mismatch keeps its precise field, with the error as the cause", async () => {
+  const inner = await fakeSandbox().provision({ root: ROOT }, policy);
+  const precise = new SandboxPolicyMismatchError("writeRoots");
+  const sandbox = withReadBack(inner, () => Promise.reject(precise));
+  const error = (await reject(() => confirmPolicy(fakeRemoteSandbox(), sandbox, policy))) as SandboxPolicyMismatchError;
+  assert.equal(error.field, "writeRoots");
+  assert.equal(error.cause, precise);
+  const plain = await fakeSandbox().provision({ root: ROOT }, policy);
+  const failing = withReadBack(plain, () => Promise.reject(new Error("down")));
+  assert.equal(
+    ((await reject(() => confirmPolicy(fakeRemoteSandbox(), failing, policy))) as SandboxPolicyMismatchError).field,
+    "readBack",
+  );
 });
