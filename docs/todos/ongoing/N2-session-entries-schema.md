@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N1](../done/N1-harness-workspace-scaffold.md), [B2](../done/B2-gateway-core-types.md) |
