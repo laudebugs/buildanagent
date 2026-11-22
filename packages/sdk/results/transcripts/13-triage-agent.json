@@ -1,0 +1,181 @@
+{
+  "format": 2,
+  "example": "13-triage-agent",
+  "file": "packages/sdk/examples/13-triage-agent.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You triage support tickets. Look the customer up first. Escalate only what an engineer must see."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Checkout fails with a 500 for every pro customer. Triage it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_customer",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_customer",
+              "output": "{\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "escalate",
+            "input": {
+              "reason": "Checkout returns 500."
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 58,
+      "message": "the run waits for a person before it escalates",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "no escalation before approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 62,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "escalate",
+              "output": "escalated"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 62,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-3",
+            "name": "submit_triage",
+            "input": {
+              "category": "bug",
+              "priority": "high"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 63,
+      "message": "after approval the escalation runs exactly once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "the run returns a typed triage record",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "the instructions arrive as the system prompt",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 66,
+      "message": "the run made exactly the three model calls the script holds",
+      "pass": true
+    }
+  ]
+}

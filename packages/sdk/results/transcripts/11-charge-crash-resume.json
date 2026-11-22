@@ -1,0 +1,697 @@
+{
+  "format": 2,
+  "example": "11-charge-crash-resume",
+  "file": "packages/sdk/examples/11-charge-crash-resume.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "charge",
+            "input": {
+              "order": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "charge",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "The charge call took effect. Next: Tell the user the charge went through. Do not run it again for the same request."
+                },
+                {
+                  "type": "text",
+                  "text": "{\"outcome\":{\"kind\":\"applied\",\"operation\":\"charge\",\"effectKey\":\"e72307af7451cb8af92a10bbbc2bd527960038782a28a22000f60be31cc414a0\",\"applied\":[],\"reverted\":[],\"notReversible\":[],\"retry\":\"never\",\"next\":\"Tell the user the charge went through.\"}}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 39,
+      "message": "a normal write reports applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "the server wrote once",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "charge",
+            "input": {
+              "order": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "charge",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "The charge call took effect. Next: Tell the user the charge went through. Do not run it again for the same request."
+                },
+                {
+                  "type": "text",
+                  "text": "{\"outcome\":{\"kind\":\"applied\",\"operation\":\"charge\",\"effectKey\":\"e72307af7451cb8af92a10bbbc2bd527960038782a28a22000f60be31cc414a0\",\"applied\":[],\"reverted\":[],\"notReversible\":[],\"retry\":\"never\",\"next\":\"Tell the user the charge went through.\"}}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "a repeat is answered from its record",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-3",
+            "name": "charge",
+            "input": {
+              "order": 13
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-3",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-3",
+              "name": "charge",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "The charge call did not take effect, and nothing changed. Next: Tell the user the card was declined. Do not retry it. Do not say that it happened."
+                },
+                {
+                  "type": "text",
+                  "text": "{\"outcome\":{\"kind\":\"not_applied\",\"operation\":\"charge\",\"effectKey\":\"cf70d21d3bcbecbbb7309aff264ae83f74faf5f4436df4a64f56b6cd24dc46e9\",\"applied\":[],\"reverted\":[],\"notReversible\":[],\"retry\":\"never\",\"next\":\"Tell the user the card was declined.\",\"reason\":\"CARD_DECLINED\"}}"
+                }
+              ],
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "a declined write is not_applied",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-4",
+            "name": "charge",
+            "input": {
+              "order": 13
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-4",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-4",
+              "name": "charge",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "The charge call did not take effect, and nothing changed. Next: Tell the user the card was declined. Do not retry it. Do not say that it happened."
+                },
+                {
+                  "type": "text",
+                  "text": "{\"outcome\":{\"kind\":\"not_applied\",\"operation\":\"charge\",\"effectKey\":\"cf70d21d3bcbecbbb7309aff264ae83f74faf5f4436df4a64f56b6cd24dc46e9\",\"applied\":[],\"reverted\":[],\"notReversible\":[],\"retry\":\"never\",\"next\":\"Tell the user the card was declined.\",\"reason\":\"CARD_DECLINED\"}}"
+                }
+              ],
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 45,
+      "message": "a decline is not sent again",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-5",
+            "name": "charge",
+            "input": {
+              "order": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "the server had already written for order 42",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 62,
+      "message": "the record says started, so the state is unknown",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-6",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-6",
+            "name": "charge",
+            "input": {
+              "order": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-6",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-6",
+              "name": "charge",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "It is not known whether the charge call took effect. Current state: Another attempt at this write is still running. Next: Wait, then call the tool again for the same request. Retrying this same call is safe; it takes effect at most once. Do not say that it happened or that it failed, and do not retry it as a new request."
+                },
+                {
+                  "type": "text",
+                  "text": "{\"outcome\":{\"kind\":\"unknown\",\"operation\":\"charge\",\"effectKey\":\"da84750125882074a80e4cb9de4375295bb725cf47ea687a42100fee9f34e1ca\",\"applied\":[],\"reverted\":[],\"notReversible\":[],\"currentState\":\"Another attempt at this write is still running.\",\"retry\":\"same_key\",\"next\":\"Wait, then call the tool again for the same request.\",\"reason\":\"IN_PROGRESS\"}}"
+                }
+              ],
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "while the lease is live a second run answers unknown",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "and sends nothing",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-7",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge orders."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-7",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-7",
+            "name": "charge",
+            "input": {
+              "order": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-7",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-7",
+              "name": "charge",
+              "output": [
+                {
+                  "type": "text",
+                  "text": "The charge call took effect. Next: Tell the user the charge went through. Do not run it again for the same request."
+                },
+                {
+                  "type": "text",
+                  "text": "{\"outcome\":{\"kind\":\"applied\",\"operation\":\"charge\",\"effectKey\":\"da84750125882074a80e4cb9de4375295bb725cf47ea687a42100fee9f34e1ca\",\"applied\":[],\"reverted\":[],\"notReversible\":[],\"retry\":\"never\",\"next\":\"Tell the user the charge went through.\"}}"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-7",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "the resume reconciles to applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 71,
+      "message": "the server received one write for order 42",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "the record is settled as applied",
+      "pass": true
+    }
+  ]
+}
