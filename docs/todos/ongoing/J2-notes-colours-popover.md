@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `J2` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan BK24](../../plans/build-book.md#bk24-a-readers-notes-stay-in-their-browser-proposed) |
 | Round / milestone | Round T (textbook), notes follow-up |
 | Depends on | [J1](../done/J1-notes-colours-popover-research.md) |
