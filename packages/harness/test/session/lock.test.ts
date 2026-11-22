@@ -73,7 +73,7 @@ test("two sessions, and two users with the same session id, have separate locks"
   assert.equal(await lock.acquire(KEY), "would_block");
 });
 
-test("a lock whose lease lapsed and whose process is gone is taken over, and its old holder learns it lost it", async () => {
+test("a lock whose lease lapsed and whose process is gone is taken over, and the old holder never frees the new holder's lock", async () => {
   const dir = tempDir();
   const time = clock();
   const old = await held(
@@ -143,7 +143,8 @@ test("the holder renews the lease, and a renewal that finds another token gives 
 
 test("a lock file with no readable record blocks until it is older than a lease, then is reclaimed", async () => {
   const dir = tempDir();
-  const lock = fileLock({ dir, leaseMs: 5000, renewMs: 1000 });
+  // The injected clock is nowhere near the files' real modification times, and an empty lock must still age out.
+  const lock = fileLock({ dir, leaseMs: 5000, renewMs: 1000, now: () => 1_000_000 });
   await (await held(lock)).release();
   writeFileSync(lockFile(dir), "");
   assert.equal(await lock.acquire(KEY), "would_block", "a fresh empty file is a lock being written");
@@ -182,4 +183,76 @@ test("a bad key and bad options are refused", async () => {
     () => fileLock({ dir, leaseMs: 100, renewMs: 100 }),
     (error) => isHarnessError(error),
   );
+});
+
+test("a renewal can't bring a released lock back, and a release leaves no lock behind", async () => {
+  const dir = tempDir();
+  const lock = fileLock({ dir, leaseMs: 100, renewMs: 1 });
+  for (let round = 0; round < 10; round += 1) {
+    const handle = await held(lock);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await handle.release();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.deepEqual(readdirSync(join(dir, "ada")), [], `round ${round}: nothing was left or recreated`);
+  }
+  const again = await lock.acquire(KEY);
+  assert.notEqual(again, "would_block", "so the next acquire in this process works");
+  if (again !== "would_block") handles.push(again);
+});
+
+test("a handle that lost its lock can still release without freeing the next holder's lock", async () => {
+  const dir = tempDir();
+  const handle = await held(fileLock({ dir, leaseMs: 400, renewMs: 20 }));
+  writeFileSync(
+    lockFile(dir),
+    JSON.stringify({ pid: 9, host: "x", token: "someone-else", leaseUntil: Date.now() + 60_000 }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(handle.held(), false);
+  await handle.release();
+  assert.equal(readRecord(dir).token, "someone-else");
+});
+
+test("a guard left by a writer that died mid-takeover is cleared once, and exactly one racer wins", async () => {
+  const dir = tempDir();
+  const time = clock();
+  await held(fileLock({ dir, now: time.now, host: "h1", pid: 1, leaseMs: 5000, renewMs: 1000 }));
+  time.advance(10_000);
+  writeFileSync(`${lockFile(dir)}.reclaim`, JSON.stringify({ token: "dead", createdAt: Date.now() - 60_000 }));
+  const racers = Array.from({ length: 8 }, (_, i) =>
+    fileLock({ dir, now: time.now, host: "h1", pid: 10 + i, isAlive: (pid) => pid !== 1 }),
+  );
+  const results = await Promise.all(racers.map((racer) => racer.acquire(KEY)));
+  const winners = results.filter((result) => result !== "would_block");
+  for (const winner of winners) handles.push(winner);
+  assert.equal(winners.length, 1);
+  assert.equal(readRecord(dir).token, winners[0]?.token);
+  assert.deepEqual(
+    readdirSync(join(dir, "ada")).filter((name) => name.includes("reclaim") || name.endsWith(".stale")),
+    [],
+  );
+});
+
+test("a fresh takeover guard blocks another reclaimer", async () => {
+  const dir = tempDir();
+  const time = clock();
+  await held(fileLock({ dir, now: time.now, host: "h1", pid: 1, leaseMs: 5000, renewMs: 1000 }));
+  time.advance(10_000);
+  writeFileSync(`${lockFile(dir)}.reclaim`, JSON.stringify({ token: "busy", createdAt: Date.now() }));
+  const other = fileLock({ dir, now: time.now, host: "h1", pid: 2, isAlive: (pid) => pid !== 1 });
+  assert.equal(await other.acquire(KEY), "would_block");
+});
+
+test("options that would break the lease are refused with their own code", () => {
+  const dir = tempDir();
+  const refused = (error: unknown) => isHarnessError(error) && error.code === "invalid_lock_options";
+  for (const options of [
+    { leaseMs: Number.POSITIVE_INFINITY },
+    { leaseMs: Number.NaN },
+    { leaseMs: 100, renewMs: 100 },
+    { leaseMs: 0 },
+    { leaseMs: 2 ** 40, renewMs: 2 ** 33 },
+  ]) {
+    assert.throws(() => fileLock({ dir, ...options }), refused, JSON.stringify(options));
+  }
 });

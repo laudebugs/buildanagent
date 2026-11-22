@@ -78,15 +78,17 @@ The harness now has a file-backed writer lock in `packages/harness/src/session/f
 - `acquire(key)` takes the store's `SessionKey` and names the lock file `<dir>/<user>/<session>.lock` with `encodeName()`, so a lock can't reach another user's session.
 - It creates the file with `open(path, "wx")`, writes `{ pid, host, token, leaseUntil }`, and returns `"would_block"` at once when the file exists and is not stale.
 - A lock is stale when its lease has lapsed and its host is this host and its pid is gone (`process.kill(pid, 0)`; `EPERM` counts as alive). A lock from another host is never stale to `acquire()`.
-- The holder renews on a timer that doesn't keep the process alive. The renewal writes a temp file and renames it over the lock.
-- A takeover runs under a `<lock>.reclaim` guard created with the exclusive-create flag, which a process that died during a takeover leaves for at most ten seconds.
+- The holder renews on a timer that doesn't keep the process alive. The renewal overwrites the lock's record, padded to a fixed 1 KiB, in place through an open handle.
+- A takeover runs under a `<lock>.reclaim` guard created with the exclusive-create flag, which a process that died during a takeover leaves for ten seconds, after which a cleaner moves it aside and deletes it. File ages use the wall clock, and only the lease uses the injected one.
 - `unlockSession()` removes a lock whatever its state and returns what it held.
+- Lock options that can't work (a non-finite lease, a renewal not shorter than the lease, a timer over 2^31-1 ms) throw a `HarnessError` with the new code `invalid_lock_options`.
 
 **Decisions.**
 - **`LockHandle` gains `held()`.** The plan's handle had only `token` and `release()`, but a writer that lost its lease needs a way to find out, and the renewal is where it learns.
 - **A lock file with no readable record counts as stale after one lease.** A creator that died between creating the file and writing it leaves one, and a live creator is still writing a fresh one.
 - **The clock, the process check, the host and the pid are options,** so the staleness cases run without waiting for a real lease. The crash test uses real time with a 1.5 second lease.
-- **The renewal's token check and rename aren't one atomic step,** so a takeover in between can be overwritten once. The next renewal sees the token and gives up, and the stale writer's appends fail the store's compare-and-swap, so the log stays whole. A holder that lost its lease should use `expectedLastId` on every append.
+- **A renewal never replaces the lock file.** A rename over the lock could recreate a released lock, or overwrite a successor's after a takeover, so the renewal opens the lock with `r+` and writes in place. A removed lock can't be opened, and a successor's lock is a different file. A reader that reads during the write could see a mix of two leases, which fits the same 1 KiB record and is no worse than a lease read a moment early.
+- **A takeover guard can still be raced after a crash.** The guard is a file made with the exclusive-create flag, and one left by a dead writer is moved aside under a unique name before it is deleted. Two cleaners of one stale guard in the same instant could still both enter, so the new lock is read back and a holder that finds another token doesn't hold it. A narrow window remains and needs two crashes and a race to reach.
 
 **Left out.** CLI wiring (N30), and the off-host locks (N46a to N48a).
 

@@ -4,7 +4,7 @@
  * network file system, so those are unsupported.
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
 import { hostname } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -57,7 +57,7 @@ function processExists(pid: number): boolean {
 
 function parseRecord(text: string): LockRecord | undefined {
   try {
-    const value = JSON.parse(text) as Partial<LockRecord>;
+    const value = JSON.parse(text.trim()) as Partial<LockRecord>;
     const ok =
       typeof value.pid === "number" &&
       typeof value.host === "string" &&
@@ -68,6 +68,50 @@ function parseRecord(text: string): LockRecord | undefined {
     return undefined;
   }
 }
+
+// Every lock record is padded to this many bytes, so a renewal overwrites the record in place with one write.
+const RECORD_BYTES = 1024;
+const MAX_TIMER_MS = 2 ** 31 - 1;
+
+function encode(record: LockRecord): string {
+  const text = JSON.stringify(record);
+  if (text.length > RECORD_BYTES) {
+    throw new HarnessError("invalid_lock_options", "a lock record is over 1 KiB, so the host name is too long");
+  }
+  return text.padEnd(RECORD_BYTES);
+}
+
+/** What a takeover guard holds: who made it, and when by the wall clock, which file ages are measured against. */
+interface GuardRecord {
+  readonly token: string;
+  readonly createdAt: number;
+}
+
+function parseGuard(text: string): GuardRecord | undefined {
+  try {
+    const value = JSON.parse(text) as Partial<GuardRecord>;
+    return typeof value.token === "string" && typeof value.createdAt === "number" ? (value as GuardRecord) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function createExclusive(path: string, text: string): Promise<boolean> {
+  const file = await open(path, "wx").catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "EEXIST") return undefined;
+    throw error;
+  });
+  if (file === undefined) return false;
+  try {
+    await file.writeFile(text);
+    await file.sync();
+  } finally {
+    await file.close();
+  }
+  return true;
+}
+
+const readText = (path: string): Promise<string | undefined> => readFile(path, "utf8").catch(() => undefined);
 
 class FileLock implements SessionLock {
   readonly #dir: string;
@@ -86,16 +130,14 @@ class FileLock implements SessionLock {
     this.#isAlive = options.isAlive ?? processExists;
     this.#host = options.host ?? hostname();
     this.#pid = options.pid ?? process.pid;
-    if (!(this.#leaseMs > 0) || !(this.#renewMs > 0) || this.#renewMs >= this.#leaseMs) {
+    const ok =
+      Number.isFinite(this.#leaseMs) && this.#leaseMs > 0 && this.#renewMs > 0 && this.#renewMs < this.#leaseMs;
+    if (!ok || this.#renewMs > MAX_TIMER_MS) {
       throw new HarnessError(
-        "invalid_session_key",
-        "fileLock() needs a renewMs shorter than its leaseMs, both above 0",
+        "invalid_lock_options",
+        `fileLock() needs a finite leaseMs above 0 and a renewMs above 0, below the lease and at most ${MAX_TIMER_MS}`,
       );
     }
-  }
-
-  #pathOf(key: SessionKey): string {
-    return lockPath(this.#dir, key);
   }
 
   #record(token: string): LockRecord {
@@ -108,61 +150,86 @@ class FileLock implements SessionLock {
     return record.host === this.#host && !this.#isAlive(record.pid);
   }
 
-  async #create(path: string, record: LockRecord): Promise<boolean> {
-    const file = await open(path, "wx").catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "EEXIST") return undefined;
-      throw error;
-    });
-    if (file === undefined) return false;
-    try {
-      await file.writeFile(JSON.stringify(record));
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    return true;
-  }
-
   /** A lock file with no readable record is one whose creator died, or is still writing it, so only its age says which. */
   async #unreadableIsStale(path: string): Promise<boolean> {
     const info = await stat(path).catch(() => undefined);
-    return info !== undefined && this.#now() - info.mtimeMs > this.#leaseMs;
+    // A file's age is measured on the wall clock, because that is what its modification time is.
+    return info !== undefined && Date.now() - info.mtimeMs > this.#leaseMs;
+  }
+
+  /** Clears a takeover guard that its maker left behind, and says whether this call did. */
+  async #clearStaleGuard(guard: string): Promise<boolean> {
+    const text = await readText(guard);
+    if (text === undefined) return true;
+    const record = parseGuard(text);
+    const info = await stat(guard).catch(() => undefined);
+    const age = record === undefined ? Date.now() - (info?.mtimeMs ?? Date.now()) : Date.now() - record.createdAt;
+    if (age <= GUARD_STALE_MS) return false;
+    // Moved aside under a name no one else uses, so only one cleaner gets it, and checked before it is deleted.
+    const aside = `${guard}.${randomUUID()}.stale`;
+    if (
+      !(await rename(guard, aside).then(
+        () => true,
+        () => false,
+      ))
+    )
+      return false;
+    const moved = parseGuard((await readText(aside)) ?? "");
+    if (moved?.token === record?.token) {
+      await rm(aside, { force: true });
+      return true;
+    }
+    // A fresh guard was grabbed by mistake, so it goes back and this call gives up.
+    await rename(aside, guard).catch(() => undefined);
+    return false;
+  }
+
+  async #takeGuard(guard: string, mine: GuardRecord): Promise<boolean> {
+    const text = JSON.stringify(mine);
+    if (await createExclusive(guard, text)) return true;
+    return (await this.#clearStaleGuard(guard)) && (await createExclusive(guard, text));
   }
 
   /** Takes over a stale lock under a short-lived guard, so two reclaimers can't each delete the other's new lock. */
   async #reclaim(path: string, staleToken: string | undefined, record: LockRecord): Promise<boolean> {
     const guard = `${path}.reclaim`;
-    if (!(await this.#create(guard, record))) {
-      const info = await stat(guard).catch(() => undefined);
-      if (info === undefined || this.#now() - info.mtimeMs <= GUARD_STALE_MS) return false;
-      await rm(guard, { force: true });
-      if (!(await this.#create(guard, record))) return false;
-    }
+    const mine: GuardRecord = { token: record.token, createdAt: Date.now() };
+    if (!(await this.#takeGuard(guard, mine))) return false;
     try {
-      const current = parseRecord(await readFile(path, "utf8").catch(() => ""));
+      const current = parseRecord((await readText(path)) ?? "");
       // Someone renewed or replaced the lock since it was read as stale.
       if (current?.token !== staleToken) return false;
       await rm(path, { force: true });
-      return await this.#create(path, record);
+      if (!(await createExclusive(path, encode(record)))) return false;
+      // A guard that was cleared while this ran could have let a second reclaimer in, so the lock is read back.
+      return parseRecord((await readText(path)) ?? "")?.token === record.token;
     } finally {
-      await rm(guard, { force: true });
+      const left = parseGuard((await readText(guard)) ?? "");
+      if (left?.token === record.token) await rm(guard, { force: true });
     }
   }
 
   async acquire(key: SessionKey): Promise<LockHandle | "would_block"> {
     checkKey(key);
-    const path = this.#pathOf(key);
+    const path = lockPath(this.#dir, key);
     await mkdir(join(path, ".."), { recursive: true });
     const token = randomUUID();
     const record = this.#record(token);
-    if (!(await this.#create(path, record)) && !(await this.#takeOver(path, record))) return "would_block";
-    return new Hold(path, token, this.#leaseMs, this.#renewMs, this.#now, this.#host, this.#pid);
+    const text = encode(record);
+    if (!(await createExclusive(path, text)) && !(await this.#takeOver(path, record))) return "would_block";
+    return new Hold(path, token, {
+      leaseMs: this.#leaseMs,
+      renewMs: this.#renewMs,
+      now: this.#now,
+      host: this.#host,
+      pid: this.#pid,
+    });
   }
 
   async #takeOver(path: string, record: LockRecord): Promise<boolean> {
-    const text = await readFile(path, "utf8").catch(() => undefined);
+    const text = await readText(path);
     // The lock was released between the failed create and this read, so try the plain create again.
-    if (text === undefined) return this.#create(path, record);
+    if (text === undefined) return createExclusive(path, encode(record));
     const existing = parseRecord(text);
     if (existing === undefined) {
       return (await this.#unreadableIsStale(path)) && this.#reclaim(path, undefined, record);
@@ -171,33 +238,28 @@ class FileLock implements SessionLock {
   }
 }
 
+interface HoldOptions {
+  readonly leaseMs: number;
+  readonly renewMs: number;
+  readonly now: () => number;
+  readonly host: string;
+  readonly pid: number;
+}
+
 class Hold implements LockHandle {
   readonly token: string;
   #held = true;
+  #renewing: Promise<void> | undefined;
   readonly #path: string;
   readonly #timer: ReturnType<typeof setInterval>;
-  readonly #leaseMs: number;
-  readonly #now: () => number;
-  readonly #host: string;
-  readonly #pid: number;
+  readonly #options: HoldOptions;
 
-  constructor(
-    path: string,
-    token: string,
-    leaseMs: number,
-    renewMs: number,
-    now: () => number,
-    host: string,
-    pid: number,
-  ) {
+  constructor(path: string, token: string, options: HoldOptions) {
     this.token = token;
     this.#path = path;
-    this.#leaseMs = leaseMs;
-    this.#now = now;
-    this.#host = host;
-    this.#pid = pid;
+    this.#options = options;
     // A renewal must not keep a process alive that has nothing else to do.
-    this.#timer = setInterval(() => void this.#renew(), renewMs);
+    this.#timer = setInterval(() => void this.#tick(), options.renewMs);
     this.#timer.unref();
   }
 
@@ -205,24 +267,36 @@ class Hold implements LockHandle {
     return this.#held;
   }
 
+  #tick(): Promise<void> {
+    if (!this.#held || this.#renewing !== undefined) return Promise.resolve();
+    const renewal = this.#renew().finally(() => {
+      this.#renewing = undefined;
+    });
+    this.#renewing = renewal;
+    return renewal;
+  }
+
+  /**
+   * Renews the lease by overwriting the lock's record in place through an open handle, never by replacing the file. A
+   * lock that was removed can't come back, because the open fails, and a successor's lock is a different file, so a
+   * stale renewal can't overwrite it. Only a missing lock or another holder's token ends the hold; any other error is
+   * retried on the next tick.
+   */
   async #renew(): Promise<void> {
-    if (!this.#held) return;
+    const file = await open(this.#path, "r+").catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") this.#lose();
+      return undefined;
+    });
+    if (file === undefined) return;
     try {
-      const current = parseRecord(await readFile(this.#path, "utf8").catch(() => ""));
+      const current = parseRecord(await file.readFile({ encoding: "utf8" }));
       if (current?.token !== this.token) return this.#lose();
-      const next: LockRecord = {
-        pid: this.#pid,
-        host: this.#host,
-        token: this.token,
-        leaseUntil: this.#now() + this.#leaseMs,
-      };
-      // Written beside the lock and renamed over it, so a reader never sees half a record.
-      const temp = `${this.#path}.${this.token}.tmp`;
-      await writeFile(temp, JSON.stringify(next));
-      await rename(temp, this.#path);
+      const { host, pid, now, leaseMs } = this.#options;
+      await file.write(encode({ pid, host, token: this.token, leaseUntil: now() + leaseMs }), 0);
     } catch {
-      // A failed renewal is retried on the next tick. A lease that lapses meanwhile is lost to a takeover, which the
-      // next renewal then sees.
+      // Retried on the next tick. A lease that lapses meanwhile can be taken over, which the next renewal then sees.
+    } finally {
+      await file.close().catch(() => undefined);
     }
   }
 
@@ -232,9 +306,10 @@ class Hold implements LockHandle {
   }
 
   async release(): Promise<void> {
-    if (!this.#held) return;
     this.#lose();
-    const current = parseRecord(await readFile(this.#path, "utf8").catch(() => ""));
+    // A renewal in progress finishes first, so it can't touch the lock after it is gone.
+    await this.#renewing;
+    const current = parseRecord((await readText(this.#path)) ?? "");
     if (current?.token === this.token) await rm(this.#path, { force: true });
   }
 }

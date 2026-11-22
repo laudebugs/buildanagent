@@ -6,9 +6,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnEnv } from "@buildanagent/harness/sandbox";
 import { fileLock, jsonlStore } from "@buildanagent/harness/session/jsonl";
 import { afterAll, test } from "vitest";
+import { testEnv } from "../sandbox/home.js";
 
 const dir = mkdtempSync(join(tmpdir(), "harness-crash-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -26,7 +26,7 @@ test("after SIGKILL mid-append, a new writer gets the lock within one lease and 
     ["--conditions=source", "--import", "tsx", writer, dir, String(LEASE_MS), String(RENEW_MS)],
     {
       cwd: packageDir,
-      env: spawnEnv([]),
+      env: testEnv([]),
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
