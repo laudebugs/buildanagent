@@ -14,7 +14,7 @@ const chapter = new URL("./fixtures/site/chapters/call-workflow-loop.md", import
 let rendered: { code: string; metadata: { headings: { depth: number; slug: string; text: string }[] } };
 
 // The hook loads astro.config.mjs, which imports Astro, Shiki's grammars and every Markdown plugin, then renders a
-// chapter through them: a few seconds on an idle machine. Running every package's tests at once pushed it past the
+// chapter through them: about 3 seconds on an idle machine. Running every package's tests at once pushed it past the
 // 10-second hook default, so it gets a longer limit. A time limit, not a timing assertion.
 const HOOK_TIMEOUT = 60_000;
 
