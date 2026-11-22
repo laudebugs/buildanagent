@@ -1,0 +1,225 @@
+import assert from "node:assert/strict";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
+import { describe, inject, test } from "vitest";
+import { layers } from "../figures/layers.js";
+import { Drawing } from "../figures/lib/draw.js";
+import { tokenFiles } from "../scripts/token-files.js";
+import { copy } from "../src/landing/copy.js";
+import { ROOT } from "./build.js";
+
+const OUT = inject("siteOut");
+const html = readFileSync(join(OUT, "index.html"), "utf8");
+
+const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
+const escapeAttr = (text: string) => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+
+/** Every stylesheet the page loads, inline or linked, as one string. */
+function cssOf(page: string): string {
+  const linked = [...page.matchAll(/<link rel="stylesheet" href="([^"]+)"/g)].map(([, href]) =>
+    readFileSync(join(OUT, href ?? ""), "utf8"),
+  );
+  const inline = [...page.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(([, css]) => css ?? "");
+  return [...linked, ...inline].join("\n");
+}
+
+describe("the landing page", () => {
+  test("has exactly one h1, the headline", () => {
+    assert.equal(html.match(/<h1[\s>]/g)?.length, 1);
+    const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(html)?.[1] ?? "";
+    assert.ok(h1.includes(copy.hero.headlineBefore));
+    assert.match(h1, new RegExp(`<em>${copy.hero.headlineEmphasis}</em>`));
+  });
+
+  test("opens its first paragraph with 50 words or fewer", () => {
+    const lead = /<p class="lead">([^<]*)<\/p>/.exec(html)?.[1] ?? "";
+    assert.equal(lead, copy.hero.lead);
+    assert.ok(lead.split(/\s+/).length <= 50);
+  });
+
+  test("links Docs, Manual, Site and GitHub in the header, in order", () => {
+    const nav = /<nav aria-label="Main">([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
+    const links = [...nav.matchAll(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(([, href, label]) => ({ label, href }));
+    assert.deepEqual(links, [...copy.nav]);
+    assert.deepEqual(
+      copy.nav.map((link) => link.label),
+      ["Docs", "Manual", "Site", "GitHub"],
+    );
+  });
+
+  test("shows the wordmark and the inline mark in the header", () => {
+    const brand = /<a class="brand" href="\/">([\s\S]*?)<\/a>/.exec(html)?.[1] ?? "";
+    assert.match(brand, /<svg class="mark"[^>]*aria-hidden="true"/);
+    assert.match(brand, /stroke="var\(--color-accent\)"/);
+    assert.equal(
+      brand
+        .replace(/<svg[\s\S]*?<\/svg>/, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+      copy.brand,
+    );
+  });
+
+  test("has both figures with the alt text, and shows one at each width", () => {
+    for (const name of ["layers-wide", "layers-narrow"]) {
+      const svg = new RegExp(`<svg [^>]*class="${name}"[^>]*>`).exec(html)?.[0] ?? "";
+      assert.match(svg, /role="img"/, name);
+      assert.ok(svg.includes(`aria-label="${escapeAttr(copy.figure.alt)}"`), `${name} carries the alt text`);
+    }
+    assert.ok(html.includes(`<figcaption>${copy.figure.caption}</figcaption>`));
+    const css = cssOf(html);
+    // display:none keeps the hidden drawing out of the accessibility tree: narrow below 900 px, wide from 900 px.
+    assert.match(css, /\.layers \.layers-wide\{display:none\}/);
+    assert.match(css, /\.layers \.layers-narrow\{[^}]*max-width:440px/);
+    const wide =
+      /@media\s*\((?:min-width:\s*900px|width>=\s*900px)\)\s*\{([\s\S]*?\.layers-narrow\{display:none\}[\s\S]*?)\}\s*(?:@media|\.|$)/.exec(
+        css,
+      );
+    assert.ok(wide?.[1]?.includes(".layers-wide{display:block}"), "wide shows from 900 px");
+    assert.ok(wide?.[1]?.includes(".layers-narrow{display:none}"), "narrow hides from 900 px");
+  });
+
+  test("shows the install command from the copy", () => {
+    assert.ok(html.includes(`<pre><code>${copy.hero.install.command}</code></pre>`));
+    assert.ok(html.includes(copy.hero.install.label));
+  });
+
+  test("shows the three cells and the six packages with their links", () => {
+    for (const cell of copy.cells) {
+      assert.ok(html.includes(cell.heading), cell.heading);
+      assert.ok(html.includes(cell.body), cell.body);
+    }
+    assert.equal(copy.packages.items.length, 6);
+    for (const item of copy.packages.items) {
+      assert.ok(
+        html.includes(`<a class="pkg" href="${item.href}"><b>${item.name}</b><span>${item.summary}</span></a>`),
+        item.name,
+      );
+    }
+  });
+
+  test("points the internal package links at built pages", () => {
+    for (const item of copy.packages.items.filter((entry) => entry.href.startsWith("/"))) {
+      assert.ok(existsSync(join(OUT, item.href, "index.html")), item.href);
+    }
+  });
+
+  test("links the favicon and ships the file", () => {
+    assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"/);
+    assert.ok(existsSync(join(OUT, "favicon.svg")));
+  });
+
+  test("preloads the two above-the-fold fonts and links no external stylesheet or font", () => {
+    assert.equal(html.match(/<link rel="preload"[^>]*as="font"[^>]*crossorigin/g)?.length, 2);
+    assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/);
+    assert.doesNotMatch(cssOf(html), /https?:\/\//);
+    assert.match(html, /<meta name="theme-color" content="[^"]+" media="\(prefers-color-scheme: light\)"/);
+    assert.match(html, /<meta name="theme-color" content="[^"]+" media="\(prefers-color-scheme: dark\)"/);
+  });
+});
+
+describe("the generated files", () => {
+  test("tokens.css and theme-colors.json are what the generator writes from book-tokens.json", () => {
+    for (const file of tokenFiles()) {
+      assert.equal(read(file.path), file.content, `${file.path} is stale: run pnpm --filter @buildanagent/site tokens`);
+    }
+  });
+
+  test("each committed figure is what figures/layers.ts draws", () => {
+    for (const { path, drawing } of layers()) {
+      assert.equal(read(path), drawing.toSvg(), `${path} is stale: run pnpm --filter @buildanagent/site figures:build`);
+    }
+  });
+});
+
+describe("the figure's geometry", () => {
+  const drawings = layers();
+
+  test("has no overlapping or clipped label, and no label under 12 px", () => {
+    for (const { path, drawing } of drawings) assert.deepEqual(drawing.problems(), [], path);
+  });
+
+  test("names every label from the copy", () => {
+    const labels = Object.values(copy.figure.labels);
+    for (const { path, drawing } of drawings) {
+      assert.deepEqual(drawing.labels.map((label) => label.text).sort(), [...labels].sort(), path);
+    }
+  });
+
+  test("keeps the narrow drawing's labels inside 330 px at 13 px", () => {
+    const narrow = drawings.find((entry) => entry.path.endsWith("narrow.svg"))?.drawing;
+    assert.ok(narrow !== undefined);
+    assert.equal(narrow.width, 330);
+    assert.equal(narrow.fontSize, 13);
+    for (const label of narrow.labels)
+      assert.ok(label.rect.x >= 0 && label.rect.x + label.rect.width <= 330, label.text);
+  });
+
+  test("keeps the wide drawing at the mock's 900 x 372", () => {
+    assert.match(read("src/landing/layers-wide.svg"), /viewBox="0 0 900 372"/);
+  });
+
+  test("reports a label that overlaps another or a mark it does not belong to", () => {
+    const drawing = new Drawing({ width: 200, height: 100, alt: "test", className: "t" });
+    drawing.box("box", { x: 10, y: 10, width: 100, height: 40 });
+    drawing.text("one label", 20, 30, { on: "box" });
+    drawing.text("outside", 30, 30);
+    drawing.text("far away", 100, 90);
+    drawing.text("clipped label here", 150, 60);
+    const found = drawing.problems().join("\n");
+    assert.match(found, /"outside" touches box/);
+    assert.match(found, /"one label" overlaps "outside"/);
+    assert.match(found, /"clipped label here" leaves the 200 x 100 canvas/);
+    assert.doesNotMatch(found, /far away/);
+  });
+
+  test("gives each committed SVG a role and the alt text, and sets no colour of its own", () => {
+    for (const { path } of drawings) {
+      const svg = read(path);
+      assert.match(svg, /role="img"/, path);
+      assert.ok(svg.includes(`aria-label="${escapeAttr(copy.figure.alt)}"`), path);
+      assert.doesNotMatch(svg, /#[0-9a-fA-F]{3,8}\b/, path);
+    }
+  });
+});
+
+describe("the fonts", () => {
+  const FONTS = join(ROOT, "public/fonts");
+  const MANUAL_FONTS = join(ROOT, "../manual/public/fonts");
+
+  test("are byte-identical copies of the manual's self-hosted subsets", () => {
+    const files = readdirSync(FONTS, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile());
+    assert.ok(files.length >= 8);
+    for (const entry of files) {
+      const path = relative(FONTS, join(entry.parentPath, entry.name));
+      assert.ok(readFileSync(join(FONTS, path)).equals(readFileSync(join(MANUAL_FONTS, path))), `${path} differs`);
+    }
+  });
+
+  test("include every face tokens.css names and each licence", () => {
+    const css = read("src/styles/tokens.css");
+    for (const [, src] of css.matchAll(/url\("([^"]+\.woff2)"\)/g)) {
+      assert.ok(existsSync(join(ROOT, "public", src ?? "")), `${src} is missing`);
+    }
+    for (const folder of ["instrument-serif", "literata", "manual-code"]) {
+      assert.ok(existsSync(join(FONTS, folder, "OFL.txt")), folder);
+    }
+  });
+});
+
+describe("colours", () => {
+  /** Every CSS, Astro, SVG and TypeScript file of the site's own code, except the generated tokens. */
+  function sources(dir: string): string[] {
+    return readdirSync(join(ROOT, dir), { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && /\.(css|astro|svg|ts)$/.test(entry.name))
+      .map((entry) => relative(ROOT, join(entry.parentPath, entry.name)));
+  }
+
+  test("are written as hex only in tokens.css and the standalone favicon", () => {
+    const files = ["src", "figures", "scripts"].flatMap(sources).filter((file) => file !== "src/styles/tokens.css");
+    assert.ok(files.length > 10);
+    for (const file of files) assert.doesNotMatch(read(file), /#[0-9a-fA-F]{3,8}\b/, file);
+    assert.ok(statSync(join(ROOT, "public/favicon.svg")).size > 0);
+  });
+});
