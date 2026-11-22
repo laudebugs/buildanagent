@@ -84,6 +84,17 @@ const entriesOf = async (backend: Backend) => {
   return found;
 };
 
+/**
+ * A signature that differs from the original in its first character, which carries the top six bits of the first
+ * decoded byte, so the decoded signature always changes. Rewriting the last two characters left a signature that
+ * already ended in the replacement unchanged, about once in 4,096 runs, and the test then saw an approved call run.
+ */
+function tamper(signature: string): string {
+  const changed = `${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
+  assert.notEqual(changed, signature, "the tamper changes the signature");
+  return changed;
+}
+
 describe.each(BACKENDS)("%s", (_name, make) => {
   test("a gate ask ends the turn awaiting approval with one approval_requested entry, and toContext() matches the run's context", async () => {
     const backend = make();
@@ -162,7 +173,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
       entries.map(
         ({ seq: _seq, ...rest }) =>
           (rest.type === "approval_requested"
-            ? { ...rest, request: { ...rest.request, signature: `${rest.request.signature.slice(0, -2)}AA` } }
+            ? { ...rest, request: { ...rest.request, signature: tamper(rest.request.signature) } }
             : rest) as EntryInput,
       ),
     );
