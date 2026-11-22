@@ -50,3 +50,28 @@ The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/sid
 | 24 | The log is a file that survives a killed process and not a power cut, because nothing is synced to disk before the call | § A crash between | ✅ | The example's header comment (lines 4–5) |
 | 25 | The lookup works because the example's server answers "have you seen this key?"; a server with neither a lookup nor a replay for a reused key leaves `unknown` for a person | § A crash between | ✅ | The example's `fakeServer` GET handler; the second half is our reasoning from rows 7 and 8 (Stripe replays a reused key, AWS echoes the caller's token) |
 | 26 | A restaurant has no order number to look up | § A crash between | ✅ | The analogy's "where it breaks" entry, our claim about the analogy |
+
+## "A plan of several writes needs one approval before its first step, and the refund is the pivot"
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 27 | In Microsoft's saga pattern a compensable step can be undone, the pivot is "the point of no return" after which "all subsequent actions must be completed", and the retryable steps after it "are idempotent" | § A plan of several writes | ✅ | [Azure saga pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/saga), [sagas log row 6](../../../docs/research/reversible-actions/fact-check-sagas.md) |
+| 28 | A plan needs exactly one pivot, and nothing before it may depend on something after it | § A plan of several writes | ⚠️ | Our reading of the pattern: it defines one pivot per saga in its example, but the page does not state "exactly one"; the chapter presents the rule as ours |
+| 29 | Stripe can cancel only some card refunds, only "for a short period of time", and "only Dashboard cancellations are currently supported for card refunds" | § A plan of several writes | ✅ | [Stripe refunds](https://docs.stripe.com/refunds), [sagas log row 9](../../../docs/research/reversible-actions/fact-check-sagas.md) (verbatim) |
+| 30 | An email cannot be unsent and its only remedy is a correction email, a new write and no compensation | § A plan of several writes | ⚠️ | The sagas report: "our inference; no source discusses email 'unsend' semantics" |
+| 31 | The four-step order (order update with a `refund_pending` lock, refund under a key, email, a retryable step to `refunded`) and the rule to forbid email before refund | § A plan of several writes | ⚠️ | [Sagas report](../../../docs/research/reversible-actions/sagas.md), "The refund is the pivot": our design, built on rows 27 and 29 |
+| 32 | Every SDK the sagas report surveyed approves one tool call at a time and none models a plan or a saga | § A plan of several writes | ⚠️ | [Sagas log row 64](../../../docs/research/reversible-actions/fact-check-sagas.md): "The 'none models a saga' claim is an absence over the pages read" |
+| 33 | In the Cloudflare example, a `needsApproval` rule that reads the call's arguments (`amount > 100`) ends the turn with the call saved as `approval-requested` and the refund not run | § A plan of several writes | ✅ | `verify/cloudflare-agents/examples/06-tool-approval.ts`, checks "the turn ends while waiting for approval", "the gated call is persisted as 'approval-requested'" and "the gated tool has not executed"; the file notes `needsApproval` is deprecated in ai 7 and AIChatAgent's docs still use it |
+| 34 | A per-call approval after the pivot can strand the plan: a rejected or edited email leaves a required step waiting on a person; one approval before the first compensable step, with a hash over every step's arguments, avoids it | § A plan of several writes | ⚠️ | [Sagas report](../../../docs/research/reversible-actions/sagas.md), "Approval belongs before the first compensable step": "This placement is our synthesis, because no vendor source discusses approval relative to a pivot." The chapter says so. |
+| 35 | OpenAI's guide names "canceling user orders" and "authorizing large refunds" as actions that "should trigger human oversight" | § A plan of several writes | ✅ | [OpenAI practical guide](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf), [sagas log row 62](../../../docs/research/reversible-actions/fact-check-sagas.md) |
+| 36 | Steps before the pivot could run speculatively and be undone on a rejection, but a speculative step holds a lock that the rest of the application can see while a person decides | § A plan of several writes | ⚠️ | Sagas report, same section: "Only an eval with realistic approval delays can measure that trade-off"; our reasoning |
+| 37 | Example 15's `chargeTool` calls `appendEntry` before and after its `fetch` call and kills its process with `process.kill` after the reply, so the exercises' edits name real lines | Exercises | ✅ | `verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts`, the `write-tool` region |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 28 |
+| ✏️ corrected | 0 |
+| ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 9 |
+| Total | 37 |

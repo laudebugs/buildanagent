@@ -13,9 +13,9 @@ A write to the outside world can end in more than success or failure, and an age
 
 ## A write reports one of five outcomes, and each carries its own retry rule
 
-A model reads a tool's answer as text and cannot tell a declined payment from a payment that may or may not have gone through unless the answer says so. The wire formats give little help. Anthropic's `tool_result` and MCP's `CallToolResult` carry an error flag, OpenAI's function output is a string whose "format is up to you", and several SDKs pass the raw exception message to the model. The outcome therefore has to live in the body of the result, in words the model reads and in a field the harness can act on.
+A model reads a tool's answer as text and cannot tell a declined payment from a payment that may or may not have gone through unless the answer says so. The wire formats give little help. Anthropic's `tool_result`{checked=row-4} and MCP's `CallToolResult`{checked=row-4} carry an error flag, OpenAI's function output is a string whose "format is up to you", and several SDKs pass the raw exception message to the model. The outcome therefore has to live in the body of the result, in words the model reads and in a field the harness can act on.
 
-Our harness's plan names five outcomes. `applied` means the write took effect. `not_applied` means it was rejected before any effect, for a reason such as validation or policy. `compensated` means it took effect and was then undone, so the world matches its state before the call. `partial` means some steps took effect and the undo failed or was skipped. `unknown` means a timeout or a lost response left nobody able to tell. The kinds are our proposal from distributed-API practice, not a vendor vocabulary. [[fig:outcomes]] puts each next to the rule that says what may happen next.
+Our harness's plan names five outcomes. `applied` means the write took effect. `not_applied` means it was rejected before any effect, for a reason such as validation or policy. `compensated`{checked=row-5} means it took effect and was then undone, so the world matches its state before the call. `partial`{checked=row-5} means some steps took effect and the undo failed or was skipped. `unknown` means a timeout or a lost response left nobody able to tell. The kinds are our proposal from distributed-API practice, not a vendor vocabulary. [[fig:outcomes]] puts each next to the rule that says what may happen next.
 
 :::figure[The five outcomes of a write, and the rule for what may happen next: only unknown is settled by asking the other side]{#outcomes}
 ::svg{alt="Two columns of five rows joined by arrows. The left column lists applied, not_applied, compensated, partial and unknown. The right column gives the matching rule. Applied: done, a repeat reads the saved result. Not_applied: retry after a fix, with the same key. Compensated: a new operation, only if still wanted. Partial: resume with the same key, or ask a person. Unknown, drawn in the accent: ask the other side, never a fresh key."}
@@ -23,13 +23,13 @@ Our harness's plan names five outcomes. `applied` means the write took effect. `
 
 The row that matters most is the last. A write that timed out is neither a success nor a failure, and the safe move is to resolve it before doing anything else. Stripe says to treat a 500 as indeterminate: "Don't retry with a new idempotency key until you've resolved the original outcome" [@stripe-advanced-error-handling]. Amazon's engineers call the same step reconciliation, and fix it with a token the caller supplies and the server echoes back [@aws-safe-retries]. A fresh key would be a new request, so the server would treat the retry as a second payment.
 
-The model must also be told what it may not claim. After `not_applied`, it must not say the change happened. After `compensated`, it must not hide an effect that cannot be undone, such as an email already sent. After `partial` it must not present the result as success, and after `unknown` it must not retry with a fresh key. These are our rules, and no published study measures how models react to "rolled back" versus "failed" wording, so an eval has to test them.
+The model must also be told what it may not claim. After `not_applied`, it must not say the change happened. After `compensated`{checked=row-5}, it must not hide an effect that cannot be undone, such as an email already sent. After `partial`{checked=row-5} it must not present the result as success, and after `unknown` it must not retry with a fresh key. These are our rules, and no published study measures how models react to "rolled back" versus "failed" wording, so an eval has to test them.
 
 ## The tool saves its key before it calls the server, so a crash leaves a trace
 
 A shop that sends orders by courier writes each order in :analogy[a ledger before the courier leaves]{#ledger-before-courier}. If the courier never returns, the ledger still says the order went out, and the shop can phone the customer instead of guessing. The second line, the result, is written only when the courier is back. A charge tool should keep the same ledger. It writes the intent first, makes the call, and writes the outcome second. The first entry records intent, never success, and an intent with no result after it is the unknown outcome, as [[fig:ledger]] shows.
 
-:::figure[A ledger written before the courier leaves: the intent comes first, the result second, and a missing second line means nobody knows]{#ledger analogy="ledger-before-courier"}
+:::figure[Writing the order in the ledger before the courier leaves: the intent comes first, the result second, and a missing second line means nobody knows]{#ledger analogy="ledger-before-courier"}
 ::svg{alt="Two columns. On the left, a ledger with two lines: line 1, intent, send order 42, and line 2, result, delivered, drawn in the accent. On the right, a courier who leaves with order 42 and comes back delivered, with arrows to and from the ledger. A note says line 1 is written before the courier leaves and line 2 after the courier is back. A line below says a line 1 with no line 2 means: ask the customer."}
 :::
 
@@ -72,3 +72,31 @@ A fresh run of the same tool now reads the log, sees `unknown` and asks the serv
 The tool's other branches follow from the same rule. A 404 from the lookup proves the write never reached the server, and only then may the tool send it, under the same key. Any other answer leaves the outcome `unknown` and the model is told so. The model never sees a fresh key.
 
 Two limits belong with the example. The log is a small file that survives a killed process and not a power cut, because nothing is synced to disk before the call, so a real deployment replaces it with a store that makes the entry durable first. And the lookup works because the example's server can answer "have you seen this key?". A server that offers neither a lookup nor a replay for a reused key leaves the outcome `unknown` for a person to settle.
+
+## A plan of several writes needs one approval before its first step, and the refund is the pivot
+
+Booking a trip is :analogy[a saga]{#booking-a-trip} you already know. If the flight falls through, you cancel the hotel. Each step commits on its own, and each step that can be undone has an undo step. Microsoft's saga pattern gives the parts names: a compensable step can be undone, the pivot is "the point of no return" after which "all subsequent actions must be completed", and the retryable steps after the pivot "are idempotent" [@azure-saga-pattern]. Some steps cannot be undone at all, so a plan needs exactly one pivot, and nothing before it may depend on something after it.
+
+Take a refund that updates an order, refunds the card and emails the customer. The refund is the pivot. Stripe can cancel only some card refunds, only "for a short period of time", and "only Dashboard cancellations are currently supported for card refunds", so an agent calling the API cannot count on reversing one [@stripe-refunds]. An email cannot be unsent, and its only remedy is a correction email, which is a new write and no compensation. That gives an order. The order update goes first and writes a lock such as a refund-pending status, and its undo restores the earlier status. The refund goes second, under an idempotency key so a timeout can be retried. The email goes third. A last retryable step turns a refund-pending status into `refunded`. Sending the email before the refund is the one order to forbid, because "your refund is on its way" followed by a failed refund leaves a false statement that no step can undo.
+
+The approval has to fit that shape. Every SDK the sagas report surveyed approves one tool call at a time, and none of them models a plan. [[lst:needs-approval]] shows the per-call form in a Cloudflare agent: a rule decides from the call's arguments whether the call waits for a person.
+
+:::listing[Cloudflare Agents: one call waits for a person]{#needs-approval file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="needs-approval"}
+::note[The rule reads the call's arguments: a refund above 100 waits.]{#rule}
+::note[The effect: it runs only after approval.]{#effect}
+:::
+
+:::listing[The turn ends with the call saved as requested and nothing run]{#paused file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="paused"}
+::note[The gated call is saved as `approval-requested`.]{#pending}
+::note[The refund has not run.]{#not-run}
+:::
+
+Per-call approval breaks the saga's rule that nothing after the pivot may block. Suppose the refund is approved and runs, and the email waits for a second approval. A reviewer who then rejects or edits the email leaves the plan past its pivot with a required step waiting on a person. The approval therefore has to come before the first compensable step, as one decision whose hash covers every step's arguments: the order change, the refund amount and recipient, and the exact text of the email. That placement is our synthesis, because no vendor source discusses approval relative to a pivot. OpenAI's agent guide names "canceling user orders" and "authorizing large refunds" as actions that "should trigger human oversight" [@openai-practical-guide-to-building-agents], and a plan that holds both gets the oversight once, before it starts.
+
+Steps before the pivot could run speculatively and be undone if the reviewer rejects the plan, but approving up front is better in practice. A speculative step holds a lock that the rest of the application can see, such as the a refund-pending status order, while a person decides.
+
+## Exercises
+
+1. **Kill the run earlier, and say which outcome the resume reports.** In `verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts`{checked=row-37}, move the `process.kill` line in `chargeTool`{checked=row-37} to just before the `fetch` call. Predict what the server holds for order 42 after the child dies, what the log's state is, and what the resume's tool result says. Then change the file's checks to match your prediction and run `pnpm test` in `verify/vercel-ai-sdk`. Which branch of the tool did the resume take this time?
+2. **Move the kill to after the log entry, and show nothing repeats.** Put the `process.kill` line after the last `appendEntry`{checked=row-37} instead. Predict the state of `charge:42` and whether the resume sends a request, run it, and explain why this crash leaves no unknown outcome.
+3. **Order a plan on paper.** A support agent can update an order, refund a card, post a public comment on the ticket and email the customer. Name each step compensable, pivot or retryable, put them in an order that never leaves a false statement, and mark where the single approval goes and what its hash covers.
