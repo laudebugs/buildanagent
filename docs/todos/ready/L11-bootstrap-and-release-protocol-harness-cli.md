@@ -1,4 +1,4 @@
-# L11: Bootstrap the protocol, harness and CLI, and publish them together through trusted publishing
+# L11: Verify the placeholders, and publish the protocol, harness, CLI and agent-safety together through trusted publishing
 
 | Field | Value |
 | --- | --- |
@@ -11,7 +11,7 @@
 
 ## Goal
 
-Make the three packages public, switch the release to all five, and publish the first alpha of the protocol, harness and CLI together through `release.yml`, once N30 has given the CLI a working binary ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N30 depends on N28, not on N29, but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
+Make the four packages public, switch the release to all six, and publish the first alpha of the protocol, harness, CLI and agent-safety together through `release.yml`, once N30 has given the CLI a working binary ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
 
 ## Context
 
@@ -24,26 +24,30 @@ Make the three packages public, switch the release to all five, and publish the 
 
 **In scope**
 
-- Remove `private: true` from the three packages, and make `release-plan.mjs` survive the merge. Dropping `private` makes the three count as versioned members: gateway and SDK sit at `0.1.0-alpha.N` while the three stay at `0.0.0`, and `planRelease` throws "the packages must share one version" (`scripts/ci/release-plan.mjs`, the `versions.size !== 1` check) before it reaches the pending-changeset skip or the 0.0.0 refusal. Once `RELEASE_ORDER` lists five packages, that would fail the `plan` job on every push to `main`, the L11 merge included. The fix this todo makes: move the same-version check below the "changesets pending" and "pre mode is exiting" skips, so it runs only when nothing is waiting to be versioned. The L11 merge carries a changeset, so its plan reports `publish=false` with the pending reason and the `version` job opens the Version packages pull request, where the fixed group brings all five to one version. Add tests: five packages at mixed versions with a pending changeset plan `publish=false` and don't throw; mixed versions with nothing pending still throw; and five packages at one version publish in dependency order.
-- Confirm with `npm view` that each package holds only the owner's deprecated placeholders (versions, dist-tags and the deprecation message), and record the output in the pull request description. Both the gateway's and SDK's placeholders and the three new ones are checked.
-- Extend `scripts/ci/release-plan.mjs` (`RELEASE_ORDER`, the list of versioned packages) and its tests to the five packages in dependency order: gateway, SDK, protocol, harness, CLI.
-- **The `release.yml` change as a document.** Sessions must not edit `.github/workflows/`. Write the complete new `release.yml`, whole file, to `docs/plans/reviews/release-yml-for-five-packages.md` as one code block, with a list of what changed from `main`'s file (the pack loop, the publish loop and the tarball checks go from `gateway sdk` to `gateway sdk protocol harness cli`, and the release-notes join covers five changelogs). The manager hands it to the owner, who commits it.
-- A note in `.changeset/README.md` and [CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19) saying all five publish.
+- Remove `private: true` from the four packages (protocol, harness, CLI, agent-safety), and make `release-plan.mjs` survive the merge. Dropping `private` makes the four count as versioned members: gateway and SDK sit at `0.1.0-alpha.N` while the four stay at `0.0.0`, and `planRelease` throws "the packages must share one version" (`scripts/ci/release-plan.mjs`, the `versions.size !== 1` check) before it reaches the pending-changeset skip or the 0.0.0 refusal. Once `RELEASE_ORDER` lists six packages, that would fail the `plan` job on every push to `main`, the L11 merge included. The fix this todo makes:
+  - Move the same-version check to after the "pre mode is exiting" (needs-version) skip and before the 0.0.0 refusal. The order becomes: private skip, pending-changesets skip, pre-mode-exit skip, same-version check, 0.0.0 refusal, pre-mode match.
+  - Give the skip results a version that doesn't depend on the check. Today `const [version] = versions` feeds `base.version` and `base.tag` before any skip, so with mixed versions it has no single value. After the move, `base.version` and `base.tag` come from `RELEASE_ORDER[0]`'s version, the gateway's, as `notes` already reads it; the check then reads each package's version again and throws only when they differ.
+  - The L11 merge carries a changeset, so its plan reports `publish=false` with the pending reason and the `version` job opens the Version packages pull request, where the fixed group should bring all six to one version (see the throwaway-branch task).
+  - Tests: six packages at mixed versions with a pending changeset plan `publish=false` and don't throw; mixed versions with pre mode exiting and nothing else pending plan `publish=false` and don't throw; mixed versions with nothing pending still throw, and so do mixed 0.0.0 and alpha versions with nothing pending, on purpose, because a hand-edited version must stop the run; six packages at one version publish in dependency order; and `RELEASE_ORDER` equals the six names in L10's list of packages that will publish.
+- Verify the placeholders with `npm view @buildanagent/<name> name versions dist-tags deprecated` for all six packages, and record the output in the pull request description. The owner reported on 2026-11-22 that they published placeholders of the four new packages by hand; that is owner-reported, and this task is where it gets verified. The expected state, as for the gateway and SDK, is `0.0.0-bootstrap.0` and `0.0.0-stage` deprecated with "Placeholder only; install 0.1.0 or later.", and `latest` and `bootstrap` on `0.0.0-bootstrap.0`. A session's `npm view` at 14:46 UTC on 2026-11-22 listed the versions and dist-tags for the four but showed no deprecation message, so if one is still missing, the owner deprecates it (a write command, not ours to run).
+- Extend `scripts/ci/release-plan.mjs` (`RELEASE_ORDER`, the list of versioned packages) and its tests to the six packages in dependency order: gateway, SDK, agent-safety, protocol, harness, CLI. Check each package's `dependencies` and `peerDependencies` first, and reorder if the graph requires it.
+- **The `release.yml` change as a document.** Sessions must not edit `.github/workflows/`. Write the complete new `release.yml`, whole file, to `docs/plans/reviews/release-yml-for-six-packages.md` as one code block, with a list of what changed from `main`'s file (the pack loop, the publish loop and the tarball checks go from `gateway sdk` to `gateway sdk agent-safety protocol harness cli`, and the release-notes join covers six changelogs). The manager hands it to the owner, who adds it to this pull request's branch.
+- A note in `.changeset/README.md` and [CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19) saying all six publish.
 - A statement in the pull request description and in §3f that the first alpha of each package publishes only through `release.yml` on a push to `main`, never from a session or a developer's machine.
 
 **Out of scope** (and which todo covers it)
 
 - Making the packages buildable and documented (L10)
-- Editing anything under `.github/` (the owner commits the document)
+- Editing anything under `.github/` (the owner adds the document's file to this pull request's branch)
 - Publishing, or any `npm` write command (the owner and `release.yml`)
 
 ## Tasks
 
-- [ ] Check that N30 is merged, L10 is done and the owner has chosen how the harness gets `agent-safety` (PB4).
-- [ ] Confirm the placeholders with `npm view <package> versions dist-tags deprecated --json` for all five packages.
-- [ ] Remove `private` from the three packages, with one changeset that names all five.
-- [ ] Extend `release-plan.mjs` and `release.test.mjs` to five packages in order, and move the same-version check below the pending skips.
-- [ ] On a throwaway branch, run `pnpm changeset version` with the five-member fixed group and the three at 0.0.0 under pre mode, and record whether all five reach one `0.1.0-alpha.N` (Changesets' handling of members absent from `pre.json` is unverified). If they don't, say how the three reach the group's version before the release and change the plan to match.
+- [ ] Check that N29 and N30 are merged and L10 is done (the owner's `agent-safety` choice is made: ADR 0058, decision 9).
+- [ ] Verify the placeholders with `npm view @buildanagent/<name> name versions dist-tags deprecated` for all six packages, and record the output.
+- [ ] Remove `private` from the four packages, with one changeset that names all six.
+- [ ] Extend `release-plan.mjs` and `release.test.mjs` to six packages in order, and move the same-version check as the scope above says.
+- [ ] On a throwaway branch, run `pnpm changeset version` with the six-member fixed group and the four at 0.0.0 under pre mode, and record whether all six reach one `0.1.0-alpha.N` (Changesets' handling of members absent from `pre.json` is unverified, row L9-20). **Fallback if they don't:** set the four packages' `version` in their `package.json` to the gateway's current `0.1.0-alpha.N` in this pull request, so the six already share one version when the plan runs and the changeset then bumps them together. Update the plan and the checklist to match, and rerun the plan tests.
 - [ ] Write the `release.yml` document, and check it with the existing release tests pointed at the new file.
 - [ ] Write the owner checklist into the pull request description (below).
 
@@ -51,21 +55,21 @@ Make the three packages public, switch the release to all five, and publish the 
 
 The manager hands these to the owner, in order. The owner's merge of this pull request is the last step, because it carries the changeset, so the Version packages pull request opens and auto-merges right after it, and `release.yml` publishes on that merge. Anything that must exist before a publish has to exist before the merge.
 
-1. Publish a placeholder of `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` from your machine with `--access public`, then deprecate each with "Placeholder only; install 0.1.0 or later." Any time before step 4. Do not add trusted publishers yet.
-2. Choose how the harness gets `agent-safety` (publish it too, or vendor it), if not already chosen. If you publish it, it also needs a placeholder, a trusted publisher and a place in `RELEASE_ORDER` and the fixed group, so tell the manager before L11 starts.
-3. Commit the new `release.yml` from the document, before merging L11's pull request. It is harmless on its own: nothing is pending, so the plan publishes nothing.
-4. On npmjs.com, add a trusted publisher to each of the three packages: user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`, `npm publish` ticked under **Allowed actions**. Do it immediately before step 5: the 2-day expiry starts here ([npm docs](https://docs.npmjs.com/trusted-publishers)).
-5. Merge L11's pull request. Its changeset makes `release.yml` open the Version packages pull request with auto-merge on, and once that merges, `release.yml` publishes all five, gateway first and CLI last, under `alpha`. To hold the release back, leave L11 unmerged.
+1. Verified by this todo, not by you: you reported publishing placeholders of `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `@buildanagent/agent-safety` with `--access public`. If any lacks the deprecation "Placeholder only; install 0.1.0 or later.", deprecate it. Do not add trusted publishers yet.
+2. The `agent-safety` choice is made (publish it), so it needs only the trusted publisher below and its place in `RELEASE_ORDER` and the fixed group, which this pull request adds.
+3. Add the new `release.yml` from the document to this pull request's branch, so it lands in the same merge as L11, and don't commit it to `main` before. The new file loops over all six packages, while `main`'s `release-plan.mjs` still lists two and the four are private, so an ordinary gateway or SDK Version packages pull request that auto-merged in between would plan a publish whose pack and publish loops try to pack and test private packages. If you must commit it early, do it only while no alpha is pending and no changeset is open, and hold every other merge until L11 lands.
+4. On npmjs.com, add a trusted publisher to each of the four packages: user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`, `npm publish` ticked under **Allowed actions**. Do it immediately before step 5: the 2-day expiry starts here ([npm docs](https://docs.npmjs.com/trusted-publishers)).
+5. Merge L11's pull request. Its changeset makes `release.yml` open the Version packages pull request with auto-merge on, and once that merges, `release.yml` publishes all six, gateway first and CLI last, under `alpha`. To hold the release back, leave L11 unmerged.
 6. Check that each new package page shows provenance. If a trusted publisher expired, add it again and re-run the release.
 
 ## Acceptance criteria
 
-- [ ] The three `package.json` files have no `private` field, and on the L11 merge commit `release-plan.mjs plan` exits 0 and prints `publish=false` with the pending-changesets reason, instead of throwing on mixed versions
-- [ ] `npm view` for each of the five packages shows the placeholders as PB4 expects, recorded in the pull request description
-- [ ] `release-plan.mjs` and its tests handle five packages in dependency order
-- [ ] `docs/plans/reviews/release-yml-for-five-packages.md` holds the whole file, and the release tests pass against it
-- [ ] No file under `.github/` changed in the pull request
-- [ ] No session or developer machine publishes the three; the first alpha is the owner's to confirm after the merge (checklist step 6), and the Outcome is updated afterwards with the `release.yml` run's link
+- [ ] The four `package.json` files have no `private` field, and on the L11 merge commit `release-plan.mjs plan` exits 0 and prints `publish=false` with the pending-changesets reason, instead of throwing on mixed versions
+- [ ] `npm view` for each of the six packages shows the placeholders as PB4 expects, recorded in the pull request description
+- [ ] `release-plan.mjs` and its tests handle six packages in dependency order, and cover the mixed-version cases above
+- [ ] `docs/plans/reviews/release-yml-for-six-packages.md` holds the whole file, and the release tests pass against it
+- [ ] No commit of ours changes a file under `.github/`; the owner adds `release.yml`
+- [ ] No session or developer machine publishes the four; the first alpha is the owner's to confirm after the merge (checklist step 6), and the Outcome is updated afterwards with the `release.yml` run's link
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -79,8 +83,8 @@ CI plan §3f, the publish plan's todo table and PB4, `.changeset/README.md`, AGE
 ## Risks and open questions
 
 - A trusted publisher added early expires after 2 days, so step 4 comes just before the merge. Merging before it exists makes the first publish fail, so the owner merges last.
-- A fixed group moves all five packages with every release, including any with no change of its own.
-- The pack job runs every package's tests, so a flaky test in one holds up all five.
+- A fixed group moves all six packages with every release, including any with no change of its own.
+- The pack job runs every package's tests, so a flaky test in one holds up all six.
 
 ## Definition of done
 
