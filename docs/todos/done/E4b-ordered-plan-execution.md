@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Close SDK gaps §4](../../plans/close-sdk-gaps.md#4-round-e-and-its-todos) |
 | Round / milestone | Round E (close the SDK gaps), M5e |
 | Depends on | [E4a](../done/E4a-plan-approval-record.md) |
@@ -53,20 +53,20 @@ The mapping onto E1 is fixed: `completed` → `applied`, `failed_compensated` �
 
 ## Tasks
 
-- [ ] Write `runPlan()` and the compensation log.
-- [ ] Map `PlanOutcome` onto `WriteOutcome`, and render the model text with E1's `renderOutcome`.
-- [ ] Write the four failure tests below with fake tools.
+- [x] Write `runPlan()` and the compensation log.
+- [x] Map `PlanOutcome` onto `WriteOutcome`, and render the model text with E1's `renderOutcome`.
+- [x] Write the four failure tests below with fake tools.
 
 ## Acceptance criteria
 
-- [ ] A failure in a compensable step compensates the earlier steps in reverse order, never runs the pivot, and returns `failed_compensated`.
-- [ ] A compensation that itself fails returns `failed_needs_human` with that effect in `outstanding`, never `failed_compensated`.
-- [ ] A pivot whose call times out returns `pending` with `pivot_unknown`; the plan neither compensates nor retries with a fresh key, and a later `reconcile` that finds the effect continues forward.
-- [ ] A crash after step 2 of 3, resumed in a new process, compensates or continues from the log without repeating any step (a fake system counts requests per key).
-- [ ] A stale approval found before step 1 runs nothing and returns `stale_approval`; one found after step 1 and before the pivot compensates step 1 and returns `failed_compensated`.
-- [ ] A plan whose `stateReads` omits a value its arguments were computed from is caught by the README's rule check or recorded as a known miss (E4a's open question).
-- [ ] An `ai` 7.0.162 agent that calls a plan tool reads the rendered outcome in its next request to `MockLanguageModelV4`.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root.
+- [x] A failure in a compensable step compensates the earlier steps in reverse order, never runs the pivot, and returns `failed_compensated`.
+- [x] A compensation that itself fails returns `failed_needs_human` with that effect in `outstanding`, never `failed_compensated`.
+- [x] A pivot whose call times out returns `pending` with `pivot_unknown`; the plan neither compensates nor retries with a fresh key, and a later `reconcile` that finds the effect continues forward.
+- [x] A crash after step 2 of 3, resumed in a new process, compensates or continues from the log without repeating any step (a fake system counts requests per key). Tested in `test/run-plan.test.ts` with a store that throws as a dying process would, sharing the durable store and ledger; a forked-process case in `test/crash.test.ts` is not written (see the outcome).
+- [x] A stale approval found before step 1 runs nothing and returns `stale_approval`; one found after step 1 and before the pivot compensates step 1 and returns `failed_compensated`.
+- [x] A plan whose `stateReads` omits a value its arguments were computed from is caught by the README's rule check or recorded as a known miss (E4a's open question).
+- [x] An `ai` 7.0.162 agent that calls a plan tool reads the rendered outcome in its next request to `MockLanguageModelV4`.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root.
 
 ## Tests
 
@@ -83,7 +83,27 @@ The package README (the refund-then-email walk-through, and the cancel rules).
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+`@buildanagent/agent-safety` can now run an approved plan in order. `runPlan()` verifies each step with `verifyPlanBeforeStep()`, runs it as a guarded write, undoes the steps that ran if the plan fails before the pivot, runs forward after it, and returns an outcome the harness computed. The README's `runPlan()` section gives the rules and the mapping table.
+
+The public API, in the root entry:
+
+- `runPlan(options)` with `RunPlanOptions`, `PlanStepImpl` and `PlanScope`.
+- `PlanOutcome` and `PlanFailureReason`, the outcome union and the reason codes it carries.
+- `planWriteOutcome(outcome)`, which maps a plan outcome onto the five write outcomes, and `renderPlanOutcome(outcome)`, which renders it with E1's `renderOutcome()`.
+
+What the build changed from the design notes above:
+
+- **The step record is the compensation log, so no separate list exists.** Each step's key is fixed by the plan id and the step id, so the records read in plan order show which steps ran. The one extra record is the plan's decision to unwind, stored as a settled `EffectRecord` under its own key, so a resume reads it first and never retries the failed step while the plan is half undone.
+- **`PlanStepImpl` also holds the step's input and its `dedupe` rule**, because `verifyPlanBeforeStep()` hashes the input and `guardedWrite()` needs the rule. `reconcile` and `reconcileCompensation` are optional hooks; a compensation runs with `dedupe: "idempotency_key"`.
+- **`PlanOutcome` gains a `reason` code on the failed statuses and a `stepId` on `pending`**, so the model and a person can see which step stopped the plan and why. The three statuses for a plan that never ran carry a `reason` sentence.
+- **A pivot that only partly took effect is handed to a person without undoing the steps before it**, because undoing them could leave the plan worse. A pivot that was rejected is undone like any failed step.
+- **A resume checks the approval again**, through `checkedPlanApproval()`, so a forged approval cannot finish a plan whose steps all ran. A step this plan already recorded skips the ledger claim, which it made before it stopped.
+- **A forked-process crash case in `test/crash.test.ts` is not written.** The crash tests in `test/run-plan.test.ts` share a durable store and ledger and throw from the store at the chosen call, as a process that died there would, for a crash before a step's record, before a compensation's record and before a compensation settled. A forked case would add a loopback ledger beside the loopback store; it stays a follow-up.
+- **A value left out of `state` is a known miss**, as E4a's open question expected. A test shows the plan completing after an unlisted value changed, and the README says the rule in its `state` section is the only guard.

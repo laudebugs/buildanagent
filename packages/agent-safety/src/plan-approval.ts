@@ -449,6 +449,20 @@ async function signatureHolds(signer: ApprovalSigner, record: PlanApproval): Pro
 }
 
 /**
+ * The plan approval as a trusted copy, or `undefined` when the record is malformed, its signature fails or names an
+ * unknown key, or its steps break `lintPlan()`. `runPlan()` reads a plan's steps from this copy, so a resume that
+ * finds every step already recorded still checks the approval it resumes under.
+ */
+export async function checkedPlanApproval(
+  approval: unknown,
+  signer: ApprovalSigner,
+): Promise<PlanApproval | undefined> {
+  const record = copyApproval(approval);
+  if (record === undefined || !(await signatureHolds(signer, record))) return undefined;
+  return lintPlan(record.steps).ok ? record : undefined;
+}
+
+/**
  * Checks a plan approval before one of its steps runs, failing closed. Run the step only when it resolves to `"ok"`.
  *
  * For every step, the record must be well formed and its signature must verify under a key the signer holds; the
