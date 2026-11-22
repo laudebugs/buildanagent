@@ -38,6 +38,8 @@ export type HarnessErrorCode =
   | "sticky_refused"
   | "approval_reuse_refused"
   | "approver_is_requester"
+  | "approval_refused"
+  | "invalid_code_call"
   | "invalid_key_store"
   | "key_store_read_only"
   | "session_conflict"
@@ -78,7 +80,10 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * system. `invalid_extension`: an extension has no name or version, two share a name, or a project extension's module does not export one. `extension_hash_mismatch`: a project extension's files hash differently from the lock file, or the lock file does not list it. `approval_not_pending`: a resolution names a request that is not waiting.
  * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky
  * allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids
- * a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `invalid_key_store`: a key
+ * a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `approval_refused`: a code
+ * call's signed request failed its check when it was resolved, so nothing ran and nothing was written.
+ * `invalid_code_call`: `Harness.invokeTool()` or a code call's resolution was given something it can't run, such as a
+ * tool the registry lacks or a compensation that names no call that ran. `invalid_key_store`: a key
  * file or key secret is unreadable or malformed, or a key file is readable by others. `key_store_read_only`: a key store
  * with no `rotate()` or `prune()` was asked to rotate or prune. `session_conflict`: an append found the log in a state it did
  * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).

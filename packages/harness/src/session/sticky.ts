@@ -7,7 +7,7 @@
  * one step that share a tool and an input, answered once.
  */
 
-import type { SessionEntry } from "@buildanagent/protocol";
+import type { PermissionDecisionEntry, SessionEntry } from "@buildanagent/protocol";
 import { canonicalInputHash } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
 import type { ApprovalReuse, ToolRegistry } from "../tools/types.js";
@@ -260,4 +260,25 @@ export async function findSticky(
       entry.sticky !== undefined &&
       covers(entry, name, hash, command, call.policyVersion),
   )?.id;
+}
+
+/**
+ * The `permission_decision` entry that records a sticky allowance letting a call run: an allow by `sticky`, naming the
+ * `approval_resolved` entry that covers the call. The pipeline's own entry for the ask stays in the log beside it.
+ */
+export async function stickyDecision(
+  call: { readonly callId: string; readonly tool: string; readonly input: unknown },
+  coveredBy: string,
+  policyVersion: string | undefined,
+): Promise<PermissionDecisionEntry> {
+  return {
+    type: "permission_decision",
+    callId: call.callId,
+    tool: call.tool,
+    decision: "allow",
+    rule: `sticky:${coveredBy}`,
+    by: "sticky",
+    policyVersion: policyVersion ?? "",
+    inputHash: await canonicalInputHash(call.input),
+  };
 }

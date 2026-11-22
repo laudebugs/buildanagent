@@ -4,7 +4,7 @@ The harness wraps the SDK's loop with what a coding agent needs around it: a ses
 
 As of November 2026 the package is private and not on npm. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server` and `testing` are built. `mcp`, `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
 
-## The session log holds twenty entry types
+## The session log holds twenty-one entry types
 
 `@buildanagent/harness/session` re-exports the entry union from `@buildanagent/protocol`, where the [stable fields and the JSON Schema](https://github.com/laudebugs/buildanagent/blob/main/packages/protocol/README.md#a-session-file-is-a-list-of-entries-one-per-line) are documented. Every entry carries `id`, `parentId`, `seq`, `timestamp`, `type` and `origin`. The [session format page](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/docs/session-format.md) lists every field of every type and says which are stable, and a test checks it against the JSON Schema. The types, in the order of the union:
 
@@ -12,6 +12,7 @@ As of November 2026 the package is private and not on npm. Each removable compon
 - `turn_start`: a run began, with the frozen system prompt.
 - `message_block` and `message_end`: one content block of a message, and the close of the message with its model and stop reason.
 - `tool_result`: what a tool returned, with whether its output is trusted.
+- `code_call`: a tool call that the host's own code made with `invokeTool()`, with no model step, and the earlier code call it undoes, if any.
 - `permission_decision`: the permission pipeline's verdict on one call.
 - `usage`: the tokens and cost of a model call, a summary or a judge call.
 - `turn_end`: a run ended, with its stop reason and step count.
@@ -407,6 +408,17 @@ A request survives its client. `initialize` lists in `pending` every request sti
 
 `test/server/stdio.test.ts` runs the server in a child process spawned with `spawnEnv([])`. `test/server/stdio-transport.test.ts` drives the transport in process over streams it holds, for the stops, the bounds and the streams left behind. The child-process test checks that a client completes a turn, that stdout holds only protocol lines, that the end of stdin still gets every answer, and that a client that stops reading leaves at most 256 KiB waiting while 25,000 events stream. It also sets a variable in the parent and checks that the child's environment holds only `PATH`, `HOME`, `TMPDIR` and `LANG`.
 
+### `webSocketTransport()` serves one client on one WebSocket
+
+`webSocketTransport(dispatcher, socket, { maxMessageBytes, maxBufferedBytes, writeTimeoutMs, signal, log })` connects one client to the dispatcher and resolves when that client is done. `socket` is any already-open object with the standard `WebSocket` methods. The global `WebSocket` of Node and browsers fits, and the transport needs no library and imports no Node module. One text frame holds one JSON-RPC message, with no trailing newline. The transport authenticates nobody. Whoever holds the socket acts as the dispatcher's user, and the dispatcher passes `Resolution.by` on as the client sent it. A host that exposes the socket must check the caller's identity and origin before it hands the socket over.
+
+- **Bad frames.** A frame that is binary, empty, over `maxMessageBytes` (8 MiB, not counting one trailing newline), holds more than one line, even with blank lines around one message, or is a batch gets `ErrorCodes.InvalidRequest`. A frame that isn't JSON, or holds an unpaired surrogate, gets `ErrorCodes.ParseError`. Both error codes answer with a `null` id, as does a bad envelope whose id can't be read. A bad envelope with a readable id gets that id. A malformed response is only logged. A binary frame's size is read from its byte length without reading its data. After a frame over the bound, binary or text, the transport closes the socket with 1009.
+- **Backpressure.** A socket reports no event when its send buffer empties, so while `bufferedAmount` is over `maxBufferedBytes` (1 MiB) the transport checks it every 25 ms and waits to send. The buffer can pass the bound by one frame. The transport closes the socket with 1008 and logs why when the buffer does not shrink for `writeTimeoutMs` (30,000 ms by default, `Infinity` to turn the check off) or when the client leaves 128 error answers or refusals unread. A socket whose `send` throws is closed with 1011, and the log gives the error's name and never its message. The global `WebSocket` refuses to close with 1008, 1009 or 1011, so when closing with one of them throws, the transport closes again with 4008, 4009 or 4011 and the same reason.
+- **Shutdown.** A close from the peer ends the transport without a close of its own, and an error ends it too, closing the socket with 1011 if the socket is still open. Besides the 1008, 1009 and 1011 closes above, the transport closes the socket only when `signal` aborts, with 1000. The peer's close reason is never logged.
+- **Reconnect.** The transport serves one socket. When a client's socket drops, the host serves the new socket with a new call on the same dispatcher, and the client sends `session/open` with the `fromSeq` after the last entry it saw, as in the `session/open` with `fromSeq` section above.
+
+`test/server/websocket-transport.test.ts`, `websocket-reconnect.test.ts` and `websocket-framing.test.ts` run the transport over an in-memory socket pair.
+
 ## The log is the only state, so a turn rebuilds its context from it
 
 `session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It groups `message_block` entries by `messageId`, closes a message at its `message_end`, and takes its usage from the `usage` entry that follows. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message. The result deep-equals the `context` of the run that wrote the log, a paused run included, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone.
@@ -626,9 +638,57 @@ The host fills `Resolution.by` only after it has authenticated the approver. An 
 - **Prefix rules.** A command prefix must be a non-empty start of the approved command, on a call that has a `command`, and it covers only a simple command: one with no operator, quote, glob, expansion, substitution or line break. A `git status` prefix covers `git status -s` and not `git status && curl x | sh`.
 - **Reuse.** `approvalReuse` is `both` (the default), `sticky`, `group` or `none`, and a tool takes only the kinds it names. A refused answer throws `approval_reuse_refused` before anything is written, and the call asks again next time.
 - **Grouped answers.** With `group: true`, an answer reaches every waiting request of the step with the same tool and the same whole input; for a shell command the spaces outside quotes are normalised first, and a field such as `cwd` still tells two commands apart. The entries share a `groupId`, and each counts as that approver's answer on its request, so a quorum above one still needs more approvers. Only a group that joins more than one request needs its tool to allow grouping.
-- **Quorum policy.** A `QuorumPolicy` has one method, `evaluate(request, resolutions)`, that returns `met`, `pending`, `rejected` or `expired`. `oneResolution` is the default and follows the latest answer. `quorumOf(n)` needs `n` distinct approvers named in `Resolution.by`, counts only allows, and refuses an `n` that is not a whole number of at least one. `met` runs the call, `rejected` and `expired` turn it into a denial result, and `pending` leaves it waiting: the turn ends `awaiting_approval` again. Calling `resolve(session, [])` asks the policy about every waiting request, which is how a policy that keeps its own clock expires an old one.
+- **Quorum policy.** A `QuorumPolicy` has one method, `evaluate(request, resolutions)`, that returns `met`, `pending`, `rejected` or `expired`. `oneResolution` is the default and follows the latest answer. `quorumOf(n)` needs `n` distinct approvers named in `Resolution.by`, counts only allows, and refuses an `n` that is not a whole number of at least one. `met` runs the call, `rejected` and `expired` turn it into a denial result, and `pending` leaves it waiting: the turn ends `awaiting_approval` again. Calling `resolve(session, [])` asks the policy about every request of a paused turn, which is how a policy that keeps its own clock expires an old one. It leaves a code call's request waiting: the policy decides that call when it is next answered, so a late allow for an expired call comes back `denied`.
 - **What the log keeps.** A denial by the policy, not a person, is written with `by: "policy"`. A pending answer is marked `quorum: "pending"` so that crash detection does not read it as an answer a run received.
 - **Requester.** `requesterId` names who asked, and an approver equal to it throws `approver_is_requester`. The host authenticates approvers and fills `Resolution.by`; the harness trusts what it is given.
+
+### Code runs a side effect through the same pipeline and pause as the model, with no model call
+
+`harness.invokeTool(session, { tool, input, hostContext })` runs one tool call that your code chose, such as an approved reply or a refund. The call goes through the same permission pipeline, signed pause and log as a call the model makes, and the model is never called. The session must be open with its lock.
+
+```ts
+const call = { tool: "refund", input: { orderId: "o1" }, hostContext: { user: "ada" } };
+const result = await harness.invokeTool(session, call);
+if (result.status === "awaiting_approval") {
+  await createApprovals(harness).resolve(session, [{ requestId: result.pending.id, decision: "allow", by: "grace" }], { hostContext: call.hostContext });
+}
+```
+
+The call's own entries start with a `code_call` entry, which holds the call's `callId`, the tool's canonical name, the input and its hash. The entry's id is the call id. Before it, `invokeTool()` writes what the session still lacks: a new session's `session_header` and `env_stamp`, and a `tool_result` for each earlier code call that a crash left open. The pipeline then decides the call with `initiator: "code"` and writes its `permission_decision`, and the call ends one of three ways:
+
+- **`done`.** An allow runs the tool through the harness's `wrap` with the call's host context, and writes its `tool_result`. A sticky allowance covers a code call as it covers a model call. `result` holds the whole of what the tool returned, even when the stored entry is capped.
+- **`denied`.** A deny writes an error `tool_result` and returns the reason. The tool never runs.
+- **`awaiting_approval`.** An ask signs the request with `createPendingRequest()` and the harness's signer, and writes it as an `approval_requested` entry before the result returns. The request signs a MAC of `hostContext` when one is given, so only the same host context can resolve it. `Approvals.pending(session)` lists a paused turn's requests first and this request after them.
+
+The stored result is capped as a model call's is. The harness's context policy caps it and spills the full text. A result still over the store's entry bound is cut to fit, with its outcome kept at the front, so a call that ran always gets its result. A tool that throws gets an error result; for a write, its outcome is `unknown`, because the write may have taken effect.
+
+`resolve()` routes an answer by its request. An answer to a code call's request resolves that call on its own and returns a `CodeCallResult`, so it can't share a `resolve()` with any other answer (`invalid_code_call`). Before anything is written, the answer is checked against the request: the signature under a key in the ring, the bound host context, the call and the tool, and the input, which must hash to the signed hash in the `code_call` entry, the `approval_requested` entry and the request alike. A request that fails throws `approval_refused` with the cause, writes nothing and runs nothing. The answer is then written, and the quorum policy decides. `met` decides the call again with the pipeline, so a deny rule added after the pause wins, and then runs the tool with `options.hostContext` and `options.signal`. `rejected` and `expired` deny the call, and `pending` returns `awaiting_approval`. A code call's expiry is enforced when it is next answered, because `resolve(session, [])` leaves its request waiting. `sticky`, `group` and `requesterId` apply as they do for a turn, and `approvalReuse` refuses a sticky or grouped answer the same way. A code call has no step, so a grouped answer covers only its own call. `budgetUsd` and the model settings don't apply, because no model is called.
+
+Every result except `denied` carries `effectKey`, the call's effect identity. It comes from the tool's business key (`effect.businessKey`) when the tool declares one, and otherwise from `effectScope(session, harness, callId)`, whose call id is the `code_call` entry's id. A tool that builds its own key with `effectScope(session, harness, ctx.callId)` therefore gets the same key, and a resolution in another process finds it again.
+
+A code call is the host's, so the model never reads it or its result. Each code call runs at most once, even across a crash. Two terms carry the rule. A call *starts* once its log holds the entry that clears it to run: the pipeline's allow, a sticky allowance, or, after a person's allow, the pipeline's fresh decision when it is not a deny. The tool starts right after that entry. To *settle* a call is to write the result it lacks, for a call that crashed, never ran or was interrupted. The next `invokeTool()` on the session settles every call a crash left open:
+
+| The call | What its log holds | What the next `invokeTool()` does |
+| --- | --- | --- |
+| Has a result | A `tool_result` | Nothing. The call no longer waits, so a replayed answer throws `approval_not_pending`. |
+| Started, no result | The entry that cleared it, and no `tool_result` | Settles it with the result an interrupted model call gets, and never runs it again, because it may have taken effect. |
+| Answered or never asked, never started | No entry that cleared it, and either a final answer or no request | Settles it with an error that says it never ran, so a compensation that names it is refused. |
+
+A call that asked and has no final answer is not open: it still waits.
+
+Within one process, one code call of a session runs at a time.
+
+A code call runs no turn, so the harness's `interceptors` and `observers` don't see it: they are the hooks and events of a model step. A `beforeToolCall` may replace the input or ask through the run's own pause, neither of which fits a call whose input is recorded and hashed before it is decided. What applies to a code call is the permission pipeline, whose `hooks` see `initiator: "code"`; the harness's `wrap`, which can guard or redact around the tool; and the context policy's write cap. Put a guard that must cover code calls in the pipeline's `hooks` or in `wrap`.
+
+`compensates` names the call id of an earlier code call that this one undoes, such as a refund reversal after a refund. The earlier call must have run, and the compensation must reach an effect key of its own, or `invokeTool()` throws `invalid_code_call`. The compensation's `code_call` entry records the link.
+
+`invokeTool()` throws before it writes anything:
+
+- `invalid_code_call`: a tool the registry lacks or that runs on the client, an input or host context with no canonical JSON form, a business key that fails, a harness with no pipeline, or a compensation that fails its check.
+- `approval_unavailable`: a harness with no signer.
+- An aborted signal throws its reason.
+
+It does not check the input against the tool's schema, because your code, not a model, chose it.
 
 ### The key ring is a 0600 file outside the log and the sandbox
 

@@ -41,6 +41,23 @@ function interruptedWrite(tool: string): Pick<ToolResultEntry, "content" | "isEr
   };
 }
 
+/**
+ * The result of a call whose own result never reached the log. A call to a write, or to a tool the registry no longer
+ * has, may have taken effect, so its outcome is `unknown`; a read-only call changed nothing, so it gets a plain error.
+ */
+export function interruptedResult<H>(
+  harness: Harness<H>,
+  name: string,
+): Pick<ToolResultEntry, "content" | "isError" | "details" | "trust"> {
+  const tool = harness.registry.get(name);
+  // A tool the registry no longer has may have been a write, so its call is as uncertain as a write's.
+  const mayHaveWritten = tool === undefined || tool.definition.effect?.kind === "write";
+  return {
+    ...(mayHaveWritten ? interruptedWrite(name) : { content: [{ type: "text", text: READ_ONLY_TEXT }], isError: true }),
+    trust: tool?.outputTrust ?? "untrusted",
+  };
+}
+
 /** Ends each assistant message that has blocks and no end, so its calls are part of the context. */
 async function endDanglingMessages<H>(
   path: readonly SessionEntry[],
@@ -117,17 +134,11 @@ export async function settleOpenCalls<H>(
   const calls = unansweredCalls(path);
   const dangling = await endDanglingMessages(path, harness, write);
   for (const call of calls) {
-    const tool = harness.registry.get(call.name);
-    // A tool the registry no longer has may have been a write, so its call is as uncertain as a write's.
-    const mayHaveWritten = tool === undefined || tool.definition.effect?.kind === "write";
     await write("tool", {
       type: "tool_result",
       callId: call.callId,
       tool: call.name,
-      ...(mayHaveWritten
-        ? interruptedWrite(call.name)
-        : { content: [{ type: "text", text: READ_ONLY_TEXT }], isError: true }),
-      trust: tool?.outputTrust ?? "untrusted",
+      ...interruptedResult(harness, call.name),
     } as Body);
   }
   const closed = closeTurns ? await closeTurn(path, write, dangling) : false;
