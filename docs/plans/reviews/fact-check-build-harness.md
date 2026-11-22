@@ -339,6 +339,7 @@ Claims about `@modelcontextprotocol/client` and `@modelcontextprotocol/server` w
 | N24-33 | `canonicalInputHash()` is the SHA-256 of RFC 8785 canonical JSON as 64 hex digits, computed with Web Crypto | N24 Outcome, `record.ts` | ✅ | `packages/sdk/src/vendor/agent-safety/hash.ts` `canonicalInputHash`, `canonicalJson` and `canonicalTextHash` (`crypto.subtle.digest("SHA-256", …)`) |
 | N24-34 | The record's hashes are stable across reconnects, change with the command or an argument, and change with the tool list; no argument, `env` or `setEnv` value reaches the entry or the log; a second turn writes no second entry | N24 Outcome, harness README | ✅ | `packages/harness/test/mcp/record.test.ts`, six tests, each failed by its mutation on 2026-11-22 |
 | N24-35 | N22's headless loading of a trusted project's extensions needs `loadInHeadless: true` | N54 todo | ✅ | `packages/harness/README.md`, the extensions section: "A headless run loads a trusted project's extensions only with `loadInHeadless: true`" |
+| N24-36 | A new optional field that no reader must understand needs no `formatVersion` bump, and readers ignore fields they do not know | N24 Outcome | ✅ | `packages/harness/docs/session-format.md`, "How the format changes": a bump comes with "any new field a reader must understand", and a tool "should … ignore a field it does not know" |
 
 ## §6.4 questions from N29
 
@@ -373,4 +374,4 @@ Checked on 2026-11-22 on branch `docs/n29-open-questions`, off `main` at `a3516b
 | docs/n29-open-questions-25 | §2 now says no HD decision waits on the owner, and L10 is in `docs/todos/done/` | `build-harness.md` §2 and §6.3 question 7 | ✅ | `ls docs/todos/done \| grep L10` finds it; the link now points there. L11 is still in `ready/`, so its link stays. |
 | docs/n29-open-questions-26 | Row docs/n29-open-questions-2's reason now says `@cfworker/json-schema` is a dependency of `packages/protocol` and a dev dependency of `packages/sdk`, and the harness does not import it (writing-review fix; row 15's reason now points to row 24) | `packages/protocol/package.json`; `packages/sdk/package.json`; `packages/harness/src` | ✏️ | `grep cfworker packages/*/package.json` finds protocol and sdk and not harness; `grep -rn cfworker packages/harness/src` finds nothing. The review's other fixes split sentences and move clauses without changing a claim. |
 
-**Totals:** 276 claims: 200 ✅, 56 ✏️, 20 ⚠️.
+**Totals:** 277 claims: 201 ✅, 56 ✏️, 20 ⚠️.
