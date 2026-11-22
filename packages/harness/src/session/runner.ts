@@ -545,6 +545,14 @@ export async function runTurn<H = unknown>(
   );
   if (wrote) path = await session.path();
   await recordLoadout(harness, writer, model, tools, path);
+  const turnContext = contextFor(harness, session, model, options);
+  // Between turns, before the input is written, the summary layer may replace an outgrown span with a summary.
+  if (
+    options.history === undefined &&
+    (await turnContext?.compact({ path, append: (origin, body) => writer.write(origin, body) }))
+  ) {
+    path = await session.path();
+  }
   const waiting = options.history === undefined ? unansweredCalls(path, true) : [];
   if (waiting.length > 0) {
     throw new HarnessError(
@@ -554,7 +562,6 @@ export async function runTurn<H = unknown>(
   }
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);
-  const turnContext = contextFor(harness, session, model, options);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId, "run", turnContext?.spillOf);
   const observer: Observer = (event) => recorder.handle(event);
   const handle = run({

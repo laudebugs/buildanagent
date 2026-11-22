@@ -6,12 +6,18 @@
 export { cutoffFor, maskMessages } from "./mask.js";
 export { createContextPolicy } from "./policy.js";
 export { memorySpillStore } from "./spill.js";
+export { SUMMARY_PROMPT_VERSION } from "./summary-template.js";
 export type {
+  CompactEvent,
+  CompactionLog,
+  CompactionRecord,
   ContextFill,
+  ContextHooks,
   ContextPolicy,
   ContextPolicyOptions,
   LayerName,
   SpillStore,
+  SummarizeSettings,
   TurnContext,
   TurnContextOptions,
 } from "./types.js";

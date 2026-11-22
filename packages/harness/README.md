@@ -303,6 +303,27 @@ Signed thinking limits where the cutoff may stand. A model that checks each sign
 
 Turn a layer off with `layers: { write_cap: false }` or `layers: { mask: false }`; `mask` takes `{ keepChars, stepMessages }`. After each view is built, the policy reports how full it estimates the view to be: `TurnOptions.onContextFill` receives `{ tokens, budget, window }`, and the dispatcher sends `tokens` and `budget` as a `context_fill` event. With a previous response, the estimate is that response's input and output tokens plus the view's growth since, counted as characters over four. Before any response, it is characters over four for the whole view. The summary, mid-turn and overflow layers arrive in their own todos.
 
+## A summary replaces an outgrown span between turns, and the log keeps every original
+
+Layer 3 of the context policy runs at the start of a turn, before the turn's input is written. When the context is over the budget, the policy summarises everything before a verbatim tail and writes a `compaction` entry. The budget is `budgetTokens`, which defaults to the smaller of the model's window less 16,384 tokens and 200,000. The tail is the newest messages that add up to `summarize.tailTokens` (default 20,000), moved back until it does not start with a tool result, so a call is never split from its result.
+
+```ts
+const context = createContextPolicy({
+  spill,
+  summarize: { tailTokens: 20_000, focus: "open bugs", capUsd: 5 },
+  hooks: { afterCompact: async (entry) => audit(entry) },
+  log: (record) => console.log(record.event, record.detail),
+});
+```
+
+The summary call goes through `Model.complete()` with `cacheRetention: "none"`, on the turn's model or `summarize.model`. It reads the whole discarded span, with each tool result cut to `toolOutputChars` (default 2,000), and asks for Pi's fixed sections and its rule to keep exact paths, function names and error messages. The wording is versioned: each entry records `promptVersion` (`recall-v1`). The span begins with the earlier summary when there is one, so each summary updates the last. A `focus` hint is added to the request and recorded on the entry.
+
+The call's cost goes in a `usage` entry with `source: "summary"`, written before the `compaction` entry that names it. Before the call, the harness projects its cost with `projectCallCost()` and skips the layer when the session's spend plus that projection would pass `summarize.capUsd`, or when either is unknown. A skipped summary writes nothing and is reported through `log`.
+
+`hooks.beforeCompact` receives the span and may return `{ summary }`, which replaces the model's: no call is made, a zero-cost `usage` entry is written and the entry records `promptVersion: "hook"`. `hooks.afterCompact` receives the written entry. `layers: { summarize: false }` turns the layer off.
+
+No entry is edited or removed. `session.toContext()` and `contextOf()` start from the latest compaction: its summary as a user message, then the kept tail, then everything written after it. The tail loses its signed reasoning blocks, because a block that follows the summarised span carries a signature the summary made stale; blocks written after the compaction stay. A re-run from an entry before the compaction rebuilds the original context from the file.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.
