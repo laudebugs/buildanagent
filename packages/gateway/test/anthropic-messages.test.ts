@@ -652,7 +652,12 @@ test("a sampling warning streamed before the request adds no body-less dump", as
   for (const [i, dump] of dumps.entries()) assert.deepEqual(dump.body, bodyOf(transport, i));
 });
 
-test("the adapter remembers drop_block for the 1,000 most recently used conversations", async () => {
+// The memory holds 1,000 conversations, so the test streams about 2,000 mock requests. It takes under a second on a
+// free machine but timed out at Vitest's 5 s default on a loaded CI runner, so it gets 30 s. The limit only catches a
+// hang; the test asserts no duration.
+test("the adapter remembers drop_block for the 1,000 most recently used conversations", {
+  timeout: 30_000,
+}, async () => {
   const mismatchThenText = [failed(400, "error-bound-to-different-conversation.json"), { body: fixture("text.sse") }];
   // 1,001 conversations that each need drop_block, then one request each for the oldest and the newest.
   const script = [...Array.from({ length: 1_001 }, () => mismatchThenText).flat(), ...mismatchThenText.slice(1, 2)];
