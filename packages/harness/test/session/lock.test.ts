@@ -28,6 +28,18 @@ const lockFile = (dir: string) => join(dir, "ada", "s1.lock");
 const readRecord = (dir: string) =>
   JSON.parse(readFileSync(lockFile(dir), "utf8")) as { pid: number; host: string; token: string; leaseUntil: number };
 
+/**
+ * Polls until `check` holds, up to a generous deadline. A renewal runs on a real timer, and a loaded worker can run it
+ * late, so a fixed sleep would turn scheduling delay into a failure.
+ */
+async function eventually(check: () => boolean, message: string, deadlineMs = 10_000): Promise<void> {
+  const end = Date.now() + deadlineMs;
+  while (!check()) {
+    if (Date.now() > end) assert.fail(message);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
 /** A clock a test moves by hand. */
 function clock(start = 1_000_000) {
   let time = start;
@@ -129,15 +141,13 @@ test("the holder renews the lease, and a renewal that finds another token gives 
   const dir = tempDir();
   const handle = await held(fileLock({ dir, leaseMs: 400, renewMs: 50 }));
   const before = readRecord(dir).leaseUntil;
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  assert.ok(readRecord(dir).leaseUntil > before, "the lease moved on");
+  await eventually(() => readRecord(dir).leaseUntil > before, "the lease moved on");
   assert.equal(handle.held(), true);
   writeFileSync(
     lockFile(dir),
     JSON.stringify({ pid: 9, host: "x", token: "someone-else", leaseUntil: Date.now() + 60_000 }),
   );
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  assert.equal(handle.held(), false, "the holder noticed the takeover");
+  await eventually(() => !handle.held(), "the holder noticed the takeover");
   assert.equal(readRecord(dir).token, "someone-else", "and left the other lock alone");
 });
 
@@ -207,8 +217,7 @@ test("a handle that lost its lock can still release without freeing the next hol
     lockFile(dir),
     JSON.stringify({ pid: 9, host: "x", token: "someone-else", leaseUntil: Date.now() + 60_000 }),
   );
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  assert.equal(handle.held(), false);
+  await eventually(() => !handle.held(), "the holder noticed the takeover");
   await handle.release();
   assert.equal(readRecord(dir).token, "someone-else");
 });
