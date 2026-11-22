@@ -7,6 +7,7 @@
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
 import { assertStepIndex } from "../plan-ledger.js";
+import { lostClaim } from "./lost-claim.js";
 
 /** The part of a Postgres client these stores use. */
 export interface PgClientLike {
@@ -48,13 +49,7 @@ export function postgresEffectStore(client: PgClientLike): EffectStore {
     const { rows } = await client.query("SELECT record FROM effect_records WHERE key = $1", [key]);
     return rows[0] === undefined ? undefined : parse(rows[0].record);
   };
-  const lost = async (key: string): Promise<EffectClaim> => {
-    const existing = await read(key);
-    // A record that vanished between the failed write and this read would mean that another process won and was then
-    // deleted, which no store method does. The claim can't be answered, so this throws.
-    if (existing === undefined) throw new Error(`the effect record ${key} changed while it was being claimed`);
-    return { existing };
-  };
+  const lost = async (key: string): Promise<EffectClaim> => lostClaim(key, await read(key));
   const values = (record: EffectRecord) => [record.key, record.attempt, record.state, JSON.stringify(record)];
   return {
     async begin(record) {

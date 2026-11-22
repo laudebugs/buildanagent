@@ -16,6 +16,7 @@ import {
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
 import { assertStepIndex } from "../plan-ledger.js";
+import { lostClaim } from "./lost-claim.js";
 
 /** The options of the DynamoDB stores. */
 export interface DynamoStoreOptions {
@@ -79,13 +80,7 @@ export function dynamoEffectStore(client: DynamoDBClient, options: DynamoStoreOp
     );
     return Item?.record?.S === undefined ? undefined : (JSON.parse(Item.record.S) as EffectRecord);
   };
-  const lost = async (key: string): Promise<EffectClaim> => {
-    const existing = await read(key);
-    // A record that vanished between the failed write and this read would mean that another process won and was then
-    // deleted, which no store method does. The claim can't be answered, so this throws.
-    if (existing === undefined) throw new Error(`the effect record ${key} changed while it was being claimed`);
-    return { existing };
-  };
+  const lost = async (key: string): Promise<EffectClaim> => lostClaim(key, await read(key));
   /**
    * A put that needs `condition`, answering whether it took effect. The SDK retries a put after a timeout or a server
    * error, and a retry of a put that already took effect fails its own condition. DynamoDB then returns the item that
