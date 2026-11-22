@@ -6,6 +6,7 @@
  */
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
+import { assertStepIndex } from "../plan-ledger.js";
 
 /** The part of a Postgres client these stores use. */
 export interface PgClientLike {
@@ -18,7 +19,7 @@ export const POSTGRES_SCHEMA: readonly string[] = [
     key TEXT PRIMARY KEY,
     attempt INTEGER NOT NULL,
     state TEXT NOT NULL,
-    record JSONB NOT NULL
+    record TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS plan_steps (
     plan_id TEXT NOT NULL,
@@ -32,14 +33,15 @@ export async function createPostgresTables(client: PgClientLike): Promise<void> 
   for (const statement of POSTGRES_SCHEMA) await client.query(statement);
 }
 
-// `pg` parses a JSONB column to an object and some clients leave it as text, so both are read.
+// The record is stored as the JSON text it was written as, so a read gives back exactly what was stored: a JSONB column
+// would reorder an object's keys and normalise its numbers.
 function parse(value: unknown): EffectRecord {
-  return (typeof value === "string" ? JSON.parse(value) : value) as EffectRecord;
+  return JSON.parse(String(value)) as EffectRecord;
 }
 
 /**
  * An `EffectStore` on Postgres. Each record is one row: its key, the attempt and state that the conditions read, and
- * the record as JSONB. Run `POSTGRES_SCHEMA` first.
+ * the record as JSON text. Run `POSTGRES_SCHEMA` first.
  */
 export function postgresEffectStore(client: PgClientLike): EffectStore {
   const read = async (key: string): Promise<EffectRecord | undefined> => {
@@ -57,7 +59,7 @@ export function postgresEffectStore(client: PgClientLike): EffectStore {
   return {
     async begin(record) {
       const { rows } = await client.query(
-        `INSERT INTO effect_records (key, attempt, state, record) VALUES ($1, $2, $3, $4::jsonb)
+        `INSERT INTO effect_records (key, attempt, state, record) VALUES ($1, $2, $3, $4)
          ON CONFLICT (key) DO NOTHING RETURNING key`,
         values(record),
       );
@@ -65,7 +67,7 @@ export function postgresEffectStore(client: PgClientLike): EffectStore {
     },
     async takeOver(record) {
       const { rows } = await client.query(
-        `INSERT INTO effect_records AS current (key, attempt, state, record) VALUES ($1, $2, $3, $4::jsonb)
+        `INSERT INTO effect_records AS current (key, attempt, state, record) VALUES ($1, $2, $3, $4)
          ON CONFLICT (key) DO UPDATE SET attempt = EXCLUDED.attempt, state = EXCLUDED.state, record = EXCLUDED.record
          WHERE current.attempt = EXCLUDED.attempt - 1
          RETURNING key`,
@@ -75,7 +77,7 @@ export function postgresEffectStore(client: PgClientLike): EffectStore {
     },
     async settle(record) {
       const { rows } = await client.query(
-        `UPDATE effect_records SET state = 'settled', record = $3::jsonb
+        `UPDATE effect_records SET state = 'settled', record = $3
          WHERE key = $1 AND state = 'started' AND attempt = $2
          RETURNING key`,
         [record.key, record.attempt, JSON.stringify(record)],
@@ -94,6 +96,7 @@ export function postgresEffectStore(client: PgClientLike): EffectStore {
 export function postgresPlanLedger(client: PgClientLike): PlanLedger {
   return Object.freeze({
     async claim(planId: string, stepIndex: number) {
+      assertStepIndex(stepIndex);
       const { rows } = await client.query(
         `INSERT INTO plan_steps (plan_id, step_index)
          SELECT $1::text, $2::int WHERE (SELECT count(*) FROM plan_steps WHERE plan_id = $1::text) = $2::int

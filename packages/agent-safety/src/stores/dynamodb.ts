@@ -15,6 +15,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
+import { assertStepIndex } from "../plan-ledger.js";
 
 /** The options of the DynamoDB stores. */
 export interface DynamoStoreOptions {
@@ -48,7 +49,10 @@ interface SdkErrorLike {
 
 const asSdkError = (error: unknown): SdkErrorLike => (typeof error === "object" && error !== null ? error : {});
 
-/** The token on the item that made a put's condition false, `undefined` when the answer isn't "the condition was false". */
+/**
+ * The token on the item that made a put's condition false, or `undefined` when the answer isn't "the condition was
+ * false".
+ */
 function failedConditionToken(error: unknown): { readonly token: string | undefined } | undefined {
   const { name, Item } = asSdkError(error);
   return name === "ConditionalCheckFailedException" ? { token: Item?.token?.S } : undefined;
@@ -141,8 +145,8 @@ export function dynamoEffectStore(client: DynamoDBClient, options: DynamoStoreOp
 /**
  * A `PlanLedger` on DynamoDB. Step `n` is an item that exists once the step passed. A claim of step `n` is one
  * transaction: put the item for `n` if it is absent, and check that the item for `n - 1` exists. The transaction
- * carries a `ClientRequestToken`, so an SDK retry of a claim that already took effect is answered as the same claim, not
- * as a replay. When the transaction is refused because a condition was false, a read of the item for `n` tells
+ * carries a `ClientRequestToken`, so an SDK retry of a claim that already took effect is answered as the same claim,
+ * not as a replay. When the transaction is refused because a condition was false, a read of the item for `n` tells
  * `replayed` from `out_of_order`; a cancellation for any other reason is rethrown.
  */
 export function dynamoPlanLedger(client: DynamoDBClient, options: DynamoStoreOptions): PlanLedger {
@@ -155,6 +159,7 @@ export function dynamoPlanLedger(client: DynamoDBClient, options: DynamoStoreOpt
   };
   return Object.freeze({
     async claim(planId: string, stepIndex: number) {
+      assertStepIndex(stepIndex);
       const put = {
         Put: {
           TableName: tableName,

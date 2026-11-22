@@ -74,6 +74,24 @@ const CASES: readonly PlanLedgerCase[] = [
     },
   },
   {
+    name: "claim rejects a step index that is not a whole number of 0 or more, and uses nothing up",
+    async run(makeLedger) {
+      const ledger = await makeLedger();
+      await ledger.claim("plan-1", 0);
+      for (const bad of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 60]) {
+        let rejected = false;
+        await ledger.claim("plan-1", bad).catch(() => {
+          rejected = true;
+        });
+        check(rejected, `a claim of step ${String(bad)} must be rejected`);
+      }
+      check(
+        (await ledger.claim("plan-1", 1)) === "claimed",
+        "the next step must still be claimed after the rejections",
+      );
+    },
+  },
+  {
     name: "plans keep separate progress",
     async run(makeLedger) {
       const ledger = await makeLedger();

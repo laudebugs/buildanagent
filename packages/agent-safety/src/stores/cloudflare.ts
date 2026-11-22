@@ -1,14 +1,15 @@
 /**
  * `@buildanagent/agent-safety/stores/cloudflare`: the effect store and the plan ledger on a Durable Object's SQLite
- * storage, `ctx.storage.sql`. SQL calls in a Durable Object complete synchronously, and none of the methods below awaits
- * between its statements, so no other event in the object runs between two of them. The SQL still makes every change
- * conditional, so the same code is correct if a host ever lets two callers interleave.
+ * storage, `ctx.storage.sql`. SQL calls in a Durable Object complete synchronously, and none of the methods below
+ * awaits between its statements, so no other event in the object runs between two of them. The SQL still makes every
+ * change conditional, so the same code is correct if a host ever lets two callers interleave.
  *
  * A store belongs to one object: give every tenant or session that must keep its own records its own object, or pass
  * records whose keys are already unique across tenants, as `effectKey()` makes them.
  */
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
+import { assertStepIndex } from "../plan-ledger.js";
 
 /** What a query returns here: the rows, and `RETURNING` makes the written ones count. */
 export interface SqlCursorLike {
@@ -63,7 +64,8 @@ export function durableObjectEffectStore(sql: SqlStorageLike): EffectStore {
     async begin(record) {
       const rows = sql
         .exec(
-          "INSERT INTO effect_records (key, attempt, state, record) VALUES (?, ?, ?, ?) ON CONFLICT(key) DO NOTHING RETURNING key",
+          `INSERT INTO effect_records (key, attempt, state, record) VALUES (?, ?, ?, ?)
+           ON CONFLICT(key) DO NOTHING RETURNING key`,
           record.key,
           record.attempt,
           record.state,
@@ -114,6 +116,7 @@ export function durableObjectEffectStore(sql: SqlStorageLike): EffectStore {
 export function durableObjectPlanLedger(sql: SqlStorageLike): PlanLedger {
   return Object.freeze({
     async claim(planId: string, stepIndex: number) {
+      assertStepIndex(stepIndex);
       const [row] = sql.exec("SELECT count(*) AS passed FROM plan_steps WHERE plan_id = ?", planId).toArray();
       const passed = Number(row?.passed ?? 0);
       if (stepIndex < passed) return "replayed" as const;

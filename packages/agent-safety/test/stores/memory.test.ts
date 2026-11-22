@@ -12,5 +12,5 @@ test("memory: a started record is taken over only after its lease lapses", () =>
   leaseScenario(() => memoryEffectStore()));
 
 test("the conformance lists are not empty, so a store can't pass by running nothing", () => {
-  if (effectStoreConformance().length < 8 || planLedgerConformance().length < 6) throw new Error("a list shrank");
+  if (effectStoreConformance().length < 8 || planLedgerConformance().length < 7) throw new Error("a list shrank");
 });
