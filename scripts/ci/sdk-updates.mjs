@@ -236,6 +236,8 @@ export async function planBumps(manifest, main, registry, now = Date.now()) {
     const mainManifest = meta(main, mainVersion);
     if (!mainManifest) throw new Error(`npm registry: ${main}@${mainVersion} isn't published`);
     const chosen = { [main]: mainVersion };
+    // Notes on the version each range left a pin at, kept only if the peer check below leaves the pin there.
+    const held = [];
     const notes = [];
     for (const name of names) {
       if (name === main) continue;
@@ -248,14 +250,15 @@ export async function planBumps(manifest, main, registry, now = Date.now()) {
       const shown = `${main}@${mainVersion} declares ${ranges.join(" and ")}`;
       if (ranges.map(parseRange).includes(undefined)) {
         chosen[name] = pins[name];
-        if (all.length > 0)
-          notes.push(`::warning::holds ${name} at ${pins[name]}: ${shown}, which this script can't evaluate`);
+        const text = `::warning::holds ${name} at ${pins[name]}: ${shown}, which this script can't evaluate`;
+        if (all.length > 0) held.push({ name, version: pins[name], text });
         continue;
       }
       const inRange = all.find((release) => fits(name, release.version, ranges));
       chosen[name] = inRange?.version ?? pins[name];
       if (all.length > 0 && all[0].version !== chosen[name]) {
-        notes.push(`caps ${name} at ${chosen[name]} rather than ${all[0].version}: ${shown}`);
+        const text = `caps ${name} at ${chosen[name]} rather than ${all[0].version}: ${shown}`;
+        held.push({ name, version: chosen[name], text });
       }
     }
     // What is wrong with `x`'s chosen release's ranges on `q`'s chosen version, or undefined.
@@ -283,6 +286,8 @@ export async function planBumps(manifest, main, registry, now = Date.now()) {
         }
       }
     }
+    // A pin the peer check moved back has its own warning, and its range note would name a version not proposed.
+    notes.unshift(...held.filter((note) => chosen[note.name] === note.version).map((note) => note.text));
     if (mainVersion === pins[main]) return { chosen, notes };
     for (const q of names) {
       if (q === main) continue;

@@ -205,6 +205,17 @@ describe("planBumps", () => {
     ]);
   });
 
+  test("drops the range note of a capped pin the peer check moves back", async () => {
+    const peer = {
+      "@google/genai": doc({ "2.32.0": {}, "2.33.0": { meta: { peerDependencies: { zod: "<4.7.0" } } }, "3.3.0": {} }),
+    };
+    const result = await plan(pins, { "2.5.0": adk("^2") }, peer);
+    assert.equal(result.bumps, "zod@4.7.0");
+    assert.deepEqual(result.notes, [
+      "::warning::holds @google/genai at 2.32.0 rather than 2.33.0: @google/genai@2.33.0 declares zod <4.7.0, which zod@4.7.0 doesn't satisfy",
+    ]);
+  });
+
   test("holds a bump that breaks the peer range a pin that stays declares", async () => {
     const peer = { "@google/genai": doc({ "2.32.0": { meta: { peerDependencies: { zod: "~4.6.0" } } } }) };
     const result = await plan(pins, { "2.5.0": {} }, peer);
