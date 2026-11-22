@@ -80,4 +80,55 @@ describe.each(BACKENDS)("%s", (_name, make) => {
       await session.close();
     }
   });
+
+  test("shell calls that differ in another field are not one group", async () => {
+    const backend = make();
+    const first = reuseSetup([
+      calls("bash", [
+        { command: "rm -rf build", cwd: "/tmp/x" },
+        { command: "rm -rf build", cwd: "/" },
+      ]),
+      done(),
+    ]);
+    const session = await open(backend);
+    await runTurn(session, first.harness, { input: "clean" });
+    const waiting = await createApprovals(first.harness).pending(session);
+    const resumed = reuseSetup([done()]);
+    await createApprovals(resumed.harness).resolve(
+      session,
+      [{ requestId: waiting[0]?.request.id as string, decision: "allow" }],
+      { group: true },
+    );
+    assert.equal(resumed.runs.length, 1, "only the answered call ran");
+    assert.equal((await createApprovals(resumed.harness).pending(session)).length, 1);
+    await session.close();
+  });
+
+  test("a tool that forbids grouping elsewhere in the step does not refuse an unrelated group", async () => {
+    const backend = make();
+    const first = reuseSetup(
+      [
+        {
+          content: [
+            { type: "tool_call" as const, callId: "c1", name: "refund", input: { orderId: "o1" } },
+            { type: "tool_call" as const, callId: "c2", name: "refund", input: { orderId: "o1" } },
+            { type: "tool_call" as const, callId: "c3", name: "bash", input: { command: "ls" } },
+          ],
+        },
+        done(),
+      ],
+      { bashReuse: "none" },
+    );
+    const session = await open(backend);
+    await runTurn(session, first.harness, { input: "do it" });
+    const waiting = await createApprovals(first.harness).pending(session);
+    const resumed = reuseSetup([done()], { bashReuse: "none" });
+    await createApprovals(resumed.harness).resolve(
+      session,
+      [{ requestId: waiting[0]?.request.id as string, decision: "allow" }],
+      { group: true },
+    );
+    assert.deepEqual(resumed.runs, ["refund:o1", "refund:o1"]);
+    await session.close();
+  });
 });

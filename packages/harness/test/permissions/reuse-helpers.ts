@@ -14,14 +14,22 @@ type Reuse = NonNullable<Parameters<ToolRegistry["register"]>[0]["approvalReuse"
 const KEY_BYTES = Uint8Array.from({ length: 32 }, (_, index) => index + 7);
 
 /** One harness whose `refund` and `bash` tools ask for approval; `runs` counts the calls that actually ran. */
-export function reuseSetup(steps: Steps, options: { refundReuse?: Reuse; bashReuse?: Reuse } = {}) {
+export function reuseSetup(
+  steps: Steps,
+  options: { refundReuse?: Reuse; bashReuse?: Reuse; policyVersion?: string } = {},
+) {
   const runs: string[] = [];
   const registry = createToolRegistry();
   const tool = (name: string, field: string) =>
     defineTool({
       name,
       description: `The ${name} tool.`,
-      inputSchema: { type: "object", properties: { [field]: { type: "string" } }, required: [field] },
+      inputSchema: {
+        type: "object",
+        properties: { [field]: { type: "string" } },
+        required: [field],
+        additionalProperties: true,
+      },
       async execute(input: Record<string, string>) {
         runs.push(`${name}:${input[field]}`);
         return { content: [{ type: "text", text: `${name} ran` }] };
@@ -42,7 +50,12 @@ export function reuseSetup(steps: Steps, options: { refundReuse?: Reuse; bashReu
   const adapter = new ScriptedModel(steps);
   const model = createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
   const pipeline = createPermissionPipeline(
-    { mode: "default", interactive: true, policyVersion: "p1", ask: [{ tool: "refund" }, { tool: "bash" }] },
+    {
+      mode: "default",
+      interactive: true,
+      policyVersion: options.policyVersion ?? "p1",
+      ask: [{ tool: "refund" }, { tool: "bash" }],
+    },
     registry,
   );
   const signer = hmacSigner({ keys: { k1: KEY_BYTES }, current: "k1" });

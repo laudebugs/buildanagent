@@ -1472,7 +1472,7 @@
           "$ref": "#/$defs/shape-0372685c9f"
         },
         {
-          "$ref": "#/$defs/shape-00b636213b"
+          "$ref": "#/$defs/shape-ef77d5988f"
         },
         {
           "$ref": "#/$defs/shape-0ae3e72e7c"
@@ -2656,7 +2656,7 @@
       ],
       "additionalProperties": false
     },
-    "shape-00b636213b": {
+    "shape-ef77d5988f": {
       "type": "object",
       "properties": {
         "id": {
@@ -2702,6 +2702,9 @@
               "items": {
                 "type": "string"
               }
+            },
+            "policyVersion": {
+              "type": "string"
             }
           },
           "required": [
@@ -2711,6 +2714,10 @@
         },
         "groupId": {
           "type": "string"
+        },
+        "quorum": {
+          "type": "string",
+          "const": "pending"
         }
       },
       "required": [

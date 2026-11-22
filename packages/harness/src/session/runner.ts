@@ -399,7 +399,11 @@ function withStickyAllowances<H>(
       if (decision.decision !== "ask") return decision;
       recorder.flush();
       await writer.settled();
-      const covered = await findSticky(await session.path(), event, harness.registry);
+      const covered = await findSticky(
+        await session.path(),
+        { tool: event.tool, input: event.input, policyVersion: decision.policyVersion },
+        harness.registry,
+      );
       if (covered === undefined) return decision;
       await writer.write("harness", {
         type: "permission_decision",
@@ -559,8 +563,9 @@ export async function rerunFrom<H = unknown>(
 export interface ResolutionRecord {
   readonly resolution: Resolution;
   readonly sticky?: "run" | "session";
-  readonly allowance?: { tool: string; inputHash?: string; commandPrefix?: string[] };
+  readonly allowance?: { tool: string; inputHash?: string; commandPrefix?: string[]; policyVersion?: string };
   readonly groupId?: string;
+  readonly quorum?: "pending";
 }
 
 /** What resuming a paused turn takes: the answers, and the same per-turn settings a turn has. */

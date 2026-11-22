@@ -30,20 +30,32 @@ export interface QuorumPolicy {
 
 const isDeny = (resolution: Resolution): boolean => "decision" in resolution && resolution.decision === "deny";
 
-/** The default policy: the first answer decides, an allow or an answer runs the call and a deny refuses it. */
+/** The default policy: the latest answer decides, an allow or an answer runs the call and a deny refuses it. */
 export const oneResolution: QuorumPolicy = {
-  evaluate: (_request, resolutions) =>
-    resolutions.length === 0 ? "pending" : resolutions.some(isDeny) ? "rejected" : "met",
+  evaluate(_request, resolutions) {
+    const latest = resolutions.at(-1);
+    if (latest === undefined) return "pending";
+    return isDeny(latest) ? "rejected" : "met";
+  },
 };
 
 /**
- * A policy that needs `needed` allows from distinct approvers, named by `Resolution.by`. A deny from anyone refuses the
- * call. An allow with no `by` counts as one anonymous approver, so a quorum above one needs the host to name them.
+ * A policy that needs `needed` allows from distinct approvers, named by `Resolution.by`. A deny as the latest answer
+ * refuses the call, and the allows before it do not count. An allow with no `by` counts as one anonymous approver, so a
+ * quorum above one needs the host to name them. Throws `invalid_permission_config` unless `needed` is a whole number
+ * of at least one.
  */
 export function quorumOf(needed: number): QuorumPolicy {
+  if (!Number.isInteger(needed) || needed < 1) {
+    throw new HarnessError(
+      "invalid_permission_config",
+      `a quorum needs a whole number of approvers of at least 1, got ${needed}`,
+    );
+  }
   return {
     evaluate(_request, resolutions) {
-      if (resolutions.some(isDeny)) return "rejected";
+      if (resolutions.length === 0) return "pending";
+      if (isDeny(resolutions.at(-1) as Resolution)) return "rejected";
       const approvers = new Set(resolutions.map((resolution) => resolution.by ?? "(unnamed)"));
       return approvers.size >= needed ? "met" : "pending";
     },
@@ -144,27 +156,44 @@ function checkAnswers<H>(
   }
 }
 
-/** The answer the SDK applies to each waiting request the policy has decided, with a denial for a refused or expired one. */
+/** The synthetic denial for a request the policy refused or let expire, with the record that puts it in the log. */
+function denial(requestId: string, verdict: "rejected" | "expired"): ResolutionRecord {
+  const reason = verdict === "expired" ? "the approval expired" : "the approval was rejected";
+  return { resolution: { requestId, decision: "deny", reason, by: "policy" } };
+}
+
+/**
+ * What each waiting request gets once the quorum policy has looked at it: the answer the SDK applies for `met`, a denial
+ * for `rejected` and `expired`, and nothing for `pending`, whose new answers are marked as waited on so a crash
+ * of this resume never counts them as given. The records returned are the entries to write, denials by the policy
+ * included, so the log tells an expiry from any other refusal.
+ */
 async function settled(
   policy: QuorumPolicy,
   waiting: readonly PendingApproval[],
   earlier: ReadonlyMap<string, Resolution[]>,
   records: readonly ResolutionRecord[],
-): Promise<Resolution[]> {
+): Promise<{ forRun: Resolution[]; records: ResolutionRecord[] }> {
   const forRun: Resolution[] = [];
+  const out: ResolutionRecord[] = [];
   for (const { request } of waiting) {
-    const fresh = records
-      .filter((record) => record.resolution.requestId === request.id)
-      .map((record) => record.resolution);
-    const answers = [...(earlier.get(request.id) ?? []), ...fresh];
+    const fresh = records.filter((record) => record.resolution.requestId === request.id);
+    const answers = [...(earlier.get(request.id) ?? []), ...fresh.map((record) => record.resolution)];
     const verdict = await policy.evaluate(request, answers);
-    if (verdict === "met") forRun.push(answers.findLast((answer) => !isDeny(answer)) ?? (answers.at(-1) as Resolution));
-    if (verdict === "rejected" || verdict === "expired") {
-      const reason = verdict === "expired" ? "the approval expired" : "the approval was rejected";
-      forRun.push({ requestId: request.id, decision: "deny", reason });
+    const latest = answers.at(-1);
+    if (verdict === "met" && latest !== undefined) {
+      forRun.push(answers.findLast((answer) => !isDeny(answer)) ?? latest);
+      out.push(...fresh);
+    } else if (verdict === "rejected" || verdict === "expired") {
+      const refusal =
+        latest !== undefined && isDeny(latest) && verdict === "rejected" ? undefined : denial(request.id, verdict);
+      forRun.push(refusal?.resolution ?? (latest as Resolution));
+      out.push(...fresh, ...(refusal === undefined ? [] : [refusal]));
+    } else {
+      out.push(...fresh.map((record) => ({ ...record, quorum: "pending" as const })));
     }
   }
-  return forRun;
+  return { forRun, records: out };
 }
 
 /** Creates the approvals of `harness`, which needs a `signer` to check the requests it resumes. */
@@ -184,8 +213,8 @@ export function createApprovals<H = unknown>(harness: Harness<H>, settings: Appr
         options.requesterId,
       );
       const records = await recordsFor(harness, waiting, resolutions, options, await (settings.secrets?.() ?? []));
-      const forRun = await settled(policy, waiting, answersByRequest(path), records);
-      return resumeTurn(session, harness, { ...options, resolutions: forRun, records });
+      const { forRun, records: toWrite } = await settled(policy, waiting, answersByRequest(path), records);
+      return resumeTurn(session, harness, { ...options, resolutions: forRun, records: toWrite });
     },
   };
 }
@@ -199,7 +228,6 @@ async function groupsOf<H>(harness: Harness<H>, waiting: readonly PendingApprova
   const groups = new Map<string, string[]>();
   const groupOf = new Map<string, string>();
   for (const { request, input } of waiting) {
-    checkReuse(request.tool, reuseOf(harness, request.tool), "group");
     const id = await groupIdOf(nameOf(harness, request.tool), input, request.inputHash);
     groupOf.set(request.id, id);
     groups.set(id, [...(groups.get(id) ?? []), request.id]);
@@ -225,10 +253,11 @@ function recordOf<H>(
     options.commandPrefix === undefined
       ? { inputHash: request.inputHash }
       : { commandPrefix: [...options.commandPrefix] };
+  const version = request.policyVersion === undefined ? {} : { policyVersion: request.policyVersion };
   return {
     resolution,
     sticky: options.sticky,
-    allowance: { tool: nameOf(harness, request.tool), ...match },
+    allowance: { tool: nameOf(harness, request.tool), ...match, ...version },
     ...grouped,
   };
 }
@@ -245,6 +274,12 @@ async function recordsFor<H>(
     options.group === true ? await groupsOf(harness, waiting) : { groups: new Map(), groupOf: new Map() };
   const expanded = options.group === true ? expandGroup(resolutions, groups, groupOf) : [...resolutions];
   const byId = new Map(waiting.map((entry) => [entry.request.id, entry]));
+  // Only a group that really joins requests needs its tool to allow one answer for several calls.
+  for (const resolution of expanded) {
+    const members = groups.get(groupOf.get(resolution.requestId) ?? "") ?? [];
+    const tool = (byId.get(resolution.requestId) as PendingApproval).request.tool;
+    if (members.length > 1) checkReuse(tool, reuseOf(harness, tool), "group");
+  }
   return expanded.map((resolution) =>
     recordOf(
       harness,
