@@ -28,6 +28,9 @@ export const HIGHLIGHT_NAMES = { plain: "manual-highlight", noted: "manual-note"
 /** The keyboard shortcut that acts on the selection or opens the notes panel, as `aria-keyshortcuts` writes it. */
 export const SHORTCUT = "Alt+Shift+N";
 
+/** How long the article's text must stay unchanged before the script draws the highlights again, in milliseconds. */
+export const REPAINT_MS = 100;
+
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ITEM_ID = /^[a-z0-9]{1,40}$/;
 const MAX_HEADING_ID = 200;
@@ -352,16 +355,17 @@ export function cleanNote(note) {
 }
 
 /**
- * Escapes one line of a reader's text for a Markdown blockquote, so it stays a line of text: leading spaces go, a
- * character that would start a heading, list, quote, rule, fence, table or HTML block at the line's start is escaped,
- * and every `<` is escaped so no HTML is read.
+ * Escapes one line of a reader's text for a Markdown blockquote, so it stays a line of plain text. Leading spaces go.
+ * Everywhere in the line a backslash escapes `\`, `` ` ``, `*`, `_`, `[`, `]`, `!`, `&`, `<`, `~` and `|`, so no code,
+ * emphasis, link, image, reference, entity, HTML, strikethrough or table is read. At the line's start it also escapes
+ * `#`, `>`, `+`, `=` and `-`, and the `.` or `)` after a number, so no heading, quote, list or rule begins.
  * @param {string} line
  * @returns {string}
  */
 export function markdownLine(line) {
-  const text = line.replace(/^\s+/, "").replace(/\\/g, "\\\\").replace(/</g, "\\<");
+  const text = line.replace(/^\s+/, "").replace(/[\\`*_[\]!&<~|]/g, (char) => `\\${char}`);
   if (/^\d+[.)]/.test(text)) return text.replace(/^(\d+)([.)])/, "$1\\$2");
-  return /^[#>+*=_~`|-]/.test(text) ? `\\${text}` : text;
+  return /^[#>+=-]/.test(text) ? `\\${text}` : text;
 }
 
 /**
@@ -471,9 +475,31 @@ export function pointOffset(index, nodes, container, offset) {
   return low < nodes.length ? textOffset(index, low, 0) : index.text.length;
 }
 
-function readAll(storage) {
+/**
+ * Names what the stored value is: "empty" when nothing is stored, "ours" when it is this script's version 1 shape,
+ * and "foreign" for anything else, such as a later version's value or damaged text, which the script reads as no
+ * notes but never overwrites.
+ * @param {unknown} raw
+ * @returns {"empty" | "ours" | "foreign"}
+ */
+export function storedKind(raw) {
+  if (raw === null || raw === undefined || raw === "") return "empty";
+  if (typeof raw !== "string") return "foreign";
+  let value;
   try {
-    return parseStored(storage.getItem(KEY));
+    value = JSON.parse(raw);
+  } catch {
+    return "foreign";
+  }
+  const chapters = value?.v === 1 ? value.chapters : undefined;
+  return typeof chapters === "object" && chapters !== null && !Array.isArray(chapters) ? "ours" : "foreign";
+}
+
+/** Reads the store: its chapters, its kind and its raw text, or undefined when storage throws. */
+function readStore(storage) {
+  try {
+    const raw = storage.getItem(KEY);
+    return { chapters: parseStored(raw), kind: storedKind(raw), raw: raw ?? "" };
   } catch {
     return undefined;
   }
@@ -504,6 +530,9 @@ const MESSAGES = {
   long: `Select a shorter passage to highlight it: one highlight holds up to ${MAX_QUOTE.toLocaleString("en")} characters.`,
   full: `This chapter already holds ${MAX_HIGHLIGHTS} highlights, the most this browser keeps for one chapter. Delete one in Notes to add another.`,
   storage: "This browser would not save the change: its storage is full or turned off.",
+  foreign:
+    "Nothing was changed: this browser holds notes in a form this page cannot read, saved by a newer or damaged version of the book. Export shows them as stored.",
+  gone: "That highlight was deleted in another tab or window. Save to add it back with this note.",
 };
 
 /**
@@ -535,12 +564,20 @@ class Notes {
     this.article = article;
     this.slug = slug;
     this.storage = storage;
-    this.items = readAll(storage)?.get(slug) ?? [];
+    this.items = [];
+    this.foreign = false;
+    this.reload();
     // The chapter's text model is built once and rebuilt only after the article's text or the attributes that decide
     // which text counts have changed.
     this.model = undefined;
     this.observer = new win.MutationObserver(() => {
       this.model = undefined;
+      // Another script changed the article's text, so the ranges and offsets are redrawn once it settles.
+      win.clearTimeout(this.repaintTimer);
+      this.repaintTimer = win.setTimeout(() => {
+        this.paint();
+        if (this.dialog.open) this.rerender();
+      }, REPAINT_MS);
     });
     this.observer.observe(article, {
       subtree: true,
@@ -555,6 +592,15 @@ class Notes {
     this.build();
     this.paint();
     this.listen();
+  }
+
+  /** Reads this chapter's highlights from storage, and whether the stored value is one this page must not overwrite. */
+  reload() {
+    const store = readStore(this.storage);
+    if (!store) return;
+    this.items = store.chapters.get(this.slug) ?? [];
+    this.foreign = store.kind === "foreign";
+    if (this.warning) this.warning.hidden = !this.foreign;
   }
 
   /** The chapter's text model, rebuilt only when the article changed since it was last built. */
@@ -630,6 +676,11 @@ class Notes {
       element(doc, "div", { className: "notes-dialog__actions" }, [this.saveButton, this.cancelButton]),
     ]);
     this.status = element(doc, "p", { className: "notes-dialog__status", role: "status" });
+    this.warning = element(doc, "p", {
+      className: "notes-dialog__flag",
+      text: MESSAGES.foreign,
+      hidden: !this.foreign,
+    });
     this.list = element(doc, "ol", { className: "notes-dialog__list" });
     this.empty = element(doc, "p", {
       className: "notes-dialog__hint",
@@ -679,6 +730,7 @@ class Notes {
         }),
         this.selectionBlock,
         this.form,
+        this.warning,
         this.status,
         this.empty,
         this.list,
@@ -736,8 +788,9 @@ class Notes {
     // Another tab of this book may change the notes; this page then shows the stored ones.
     win.addEventListener("storage", (event) => {
       if (event.key !== KEY && event.key !== null) return;
-      this.items = readAll(this.storage)?.get(this.slug) ?? [];
+      this.reload();
       this.paint();
+      this.keepFormText();
       if (this.dialog.open) this.rerender();
     });
   }
@@ -856,7 +909,7 @@ class Notes {
     }
     if (withNote) {
       this.hideToolbar();
-      this.formTarget = existing ? { id: existing.id } : { anchor: pending.anchor };
+      this.formTarget = existing ? { id: existing.id, anchor: anchorOf(existing) } : { anchor: pending.anchor };
       if (!this.dialog.open) this.open(fromToolbar ? this.returnFocus : this.doc.activeElement);
       this.selectionBlock.hidden = true;
       this.openForm(existing?.note ?? "", pending.anchor.quote);
@@ -864,8 +917,9 @@ class Notes {
       return;
     }
     const item = this.makeItem(pending.anchor, "");
-    if (!this.commit([...this.items, item])) {
-      this.notice(MESSAGES.storage);
+    const problem = this.commit([...this.items, item]);
+    if (problem) {
+      this.notice(problem);
       return;
     }
     this.hideToolbar();
@@ -891,15 +945,23 @@ class Notes {
     }
   }
 
-  /** Stores the chapter's new list, keeping the other chapters as they are stored now. Gives whether it was saved. */
+  /**
+   * Stores the chapter's new list, keeping the other chapters as they are stored now. Gives "" when it was saved, or
+   * the message that says why not. A stored value this page cannot read is never overwritten.
+   */
   commit(items) {
-    const all = readAll(this.storage);
-    if (!all) return false;
-    all.set(this.slug, items);
-    if (!writeAll(this.storage, all)) return false;
+    const store = readStore(this.storage);
+    if (!store) return MESSAGES.storage;
+    if (store.kind === "foreign") {
+      this.foreign = true;
+      this.warning.hidden = false;
+      return MESSAGES.foreign;
+    }
+    store.chapters.set(this.slug, items);
+    if (!writeAll(this.storage, store.chapters)) return MESSAGES.storage;
     this.items = items;
     this.paint();
-    return true;
+    return "";
   }
 
   say(message) {
@@ -1029,7 +1091,7 @@ class Notes {
           text: item.note ? "Edit note" : "Add note",
         });
         edit.addEventListener("click", () => {
-          this.formTarget = { id: item.id };
+          this.formTarget = { id: item.id, anchor: anchorOf(item) };
           this.selectionBlock.hidden = true;
           this.openForm(item.note, item.quote, edit);
         });
@@ -1091,24 +1153,33 @@ class Notes {
     const target = this.formTarget;
     if (!target) return;
     const note = cleanNote(this.noteField.value);
-    let id;
+    // Another tab may have changed this chapter's highlights since the form opened.
+    this.reload();
+    if ("id" in target && !this.items.some((item) => item.id === target.id)) {
+      this.keepFormText();
+      this.say(MESSAGES.gone);
+      return;
+    }
+    // A passage another tab highlighted meanwhile takes the note instead of a second highlight.
+    const same = "anchor" in target ? this.items.find((item) => sameAnchor(item, target.anchor)) : undefined;
+    const id = "id" in target ? target.id : same?.id;
     let items;
-    if ("anchor" in target) {
+    if (id === undefined) {
       if (this.items.length >= MAX_HIGHLIGHTS) {
         this.say(MESSAGES.full);
         return;
       }
       const item = this.makeItem(target.anchor, note);
-      id = item.id;
       items = [...this.items, item];
     } else {
-      id = target.id;
       items = this.items.map((item) => (item.id === id ? { ...item, note, at: Date.now() } : item));
     }
-    if (!this.commit(items)) {
-      this.say(MESSAGES.storage);
+    const problem = this.commit(items);
+    if (problem) {
+      this.say(problem);
       return;
     }
+    const savedId = id ?? items[items.length - 1]?.id;
     this.formTarget = undefined;
     this.formReturn = undefined;
     this.form.hidden = true;
@@ -1116,7 +1187,18 @@ class Notes {
     this.pending = undefined;
     this.renderList();
     this.say(note ? "Note saved." : "Highlight saved without a note.");
-    this.focusItem(id);
+    this.focusItem(savedId);
+  }
+
+  /**
+   * Keeps the note form usable when the highlight it edits is gone: the form stays open with the reader's text, and
+   * its next save adds the highlight back from the anchor it had.
+   */
+  keepFormText() {
+    const target = this.formTarget;
+    if (!target || !("id" in target) || this.items.some((item) => item.id === target.id)) return;
+    this.formTarget = { anchor: target.anchor };
+    if (!this.form.hidden) this.say(MESSAGES.gone);
   }
 
   focusItem(id) {
@@ -1128,9 +1210,16 @@ class Notes {
   remove(item) {
     const rows = [...this.list.children];
     const index = rows.findIndex((row) => row.getAttribute("data-id") === item.id);
-    if (!this.commit(this.items.filter((other) => other.id !== item.id))) {
-      this.say(MESSAGES.storage);
+    const problem = this.commit(this.items.filter((other) => other.id !== item.id));
+    if (problem) {
+      this.say(problem);
       return;
+    }
+    // A note form open on the deleted highlight closes with it; the reader chose to delete it.
+    if (this.formTarget && "id" in this.formTarget && this.formTarget.id === item.id) {
+      this.form.hidden = true;
+      this.formTarget = undefined;
+      this.formReturn = undefined;
     }
     this.renderList();
     this.say(`Deleted the highlight on “${shorten(item.quote)}”.`);
@@ -1171,7 +1260,10 @@ class Notes {
     const title = doc.querySelector("h1")?.textContent ?? doc.title;
     const url = `${win.location.origin}${win.location.pathname}`;
     const items = this.ordered().map((item) => ({ ...item, status: this.placed.get(item.id)?.status ?? "lost" }));
-    const markdown = toMarkdown(title, url, items);
+    // Notes this page cannot read are exported exactly as stored, so the reader keeps them.
+    const raw = this.foreign ? (readStore(this.storage)?.raw ?? "") : "";
+    const markdown = this.foreign ? raw : toMarkdown(title, url, items);
+    this.download.setAttribute("download", this.foreign ? "notes-as-stored.txt" : `notes-${this.slug}.md`);
     this.exportField.value = markdown;
     this.exportBlock.hidden = false;
     this.revokeDownload();
@@ -1209,6 +1301,20 @@ class Notes {
     this.download.removeAttribute("href");
   }
 }
+
+const anchorOf = (item) => ({
+  quote: item.quote,
+  prefix: item.prefix,
+  suffix: item.suffix,
+  section: item.section,
+  offset: item.offset,
+});
+
+const sameAnchor = (item, anchor) =>
+  item.quote === anchor.quote &&
+  item.prefix === anchor.prefix &&
+  item.suffix === anchor.suffix &&
+  item.section === anchor.section;
 
 function shorten(text, max = 60) {
   return text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`;

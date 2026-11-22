@@ -20,11 +20,13 @@ import {
   parseStored,
   pointOffset,
   proseNodes,
+  REPAINT_MS,
   rawPoint,
   readChapter,
   sectionAt,
   serializeStored,
   start,
+  storedKind,
   supportsHighlights,
   textOffset,
   toMarkdown,
@@ -332,7 +334,7 @@ test("the Markdown export quotes each passage with its note and says which passa
   assert.match(toMarkdown("T", "u", []), /No highlights yet\.\n$/);
 });
 
-test("a note's lines stay text in the export: no heading, list, rule, fence, table or HTML block, and blank lines kept", () => {
+test("a note's lines stay text in the export: every marker that could start a block or an inline is escaped", () => {
   const note = [
     "# not a heading",
     "---",
@@ -349,7 +351,8 @@ test("a note's lines stay text in the export: no heading, list, rule, fence, tab
     "<img src=x onerror=alert(1)>",
     "    indented code",
     "",
-    "back\\slash and *stars* stay",
+    "back\\slash, *stars*, _under_, `code`, [t](u), ![i](u), &amp; and a-b stay",
+    "[ref]: http://example.com",
   ].join("\n");
   const markdown = toMarkdown("T", "u", [{ quote: "# a quote", note, status: "found" }]);
   const body = markdown.split("Note:\n\n")[1]?.split("\n\n---")[0];
@@ -365,20 +368,35 @@ test("a note's lines stay text in the export: no heading, list, rule, fence, tab
       "> 1\\. nor this",
       "> 2\\) nor this",
       "> \\> not a quote",
-      "> \\```js",
-      "> \\~~~",
-      "> \\| a | b |",
+      "> \\`\\`\\`js",
+      "> \\~\\~\\~",
+      "> \\| a \\| b \\|",
       "> \\<img src=x onerror=alert(1)>",
       "> indented code",
       ">",
-      "> back\\\\slash and *stars* stay",
+      "> back\\\\slash, \\*stars\\*, \\_under\\_, \\`code\\`, \\[t\\](u), \\!\\[i\\](u), \\&amp; and a-b stay",
+      "> \\[ref\\]: http://example.com",
     ].join("\n"),
   );
   assert.match(markdown, /\n> \\# a quote\n/, "the quote is escaped the same way");
 });
 
-test("a CommonMark parser reads the hostile note as two paragraphs of text inside one quotation", () => {
-  const note = "# h\n---\n- l\n1. n\n> q\n```\n<b>x</b>\n| a | b |\n\nafter the blank line";
+test("a CommonMark parser reads a hostile note as plain text inside one quotation, with no link, code or emphasis", () => {
+  const note = [
+    "# h",
+    "---",
+    "- l",
+    "1. n",
+    "> q",
+    "```",
+    "<b>x</b>",
+    "| a | b |",
+    "[t](http://x) ![i](http://x) <http://x> `c` *e* **s** _u_ &amp; &#65;",
+    "[ref]: http://example.com",
+    "[ref]",
+    "",
+    "after the blank line",
+  ].join("\n");
   const tree = unified()
     .use(remarkParse)
     .parse(toMarkdown("T", "u", [{ quote: "q", note, status: "found" }]));
@@ -398,8 +416,14 @@ test("a CommonMark parser reads the hostile note as two paragraphs of text insid
   assert.deepEqual(
     types(noteQuote).filter((type) => !["blockquote", "paragraph", "text"].includes(type)),
     [],
-    "no heading, list, rule, code, HTML or table",
+    "no heading, list, rule, code, HTML, link, image, definition, emphasis or strong",
   );
+  assert.deepEqual(
+    (tree.children as { type: string }[]).filter((node) => node.type === "definition"),
+    [],
+  );
+  const text = JSON.stringify(noteQuote);
+  assert.match(text, /&amp; &#65;/, "entities stay as written");
 });
 
 const CHAPTER = `
@@ -806,4 +830,130 @@ test("the script names no API that can reach the network and writes no markup", 
     source,
     /innerHTML|outerHTML|insertAdjacentHTML|document\.write|\.style\s*=|setAttribute\("style"/,
   );
+});
+
+/** Tells the page another tab changed the stored notes, as a browser's storage event does. */
+function fromAnotherTab(win: Window, chapters: Record<string, unknown>) {
+  win.localStorage.setItem(KEY, stored(chapters));
+  const event = new win.Event("storage");
+  Object.defineProperty(event, "key", { value: KEY });
+  win.dispatchEvent(event);
+}
+
+const noteForm = (win: Window) => ({
+  field: q<HTMLTextAreaElement>(win, "#notes-field") as HTMLTextAreaElement,
+  save: () => q<HTMLButtonElement>(win, ".notes-dialog__form button[type='submit']")?.click(),
+  open: () => q<HTMLElement>(win, ".notes-dialog__form")?.hidden === false,
+});
+const panelStatus = (win: Window) => q(win, ".notes-dialog__status")?.textContent ?? "";
+const rowButton = (win: Window, id: string, action: string) =>
+  q<HTMLButtonElement>(win, `.notes-dialog__item[data-id="${id}"] [data-action="${action}"]`) as HTMLButtonElement;
+
+test("a note on a highlight another tab deleted keeps the typed text, says so, and the next save adds it back", () => {
+  const win = page({ items: ITEMS });
+  start(win as unknown as globalThis.Window);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  rowButton(win, "two", "edit").click();
+  const form = noteForm(win);
+  form.field.value = "Typed before the other tab deleted it.";
+  fromAnotherTab(win, { tools: ITEMS.filter((found) => found.id !== "two") });
+  assert.equal(form.open(), true, "the form stays open");
+  assert.match(panelStatus(win), /That highlight was deleted/);
+  assert.equal(form.field.value, "Typed before the other tab deleted it.");
+  form.save();
+  const items = parseStored(win.localStorage.getItem(KEY)).get("tools") ?? [];
+  const back = items.find((found) => found.quote === "A failed call comes back again");
+  assert.equal(back?.note, "Typed before the other tab deleted it.", "the second save adds the highlight back");
+  assert.notEqual(back?.id, "two");
+  assert.equal(form.open(), false);
+});
+
+test("a note on a highlight deleted without a storage event is caught at save, and deleting the edited row closes the form", () => {
+  const win = page({ items: ITEMS });
+  start(win as unknown as globalThis.Window);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  rowButton(win, "two", "edit").click();
+  noteForm(win).field.value = "Mine.";
+  // The other tab's write has landed in storage, but its event has not reached this page yet.
+  win.localStorage.setItem(KEY, stored({ tools: ITEMS.filter((found) => found.id !== "two") }));
+  noteForm(win).save();
+  assert.match(panelStatus(win), /That highlight was deleted/);
+  assert.equal(noteForm(win).field.value, "Mine.");
+  const again = page({ items: ITEMS });
+  start(again as unknown as globalThis.Window);
+  q<HTMLButtonElement>(again, ".notes-open")?.click();
+  rowButton(again, "two", "edit").click();
+  rowButton(again, "two", "delete").click();
+  assert.equal(noteForm(again).open(), false, "the reader deleted what the form edited");
+});
+
+test("a new note on a passage another tab highlighted meanwhile goes on that highlight, not a second one", () => {
+  const first = page();
+  start(first as unknown as globalThis.Window);
+  const paragraph = q(first, "article p:last-of-type")?.firstChild as Node;
+  select(first, paragraph, 2, paragraph, 13);
+  shortcut(first);
+  toolbarButton(first, "Add note").click();
+  noteForm(first).field.value = "From this tab.";
+  // Another tab highlights the same passage, with the same anchor, before this tab saves.
+  const otherTab = page();
+  start(otherTab as unknown as globalThis.Window);
+  const otherParagraph = q(otherTab, "article p:last-of-type")?.firstChild as Node;
+  select(otherTab, otherParagraph, 2, otherParagraph, 13);
+  shortcut(otherTab);
+  toolbarButton(otherTab, "Highlight").click();
+  const theirs = parseStored(otherTab.localStorage.getItem(KEY)).get("tools") ?? [];
+  assert.equal(theirs.length, 1);
+  first.localStorage.setItem(KEY, stored({ tools: theirs }));
+  noteForm(first).save();
+  const items = parseStored(first.localStorage.getItem(KEY)).get("tools") ?? [];
+  assert.equal(items.length, 1, "no second highlight on the same passage");
+  assert.equal(items[0]?.id, theirs[0]?.id);
+  assert.equal(items[0]?.note, "From this tab.");
+});
+
+test("a stored value from a newer version or damaged text is never overwritten, and export gives it back as stored", () => {
+  for (const raw of ['{"v":2,"chapters":{"tools":{"new":"shape"}}}', "{not json"]) {
+    const win = page();
+    win.localStorage.setItem(KEY, raw);
+    Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: undefined });
+    start(win as unknown as globalThis.Window);
+    assert.deepEqual(painted(win, HIGHLIGHT_NAMES.plain), [], "reads tolerate it as no notes");
+    const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+    select(win, paragraph, 2, paragraph, 13);
+    shortcut(win);
+    toolbarButton(win, "Highlight").click();
+    assert.equal(win.localStorage.getItem(KEY), raw, `${raw} is left as it was`);
+    assert.match(visibleMessage(win), /Nothing was changed/);
+    q<HTMLButtonElement>(win, ".notes-open")?.click();
+    assert.equal(q<HTMLElement>(win, ".notes-dialog__flag")?.hidden, false, "the panel says why");
+    const exportButton = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog button")].find(
+      (found) => found.textContent === "Export as Markdown",
+    ) as HTMLButtonElement;
+    exportButton.click();
+    assert.equal(q<HTMLTextAreaElement>(win, "#notes-export")?.value, raw);
+    assert.equal(q(win, ".notes-dialog__download")?.getAttribute("download"), "notes-as-stored.txt");
+  }
+  assert.equal(storedKind(null), "empty");
+  assert.equal(storedKind(""), "empty");
+  assert.equal(storedKind(stored({})), "ours");
+  assert.equal(storedKind('{"v":1,"chapters":[]}'), "foreign");
+  assert.equal(storedKind("[]"), "foreign");
+});
+
+test("when another script changes the article's text, the highlights are found and drawn again", async () => {
+  const win = page({ items: ITEMS });
+  start(win as unknown as globalThis.Window);
+  const before = painted(win, HIGHLIGHT_NAMES.noted);
+  assert.deepEqual(before, ["A failed call comes back again"]);
+  const paragraph = q(win, "article p:last-of-type") as Element;
+  paragraph.prepend(win.document.createTextNode("Inserted by a script. ") as unknown as Node);
+  const last = paragraph.lastChild as unknown as Text;
+  last.data = last.data.replace("comes back again", "comes back again, reworded");
+  await new Promise((resolve) => setTimeout(resolve, REPAINT_MS + 50));
+  const ranges = (win as unknown as { CSS: { highlights: Map<string, FakeHighlight> } }).CSS.highlights.get(
+    HIGHLIGHT_NAMES.noted,
+  )?.ranges;
+  assert.equal(ranges?.[0]?.toString(), "A failed call comes back again", "the range covers the passage again");
+  assert.notEqual(ranges?.[0]?.startOffset, 0);
 });
