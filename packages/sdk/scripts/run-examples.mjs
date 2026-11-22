@@ -63,7 +63,7 @@ async function main(argv) {
   // no transcript rather than that run's.
   const where = { harnessDir: PACKAGE_DIR, exampleFile: file, ...live.transcript };
   if (result.timedOut) transcript.discard(where);
-  else transcript.write({ ...where, cwd });
+  else transcript.write({ ...where, cwd, exit: result.exit, out: result.out });
   rmSync(cwd, { recursive: true, force: true });
   rmSync(home, { recursive: true, force: true });
   const outcome = result.timedOut ? "timeout" : result.exit === 0 ? "ran" : "error";

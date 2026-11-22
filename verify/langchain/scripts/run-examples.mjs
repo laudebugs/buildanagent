@@ -119,7 +119,14 @@ async function runOne(t) {
   }
   const modelCalls = existsSync(log) ? Number(await readFile(log, "utf8")) : 0;
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
-  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd, ...liveRun?.transcript });
+  transcript?.write({
+    harnessDir: root,
+    exampleFile: resolve(t.file),
+    cwd,
+    exit: result.exit,
+    out: result.out,
+    ...liveRun?.transcript,
+  });
   // Our own examples assert their behaviour, so exit 0 is a pass.
   // A block whose comments say a call throws, and that exits with that error, ran as documented.
   const throwsAsDocumented =

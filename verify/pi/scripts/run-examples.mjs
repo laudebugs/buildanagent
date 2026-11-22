@@ -101,7 +101,14 @@ async function runOne(t) {
   });
   const fauxCalls = (result.out.match(/Faux model:/g) ?? []).length;
   const blocked = /network disabled \(blocked ([^)]+)\)/.exec(result.out)?.[1];
-  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd, ...liveRun?.transcript });
+  transcript?.write({
+    harnessDir: root,
+    exampleFile: resolve(t.file),
+    cwd,
+    exit: result.exit,
+    out: result.out,
+    ...liveRun?.transcript,
+  });
   // "ran" = exit 0 and the faux model answered; "ran-no-model" = exit 0 without a model reply.
   // Our own examples assert their behaviour, so exit 0 is a pass.
   const outcome = result.timedOut
