@@ -35,7 +35,7 @@ The sections of README.md and every public export, generated from this package's
 - [Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow](README.md#two-more-triggers-compact-inside-a-turn-at-90-of-a-small-window-and-after-a-provider-overflow)
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
-- [MCP servers connect one at a time, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-one-at-a-time-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
+- [MCP servers connect side by side, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-side-by-side-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
   - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)

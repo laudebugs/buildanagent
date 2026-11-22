@@ -56,9 +56,19 @@ export function checkServerConfig(config: McpServerConfig) {
   if (!Number.isInteger(maxTools) || maxTools < 1) {
     throw new HarnessError("invalid_mcp_config", "maxTools must be a whole number, 1 or more");
   }
+  const connectMs = timeout("connectTimeoutMs", config.connectTimeoutMs, DEFAULT_CONNECT_TIMEOUT_MS);
+  // A probe that outlasts the handshake would never let a silent server fall back to legacy, so a probe timeout the
+  // config names must be shorter, and the default shrinks to half the handshake when it would not be.
+  if (config.probeTimeoutMs !== undefined && config.probeTimeoutMs >= connectMs) {
+    throw new HarnessError("invalid_mcp_config", "probeTimeoutMs must be shorter than connectTimeoutMs");
+  }
   return {
-    connectMs: timeout("connectTimeoutMs", config.connectTimeoutMs, DEFAULT_CONNECT_TIMEOUT_MS),
-    probeMs: timeout("probeTimeoutMs", config.probeTimeoutMs, DEFAULT_PROBE_TIMEOUT_MS),
+    connectMs,
+    probeMs: timeout(
+      "probeTimeoutMs",
+      config.probeTimeoutMs,
+      Math.min(DEFAULT_PROBE_TIMEOUT_MS, Math.ceil(connectMs / 2)),
+    ),
     requestMs: timeout("requestTimeoutMs", config.requestTimeoutMs, DEFAULT_REQUEST_TIMEOUT_MS),
     maxTools,
   };
@@ -171,6 +181,7 @@ async function handshake(
   channel: McpChannel,
   prior: "legacy" | undefined,
   log: (line: string) => void,
+  deadline: { readonly ms: number; readonly signal: AbortSignal | undefined },
 ): Promise<Connection> {
   const client = new Client(CLIENT_INFO, {
     capabilities: {},
@@ -178,21 +189,30 @@ async function handshake(
     // A server's request for user input fails the call: whether it may pause a turn waits on the owner.
     inputRequired: { autoFulfill: false },
     listMaxPages: MAX_LIST_PAGES,
+    // The harness reads a result's content, not its structured content, so a server's output schema is never compiled:
+    // a hostile pattern or reference in it can cost nothing.
+    jsonSchemaValidator: {
+      getValidator: () => (input: unknown) => ({ valid: true, data: input as never, errorMessage: undefined }),
+    },
   });
   // The tool list stays as registered at connect. A changed list is announced, and a later todo diffs it against a pin.
   client.setNotificationHandler("notifications/tools/list_changed", () => {
     log(`the server "${config.name}" says its tool list changed; its tools stay as they were registered`);
   });
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
   const expired = new Promise<never>((_, reject) => {
     timer = setTimeout(
       () => reject(new Error(`the handshake did not finish in ${settings.connectMs} ms`)),
-      settings.connectMs,
+      Math.max(1, deadline.ms),
     );
+    onAbort = () => reject(new Error("the connect was aborted"));
+    if (deadline.signal?.aborted) onAbort();
+    else deadline.signal?.addEventListener("abort", onAbort, { once: true });
   });
   try {
     const connecting = client.connect(channel as unknown as Transport, {
-      timeout: settings.connectMs,
+      timeout: Math.max(1, deadline.ms),
       ...(prior === undefined ? {} : { prior: { kind: prior } }),
     });
     connecting.catch(() => {});
@@ -216,38 +236,41 @@ async function handshake(
     throw error;
   } finally {
     clearTimeout(timer);
+    if (onAbort !== undefined) deadline.signal?.removeEventListener("abort", onAbort);
   }
 }
 
 /**
- * Connects one server and negotiates its era. A stdio server that exits on the `server/discover` probe, as servers on
- * some older SDKs do on any request before `initialize`, is started once more and spoken to as a legacy server.
+ * Connects one server and negotiates its era. A stdio server that exits cleanly after the `server/discover` probe, as
+ * servers on some older SDKs do on any request before `initialize`, is started once more and spoken to as a legacy
+ * server; a server that crashes runs once. The whole connect, a restart included, takes at most `connectTimeoutMs`.
+ * `signal` aborts it, and the server is closed.
  *
  * Throws a `HarnessError`, code `invalid_mcp_config`, for a config that can't be used, and an `McpError`, code
- * `mcp_connect_failed`, when the server does not start, does not finish the handshake within `connectTimeoutMs`, or
- * negotiates a revision this harness does not know.
+ * `mcp_connect_failed`, when the server does not start, does not finish the handshake within `connectTimeoutMs`, is
+ * aborted, or negotiates a revision this harness does not know.
  */
 export async function connectMcpServer(
   config: McpServerConfig,
-  options: { readonly log?: (line: string) => void } = {},
+  options: { readonly log?: (line: string) => void; readonly signal?: AbortSignal } = {},
 ): Promise<McpConnection> {
   const settings = checkServerConfig(config);
   const log = options.log ?? (() => {});
+  const ends = Date.now() + settings.connectMs;
+  const left = () => ({ ms: ends - Date.now(), signal: options.signal });
+  const failed = (error: unknown) =>
+    new McpError("mcp_connect_failed", config.name, `it did not connect: ${describe(error)}`, { cause: error });
   const channel = channelOf(config, log);
   try {
-    return await handshake(config, settings, channel, undefined, log);
+    return await handshake(config, settings, channel, undefined, log, left());
   } catch (first) {
-    const exitedOnProbe = channel instanceof StdioChannel && channel.endedByServer;
-    if (!exitedOnProbe) {
-      throw new McpError("mcp_connect_failed", config.name, `it did not connect: ${describe(first)}`, { cause: first });
-    }
-    log(`the server "${config.name}" closed during the handshake, so it is started again as a legacy server`);
+    const exitedOnProbe = channel instanceof StdioChannel && channel.exitedOnProbe;
+    if (!exitedOnProbe || options.signal?.aborted === true || left().ms <= 0) throw failed(first);
+    log(`the server "${config.name}" closed after the probe, so it is started again as a legacy server`);
     try {
-      return await handshake(config, settings, channelOf(config, log), "legacy", log);
+      return await handshake(config, settings, channelOf(config, log), "legacy", log, left());
     } catch (second) {
-      throw new McpError("mcp_connect_failed", config.name, `it did not connect: ${describe(second)}`, {
-        cause: second,
-      });
+      throw failed(second);
     }
   }
 }

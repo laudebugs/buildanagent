@@ -3,15 +3,15 @@
  * broken server never holds back the others, and registers each server's tools with the registry under the source
  * `mcp:<name>`, which names them `mcp__<name>__<tool>` and defers them by default.
  *
- * A server's tools are registered all or none: the list is checked, then registered into a scratch registry first, so
- * a list the registry would refuse halfway leaves nothing behind. Every tool is marked as not first-party and as a
+ * A server's tools are registered all or none: the list is checked, then registered through `registerAll()`, which
+ * removes the tools it added when any one is refused, so a list the registry would refuse halfway leaves nothing
+ * behind. Every tool is marked as not first-party and as a
  * write, whatever its annotations say, so a server's `readOnlyHint` can't make the loop run its calls together or run
  * one again after a crash. The calls reach the server only through the turn's tool pipeline, so the permission gate
  * and the write cap apply to them as to any tool.
  */
 import { defineTool, type ToolDefinition } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
-import { createToolRegistry } from "../tools/registry.js";
 import type { ToolRegistration } from "../tools/types.js";
 import { checkServerConfig, connectMcpServer } from "./connection.js";
 import { McpError } from "./errors.js";
@@ -53,30 +53,25 @@ function registrationOf(config: McpServerConfig, connection: McpConnection, tool
   };
 }
 
-/**
- * The server's registrations, each registered into a scratch registry first, so a tool the registry would refuse
- * leaves the real registry as it was.
- */
-function rehearsed(config: McpServerConfig, connection: McpConnection, tools: readonly McpTool[]): ToolRegistration[] {
-  const scratch = createToolRegistry();
-  const server = config.name;
-  const registrations: ToolRegistration[] = [];
-  for (const tool of tools) {
+/** The server's registrations, built before any is registered, so a tool the SDK refuses fails the whole list. */
+function registrationsOf(config: McpServerConfig, connection: McpConnection, tools: readonly McpTool[]) {
+  return tools.map((tool) => {
     try {
-      const registration = registrationOf(config, connection, tool);
-      scratch.register(registration);
-      registrations.push(registration);
+      return registrationOf(config, connection, tool);
     } catch (error) {
-      const why = error instanceof Error ? error.message : String(error);
-      throw new McpError(
-        "mcp_tool_list_refused",
-        server,
-        `its tool list was refused, so none of its tools was registered: ${why}`,
-        { cause: error },
-      );
+      throw refused(config.name, error);
     }
-  }
-  return registrations;
+  });
+}
+
+function refused(server: string, error: unknown): McpError {
+  const why = error instanceof Error ? error.message : String(error);
+  return new McpError(
+    "mcp_tool_list_refused",
+    server,
+    `its tool list was refused, so none of its tools was registered: ${why}`,
+    { cause: error },
+  );
 }
 
 function checkServers(servers: readonly McpServerConfig[]): void {
@@ -95,6 +90,9 @@ function checkServers(servers: readonly McpServerConfig[]): void {
 class Manager implements McpManager {
   readonly #options: McpManagerOptions;
   readonly #connections = new Map<string, McpConnection>();
+  // Every connection that exists, registered or not, so a close can end one whose tool list is still being read.
+  readonly #open = new Set<McpConnection>();
+  readonly #abort = new AbortController();
   #connecting: Promise<readonly McpServerStatus[]> | undefined;
   #closing: Promise<void> | undefined;
 
@@ -117,18 +115,28 @@ class Manager implements McpManager {
     const log = this.#options.log ?? (() => {});
     let connection: McpConnection | undefined;
     try {
-      connection = await connectMcpServer(config, { log });
+      connection = await connectMcpServer(config, { log, signal: this.#abort.signal });
+      this.#open.add(connection);
       // A close that began during the handshake must still end this server.
       if (this.#closing !== undefined) throw new McpError("mcp_connect_failed", config.name, "the manager was closed");
+      const registrations = registrationsOf(config, connection, await connection.listTools());
+      if (this.#closing !== undefined) throw new McpError("mcp_connect_failed", config.name, "the manager was closed");
+      // Nothing awaits between this check and the registration, so another manager on the same registry can't
+      // register the source in between, and registerAll() leaves nothing behind when any tool is refused.
       const source = `mcp:${config.name}`;
       if (this.#options.registry.list().some((tool) => tool.source === source)) {
         throw new McpError("mcp_tool_list_refused", config.name, `the registry already holds tools from ${source}`);
       }
-      const registrations = rehearsed(config, connection, await connection.listTools());
-      const tools = registrations.map((registration) => this.#options.registry.register(registration).canonicalName);
+      let tools: string[];
+      try {
+        tools = this.#options.registry.registerAll(registrations).map((tool) => tool.canonicalName);
+      } catch (error) {
+        throw refused(config.name, error);
+      }
       this.#connections.set(config.name, connection);
       return { server: config.name, status: "connected", era: connection.era, tools };
     } catch (error) {
+      if (connection !== undefined) this.#open.delete(connection);
       await connection?.close();
       const failure = error instanceof Error ? error : new Error(String(error));
       log(`the MCP server "${config.name}" was not connected: ${failure.message}`);
@@ -142,8 +150,11 @@ class Manager implements McpManager {
 
   close(): Promise<void> {
     this.#closing ??= (async () => {
+      // Aborting ends every handshake still running, and closing every open connection fails any tool list still being
+      // read, so a server that hangs can't hold the others up.
+      this.#abort.abort();
+      await Promise.all([...this.#open].map((connection) => connection.close()));
       await this.#connecting?.catch(() => {});
-      await Promise.all([...this.#connections.values()].map((connection) => connection.close()));
     })();
     return this.#closing;
   }

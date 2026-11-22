@@ -3,6 +3,7 @@
 //   library-server.ts <modern|legacy> <call log path>
 // and appends each tool call it receives to the log, one JSON line each, so a test can see what reached the server.
 import { appendFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { InMemoryTransport, McpServer } from "@modelcontextprotocol/server";
 import { StdioServerTransport, serveStdio } from "@modelcontextprotocol/server/stdio";
 
@@ -68,7 +69,7 @@ export async function serveLegacy(record?: (tool: string, input: unknown) => voi
   return client;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [era, log] = process.argv.slice(2);
   const record = (tool: string, input: unknown) => {
     if (log !== undefined) appendFileSync(log, `${JSON.stringify({ tool, input })}\n`);

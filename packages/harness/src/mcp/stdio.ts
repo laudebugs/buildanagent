@@ -20,10 +20,11 @@ const NEWLINE = 0x0a;
 
 type ChildProcess = import("node:child_process").ChildProcess;
 
-// The process groups still running, ended if the harness's own process exits without closing them. An exit handler
-// must be synchronous, and `process.kill()` is.
+// The process groups still running. The harness kills them if its own process exits, or if a signal would end it,
+// without closing them. Both handlers must be synchronous, and `process.kill()` is.
 const live = new Set<number>();
-let exitHook = false;
+let hooked = false;
+const SIGNALS: readonly NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
 
 function killGroup(pid: number, signal: NodeJS.Signals): void {
   try {
@@ -34,12 +35,31 @@ function killGroup(pid: number, signal: NodeJS.Signals): void {
   }
 }
 
+function killAll(): void {
+  for (const group of live) killGroup(group, "SIGKILL");
+  live.clear();
+}
+
+/**
+ * Called on a signal that would end the process. A server runs in its own process group, so the terminal's signal never
+ * reaches it. When this handler is the signal's only listener, Node's default is to exit, so the handler kills the
+ * groups, removes itself and raises the signal again, and the process ends as it would have. When the host listens for
+ * the signal too, the host decides whether the process ends, so the handler does nothing and the host must call
+ * `close()`.
+ */
+function onSignal(signal: NodeJS.Signals): void {
+  if (process.listenerCount(signal) > 1) return;
+  killAll();
+  for (const each of SIGNALS) process.removeListener(each, onSignal);
+  hooked = false;
+  process.kill(process.pid, signal);
+}
+
 function track(pid: number): void {
-  if (!exitHook) {
-    exitHook = true;
-    process.once("exit", () => {
-      for (const group of live) killGroup(group, "SIGKILL");
-    });
+  if (!hooked) {
+    hooked = true;
+    process.once("exit", killAll);
+    for (const signal of SIGNALS) process.on(signal, onSignal);
   }
   live.add(pid);
 }
@@ -77,7 +97,14 @@ export function checkStdioTransport(transport: McpStdioTransport): void {
   // spawnEnv() checks the names and values now; a HOME of the caller's own makes it create no folder. Without Node it
   // can't run, and start() says so.
   if (typeof process !== "undefined" && typeof process.getBuiltinModule === "function") {
-    spawnEnv(transport.env ?? [], { ...transport.setEnv, HOME: "/" });
+    try {
+      spawnEnv(transport.env ?? [], { ...transport.setEnv, HOME: "/" });
+    } catch (error) {
+      const why = error instanceof Error ? error.message : String(error);
+      throw new HarnessError("invalid_mcp_config", `a stdio server's environment can't be used: ${why}`, {
+        cause: error,
+      });
+    }
   }
   wholeNumber("maxLineBytes", transport.maxLineBytes, DEFAULT_MAX_LINE_BYTES);
   wholeNumber("maxStderrBytes", transport.maxStderrBytes, DEFAULT_MAX_STDERR_BYTES);
@@ -104,6 +131,8 @@ export class StdioChannel implements McpChannel {
   #closing: Promise<void> | undefined;
   #closed = false;
   #endedByServer = false;
+  #probed = false;
+  #outputEnded: Promise<void> | undefined;
   readonly #decoder = new TextDecoder("utf-8", { fatal: true });
 
   constructor(transport: McpStdioTransport, log: (line: string) => void) {
@@ -128,6 +157,15 @@ export class StdioChannel implements McpChannel {
   /** True when the server exited before anything asked the channel to close. */
   get endedByServer(): boolean {
     return this.#endedByServer;
+  }
+
+  /**
+   * True when the server exited cleanly, with code 0, after the client sent it the `server/discover` probe: what a
+   * server on an SDK that closes on any request before `initialize` does.
+   */
+  get exitedOnProbe(): boolean {
+    const child = this.#child;
+    return this.#endedByServer && this.#probed && child?.exitCode === 0 && child.signalCode === null;
   }
 
   /** True once the channel has closed, whoever closed it. */
@@ -157,6 +195,12 @@ export class StdioChannel implements McpChannel {
     });
     this.#child = child;
     this.#exited = new Promise((resolve) => child.once("exit", () => resolve()));
+    // Node gives no promise that a child's output has been read by the time it exits, so the channel reads on until
+    // its standard output ends.
+    this.#outputEnded = new Promise((resolve) => {
+      child.stdout?.once("end", () => resolve());
+      child.stdout?.once("close", () => resolve());
+    });
     try {
       await new Promise<void>((resolve, reject) => {
         child.once("spawn", () => resolve());
@@ -174,12 +218,13 @@ export class StdioChannel implements McpChannel {
     });
     child.stdout?.on("data", (chunk: Uint8Array) => this.#read(chunk));
     child.stderr?.on("data", (chunk: Uint8Array) => this.#keepStderr(chunk));
-    void this.#exited.then(() => {
-      if (this.#closing === undefined) {
-        this.#endedByServer = true;
-        this.#log(`the server exited with code ${String(child.exitCode)} and signal ${String(child.signalCode)}`);
-        void this.close();
-      }
+    void this.#exited.then(async () => {
+      if (this.#closing !== undefined) return;
+      this.#endedByServer = true;
+      this.#log(`the server exited with code ${String(child.exitCode)} and signal ${String(child.signalCode)}`);
+      // A child the server left behind can hold the pipe open, so the wait for the rest of the output is bounded.
+      await this.#within(this.#outputEnded, this.#grace);
+      void this.close();
     });
   }
 
@@ -188,6 +233,7 @@ export class StdioChannel implements McpChannel {
     if (this.#closing !== undefined || stdin === undefined || stdin === null) {
       throw new HarnessError("mcp_call_failed", "the server's channel is closed");
     }
+    if ((message as { method?: unknown }).method === "server/discover") this.#probed = true;
     const line = `${JSON.stringify(message)}\n`;
     await new Promise<void>((resolve, reject) => {
       stdin.write(line, (error) => (error ? reject(error) : resolve()));
@@ -228,14 +274,17 @@ export class StdioChannel implements McpChannel {
     this.onclose?.();
   }
 
-  async #exitWithin(ms: number): Promise<boolean> {
-    const exited = this.#exited;
-    if (exited === undefined) return true;
+  #exitWithin(ms: number): Promise<boolean> {
+    return this.#within(this.#exited, ms);
+  }
+
+  async #within(event: Promise<void> | undefined, ms: number): Promise<boolean> {
+    if (event === undefined) return true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const expired = new Promise<boolean>((resolve) => {
       timer = setTimeout(() => resolve(false), ms);
     });
-    const result = await Promise.race([exited.then(() => true), expired]);
+    const result = await Promise.race([event.then(() => true), expired]);
     clearTimeout(timer);
     return result;
   }

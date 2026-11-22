@@ -70,7 +70,7 @@ describe("the server's environment", () => {
   test("a declared name that looks like a credential is refused before anything starts", async () => {
     await assert.rejects(
       () => connectMcpServer(stdioServer("lib", "library", ["legacy"], { transport: { env: ["GITHUB_TOKEN"] } })),
-      (error: unknown) => isHarnessError(error) && error.code === "invalid_spawn_env",
+      (error: unknown) => isHarnessError(error) && error.code === "invalid_mcp_config",
     );
   });
 });
@@ -432,6 +432,7 @@ describe("a misbehaving server", () => {
       { type: "text", text: "[a audio content block was left out]" },
       { type: "text", text: "resource text" },
       { type: "text", text: "[a link to the resource file:///b]" },
+      { type: "text", text: "[a resource content block was left out]" },
     ]);
   });
 });

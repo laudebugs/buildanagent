@@ -34,6 +34,18 @@ function toolsFor(): unknown[] {
       return [tool("bad\nname")];
     case "huge-schema":
       return [tool("big", { type: "object", description: "d".repeat(70 * 1024) })];
+    case "two-tools":
+      return [tool("alpha"), tool("echo")];
+    case "proto":
+      return [
+        JSON.parse(
+          '{"name":"p","description":"d","inputSchema":{"type":"object","__proto__":{"polluted":1},"properties":{"constructor":{"type":"string"}}},"annotations":{"__proto__":{"polluted":2}}}',
+        ),
+      ];
+    case "redos-output":
+      return [
+        { ...tool("r"), outputSchema: { type: "object", properties: { s: { type: "string", pattern: "^(a+)+$" } } } },
+      ];
     case "remote-ref":
       return [tool("first"), tool("second", { type: "object", $ref: "http://example.com/schema.json" })];
     case "not-object-schema":
@@ -76,6 +88,46 @@ function callTool(id: unknown, name: string): void {
         },
       });
       return;
+    case "answer-then-exit": {
+      // Exits as soon as the whole line is in the pipe, before the client can have read it.
+      const line = `${JSON.stringify({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "z".repeat(32 * 1024) }] } })}\n`;
+      process.stdout.write(line, () => process.exit(0));
+      return;
+    }
+    case "late-output": {
+      // The server exits at once, and a child that shares its standard output writes the answer 150 ms later: the
+      // client sees the output arrive after the exit, which Node allows for any child.
+      const line = JSON.stringify({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "late" }] } });
+      spawn(process.execPath, ["-e", `setTimeout(() => process.stdout.write(${JSON.stringify(`${line}\n`)}), 150)`], {
+        stdio: ["ignore", "inherit", "ignore"],
+      });
+      process.exit(0);
+      return;
+    }
+    case "ignore-term":
+      result(id, { content: [{ type: "text", text: JSON.stringify({ pid: process.pid }) }] });
+      return;
+    case "split-utf8": {
+      const line = `${JSON.stringify({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text: "héllo" }] } })}\n`;
+      const bytes = Buffer.from(line, "utf8");
+      const cut = bytes.indexOf(0xc3) + 1;
+      process.stdout.write(bytes.subarray(0, cut));
+      setTimeout(() => process.stdout.write(bytes.subarray(cut)), 50);
+      return;
+    }
+    case "proto":
+      write(
+        JSON.parse(
+          `{"jsonrpc":"2.0","id":${JSON.stringify(id)},"result":{"__proto__":{"isError":true},"content":[{"type":"text","text":"ok","__proto__":{"polluted":3}}]}}`,
+        ),
+      );
+      return;
+    case "redos-output":
+      result(id, { content: [{ type: "text", text: "done" }], structuredContent: { s: `${"a".repeat(40)}!` } });
+      return;
+    case "server-requests":
+      askClient(id);
+      return;
     case "grandchild": {
       const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
       result(id, { content: [{ type: "text", text: JSON.stringify({ pid: process.pid, child: child.pid }) }] });
@@ -97,12 +149,47 @@ function callTool(id: unknown, name: string): void {
           { type: "audio", mimeType: "audio/wav", data: "AAAA" },
           { type: "resource", resource: { uri: "file:///a", text: "resource text" } },
           { type: "resource_link", uri: "file:///b", name: "b" },
+          { type: "resource", resource: { uri: "https://example.com/blob", blob: "AAAA" } },
         ],
       });
       return;
     default:
       result(id, { content: [{ type: "text", text: `called ${name}` }] });
   }
+}
+
+// The requests a server may send its client, and the answers the client gave, keyed by our request id.
+const asked = new Map<string, string>();
+const answers: Record<string, unknown> = {};
+let pendingCall: unknown;
+
+function askClient(callId: unknown): void {
+  pendingCall = callId;
+  const requests: [string, unknown][] = [
+    ["sampling/createMessage", { messages: [{ role: "user", content: { type: "text", text: "hi" } }], maxTokens: 5 }],
+    ["roots/list", {}],
+    ["elicitation/create", { mode: "form", message: "ok?", requestedSchema: { type: "object", properties: {} } }],
+    ["ping", {}],
+  ];
+  for (const [method, params] of requests) {
+    const id = `ask-${method}`;
+    asked.set(id, method);
+    write({ jsonrpc: "2.0", id, method, params });
+  }
+  // A client that drops these requests never answers, so the call ends with what came back after a while.
+  setTimeout(() => {
+    if (asked.size === 0) return;
+    asked.clear();
+    result(pendingCall, { content: [{ type: "text", text: JSON.stringify(answers) }] });
+  }, 800);
+}
+
+function answered(message: { id?: unknown; result?: unknown; error?: unknown }): void {
+  const method = asked.get(String(message.id));
+  if (method === undefined) return;
+  answers[method] = message.error === undefined ? { result: message.result } : { error: message.error };
+  asked.delete(String(message.id));
+  if (asked.size === 0) result(pendingCall, { content: [{ type: "text", text: JSON.stringify(answers) }] });
 }
 
 type Request = { id?: unknown; method?: string; params?: { name?: string; protocolVersion?: string } };
@@ -134,7 +221,7 @@ function discover(id: unknown): void {
 
 function handle(message: Request) {
   const { id, method } = message;
-  if (method === undefined) return;
+  if (method === undefined) return answered(message as never);
   record(message);
   if (id === undefined) return;
   if (method === "server/discover") return discover(id);
