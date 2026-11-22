@@ -1,7 +1,7 @@
 /**
- * `HarnessError`: the harness's error for programmer errors and for a sandbox that can't do what it was asked. Two
- * subclasses keep their own names for the cases callers catch by class: `SandboxUnavailableError` and
- * `SandboxDeniedError`, both in `./sandbox`.
+ * `HarnessError`: the harness's error for programmer errors and for a sandbox that can't do what it was asked. Four
+ * subclasses keep their own names for the cases callers catch by class: `SandboxUnavailableError`,
+ * `SandboxDeniedError`, `SandboxPolicyMismatchError` and `SandboxUnsupportedError`, all in `./sandbox`.
  */
 
 /** Why a `HarnessError` was thrown. */
@@ -11,6 +11,8 @@ export type HarnessErrorCode =
   | "sandbox_disposed"
   | "sandbox_not_found"
   | "sandbox_io_failed"
+  | "sandbox_policy_mismatch"
+  | "sandbox_unsupported"
   | "egress_denied"
   | "invalid_egress_options"
   | "unsafe_sandbox_not_acknowledged"
@@ -18,6 +20,7 @@ export type HarnessErrorCode =
   | "invalid_spawn_env"
   | "duplicate_tool"
   | "invalid_tool_registration"
+  | "invalid_tool_options"
   | "invalid_permission_config"
   | "invalid_lock_options"
   | "session_locked"
@@ -60,11 +63,15 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * `sandbox_unavailable`: a backend can't start (`SandboxUnavailableError`). `sandbox_denied`: the policy refused a file
  * read or write (`SandboxDeniedError`). `sandbox_disposed`: the sandbox was disposed before the call.
  * `sandbox_not_found`: a file to read doesn't exist. `sandbox_io_failed`: a file call failed for a reason that is
- * neither a missing file nor a denial. `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe:
+ * neither a missing file nor a denial. `sandbox_policy_mismatch`: the policy a backend read back after it provisioned or
+ * resumed a sandbox differs from the one requested (`SandboxPolicyMismatchError`). `sandbox_unsupported`: a sandbox was
+ * asked to resume, snapshot or pause on a backend that lacks the capability (`SandboxUnsupportedError`).
+ * `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe:
  * true`. `invalid_sandbox_options`: a sandbox option, manifest or command is unusable. `invalid_spawn_env`:
  * `spawnEnv()` was given a name or value that can't be part of a clean environment. `duplicate_tool`: a tool registry
  * already holds a tool or alias by that name (`DuplicateToolError`). `invalid_tool_registration`: a tool registration
  * or a registry option is unusable, such as a name that breaks the canonical rule or an unknown source.
+ * `invalid_tool_options`: the built-in tools were given a workspace root or a policy root that is not an absolute path.
  * `invalid_permission_config`: an allow rule makes the host callback unreachable (`PermissionConfigError`).
  * `invalid_lock_options`: a file lock was given a lease, renewal interval or host name it can't use. `session_locked`:
  * another writer holds the session. `session_read_only`: a session opened without a lock was asked to write.
