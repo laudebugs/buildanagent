@@ -21,6 +21,7 @@ export async function answerOrderQuestion(
   question: string,
   write: (text: string) => void,
 ): Promise<string> {
+  // #region run
   const started = run({
     model,
     system: SYSTEM_PROMPT,
@@ -32,6 +33,8 @@ export async function answerOrderQuestion(
     if (event.type === "text_delta") write(event.delta);
   }
   const result = await started.result;
+  // #endregion
+  // #region result
   switch (result.stopReason) {
     case "done":
       return answerOf(result.messages);
@@ -40,4 +43,5 @@ export async function answerOrderQuestion(
     default:
       return `the run stopped early: ${result.stopReason}`;
   }
+  // #endregion
 }

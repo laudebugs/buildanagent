@@ -468,5 +468,34 @@
     "asOf": "November 2026",
     "version": "agents@0.33.0",
     "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "langchain-human-in-the-loop",
+    "title": "Human-in-the-loop",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langchain/human-in-the-loop.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "langchain@1.6.1",
+    "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
+  },
+  {
+    "id": "openai-agents-guardrails",
+    "title": "Guardrails",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/guardrails.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v0.21.0",
+    "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
+  },
+  {
+    "id": "owasp-llm01-prompt-injection",
+    "title": "LLM01:2025 Prompt Injection",
+    "publisher": "OWASP Top 10 for LLM Applications",
+    "url": "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM01_PromptInjection.md",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
   }
 ]

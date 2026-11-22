@@ -13,12 +13,12 @@ function setup() {
     description: "Refund an order",
     inputSchema: z.object({ orderId: z.string() }),
     execute: async ({ orderId }) => {
-      executed.push(orderId);
+      executed.push(orderId); // book:note tool
       return `refunded ${orderId}`;
     },
   });
   const { model, requests } = scripted([{ tools: [{ name: "issueRefund", input: { orderId: "A-1" } }] }, "Done."]);
-  const agent = new ToolLoopAgent({ model, tools: { issueRefund }, toolApproval: { issueRefund: "user-approval" } });
+  const agent = new ToolLoopAgent({ model, tools: { issueRefund }, toolApproval: { issueRefund: "user-approval" } }); // book:note rule
   // #endregion
   return { agent, executed, requests };
 }
@@ -27,7 +27,7 @@ async function decide(approved: boolean) {
   const { agent, executed, requests } = setup();
   const messages: ModelMessage[] = [{ role: "user", content: "Refund order A-1" }];
   // #region approval-response
-  const first = await agent.generate({ messages });
+  const first = await agent.generate({ messages }); // book:note pause
   const asks = first.content.filter((p) => p.type === "tool-approval-request");
   check(asks.length === 1 && !asks[0].isAutomatic, "the first call ends with one manual approval request");
   check(executed.length === 0 && requests.length === 1, "the tool has not run, and the loop stopped");
@@ -37,8 +37,8 @@ async function decide(approved: boolean) {
     approvalId: p.approvalId,
     approved,
   }));
-  messages.push({ role: "tool", content: responses });
-  const second = await agent.generate({ messages });
+  messages.push({ role: "tool", content: responses }); // book:note answer
+  const second = await agent.generate({ messages }); // book:note resume
   // #endregion
   return { second, executed, requests };
 }

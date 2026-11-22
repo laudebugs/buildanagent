@@ -159,17 +159,24 @@ function sourceTargets(exports) {
 }
 
 /**
- * The third-party runtime dependencies of a packed package that ship a `source` condition pointing at a file their
- * tarball lacks. Node fails to load such a dependency under `--conditions=source`, whatever our own manifests say.
+ * The third-party runtime dependencies of a packed package, and of the packed packages it depends on, that ship a
+ * `source` condition pointing at a file their tarball lacks. Node fails to load such a dependency under
+ * `--conditions=source`, whatever our own manifests say, and a package that imports our SDK at run time reaches the
+ * SDK's dependencies too.
  */
 function brokenSourceDependencies(manifest) {
-  return Object.keys(manifest.dependencies ?? {})
+  const names = Object.keys(manifest.dependencies ?? {});
+  const own = names
     .filter((name) => !packed.has(name))
     .filter((name) => {
       const dir = path.join(install, "node_modules", name);
       const { exports } = JSON.parse(readFileSync(path.join(dir, "package.json"), "utf8"));
       return sourceTargets(exports).some((target) => !existsSync(path.join(dir, target)));
     });
+  const inherited = names
+    .filter((name) => packed.has(name))
+    .flatMap((name) => brokenSourceDependencies(packed.get(name).manifest));
+  return [...new Set([...own, ...inherited])];
 }
 
 after(() => {
@@ -279,9 +286,10 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 });
 
 // The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
-// condition names a file its tarball lacks. Every other entry must import; an entry listed here that imports again
-// fails the test, so the list is cut once pi-schema ships a fix.
-const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk"];
+// condition names a file its tarball lacks. The harness's `tools` entry reaches it through the SDK's `defineTool()`.
+// Every other entry must import; an entry listed here that imports again fails the test, so the list is cut once
+// pi-schema ships a fix.
+const SOURCE_CONDITION_FAILURES = ["@buildanagent/sdk", "@buildanagent/harness/tools"];
 
 // The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the
 // safety package's `./byok` imports `@ai-sdk/anthropic` and `@ai-sdk/openai` at load, and its `./cost` imports `ai`,
