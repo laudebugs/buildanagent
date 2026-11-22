@@ -64,13 +64,16 @@ The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents
 | 38 | A driving instructor's dual controls work whenever pressed, and the car must know who is driving | § A person can watch | ⚠️ | The analogy's own claim and its "where it breaks" entry, ours |
 | 39 | After the review: ACP's spec status is dated "as of November 2026", and `Page.startScreencast` is called experimental as of November 2026 | § An agent UI; § A person can watch | ✅ | Re-check of rows 2 and 20: [browser-use log row 284](../../../docs/research/browser-use/fact-check-browser-use.md) marks the screencast experimental as of November 2026 |
 | 40 | The figure draws a chat view, a plan view and a review view on one log, and the prose now names those three | Figure `one-log-three-views`; § An agent UI | ✅ | The figure script and the chapter text agree after the review's fix |
+| 41 | After the writing review: the chapter says "Google says" for the deterministic URL check and the password-manager sign-in, and says "the report" for the relay and the undo design | § The network and the credential; § A person can watch | ✅ | Re-check of rows 23, 35 and 9: attribution wording only; the underlying claims keep their earlier verdicts |
+| 42 | After the rewording: Anthropic's 23.6% and 11.2% and NIST's 11% and 81% are given as figures from different tests that do not compare directly | § The network and the credential | ✅ | Re-check of rows 32 and 33: same figures and sources, with the non-comparison stated before the second figure |
+| 43 | A takeover needs three things the example does not show: the agent stops sending input while a person drives, the harness records the takeover and the handback, and the next turn starts from the page the person left | § A person can watch | ⚠️ | Our design requirements from the analogy's "where it breaks" entry; row 29 |
 
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 28 |
+| ✅ confirmed | 30 |
 | ✏️ corrected | 0 |
-| ⚠️ unverified, our design or a claim not re-checked here, marked as ours or as the report's in the text | 12 |
-| Total | 40 |
+| ⚠️ unverified, our design or a claim not re-checked here, marked as ours or as the report's in the text | 13 |
+| Total | 43 |
