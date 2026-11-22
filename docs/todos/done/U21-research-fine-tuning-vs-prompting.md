@@ -13,7 +13,7 @@
 
 ## Goal
 
-Research fine-tuning versus prompting so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T11, todo [T39](../ready/T39-section-fine-tuning-vs-prompting.md). **Research question:** When does fine-tuning, distillation or reinforcement fine-tuning beat prompting plus tools for an agent, what does it cost, and what does evidence from deployed agents show?
+Research fine-tuning versus prompting so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a section of Chapter T11, todo [T39](../done/T39-section-fine-tuning-vs-prompting.md). **Research question:** When does fine-tuning, distillation or reinforcement fine-tuning beat prompting plus tools for an agent, what does it cost, and what does evidence from deployed agents show?
 
 ## Context
 
