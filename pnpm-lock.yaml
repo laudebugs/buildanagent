@@ -76,6 +76,9 @@ importers:
       '@buildanagent/gateway':
         specifier: workspace:*
         version: link:../../packages/gateway
+      '@buildanagent/manual':
+        specifier: workspace:*
+        version: link:../manual
       '@buildanagent/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

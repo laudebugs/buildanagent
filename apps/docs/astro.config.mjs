@@ -6,6 +6,7 @@ import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 import { API_PACKAGES, entryPoints, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
+import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
 import { renderInputFiles } from "./src/plugins/render-inputs.js";
 
@@ -58,7 +59,15 @@ export default defineConfig({
       title: "buildanagent",
       description: "Docs for the buildanagent gateway and SDK: build an agent, test it offline, ship it.",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
-      components: { Footer: "./src/components/Footer.astro" },
+      components: { Footer: "./src/components/Footer.astro", Head: "./src/components/Head.astro" },
+      // The book's theme: its tokens, mapped onto Starlight's variables, and its code panels in both modes. The
+      // panel colours are measured at 4.5:1 or more, so Expressive Code must not shift them to its own minimum.
+      customCss: ["./src/styles/tokens.css", "./src/styles/starlight.css"],
+      expressiveCode: {
+        themes: codeThemes(),
+        minSyntaxHighlightingColorContrast: 0,
+        styleOverrides: CODE_STYLE_OVERRIDES,
+      },
       plugins: [starlightLinksValidator(), ...api.map((entry) => entry.plugin)],
       sidebar: [
         {

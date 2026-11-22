@@ -1,0 +1,96 @@
+import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { test } from "vitest";
+import { CODE_STYLE_OVERRIDES } from "../src/design/theme.js";
+
+// Rules every docs stylesheet and component keeps, read from the source: colours come only from the generated tokens,
+// nothing loads from another origin, and the decorative tokens never colour text, focus rings or meaningful lines.
+const src = new URL("../src/", import.meta.url);
+const files = readdirSync(src, { recursive: true, encoding: "utf8" })
+  .filter((path) => /\.(css|astro)$/.test(path) && path !== "styles/tokens.css")
+  .map((path) => ({ path, text: readFileSync(new URL(path, src), "utf8").replace(/\/\*[\s\S]*?\*\//g, "") }));
+
+const HEX = /(?<![\w&])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/;
+const DECORATIVE = /var\(--(color-rule|color-highlight(-blue|-green|-pink)?|panel-grid|panel-border)\)/;
+const DECORATIVE_PROPERTIES = /^(border(-[a-z]+)*|background(-[a-z]+)*|column-rule(-color)?)$/;
+
+function declarations(text: string): { property: string; value: string }[] {
+  return [...text.matchAll(/(--[a-z0-9-]+|[a-z-]+)\s*:([^;{}]*)/g)].map((match) => ({
+    property: match[1] ?? "",
+    value: match[2] ?? "",
+  }));
+}
+
+// Starlight's own stylesheets and components, which use the --sl-* variables the mapping sets.
+// Its exported markdown.css sits in dist/style/, so dist/ is two folders up.
+const starlightRoot = join(
+  dirname(createRequire(import.meta.url).resolve("@astrojs/starlight/style/markdown.css")),
+  "..",
+);
+const starlight = readdirSync(starlightRoot, { recursive: true, encoding: "utf8" })
+  .filter((path) => /\.(css|astro)$/.test(path))
+  .map((path) => readFileSync(join(starlightRoot, path), "utf8"))
+  .join("\n");
+
+/** Whether Starlight paints a variable only as a border, a background or another variable's value. */
+function onlyDecorative(variable: string): boolean {
+  const uses = declarations(starlight).filter(({ value }) => value.includes(`var(${variable})`));
+  return uses.every(({ property }) => DECORATIVE_PROPERTIES.test(property) || /^(--|box-shadow$)/.test(property));
+}
+
+test("no docs stylesheet or component writes a hex colour; every colour comes from tokens.css", () => {
+  assert.ok(files.some(({ path }) => path === "styles/starlight.css"));
+  for (const { path, text } of files) assert.doesNotMatch(text, HEX, `${path} has a hex colour`);
+  assert.doesNotMatch(JSON.stringify(CODE_STYLE_OVERRIDES), HEX, "the code panels' style overrides have a hex colour");
+});
+
+test("no docs stylesheet loads anything from another origin", () => {
+  for (const { path, text } of files) {
+    assert.doesNotMatch(text, /@import|url\(\s*["']?(https?:)?\/\//, `${path} loads from another origin`);
+  }
+});
+
+test("the starlight mapping sets colours with var() only", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  for (const { property, value } of declarations(css)) {
+    if (!property.startsWith("--sl-color")) continue;
+    assert.match(value.trim(), /^var\(--(color|panel)-[a-z-]+\)$/, `${property} is ${value.trim()}`);
+  }
+});
+
+// A Starlight variable that Starlight also uses for a meaningful mark, and the rule in starlight.css that repaints it.
+const REPAINTED: Readonly<Record<string, RegExp>> = {
+  // Printed, a file tree outlines its highlighted entry in the pale accent.
+  "--sl-color-accent-low":
+    /@media print\s*\{\s*starlight-file-tree \.highlight\s*\{\s*outline-color: var\(--color-accent\);/,
+};
+
+test("the rule, highlight, grid and border tokens appear only where nothing is read against them", () => {
+  const mapping = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  for (const [variable, rule] of Object.entries(REPAINTED)) {
+    assert.match(mapping, rule, `starlight.css repaints Starlight's meaningful use of ${variable}`);
+  }
+  for (const { path, text } of files) {
+    for (const { property, value } of declarations(text)) {
+      if (!DECORATIVE.test(value)) continue;
+      if (property.startsWith("--sl-")) {
+        assert.ok(
+          property in REPAINTED || onlyDecorative(property),
+          `${path}: Starlight draws ${property} as more than a border or background`,
+        );
+      } else if (property !== "--sl-color-asides-border") {
+        assert.match(property, DECORATIVE_PROPERTIES, `${path}: ${property} uses a decorative-only token`);
+      }
+    }
+  }
+});
+
+test("headings use the display face at its one weight", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  assert.match(
+    css,
+    /h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6,\s*\.site-title\s*\{\s*font-family: var\(--font-display\);\s*font-weight: 400;/,
+  );
+});
