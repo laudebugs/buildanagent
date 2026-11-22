@@ -49,7 +49,10 @@ export async function capResult(input: CapInput): Promise<Capped | undefined> {
   if (bigDetails && textFits(content, room)) return { patch: { details: DETAILS_NOTE } };
   const text = textOf(content);
   const bytes = byteLength(text);
-  const path = await input.write(input.name, text).catch(() => undefined);
+  // A store that throws before it returns a promise is caught the same way as one that rejects.
+  const path = await Promise.resolve()
+    .then(() => input.write(input.name, text))
+    .catch(() => undefined);
   const rest = content.filter((block) => block.type !== "text");
   const dropRest = byteLength(JSON.stringify(rest)) > room >> 1;
   const keptBlocks = dropRest ? [] : rest;

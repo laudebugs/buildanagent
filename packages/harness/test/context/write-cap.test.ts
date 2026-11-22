@@ -155,4 +155,18 @@ describe("the write cap", () => {
       (error: unknown) => isHarnessError(error) && error.code === "invalid_context_options",
     );
   });
+
+  test("a spill store that throws before it returns a promise is handled the same way", async () => {
+    const { adapter } = await runScripted(
+      [call("c1", 100 * KIB), done],
+      createContextPolicy({
+        spill: {
+          write() {
+            throw new Error("bad argument");
+          },
+        },
+      }),
+    );
+    assert.ok(resultText(adapter).includes("the rest could not be saved"));
+  });
 });

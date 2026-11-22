@@ -70,21 +70,27 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
       // Every spill of a call id, in log order: a provider may reuse an id, so a masked result is told apart by its place.
       const spills = new Map<string, Spill[]>();
       const remember = (callId: string, spill: Spill) => spills.set(callId, [...(spills.get(callId) ?? []), spill]);
-      let loaded = false;
+      let loading: Promise<void> | undefined;
       const window = model.caps.contextWindow;
       const budget = options.budgetTokens ?? Math.max(1, Math.min(window - RESERVE_TOKENS, MAX_BUDGET_TOKENS));
       let fill: ContextFill = { tokens: 0, budget, window };
 
       /** The spills of earlier turns, read from the log once, so a masked result can name its file. */
-      async function learn(): Promise<void> {
-        if (loaded) return;
-        loaded = true;
+      async function read(): Promise<void> {
         for (const entry of await session.path()) {
           if (entry.type !== "tool_result") continue;
           // A result with no spill still takes its place in the list, so the nth result of an id finds its own spill.
           remember(entry.callId, entry.spill ?? NO_SPILL);
         }
       }
+      // One shared promise, so parallel callers all wait for the read, and a failed read is tried again by the next.
+      const learn = (): Promise<void> => {
+        loading ??= read().catch((error: unknown) => {
+          loading = undefined;
+          throw error;
+        });
+        return loading;
+      };
 
       let spilled = 0;
       const afterToolCall: NonNullable<TurnContext["interceptors"]["afterToolCall"]> = async (event) => {
