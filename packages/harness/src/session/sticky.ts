@@ -131,6 +131,19 @@ function stringsIn(value: unknown, found: string[] = []): string[] {
   return found;
 }
 
+/** Throws `sticky_refused` unless the command prefix is a non-empty start of a simple command a person approved. */
+function checkPrefix(command: string | undefined, commandPrefix: readonly string[]): void {
+  if (commandPrefix.length === 0 || commandPrefix.some((word) => word === "")) {
+    throw refused("a command prefix needs at least one word");
+  }
+  if (command === undefined || !isSimpleCommand(command)) {
+    throw refused("a command prefix covers only a simple command: no operator, redirection or substitution");
+  }
+  if (!startsWith(wordsOf(command), commandPrefix)) {
+    throw refused("the command prefix is not the start of the command a person approved");
+  }
+}
+
 /**
  * Throws `sticky_refused` when an allowance on this call would cover code run through a shell, an interpreter or a
  * wrapper, a prefix that is empty or that doesn't start the approved command, a command prefix on a call with no
@@ -146,17 +159,7 @@ export function checkSticky(
     const found = runsOtherCode(words);
     if (found !== undefined) throw refused(`a sticky allowance may not cover "${found}", which runs other code`);
   }
-  if (commandPrefix !== undefined) {
-    if (commandPrefix.length === 0 || commandPrefix.some((word) => word === "")) {
-      throw refused("a command prefix needs at least one word");
-    }
-    if (command === undefined || !isSimpleCommand(command)) {
-      throw refused("a command prefix covers only a simple command: no operator, redirection or substitution");
-    }
-    if (!startsWith(wordsOf(command), commandPrefix)) {
-      throw refused("the command prefix is not the start of the command a person approved");
-    }
-  }
+  if (commandPrefix !== undefined) checkPrefix(command, commandPrefix);
   const texts = [...stringsIn(input), ...(commandPrefix ?? []), JSON.stringify(input) ?? ""];
   if (secrets.some((secret) => secret !== "" && texts.some((text) => text.includes(secret)))) {
     throw refused("a sticky allowance may not cover a call that holds a secret the credential store knows");
@@ -180,7 +183,18 @@ export interface StickyCall {
   readonly policyVersion?: string | undefined;
 }
 
-/** Whether a sticky entry's allowance covers a call, by the input hash or by a command prefix on a simple command. */
+/** Whether an allowance matches the call's input: the same hash, or a prefix of a simple command. */
+function matchesInput(
+  allowance: { inputHash?: string; commandPrefix?: string[] },
+  hash: string,
+  command: string | undefined,
+): boolean {
+  if (allowance.inputHash === hash) return true;
+  if (allowance.commandPrefix === undefined || command === undefined) return false;
+  return isSimpleCommand(command) && startsWith(wordsOf(command), allowance.commandPrefix);
+}
+
+/** Whether a sticky entry's allowance covers a call under the policy version that asks about it now. */
 function covers(
   entry: SessionEntry,
   name: string,
@@ -190,15 +204,8 @@ function covers(
 ): boolean {
   if (entry.type !== "approval_resolved" || entry.allowance === undefined || entry.allowance.tool !== name)
     return false;
-  const { inputHash, commandPrefix, policyVersion } = entry.allowance;
-  if (policyVersion !== undefined && policyVersion !== version) return false;
-  if (inputHash === hash) return true;
-  return (
-    commandPrefix !== undefined &&
-    command !== undefined &&
-    isSimpleCommand(command) &&
-    startsWith(wordsOf(command), commandPrefix)
-  );
+  if (entry.allowance.policyVersion !== undefined && entry.allowance.policyVersion !== version) return false;
+  return matchesInput(entry.allowance, hash, command);
 }
 
 /**

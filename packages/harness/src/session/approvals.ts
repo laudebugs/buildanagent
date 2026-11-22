@@ -162,6 +162,27 @@ function denial(requestId: string, verdict: "rejected" | "expired"): ResolutionR
   return { resolution: { requestId, decision: "deny", reason, by: "policy" } };
 }
 
+/** What the SDK is given for one request, and the entries to write for it, once the quorum policy has decided. */
+function outcomeOf(
+  verdict: QuorumVerdict,
+  requestId: string,
+  answers: readonly Resolution[],
+  fresh: readonly ResolutionRecord[],
+): { forRun?: Resolution; records: ResolutionRecord[] } {
+  const latest = answers.at(-1);
+  if (verdict === "met" && latest !== undefined) {
+    return { forRun: answers.findLast((answer) => !isDeny(answer)) ?? latest, records: [...fresh] };
+  }
+  if (verdict === "rejected" || verdict === "expired") {
+    // A person's own deny is already in the log; a refusal or an expiry by the policy gets an entry of its own.
+    if (verdict === "rejected" && latest !== undefined && isDeny(latest))
+      return { forRun: latest, records: [...fresh] };
+    const refusal = denial(requestId, verdict);
+    return { forRun: refusal.resolution, records: [...fresh, refusal] };
+  }
+  return { records: fresh.map((record) => ({ ...record, quorum: "pending" as const })) };
+}
+
 /**
  * What each waiting request gets once the quorum policy has looked at it: the answer the SDK applies for `met`, a denial
  * for `rejected` and `expired`, and nothing for `pending`, whose new answers are marked as waited on so a crash
@@ -179,19 +200,9 @@ async function settled(
   for (const { request } of waiting) {
     const fresh = records.filter((record) => record.resolution.requestId === request.id);
     const answers = [...(earlier.get(request.id) ?? []), ...fresh.map((record) => record.resolution)];
-    const verdict = await policy.evaluate(request, answers);
-    const latest = answers.at(-1);
-    if (verdict === "met" && latest !== undefined) {
-      forRun.push(answers.findLast((answer) => !isDeny(answer)) ?? latest);
-      out.push(...fresh);
-    } else if (verdict === "rejected" || verdict === "expired") {
-      const refusal =
-        latest !== undefined && isDeny(latest) && verdict === "rejected" ? undefined : denial(request.id, verdict);
-      forRun.push(refusal?.resolution ?? (latest as Resolution));
-      out.push(...fresh, ...(refusal === undefined ? [] : [refusal]));
-    } else {
-      out.push(...fresh.map((record) => ({ ...record, quorum: "pending" as const })));
-    }
+    const outcome = outcomeOf(await policy.evaluate(request, answers), request.id, answers, fresh);
+    if (outcome.forRun !== undefined) forRun.push(outcome.forRun);
+    out.push(...outcome.records);
   }
   return { forRun, records: out };
 }
