@@ -168,7 +168,7 @@
   {
     "id": "saga",
     "term": "saga",
-    "definition": "A sequence of separate steps that each commit on their own, with an undo step, called a compensation, for each one that can be undone. If a step fails, the compensations run for the steps already done.",
+    "definition": "A sequence of separate steps that each commit on their own, with an undo step, called a compensation, for each one that can be undone. If a step fails before the point of no return, the compensations run for the steps already done; steps after it are retried until they finish.",
     "sources": ["azure-saga-pattern"]
   }
 ]

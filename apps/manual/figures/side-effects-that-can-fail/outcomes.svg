@@ -35,7 +35,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <rect x="10" y="78" width="140" height="40" rx="4" class="fig-paper"/>
 <text x="80" y="102.2" text-anchor="middle" class="fig-text">not_applied</text>
 <rect x="190" y="78" width="320" height="40" rx="4" class="fig-paper"/>
-<text x="350" y="102.2" text-anchor="middle" class="fig-text">retry after a fix, with the same key</text>
+<text x="350" y="102.2" text-anchor="middle" class="fig-text">a new key after a fix</text>
 <path d="M150 98 L183.37 98" class="fig-line"/>
 <path d="M190 98 L182.63 94.88 L182.63 101.12 Z" class="fig-head"/>
 <rect x="10" y="130" width="140" height="40" rx="4" class="fig-paper"/>

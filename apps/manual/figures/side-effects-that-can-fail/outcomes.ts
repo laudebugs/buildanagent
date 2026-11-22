@@ -4,7 +4,7 @@ import { Figure } from "../lib/svgkit.js";
 
 const ROWS = [
   { outcome: "applied", rule: "done: a repeat reads the saved result", tone: "text" },
-  { outcome: "not_applied", rule: "retry after a fix, with the same key", tone: "text" },
+  { outcome: "not_applied", rule: "a new key after a fix", tone: "text" },
   { outcome: "compensated", rule: "a new operation, only if still wanted", tone: "text" },
   { outcome: "partial", rule: "resume with the same key, or ask a person", tone: "text" },
   { outcome: "unknown", rule: "ask the other side; never a fresh key", tone: "accent" },

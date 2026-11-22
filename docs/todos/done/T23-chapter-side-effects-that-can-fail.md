@@ -73,7 +73,7 @@ Write the chapter "Side effects that can fail: outcomes, idempotency and plan ap
 - [x] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
 - [x] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
 - [x] Every version the prose names says "as of <month year>"
-- [x] `apps/manual/fact-checks/side-effects-that-can-fail.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [ ] `apps/manual/fact-checks/side-effects-that-can-fail.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
 - [x] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
 - [x] The front matter's `opening` is `incident`, and `check:book` passes its opening-rotation check
 - [ ] The pull request records the writing review's 5C scores and its voice scores, before and after
@@ -96,7 +96,7 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
