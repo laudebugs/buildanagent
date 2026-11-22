@@ -11,4 +11,5 @@ export {
   type DispatcherOptions,
   EXPERIMENTAL_METHODS,
 } from "./dispatcher.js";
-export { type InProcessClient, inProcessTransport, RpcFailure } from "./local-transport.js";
+export { type InProcessClient, inProcessTransport, type RequestOptions, RpcFailure } from "./local-transport.js";
+export type { Deliver } from "./outbox.js";
