@@ -1265,5 +1265,25 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "buildanagent-main-report",
+    "title": "Own the loop, rent the sandbox (the main research report)",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/ced295ea4f63262a86c8be48b46812d9d89dd10b/docs/research/agent-sdks-and-harness-design.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ced295e",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "buildanagent-agent-platform-plan",
+    "title": "Plan: build a multi-user platform that turns a description into a checked agent deployed in the user's own cloud",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/438a60ff11f7c95be451a90feda8b96029b56430/docs/plans/build-agent-platform.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "438a60f",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
   }
 ]
