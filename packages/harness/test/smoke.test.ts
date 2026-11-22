@@ -12,6 +12,7 @@ const PLANNED_ENTRIES = [
   "./session",
   "./session/jsonl",
   "./context",
+  "./context/file",
   "./tools",
   "./mcp",
   "./permissions",

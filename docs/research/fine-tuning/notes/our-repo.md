@@ -10,7 +10,7 @@ The repo says almost nothing about fine-tuning. A search for "fine-tun", "finetu
 
 - §4.3 row: "Fine-tuning versus prompting | U21 | T39, a section of T11 | The question arises the moment a reader chooses a model, which Chapter T11 teaches" — [book plan §4.3](../../../plans/build-book.md#43-four-topics-need-research-before-they-are-written)
 - T11's sections include "Choosing a model: start with the most capable, then try smaller ones against evals (OpenAI guide)" and its exercise: "Price a recorded run from its usage, then rerun it with a smaller model and compare the cost and the checks." Its listings include the streaming-and-usage example from T28 — [T11](../../../todos/done/T11-chapter-talking-to-a-model.md)
-- T39's analogy: "sending an employee on a year-long course versus handing a skilled contractor a clear brief. Where the analogy breaks: a fine-tuned model also needs the brief; tuning changes defaults, not the need for instructions." Its risk: "The research may show the topic needs a chapter after all" — [T39](../../../todos/ready/T39-section-fine-tuning-vs-prompting.md)
+- T39's analogy: "sending an employee on a year-long course versus handing a skilled contractor a clear brief. Where the analogy breaks: a fine-tuned model also needs the brief; tuning changes defaults, not the need for instructions." Its risk: "The research may show the topic needs a chapter after all" — [T39](../../../todos/done/T39-section-fine-tuning-vs-prompting.md)
 - T28 writes `verify/vercel-ai-sdk/examples/` code whose final usage "reports input, cached-read, cached-write and output tokens, and a price computed from them" — [T28](../../../todos/done/T28-example-streaming-usage.md)
 - The highest todo id is T44 (`docs/todos/*/`), so T45 is the next free one.
 
