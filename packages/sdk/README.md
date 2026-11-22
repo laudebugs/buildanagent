@@ -286,7 +286,7 @@ if (result.stopReason === "awaiting_approval") {
 }
 ```
 
-Each request is a `SignedPendingRequest`. Its signature covers six fields: the request's `id`, its `kind`, the `callId`, the `tool`, the `inputHash` and the `policyVersion`. The input hash is `canonicalInputHash()` of the input the call would run with once approved, so a stored pause whose call, tool or input changed no longer verifies. That input is the model's after coercion, `repair` and any gate's replacement, so it can differ from the call's arguments in the transcript; the request stores only its hash, and `result.context.pendingInputs` and the `approval_request` event hold the input itself, by request id. Show the approver that input, not the model's arguments.
+Each request is a `SignedPendingRequest`. Its signature covers six fields: the request's `id`, its `kind`, the `callId`, the `tool`, the `inputHash` and the `policyVersion`, and a seventh, the `appHash`, a MAC of the run's [app data](#tools-read-the-signed-in-user-from-app-never-from-an-argument), when the run has any. The input hash is `canonicalInputHash()` of the input the call would run with once approved, so a stored pause whose call, tool or input changed no longer verifies. That input is the model's after coercion, `repair` and any gate's replacement, so it can differ from the call's arguments in the transcript; the request stores only its hash, and `result.context.pendingInputs` and the `approval_request` event hold the input itself, by request id. Show the approver that input, not the model's arguments.
 
 A gate's `ask` may carry its own `input`, which must pass the tool's schema, and `composeInterceptors()` passes an earlier gate's replacement on that way when a later gate asks, so the pause signs the input the earlier gate chose.
 
@@ -303,11 +303,12 @@ const context = await store.load(id); // plain JSON, with pending and pendingInp
 const next = continueRun(context, { model, tools, signer, resolutions: [{ requestId, decision: "allow", by: "ana" }] });
 ```
 
-Before its first model call, the run checks every waiting call's stored request with its `signer`. The check verifies the signature under the request's `keyId`, then the call id and tool against the transcript's call, then the input in `context.pendingInputs` against the signed hash, and last that the resolution fits the request's kind. Each waiting call then goes one of four ways:
+Before its first model call, the run checks every waiting call's stored request with its `signer`. The check verifies the signature under the request's `keyId`, then the `app` you passed against the request's `appHash`, then the call id and tool against the transcript's call, then the input in `context.pendingInputs` against the signed hash, and last that the resolution fits the request's kind. It checks every waiting call before any verdict, so a refusal comes before the first `recheck` or approved call. Each waiting call then goes one of five ways:
 
 - **A verified `allow`** runs the call once, with the input its request signs, never the transcript's arguments. `beforeToolCall` isn't asked again, and `afterToolCall` still runs.
 - **A verified `deny`** gives the model an error result with the reason, and a verified `answer` reaches the model as the call's result.
 - **A request no resolution names** still waits. When any call still waits, the run ends paused again without a model call, so you can answer one call at a time.
+- **A request that can't be matched to the caller** stops the run. When the request carries an `appHash` and the `app` you passed is missing or has another canonical JSON, the run emits `resolution_rejected` with cause `app_mismatch` and ends with an `error` result whose `error.kind` is `app_mismatch` (`app_unhashable` when the `app` you passed has no canonical form). In a run that has `app`, a request that fails its signature or shape check ends it the same way with `error.kind` `request_unverified`. The run still emits `run_end`, and no approved call runs. It does not ask again, because a new request would be signed for whoever resumed.
 - **A request or resolution that fails a check** runs nothing. The run emits `resolution_rejected` with the cause, such as `signature_invalid`, `input_changed`, `resolution_mismatch` or `replayed`, and the call asks again. Your gate is asked as for a new call, and the call pauses with a new request even when the gate allows it. The new request is always an approval, because a request that failed its check can't be trusted to say it was a question. A question that fails therefore comes back as an approval request for the asking tool, and once allowed, the tool runs and asks again. Only a tool the model is sent by default can ask again; a call to any other tool gets the unknown-tool error result instead. A resolution that names no request in the context is reported as `unknown_request`, and its request still waits.
 
 Settling the requests is not a step, so `steps` and `maxSteps` count only the model calls the resumed run makes. The results are recorded in the order the model made the calls. When no call still waits and an approved call's result sets `terminate`, such as the output tool's, the run ends `done` without a model call. Pass `recheck` to run current policy just before an approved call runs. It gets copies of the request and its input, so editing them changes nothing, and resolves to `"allow"`, or to `{ deny: reason }`, which gives the model an error result instead. A `recheck` that throws or returns anything else denies the call. Without `recheck`, a verified approval runs, so check policy before you resolve.
@@ -347,12 +348,12 @@ Code that makes a tool call itself, rather than through the model, can build the
 const request = await createPendingRequest({ kind: "approval", callId, tool: "refund", input, reason }, signer);
 ```
 
-`createPendingRequest()` signs through the same code path as the loop, so for the same fields, id and signer the two requests are identical byte for byte. Its optional third argument takes `generateId` and `now`, which default to `crypto.randomUUID()` and the current time. It rejects with `invalid_run_options` for a `kind` other than `"approval"` or a signer that isn't an `ApprovalSigner`.
+`createPendingRequest()` signs through the same code path as the loop, so for the same fields, id and signer the two requests are identical byte for byte, `appHash` included when you pass the same `app`. Its optional third argument takes `generateId` and `now`, which default to `crypto.randomUUID()` and the current time. It rejects with `invalid_run_options` for a `kind` other than `"approval"` or a signer that isn't an `ApprovalSigner`.
 
-Before the call runs, check the person's answer against the stored request with `verifyResolution()`, the check `continueRun()` makes:
+Before the call runs, check the person's answer against the stored request with `verifyResolution()`, the check `continueRun()` makes. Pass the `app` the call runs for when the request is bound to one; a bound request is refused with `app_mismatch` without it:
 
 ```ts
-const check = await verifyResolution(request, resolution, { signer, call: { callId, tool: "refund", input } });
+const check = await verifyResolution(request, resolution, { signer, call: { callId, tool: "refund", input }, app: session });
 if (check.ok && "decision" in check.resolution && check.resolution.decision === "allow") await refund(input);
 ```
 
@@ -454,10 +455,15 @@ export function answerFor(session: Session) {
 
 The model sees the tool's description and its `topic` argument, never `app`. If it sends `{ topic: "billing", customerId: "cust-999" }` anyway, the tool still answers for `session.customerId`. A run whose tools declare an `app` type needs an `app` that has every declared type. One typed tool is enough, even beside tools that declare none, and leaving `app` out, passing `null` or passing another type fails to compile. The check reads the type of the `tools` list the call infers, so it does not apply when you give `run()` explicit type arguments, such as `run<Triage>()`.
 
-Five rules keep the value trusted:
+Six rules keep the value trusted:
 
 - **Build it for each request.** Take `app` from the request's authenticated session. A value built once at module level, or held in a shared variable, hands one user's identity to every request. The SDK itself shares nothing between runs.
-- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`, and a signed pending request does not bind it. A run that resumes after an approval runs its approved call with whatever `app` the resuming process passes, so the approver's session is the wrong source: the call would run as the approver. Store the original caller's `app`, or a reference to it, beside the stored `Context`, and pass that to `continueRun()`; name the approver in the resolution's `by`. Where the type check does not apply, a call that leaves `app` out gives its tools `ctx.app === undefined`.
+- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`, and the SDK never stores it.
+- **A pause binds a keyed MAC of it.** The signed request carries `appHash`, the signer's signature over a tagged canonical JSON of `app`, under the key `keyId` names. An approved call therefore runs only for the caller who made the request. Store the original caller's `app`, or a reference to it, beside the stored `Context`, and pass that to `continueRun()`. Another `app`, or none, ends the run with `error.kind` `app_mismatch`, so the approver's session cannot run the call as the approver; name the approver in the resolution's `by`.
+  - Two values are the same `app` when their RFC 8785 canonical JSON is the same, so key order does not matter.
+  - The MAC is keyed, so reading a stored request or an `approval_request` event does not let anyone test a guess of a small value such as a customer id. Verifying uses the request's own key, so a rotated ring still resumes it while the old key stays in the ring, and a key outside the ring is refused.
+  - An `app` with no canonical form, such as one holding a `Date`, cannot be bound. A run with a `beforeToolCall` gate refuses it at once with `invalid_run_options`, naming `app`; a run without one blocks each pause it signs later, a clarification or a call a resume asks again, with a `hook_error` that names `app_unhashable`.
+  - A request signed without app data binds none and accepts any `app`, which is how a pause from before this field still resumes.
 - **The SDK does not copy it.** Every call of a run, and a nested run you pass it to, gets the same object, so pass an immutable value, such as a frozen object, that no tool can change for the others.
 - **A nested run starts with none.** `nestedRunDepth(ctx)` does not carry it. A tool that starts another agent passes `app: ctx.app` itself, only when the child should act for the same user.
 - **It carries facts, not permission.** The tool or the system behind it still checks that this user may do what the call asks.
@@ -621,6 +627,7 @@ The capstone is the support-triage agent that each of the eight SDKs we verified
 The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a loop's `run` and `continueRun` and checks these behaviours on each backend. The backends are the scripted model and the Anthropic and Chat Completions mock transports:
 
 - an approved escalation runs once in a second process and ends with a typed result;
+- a resume as another customer is refused with `app_mismatch`, and the escalation never runs;
 - a rejected escalation never runs, and the model reads the denial;
 - a result that fails its schema returns to the model as an error;
 - a forged signature runs nothing and calls no model;
@@ -638,7 +645,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
 | Our capstone, the agent alone | 83 | 2 |
-| Our capstone with its cases and backends | 510 | 2 |
+| Our capstone with its cases and backends | 552 | 2 |
 | Vercel AI SDK | 58 | |
 | Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |
@@ -648,9 +655,9 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Google ADK | 114 | |
 | Cloudflare Agents | 122 | |
 
-## A reference loop shows the real loop's shape in under 400 lines
+## A reference loop shows the real loop's shape in about 440 lines
 
-[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 400. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
+[`reference-loop/reference-loop.ts`](reference-loop/reference-loop.ts) is a loop you can read in one sitting. It exports `run()` and `continueRun()`, ends a run with every stop reason of the real loop except `clarification_requested`, and imports only the public exports of `@buildanagent/gateway` and `@buildanagent/sdk`. The capstone's conformance suite runs against it on the scripted model and both mock transports, so it cannot drift into a toy: a change to the real loop that the reference no longer matches fails `test/reference-loop.test.ts`. That file counts the loop's non-blank, non-comment lines and fails at 440. It checks that the reference and the real loop end seventeen scripted runs with the same stop reason, step count, message count and failed tool results. It also runs more cases on both loops, among them resumes, approved calls and tool errors.
 
 Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, the streamed model call, `afterModelCall`, the tools, then the stop check with `shouldStop` and the progress rule. The table maps each part to the module it simplifies.
 
@@ -660,7 +667,7 @@ Each step runs in the real loop's order: `transformContext`, `beforeModelCall`, 
 | `drive()`, `step()`, `callModel()` | `loop.ts` | The raw model events, the `retry` and `warning` events, the withheld stand-in for a failed `afterModelCall`, the aborted closing message and `onFailure: "continue"` |
 | `budgetBlock()` | `budget.ts` | The unknown-price check before the first call |
 | `runCalls()`, `runCall()`, `execute()` | `tools/pipeline.ts` | Parallel calls (it runs them one at a time, so an abort while one call runs also stops the calls after it), coercion, `repair`, raw JSON Schema validation, the shape check on a tool's result, rendering write outcomes, `clarificationTool()` and the "not run" results that the real loop records for the calls of a response that ended in an error or was aborted |
-| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions, `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
+| `pause()`, `settle()`, `failedCheck()` | `pauses.ts`, `resume.ts`, `hook-runner.ts` | The `recheck` option, replayed and unknown resolutions (two resolutions for one request run the first), `blockingApprovals()` and the shape checks on a stored context. It checks each stored request with `verifyResolution()`, as the real loop does |
 | `stopCheck()`, `decide()`, `stuckReason()` | `loop.ts`, `progress.ts` | The per-`progressKey` rule |
 
 The reference loop reaches `clarification_requested` through no path, because only the SDK's internals can sign a clarification request, and `createPendingRequest()` signs approvals only. Read it first, then read `loop.ts` for what a production loop adds.
