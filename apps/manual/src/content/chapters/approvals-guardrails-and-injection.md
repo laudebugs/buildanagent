@@ -7,7 +7,7 @@ glossary: [approval, guardrail, prompt-injection, lethal-trifecta]
 switchTo: [B15, E3]
 ---
 
-In November 2026 we paused a refund run, edited one order number in the saved copy and approved the pause. The pause had asked about order A-1, and the refund went to order Z-9. The edit worked on the OpenAI Agents SDK 0.21.0 and on the AI SDK 7.0.162, because the first SDK leaves the check to you and the second makes it only when you give it a secret. OpenAI's documentation says so directly: `RunState.fromString()` "does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop].
+In November 2026 we paused a refund run, edited one order number in the saved copy and approved the pause. The pause had asked about order A-1, and the refund went to order Z-9. The edit worked on the OpenAI Agents SDK 0.21.0 and on the AI SDK 7.0.162, because the OpenAI SDK leaves the check to you and the AI SDK makes it only when you give it a secret. OpenAI's documentation states the gap directly: `RunState.fromString()` "does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop].
 
 An approval is therefore more than a click. It is a pause saved as data, a decision that arrives later, and a rule for what that decision may cover. This chapter follows the pause from the model's request to the resumed run, shows what an edited call does at each step, and then places the approval among the other gates an agent needs: guardrails on what goes in and out, and containment for the prompt injection that no gate fully stops.
 
@@ -131,7 +131,7 @@ A tripped guardrail halts the run. The runner throws `InputGuardrailTripwireTrig
 
 Guardrails and approvals meet at the tool call. By default a function tool's input guardrails run after the approval, just before the tool executes. To check the call before a person is asked, pass `toolExecution: { preApprovalInputGuardrails: true }`{checked=row-40}; the guardrails then run again after the approval too, in case the call became unsafe while it waited [@openai-agents-guardrails]. A reviewer's time is the scarce part of an approval, so a cheap check ahead of the question saves it for the calls that need a person.
 
-No guardrail makes the agent safe. OpenAI's guide says guardrails should be "coupled with robust authentication and authorization protocols, strict access controls, and standard software security measures" [@openai-practical-guide-to-building-agents]. A guardrail also sees only what its author thought of: the string check in [[lst:guardrails-input]] catches one phrase and misses every rewording. That limit sets up the last section, because the attack the checks are aimed at is the one that rewords itself.
+No guardrail makes the agent safe. OpenAI's guide says guardrails should be "coupled with robust authentication and authorization protocols, strict access controls, and standard software security measures" [@openai-practical-guide-to-building-agents]. A guardrail also sees only what its author thought of: the string check in [[lst:guardrails-input]] catches one phrase and misses every rewording. The next section turns to the attack these checks aim at, an attack that rewords itself.
 
 ## Prompt injection cannot be prevented, only contained
 
