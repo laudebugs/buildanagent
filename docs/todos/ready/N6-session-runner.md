@@ -15,6 +15,7 @@ Turn one SDK run into log entries: write the user entry durably before the first
 
 ## Context
 
+- [N3](../done/N3-session-store.md): the store is keyed by `{ userId, sessionId }` and `append` takes entries without `seq`, so pass the session's key on every call
 - [HD1](../../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-provisional): the decision and its evidence
 - [build-harness.md §3.6](../../plans/build-harness.md#36-needs-from-the-sdk-plan): seams and needs 5 and 12
 - [SDK plan §3.4](../../plans/build-sdk.md#34-the-seams-p2-consumes): authoritative end events, header stamp

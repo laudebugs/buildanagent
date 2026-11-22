@@ -4,8 +4,10 @@
  * Docker backend passes them all. A backend that can't start makes every case skip with its reason, never fail. The cases
  * import no test runner and no Node module, so any runner can call them, in workerd too.
  */
+
 import { isHarnessError } from "../errors.js";
 import type { ExecResult, Sandbox, SandboxClient, SandboxDenial, SandboxPolicy } from "../sandbox/types.js";
+import { runCases } from "./run-cases.js";
 
 /** What a factory returns: the backend, and the absolute folder to use as the workspace root. */
 export interface SandboxUnderTest {
@@ -468,17 +470,5 @@ export async function runSandboxConformance(
   factory: SandboxFactory,
   options: SandboxConformanceOptions = {},
 ): Promise<SandboxConformanceReport> {
-  const passed: string[] = [];
-  const skipped: { name: string; reason: string }[] = [];
-  const failed: { name: string; error: string }[] = [];
-  for (const conformance of sandboxConformanceCases(factory, options)) {
-    try {
-      const outcome = await conformance.run();
-      if (outcome === undefined) passed.push(conformance.name);
-      else skipped.push({ name: conformance.name, reason: outcome.skipped });
-    } catch (error) {
-      failed.push({ name: conformance.name, error: error instanceof Error ? error.message : String(error) });
-    }
-  }
-  return { passed, skipped, failed };
+  return runCases(sandboxConformanceCases(factory, options));
 }

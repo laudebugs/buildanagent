@@ -1,7 +1,10 @@
 /**
  * `@buildanagent/harness/session`: the session log. The entry union lives in `@buildanagent/protocol`, so the protocol
- * never imports the harness, and this entry re-exports it for code that already imports the harness.
+ * never imports the harness, and this entry re-exports it for code that already imports the harness. It holds the
+ * store interface and `memoryStore()`, and nothing that needs Node. `jsonlStore()` is in
+ * `@buildanagent/harness/session/jsonl`.
  */
+
 export type {
   ApprovalPolicy,
   CheckoutEntry,
@@ -36,3 +39,14 @@ export {
   parseEntry,
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
+export { ConflictError, EntryTooLargeError } from "./errors.js";
+export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
+export {
+  type AppendOptions,
+  DEFAULT_MAX_ENTRY_BYTES,
+  type EntryInput,
+  type LoadOptions,
+  type SessionKey,
+  type SessionStore,
+  type SessionSummary,
+} from "./store.js";

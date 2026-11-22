@@ -32,6 +32,11 @@
       "types": "./dist/session/index.d.ts",
       "default": "./dist/session/index.js"
     },
+    "./session/jsonl": {
+      "source": "./src/session/jsonl.ts",
+      "types": "./dist/session/jsonl.d.ts",
+      "default": "./dist/session/jsonl.js"
+    },
     "./context": {
       "source": "./src/context/index.ts",
       "types": "./dist/context/index.d.ts",
@@ -112,6 +117,10 @@
       "./session": {
         "types": "./dist/session/index.d.ts",
         "default": "./dist/session/index.js"
+      },
+      "./session/jsonl": {
+        "types": "./dist/session/jsonl.d.ts",
+        "default": "./dist/session/jsonl.js"
       },
       "./context": {
         "types": "./dist/context/index.d.ts",
