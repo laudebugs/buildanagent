@@ -1,0 +1,350 @@
+{
+  "format": 2,
+  "example": "11-context-memory",
+  "file": "verify/cloudflare-agents/examples/11-context-memory.ts",
+  "harness": "verify/cloudflare-agents",
+  "pin": "agents@0.33.0",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "══════════════════════════════════════════════\nMEMORY (Facts about the user) [0% — 0/500 tokens] [writable]\n══════════════════════════════════════════════\n\n\n══════════════════════════════════════════════\nNOTES (Notes to search later) [searchable]\n══════════════════════════════════════════════\n"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Remember that Ada prefers metric units, and when staging deploys."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "set_context",
+        "search_context"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "set_context",
+            "input": {
+              "label": "memory",
+              "content": "Ada prefers metric units"
+            }
+          },
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "set_context",
+            "input": {
+              "label": "notes",
+              "content": "The staging deploy runs on Thursdays after the freeze review",
+              "metadata": {
+                "title": "Deploy day"
+              }
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "set_context",
+              "output": "Written to memory. Usage: 1% (6/500 tokens)"
+            },
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "set_context",
+              "output": "Indexed \"deploy-day\" in notes."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "set_context",
+        "search_context"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Saved both."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "the model is offered only the two context tools",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "it wrote through set_context",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the writable block took the write: Written to memory. Usage: 1% (6/500 tokens)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the search block indexed the note: Indexed \"deploy-day\" in notes.",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the frozen system prompt was rendered before the write, so it lacks the fact",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the fact is a row in cf_agents_context_blocks",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the note is a row of an FTS5 table, which workerd ran",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "══════════════════════════════════════════════\nMEMORY (Facts about the user) [1% — 6/500 tokens] [writable]\n══════════════════════════════════════════════\nAda prefers metric units\n\n══════════════════════════════════════════════\nNOTES (Notes to search later) [searchable]\n══════════════════════════════════════════════\n1 entries indexed."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "When does staging deploy, and what does Ada prefer?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "set_context",
+        "search_context"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_3",
+            "name": "search_context",
+            "input": {
+              "label": "notes",
+              "query": "deploying thursday"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_3",
+              "name": "search_context",
+              "output": "[deploy-day]\nThe staging deploy runs on Thursdays after the freeze review"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "set_context",
+        "search_context"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "after eviction the new instance renders the written fact into its system prompt",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "and renders the search block's count of entries",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the model searched through search_context",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "the search found the note, though the query used other word forms",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "══════════════════════════════════════════════\nMEMORY (Facts about the user) [0% — 0/500 tokens] [writable]\n══════════════════════════════════════════════\n\n\n══════════════════════════════════════════════\nNOTES (Notes to search later) [searchable]\n══════════════════════════════════════════════\n"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "When does staging deploy, and what does Ada prefer?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "set_context",
+        "search_context"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_4",
+            "name": "search_context",
+            "input": {
+              "label": "notes",
+              "query": "deploying thursday"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-3",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_4",
+              "name": "search_context",
+              "output": "No results found."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "set_context",
+        "search_context"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "message": "a second agent name sees neither block",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "and the same query finds nothing there",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "message": "its database holds no block row and no note",
+      "pass": true
+    }
+  ]
+}
