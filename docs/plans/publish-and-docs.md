@@ -213,7 +213,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L11](../todos/done/L11-bootstrap-and-release-protocol-harness-cli.md) | Drop `private`, hand the owner the new `release.yml`, and publish the four together through trusted publishing | L9, L10, N29, N30 | M |
 | [L12](../todos/ongoing/L12-docs-redesign.md) | Redesign `apps/docs` to match the book's theme, with diagrams, tested examples and the harness packages' pages | L5, L6, L8 | L |
 | [L12n](../todos/done/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
-| [L13](../todos/ongoing/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
+| [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
 
 B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff stay in B20; its revision moves the docs site and the first export diff here.
 

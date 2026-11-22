@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L13` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L7](../done/L7-website-app.md) |
@@ -50,10 +50,10 @@ Replace the plain home page of `apps/site` with the owner's chosen design, the f
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @buildanagent/site test` and `build` pass, and so do `pnpm check`, `pnpm typecheck` and `pnpm test`.
-- [ ] No horizontal scroll at 400 pixels, and no label touches a block in either figure.
-- [ ] Every sentence of the copy that states a fact has a ✅ row in the fact-check log.
-- [ ] The install line and the alpha line match npm's dist-tags on the day of the merge.
+- [x] `pnpm --filter @buildanagent/site test` and `build` pass, and so do `pnpm check`, `pnpm typecheck` and `pnpm test`.
+- [x] No horizontal scroll at 400 pixels, and no label touches a block in either figure.
+- [x] Every sentence of the copy that states a fact has a ✅ row in the fact-check log.
+- [x] The install line and the alpha line match npm's dist-tags on the day of the merge.
 
 ## Tests
 
@@ -71,8 +71,12 @@ Replace the plain home page of `apps/site` with the owner's chosen design, the f
 ## Definition of done
 
 - [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The landing page is built at `apps/site/src/pages/index.astro`, with the shared header and footer in `layouts/Base.astro`, the tokens and fonts generated or copied from the manual, a wide and a narrow script-drawn figure (the narrow one below 940 px), a favicon checked at 16 and 32 pixels and 39 fact-check rows (28 ✅, 11 ✏️). The page reads the manual's tokens module by relative path until L12a exports it, and its header links sit in `src/landing/chrome.ts` until L12p adds the shared source. The writing review changed the mock's headline to "An agent is three layers. See how each one works." because the mock's wording counted the loop as a fourth layer; the owner can restore it in `copy.ts`.
