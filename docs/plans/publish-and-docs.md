@@ -130,7 +130,7 @@ The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, s
 
 **Decision summary.** L12 is an umbrella todo with fourteen sub-todos (L12a to L12n). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The logo is out of scope: the header keeps a slot, and the owner chose logo 3, "the prompt", whose files the manager hands over.
 
-**Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes 19 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to about 350 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
+**Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes about 18 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to about 350 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
 
 #### The theme reuse design
 
@@ -151,7 +151,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. It follow
 | --- | --- | --- | --- |
 | Navigation | An explicit sidebar, previous and next links, a mobile menu and a table of contents | `starlight-sidebar-topics` with "SDK & gateway", "Harness", "Agent safety" and "API reference", so a page carries only its topic's links; the sidebar tests rewritten | Adopt topics |
 | Page anatomy | Title, description, table of contents | A `PageTitle` override with a package badge, "Copy as Markdown" and a version tag | Override `PageTitle` only |
-| Code tabs | `<Tabs syncKey>` in MDX only | MDX support in `pages.ts`; pnpm, npm and yarn tabs | MDX only where needed; no tabs plugin, because `syncKey` is native |
+| Code tabs | `<Tabs syncKey>` in MDX only | MDX pages that the content tests read correctly (`pages.ts` already lists `.mdx` files); pnpm, npm and yarn tabs | MDX only where needed; no tabs plugin, because `syncKey` is native |
 | Callouts | `:::note`, `:::tip`, `:::caution` and `:::danger` | Token styling and a rule of at most two per page | Adopt |
 | API reference | Pages from `starlight-typedoc` | A topic per package, a module index that leads with the README's summary, no edit link on generated pages | Topics plus a style pass; defer `@since` per export until the first stable release |
 | Search | Pagefind, built in | Token styling; lower `data-pagefind-weight` on generated pages | Keep Pagefind |
@@ -174,7 +174,7 @@ Each row becomes a todo file, made from the template when someone starts it. Ord
 | Todo | What it delivers | Depends on | Size |
 | --- | --- | --- | --- |
 | L12a | The manual's `exports`, the docs' generated tokens, fonts, Starlight mapping, code themes and the contrast, stale, font and no-hex tests | This plan | M |
-| L12b | The logo slot and favicon, theme select, footer and asides, MDX support and install tabs, the README's overrides table | L12a | M |
+| L12b | The logo slot and favicon, theme select, footer and asides, MDX handling in the content tests and install tabs, the README's overrides table | L12a | M |
 | L12c | The sidebar topics plugin and the rewritten sidebar tests, with page size measured | L12a | S to M |
 | L12d | The figure pipeline and figures 1 and 2 | L12a | M |
 | L12e | The version tag, the `next.` banner, the `@alpha` test and the "Docs for main" link | L12b | S |

@@ -52,7 +52,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | Todo | Delivers | Depends on | Size | Model |
 | --- | --- | --- | --- | --- |
 | L12a | The manual's `exports` and a parameterised `tokensCss()`; the docs' `generate-tokens`, `tokens.css`, font copy, `starlight.css` mapping, Expressive Code themes, `Head` preload, and the contrast, stale-file, font and no-hex tests | This plan | M | Opus (design tooling) |
-| L12b | `SiteTitle` with the logo slot and favicon, restyled `ThemeSelect`, `Footer` and asides; MDX support in `pages.ts`; install tabs; the README's overrides table and upgrade policy | L12a | M | Sonnet, with an Opus high review |
+| L12b | `SiteTitle` with the logo slot and favicon, restyled `ThemeSelect`, `Footer` and asides; MDX pages that the content tests read correctly; install tabs; the README's overrides table and upgrade policy | L12a | M | Sonnet, with an Opus high review |
 | L12c | The sidebar topics plugin; the sidebar tests rewritten for order and next links per topic; page-size measurement | L12a | S to M | Sonnet |
 | L12d | The figure pipeline (directive, inliner, sanitiser, `figures:build`, stale test, forced colours) and figures 1 and 2 | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
 | L12e | The version tag, the `next.` banner script, the `@alpha` install-line test and the "Docs for main" link | L12b | S | Sonnet |
@@ -103,12 +103,12 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 
 **Risks**
 
-- **Page weight is the main risk.** Each page embeds the whole sidebar. At 100 KiB for `start/install/` and 258 reference links, a link costs about 0.4 KB. With the four packages the reference holds 968 exports (253 today), so a page would carry about 980 links, roughly 350 to 390 KB, and `dist/` would grow from 32 MB to roughly 300 MB across about 1,000 pages. L12c (topics) therefore lands before L12f (the new reference).
-- **Build and test time** is 19 s and 42 s today; the study estimates 1 minute and 2 minutes with six packages.
+- **Page weight is the main risk.** Each page embeds the whole sidebar. At 103 KB for `start/install/` and 258 reference links, a link costs about 0.4 KB. With the four packages the reference holds 968 exports (253 today), so a page would carry about 980 links, roughly 350 to 390 KB, and `dist/` would grow from 32 MB to roughly 300 MB across about 1,000 pages. L12c (topics) therefore lands before L12f (the new reference).
+- **Build and test time** is about 18 s and 44 s today (measured 2026-11-22); the study estimates 1 minute and 2 minutes with six packages.
 - **Search.** The Pagefind index grows from 1.9 MB to an estimated 6 to 7 MB, loaded in chunks.
 - **Starlight internals.** The `SiteTitle`, `PageTitle`, `Head`, `Footer` and `ThemeSelect` overrides and the `--sl-*` mapping depend on Starlight's internals. Pin exactly, move one minor version per pull request and keep the overrides table.
 - **TypeScript 6.0.3** is pinned for TypeDoc, so every manual module the docs import must compile under TypeScript 6 and 7.
-- **The docs checks** count paragraphs and next links, so MDX, asides and figure directives need small `pages.ts` changes and tests.
+- **The docs checks** count paragraphs and next links, so MDX, asides and figure directives need small changes to the content tests and `pages.ts`, which already lists `.mdx` files but whose paragraph rules read only Markdown.
 - **Coupling.** A change to a book token or a `fig-*` rule makes the docs stale and their tests fail. That is intended, and both READMEs say so.
 - **CSP hashes** change with each Starlight upgrade, and L12m's test catches it.
 
