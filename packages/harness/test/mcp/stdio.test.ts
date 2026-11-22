@@ -138,6 +138,8 @@ describe("the registered tools", () => {
     ["control-name", /without control characters/],
     ["huge-schema", /input schema over 65536 bytes/],
     // The client library checks this one itself, before the harness's own check.
+    // The second tool's schema is one the SDK won't compile, so the refusal comes after the first tool was accepted.
+    ["remote-ref", /second.*does not compile|does not compile/],
     ["not-object-schema", /expected \\"object\\"/],
   ] as const) {
     test(`a ${scenario} tool list is refused, the server is closed, and none of its tools is registered`, async () => {

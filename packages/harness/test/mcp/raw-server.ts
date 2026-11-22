@@ -34,6 +34,8 @@ function toolsFor(): unknown[] {
       return [tool("bad\nname")];
     case "huge-schema":
       return [tool("big", { type: "object", description: "d".repeat(70 * 1024) })];
+    case "remote-ref":
+      return [tool("first"), tool("second", { type: "object", $ref: "http://example.com/schema.json" })];
     case "not-object-schema":
       return [tool("s", { type: "string" })];
     case "long-description":
