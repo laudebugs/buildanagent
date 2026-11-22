@@ -1,4 +1,4 @@
-// An authenticated Cloudflare AI Gateway (F9's follow-up): `gatewayToken` lets exactly one more credential,
+// An authenticated Cloudflare AI Gateway (the follow-up to the guard's refusal of `cf-aig-authorization`): `gatewayToken` lets exactly one more credential,
 // `cf-aig-authorization`, travel beside the provider key, and only to a Cloudflare AI Gateway host. These tests pin
 // both halves: the token is sent, and nothing else rides along. Every transport here records its requests and sends
 // nothing.
@@ -157,7 +157,7 @@ test("a gateway token needs a Cloudflare AI Gateway base URL, so it can reach no
 });
 
 test("an unusable gateway token is refused when the guard is built, and its text never appears", () => {
-  for (const gatewayToken of ["", " ", "a b", " abc", "abc ", "abc\n", "a\u0000b", 5, null, {}] as unknown[]) {
+  for (const gatewayToken of ["", " ", "a b", " abc", "abc ", "abc\n", "a\u0000b", "tök€n", 5, null, {}] as unknown[]) {
     assert.throws(
       () => egressGuard({ baseURL: GATEWAY, credential, gatewayToken: gatewayToken as string }),
       refusal("invalid_byok_config"),

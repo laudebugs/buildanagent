@@ -26,7 +26,7 @@ export interface EgressGuardOptions {
    * The token of a Cloudflare AI Gateway with authentication turned on, which the gateway reads from
    * `cf-aig-authorization`. The guard adds the header to each request, and it is the one other credential a request
    * may carry. The base URL must be a Cloudflare AI Gateway host, so the token can reach no other. It must be a
-   * non-empty string with no whitespace or control character, and it is never read from the environment.
+   * non-empty string of printable ASCII characters with no whitespace, and it is never read from the environment.
    */
   readonly gatewayToken?: string;
   /** The `fetch` that sends an allowed request. Defaults to `globalThis.fetch`, looked up on each request. */
@@ -75,16 +75,17 @@ function checkCredentials(headers: Headers, credential: EgressCredential, gatewa
   }
 }
 
-// A header value can't hold a control character, and a token with surrounding whitespace is a paste error.
-const UNUSABLE_TOKEN = /\s|[\p{Cc}]/u;
+// A token is printable ASCII: a header value can't hold a control character or a character above U+00FF, and
+// whitespace in a token is a paste error.
+const USABLE_TOKEN = /^[\x21-\x7e]+$/;
 
 /** The `cf-aig-authorization` value for a gateway token, or `undefined` when none is configured. */
 function gatewayHeaderValue(token: unknown, baseURL: string): string | undefined {
   if (token === undefined) return undefined;
-  if (typeof token !== "string" || token === "" || UNUSABLE_TOKEN.test(token)) {
+  if (typeof token !== "string" || !USABLE_TOKEN.test(token)) {
     throw new SafetyError(
       "invalid_byok_config",
-      "egressGuard needs a gatewayToken that is a non-empty string with no whitespace or control character",
+      "egressGuard needs a gatewayToken of printable ASCII characters, with no whitespace",
     );
   }
   const parsed = parseModelBaseUrl(baseURL);

@@ -29,7 +29,7 @@ export interface ExplicitProviderOptions<PROVIDER extends ExplicitProviderName =
    * The token of a Cloudflare AI Gateway with authentication turned on. The guard sends it as `cf-aig-authorization` with
    * every request, beside the provider key, and allows no other second credential. `baseURL` must then be a Cloudflare AI
    * Gateway endpoint, so the token can reach no other host. Left out, a request that carries `cf-aig-authorization`
-   * is refused. A key stored on the gateway is not supported: pass the provider key in `apiKey` either way.
+   * is refused. The package has no stored-key mode: `apiKey` is always sent, which Cloudflare treats as the request's own key.
    */
   readonly gatewayToken?: string;
   /** The `fetch` that sends a request once the guard allows it. Defaults to `globalThis.fetch`. */
