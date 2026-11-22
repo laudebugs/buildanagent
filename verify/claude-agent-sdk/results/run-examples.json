@@ -97,5 +97,16 @@
     "modelRequests": 2,
     "toolResults": 1,
     "tail": "ok - every request offers only: Skill, DeferredToolPlaceholder\nok - the skill left out of `skills` never reached the model\nok - the first request lists the skill's name and description\nok - the first request does not carry the skill's body\nok - the model called the Skill tool\nok - after the call, the body is in every request"
+  },
+  {
+    "id": "10-refusals-are-recorded",
+    "file": "/home/user/agent-speak/verify/claude-agent-sdk/examples/10-refusals-are-recorded.ts",
+    "outcome": "ran",
+    "patchedPlaceholders": false,
+    "exit": 0,
+    "ms": 1523,
+    "modelRequests": 6,
+    "toolResults": 6,
+    "tail": "ok - the result records one refused call\nok - the record names the refused tool\nok - the record keeps the refused call's input\nok - the model's next request carries the refusal as an error result\nok - the allowed read_notes ran\nok - an allowed call leaves permission_denials empty"
   }
 ]

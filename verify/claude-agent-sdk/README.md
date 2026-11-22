@@ -35,6 +35,12 @@ Both read the mock's request log through `examples/lib/mock-log.ts` and assert o
 
 The mock chooses which tool to load and which skill to read, as a stand-in for the model's judgement, so these examples assert what the SDK sends and when, not that a model chooses well. Both carry `// #region` and `// book:note` markers for the book.
 
+## One example shows a refusal the SDK records
+
+`10-refusals-are-recorded.ts` calls `send_email` on an MCP server that no rule allows, with no `canUseTool` callback to ask. The CLI refuses the call, so the tool never runs. The model's next request carries the refusal as an error result, and the run ends `success` with the call in `result.permission_denials`, which the SDK's types call the authoritative record of refusals. A second run, with `allowedTools` naming `read_notes`, runs that tool and leaves `permission_denials` empty. It carries `// #region refusal` and `// book:note` markers.
+
+It shows a permission refusal and not an operating-system sandbox. The SDK's `sandbox` option isolates command execution, and the mock never calls built-in host tools such as `Bash`, so a sandbox run would need a real shell command on the host. Chapter T22 gets a refusal the SDK enforces and records, and the sandbox tier stays the chapter's prose.
+
 ## Scripts
 
 | Command | Does |
