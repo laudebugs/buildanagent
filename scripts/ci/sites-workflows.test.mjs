@@ -1,9 +1,10 @@
-// Offline checks for the two sites' build and deploy workflows: docs-build.yml, site-build.yml, docs-deploy.yml and
-// site-deploy.yml. It reads them from .github/workflows/ once docs-deploy.yml is there, or else from the directory that
-// SITES_WORKFLOWS_DIR names, which lets a draft be checked before it is committed; with neither, every test is skipped.
-// It checks the shape that keeps the Cloudflare secrets away from a pull request's code, then runs the docs' resolve
-// step under bash against a stand-in `gh` that answers from fixtures through jq. Run with
-// `node --test scripts/ci/*.test.mjs`.
+// Offline checks for the two sites' build, deploy and pull-request-closed workflows: docs-build.yml, site-build.yml,
+// docs-deploy.yml, site-deploy.yml, docs-pr-closed.yml and site-pr-closed.yml. It reads them from .github/workflows/
+// once docs-deploy.yml is there, or else from the directory that SITES_WORKFLOWS_DIR names, which lets a draft be
+// checked before it is committed; with neither, every test is skipped. It checks the shape that keeps the Cloudflare
+// secrets away from a pull request's code, compares every deploy job's `if:` with the exact text below, then runs the
+// resolve, stable-tag, record, delete and comment steps under bash against stand-in `gh` and `pnpm` commands that
+// answer from fixtures, so nothing touches the network. Run with `node --test scripts/ci/*.test.mjs`.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -21,13 +22,55 @@ const skip =
 const read = (name) => (skip ? {} : parse(readFileSync(join(dir, name), "utf8")));
 const SITES = { docs: read("docs-deploy.yml"), site: read("site-deploy.yml") };
 const BUILDS = { docs: read("docs-build.yml"), site: read("site-build.yml") };
+const CLOSED = { docs: read("docs-pr-closed.yml"), site: read("site-pr-closed.yml") };
+const WORKERS = { docs: "buildanagent-docs", site: "buildanagent-site" };
 const work = mkdtempSync(join(tmpdir(), "sites-workflows-"));
 after(() => rmSync(work, { recursive: true, force: true }));
+
+const SHA = "a".repeat(40);
+const OTHER = "b".repeat(40);
+const REPO = "owner/repo";
 
 const environmentOf = (job) => (typeof job.environment === "string" ? job.environment : job.environment?.name);
 const steps = (job) => job.steps ?? [];
 const runs = (workflow) =>
   Object.values(workflow.jobs ?? {}).flatMap((job) => steps(job).map((step) => step.run ?? ""));
+const stepNamed = (job, name) => steps(job).find((step) => step.name === name);
+
+// Runs one step's script the way a runner does, with bash -e and only the given environment.
+function runStep(script, env) {
+  const output = join(mkdtempSync(join(work, "out-")), "output");
+  writeFileSync(output, "");
+  const result = spawnSync("bash", ["-e", "-c", script], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { PATH: process.env.PATH ?? "", GITHUB_OUTPUT: output, ...env },
+  });
+  const pairs = readFileSync(output, "utf8").split("\n").filter(Boolean);
+  return { ...result, outputs: Object.fromEntries(pairs.map((line) => line.split(/=(.*)/s).slice(0, 2))) };
+}
+
+// A stand-in for `gh api [--paginate] <path> [--jq <filter>]`: it answers from a fixture named after the path, through
+// jq when the call has --jq and as raw JSON when it does not, and fails as an API error would when there is none. It
+// logs each path it was asked for, so a test can check that no call was made.
+function fakeGh(answers) {
+  const home = mkdtempSync(join(work, "gh-"));
+  mkdirSync(join(home, "bin"));
+  const file = (path) => join(home, path.replace(/[^a-z0-9.]/gi, "_"));
+  for (const [path, body] of Object.entries(answers)) writeFileSync(file(path), JSON.stringify(body));
+  const gh = join(home, "bin", "gh");
+  writeFileSync(
+    gh,
+    `#!/bin/bash\n[ "$1" = api ] || exit 9\nshift\n[ "$1" = --paginate ] && shift\n` +
+      `printf '%s\\n' "$1" >> "${home}/calls"\n` +
+      `f="${home}/$(printf '%s' "$1" | tr -c 'a-zA-Z0-9.' '_')"\n[ -f "$f" ] || exit 1\n` +
+      `if [ $# -eq 1 ]; then exec cat "$f"; fi\n[ "$2" = --jq ] && [ $# -eq 3 ] || exit 9\nexec jq -r "$3" "$f"\n`,
+  );
+  chmodSync(gh, 0o755);
+  const calls = () =>
+    (existsSync(join(home, "calls")) ? readFileSync(join(home, "calls"), "utf8").split("\n") : []).filter(Boolean);
+  return { PATH: `${join(home, "bin")}:${process.env.PATH ?? ""}`, calls };
+}
 
 describe("the build workflows", { skip }, () => {
   for (const [name, workflow] of Object.entries(BUILDS)) {
@@ -36,6 +79,10 @@ describe("the build workflows", { skip }, () => {
       assert.deepEqual(workflow.permissions, { contents: "read" });
       assert.doesNotMatch(JSON.stringify(workflow), /secrets\./);
       assert.ok(Object.values(workflow.jobs).every((job) => job.environment === undefined));
+    });
+
+    test(`${name}-build keys its concurrency by ref, so a pull request of ours never cancels main's build`, () => {
+      assert.deepEqual(workflow.concurrency, { group: `${name}-build-\${{ github.ref }}`, "cancel-in-progress": true });
     });
 
     test(`${name}-build uploads only apps/${name}/dist/`, () => {
@@ -50,12 +97,135 @@ describe("the build workflows", { skip }, () => {
   }
 });
 
+describe("the pull-request-closed workflows", { skip }, () => {
+  for (const [name, workflow] of Object.entries(CLOSED)) {
+    test(`${name}-pr-closed runs on a closed pull request, holds nothing and runs no action`, () => {
+      assert.deepEqual(workflow.on, { pull_request: { types: ["closed"] } });
+      assert.equal(workflow.name, `${name}-pr-closed`);
+      assert.deepEqual(workflow.permissions, {});
+      assert.doesNotMatch(JSON.stringify(workflow), /secrets\.|environment|uses|permissions":\{"/);
+      assert.deepEqual(Object.keys(workflow.jobs), ["closed"]);
+    });
+  }
+});
+
+// Every deploy job's condition, exactly. A changed condition must change this table too, so a review sees it.
+const PUSH = (name) => [
+  `github.event.workflow_run.name == '${name}-build'`,
+  "github.event.workflow_run.event == 'push'",
+  "github.event.workflow_run.head_repository.full_name == github.repository",
+  "github.event.workflow_run.head_branch == 'main'",
+];
+const CONDITIONS = {
+  docs: {
+    resolve:
+      "(github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || " +
+      "(github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')",
+    secrets: "needs.resolve.outputs.target != 'none' && github.ref == 'refs/heads/main'",
+    "build-release": "github.event_name == 'workflow_dispatch' && needs.resolve.outputs.target == 'release'",
+    production: [
+      "!cancelled()",
+      "github.ref == 'refs/heads/main'",
+      "vars.DOCS_DEPLOY_ENABLED == 'true'",
+      "needs.secrets.outputs.present == 'true'",
+      `((github.event_name == 'workflow_run' && ${PUSH("docs").join(" && ")} && ` +
+        "needs.resolve.outputs.target == 'production') || (github.event_name == 'workflow_dispatch' && " +
+        "needs.resolve.outputs.target == 'release' && needs.build-release.result == 'success'))",
+    ].join(" && "),
+    next: [
+      "github.ref == 'refs/heads/main'",
+      "github.event_name == 'workflow_run'",
+      ...PUSH("docs"),
+      "vars.DOCS_DEPLOY_ENABLED == 'true'",
+      "needs.resolve.outputs.target == 'next'",
+      "needs.secrets.outputs.present == 'true'",
+    ].join(" && "),
+    preview: [
+      "github.ref == 'refs/heads/main'",
+      "github.event_name == 'workflow_run'",
+      "github.event.workflow_run.name == 'docs-build'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "github.event.workflow_run.head_repository.full_name == github.repository",
+      "needs.resolve.outputs.target == 'previews'",
+      "needs.secrets.outputs.present == 'true'",
+    ].join(" && "),
+    "delete-preview": [
+      "github.ref == 'refs/heads/main'",
+      "github.event_name == 'workflow_run'",
+      "github.event.workflow_run.name == 'docs-pr-closed'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "github.event.workflow_run.head_repository.full_name == github.repository",
+      "needs.resolve.outputs.target == 'deletions'",
+      "needs.secrets.outputs.present == 'true'",
+    ].join(" && "),
+    comment: [
+      "!cancelled()",
+      "github.event_name == 'workflow_run'",
+      "github.event.workflow_run.name == 'docs-build'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "needs.resolve.result == 'success'",
+      "needs.resolve.outputs.target == 'previews'",
+    ].join(" && "),
+    "comment-deleted": [
+      "!cancelled()",
+      "github.event_name == 'workflow_run'",
+      "github.event.workflow_run.name == 'docs-pr-closed'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "needs.resolve.result == 'success'",
+      "needs.resolve.outputs.target == 'deletions'",
+    ].join(" && "),
+  },
+  site: {
+    resolve: "github.event.workflow_run.conclusion == 'success'",
+    secrets: "needs.resolve.outputs.target != 'none'",
+    production: [
+      ...PUSH("site"),
+      "vars.SITE_DEPLOY_ENABLED == 'true'",
+      "needs.resolve.outputs.target == 'production'",
+      "needs.secrets.outputs.present == 'true'",
+    ].join(" && "),
+    preview: [
+      "github.event.workflow_run.name == 'site-build'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "github.event.workflow_run.head_repository.full_name == github.repository",
+      "needs.resolve.outputs.target == 'previews'",
+      "needs.secrets.outputs.present == 'true'",
+    ].join(" && "),
+    "delete-preview": [
+      "github.event.workflow_run.name == 'site-pr-closed'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "github.event.workflow_run.head_repository.full_name == github.repository",
+      "needs.resolve.outputs.target == 'deletions'",
+      "needs.secrets.outputs.present == 'true'",
+    ].join(" && "),
+    comment: [
+      "!cancelled()",
+      "github.event.workflow_run.name == 'site-build'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "needs.resolve.result == 'success'",
+      "needs.resolve.outputs.target == 'previews'",
+    ].join(" && "),
+    "comment-deleted": [
+      "!cancelled()",
+      "github.event.workflow_run.name == 'site-pr-closed'",
+      "github.event.workflow_run.event == 'pull_request'",
+      "needs.resolve.result == 'success'",
+      "needs.resolve.outputs.target == 'deletions'",
+    ].join(" && "),
+  },
+};
+// Folded YAML keeps the line breaks inside the parentheses as spaces; compare with single spaces.
+const condition = (job) => job.if.replace(/\s+/g, " ").replace(/\( /g, "(").trim();
+
 describe("the deploy workflows", { skip }, () => {
   for (const [name, workflow] of Object.entries(SITES)) {
     const jobs = Object.entries(workflow.jobs ?? {});
 
-    test(`${name}-deploy starts only after ${name}-build${name === "docs" ? ", or from a dispatch with a tag" : ""}`, () => {
-      assert.deepEqual(workflow.on.workflow_run, { workflows: [`${name}-build`], types: ["completed"] });
+    test(`${name}-deploy starts only after ${name}-build or ${name}-pr-closed${name === "docs" ? ", or from a dispatch with a tag" : ""}`, () => {
+      assert.deepEqual(workflow.on.workflow_run, {
+        workflows: [`${name}-build`, `${name}-pr-closed`],
+        types: ["completed"],
+      });
       assert.deepEqual(
         Object.keys(workflow.on),
         name === "docs" ? ["workflow_run", "workflow_dispatch"] : ["workflow_run"],
@@ -67,6 +237,11 @@ describe("the deploy workflows", { skip }, () => {
         assert.equal(inputs.tag.type, "string");
       }
       assert.deepEqual(workflow.permissions, {});
+    });
+
+    test(`${name}-deploy: every job's condition is exactly the expected one`, () => {
+      assert.deepEqual(Object.keys(workflow.jobs).sort(), Object.keys(CONDITIONS[name]).sort());
+      for (const [id, job] of jobs) assert.equal(condition(job), CONDITIONS[name][id], id);
     });
 
     test(`${name}-deploy: every job sets its own permissions and runs on the pinned runner`, () => {
@@ -83,10 +258,16 @@ describe("the deploy workflows", { skip }, () => {
         if (job.environment === undefined) assert.ok(!usesSecrets, `${id} reads a secret outside the environment`);
         else {
           assert.equal(environmentOf(job), "cloudflare", id);
-          if (id !== "secrets") {
-            assert.ok([job.needs].flat().includes("secrets"), `${id} must need the secrets job`);
-            assert.match(job.if, /needs\.secrets\.outputs\.present == 'true'/, id);
-          }
+          if (id !== "secrets") assert.ok([job.needs].flat().includes("secrets"), `${id} must need the secrets job`);
+        }
+      }
+    });
+
+    test(`${name}-deploy: a Cloudflare secret reaches only the steps that run Wrangler`, () => {
+      for (const [id, job] of jobs.filter(([key]) => key !== "secrets")) {
+        for (const step of steps(job).filter((step) => /secrets\./.test(JSON.stringify(step)))) {
+          assert.match(step.run, /pnpm exec wrangler /, `${id}: ${step.name}`);
+          assert.equal(step.env.GH_TOKEN, undefined, `${id}: ${step.name}`);
         }
       }
     });
@@ -105,30 +286,47 @@ describe("the deploy workflows", { skip }, () => {
       for (const script of runs(workflow)) assert.doesNotMatch(script, /\$\{\{/);
     });
 
-    test(`${name}-deploy: production needs a push to main from this repository and the owner's switch`, () => {
-      const production = workflow.jobs.production.if;
-      for (const condition of [
-        "github.event.workflow_run.event == 'push'",
-        "github.event.workflow_run.head_repository.full_name == github.repository",
-        "github.event.workflow_run.head_branch == 'main'",
-        `vars.${name.toUpperCase()}_DEPLOY_ENABLED == 'true'`,
-      ]) {
-        assert.ok(production.includes(condition), condition);
+    test(`${name}-deploy: no deploy is cancelled mid-way, and a preview and its deletion share one queue`, () => {
+      for (const [id, job] of jobs.filter(([, job]) => job.concurrency)) {
+        assert.equal(job.concurrency["cancel-in-progress"], false, id);
       }
-      assert.equal(workflow.jobs.production.concurrency["cancel-in-progress"], false);
+      const group = `${name}-preview-pr-\${{ matrix.number }}`;
+      assert.equal(workflow.jobs.preview.concurrency.group, group);
+      assert.equal(workflow.jobs["delete-preview"].concurrency.group, group);
+      // A push and a release must not share a group: a waiting run is replaced by the next, and a release's must not be.
+      assert.equal(
+        workflow.jobs.production.concurrency.group,
+        name === "docs" ? `docs-production-\${{ github.event_name }}` : "site-production",
+      );
     });
 
-    test(`${name}-deploy: the comment job holds only pull-requests: write and no environment`, () => {
-      const { comment } = workflow.jobs;
-      assert.deepEqual(comment.permissions, { "pull-requests": "write" });
-      assert.equal(comment.environment, undefined);
-      assert.ok(!steps(comment).some((step) => step.uses?.startsWith("actions/checkout@")));
+    test(`${name}-deploy: the comment jobs hold only pull-requests: write and no environment`, () => {
+      for (const id of ["comment", "comment-deleted"]) {
+        const job = workflow.jobs[id];
+        assert.deepEqual(job.permissions, { "pull-requests": "write" }, id);
+        assert.equal(job.environment, undefined, id);
+        assert.ok(!steps(job).some((step) => step.uses?.startsWith("actions/checkout@")), id);
+      }
+      assert.equal(
+        workflow.jobs.comment.steps.at(-1).run,
+        workflow.jobs["comment-deleted"].steps.at(-1).run,
+        "both comment jobs run one script",
+      );
+      assert.equal(workflow.jobs.comment.steps.at(-1).env.MODE, "preview");
+      assert.equal(workflow.jobs["comment-deleted"].steps.at(-1).env.MODE, "deleted");
     });
 
     test(`${name}-deploy: the preview runs wrangler preview with main's config and the pull request number from resolve`, () => {
       const { preview } = workflow.jobs;
       assert.equal(preview.strategy.matrix.number, `\${{ fromJSON(needs.resolve.outputs.previews) }}`);
       assert.ok(runs({ jobs: { preview } }).some((script) => /wrangler preview --config wrangler\.toml/.test(script)));
+    });
+
+    test(`${name}-deploy: the deletion checks out main, downloads no artifact and takes its number from resolve`, () => {
+      const job = workflow.jobs["delete-preview"];
+      assert.equal(job.strategy.matrix.number, `\${{ fromJSON(needs.resolve.outputs.deletions) }}`);
+      assert.deepEqual(job.permissions, { contents: "read" });
+      assert.ok(!steps(job).some((step) => step.uses?.startsWith("actions/download-artifact@")));
     });
   }
 
@@ -146,9 +344,30 @@ describe("the deploy workflows", { skip }, () => {
     assert.match(scripts, /wrangler deploy --config wrangler\.toml --env next/);
   });
 
+  test("docs-deploy's production checks for a stable tag around a push's deploy, and a release always deploys", () => {
+    const job = SITES.docs.jobs.production;
+    const names = steps(job).map((step) => step.name);
+    const before = names.indexOf("Check that no stable release exists yet");
+    const deploy = names.indexOf("Deploy");
+    const afterDeploy = names.indexOf("Check that no stable release was tagged during the deploy");
+    assert.ok(before >= 0 && before < deploy && deploy < afterDeploy, names.join(", "));
+    assert.equal(steps(job)[before].if, "github.event_name == 'workflow_run'");
+    assert.equal(steps(job)[before].env.PHASE, "before");
+    assert.equal(
+      steps(job)[deploy].if,
+      "github.event_name == 'workflow_dispatch' || steps.unreleased.outputs.deploy == 'true'",
+    );
+    assert.equal(
+      steps(job)[afterDeploy].if,
+      "github.event_name == 'workflow_run' && steps.unreleased.outputs.deploy == 'true'",
+    );
+    assert.equal(steps(job)[afterDeploy].env.PHASE, "after");
+    assert.equal(steps(job)[afterDeploy].run, steps(job)[before].run);
+  });
+
   test("every action is one the lock already holds at that tag", () => {
     const lock = readFileSync(join(committed, "actions.lock"), "utf8");
-    for (const workflow of [...Object.values(SITES), ...Object.values(BUILDS)]) {
+    for (const workflow of [...Object.values(SITES), ...Object.values(BUILDS), ...Object.values(CLOSED)]) {
       for (const job of Object.values(workflow.jobs)) {
         for (const step of steps(job).filter((step) => step.uses)) {
           assert.ok(lock.includes(`'${step.uses}':`), `${step.uses} is not in actions.lock's dependencies`);
@@ -158,43 +377,176 @@ describe("the deploy workflows", { skip }, () => {
   });
 });
 
-describe("the docs' resolve step", { skip }, () => {
-  const SHA = "a".repeat(40);
-  const TAG_OBJECT = "c".repeat(40);
-  const REPO = "owner/repo";
-  const step = skip ? {} : SITES.docs.jobs.resolve.steps[0];
+const pull = (number, { state = "open", sha = SHA, head = REPO, base = REPO } = {}) => ({
+  number,
+  state,
+  head: { sha, repo: { full_name: head } },
+  base: { repo: { full_name: base } },
+});
+const CLOSED_PATH = "repos/owner/repo/pulls?state=closed&sort=updated&direction=desc&per_page=100";
 
-  // A stand-in for `gh api [--paginate] <path> --jq <filter>`: it answers from a fixture named after the path, through
-  // jq, and fails as an API error would when there is none.
-  function fakeGh(answers) {
-    const home = mkdtempSync(join(work, "gh-"));
-    mkdirSync(join(home, "bin"));
-    const file = (path) => join(home, path.replace(/[^a-z0-9.]/gi, "_"));
-    for (const [path, body] of Object.entries(answers)) writeFileSync(file(path), JSON.stringify(body));
-    const gh = join(home, "bin", "gh");
-    writeFileSync(
-      gh,
-      `#!/bin/bash\n[ "$1" = api ] || exit 9\nshift\n[ "$1" = --paginate ] && shift\n[ "$2" = --jq ] || exit 9\n` +
-        `f="${home}/$(printf '%s' "$1" | tr -c 'a-zA-Z0-9.' '_')"\n[ -f "$f" ] || exit 1\nexec jq -r "$3" "$f"\n`,
-    );
-    chmodSync(gh, 0o755);
-    return `${join(home, "bin")}:${process.env.PATH ?? ""}`;
-  }
+for (const name of ["docs", "site"]) {
+  describe(`the ${name} resolve step`, { skip }, () => {
+    const step = skip ? {} : SITES[name].jobs.resolve.steps[0];
+    const dispatchEnv = name === "docs" ? { EVENT_NAME: "workflow_run" } : {};
+    const run = (env, answers = {}) => {
+      const gh = fakeGh(answers);
+      const result = runStep(step.run, {
+        PATH: gh.PATH,
+        REPO,
+        ...dispatchEnv,
+        WORKFLOW: `${name}-build`,
+        EVENT: "pull_request",
+        HEAD_SHA: SHA,
+        HEAD_REPO: REPO,
+        HEAD_BRANCH: "feature",
+        ...env,
+      });
+      return { ...result, calls: gh.calls() };
+    };
+    const push = (answers) => run({ EVENT: "push", HEAD_BRANCH: "main" }, answers);
+    const tags = name === "docs" ? { "repos/owner/repo/git/matching-refs/tags/v": [] } : {};
 
-  function run(env, answers = {}) {
-    const outputs = join(mkdtempSync(join(work, "out-")), "output");
-    writeFileSync(outputs, "");
-    const result = spawnSync("bash", ["-e", "-c", step.run], {
-      encoding: "utf8",
-      env: { PATH: fakeGh(answers), GITHUB_OUTPUT: outputs, REPO, ...env },
+    test("reads every event value from env, set from the workflow_run payload", () => {
+      assert.equal(step.env.WORKFLOW, `\${{ github.event.workflow_run.name }}`);
+      assert.equal(step.env.HEAD_REPO, `\${{ github.event.workflow_run.head_repository.full_name }}`);
+      assert.equal(step.env.HEAD_SHA, `\${{ github.event.workflow_run.head_sha }}`);
     });
-    const pairs = readFileSync(outputs, "utf8").trim().split("\n").filter(Boolean);
-    return { ...result, outputs: Object.fromEntries(pairs.map((line) => line.split(/=(.*)/s).slice(0, 2))) };
-  }
 
+    test("a push of main's newest commit deploys production", () => {
+      const result = push({ "repos/owner/repo/commits/main": { sha: SHA }, ...tags });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.target, "production");
+    });
+
+    test("a push that is no longer main's newest commit deploys nothing", () => {
+      const result = push({ "repos/owner/repo/commits/main": { sha: OTHER }, ...tags });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.target, "none");
+      assert.match(result.stdout, /no longer main's newest commit/);
+    });
+
+    test("a push whose main lookup fails deploys nothing", () => {
+      const result = push({});
+      assert.notEqual(result.status, 0);
+      assert.notEqual(result.outputs.target, "production");
+    });
+
+    test("a push from a fork's branch named main deploys nothing and calls no API", () => {
+      const result = run({ EVENT: "push", HEAD_REPO: "fork/repo", HEAD_BRANCH: "main" });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.target, "none");
+      assert.deepEqual(result.calls, []);
+    });
+
+    test("a push reported by the closed workflow deploys nothing", () => {
+      const result = run({ WORKFLOW: `${name}-pr-closed`, EVENT: "push", HEAD_BRANCH: "main" });
+      assert.equal(result.outputs.target, "none");
+      assert.deepEqual(result.calls, []);
+    });
+
+    test("a pull request from this repository previews only open pull requests from a branch of it", () => {
+      const pulls = [
+        pull(7, { head: "fork/repo" }),
+        pull(8),
+        pull(9, { state: "closed" }),
+        pull(10, { sha: OTHER }),
+        pull(11, { base: "other/repo" }),
+      ];
+      const result = run({}, { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.target, "previews");
+      assert.equal(result.outputs.previews, "[8]");
+      assert.equal(result.outputs.deletions, "[]");
+    });
+
+    test("a fork's pull request gets no preview and calls no API", () => {
+      const result = run(
+        { HEAD_REPO: "fork/repo" },
+        { [`repos/owner/repo/commits/${SHA}/pulls`]: [pull(7, { head: "fork/repo" })] },
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual([result.outputs.target, result.outputs.previews], ["none", "[]"]);
+      assert.match(result.stdout, /fork's pull request/);
+      assert.deepEqual(result.calls, []);
+    });
+
+    test("a run whose fork was deleted, with no head repository, deploys nothing", () => {
+      const result = run({ HEAD_REPO: "" });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.target, "none");
+    });
+
+    for (const headRepo of ['owner/repo") or true or ("', "owner/repo\nx", "owner", "a/b/c", "own er/repo"]) {
+      test(`refuses the head repository ${JSON.stringify(headRepo)} before any API call`, () => {
+        const result = run({ HEAD_REPO: headRepo });
+        assert.notEqual(result.status, 0);
+        assert.match(result.stdout, /not an owner\/name pair/);
+        assert.deepEqual(result.calls, []);
+      });
+    }
+
+    test("refuses a head SHA that is not a commit SHA", () => {
+      const result = run({ HEAD_SHA: `${SHA}\nx` });
+      assert.notEqual(result.status, 0);
+      assert.deepEqual(result.calls, []);
+    });
+
+    test("a closed pull request from a branch of this repository is deleted; open and fork pull requests are not", () => {
+      const pulls = [
+        pull(7, { state: "closed" }),
+        pull(8, { state: "closed", head: "fork/repo" }),
+        pull(9),
+        pull(10, { state: "closed", sha: OTHER }),
+      ];
+      const result = run({ WORKFLOW: `${name}-pr-closed` }, { [CLOSED_PATH]: pulls });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(
+        [result.outputs.target, result.outputs.deletions, result.outputs.previews],
+        ["deletions", "[7]", "[]"],
+      );
+    });
+
+    test("a fork's closed pull request deletes nothing and calls no API", () => {
+      const result = run(
+        { WORKFLOW: `${name}-pr-closed`, HEAD_REPO: "fork/repo" },
+        { [CLOSED_PATH]: [pull(8, { state: "closed", head: "fork/repo" })] },
+      );
+      assert.equal(result.outputs.target, "none");
+      assert.deepEqual(result.calls, []);
+    });
+
+    test("a closed pull request with no match deletes nothing", () => {
+      const result = run({ WORKFLOW: `${name}-pr-closed` }, { [CLOSED_PATH]: [] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.target, "none");
+    });
+
+    test("a pull request lookup that fails deploys nothing", () => {
+      const result = run({});
+      assert.notEqual(result.status, 0);
+      assert.notEqual(result.outputs.target, "previews");
+    });
+  });
+}
+
+describe("the docs' dispatch and next", { skip }, () => {
+  const TAG_OBJECT = "c".repeat(40);
+  const step = skip ? {} : SITES.docs.jobs.resolve.steps[0];
+  const run = (env, answers = {}) => runStep(step.run, { PATH: fakeGh(answers).PATH, REPO, ...env });
   const dispatch = (tag, answers) => run({ EVENT_NAME: "workflow_dispatch", TAG: tag }, answers);
   const push = (answers) =>
-    run({ EVENT_NAME: "workflow_run", EVENT: "push", HEAD_SHA: SHA, HEAD_REPO: REPO, HEAD_BRANCH: "main" }, answers);
+    run(
+      {
+        EVENT_NAME: "workflow_run",
+        WORKFLOW: "docs-build",
+        EVENT: "push",
+        HEAD_SHA: SHA,
+        HEAD_REPO: REPO,
+        HEAD_BRANCH: "main",
+      },
+      answers,
+    );
 
   test("takes the tag from inputs through env only", () => {
     assert.equal(step.env.TAG, `\${{ inputs.tag }}`);
@@ -206,7 +558,7 @@ describe("the docs' resolve step", { skip }, () => {
       [`repos/owner/repo/compare/${SHA}...main`]: { status: "ahead" },
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.outputs, { target: "release", previews: "[]", sha: SHA });
+    assert.deepEqual(result.outputs, { target: "release", previews: "[]", deletions: "[]", sha: SHA });
   });
 
   test("a dispatch of an annotated tag follows it to its commit", () => {
@@ -250,37 +602,361 @@ describe("the docs' resolve step", { skip }, () => {
     assert.notEqual(result.status, 0);
     assert.notEqual(result.outputs.target, "production");
   });
+});
 
-  test("a push from a fork's branch named main deploys nothing", () => {
-    const result = run(
-      { EVENT_NAME: "workflow_run", EVENT: "push", HEAD_SHA: SHA, HEAD_REPO: "fork/repo", HEAD_BRANCH: "main" },
-      {},
-    );
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.outputs.target, "none");
+describe("the docs' stable-tag check in production", { skip }, () => {
+  const job = skip ? {} : SITES.docs.jobs.production;
+  const script = skip ? "" : stepNamed(job, "Check that no stable release exists yet").run;
+  const TAGS = "repos/owner/repo/git/matching-refs/tags/v";
+  const check = (phase, answers) => runStep(script, { PATH: fakeGh(answers).PATH, REPO, PHASE: phase });
+
+  test("lets the deploy go ahead while only prerelease tags exist", () => {
+    for (const phase of ["before", "after"]) {
+      const result = check(phase, { [TAGS]: [{ ref: "refs/tags/v0.1.0-alpha.3" }, { ref: "refs/tags/v0.1.0x" }] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.outputs.deploy, "true");
+    }
   });
 
-  test("a pull request previews only open pull requests from the head repository the build ran for", () => {
-    const pulls = [
-      {
-        number: 7,
-        state: "open",
-        head: { sha: SHA, repo: { full_name: "fork/repo" } },
-        base: { repo: { full_name: REPO } },
-      },
-      { number: 8, state: "open", head: { sha: SHA, repo: { full_name: REPO } }, base: { repo: { full_name: REPO } } },
-      {
-        number: 9,
-        state: "closed",
-        head: { sha: SHA, repo: { full_name: "fork/repo" } },
-        base: { repo: { full_name: REPO } },
-      },
-    ];
-    const result = run(
-      { EVENT_NAME: "workflow_run", EVENT: "pull_request", HEAD_SHA: SHA, HEAD_REPO: "fork/repo", HEAD_BRANCH: "main" },
-      { [`repos/owner/repo/commits/${SHA}/pulls`]: pulls },
-    );
+  test("skips the deploy with a notice when a stable tag appeared before it", () => {
+    const result = check("before", { [TAGS]: [{ ref: "refs/tags/v0.1.0" }] });
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.outputs, { target: "previews", previews: "[7]", sha: "" });
+    assert.equal(result.outputs.deploy, "false");
+    assert.match(result.stdout, /::notice::/);
+  });
+
+  test("fails loudly when a stable tag appeared during the deploy", () => {
+    const result = check("after", { [TAGS]: [{ ref: "refs/tags/v1.0.0" }] });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout, /::error::/);
+  });
+
+  test("a failed tag lookup stops the deploy", () => {
+    const result = check("before", {});
+    assert.notEqual(result.status, 0);
+    assert.notEqual(result.outputs.deploy, "true");
   });
 });
+
+for (const name of ["docs", "site"]) {
+  const WORKER = WORKERS[name];
+  const ALIAS = `https://pr-7-${WORKER}.example.workers.dev`;
+  const VERSION = `https://1a2b3c4d-${WORKER}.example.workers.dev`;
+
+  describe(`the ${name} preview's URL check`, { skip }, () => {
+    const record = skip ? {} : SITES[name].jobs.preview.steps.find((step) => step.id === "record");
+
+    function recordWith(lines, number = "7") {
+      const at = mkdtempSync(join(work, "record-"));
+      const output = join(at, "wrangler-output.jsonl");
+      if (lines !== null) writeFileSync(output, lines.map((line) => JSON.stringify(line)).join("\n"));
+      const result = runStep(record.run, { NUMBER: number, WORKER, OUTPUT_FILE: output, URLS_DIR: join(at, "urls") });
+      const file = join(at, "urls", "urls.txt");
+      return { ...result, urls: existsSync(file) ? readFileSync(file, "utf8") : null };
+    }
+    const entry = (preview_urls, deployment_urls) => ({ type: "preview", version: 1, preview_urls, deployment_urls });
+
+    test("takes the Worker's name from a fixed env value", () => {
+      assert.equal(record.env.WORKER, WORKER);
+    });
+
+    test("keeps the preview URL and the commit's URL on the same subdomain", () => {
+      const result = recordWith([{ type: "wrangler-session" }, entry([`${ALIAS}/`], [VERSION])]);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.urls, `${ALIAS}\n${VERSION}\n`);
+      assert.equal(result.outputs.found, "true");
+    });
+
+    test("drops a commit URL on another subdomain, keeping the preview URL alone", () => {
+      const result = recordWith([entry([ALIAS], [`https://1a2b3c4d-${WORKER}.attacker.workers.dev`])]);
+      assert.equal(result.urls, `${ALIAS}\n\n`);
+    });
+
+    test("rejects a URL holding a newline, so one string never reads as two lines", () => {
+      const result = recordWith([entry([`${ALIAS}\nhttps://evil.example`], [VERSION])]);
+      assert.equal(result.urls, null);
+      assert.equal(result.outputs.found, "false");
+    });
+
+    test("rejects another Worker's preview, another pull request's, and a host that is not workers.dev", () => {
+      const other = name === "docs" ? "buildanagent-site" : "buildanagent-docs";
+      for (const url of [
+        `https://pr-7-${other}.example.workers.dev`,
+        `https://pr-70-${WORKER}.example.workers.dev`,
+        `https://pr-7-${WORKER}.example.workers.dev.evil.example`,
+        `http://pr-7-${WORKER}.example.workers.dev`,
+        `https://pr-7-${WORKER}.example.workers.dev/path`,
+      ]) {
+        const result = recordWith([entry([url], [])]);
+        assert.equal(result.urls, null, url);
+        assert.equal(result.outputs.found, "false", url);
+      }
+    });
+
+    test("ignores URLs outside a preview entry, and a missing output file", () => {
+      assert.equal(recordWith([{ type: "deploy", preview_urls: [ALIAS] }]).urls, null);
+      assert.equal(recordWith(null).outputs.found, "false");
+    });
+
+    test("refuses a pull request number that is not a number", () => {
+      assert.notEqual(recordWith([entry([ALIAS], [])], "7 -x").status, 0);
+    });
+  });
+
+  describe(`the ${name} preview's deletion`, { skip }, () => {
+    const step = skip ? {} : stepNamed(SITES[name].jobs["delete-preview"], "Delete the preview");
+
+    // A stand-in pnpm that logs its arguments and exits with the given status.
+    function deleteWith(number, status) {
+      const at = mkdtempSync(join(work, "delete-"));
+      mkdirSync(join(at, "bin"));
+      writeFileSync(join(at, "bin", "pnpm"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${at}/args"\nexit ${status}\n`);
+      chmodSync(join(at, "bin", "pnpm"), 0o755);
+      const result = spawnSync("bash", ["-e", "-c", step.run], {
+        cwd: at,
+        encoding: "utf8",
+        env: {
+          PATH: `${join(at, "bin")}:${process.env.PATH ?? ""}`,
+          GITHUB_OUTPUT: join(at, "output"),
+          NUMBER: number,
+          DELETED_DIR: join(at, "deleted"),
+        },
+      });
+      const marker = join(at, "deleted", "deleted.txt");
+      return {
+        ...result,
+        args: existsSync(join(at, "args")) ? readFileSync(join(at, "args"), "utf8").trim().split("\n") : null,
+        marker: existsSync(marker) ? readFileSync(marker, "utf8") : null,
+        output: existsSync(join(at, "output")) ? readFileSync(join(at, "output"), "utf8") : "",
+      };
+    }
+
+    test("deletes pr-<n> from main's config and leaves the marker", () => {
+      const result = deleteWith("7", 0);
+      assert.equal(result.status, 0, result.stderr);
+      const env = name === "docs" ? ["--env", ""] : [];
+      assert.deepEqual(result.args, [
+        "exec",
+        "wrangler",
+        "preview",
+        "delete",
+        "--config",
+        "wrangler.toml",
+        ...env,
+        "--name",
+        "pr-7",
+        "--skip-confirmation",
+      ]);
+      assert.equal(result.marker, "deleted\n");
+      assert.match(result.output, /deleted=true/);
+    });
+
+    test("a failed deletion warns and leaves no marker", () => {
+      const result = deleteWith("7", 1);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.marker, null);
+      assert.match(result.stdout, /::warning::/);
+    });
+
+    test("refuses a pull request number that is not a number, before Wrangler runs", () => {
+      for (const number of ["7 --name pr-1", "0", "", "07"]) {
+        const result = deleteWith(number, 0);
+        assert.notEqual(result.status, 0, number);
+        assert.equal(result.args, null, number);
+      }
+    });
+  });
+
+  describe(`the ${name} comment script`, { skip }, () => {
+    const script = skip ? "" : SITES[name].jobs.comment.steps.at(-1).run;
+    const env = skip ? {} : SITES[name].jobs.comment.steps.at(-1).env;
+    const MARKER = env.MARKER;
+    const C_SHA = "c".repeat(40);
+    const bot = { login: "github-actions[bot]", type: "Bot" };
+
+    // A stand-in for the `gh api` calls the script makes. It keeps the pull request and its comments in a state file,
+    // answers reads through jq, applies POST and PATCH to the state, and fails on any flag the script should not use.
+    function fakeCommentGh(state) {
+      const at = mkdtempSync(join(work, "gh-comment-"));
+      mkdirSync(join(at, "bin"));
+      const stateFile = join(at, "state.json");
+      writeFileSync(stateFile, JSON.stringify({ nextId: 100, ...state }));
+      writeFileSync(
+        join(at, "bin", "gh"),
+        `#!${process.execPath}
+const fs = require("node:fs");
+const { spawnSync } = require("node:child_process");
+const stateFile = ${JSON.stringify(stateFile)};
+const state = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+const args = process.argv.slice(2);
+if (args[0] !== "api") process.exit(9);
+let method = "GET", jq, path, fields = {};
+for (let i = 1; i < args.length; i++) {
+  const a = args[i];
+  if (a === "--method") method = args[++i];
+  else if (a === "--jq") jq = args[++i];
+  else if (a === "-f") { const kv = args[++i]; fields[kv.slice(0, kv.indexOf("="))] = kv.slice(kv.indexOf("=") + 1); }
+  else if (a === "--paginate" || a === "--silent") {}
+  else if (a.startsWith("-")) { console.error("unexpected flag " + a); process.exit(9); }
+  else path = a;
+}
+fs.appendFileSync(stateFile + ".calls", JSON.stringify({ method, path, fields }) + "\\n");
+let data;
+if (method === "GET" && /^repos\\/owner\\/repo\\/pulls\\/\\d+$/.test(path)) data = state.pull;
+else if (method === "GET" && /^repos\\/owner\\/repo\\/issues\\/\\d+\\/comments\\?per_page=100$/.test(path)) data = state.comments;
+else if (method === "POST" && /^repos\\/owner\\/repo\\/issues\\/\\d+\\/comments$/.test(path)) {
+  state.comments.push({ id: state.nextId++, user: { login: "github-actions[bot]", type: "Bot" }, body: fields.body });
+} else if (method === "PATCH" && /^repos\\/owner\\/repo\\/issues\\/comments\\/\\d+$/.test(path)) {
+  const target = state.comments.find((c) => String(c.id) === path.split("/").pop());
+  if (!target) { console.error("HTTP 404"); process.exit(1); }
+  target.body = fields.body;
+} else { console.error("unexpected call " + method + " " + path); process.exit(9); }
+fs.writeFileSync(stateFile, JSON.stringify(state));
+if (data !== undefined) {
+  const out = spawnSync("jq", ["-r", jq], { input: JSON.stringify(data), encoding: "utf8" });
+  process.stdout.write(out.stdout);
+  process.exit(out.status);
+}
+`,
+      );
+      chmodSync(join(at, "bin", "gh"), 0o755);
+      const calls = () =>
+        existsSync(`${stateFile}.calls`)
+          ? readFileSync(`${stateFile}.calls`, "utf8").trim().split("\n").filter(Boolean).map(JSON.parse)
+          : [];
+      return {
+        PATH: `${join(at, "bin")}:${process.env.PATH ?? ""}`,
+        dir: at,
+        comments: () => JSON.parse(readFileSync(stateFile, "utf8")).comments,
+        writes: () => calls().filter((call) => call.method !== "GET"),
+      };
+    }
+
+    const open = { state: "open", head: { sha: C_SHA, repo: { full_name: REPO } } };
+    const closed = { ...open, state: "closed" };
+    const run = (gh, { mode = "preview", signalText = `${ALIAS}\n${VERSION}\n`, ...rest } = {}) => {
+      const signal = join(gh.dir, "signal.txt");
+      if (signalText !== null) writeFileSync(signal, signalText);
+      return runStep(script, {
+        PATH: gh.PATH,
+        GH_TOKEN: "test",
+        REPO,
+        NUMBER: "7",
+        HEAD_SHA: C_SHA,
+        WORKER,
+        MARKER,
+        TITLE: env.TITLE,
+        MODE: mode,
+        SIGNAL: signal,
+        ...rest,
+      });
+    };
+    const BODY = [
+      MARKER,
+      `**${env.TITLE}** of ccccccc`,
+      "",
+      `- Pull request preview, which follows its newest commit: ${ALIAS}`,
+      `- This commit only: ${VERSION}`,
+    ].join("\n");
+
+    test("both comment jobs pass the same fixed marker, title and Worker", () => {
+      const deleted = SITES[name].jobs["comment-deleted"].steps.at(-1).env;
+      assert.equal(MARKER, `<!-- ${name}-preview -->`);
+      for (const key of ["MARKER", "TITLE", "WORKER", "REPO", "NUMBER", "HEAD_SHA"])
+        assert.equal(deleted[key], env[key], key);
+      assert.equal(env.WORKER, WORKER);
+    });
+
+    test("creates one comment holding only the marker, the short SHA and the two URLs", () => {
+      const gh = fakeCommentGh({ pull: open, comments: [] });
+      const result = run(gh);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(
+        gh.comments().map((c) => c.body),
+        [BODY],
+      );
+    });
+
+    test("edits the bot's own marked comment and leaves a person's quote of the marker alone", () => {
+      const person = { id: 5, user: { login: "someone", type: "User" }, body: `${MARKER} quoted` };
+      const ours = { id: 6, user: bot, body: `${MARKER}\nold` };
+      const gh = fakeCommentGh({ pull: open, comments: [person, ours] });
+      run(gh);
+      assert.deepEqual(
+        gh.comments().map((c) => c.body),
+        [person.body, BODY],
+      );
+      assert.deepEqual(
+        gh.writes().map((w) => [w.method, w.path]),
+        [["PATCH", "repos/owner/repo/issues/comments/6"]],
+      );
+    });
+
+    for (const [label, pr] of [
+      ["a closed pull request", closed],
+      ["a pull request with a newer commit", { ...open, head: { ...open.head, sha: OTHER } }],
+      ["a fork's pull request", { ...open, head: { ...open.head, repo: { full_name: "fork/repo" } } }],
+      ["a pull request whose fork was deleted", { ...open, head: { sha: C_SHA, repo: null } }],
+    ]) {
+      test(`writes nothing on ${label}`, () => {
+        const gh = fakeCommentGh({ pull: pr, comments: [] });
+        const result = run(gh);
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(gh.writes(), []);
+      });
+    }
+
+    for (const [label, text] of [
+      ["one line only", `${ALIAS}\n`],
+      ["three lines", `${ALIAS}\n${VERSION}\nhttps://evil.example\n`],
+      ["another Worker's preview", `${ALIAS.replace(WORKER, "buildanagent-manual")}\n\n`],
+      ["another pull request's preview", `${ALIAS.replace("pr-7-", "pr-8-")}\n\n`],
+      ["a commit URL on another subdomain", `${ALIAS}\n${VERSION.replace(".example.", ".attacker.")}\n`],
+      ["a commit URL with markdown", `${ALIAS}\n${VERSION})[x](https://evil.example\n`],
+    ]) {
+      test(`writes nothing for a URL file with ${label}`, () => {
+        const gh = fakeCommentGh({ pull: open, comments: [] });
+        const result = run(gh, { signalText: text });
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(gh.writes(), []);
+      });
+    }
+
+    test("writes nothing when the preview handed on no URLs", () => {
+      const gh = fakeCommentGh({ pull: open, comments: [] });
+      run(gh, { signalText: null });
+      assert.deepEqual(gh.writes(), []);
+    });
+
+    test("marks the comment deleted once a closed pull request's preview is gone", () => {
+      const ours = { id: 6, user: bot, body: BODY };
+      const gh = fakeCommentGh({ pull: closed, comments: [ours] });
+      const result = run(gh, { mode: "deleted", signalText: "deleted\n" });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(
+        gh.comments().map((c) => c.body),
+        [`${MARKER}\n**${env.TITLE} deleted.** The pull request closed, so its preview, pr-7, no longer serves it.`],
+      );
+    });
+
+    for (const [label, pr, signalText, comments] of [
+      ["the pull request was reopened", open, "deleted\n", [{ id: 6, user: bot, body: BODY }]],
+      [
+        "the pull request is a fork's",
+        { ...closed, head: { ...closed.head, repo: { full_name: "fork/repo" } } },
+        "deleted\n",
+        [{ id: 6, user: bot, body: BODY }],
+      ],
+      ["the deletion failed", closed, null, [{ id: 6, user: bot, body: BODY }]],
+      ["the marker file holds something else", closed, "a URL\n", [{ id: 6, user: bot, body: BODY }]],
+      ["there is no comment to mark", closed, "deleted\n", []],
+    ]) {
+      test(`a deletion writes nothing when ${label}`, () => {
+        const gh = fakeCommentGh({ pull: pr, comments });
+        const result = run(gh, { mode: "deleted", signalText });
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(gh.writes(), []);
+      });
+    }
+  });
+}
