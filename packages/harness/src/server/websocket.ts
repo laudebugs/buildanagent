@@ -25,8 +25,8 @@ export interface WebSocketCloseEvent {
 }
 
 /**
- * A WebSocket as the transport uses it: the standard `WebSocket` of browsers and Node, a Workers `WebSocket` after
- * `accept()`, or a `ws` socket all fit. It must be open when the transport takes it.
+ * A WebSocket as the transport uses it: the methods of the standard `WebSocket` interface, which the global `WebSocket`
+ * of Node and browsers fits. A server-side socket must already be accepted and open when the transport takes it.
  */
 export interface WebSocketLike {
   /** 1 while the socket is open; 2 and 3 once it is closing or closed. */
