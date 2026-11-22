@@ -22,7 +22,7 @@ export default function draw(): Figure {
     figure.box({ x: 294, y: 118, width: 192, height: 30 }, { label: "signature: HMAC", tone: "accent" });
   });
 
-  figure.text({ x: 260, y: 100 }, "=", { style: "heading" });
+  figure.text({ x: 260, y: 100 }, "like", { tone: "muted" });
 
   figure.group("edit", () => {
     figure.text({ x: 130, y: 190 }, "amount changed to 40,000:", { tone: "muted" });

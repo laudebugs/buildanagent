@@ -62,6 +62,39 @@ All three keep the same promise. The tool does not run before the decision, and 
 
 A pause saved as data survives what a waiting process does not. OpenAI's guide describes the flow as "designed to be interruptible for longer periods of time without keeping your server running", and tells you to keep the serialised state "in application-controlled storage, such as a server-side database" [@openai-agents-human-in-the-loop]. A person can therefore answer after lunch, from a different server, in a Slack thread. The same fact is the risk: whatever sits in storage is what the second run will trust.
 
+## A saved approval must cover exactly the call the reviewer saw
+
+Think of :analogy[a bank's second signature on a large payment]{#second-signature}. A company's bank will not move 4,000 on one signature. A second person reads the payment order and signs this payee and this amount, and if a clerk raises the amount afterwards, the teller refuses the order. An approval should work the same way: it says yes to one call, with one tool name and one input, and not yes to whatever the saved run says when it resumes.
+
+:::figure[A bank's second signature on a large payment: the signature covers the order as written, so an edit voids it]{#second-signature analogy="second-signature"}
+::svg{alt="Two cards side by side with the word like between them. The left card is a payment order: pay Acme Ltd, amount 4,000, signed M. Okafor. The right card is an approved tool call: tool issue_refund, orderId A-1, signature HMAC. Under the left card, a note says that if the amount changes to 40,000 the teller refuses it. Under the right card, a note says that if the orderId changes to Z-9 the signature no longer matches. A line at the bottom says the signature covers exactly what will run."}
+:::
+
+A saved run does not behave like that by default. [[lst:tamper-ai]] and [[lst:tamper-openai]] each pause a refund for order A-1, edit the saved copy to order Z-9 and then approve.
+
+::::tabs
+:::listing[AI SDK]{#tamper-ai file="verify/vercel-ai-sdk/examples/13-approval-tamper.ts" region="tamper"}
+::note[The pause is the same as in [[lst:resume-ai]].]{#pause}
+::note[Anyone who can write to the stored messages can do this: one replacement changes the order id in the saved tool call.]{#edit}
+::note[The second call returns the error instead of throwing it, so the example can check the outcome.]{#resume}
+:::
+:::listing[OpenAI Agents SDK]{#tamper-openai file="verify/openai-agents-sdk/examples/10-approval-tamper.ts" region="tamper"}
+::note[The edit is a string replacement in the serialised state, which sits in your database.]{#edit}
+::note[The reviewer's approval lands on the edited call.]{#approve}
+:::
+::::
+
+The outcome depends on the SDK and on one setting. With no secret, the AI SDK accepted the edited history and ran the refund for Z-9. The OpenAI SDK did the same, and its documentation says it must: the restore does not authenticate the snapshot or the person submitting it [@openai-agents-human-in-the-loop]. With `experimental_toolApprovalSecret`{checked=row-19} set, the AI SDK rejected the edited call with an `InvalidToolApprovalSignatureError` before the tool ran. The SDK signs each approval request with an HMAC when it issues the request and verifies the signature when the approval comes back, and the signature binds the tool name, the call id and the input, so changing any one invalidates it [@ai-sdk-tool-approvals]. Its documentation asks for a random secret of at least 32 bytes, shared by every server instance that may handle a later request. The OpenAI and LangChain pages describe no such signature [@openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
+
+A safe SDK, or a safe server around an unsafe one, therefore does four things:
+
+1. **It binds the decision to the exact call.** It signs the tool name, call id and input, as the AI SDK does, or it keeps the pending call on the server and accepts only a decision about a pending id from the client.
+2. **It checks the call again when the run resumes.** The AI SDK validates the input against the tool's schema again, and a server-side policy that denies the call wins even over a correctly signed approval [@ai-sdk-tool-approvals].
+3. **It learns who decided from the session, not from the request.** OpenAI's guide says to authenticate the reviewer with the application's session and "never obtain the authenticated identity from the approval request body" [@openai-agents-human-in-the-loop].
+4. **It lets a decision count once.** OpenAI's guide tells the server to consume the pending request atomically, so a replayed submission cannot resume the same snapshot twice [@openai-agents-human-in-the-loop].
+
+A reviewer may still change a call on purpose. LangChain's `edit`{checked=row-24} decision lets a person modify the arguments before the tool runs, and its documentation advises small changes, because a large one may make the model rethink its approach [@langchain-human-in-the-loop]. An edit like that is a decision the system records and the reviewer sees. The edit in [[lst:tamper-ai]] is a change nobody decided. Your code should be able to tell the two apart, and the signature is what lets it.
+
 ## Exercises
 
 1. Placeholder.

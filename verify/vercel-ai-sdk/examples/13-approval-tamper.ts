@@ -32,17 +32,18 @@ function setup(secret: string | undefined) {
 async function approveAfterEditing(secret: string | undefined) {
   const { agent, executed } = setup(secret);
   const messages: ModelMessage[] = [{ role: "user", content: "Refund order A-1" }];
-  const first = await agent.generate({ messages });
+  const first = await agent.generate({ messages }); // book:note pause
   const ask = first.content.find((p) => p.type === "tool-approval-request");
   check(ask !== undefined && executed.length === 0, "the run pauses before the refund");
   // Whoever stores the messages can change them before the approval arrives.
   const saved = JSON.stringify([...messages, ...first.responseMessages]);
-  const edited: ModelMessage[] = JSON.parse(saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"'));
+  const edited: ModelMessage[] = JSON.parse(saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"')); // book:note edit
   edited.push({
     role: "tool",
     content: [{ type: "tool-approval-response", approvalId: ask.approvalId, approved: true }],
   });
-  const error = await agent.generate({ messages: edited }).then(
+  const resumed = agent.generate({ messages: edited }); // book:note resume
+  const error = await resumed.then(
     () => undefined,
     (e: unknown) => e,
   );

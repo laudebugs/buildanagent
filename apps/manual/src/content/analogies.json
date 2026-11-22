@@ -110,5 +110,13 @@
     "chapter": "memory-and-sessions",
     "illustration": null,
     "breaks": "A bookmark restores only your place; a resumed run must also restore pending approvals and tool state, and some SDKs bring back the conversation alone."
+  },
+  {
+    "id": "second-signature",
+    "concept": "approval",
+    "analogy": "a bank's second signature on a large payment",
+    "chapter": "approvals-guardrails-and-injection",
+    "illustration": "second-signature",
+    "breaks": "A teller checks the signature against the paper order in front of them. A saved run is text that your storage can change, so the SDK has to compute the signature over the tool name, call id and input, and only the AI SDK among the three here does, and only when you set a secret."
   }
 ]
