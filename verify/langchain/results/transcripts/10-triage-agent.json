@@ -17,7 +17,7 @@
           "parts": [
             {
               "type": "text",
-              "text": "Look up the customer, then classify the issue."
+              "text": "Look up the customer, escalate a checkout failure to on-call once, then classify it either way."
             }
           ]
         },
@@ -48,7 +48,7 @@
             "type": "other",
             "kind": "derived-text",
             "value": {
-              "characters": 115
+              "characters": 164
             }
           },
           {
@@ -102,7 +102,7 @@
             "type": "other",
             "kind": "derived-text",
             "value": {
-              "characters": 289
+              "characters": 387
             }
           },
           {
@@ -165,7 +165,7 @@
             "type": "other",
             "kind": "derived-text",
             "value": {
-              "characters": 633
+              "characters": 829
             }
           },
           {
