@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N9` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 2](../../plans/build-harness.md#42-stage-2-adds-the-five-context-layers-cheapest-first) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N8](N8-write-cap-masking.md), [B5](../done/B5-usage-cost-catalog.md), [B14](../done/B14-budget-progress.md) |
