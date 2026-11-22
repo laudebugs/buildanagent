@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
+import { tmpdir } from "node:os";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,7 +23,10 @@ function loadPlaywright() {
   try {
     return require("playwright");
   } catch {
-    const global = execFileSync("npm", ["root", "-g"], { encoding: "utf8" }).trim();
+    const global = execFileSync("npm", ["root", "-g"], {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH ?? "", HOME: tmpdir(), LANG: "C.UTF-8" },
+    }).trim();
     return createRequire(join(global, "x.js"))("playwright");
   }
 }
@@ -48,7 +52,7 @@ await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const origin = `http://127.0.0.1:${server.address().port}`;
 const CHAPTER = `${origin}/tools/`;
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ env: { PATH: process.env.PATH ?? "", HOME: tmpdir(), LANG: "C.UTF-8" } });
 const results = [];
 const check = (condition, message) => {
   assert.ok(condition, message);

@@ -61,7 +61,7 @@ export const REPAINT_MS = 100;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ITEM_ID = /^[a-z0-9]{1,40}$/;
 // A stored colour this version does not know, written by a later one, is kept as stored and drawn as the default.
-const COLOR_ID = /^[a-z]{1,16}$/;
+const COLOR_ID = /^[a-z0-9-]{1,32}$/i;
 const MAX_HEADING_ID = 200;
 // Text inside these elements is not part of the chapter's prose: figures and listings, replays, controls that scripts
 // add or relabel, hidden glossary cards and this script's own panel. Leaving them out keeps the text the script
@@ -435,16 +435,21 @@ export const LINK_CONTEXT = 32;
 
 const squash = (text) => text.replace(/\s+/g, " ").trim();
 
-/** Drops the word a passage starts in the middle of, because a text directive matches whole words. */
-function trimStart(text, before) {
-  const cut = WORD.test(text[0] ?? "") && WORD.test(before.slice(-1)) ? text.replace(/^[\p{L}\p{N}_]+\s*/u, "") : text;
-  return squash(cut);
+/**
+ * Splits off the word a passage starts in the middle of, because a text directive matches whole words. `lost` is that
+ * word's fragment, which belongs to the context before the passage.
+ */
+function splitStart(text, before) {
+  const mid = WORD.test(text[0] ?? "") && WORD.test(before.slice(-1));
+  const word = mid ? (text.match(/^[\p{L}\p{N}_]+\s*/u)?.[0] ?? "") : "";
+  return { lost: word.trim(), kept: squash(text.slice(word.length)) };
 }
 
-/** Drops the word a passage ends in the middle of. */
-function trimEnd(text, after) {
-  const cut = WORD.test(text.slice(-1)) && WORD.test(after[0] ?? "") ? text.replace(/\s*[\p{L}\p{N}_]+$/u, "") : text;
-  return squash(cut);
+/** Splits off the word a passage ends in the middle of; `lost` belongs to the context after the passage. */
+function splitEnd(text, after) {
+  const mid = WORD.test(text.slice(-1)) && WORD.test(after[0] ?? "");
+  const word = mid ? (text.match(/\s*[\p{L}\p{N}_]+$/u)?.[0] ?? "") : "";
+  return { lost: word.trim(), kept: squash(text.slice(0, text.length - word.length)) };
 }
 
 /** The first or last `max` characters of a text, cut back to a whole word when the cut falls inside one. */
@@ -498,14 +503,16 @@ function countOf(text, needle) {
  * @returns {string}
  */
 export function textDirective(parts, pageText) {
-  const { before, after, spans } = parts;
-  const whole = trimEnd(trimStart(parts.quote, before), after);
-  const first = trimStart(parts.first, before);
-  const last = trimEnd(parts.last, after);
+  const { spans } = parts;
+  const start = splitStart(parts.first, parts.before);
+  const end = splitEnd(spans ? parts.last : start.kept, parts.after);
+  // A fragment of a word the term had to drop stays in the context, so the context still meets the term.
+  const before = parts.before + start.lost;
+  const after = end.lost + parts.after;
   const terms =
-    !spans && whole.length <= WHOLE_QUOTE
-      ? [whole]
-      : [edgeTerm(first, END_TERM, false), edgeTerm(last, END_TERM, true)];
+    !spans && end.kept.length <= WHOLE_QUOTE
+      ? [end.kept]
+      : [edgeTerm(spans ? start.kept : end.kept, END_TERM, false), edgeTerm(end.kept, END_TERM, true)];
   if (terms.some((term) => term === "")) return "";
   const repeated = countOf(squash(pageText).toLowerCase(), (terms[0] ?? "").toLowerCase()) > 1;
   const prefix = repeated ? contextTail(before) : "";
@@ -996,9 +1003,13 @@ class Notes {
       this.position();
       this.layoutMarkers();
     });
-    doc.addEventListener("click", (event) => this.onClick(event));
+    // On iOS Safari a tap fires a click only when an element below the body listens, so the article and the markers
+    // listen themselves.
+    this.article.addEventListener("click", (event) => this.onClick(event));
+    this.markers.addEventListener("click", (event) => this.onClick(event));
     // A click outside or Escape closes the popover without calling this script.
-    this.pop.addEventListener("toggle", (event) => {
+    // beforetoggle runs synchronously, so a click that follows a light dismiss already sees a closed popover.
+    this.pop.addEventListener("beforetoggle", (event) => {
       if (event.newState !== "closed") return;
       this.popOpen = false;
       this.popId = undefined;
@@ -1008,7 +1019,16 @@ class Notes {
     this.toolbar.addEventListener("mousedown", (event) => event.preventDefault());
     for (const swatch of this.swatches) {
       swatch.addEventListener("click", () => {
-        this.color = swatch.getAttribute("data-color") ?? DEFAULT_COLOR;
+        const color = swatch.getAttribute("data-color") ?? DEFAULT_COLOR;
+        const existing = this.pending ? this.existing(this.pending) : undefined;
+        if (existing) {
+          this.setColor(existing.id, color);
+          this.hideToolbar();
+          this.pending = undefined;
+          this.clearSelection();
+          return;
+        }
+        this.color = color;
         this.addPending(false);
       });
     }
@@ -1295,7 +1315,7 @@ class Notes {
       });
       // Set through the CSSOM, which the content security policy allows.
       marker.style.left = `${Math.round(left + win.scrollX)}px`;
-      marker.style.top = `${Math.round(last.top - size / 2 + win.scrollY)}px`;
+      marker.style.top = `${Math.round(last.top - size + 4 + win.scrollY)}px`;
       markers.push(marker);
     }
     this.markers.replaceChildren(...markers);
@@ -1446,24 +1466,36 @@ class Notes {
    */
   shareFor(item) {
     const entry = this.drawn.find((drawn) => drawn.item.id === item.id);
-    if (!entry) return "";
+    const place = this.placed.get(item.id);
+    if (!entry || !place || place.status === "lost") return "";
     const { doc, win } = this;
+    const chapter = this.chapter();
     const range = entry.range;
     const blockOf = (node) => (node.nodeType === 1 ? node : node.parentElement)?.closest(BLOCK) ?? this.article;
     const startBlock = blockOf(range.startContainer);
     const endBlock = blockOf(range.endContainer);
+    // Only the prose the reader sees: text the chapter model leaves out, such as a glossary card, is never rendered.
     const part = (from, to) => {
       const piece = doc.createRange();
       piece.setStart(from.node, from.offset);
       piece.setEnd(to.node, to.offset);
-      return piece.toString();
+      return chapter.nodes
+        .filter((node) => piece.intersectsNode(node))
+        .map((node) => {
+          const begin = node === piece.startContainer ? piece.startOffset : 0;
+          const finish = node === piece.endContainer ? piece.endOffset : node.data.length;
+          return node.data.slice(begin, finish);
+        })
+        .join("");
     };
     const blockStart = { node: startBlock, offset: 0 };
     const blockEnd = (block) => ({ node: block, offset: block.childNodes.length });
     const here = { node: range.startContainer, offset: range.startOffset };
     const there = { node: range.endContainer, offset: range.endOffset };
     const spans = startBlock !== endBlock;
-    const quote = item.quote;
+    // The passage as drawn now, which differs from the stored words when the highlight has moved.
+    const quote = chapter.index.text.slice(place.start, place.end).trim();
+    const section = chapter.sections[sectionAt(chapter.sections, place.start)]?.id ?? "";
     const parts = {
       quote,
       before: part(blockStart, here),
@@ -1475,7 +1507,7 @@ class Notes {
     const pageText = pageTextOutsideNotes(doc);
     const base = `${win.location.origin}${win.location.pathname}${win.location.search}`;
     const title = doc.querySelector("h1")?.textContent ?? doc.title;
-    return shareText(quote, title, shareLink(base, item.section, textDirective(parts, pageText)));
+    return shareText(quote, title, shareLink(base, section, textDirective(parts, pageText)));
   }
 
   /**

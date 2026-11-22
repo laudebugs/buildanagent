@@ -747,7 +747,7 @@ const toolbarButton = (win: Window, label: string) =>
     (button) => button.textContent === label,
   ) as HTMLButtonElement;
 
-test("highlighting a passage twice keeps the toolbar open and says so in view, with the panel closed", () => {
+test("a colour button on a passage already highlighted recolours it and adds no second highlight", () => {
   const win = page();
   start(win as unknown as globalThis.Window);
   const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
@@ -757,10 +757,11 @@ test("highlighting a passage twice keeps the toolbar open and says so in view, w
   assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, true, "a saved highlight closes the toolbar");
   select(win, paragraph, 2, paragraph, 13);
   shortcut(win);
-  toolbarButton(win, "Amber").click();
-  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, false);
-  assert.equal(visibleMessage(win), "That passage is already highlighted.");
-  assert.equal(parseStored(win.localStorage.getItem(KEY)).get("tools")?.length, 1);
+  toolbarButton(win, "Green").click();
+  const saved = parseStored(win.localStorage.getItem(KEY)).get("tools");
+  assert.equal(saved?.length, 1);
+  assert.equal(saved?.[0]?.color, "green");
+  assert.equal(q<HTMLElement>(win, ".notes-toolbar")?.hidden, true);
 });
 
 test("at the cap a passage already highlighted still takes a note, and only a new highlight is refused", () => {
@@ -1229,7 +1230,7 @@ test("a noted highlight gets a marker outside the article, above its last line, 
   assert.equal(marker?.closest("[data-pagefind-ignore]")?.className.includes("notes-markers"), true);
   assert.equal(q(win, "article .notes-marker"), null, "the markers are outside the article");
   assert.equal(marker?.style.left, "238px", "the hit area is centred on the end of the last line");
-  assert.equal(marker?.style.top, "308px", "and sits above it");
+  assert.equal(marker?.style.top, "300px", "and sits above it");
   const edge = page({ items: [{ ...FAILED }] });
   layout(edge, { "A failed call comes back again": [rect(10, 320, 395, 340)] });
   start(edge as unknown as globalThis.Window);
@@ -1251,7 +1252,7 @@ test("the markers are placed again when the page resizes, and a highlight with n
   const { win } = stage([CONTRACT, FAILED]);
   layout(win, { "A failed call comes back again": [rect(10, 520, 150, 540), rect(10, 540, 100, 560)] });
   win.dispatchEvent(new win.Event("resize"));
-  assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.top, "528px");
+  assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.top, "520px");
   assert.equal(q<HTMLElement>(win, ".notes-marker")?.style.left, "88px");
   const none = stage([CONTRACT]);
   assert.equal(q(none.win, ".notes-marker"), null);
@@ -1304,6 +1305,48 @@ test("Share adds the passage's own block as context when the passage repeats, an
     "a prefix and a suffix tell the copies apart",
   );
   assert.doesNotMatch(text, /#old/);
+});
+
+test("Share leaves out text the chapter model skips, such as a hidden glossary card, and uses where the passage is now", async () => {
+  const again = item({
+    id: "again",
+    quote: "A failed call comes back",
+    prefix: "as a message. ",
+    suffix: " again.",
+    section: "stale-section",
+  });
+  const win = page({ items: [again] });
+  const paragraph = q(win, "article p:last-of-type") as Element;
+  const text = paragraph.firstChild as Text;
+  const rest = text.splitText((text.data.indexOf("A failed call") ?? 0) as number);
+  const hidden = (win.document as unknown as Document).createElement("span");
+  hidden.setAttribute("aria-hidden", "true");
+  hidden.textContent = "ZZHIDDENZZ ";
+  paragraph.insertBefore(hidden, rest);
+  layout(win, { "A failed call comes back": [rect(10, 300, 250, 320)] });
+  withPopover(win);
+  start(win as unknown as globalThis.Window);
+  const writeText = vi.fn(() => Promise.resolve());
+  Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText } });
+  click(win, paragraph, 50, 310);
+  popButton(win, "Share").click();
+  await Promise.resolve();
+  const copied = (writeText.mock.calls[0] as unknown as [string])[0];
+  assert.doesNotMatch(copied, /ZZHIDDEN/);
+  assert.match(copied, /#errors:~:text=/, "the section is the one the passage is under now, not the stored one");
+});
+
+test("a click on a second highlight opens its popover after a light dismiss closed the first", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  const pop = q(win, ".notes-pop") as Element;
+  // A light dismiss reports beforetoggle at once and toggle later; the click that follows must see it closed.
+  const closing = new win.Event("beforetoggle") as unknown as Event & { newState: string };
+  closing.newState = "closed";
+  pop.dispatchEvent(closing);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  assert.deepEqual(calls, ["show", "show"]);
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "“A failed call comes back again”");
 });
 
 test("Share shows the text in a field to copy by hand when the clipboard is missing or refuses", async () => {
@@ -1361,6 +1404,11 @@ test("textDirective builds a whole-word directive for a passage, its ends, or it
     one("loop runs until", "The ", " the model"),
     "text=The-,loop%20runs%20until,-the%20model",
     "repeated, so context joins",
+  );
+  assert.equal(
+    one("own fox jumps", "The quick br", " over", "The quick brown fox jumps over. The quick brown fox jumps again."),
+    "text=The%20quick%20brown-,fox%20jumps,-over",
+    "the fragment of a dropped partial word stays in the context, so the context meets the term",
   );
   assert.equal(one("a-b, c&d", "", "", "other"), "text=a%2Db%2C%20c%26d", "-, and & are percent-encoded");
   assert.equal(one("mid", "x", "y"), "", "a passage with no whole word has no directive");
