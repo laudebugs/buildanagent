@@ -41,12 +41,12 @@ Replace the plain home page of `apps/site` with the owner's chosen design, the f
 ## Tasks
 
 - [x] Claim the todo and tell the manager.
-- [ ] Draft the copy with `/anthropic-skills:writing` and fact-check each claim against the package READMEs, `package.json` and `npm view`; the one-liners and the alpha-tag line match what npm shows.
-- [ ] Generate the site's tokens and fonts from the book's source, or from the L12a export if it has landed, and tell the manager which.
-- [ ] Draw the figure with a script: wide layout from the mock and a narrow one for 400 pixels, with no label overlapping a block, plus a test that fails when the committed SVG is stale.
-- [ ] Build the page, header and footer; inline the figure with its alt text; add the favicon.
-- [ ] Extend the `apps/site` tests: the page's headings and links, the alt text, no hex colours outside the tokens file, the figure's staleness and the favicon.
-- [ ] Check the page at 400 pixels and at desktop width in light and dark with Playwright, and attach the screenshots.
+- [x] Draft the copy with `/anthropic-skills:writing` and fact-check each claim against the package READMEs, `package.json` and `npm view`; the one-liners and the alpha-tag line match what npm shows.
+- [x] Generate the site's tokens and fonts from the book's source, or from the L12a export if it has landed, and tell the manager which.
+- [x] Draw the figure with a script: wide layout from the mock and a narrow one for 400 pixels, with no label overlapping a block, plus a test that fails when the committed SVG is stale.
+- [x] Build the page, header and footer; inline the figure with its alt text; add the favicon.
+- [x] Extend the `apps/site` tests: the page's headings and links, the alt text, no hex colours outside the tokens file, the figure's staleness and the favicon.
+- [x] Check the page at 400 pixels and at desktop width in light and dark with Playwright, and attach the screenshots.
 
 ## Acceptance criteria
 
