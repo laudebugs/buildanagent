@@ -150,5 +150,13 @@
     "chapter": "permissions-sandboxes-and-credentials",
     "illustration": null,
     "breaks": "A doorman reads names; a pipeline's rules are code that runs in a fixed order and also read what a call asks to do, and the manager at the door is a callback or a person that the pipeline asks."
+  },
+  {
+    "id": "lab-glovebox",
+    "concept": "sandbox",
+    "analogy": "a lab glovebox",
+    "chapter": "permissions-sandboxes-and-credentials",
+    "illustration": "glovebox",
+    "breaks": "A glovebox keeps things in and does not filter what leaves; our sandbox also decides which network hosts a command may reach, and a determined process can still break out of one that shares the host's kernel."
   }
 ]

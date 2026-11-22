@@ -57,3 +57,43 @@ The checks after the run say what the refusal left behind. The run still ends in
 Our own harness uses the same order and adds a few rules of its own, which its README documents: hooks, deny rules, ask rules, the mode, allow rules, a host callback and a default for a call nobody settled. A hook there cannot return an allow at all, so a classifier hook can only restrict. An allow rule that would make the callback unreachable fails at startup instead of silently, and every decision is written to the session log with the rule that made it. The pipeline reads a shell command the way a shell would and refuses to allow one it cannot read, so `git status && rm -rf /` is not covered by a rule for `git status`. It does not decode escapes or follow aliases or variables, and its README says to run untrusted commands in a sandbox as well.
 
 That caveat leads to the next section. A pipeline judges a call by what it says it will do. It cannot see what the command does once it runs, and that is the sandbox's job.
+
+## A sandbox limits what a command can reach, and each backend names the failures it does not stop
+
+A chemist who handles something hazardous works through :analogy[a lab glovebox]{#lab-glovebox}. The hands go in through the gloves, the work stays behind the glass, and whatever goes wrong inside the box stays inside it. A sandbox does that for a command. The agent's shell call still runs, but it runs in a space whose files, processes and network the host has chosen in advance, so a wrong command can break only what the box holds. Our sandbox filters in both directions. A glovebox keeps things in, and a sandbox also decides which network hosts a command may reach, as [[fig:glovebox]] shows.
+
+:::figure[A lab glovebox: the work happens behind the glass, and only chosen things pass through the port]{#glovebox analogy="lab-glovebox"}
+::svg{alt="Two panels joined by the word like. On the left, a lab glovebox: a sealed box with two gloves reaching in, a sample inside, and a small port on the side with one labelled item passing through. On the right, a sandbox: a box labelled sandbox holding a command, a workspace folder it may write and a read-only folder, with a single narrow door labelled allowed hosts on its side and everything else outside the box marked out of reach."}
+:::
+
+The glovebox has a limit that matters more than the comparison. Its glass stops a spill and a splash, and it was never built to stop someone smashing it. A sandbox is the same, and each of our backends says which of three failures it stops. `mistakes` are the agent's own errors, such as a write outside the workspace. `exfiltration` is sending data to a host the policy does not allow. A `hostile_process` is a program that is trying to break out. No backend claims to stop that last one, because a sandbox that shares the host's kernel cannot promise it.
+
+:::table[Our three sandbox tiers and the failures each claims to stop]{#sandbox-tiers}
+| Tier | Backend | Stops | What it is |
+| --- | --- | --- | --- |
+| `none` | `noneSandbox({ unsafe: true })` | Nothing | A command runs as the user with the machine's files and network, for a machine that is already disposable |
+| `os` | `srtSandbox()` | Mistakes and exfiltration | An operating-system sandbox on Linux that shares the host's kernel; it wraps Anthropic's `srt` runtime, a beta research preview as of November 2026 |
+| `container` | `dockerSandbox()` | Mistakes and exfiltration, as far as its setup allows | A container with every capability dropped, a read-only root file system and no network, on Linux only |
+:::
+
+The first sandbox costs nothing, because it is a shorter list of tools. A model cannot ask for a shell that is not offered. [[lst:offered]] strips Copilot's default coding tools down to the one custom tool.
+
+:::listing[Narrow the toolset first: what the model is offered]{#offered file="verify/copilot-sdk/examples/04-restrict-builtins.ts" region="offered"}
+::note[`availableTools` with only custom tools offers `ping` and nothing else.]{#custom-only}
+::note[`excludedTools` removes the shell and the file editors and leaves the rest.]{#excluded}
+::note[When both lists name a tool, the exclusion wins.]{#exclude-wins}
+:::
+
+A shorter list prevents a call, though, and a sandbox contains one that already ran. Both are needed, because a tool you keep, such as a test runner, can still run any code in the repository. The sandbox then decides what that code reaches. Pi's safety page ranks the choices: running the whole agent inside a container, virtual machine or sandbox is "usually the strongest practical option", and running Pi outside with only its built-in tools inside is "a narrower form of isolation" [@pi-run-pi-safely]. It also says that credentials and network services stay reachable inside the sandbox when you make them available, which is where the next section starts.
+
+The network is the part of a sandbox that people forget to test. Our test runner proves its own network is closed before it runs an example, and [[lst:network-check]] is that check. It is a harness self-check, not a feature of Copilot or any other SDK.
+
+:::listing[Our harness checks that the example cannot reach the internet]{#network-check file="verify/copilot-sdk/examples/00-sandbox.ts" region="network-check"}
+::note[A raw TCP connection to a public address fails with `ENETUNREACH`: the namespace has no route out.]{#raw}
+::note[Name lookups fail too, so a name cannot be turned into an address.]{#dns}
+::note[Loopback still works, which is how the example reaches its mock model.]{#loopback}
+:::
+
+The container backend goes further than the others on the network. Each command runs with `--network none`, and a command reaches a host only through a Unix socket that the host mounts and a credential proxy listens on. Without that socket, no host is reachable, including the hosts the policy allows. Only the policy's folders are mounted, so a path outside them does not exist inside the container. The README names what the backend does not do: it shares the host's kernel, a protected file that is missing when the container starts is not protected, and only a rootful daemon on Linux was tested. A limit stated that plainly is the reason to read a backend's claim before relying on it.
+
+[[fig:permission-pipeline]] puts the pipeline and the sandbox on one page: the call passes the pipeline's steps, a command that survives runs in the sandbox, and the one narrow door out of the sandbox leads to the proxy, which the next section describes.
