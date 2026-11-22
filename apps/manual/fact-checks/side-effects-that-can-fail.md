@@ -99,11 +99,17 @@ Added when the six listings gained a tab on our packages (T63). The tabs' code i
 | 61 | Our `#write-tool` tab has no replay and the Vercel AI SDK tab keeps its own, because a replay needs a transcript recorded for the listing's own file and our charge tool sits in `charge-tool.ts`, which the example runner does not start | Our tabs, § The tool saves its key | ✅ | `scripts/transcripts/book-examples.ts` line 36 selects only files named `NN-name.ts`, so `charge-tool.ts` is never run or recorded; the Vercel tab's file `15-write-crash-idempotency.ts` is, and the chapter's `replay` flag sits on that listing only |
 | 62 | In the crash example the applied outcome's text and the unknown outcome's text both contain "took effect", so the example's checks for `applied` now exclude "not known" | Our tabs, § A crash between | ✅ | `packages/sdk/src/vendor/agent-safety/render.ts` lines 38 and 42: "The {op} call took effect." and "It is not known whether the {op} call took effect."; `reportsApplied()` in `packages/sdk/examples/11-charge-crash-resume.ts` |
 
+## Stale private-package statement (docs/stale-private-statements, 2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 63 | As of November 2026 `@buildanagent/sdk` and `@buildanagent/agent-safety` are both `0.1.0` alpha releases on npm. This replaces row 45's "agent-safety is not on npm yet" | Our tabs, § intro | ✏️ | `npm view @buildanagent/sdk dist-tags --json` and `npm view @buildanagent/agent-safety dist-tags --json` (2026-11-22): `alpha` is `0.1.0-alpha.29` for both, `latest` is still the `0.0.0-bootstrap.0` placeholder; `npm view @buildanagent/agent-safety@0.1.0-alpha.29 dist.attestations` shows SLSA provenance |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 45 |
-| ✏️ corrected | 5 (rows 8, 38, 46, 57 and 58: the Amazon claim as first drafted, the retry key after `not_applied`, the key's scope, where `crash.test.ts` kills and what the example's stand-in does, and which `businessKey` names the order) |
+| ✏️ corrected | 6 (rows 8, 38, 46, 57, 58 and 63: the Amazon claim as first drafted, the retry key after `not_applied`, the key's scope, where `crash.test.ts` kills and what the example's stand-in does, which `businessKey` names the order, and the SDK and agent-safety alpha status) |
 | ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 12 |
-| Total | 62 |
+| Total | 63 |

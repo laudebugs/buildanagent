@@ -500,4 +500,14 @@ The claims L11 added to PB4, CI plan §3f, `.changeset/README.md`, the four pack
 | L11-33 | The failure was an E409 on the harness, from racing the first run | ⚠️ | The manager's report: this session did not read the error line. The report `release-race-409.md`, on the branch `docs/release-race-409`, is to settle it |
 | L11-34 | npm holds only the first run's versions: `0.1.0-alpha.28` and the two placeholders for each package | ✅ | `npm view @buildanagent/harness dist-tags versions --json` on 2026-11-22 listed `0.0.0-bootstrap.0`, `0.0.0-stage` and `0.1.0-alpha.28`, with `alpha` on `0.1.0-alpha.28` |
 
-**Totals:** 347 claims: 261 ✅, 59 ✏️, 27 ⚠️.
+## Stale "private" statements corrected (docs/stale-private-statements, 2026-11-22)
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| docs/stale-private-statements-1 | As of November 2026 the harness is published on npm as an alpha release (memory-and-sessions chapter, was "private, not on npm, version 0.0.0") | ✏️ | `npm view @buildanagent/harness dist-tags --json` on 2026-11-22: `alpha` is `0.1.0-alpha.29`, `latest` is the `0.0.0-bootstrap.0` placeholder; `packages/harness/package.json` has no `private` field. Chapter row 142 |
+| docs/stale-private-statements-2 | `createToolRegistry` is in `@buildanagent/harness`, published as an alpha (tools-at-scale chapter, was "the private ... package") | ✏️ | Same npm read; `packages/harness/src/tools/registry.ts`. Chapter row 160 |
+| docs/stale-private-statements-3 | `@buildanagent/agent-safety` is a separate package that no listing imports (approvals chapter, was "a private package") | ✏️ | `packages/agent-safety/package.json` has no `private` field and npm's `alpha` tag is `0.1.0-alpha.29`; `apps/manual/src/data/harnesses.json` lists only the gateway, harness and SDK. Chapter row 83 |
+| docs/stale-private-statements-4 | The SDK and agent-safety are both `0.1.0` alpha releases on npm (side-effects chapter, was "agent-safety is not on npm yet") | ✏️ | `npm view` dist-tags of both on 2026-11-22; `npm view @buildanagent/agent-safety@0.1.0-alpha.29 dist.attestations` shows SLSA provenance. Chapter row 63 |
+| docs/stale-private-statements-5 | The SDK vendors `agent-safety`'s files and does not yet depend on the package at run time, though npm has held it as an alpha since 2026-11-22 (guidelines README, was "the private safety package") | ✅ | `npm view @buildanagent/agent-safety time --json`: `0.1.0-alpha.28` published 2026-11-22T20:43:58Z; `packages/sdk/package.json` lists it only in `devDependencies`; `packages/sdk/src/vendor/agent-safety/` exists |
+
+**Totals:** 352 claims: 262 ✅, 63 ✏️, 27 ⚠️.

@@ -201,11 +201,17 @@ The specification pages were fetched on 2026-11-22 in their Markdown form (`.md`
 | 158 | Correction of row 69: N24 refuses `input_required`. The client runs with `inputRequired: { autoFulfill: false }`, so a server's request for input fails the call with an `McpError` whose `failure` is `input_required`, and the model reads a fixed sentence; the owner chose on 2026-11-22 to keep failing such calls until the connectors work gives a pause a safe form. The source-update report's signed-pause proposal is not adopted | § MCP | ✏️ | `packages/harness/src/mcp/connection.ts` line 221 (`inputRequired: { autoFulfill: false }`), line 86 (`UNSUPPORTED_RESULT_TYPE` and `INPUT_REQUIRED_ROUNDS_EXCEEDED` map to `input_required`) and line 94 (the fixed sentence, "which this harness does not supply yet"); `docs/todos/done/N24-mcp-stdio.md` line 83 and "Questions", item 1 (line 169): "No, not now: the call keeps failing with `failure: \"input_required\"`" |
 | 159 | Correction of the "two limits" sentence: as of 2026-11-22 the extension loader (N22) and a stdio MCP client (N24) are built; the built-in tools (N21) and the HTTP and legacy SSE transports (N25) are not; a server in this process is reached through a host-built channel | § One registry | ✏️ | Rows 156 and 157. `docs/todos/ready/N25-mcp-http-background.md` title: "MCP streamable HTTP, legacy SSE and background connect", status `ready`; `docs/todos/done/N22-in-process-extensions.md` is in `done/` and `packages/harness/src/extensions/load.ts` exists. Row 154's A2A statement is unaffected |
 
+## Stale private-package statement (docs/stale-private-statements, 2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 160 | `createToolRegistry` exists in `@buildanagent/harness`, which as of November 2026 is published on npm as an alpha release. This replaces the "private and not on npm" clause of row 8 | § One registry | ✏️ | `npm view @buildanagent/harness dist-tags --json` (2026-11-22): `{"latest":"0.0.0-bootstrap.0","alpha":"0.1.0-alpha.29"}`; `packages/harness/package.json` has version `0.1.0-alpha.29` and no `private` field; `packages/harness/src/tools/registry.ts` still defines `createToolRegistry`. The sentence no longer cites the harness README, whose pinned commit predates the release |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 130 |
-| ✏️ corrected | 18 (rows 22, 81, 91, 97, 98, 114, 143, 144, 145, 146, 147, 149, 150, 155, 156, 157, 158, 159) |
+| ✏️ corrected | 19 (rows 22, 81, 91, 97, 98, 114, 143, 144, 145, 146, 147, 149, 150, 155, 156, 157, 158, 159, 160) |
 | ⚠️ unverified, an analogy, one comparison or an exercise's framing, marked as ours in the text | 11 (rows 39, 70, 87, 88, 96, 118, 120, 139, 140, 152, 153) |
-| Total | 159 |
+| Total | 160 |

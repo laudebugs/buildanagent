@@ -135,11 +135,17 @@ The new examples are `packages/sdk/examples/11-approval-resume.ts` and `12-appro
 | 81 | Our SDK signs over the call id, tool and input hash, and has a `recheck` option that runs current policy before an approved call runs; it does not verify who answered; `recheck` runs only when the application passes it (README: "Without `recheck`, a verified approval runs, so check policy before you resolve"); it refuses two answers for one request inside one `continueRun()` call as `replayed`, and leaves single use across processes to the store | § A saved approval | ✅ | `resume.ts` `resolutionsOf` (`replayed`) and `policyBlock`; `run.ts` `ContinueOptions.recheck`; README, "A request is meant to be answered once, but the SDK can't see your other processes, so single use is your store's job"; `test/resume.test.ts` lines 190 (`replayed`) and 230 (`recheck`). Corrects row 73. The facts are confirmed; the mapping onto the four-item list is our reading, row 79 |
 | 82 | The writing review's fixes keep the claims of rows 70, 72, 74 and 81: the run rejected the answer to the edited call with `input_changed` (not that the edit "failed the check"); the transcript-only edit is covered by the example's checks but does not fail, since the signed input runs; our SDK's request is signed over the call id, tool name and input hash; within one `continueRun()` call it refuses two answers for one request (`replayed`); our SDK has no edit decision and a gate's `ask` may carry an `input` the request signs | § A saved approval | ✅ | Rows 70, 72, 74 and 81 and their sources. The old wording said the example's other checks "show two more edits that fail", which was wrong for the transcript-only edit, so the sentence now says they "cover" two more edits. No claim about what our SDK enforces changed |
 
+## Stale private-package statement (docs/stale-private-statements, 2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 83 | `@buildanagent/agent-safety` is a separate package that no listing imports. The text no longer calls it private, which row 76 recorded as true until its first alpha | § intro | ✏️ | `npm view @buildanagent/agent-safety dist-tags --json` (2026-11-22): `alpha` is `0.1.0-alpha.29`; `packages/agent-safety/package.json` has no `private` field. `apps/manual/src/data/harnesses.json` lists only the gateway, harness and SDK, so no listing can import it, and the SDK still carries its vendored copies in `packages/sdk/src/vendor/agent-safety/` |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 72 |
-| ✏️ corrected | 4 (rows 57, 58, 71 and 73, correcting rows 35, 26, and themselves by rows 80 and 81) |
+| ✏️ corrected | 5 (rows 57, 58, 71, 73 and 83, correcting rows 35, 26, and themselves by rows 80 and 81) |
 | ⚠️ unverified, an illustration or our reading, marked as ours in the text | 6 (rows 26, 27, 31, 41, 53 and 79) |
-| Total | 82 |
+| Total | 83 |
