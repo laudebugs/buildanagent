@@ -1,8 +1,8 @@
 /**
  * Code-initiated tool calls: a side effect the host's own code chose, run through the same permission pipeline, signed
  * pause and log as a call the model makes, with no model step. The `code_call` entry is written before anything else
- * of the call, and its id is the call id, so the call's effect key is fixed before the tool can run, and a resume finds the same key.
- * A call that was let run and has no result may have taken effect, so it is settled as such and never runs again.
+ * of the call, and its id is the call id, so the effect key is fixed before the tool can run and a resume finds it.
+ * A call starts once its log holds the entry that clears it to run; one that started with no result is never rerun.
  */
 import { effectKey, renderOutcome, writeOutcome } from "@buildanagent/agent-safety";
 import type { ContentBlock } from "@buildanagent/gateway";
@@ -136,10 +136,10 @@ function checkHarness<H>(harness: Harness<H>): void {
 }
 
 /**
- * Settles each code call a crash left open. A call that was let run may have taken effect, so it gets the result an
- * interrupted model call gets. A call that never got that far never ran, so it gets an error that says so: one that
- * stopped before it could run or ask anyone, and one whose answer was written but which stopped, or was refused,
- * before it could run. A call that asked and has no final answer still waits.
+ * Settles each code call a crash left open: writes the result it lacks. A call that started may have taken effect, so
+ * it gets the result an interrupted model call gets. A call that never started never ran, so it gets an error that says
+ * so: one that stopped before it could run or ask anyone, and one whose answer was written but which stopped, or was
+ * refused, before it started. A call that asked and has no final answer still waits.
  */
 async function settleCodeCalls<H>(path: readonly SessionEntry[], harness: Harness<H>, io: Io): Promise<void> {
   for (const { call, result, requested, answered, letRun } of codeCallsOf(path).values()) {

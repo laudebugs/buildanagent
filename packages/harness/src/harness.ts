@@ -2,8 +2,8 @@
  * The harness's types: the settings every turn of a harness shares, and the code calls it runs. A turn can override the
  * model, the system prompt and the tools; what it can't override, such as the registry and the permission pipeline, is
  * fixed here. `H` is the type of the per-turn host context, which reaches a tool's `execute` as `ctx.app` and is in no
- * request, event or saved entry. `createHarness()` lives in its own module, because it binds the code-call runner, which
- * imports these types.
+ * request, event or saved entry. `createHarness()` lives in its own module, because it binds the code-call runner,
+ * which imports these types.
  */
 import type { Model } from "@buildanagent/gateway";
 import type { ApprovalPolicy, PermissionMode, SandboxTier } from "@buildanagent/protocol";
@@ -95,11 +95,15 @@ export interface CodeCall<H = unknown> {
 }
 
 /**
- * What a code call ended in. `done`: the tool ran, and `result` is the whole of what it returned, with a write
- * outcome's sentence in front of its content; the call's `tool_result` entry may hold it capped. `denied`: the permission pipeline or a person refused it, and the tool never ran.
- * `awaiting_approval`: a person must answer `pending` through `Approvals.resolve()`. `effectKey` is the call's effect
- * identity: from the tool's business key when it declares one, and otherwise from the call id, which is the id of the
- * call's `code_call` entry. `entryId` is the call's `tool_result` entry.
+ * What a code call ended in.
+ *
+ * - `done`: the tool ran. `result` is the whole of what it returned, with a write outcome's sentence in front of its
+ *   content, even when the call's `tool_result` entry holds it capped.
+ * - `denied`: the permission pipeline or a person refused the call. The tool never ran.
+ * - `awaiting_approval`: a person must answer `pending` through `Approvals.resolve()`. It has no `entryId`.
+ *
+ * `entryId` is the id of the call's `tool_result` entry. `effectKey` is the call's effect identity: from the tool's
+ * business key when it declares one, and otherwise from the call id, which is the id of the call's `code_call` entry.
  */
 export type CodeCallResult =
   | {
@@ -125,23 +129,31 @@ export interface Harness<H = unknown> extends HarnessOptions<H> {
   readonly ablationHash: string;
   /**
    * Runs a tool call that the host's own code chose, through the same permission pipeline, signed pause and log as a
-   * call the model makes, with no model call. The call's own entries start with a `code_call` entry, then the
-   * pipeline's `permission_decision`; before them it writes what the session lacks, a new session's header and
-   * environment stamp, and a result for each earlier code call a crash left open. An allow runs the tool through the
-   * harness's `wrap` with `call.hostContext` and writes its `tool_result`, capped by the harness's `context` policy
-   * and cut to fit the store's entry bound, with its outcome kept. A deny writes an error `tool_result` and returns
-   * `denied`. An ask that no sticky allowance covers writes an `approval_requested` entry with a request signed as
-   * `createPendingRequest()` signs it, and returns `awaiting_approval`; `Approvals.resolve()` answers it. The session
-   * must be open with its lock.
+   * call the model makes, with no model call. The session must be open with its lock.
+   *
+   * The call's own entries start with a `code_call` entry, then the pipeline's `permission_decision`. Before them it
+   * writes what the session lacks: a new session's header and environment stamp, and a result for each earlier code
+   * call a crash left open.
+   *
+   * The call ends one of three ways:
+   *
+   * - An allow runs the tool through the harness's `wrap` with `call.hostContext`, writes its `tool_result` and returns
+   *   `done`. The harness's `context` policy caps the stored result, and the store's entry bound cuts it to fit, with
+   *   its outcome kept.
+   * - A deny writes an error `tool_result` and returns `denied`.
+   * - An ask that no sticky allowance covers writes an `approval_requested` entry, signed as `createPendingRequest()`
+   *   signs it, and returns `awaiting_approval`. `Approvals.resolve()` answers it.
    *
    * A code call runs no turn, so the harness's `interceptors` and `observers` don't see it. Put a guard that must cover
    * code calls in the pipeline's hooks, which see `initiator: "code"`, or in `wrap`.
    *
-   * Throws `invalid_code_call` for a tool the registry lacks or that runs on the client, an input or host context with
-   * no canonical JSON form, a business key the effect key refuses, a harness with no permission pipeline, or a
-   * compensation that names no code call that ran or would share that call's effect key; `approval_unavailable` for a
-   * harness with no signer; and the signal's reason for a signal aborted before the call starts. Nothing is written
-   * when it throws for any of these.
+   * It throws before it writes anything:
+   *
+   * - `invalid_code_call` for a tool the registry lacks or that runs on the client, an input or host context with no
+   *   canonical JSON form, a business key that fails, a harness with no permission pipeline, or a compensation that
+   *   names no code call that ran or would share that call's effect key.
+   * - `approval_unavailable` for a harness with no signer.
+   * - The signal's reason for a signal aborted before the call starts.
    */
   invokeTool(this: Harness<H>, session: Session, call: CodeCall<H>): Promise<CodeCallResult>;
 }

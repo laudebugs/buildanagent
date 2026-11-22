@@ -105,15 +105,16 @@ export interface Approvals<H = unknown> {
    * input, so a tampered request runs nothing and is asked again; `rejected` and `expired` become denials; `pending`
    * leaves the call waiting, and the turn ends `awaiting_approval` again. Each approved call goes through the permission
    * pipeline again, and a deny now turns the approval into a denial. Calling it with no answers evaluates the policy
-   * for every waiting request, which is how an expired request is refused.
+   * for every request of a paused turn, which is how such a request expires. It leaves a code call's request waiting:
+   * the policy decides that call when it is next answered, so a late allow for an expired call comes back `denied`.
    *
    * An answer to a code call's request resolves that call alone and returns a `CodeCallResult`. The request is checked
    * against its signature, the host context it binds and the call's recorded input before anything is written, and a
    * request that fails throws `approval_refused` and runs nothing. The answer is then written and the quorum policy
    * decides. `met` decides the call again with the pipeline, so a deny written since the pause wins, and then runs the
    * tool with `options.hostContext` and `options.signal`, with no model call; `rejected` and `expired` deny it; `pending`
-   * returns `awaiting_approval`. A request whose call already has a result, or was let run before a crash, no longer
-   * waits, so its tool runs at most once.
+   * returns `awaiting_approval`. A request whose call already has a result, or started before a crash, no longer waits,
+   * so its tool runs at most once.
    *
    * Throws `approval_not_pending` for a request that does not wait, `approval_unavailable` without a signer,
    * `approver_is_requester` when an approver is the requester, `approval_reuse_refused` when a tool's `approvalReuse`
