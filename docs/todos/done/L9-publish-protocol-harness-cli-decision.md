@@ -63,5 +63,5 @@ None.
 - Unverified: how Changesets treats a private member of a fixed group (fact-check row L9-10).
 - Addendum (2026-11-22, after the pull request opened):
   - **agent-safety.** The owner decided to publish `@buildanagent/agent-safety` too ("yes, we're publishing agent-safety too") as a sixth member of the fixed group. That answers the harness's dependency, and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 9 records it.
-  - **Placeholders.** The owner published placeholders of the protocol, harness, CLI and agent-safety by hand. `npm view` at about 15:00 UTC listed them with neither version deprecated. Deprecation is pending owner action, and L11 verifies the expected state.
+  - **Placeholders.** The owner published placeholders of the protocol, harness, CLI and agent-safety by hand. `npm view` at about 15:00 UTC listed them with neither version deprecated. The owner then deprecated them, and by about 15:15 UTC every version printed the message (row L9-43); L11 re-verifies it before the release.
   - **Release plan.** The pull request's medium review changed the plan: the new `release.yml` lands in the same merge as L11, L11's `release-plan.mjs` change has a defined version source, and the unverified fixed-group behaviour is a hard gate in L10 with a fallback in L11.
