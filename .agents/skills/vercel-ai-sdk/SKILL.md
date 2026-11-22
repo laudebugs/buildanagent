@@ -3,7 +3,7 @@ name: vercel-ai-sdk
 description: Use when writing, reviewing or testing TypeScript that imports `ai` or `@ai-sdk/*` for agents (generateText, streamText, tool, stopWhen, ToolLoopAgent, toolApproval, prepareStep, Output.object, @ai-sdk/mcp, MockLanguageModelV4). Gives the verified 7.0 setup, the approval flow, the gotchas from our fact-check, and how to test offline with ai/test.
 ---
 
-# Vercel AI SDK (`ai@7.0.162`)
+# Vercel AI SDK (`ai@7.0.173`)
 
 AI SDK Core is a model-call library with a thin tool loop: `generateText` or `streamText` with tools and a stop condition, packaged as `ToolLoopAgent`. It has no built-in tools and no session store; the `messages` you keep are the state. Full reference: [`docs/reference/vercel-ai-sdk/guide.md`](../../../docs/reference/vercel-ai-sdk/guide.md); verified examples: [`verify/vercel-ai-sdk/examples/`](../../../verify/vercel-ai-sdk/examples/).
 
@@ -56,7 +56,7 @@ if (ask) {
 
 - **`generateText` defaults to one step** (`stopWhen: isStepCount(1)`): tools run, but the model isn't called again. Set `stopWhen` whenever you pass tools.
 - **`ToolLoopAgent` defaults to 20 steps** and logs a warning when it hits them; an explicit `stopWhen` logs nothing. Helpers: `isStepCount`, `hasToolCall`, `isLoopFinished`; an array stops when any holds.
-- **`toolApproval`** is call-level: `'user-approval'` ends the call with a `tool-approval-request`; append a `tool-approval-response` and call again. `'denied'` skips the tool without asking. Per-tool `needsApproval` is deprecated (it still drives `WorkflowAgent`).
+- **`toolApproval`** is call-level: `'user-approval'` ends the call with a `tool-approval-request`; append a `tool-approval-response` and call again. `'denied'` skips the tool without asking. Per-tool `needsApproval` is deprecated; `WorkflowAgent` accepts both it and `toolApproval`, and `toolApproval` wins (not run by our examples).
 - **Where the model calls fall.** In the first `generate()`, earlier steps run normally (lookup → a model call that requests the refund), then the loop stops. The second `generate()` runs the approved tool without a model call, then makes one model call for the answer.
 - **Signing is automatic.** With `experimental_toolApprovalSecret` set, the signature travels on the request inside `responseMessages`; push those back and send the response unsigned.
 - **Invalid tool input** never reaches `execute()`; the step records a `tool-error` and the loop continues.

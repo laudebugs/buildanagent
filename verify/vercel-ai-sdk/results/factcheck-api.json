@@ -1,5 +1,5 @@
 {
-  "package": "ai@7.0.162",
+  "package": "ai@7.0.173",
   "checks": {
     "generateText": {
       "documented": 51,

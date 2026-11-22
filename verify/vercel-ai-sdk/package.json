@@ -14,15 +14,15 @@
     "verify": "pnpm run extract && pnpm run typecheck:docs && pnpm run run:docs && pnpm run factcheck && pnpm test"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.96",
-    "@ai-sdk/harness": "1.0.173",
-    "@ai-sdk/mcp": "2.0.90",
-    "@ai-sdk/openai": "4.0.108",
-    "@ai-sdk/otel": "1.0.162",
-    "@ai-sdk/provider": "4.0.35",
-    "@ai-sdk/provider-utils": "5.0.74",
-    "@opentelemetry/sdk-trace": "2.12.1",
-    "ai": "7.0.162",
+    "@ai-sdk/anthropic": "4.0.105",
+    "@ai-sdk/harness": "1.0.184",
+    "@ai-sdk/mcp": "2.0.99",
+    "@ai-sdk/openai": "4.0.118",
+    "@ai-sdk/otel": "1.0.173",
+    "@ai-sdk/provider": "4.0.38",
+    "@ai-sdk/provider-utils": "5.0.81",
+    "@opentelemetry/sdk-trace": "3.1.1",
+    "ai": "7.0.173",
     "zod": "4.6.7"
   }
 }

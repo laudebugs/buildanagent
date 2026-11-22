@@ -3,8 +3,8 @@
   "example": "15-write-crash-idempotency",
   "file": "verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts",
   "harness": "verify/vercel-ai-sdk",
-  "pin": "ai@7.0.162",
-  "mock": "ai@7.0.162",
+  "pin": "ai@7.0.173",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "request",
