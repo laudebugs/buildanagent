@@ -8,10 +8,10 @@ import { isHarnessError } from "@buildanagent/harness";
 import { clearPurgeMarks, readPurgeMarks } from "@buildanagent/harness/memory";
 import { fileMemoryFiles } from "@buildanagent/harness/memory/node";
 import { listSessions, openSession, PURGED_TEXT, purgeSession, type SessionKey } from "@buildanagent/harness/session";
-import { pruneSessions } from "@buildanagent/harness/session/jsonl";
+import { fileIndex, fileLock, jsonlStore, pruneSessions } from "@buildanagent/harness/session/jsonl";
 import { describe, test } from "vitest";
 import { counter, fileBackend } from "../session/session-helpers.js";
-import { project, results, type Setup, testClock, turn } from "./helpers.js";
+import { project, results, type Setup, tempDir, testClock, turn } from "./helpers.js";
 
 const FACT = "The staging database is reset every Friday at 18:00 UTC.";
 const CREATE = {
@@ -154,6 +154,125 @@ describe("a delete reaches the log", () => {
       const session = await openSession({ store: setup.store, index: setup.index, key: key(id) });
       assert.ok((await session.toContext()).messages.length > 0, id);
     }
+  });
+
+  test("a second purge rewrites the session's listed first file too, so no file keeps a fact deleted later", async () => {
+    const { setup, dir } = setupOf();
+    const second = "The deploy key rotates on the first Monday of each month.";
+    const other = { ...CREATE, path: ".agents/memory/rotation.md", subject: "Key rotation", fact: second };
+    await turn(
+      setup,
+      key("s1"),
+      [
+        { name: "memory", input: CREATE },
+        { name: "memory", input: other },
+      ],
+      { prefix: "a" },
+    );
+    await turn(setup, key("s2"), [{ name: "memory", input: { command: "delete", path: CREATE.path } }], {
+      prefix: "d",
+    });
+    assert.ok((await purgeSession({ ...setup, key: key("s1"), marks: await readPurgeMarks(setup.files) })).purged);
+    await turn(setup, key("s3"), [{ name: "memory", input: { command: "delete", path: other.path } }], {
+      prefix: "e",
+    });
+    const again = await purgeSession({ ...setup, key: key("s1"), marks: await readPurgeMarks(setup.files) });
+    assert.ok(again.purged);
+    for (const file of filesUnder(join(dir, "sessions"))) {
+      assert.ok(!file.text.includes(FACT) && !file.text.includes(second), file.path);
+    }
+    const listed: string[] = [];
+    for await (const summary of listSessions(setup.store, "ada")) listed.push(summary.sessionId);
+    assert.ok(listed.includes("s1"), "the purged session is still listed");
+    const session = await openSession({ store: setup.store, index: setup.index, key: key("s1") });
+    const context = await session.toContext();
+    assert.ok(context.messages.length > 0);
+    assert.ok(!JSON.stringify(context).includes(second));
+  });
+
+  test("a purged fork's second purge copies its parent's current file and never deletes it", async () => {
+    const { setup, dir } = setupOf();
+    const third = "The fork's own note: the feature flag is named beta-search.";
+    const fourth = "The parent's later note: the cache is warmed at 05:00 UTC.";
+    await turn(setup, key("s1"), [{ name: "memory", input: CREATE }], { prefix: "a" });
+    await turn(setup, key("s2"), [{ name: "memory", input: { command: "delete", path: CREATE.path } }], {
+      prefix: "d",
+    });
+    assert.ok((await purgeSession({ ...setup, key: key("s1"), marks: await readPurgeMarks(setup.files) })).purged);
+    const s1 = await openSession({ ...setup, key: key("s1"), newId: counter("f") });
+    const fork = await s1.fork((await s1.path()).at(-1)?.id as string);
+    await fork.close();
+    await s1.close();
+    const forkId = fork.key.sessionId;
+    const note = (path: string, fact: string) => ({ ...CREATE, path, subject: "A note", fact });
+    await turn(setup, key(forkId), [{ name: "memory", input: note(".agents/memory/flag.md", third) }], {
+      prefix: "g",
+    });
+    await turn(setup, key("s3"), [{ name: "memory", input: { command: "delete", path: ".agents/memory/flag.md" } }], {
+      prefix: "h",
+    });
+    assert.ok((await purgeSession({ ...setup, key: key(forkId), marks: await readPurgeMarks(setup.files) })).purged);
+    await turn(setup, key("s1"), [{ name: "memory", input: note(".agents/memory/cache.md", fourth) }], {
+      prefix: "i",
+    });
+    await turn(setup, key("s4"), [{ name: "memory", input: { command: "delete", path: ".agents/memory/cache.md" } }], {
+      prefix: "j",
+    });
+    const marks = await readPurgeMarks(setup.files);
+    assert.ok((await purgeSession({ ...setup, key: key(forkId), marks })).purged);
+    const parent = await openSession({ store: setup.store, index: setup.index, key: key("s1") });
+    assert.ok(JSON.stringify(await parent.toContext()).includes("cache.md"), "the parent still opens");
+    assert.ok((await purgeSession({ ...setup, key: key("s1"), marks })).purged);
+    for (const file of filesUnder(join(dir, "sessions"))) {
+      for (const fact of [FACT, third, fourth]) assert.ok(!file.text.includes(fact), file.path);
+    }
+    for (const id of ["s1", forkId]) {
+      const session = await openSession({ store: setup.store, index: setup.index, key: key(id) });
+      assert.ok((await session.toContext()).messages.length > 0, id);
+    }
+  });
+
+  test("the retention purge of a purged fork leaves the parent's current file to the parent", async () => {
+    const root = project();
+    mkdirSync(join(root, ".agents/memory"), { recursive: true });
+    const sessions = join(tempDir("harness-retention-"), "sessions");
+    // The retention purge finds each pointer beside the session files, so the index shares their folder.
+    const setup: Setup = {
+      root,
+      files: fileMemoryFiles(root),
+      clock: testClock().now,
+      store: jsonlStore({ dir: sessions }),
+      index: fileIndex({ dir: sessions }),
+      lock: fileLock({ dir: join(sessions, "..", "locks") }),
+    };
+    await turn(setup, key("s1"), [{ name: "memory", input: CREATE }], { prefix: "a" });
+    await turn(setup, key("s2"), [{ name: "memory", input: { command: "delete", path: CREATE.path } }], {
+      prefix: "d",
+    });
+    assert.ok((await purgeSession({ ...setup, key: key("s1"), marks: await readPurgeMarks(setup.files) })).purged);
+    const s1 = await openSession({ ...setup, key: key("s1"), newId: counter("f") });
+    const fork = await s1.fork((await s1.path()).at(-1)?.id as string);
+    await fork.close();
+    await s1.close();
+    const forkId = fork.key.sessionId;
+    const flag = { ...CREATE, path: ".agents/memory/flag.md", subject: "Flag", fact: "The flag is beta-search." };
+    await turn(setup, key(forkId), [{ name: "memory", input: flag }], { prefix: "g" });
+    await turn(setup, key("s3"), [{ name: "memory", input: { command: "delete", path: flag.path } }], { prefix: "h" });
+    assert.ok((await purgeSession({ ...setup, key: key(forkId), marks: await readPurgeMarks(setup.files) })).purged);
+    const held = await setup.lock.acquire(key("s1"));
+    assert.notEqual(held, "would_block");
+    const pruned = await pruneSessions({
+      dir: sessions,
+      userId: "ada",
+      retention: { days: 30, action: "purge" },
+      now: () => new Date(Date.now() + 400 * 86_400_000),
+      lock: setup.lock,
+    });
+    if (held !== "would_block") await held.release();
+    assert.ok(pruned.purged.includes(forkId), "the fork expired");
+    assert.ok(!pruned.purged.includes("s1"), "the parent was locked");
+    const parent = await openSession({ store: setup.store, index: setup.index, key: key("s1") });
+    assert.ok((await parent.toContext()).messages.length > 0, "the parent still opens");
   });
 
   test("the retention purge reports the marks it removed with their sessions, and an archive the sessions that still hold them", async () => {

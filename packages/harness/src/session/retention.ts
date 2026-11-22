@@ -14,7 +14,7 @@ import { gunzip as gunzipCallback, gzip as gzipCallback } from "node:zlib";
 import type { SessionEntry } from "@buildanagent/protocol";
 import { HarnessError, isHarnessError } from "../errors.js";
 import type { LockHandle, SessionLock } from "./lock.js";
-import { marksIn, type PurgeMark } from "./purge.js";
+import { marksIn, ownsContinued, type PurgeMark } from "./purge.js";
 import { isDerivedFile } from "./session.js";
 import { checkKey, encodeName } from "./store.js";
 
@@ -423,7 +423,11 @@ interface Session {
 const continuesOf = (file: SessionFile): string | undefined =>
   file.contents.kind === "log" ? file.contents.continues : undefined;
 
-/** Each pointer's chain: the derived file it names, then each derived file that one continues, newest first. */
+/**
+ * Each pointer's chain: the derived file it names, then each derived file that one continues and that is still the
+ * session's own, newest first. Past the purged copy of a first file, only the purge's copies above it are the
+ * session's, so a purged fork never claims the file of the session it was forked from.
+ */
 function pointerChains(found: Scan, owner: Map<string, string>): Map<string, SessionFile[]> {
   const chains = new Map<string, SessionFile[]>();
   for (const [sessionId, target] of found.pointers) {
@@ -433,7 +437,8 @@ function pointerChains(found: Scan, owner: Map<string, string>): Map<string, Ses
       if (file === undefined) break;
       owner.set(at, sessionId);
       chain.push(file);
-      at = continuesOf(file);
+      const next = continuesOf(file);
+      at = next !== undefined && ownsContinued(at, next) ? next : undefined;
     }
     chains.set(sessionId, chain);
   }

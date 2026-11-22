@@ -9,7 +9,7 @@ import type { SessionEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
 import type { SessionLock } from "./lock.js";
 import type { SessionIndex } from "./pointer.js";
-import { DERIVED } from "./session.js";
+import { DERIVED, isDerivedFile } from "./session.js";
 import type { EntryInput, SessionKey, SessionStore } from "./store.js";
 
 /**
@@ -27,8 +27,28 @@ export interface PurgeMark {
 /** The text that replaces the content of a purged entry. A replay of a purged session reads it where the content was. */
 export const PURGED_TEXT = "[purged: this entry held a deleted memory record]";
 
-/** The prefix of a file the targeted purge writes. */
+/** The prefix of a file the targeted purge writes below a session's first file: a revert's or a migration's copy. */
 const PURGE_FILE = `${DERIVED}p`;
+/**
+ * The prefix of the purged copy of a session's first file. A session's own files end at its first file, so a chain that
+ * reaches this copy has reached the session's first file, and the files above it belong to the session it was forked
+ * from, unless they are the session's own copies of them.
+ */
+export const PURGE_ROOT_FILE = `${DERIVED}o`;
+/** The prefix of a session's purged copy of a file above its first file, which it continues from another session. */
+export const PURGE_ABOVE_FILE = `${DERIVED}q`;
+
+/**
+ * Whether the session that owns `file` also owns `next`, the file that `file` continues, by their names alone. A first
+ * file, or its purged copy, ends the session's own files except for the copies a purge made above it; a revert's,
+ * migration's or purge's file continues files of its own session, which are derived or its first file.
+ */
+export function ownsContinued(file: string, next: string): boolean {
+  if (!isDerivedFile(file) || file.startsWith(PURGE_ROOT_FILE) || file.startsWith(PURGE_ABOVE_FILE)) {
+    return next.startsWith(PURGE_ABOVE_FILE);
+  }
+  return !next.startsWith(PURGE_ABOVE_FILE);
+}
 
 // A chain of parent files longer than this is a cycle in a corrupt log.
 const MAX_FILES = 10_000;
@@ -141,6 +161,18 @@ interface ChainFile {
   readonly own: boolean;
 }
 
+interface Chain {
+  /** The files from the current one up, current first. */
+  readonly files: readonly ChainFile[];
+  /** Where in `files` the session's first file, or its purged copy, is. */
+  readonly root: number;
+  /**
+   * The entries of the file named by the session id when the chain does not pass it: the copy of the first file that
+   * an earlier purge wrote for the listing, or the first file a migration copied. It is the session's own.
+   */
+  readonly listing: readonly SessionEntry[] | undefined;
+}
+
 const load = async (store: SessionStore, key: SessionKey): Promise<SessionEntry[]> => {
   const found: SessionEntry[] = [];
   for await (const entry of store.load(key)) found.push(entry);
@@ -153,26 +185,37 @@ const parentOf = (entries: readonly SessionEntry[]): string | undefined => {
 };
 
 /**
- * The session's files from its current file up through each file it continues, current first. The files up to and
- * including the one named by the session id are the session's own; a fork's parent files beyond that belong to the
- * session it was forked from, so the purge copies them and never deletes them.
+ * The session's files from its current file up through each file it continues, current first. The session's own files
+ * are its derived files down to its first file, or to the purged copy of it, and then the copies a purge made above
+ * that; a fork's parent files beyond them belong to the session it was forked from, so the purge copies them and never
+ * deletes them. A chain whose own files end without reaching a first file, as a migration's does, ends at its root.
  */
-async function chainOf(store: SessionStore, index: SessionIndex, key: SessionKey): Promise<ChainFile[]> {
-  const chain: ChainFile[] = [];
+/** Whether `id`, reached from `previous` (or first, from the pointer), is still a file of the session `sessionId`. */
+function isOwn(previous: string | undefined, id: string, sessionId: string): boolean {
+  if (previous === undefined) return id === sessionId || (isDerivedFile(id) && !id.startsWith(PURGE_ABOVE_FILE));
+  return ownsContinued(previous, id) && (isDerivedFile(id) || id === sessionId);
+}
+
+async function chainOf(store: SessionStore, index: SessionIndex, key: SessionKey): Promise<Chain> {
+  const files: ChainFile[] = [];
   let own = true;
   for (let id: string | undefined = (await index.get(key)) ?? key.sessionId; id !== undefined; ) {
-    if (chain.length > MAX_FILES || chain.some((file) => file.id === id)) {
+    if (files.length > MAX_FILES || files.some((file) => file.id === id)) {
       throw new HarnessError("session_corrupt", `the files of ${key.sessionId} have a cycle at ${id}`);
     }
     const entries = await load(store, { userId: key.userId, sessionId: id });
     if (entries.length === 0) break;
-    // A file of another session that is not derived ends this session's own files, as does the session's first file.
-    const mine = own && (id === key.sessionId || id.startsWith(DERIVED));
-    chain.push({ id, entries, own: mine });
-    if (id === key.sessionId || !mine) own = false;
+    own = own && isOwn(files.at(-1)?.id, id, key.sessionId);
+    files.push({ id, entries, own });
     id = parentOf(entries);
   }
-  return chain;
+  const first = files.findIndex(
+    (file) => file.own && (file.id === key.sessionId || file.id.startsWith(PURGE_ROOT_FILE)),
+  );
+  const root = first >= 0 ? first : files.findLastIndex((file) => file.own);
+  if (root < 0) return { files, root, listing: undefined };
+  const named = files[root]?.id === key.sessionId ? [] : await load(store, key);
+  return { files, root, listing: named.length === 0 ? undefined : named };
 }
 
 /** The files of the user, other than `skip`, whose header continues one of `files`. */
@@ -189,6 +232,29 @@ async function dependentsOf(
     if (parent !== undefined && files.has(parent)) found.push(summary.sessionId);
   }
   return found;
+}
+
+/** Throws `session_conflict` when a file of the user, other than `skip`, continues one of `deleting`. */
+async function refuseDependents(
+  store: SessionStore,
+  key: SessionKey,
+  deleting: ReadonlySet<string>,
+  skip: ReadonlySet<string>,
+): Promise<void> {
+  const dependents = await dependentsOf(store, key.userId, deleting, skip);
+  if (dependents.length > 0) {
+    throw new HarnessError(
+      "session_conflict",
+      `the files ${dependents.join(", ")} continue a file of ${key.sessionId} that the purge would delete, so purge them first`,
+    );
+  }
+}
+
+/** A file's header with its parent renamed to the new copy of that parent, when the purge wrote one. */
+function renamedHeader(entry: SessionEntry, renamed: ReadonlyMap<string, string>): SessionEntry {
+  if (entry.type !== "session_header" || entry.parent === undefined || entry.spawn !== undefined) return entry;
+  const parent = renamed.get(entry.parent.session);
+  return parent === undefined ? entry : { ...entry, parent: { ...entry.parent, session: parent } };
 }
 
 /** Writes a new file and reads it back, refusing a copy whose ids differ or that still holds marked content. */
@@ -218,8 +284,9 @@ async function writeChecked(
  * the file above it, with every marked entry's content replaced by `purgedEntry()` and every entry's base fields kept.
  * Each new file is read back and compared before the pointer moves to the new current file, and the old files of the
  * session's own are deleted only after that. When the session's first file is among them, its purged copy is written
- * under the session's id again, so a listing still finds the session. A fork's parent file from another session is copied and left in place,
- * for that session's own purge.
+ * under the session's id again, replacing any copy an earlier purge wrote there, so a listing still finds the session
+ * and no file under its id keeps a purged fact. A fork's parent file from another session is copied and left in place,
+ * for that session's own purge, and a later purge of the fork deletes only the fork's own copies.
  *
  * A session with no marked entry is left alone. The purge throws a `HarnessError` with code `session_locked` when a
  * writer holds the lock, and with code `session_conflict`, before it writes anything, when another file of the user
@@ -241,56 +308,65 @@ export async function purgeSession(options: PurgeSessionOptions): Promise<PurgeS
   }
 }
 
-async function purgeLocked(options: PurgeSessionOptions): Promise<PurgeSessionResult> {
-  const { store, index, key } = options;
-  const matches = markMatcher(options.marks);
-  const holdsMarked = (entry: SessionEntry) => matches(entry) && keepsContent(entry);
-  const chain = await chainOf(store, index, key);
-  const furthest = chain.findLastIndex((file) => file.entries.some(holdsMarked));
-  if (furthest < 0) return { purged: false };
-  const rewritten = chain.slice(0, furthest + 1).reverse();
-  const deleting = new Set(rewritten.filter((file) => file.own).map((file) => file.id));
-  const dependents = await dependentsOf(store, key.userId, deleting, new Set(chain.map((file) => file.id)));
-  if (dependents.length > 0) {
-    throw new HarnessError(
-      "session_conflict",
-      `the files ${dependents.join(", ")} continue a file of ${key.sessionId} that the purge would delete, so purge them first`,
-    );
-  }
+/**
+ * Writes the purged copy of each file in `rewritten`, root first, each header naming the copy of the file above it,
+ * and returns the new names, the root's purged entries when the root was among them, and how many entries were purged.
+ */
+async function writeCopies(
+  options: PurgeSessionOptions,
+  chain: readonly ChainFile[],
+  root: number,
+  rewritten: readonly ChainFile[],
+  holdsMarked: (entry: SessionEntry) => boolean,
+) {
   const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
   const renamed = new Map<string, string>();
-  const purged = new Map<string, SessionEntry[]>();
+  let rootEntries: SessionEntry[] | undefined;
   let count = 0;
   for (const file of rewritten) {
-    const name = `${PURGE_FILE}${newId()}`;
-    const entries = file.entries.map((entry, at) => {
-      if (at === 0 && entry.type === "session_header" && entry.parent !== undefined && entry.spawn === undefined) {
-        const parent = renamed.get(entry.parent.session);
-        return parent === undefined ? entry : { ...entry, parent: { ...entry.parent, session: parent } };
-      }
+    const at = chain.indexOf(file);
+    const prefix = at === root ? PURGE_ROOT_FILE : at > root ? PURGE_ABOVE_FILE : PURGE_FILE;
+    const name = `${prefix}${newId()}`;
+    const entries = file.entries.map((entry, position) => {
+      if (position === 0) return renamedHeader(entry, renamed);
       if (!holdsMarked(entry)) return entry;
       count += 1;
       return purgedEntry(entry);
     });
-    await writeChecked(store, { userId: key.userId, sessionId: name }, entries, holdsMarked);
+    await writeChecked(options.store, { userId: options.key.userId, sessionId: name }, entries, holdsMarked);
     renamed.set(file.id, name);
-    purged.set(file.id, entries);
+    if (at === root) rootEntries = entries;
   }
+  return { renamed, rootEntries, count };
+}
+
+async function purgeLocked(options: PurgeSessionOptions): Promise<PurgeSessionResult> {
+  const { store, index, key } = options;
+  const matches = markMatcher(options.marks);
+  const holdsMarked = (entry: SessionEntry) => matches(entry) && keepsContent(entry);
+  const { files: chain, root, listing } = await chainOf(store, index, key);
+  // The listing's copy of the first file holds what the first file's purged copy holds, so either brings in the root.
+  const furthest = Math.max(
+    chain.findLastIndex((file) => file.entries.some(holdsMarked)),
+    listing?.some(holdsMarked) === true ? root : -1,
+  );
+  if (furthest < 0) return { purged: false };
+  const rewritten = chain.slice(0, furthest + 1).reverse();
+  const deleting = new Set(rewritten.filter((file) => file.own).map((file) => file.id));
+  if (root >= 0 && furthest >= root && listing !== undefined) deleting.add(key.sessionId);
+  await refuseDependents(store, key, deleting, new Set([...chain.map((file) => file.id), key.sessionId]));
+  const { renamed, rootEntries, count } = await writeCopies(options, chain, root, rewritten, holdsMarked);
   const files = rewritten.map((file) => renamed.get(file.id) as string);
   await index.set(key, files.at(-1) as string);
   for (const id of deleting) await store.delete({ userId: key.userId, sessionId: id });
-  // A listing finds a session by its first file, so the purged copy of that file is written under the session's id
-  // again. The chain reads the copy under its new name, so a crash before this write leaves a session that still opens
-  // and only drops out of the listing.
-  const first = purged.get(key.sessionId);
-  if (first !== undefined && deleting.has(key.sessionId)) await writeChecked(store, key, first, holdsMarked);
+  // A listing finds a session by the file named by its id, so the purged copy of the first file is written under that
+  // name again, replacing an earlier purge's copy. The chain reads the copy under its new name, so a crash before this
+  // write leaves a session that still opens and only drops out of the listing until its next purge.
+  if (rootEntries !== undefined) await writeChecked(store, key, rootEntries, holdsMarked);
   return {
     purged: true,
     files,
     entries: count,
-    marks: marksIn(
-      rewritten.flatMap((file) => file.entries),
-      options.marks,
-    ),
+    marks: marksIn([...rewritten.flatMap((file) => file.entries), ...(listing ?? [])], options.marks),
   };
 }
