@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.packages.json",
+  "compilerOptions": {
+    // `@modelcontextprotocol/client`, which the framing check reads with, reaches eventsource-parser, which ships a
+    // `source` condition whose src/*.ts imports name `.ts` files. Our `source` condition makes TypeScript read them, so
+    // this type-check allows `.ts` specifiers, as agent-safety's does; the build config still forbids them.
+    "allowImportingTsExtensions": true
+  },
   "include": ["src/**/*.ts", "test/**/*.ts", "examples/**/*.ts", "vitest.config.ts"]
 }

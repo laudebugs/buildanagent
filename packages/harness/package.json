@@ -212,5 +212,9 @@
     "@buildanagent/gateway": "workspace:*",
     "@buildanagent/protocol": "workspace:*",
     "@buildanagent/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "json-rpc-2.0": "1.8.1"
   }
 }
