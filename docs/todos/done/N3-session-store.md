@@ -46,7 +46,7 @@ Build the store every other component writes through, with an idempotent append,
 - [x] Assign `seq` in the store, monotonically per session.
 - [x] Key every method by user and session id, and have the JSONL backend file each user's sessions apart, such as one directory per user, so a lookup under one user cannot open another user's file.
 - [x] Update the `SessionStore` sketch in [build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api) to the new signatures, and check the key that each todo calling the store passes, starting with N4, N6 and N7.
-- [x] Decide whether `openSession` and `SessionLock.acquire` take the same user-and-session key, and record the decision in the [build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api) sketch. We recommend yes: key both by `{ userId, sessionId }`, so neither an open nor a lock can reach another user's session. If the decision is yes, note the new key in [N4](N4-writer-lock.md), which builds the lock.
+- [x] Decide whether `openSession` and `SessionLock.acquire` take the same user-and-session key, and record the decision in the [build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api) sketch. We recommend yes: key both by `{ userId, sessionId }`, so neither an open nor a lock can reach another user's session. If the decision is yes, note the new key in [N4](../done/N4-writer-lock.md), which builds the lock.
 - [x] Run the conformance suite against both backends.
 
 ## Acceptance criteria
