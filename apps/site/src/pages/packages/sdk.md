@@ -1,10 +1,10 @@
 ---
 layout: ../../layouts/Page.astro
-title: The SDK
+title: The SDK, the agent loop with tools and guards
 description: The SDK runs an agent's loop over the gateway, with tools, guards, signed approvals and a scripted test model.
 ---
 
-The SDK, `@buildanagent/sdk`, runs your agent's loop over the gateway. It calls the model, runs the tools the model asks for and stops when the work is done. Its testing entry point lets you test the agent offline.
+The SDK, `@buildanagent/sdk`, runs your agent's loop over the gateway. It calls the model, runs the tools the model asks for and stops when the work is done. Its testing entry point gives you a scripted model, so you can test the agent offline.
 
 ## What it does
 

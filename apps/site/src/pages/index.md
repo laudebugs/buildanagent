@@ -24,4 +24,4 @@ pnpm add @buildanagent/sdk@alpha @buildanagent/gateway@alpha
 
 ## Where to go next
 
-Read about the [gateway](/packages/gateway/) or the [SDK](/packages/sdk/), follow the [docs](https://docs.buildanagent.fyi) to build your first agent, or read the code on [GitHub](https://github.com/laudebugs/buildanagent).
+Read about the [gateway](/packages/gateway/) or the [SDK](/packages/sdk/). Follow the [docs](https://docs.buildanagent.fyi) to build your first agent, or read the code on [GitHub](https://github.com/laudebugs/buildanagent).

@@ -1,6 +1,6 @@
 ---
 layout: ../../layouts/Page.astro
-title: The gateway
+title: The gateway, one transcript for any model
 description: The gateway calls any model through one transcript and one stream format, and puts a cost on every message.
 ---
 
@@ -12,7 +12,7 @@ The gateway, `@buildanagent/gateway`, lets your agent call a model through one t
 - **A cost on every message.** The gateway prices each response from a catalog that you can replace, and an unknown price is `null`, never a guessed zero.
 - **Retries before the stream starts.** A failed request is retried only before the model streams any output, so a retry never repeats text you already showed.
 - **Your key and no other.** You pass an API key to each adapter. The gateway never reads one from the environment.
-- **Transcripts that move between models.** A conversation recorded on one model replays on another, even from another provider.
+- **Transcripts that move between models.** A transcript recorded on one model replays on another, even from another provider.
 
 ## Install it
 
