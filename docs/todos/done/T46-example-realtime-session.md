@@ -19,7 +19,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 - [OpenAI testing guide, mirrored](../../reference/openai-agents-sdk/source/docs/src/content/docs/guides/testing.mdx): the scripted doubles "make no model, sandbox provider, or Realtime API requests", and audio playback and server behaviour "require the real transport"
 - `verify/openai-agents-sdk/node_modules/@openai/agents-realtime/dist/testing/scriptedRealtimeTransport.d.ts`: the transport's API, from the `./testing` export
 - [`verify/openai-agents-sdk/scripts/run-examples.mjs`](../../../verify/openai-agents-sdk/scripts/run-examples.mjs), line 26: the pattern that skips every source matching `@openai/agents/realtime`, `RealtimeSession` or `RealtimeAgent`
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T38](../ready/T38-section-voice-and-realtime.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T38](../done/T38-section-voice-and-realtime.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 
 ## Scope
@@ -35,7 +35,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 - The chained pipeline and barge-in on Cloudflare: [T47](../done/T47-example-voice-pipeline.md)
 - Truncation of the reply to the heard audio, which needs the real transport; the section explains it in prose
-- Section T38's prose: [T38](../ready/T38-section-voice-and-realtime.md)
+- Section T38's prose: [T38](../done/T38-section-voice-and-realtime.md)
 - Voice sections in the SDK references: [S10](../ready/S10-voice-reference-sections.md)
 
 ## Tasks
