@@ -21,9 +21,11 @@ import {
   SDK_VERSION,
   type ToolDefinition,
 } from "@buildanagent/sdk";
+import type { Clock } from "@buildanagent/sdk/testing";
 import { HarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import type { PolicySession } from "../permissions/types.js";
+import { settleOpenCalls } from "./resume.js";
 import type { Session } from "./session.js";
 import type { EntryInput } from "./store.js";
 
@@ -48,8 +50,15 @@ export interface TurnOptions<H = unknown> {
   readonly modelOptions?: CallOptions;
   /** Called with the run as soon as it starts, so a caller can `steer()`, `followUp()` or abort it. */
   readonly onRun?: (run: Run<unknown>) => void;
-  /** The conversation so far, as messages. Rebuilding it from the log is the resume's job; a caller passes it until then. */
+  /**
+   * The conversation so far. Left out, it is rebuilt from the session's log, so a turn in any process goes on from
+   * what the log holds. Pass it only to run on a conversation the log doesn't hold.
+   */
   readonly history?: readonly Message[];
+  /** The clock of the entries and the run, for a test that needs the same bytes twice. Default the system clock. */
+  readonly clock?: Clock;
+  /** Makes the ids of the entries and of the run, for a test that needs the same bytes twice. Default `crypto.randomUUID()`. */
+  readonly newId?: () => string;
 }
 
 /** What a turn returns: the SDK's result, and where the turn left the log. */
@@ -215,6 +224,7 @@ class EventRecorder {
       type: "usage",
       source: "model_call",
       usage: message.usage,
+      ...(message.lastAttemptUsage === undefined ? {} : { lastAttemptUsage: message.lastAttemptUsage }),
       cost: message.cost,
     });
   }
@@ -355,6 +365,39 @@ function interceptorsOf<H>(
   };
 }
 
+/** The run options a turn sets only when it has a value, so a missing one leaves the SDK's default. */
+function optionalRunOptions<H>(options: TurnOptions<H>, harness: Harness<H>, history: readonly Message[]) {
+  return {
+    ...(history.length === 0 ? {} : { history }),
+    ...(options.clock === undefined ? {} : { clock: options.clock }),
+    ...(options.newId === undefined ? {} : { idGenerator: options.newId }),
+    ...(options.hostContext === undefined ? {} : { app: options.hostContext }),
+    ...(options.output === undefined ? {} : { output: options.output }),
+    ...(options.maxSteps === undefined ? {} : { maxSteps: options.maxSteps }),
+    ...(options.turnRetries === undefined ? {} : { turnRetries: options.turnRetries }),
+    ...(options.modelOptions === undefined ? {} : { modelOptions: options.modelOptions }),
+    ...(options.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }),
+    ...(harness.signer === undefined ? {} : { signer: harness.signer }),
+  };
+}
+
+/** Waits for the run and for every queued write, and returns the result with where the log ends. */
+async function settleTurn(handle: Run<unknown>, writer: EntryWriter, session: Session): Promise<TurnResult> {
+  let result: RunResult<unknown> | undefined;
+  let runError: unknown;
+  try {
+    result = (await handle.result) as RunResult<unknown>;
+  } catch (error) {
+    runError = error;
+  }
+  await writer.settled();
+  // A store failure is the cause of an aborted run, so it comes before the run's own error.
+  const failed = writer.failure();
+  if (failed !== undefined) throw failed.error;
+  if (result === undefined) throw runError;
+  return { ...result, sessionKey: session.key.sessionId, lastEntryId: session.head() as string };
+}
+
 /**
  * Runs one turn on a session and writes it to the log. The session must be open with a lock. The first turn of a new
  * session writes its header and `env_stamp`; a turn whose model or tools differ from the last recorded ones writes a
@@ -371,14 +414,17 @@ export async function runTurn<H = unknown>(
   const tools = toolsOf(harness, options);
   const stop = new AbortController();
   const signal = options.signal === undefined ? stop.signal : AbortSignal.any([options.signal, stop.signal]);
-  const newId = () => globalThis.crypto.randomUUID();
+  const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
   const writer = new EntryWriter(
     session,
     newId,
-    () => new Date(),
+    options.clock === undefined ? () => new Date() : () => new Date((options.clock as Clock).now()),
     () => stop.abort(),
   );
+  // What a crash left open is settled first, so the log reads as a whole and the context has no call without a result.
+  await settleOpenCalls(await session.path(), harness, (origin, body) => writer.write(origin, body as Body));
   await recordLoadout(session, harness, writer, model, tools);
+  const history = options.history ?? (await session.toContext()).messages;
   await writeInput(writer, options, newId);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId);
   const observer: Observer = (event) => recorder.handle(event);
@@ -390,27 +436,38 @@ export async function runTurn<H = unknown>(
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
     observers: [observer, ...(harness.observers ?? [])],
-    ...(options.history === undefined ? {} : { history: options.history }),
-    ...(options.hostContext === undefined ? {} : { app: options.hostContext }),
-    ...(options.output === undefined ? {} : { output: options.output }),
-    ...(options.maxSteps === undefined ? {} : { maxSteps: options.maxSteps }),
-    ...(options.turnRetries === undefined ? {} : { turnRetries: options.turnRetries }),
-    ...(options.modelOptions === undefined ? {} : { modelOptions: options.modelOptions }),
-    ...(options.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }),
-    ...(harness.signer === undefined ? {} : { signer: harness.signer }),
+    ...optionalRunOptions(options, harness, history),
   });
   options.onRun?.(handle);
-  let result: RunResult<unknown> | undefined;
-  let runError: unknown;
-  try {
-    result = (await handle.result) as RunResult<unknown>;
-  } catch (error) {
-    runError = error;
+  return settleTurn(handle, writer, session);
+}
+
+/**
+ * Re-runs from an entry: HEAD moves to `entryId` with a `checkout` entry, and a new turn follows it as a new branch of
+ * the same log. The entries of the branch it left stay as they were. The entry must not leave a tool call without its
+ * result, because that call never ran on the new branch.
+ */
+export async function rerunFrom<H = unknown>(
+  session: Session,
+  harness: Harness<H>,
+  entryId: string,
+  options: TurnOptions<H>,
+): Promise<TurnResult> {
+  const context = await session.toContext(entryId);
+  const answered = new Set(context.messages.flatMap((message) => (message.role === "tool" ? [message.callId] : [])));
+  const waiting = context.messages.flatMap((message) =>
+    message.role === "assistant"
+      ? message.content.flatMap((block) =>
+          block.type === "tool_call" && !answered.has(block.callId) ? [block.callId] : [],
+        )
+      : [],
+  );
+  if (waiting.length > 0) {
+    throw new HarnessError(
+      "invalid_turn_options",
+      `entry ${entryId} follows tool calls with no result (${waiting.join(", ")}), so a re-run from it would send calls that never ran`,
+    );
   }
-  await writer.settled();
-  // A store failure is the cause of an aborted run, so it comes before the run's own error.
-  const failed = writer.failure();
-  if (failed !== undefined) throw failed.error;
-  if (result === undefined) throw runError;
-  return { ...result, sessionKey: session.key.sessionId, lastEntryId: session.head() as string };
+  await session.checkout(entryId);
+  return runTurn(session, harness, options);
 }

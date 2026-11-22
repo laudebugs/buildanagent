@@ -188,3 +188,17 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 | `run_end` | `turn_end` |
 
 Call `runTurn()` once at a time per `Session`: its writes stay in order within one call, but two concurrent calls on one `Session` can interleave their entries. A turn may set `system`, `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal`, `tools` and `hostContext`. `tools` is an allowlist of registered names, and an unknown name throws `invalid_turn_options`. `hostContext` reaches a tool as `ctx.app` and reaches no entry. `onRun` hands the caller the run, so it can `steer()` or `followUp()` it.
+
+## The log is the only state, so a turn rebuilds its context from it
+
+`session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It deep-equals the `context` of the run that wrote the log, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone. A message is the `message_block` entries that share a `messageId`, closed by a `message_end` and the `usage` entry after it. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message.
+
+There are two ways to look at a stored session again, and neither calls a model:
+
+- **Playback** is `session.playback(headId?)`, which yields the entries on the path in order and reads the log and nothing else. A run with `TurnOptions.clock` and `newId` set to a fixed clock and sequential ids writes the same bytes every time, so two identical scripted sessions produce identical JSONL files.
+- **Re-run** is `rerunFrom(session, harness, entryId, options)`: it appends a `checkout` to `entryId` and starts a new turn there, on a new branch of the same log. The entries of the branch it left don't change. It refuses an entry that follows tool calls with no result, because those calls never ran on the new branch.
+
+### A crash leaves calls without results, and the next turn settles them by what they could have done
+
+Before a turn writes anything, it looks for calls the rebuilt context shows without a result. A call to a tool that declares `effect: { kind: "write" }` gets an `unknown` write outcome with `retry: "reconcile_first"`, because the write may have taken effect, and the model reads that it must check before it retries. A call to any other tool gets an error that says it was interrupted, which the model may retry. A turn with no `turn_end` gets one with stop reason `aborted`. A model that proposes the same write again reaches the same effect key when the tool has a business key: `effectScope(session, harness, toolCallId)` gives the scope a guarded write takes, with the harness's `tenant` (default `local`), the session id, the branch (the file the log is in) and the call id. Approvals that a crash left waiting are not settled here; signed approvals in the log do that.
+

@@ -190,6 +190,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.83",
+    "@buildanagent/agent-safety": "workspace:*",
     "@buildanagent/gateway": "workspace:*",
     "@buildanagent/protocol": "workspace:*",
     "@buildanagent/sdk": "workspace:*"
