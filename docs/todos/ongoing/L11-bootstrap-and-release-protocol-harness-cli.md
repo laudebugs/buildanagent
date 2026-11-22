@@ -11,7 +11,7 @@
 
 ## Goal
 
-Make the four packages public, switch the release to all six, and publish the first alpha of the protocol, harness, CLI and agent-safety together through `release.yml`, once N30 has given the CLI a working binary ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
+Make the four packages public, switch the release to all six, and publish the first alpha of the protocol, harness, CLI and agent-safety together through `release.yml`, once N30 has given the CLI a working binary, with N24's MCP client (`@buildanagent/harness/mcp`) in the harness at the owner's request ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
 
 ## Context
 
