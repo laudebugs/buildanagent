@@ -149,7 +149,7 @@ TypeScript is the thinner side of this market. LangMem, LangChain's memory-extra
 
 ## Three new examples would give the chapter its listings, led by T41's keyword search
 
-**T41 should build keyword search with BM25 written inside the example, because that needs no new dependency and makes the strongest baseline.** T41 asks for "keyword search or a vector index with deterministic embeddings" in `verify/vercel-ai-sdk/` and forbids a new dependency without the owner's approval ([T41](../../todos/ready/T41-example-retrieval.md)). BM25 fits in a few dozen lines of TypeScript and is deterministic, and the `minisearch` package would be the dependency to propose if hand-written scoring proved too long. The example should search a fixture of about ten short documents in `fixtures/` and assert four behaviours with `check()`:
+**T41 should build keyword search with BM25 written inside the example, because that needs no new dependency and makes the strongest baseline.** T41 asks for "keyword search or a vector index with deterministic embeddings" in `verify/vercel-ai-sdk/` and forbids a new dependency without the owner's approval ([T41](../../todos/done/T41-example-retrieval.md)). BM25 fits in a few dozen lines of TypeScript and is deterministic, and the `minisearch` package would be the dependency to propose if hand-written scoring proved too long. The example should search a fixture of about ten short documents in `fixtures/` and assert four behaviours with `check()`:
 1. an exact identifier, such as an error code, ranks its document first;
 2. a paraphrase with no shared words misses, which is keyword search's failure;
 3. a tenant filter inside the query keeps another tenant's near-duplicate out of the top results;
@@ -171,7 +171,7 @@ The changes below are proposals; this report edits no plan, and each needs the o
 
 | # | Plan or record | Proposed change | Kind |
 | --- | --- | --- | --- |
-| 1 | Book, [T41](../../todos/ready/T41-example-retrieval.md) | Fix the form: hand-written BM25 over a fixture, with the four checks above; hybrid with `MockEmbeddingModelV4` and RRF optional | Todo scope change |
+| 1 | Book, [T41](../../todos/done/T41-example-retrieval.md) | Fix the form: hand-written BM25 over a fixture, with the four checks above; hybrid with `MockEmbeddingModelV4` and RRF optional | Todo scope change |
 | 2 | Book, new example todo (T43) | `verify/langchain/examples/11-store-recall-expire.ts`, the chapter's exercise with an injected clock; add it to T36's listings | New todo and plan row edit |
 | 3 | Book, new example todo (T44) | `verify/cloudflare-agents/examples/10-context-memory.ts`: context blocks over eviction, FTS5 in local workerd, per-agent scope | New todo |
 | 4 | Book, [T36](../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md) and [§4.2 row 12](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) | Add retrieval measurement to section 2 and the check-before-use rule to section 3; make the exercise show the expired fact surviving in the session log | Todo scope change |
