@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T37` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [U19](../done/U19-research-a2a.md), [T21](T21-chapter-tools-at-scale.md), [T45](../done/T45-example-a2a-delegation.md) |
