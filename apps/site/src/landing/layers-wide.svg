@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="layers-wide" viewBox="0 0 900 372" role="img" aria-label="The three layers, from top to bottom: harness, loop and gateway, with what each does. On the right, one turn of the loop: a model call, then tool calls, then results returned to the model." style="font-family:var(--font-code);font-size:13px">
+  <path d="M210 10L300 55L210 100L120 55Z" fill="var(--cell)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M120 55L210 100L210 120L120 75Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M210 100L300 55L300 75L210 120Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="210" y="60" text-anchor="middle" fill="currentColor" stroke="none">harness</text>
+  <path d="M310 55L330 55" fill="none" stroke="var(--a)" stroke-width="2" stroke-linejoin="miter"/>
+  <text x="338" y="60" fill="currentColor" stroke="none">tools · sessions · MCP · approvals</text>
+  <path d="M210 130L300 175L210 220L120 175Z" fill="var(--a)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M120 175L210 220L210 240L120 195Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M210 220L300 175L300 195L210 240Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="210" y="180" text-anchor="middle" fill="var(--bg)" stroke="none">loop (sdk)</text>
+  <path d="M310 175L330 175" fill="none" stroke="var(--a)" stroke-width="2" stroke-linejoin="miter"/>
+  <text x="338" y="180" fill="currentColor" stroke="none">model call, tool calls, stop</text>
+  <path d="M210 250L300 295L210 340L120 295Z" fill="var(--cell)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M120 295L210 340L210 360L120 315Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M210 340L300 295L300 315L210 360Z" fill="var(--bg)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+  <text x="210" y="300" text-anchor="middle" fill="currentColor" stroke="none">gateway</text>
+  <path d="M310 295L330 295" fill="none" stroke="var(--a)" stroke-width="2" stroke-linejoin="miter"/>
+  <text x="338" y="300" fill="currentColor" stroke="none">streaming · retries · caching · cost</text>
+  <rect x="612" y="120" width="110" height="46" fill="none" stroke="currentColor" stroke-width="2"/>
+  <rect x="762" y="120" width="110" height="46" fill="none" stroke="currentColor" stroke-width="2"/>
+  <text x="667" y="148" text-anchor="middle" fill="currentColor" stroke="none">model call</text>
+  <text x="817" y="148" text-anchor="middle" fill="currentColor" stroke="none">tool calls</text>
+  <path d="M722 143L752 143" fill="none" stroke="var(--a)" stroke-width="2.5" stroke-linejoin="miter"/>
+  <path d="M760 143L752 138L752 148Z" fill="var(--a)" stroke="none"/>
+  <path d="M817 166L817 220L667 220L667 176" fill="none" stroke="var(--a)" stroke-width="2.5" stroke-linejoin="miter"/>
+  <path d="M667 168L662 176L672 176Z" fill="var(--a)" stroke="none"/>
+  <text x="742" y="246" text-anchor="middle" fill="currentColor" stroke="none">results return to the model</text>
+</svg>
