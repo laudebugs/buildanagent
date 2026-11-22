@@ -16,7 +16,7 @@ The claims log for [`the-model-gateway.md`](../src/content/chapters/the-model-ga
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
-| 1 | The helper in the first listing is nine lines | Opening | ✅ | `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, region `ask`: the `const ask = …` statement spans nine lines between the markers |
+| 1 | The helper in the first listing is eight lines | Opening | ✏️ | `verify/vercel-ai-sdk/examples/12-retries-caching-budget.ts`, region `ask`: lines 90 to 97, eight lines; first drafted as nine, corrected by row 107 |
 | 2 | The example that holds `ask` makes a provider answer "overloaded" and carries on, reads a long policy back from a cache at a fraction of its price, and refuses a call before it leaves the process | Opening | ✅ | `verify/vercel-ai-sdk/results/transcripts/12-retries-caching-budget.json`, checks: "a retryable error costs one retry (1)" (an HTTP 529 in the wire half), "the cached call costs under a fifth of an uncached one", "the refused call never reached the model" |
 | 3 | The `cacheControl` entry sits under the `anthropic` key, so it is a request to Anthropic's cache and nobody else's | § notes | ✅ | The example's `const cacheControl = { anthropic: { cacheControl: { type: "ephemeral" } } }`; `@ai-sdk/anthropic` reads "Options accepted under `providerOptions.anthropic`" (`dist/index.js:69`) and takes cache control from the provider-options name it owns (`getCacheControl(providerMetadata, providerOptionsName)`, `dist/index.js:1463`) |
 | 4 | `maxOutputTokens` is the call's own answer limit, which the budget projection uses | § notes | ✅ | The example's `withBudget` projects `output: params.maxOutputTokens ?? MAX_OUTPUT_TOKENS`, and `ask` passes `maxOutputTokens: MAX_OUTPUT_TOKENS` |
@@ -161,6 +161,6 @@ The claims log for [`the-model-gateway.md`](../src/content/chapters/the-model-ga
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 95 |
-| ✏️ corrected | 4 |
+| ✏️ corrected | 9 |
 | ⚠️ unverified, our argument or an inference marked as such | 10 |
-| Total | 109 |
+| Total | 114 |
