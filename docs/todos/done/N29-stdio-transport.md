@@ -63,20 +63,21 @@ If a library needs a framing quirk, record it; do not change the protocol for it
 
 ## Outcome
 
-`stdioTransport(dispatcher, io, options)` in `@buildanagent/harness/server` serves one client over a pair of byte streams, one JSON-RPC 2.0 message per line. `io` is `{ input, output, log? }`: a Node `Readable` or Web `ReadableStream` in, a Node `Writable` or Web `WritableStream` out, and a function for the transport's own diagnostics, which a host points at stderr. `options` is `{ maxLineBytes?, signal? }`. The promise resolves once the client is done. The code is `packages/harness/src/server/stdio.ts`, and the exports are `stdioTransport` and the types `StdioIo`, `StdioOptions`, `StdioInput`, `StdioOutput` and `NodeOutput`. The tests are `packages/harness/test/server/stdio.test.ts` (8) and `framing-interop.test.ts` (3). Their server runs in a child process (`stdio-server.ts`, spawned by `stdio-child.ts`) with a scripted model, the offline setup and `spawnEnv([])`.
+`stdioTransport(dispatcher, io, options)` in `@buildanagent/harness/server` serves one client over a pair of byte streams, one JSON-RPC 2.0 message per line. `io` is `{ input, output, log? }`: a Node `Readable` (`NodeInput`) or Web `ReadableStream` in, a Node `Writable` or Web `WritableStream` out, and a function for the transport's own diagnostics, which a host points at stderr. `options` is `{ maxLineBytes?, signal? }`. The promise resolves once the client is done. The code is `packages/harness/src/server/stdio.ts`, with the stream ends in `stdio-streams.ts`. The exports are `stdioTransport` and the types `StdioIo`, `StdioOptions`, `StdioInput`, `StdioOutput`, `NodeInput` and `NodeOutput`, and `Dispatcher.connect()` gained an `onClose` option (`ConnectOptions`). The tests are `packages/harness/test/server/stdio.test.ts` (8), `stdio-transport.test.ts` (11, in process) and `framing-interop.test.ts` (3). Their server runs in a child process (`stdio-server.ts`, spawned by `stdio-child.ts`) with a scripted model, the offline setup and `spawnEnv([])`.
 
 **Decisions.**
 
 - **The transport reuses the protocol's framer and envelope check.** It reads with `JsonlFramer`, which splits on `\n` only, checks each message with `decode()` and writes with `encode()`. A second reader would have been a second place for the U+2028 and `\r` rules to drift.
 - **A bad line gets an error, and the stream goes on.** A line that isn't JSON gets `ParseError`, and an invalid envelope, a batch or a line over `maxLineBytes` gets `InvalidRequest`. Each error carries the request's id when the framer or `decode()` could read it and `null` otherwise, as JSON-RPC 2.0 asks. Closing the stream on a bad line was the alternative, rejected because the framer already promises that one bad line never stops the rest.
-- **The transport answers bad lines itself and bounds those answers.** The dispatcher's `Connection` has no way to send an error for a message it never received, so the transport writes these answers beside the connection's queue. Once 128 wait unwritten, the transport stops, which mirrors N28's rule for refusals. The alternative, a `fail()` on `Connection`, would have widened the dispatcher's API for a transport's concern.
+- **The transport answers bad lines itself and bounds those answers.** The dispatcher's `Connection` has no way to send an error for a message it never received, so the transport writes these answers beside the connection's queue. An answer the output takes at once costs nothing; once 128 answers wait on a full output, the transport stops, which mirrors N28's rule for refusals. A malformed response, one with `result` or `error`, is only logged, because JSON-RPC never answers a response. The alternative, a `fail()` on `Connection`, would have widened the dispatcher's API for a transport's concern.
 - **Backpressure is the output's.** A Node `write()` that returns `false` makes the connection's `send` return a promise that settles on `drain`, and a Web stream's send waits on `writer.ready` once its queue is full. The connection's queue then drops live events past `queueSize`, as N28 built it. Awaiting every write's callback, the other choice, would have serialised writes behind the kernel for no gain in bound.
-- **The end of the input is the client's goodbye.** The transport waits until every command it read has its response queued, then for the queue's last delivery and the output's last write callback, and then closes the connection. It does not wait for running turns: a turn can wait on a `client_request` tool call that a closed input can never answer, and a long turn would keep a gone client's process alive. A client that wants `turn/settled` keeps its input open. A failed or closed output, or an aborted `signal`, stops the transport at once.
+- **The end of the input is the client's goodbye.** The transport waits until every command it read has its response queued, then for the queue's last delivery and the output's last write callback, and then closes the connection. It does not wait for running turns: a turn can wait on a `client_request` tool call that a closed input can never answer, and a long turn would keep a gone client's process alive. A client that wants `turn/settled` keeps its input open. A failed input is logged and handled as an end. A failed or closed output, a connection the dispatcher closed (reported by the new `onClose` option of `connect()`), or an aborted `signal` stops the transport at once, with the reason logged.
 - **Commands run concurrently, as in the in-process transport.** The transport hands each message to the connection without waiting for the last one's response, so the 128-command bound and server-request answers work over stdio as they do in process. A client that pipelines `session/create` and `turn/start` without waiting can get `{ accepted: false, reason: "invalid" }`, and both READMEs say to wait.
 - **The file is portable.** It takes both stream kinds by their shape and uses no Node module, `Buffer` or `process`, so the gateway's portability scan passes without an exception. The plan's sketch typed the streams as `NodeJS.ReadableStream` and `NodeJS.WritableStream`; the built signature replaces it, and the plan's status line records the change.
-- **The transport never ends or closes either stream.** The host owns `process.stdout`, so the host decides when its process exits.
+- **The transport never ends, closes, destroys or cancels either stream.** A Node input is read by its events and paused on release, and a Web stream's lock is released, because an async iterator's `return()` destroys a Node stream and cancels a Web one. The host owns `process.stdin` and `process.stdout`, so the host decides when its process exits.
+- **A server request JSON can't carry is failed back into the connection.** When `encode()` refuses one, the transport answers it to the connection with `InternalError`, as if the client had failed it, so a tool call gets an error result instead of waiting forever.
 
-**The generic library is `json-rpc-2.0` 1.8.1.** All four candidates were read from the npm registry on 2026-11-22:
+**The generic library is `json-rpc-2.0` 1.8.1.** All four candidates were read from the npm registry on 2026-11-22, so every version, date and count below is as of November 2026:
 
 | Package | Version, published | License | Runtime deps | Unpacked | Weekly downloads | Fit |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -89,14 +90,14 @@ If a library needs a framing quirk, record it; do not change the protocol for it
 
 **Both libraries read every server message without an adapter.** The framing check runs a turn whose tool needs approval, so the stream holds success and error responses, `event` and `turn/settled` notifications and an `approval/request` that each library answers. `json-rpc-2.0`'s `JSONRPCServerAndClient` takes each line's JSON, resolves our responses to its requests, rejects the unknown-method call with code -32601, and never calls its error listener. MCP's `ReadBuffer` checks each line against MCP's strict JSON-RPC schema, and the test counts its messages against the stdout lines, because `ReadBuffer` skips a non-JSON line without a word.
 
-**Quirks, recorded and left alone, as the todo asks.**
+**Quirks, recorded and left alone, as the todo asks** (as of November 2026, in `@modelcontextprotocol/client` 2.4.0).
 
 - MCP's schema accepts an error response with no `id` but refuses `"id": null`. JSON-RPC 2.0 requires `null` when the request's id could not be read, so an MCP-based client counts our answer to an unreadable line as invalid. A test pins the behaviour, so a fix upstream shows up.
 - MCP's `ReadBuffer` silently skips a line that isn't JSON, so it cannot tell a client that a server wrote a stray log line to stdout. Our own stdout check decodes every line strictly.
 - MCP's `StdioClientTransport` spawns its server with `HOME`, `LOGNAME`, `PATH`, `SHELL`, `TERM` and `USER` from the parent merged under the environment it is given, so the test does not use it: the child gets only `spawnEnv()`'s variables. A host that spawns our server with that transport passes these parent variables on.
 - `@modelcontextprotocol/client` reaches `eventsource` and `eventsource-parser`, which ship a `source` export condition that points at TypeScript under `node_modules`. The harness's Vitest config inlines that chain and its `tsconfig.json` allows `.ts` specifiers, as agent-safety's configs already do for `ai`.
 
-**Tests, and the mutation behind each criterion.** Each acceptance criterion's test was checked by breaking the code it covers, and all eleven mutations failed their test:
+**Tests, and the mutation behind each criterion.** Each acceptance criterion's test was checked by breaking the code it covers, and all eleven mutations failed their test (the review fixes below add eleven more):
 
 - A turn over a child process: dropping every `event`, and separately every `turn/settled`, before it is written fails the full-turn test.
 - Both libraries: removing `"jsonrpc"` from every line fails all three interop tests, and adding a top-level member fails MCP's strict read.
@@ -113,7 +114,19 @@ If a library needs a framing quirk, record it; do not change the protocol for it
 - The transport checks each message's envelope, not its params. The dispatcher reads a command's params without checking them against `protocol.schema.json`, so a command with malformed params gets `InternalError` with the JavaScript error's message.
 - The transport authenticates nobody: whoever holds the two streams acts as the dispatcher's user.
 - A client that closes its input and never reads its output leaves the transport waiting on the last write. A host that needs a deadline aborts `signal`.
-- No test covers a Web stream pair; N44 types the transport over Web streams and adds that case.
+- Web streams are tested in process only (abort, a failed input); N44 adds the full Web-stream case.
+
+**Review fixes (first round).** The first code review found nine problems; each fix has a test in `stdio-transport.test.ts` that fails without it.
+
+- A connection the dispatcher closed, past 128 unread refusals, left the transport hanging. `connect()` now takes `onClose`, and the transport stops with "the connection closed".
+- Every wait on a full output, and every chunk read, added a reaction to a promise that lived as long as the session. Waits now subscribe to the stopper and unsubscribe when they settle, and a full output has one shared wait for room: 100,000 writes keep at most one `drain` listener and one wait.
+- An early stop destroyed a Node input or cancelled a Web one, against the docs; the readers now pause and release instead.
+- `drain` listeners were left behind; none remains once the transport resolves, and a dozen bad lines on a full output add one.
+- The bad-line bound counted answers the output had already taken, so 129 bad lines in one chunk cut off a client that reads; it now counts only answers waiting on a full output.
+- A failed input rejected the promise unlogged; it is now logged and handled as an end.
+- A malformed response was answered with an error carrying the server's own request id; it is now only logged.
+- A server request `encode()` refused left the server waiting forever; it is now failed back into the connection.
+- The versions in both READMEs and this Outcome now say "as of November 2026".
 
 **Does N30 need N29 merged first?** Only for its `rpc` subcommand. N30's `buildanagent rpc` imports `stdioTransport`, and the `StdioIo` type if it names one, from `@buildanagent/harness/server`, and calls `stdioTransport(dispatcher, { input: process.stdin, output: process.stdout, log })` with a `log` that writes to stderr. The one-shot JSON mode, line-mode chat and `sessions` commands use the in-process transport and need nothing from N29. N30 can start now and add `rpc` after this merges, or list N29 in its Depends on.
 

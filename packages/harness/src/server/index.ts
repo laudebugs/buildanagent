@@ -6,6 +6,7 @@
 export { createHarness, type Harness, type HarnessEnv, type HarnessOptions } from "../harness.js";
 export {
   type Connection,
+  type ConnectOptions,
   createDispatcher,
   type Dispatcher,
   type DispatcherOptions,
@@ -14,6 +15,7 @@ export {
 export { type InProcessClient, inProcessTransport, type RequestOptions, RpcFailure } from "./local-transport.js";
 export type { Deliver } from "./outbox.js";
 export {
+  type NodeInput,
   type NodeOutput,
   type StdioInput,
   type StdioIo,
