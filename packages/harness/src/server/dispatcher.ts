@@ -96,6 +96,15 @@ export interface Connection {
   close(): void;
 }
 
+/** What `Dispatcher.connect()` takes besides `send`. */
+export interface ConnectOptions {
+  /**
+   * Called once when the connection closes, whether the caller closed it with `close()` or the server did. The server
+   * closes a connection for a client that leaves 128 refusals unread. A transport uses it to stop serving a connection that is gone.
+   */
+  readonly onClose?: () => void;
+}
+
 /** The dispatcher `createDispatcher()` returns. */
 export interface Dispatcher {
   /**
@@ -103,7 +112,7 @@ export interface Dispatcher {
    * promise holds the next message until it settles; while it waits, events past the queue size are dropped and an
    * `events_dropped` event stands in for them.
    */
-  connect(send: Deliver): Connection;
+  connect(send: Deliver, options?: ConnectOptions): Connection;
   /** Interrupts every running turn and waits for each to settle. */
   close(): Promise<void>;
 }
@@ -273,9 +282,9 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
     });
   }
 
-  connect(send: Deliver): Connection {
+  connect(send: Deliver, options: ConnectOptions = {}): Connection {
     if (this.#closed) throw new Error("the dispatcher is closed");
-    const connection = new ServerConnection(this, send, this.#queueSize);
+    const connection = new ServerConnection(this, send, this.#queueSize, options.onClose);
     this.#connections.add(connection);
     return connection;
   }

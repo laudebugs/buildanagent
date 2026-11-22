@@ -14,7 +14,7 @@ import { createToolRegistry, type ToolRegistration } from "@buildanagent/harness
 import type { ServerMessage, ServerRequest, SessionEntry } from "@buildanagent/protocol";
 import { defineTool, hmacSigner, type ToolDefinition } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
-import { type Backend, memoryBackend } from "../session/session-helpers.js";
+import { type Backend, memoryBackend } from "../session/memory-backend.js";
 
 export type Steps = ConstructorParameters<typeof ScriptedModel>[0];
 
