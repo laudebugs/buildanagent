@@ -614,5 +614,15 @@
     "asOf": "November 2026",
     "version": "commit 2174e4c",
     "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "cloudflare-agents-websockets",
+    "title": "HTTP and WebSockets",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/http-websockets.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "agents@0.33.0",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
   }
 ]
