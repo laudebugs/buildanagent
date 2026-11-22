@@ -11,7 +11,7 @@
 
 ## Goal
 
-Make the four packages public, switch the release to all six, and publish their first alpha together through `release.yml` once N30 has given the CLI a working binary. The first alpha also carries N24's MCP client (`@buildanagent/harness/mcp`) ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
+Make the four packages public, switch the release to all six, and publish their first alpha together through `release.yml`. N30 had given the CLI a working binary before the release. The first alpha also carries N24's MCP client (`@buildanagent/harness/mcp`) ([PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). N29 and N30 don't depend on each other (both depend on N28), but the CLI's `rpc` command uses N29's stdio transport and [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) decision 1 requires both before the release, so this todo lists N29 itself.
 
 ## Context
 
@@ -100,7 +100,8 @@ CI plan §3f, the publish plan's todo table and PB4, `scripts/ci/version-pr.mjs`
 
 ## Outcome
 
-- All six packages published together as `0.1.0-alpha.28` under npm's `alpha` dist-tag at about 20:40 UTC on 2026-11-22, each with SLSA provenance. They share one version, as the fixed group intends. The merged Version packages pull request #335 started [`release.yml` run 45067729944](https://github.com/laudebugs/buildanagent/actions/runs/45067729944), and its `plan`, `pack` and `publish` jobs succeeded. `npm view @buildanagent/<name>@0.1.0-alpha.28 dist.attestations` shows a provenance attestation for each of the six (rows L11-30 and L11-31).
+- All six packages published together as `0.1.0-alpha.28` under npm's `alpha` dist-tag at about 20:40 UTC on 2026-11-22, each with SLSA provenance. The merged Version packages pull request #335 started [`release.yml` run 45067729944](https://github.com/laudebugs/buildanagent/actions/runs/45067729944), and its `plan`, `pack` and `publish` jobs succeeded. `npm view @buildanagent/<name>@0.1.0-alpha.28 dist.attestations` shows a provenance attestation for each of the six (rows L11-30 and L11-31).
 - `latest` stays on `0.0.0-bootstrap.0`, the deprecated placeholder, for all six, so an install needs the `alpha` tag, as the READMEs say.
-- A second run, 45067734004, for N43's merge to `main`, started two seconds later and failed its `publish` job with an E409 on the harness. It raced the first run, so nothing on npm was affected. The investigation into how to keep two pushes from racing is in progress on a separate branch (row L11-32).
-- Checklist step 6 is done by this outcome: the first alpha of each package carries provenance, and no trusted publisher had expired.
+- Checklist step 6: each package carries provenance (rows L11-30 and L11-31); the publish succeeded, so no trusted publisher had expired.
+- A second run, 45067734004, for N43's merge to `main`, started two seconds after the first and failed its `publish` job. The second run raced the first. The manager reports an E409 on the harness, and npm holds only the first run's `0.1.0-alpha.28` (rows L11-32 to L11-34).
+- Open: how to keep two pushes from racing. The investigation is on the branch `docs/release-race-409`, where a report, `docs/plans/reviews/release-race-409.md`, will land.
