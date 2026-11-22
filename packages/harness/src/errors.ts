@@ -27,6 +27,8 @@ export type HarnessErrorCode =
   | "invalid_turn_options"
   | "invalid_context_options"
   | "spill_unavailable"
+  | "invalid_extension"
+  | "extension_hash_mismatch"
   | "approval_not_pending"
   | "approval_unavailable"
   | "sticky_refused"
@@ -62,7 +64,7 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * model inside a turn.
  * `invalid_context_options`: a context policy's setting can't be used, such as a write cap with no spill store or a mask
  * step of zero. `spill_unavailable`: a spill store can't write, such as the file store on a runtime without Node's file
- * system. `approval_not_pending`: a resolution names a request that is not waiting.
+ * system. `invalid_extension`: an extension has no name or version, two share a name, or a project extension's module does not export one. `extension_hash_mismatch`: a project extension's files hash differently from the lock file, or the lock file does not list it. `approval_not_pending`: a resolution names a request that is not waiting.
  * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky
  * allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids
  * a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `invalid_key_store`: a key
