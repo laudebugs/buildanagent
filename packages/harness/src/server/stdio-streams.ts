@@ -8,13 +8,21 @@
 
 /** A Node `Readable` as the transport reads it, such as `process.stdin`. A string chunk is read as UTF-8. */
 export interface NodeInput {
+  /** Adds the listener the transport reads chunks with. */
   on(event: "data", listener: (chunk: Uint8Array | string) => void): unknown;
+  /** Adds the listener that tells the transport the input ended. */
   on(event: "end" | "close", listener: () => void): unknown;
+  /** Adds the listener that tells the transport the input failed. */
   on(event: "error", listener: (error: Error) => void): unknown;
+  /** Removes the chunk listener when the transport lets the input go. */
   removeListener(event: "data", listener: (chunk: Uint8Array | string) => void): unknown;
+  /** Removes the end listener when the transport lets the input go. */
   removeListener(event: "end" | "close", listener: () => void): unknown;
+  /** Removes the failure listener when the transport lets the input go. */
   removeListener(event: "error", listener: (error: Error) => void): unknown;
+  /** Stops the flow while a chunk waits to be read, and when the transport lets the input go. */
   pause(): unknown;
+  /** Starts the flow again once the transport wants the next chunk. */
   resume(): unknown;
 }
 
@@ -23,10 +31,15 @@ export type StdioInput = NodeInput | ReadableStream<Uint8Array>;
 
 /** A Node `Writable` as the transport writes to it, such as `process.stdout`. */
 export interface NodeOutput {
+  /** Writes one line; `false` means the output is full until `drain`. */
   write(chunk: Uint8Array, callback: (error?: Error | null) => void): boolean;
+  /** Adds the listener for room again, or for the output's close. */
   on(event: "drain" | "close", listener: () => void): unknown;
+  /** Adds the listener that tells the transport the output failed. */
   on(event: "error", listener: (error: Error) => void): unknown;
+  /** Removes a room or close listener once its wait ends or the transport lets the output go. */
   removeListener(event: "drain" | "close", listener: () => void): unknown;
+  /** Removes the failure listener when the transport lets the output go. */
   removeListener(event: "error", listener: (error: Error) => void): unknown;
 }
 
