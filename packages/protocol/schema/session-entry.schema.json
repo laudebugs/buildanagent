@@ -1562,10 +1562,15 @@
               "type": "string",
               "enum": [
                 "stdio",
-                "in_process"
+                "in_process",
+                "http",
+                "sse"
               ]
             },
             "commandHash": {
+              "type": "string"
+            },
+            "urlHash": {
               "type": "string"
             },
             "era": {

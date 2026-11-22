@@ -62,6 +62,10 @@ const nodeOnlyFiles = new Set([
   // modules with `process.getBuiltinModule()` when a server starts, so the `./mcp` entry still loads on every target,
   // where an in-process server needs no Node.
   "mcp/stdio.ts",
+  // The MCP client's pinned network for a remote server on Node: it resolves a name once and connects to the checked
+  // address through `node:https`, which no other runtime has. It loads Node's modules with `process.getBuiltinModule()`
+  // per request, and on another runtime a remote server goes through the platform's `fetch` instead.
+  "mcp/http-node.ts",
 ]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.

@@ -197,7 +197,11 @@ export async function loadProjectExtensions(root: string, options: LoadOptions):
   const names = await folders(dir);
   const pins = await readLock(lock);
   if (names.length === 0 && (pins === undefined || pins.size === 0)) return result;
-  if (pins === undefined) result.notices.push(`the extensions of ${base} are not pinned: there is no ${lock}`);
+  if (pins === undefined) {
+    // A lock file may hold MCP tool pins alone, and then it pins no extension.
+    const why = (await exists(lock)) ? `${lock} holds no extension pins` : `there is no ${lock}`;
+    result.notices.push(`the extensions of ${base} are not pinned: ${why}`);
+  }
   const hashes = await checkedHashes(dir, names, pins);
   const seen = new Set<string>();
   for (const name of names) {

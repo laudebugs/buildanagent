@@ -1,8 +1,11 @@
 /** The MCP client's named error: a `HarnessError` that names the server it came from. */
 import { HarnessError, type HarnessErrorCode } from "../errors.js";
 
-/** Why an MCP tool call ended without a result. */
-export type McpCallFailure = "closed" | "timeout" | "aborted" | "input_required" | "server_error";
+/**
+ * Why an MCP tool call ended without a result. `disabled`: the tool is new, changed or removed since it was pinned,
+ * and the call never reached the server.
+ */
+export type McpCallFailure = "closed" | "timeout" | "aborted" | "input_required" | "server_error" | "disabled";
 
 /**
  * Thrown for a server that could not connect (`mcp_connect_failed`), a tool list the harness refuses

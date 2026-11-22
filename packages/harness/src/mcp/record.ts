@@ -1,6 +1,6 @@
 /**
- * The `extension_loaded` record of a connected MCP server. It holds hashes and never a raw argument or an environment
- * value, because a server's command line or variables can carry a token. Every hash is `sha256:` and the hex SHA-256 of
+ * The `extension_loaded` record of a connected MCP server. It holds hashes and never a raw argument, an environment
+ * value, a URL or a header, because a server's command line, variables, URL or headers can carry a token. Every hash is `sha256:` and the hex SHA-256 of
  * canonical JSON (RFC 8785), the hash the permission pipeline uses for tool inputs, so the record is the same on every
  * runtime and across reconnects of an unchanged server.
  */
@@ -27,6 +27,12 @@ export async function mcpRecordOf(
   const mcp: McpServerRecord = {
     transport: transport.kind,
     ...(transport.kind === "stdio" ? { commandHash: await hash([transport.command, ...(transport.args ?? [])]) } : {}),
+    // The URL as `URL` normalises it, so two spellings of one endpoint hash alike. Its query can hold a secret the
+    // config check did not recognise, and a hash can be confirmed by guessing, so the README says to keep secrets in
+    // headers, which the record never covers.
+    ...(transport.kind === "http" || transport.kind === "sse"
+      ? { urlHash: await hash(new URL(transport.url).href) }
+      : {}),
     era: connection.era,
     toolsHash: await hash(listed),
   };

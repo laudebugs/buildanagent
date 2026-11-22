@@ -699,12 +699,14 @@ class EgressGate {
     stream?.on("data", (chunk: Buffer) => {
       bytes += chunk.length;
     });
+    // A status `Response` refuses is recorded with its reason, as the fetch records one.
+    const reason = reply.status < 200 || reply.status > 599 ? "bad_status" : reply.reason;
     const finished = () =>
       this.record({
         ...base,
         status: reply.status,
         bytes,
-        ...(reply.reason === undefined ? {} : { reason: reply.reason }),
+        ...(reason === undefined ? {} : { reason }),
       });
     if (stream === undefined) finished();
     else stream.once("close", finished);
@@ -742,18 +744,38 @@ class EgressGate {
         request.signal.removeEventListener("abort", abort);
       });
       upstream.setTimeout(this.idleMs, () => upstream.destroy(new Error("idle")));
+      // Once an answer has begun, its record is written when the answer closes, so a socket error after it, such as a
+      // 204 with bytes after it, writes no second record.
+      let answered = false;
       upstream.once("response", (reply) => {
+        answered = true;
         let bytes = 0;
+        let reason: string | undefined;
         reply.on("data", (chunk: Buffer) => {
           bytes += chunk.length;
         });
         // The record is written when the response is done with, which also covers one that is never read to its end.
         reply.once("close", () =>
-          this.record({ kind: "fetch", host, port, method: request.method, status: reply.statusCode ?? 0, bytes }),
+          this.record({
+            kind: "fetch",
+            host,
+            port,
+            method: request.method,
+            status: reply.statusCode ?? 0,
+            bytes,
+            ...(reason === undefined ? {} : { reason }),
+          }),
         );
-        resolve(this.toResponse(reply.statusCode ?? 502, reply.headers as Record<string, string | string[]>, reply));
+        // A throw here would escape the event handler and end the process, so a status `Response` refuses rejects.
+        try {
+          resolve(this.toResponse(reply.statusCode ?? 0, reply.headers as Record<string, string | string[]>, reply));
+        } catch (error) {
+          reason = "bad_status";
+          reject(error);
+        }
       });
       upstream.once("error", (error) => {
+        if (answered) return;
         if (request.signal.aborted) {
           reject(request.signal.reason);
           return;
@@ -775,11 +797,20 @@ class EgressGate {
     headers: Record<string, string | string[]>,
     stream: import("node:stream").Readable | undefined,
   ): Response {
+    // Node parses any three-digit status, and `Response` takes only 200 to 599, so any other is refused here and its
+    // upstream reply is destroyed, so its socket closes.
+    if (status < 200 || status > 599) {
+      stream?.destroy();
+      throw new HarnessError(
+        "egress_denied",
+        `the upstream answered with status ${status}, which HTTP does not define`,
+      );
+    }
     const out = new Headers();
     for (const [name, value] of Object.entries(headers)) {
       for (const one of Array.isArray(value) ? value : [value]) out.append(name, one);
     }
-    const bodiless = stream === undefined || [101, 204, 205, 304].includes(status);
+    const bodiless = stream === undefined || [204, 205, 304].includes(status);
     // A response with no body is drained, so its socket and its log record don't wait for a reader that never comes.
     if (bodiless) stream?.resume();
     const web = bodiless ? null : (this.modules.stream.Readable.toWeb(stream) as ReadableStream);
