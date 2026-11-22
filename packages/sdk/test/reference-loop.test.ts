@@ -121,6 +121,11 @@ const SCENARIOS: Scenario[] = [
     stopReason: "error",
   },
   {
+    name: "a failed model call keeps its status and retry-after hint on the run error",
+    steps: [{ content: [], error: { kind: "retryable", message: "rate limited", status: 429, retryAfterMs: 90_000 } }],
+    stopReason: "error",
+  },
+  {
     name: "an interceptor that throws ends error",
     steps: [],
     options: (base) => ({
@@ -246,7 +251,9 @@ function summary(result: RunResult) {
   // An aborted run's transcript differs on purpose: the reference loop doesn't close it with an aborted message.
   const messages = result.stopReason === "aborted" ? undefined : result.messages.length;
   const errors = result.messages.flatMap((message) => (message.role === "tool" ? [message.isError === true] : []));
-  return { stopReason: result.stopReason, steps: result.steps, messages, errors };
+  // Only the failure's status and hint: an interceptor's error message differs on purpose.
+  const { status, retryAfterMs } = result.stopReason === "error" ? result.error : {};
+  return { stopReason: result.stopReason, steps: result.steps, messages, errors, status, retryAfterMs };
 }
 
 describe("the reference loop ends each run with the real loop's stop reason", () => {

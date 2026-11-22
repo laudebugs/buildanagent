@@ -39,6 +39,12 @@ export interface RunError {
   readonly message: string;
   /** The provider's HTTP status, when the failure came with one. */
   readonly status?: number;
+  /**
+   * How long the provider asked the caller to wait before retrying, in milliseconds, copied from the failed call's
+   * `error.retryAfterMs`. The model waits out a hint of 60 seconds or less before its own retries. A hint over 60
+   * seconds ends the call with no retry, so the caller can wait that long and run again.
+   */
+  readonly retryAfterMs?: number;
 }
 
 /** The fields every run result carries. */
