@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `T54` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T13](../done/T13-chapter-stopping-and-structured-output.md), [B11](../done/B11-loop-core.md), [B14](../done/B14-budget-progress.md), [T50](T50-chapter-call-workflow-loop-on-our-sdk.md) |
+| Depends on | [T13](../done/T13-chapter-stopping-and-structured-output.md), [B11](../done/B11-loop-core.md), [B14](../done/B14-budget-progress.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
 | Size | M |
 
 ## Goal
@@ -18,7 +18,7 @@ Our SDK fits this chapter closely. B11's `run()` counts `maxSteps` in model call
 ## Context
 
 - [T13's Outcome](../done/T13-chapter-stopping-and-structured-output.md#outcome): the chapter's listings, replays, figures and fact-check log.
-- [T50](T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
+- [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
 - `packages/sdk/README.md` ("How a run ends", the output tool and `shouldStop`) and `packages/sdk/src/loop.ts`, `result.ts` and `budget.ts`.
 
 ## Scope
@@ -42,17 +42,17 @@ Our SDK fits this chapter closely. B11's `run()` counts `maxSteps` in model call
 
 ## Tasks
 
-- [ ] Write the examples for our tabs, with regions, notes and transcripts.
-- [ ] Turn each listing in the table into a tabs block with our tab first; add our rows to the two tables and our mark to the figure, and rerun `figures:build`.
-- [ ] Fact-check every changed claim into `apps/manual/fact-checks/stopping-and-structured-output.md` as a new block, with corrections as their own rows, and update the tally.
+- [x] Write the examples for our tabs, with regions, notes and transcripts.
+- [x] Turn each listing in the table into a tabs block with our tab first; add our rows to the two tables and our mark to the figure, and rerun `figures:build`.
+- [x] Fact-check every changed claim into `apps/manual/fact-checks/stopping-and-structured-output.md` as a new block, with corrections as their own rows, and update the tally.
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
-- [ ] Each listing in the table is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged
-- [ ] Every API identifier in the chapter's inline code resolves, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
-- [ ] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
+- [x] Each listing in the table is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged
+- [x] Every API identifier in the chapter's inline code resolves, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
+- [x] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
 
 ## Tests
 
@@ -72,9 +72,19 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **The examples.** Three numbered files in `packages/sdk/examples/`, run offline by `test/book-examples.test.ts`, which records their transcripts in `packages/sdk/results/transcripts/`.
+  - `07-stop-step-cap.ts`, region `step-cap`: `maxSteps: 3` over a model that only calls tools ends `max_steps` with one `warning` event. The file also shows the default of 20.
+  - `08-stop-done-tool.ts`, region `done-tool`: an output tool ends the run `done` with a typed answer. A second run ends `stopped` through a `shouldStop` hook.
+  - `09-stop-triage-output.ts`, region `triage`: the triage schema is an output tool, and its first answer fails the schema and spends one of three model calls. Two more runs cover `max_steps` under `maxSteps: 1` and a text answer that ends `done` with no output.
+- **The chapter.** `#cap-ai`, `#stop-on-done` and `#triage-output` are tabs blocks with our tab first (`#cap-ours`, `#stop-on-done-ours`, `#triage-output-ours`), each replaying our transcript, and the third-party tabs, notes and replays are unchanged. Our SDK has a row in `#default-caps` and `#schema-failures` and a mark in the `#default-caps` figure, on `ToolLoopAgent`'s 20. The spend-cap paragraph gains `budgetUsd`'s pre-emptive check with B14's measured overshoot. The prose presents a `max_steps` result as our SDK's design choice, marked as our reading. The plan's section 4.1 row for Chapter 4 names the three examples.
+- **Fact-check.** Rows 95 to 121 in `apps/manual/fact-checks/stopping-and-structured-output.md`: 23 rows ✅, rows 96, 107 and 117 ✏️, and row 116 ⚠️ (our reading and advice, marked as ours). The tally reads 121 rows.
+- **Out of scope, as written.** `continueRun()` resuming a capped run stays with the memory chapter's follow-up.

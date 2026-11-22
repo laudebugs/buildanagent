@@ -47,7 +47,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <text x="221.6" y="72" class="fig-text">LangChain createAgent: 13</text>
 <path d="M221.6 78 L221.6 165" class="fig-line fig-line--muted fig-line--dashed"/>
 <circle cx="221.6" cy="170" r="4" class="fig-terracotta"/>
-<text x="252.1" y="104" class="fig-text">ToolLoopAgent: 20</text>
+<text x="252.1" y="104" class="fig-text">ToolLoopAgent and our run(): 20</text>
 <path d="M252.1 110 L252.1 165" class="fig-line fig-line--muted fig-line--dashed"/>
 <circle cx="252.1" cy="170" r="4" class="fig-terracotta"/>
 <text x="480" y="136" text-anchor="end" class="fig-text">Google ADK: 500</text>

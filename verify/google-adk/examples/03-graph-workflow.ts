@@ -24,20 +24,22 @@ const session = async (runner: InMemoryRunner) =>
 
 // Routing: a node emits createEvent({route}) and the edge map picks the target; an LlmAgent is a node too.
 {
+  // #region routing
   const model = new ScriptedLlm(() => say("from the agent"));
   const agentNode = new LlmAgent({ name: "words", model, instruction: "Reply." });
   const digits = node(() => "digits branch", { name: "digits" });
   const router = node(
-    (_ctx: NodeContext, input: string) => createEvent({ route: /\d/.test(input) ? "DIGITS" : "WORDS", output: input }),
+    (_ctx: NodeContext, input: string) => createEvent({ route: /\d/.test(input) ? "DIGITS" : "WORDS", output: input }), // book:note route
     { name: "router" },
   );
   const wf = new Workflow({
     name: "route",
     edges: [
       ["START", router],
-      [router, { DIGITS: digits, WORDS: agentNode }],
+      [router, { DIGITS: digits, WORDS: agentNode }], // book:note edges
     ],
   });
+  // #endregion
   const runner = new InMemoryRunner({ agent: wf, appName: "route" });
   const digitsRun = await turn(runner, await session(runner), "order 42");
   check(

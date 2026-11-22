@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T51` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T11](../done/T11-chapter-talking-to-a-model.md), [T50](T50-chapter-call-workflow-loop-on-our-sdk.md), [B4](../done/B4-gateway-runtime.md), [B5](../done/B5-usage-cost-catalog.md) |
@@ -40,21 +40,32 @@ Wherever our gateway supports what a listing in Chapter 2 shows, give that listi
 
 ## Tasks
 
-- [ ] Write the gateway examples for the tabs, with regions, notes and transcripts, run offline by the package's `test`.
-- [ ] Turn each qualifying listing into a tabs block with our tab first, keeping the third-party listing, its notes and its replay unchanged.
-- [ ] Update the prose and notes; fact-check every changed claim into `apps/manual/fact-checks/talking-to-a-model.md` as a new block and update the tally.
+- [x] Write the gateway examples for the tabs, with regions, notes and transcripts, run offline by the package's `test`.
+- [x] Turn each qualifying listing into a tabs block with our tab first, keeping the third-party listing, its notes and its replay unchanged.
+- [x] Update the prose and notes; fact-check every changed claim into `apps/manual/fact-checks/talking-to-a-model.md` as a new block and update the tally.
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
-- [ ] Each qualifying listing is a tabs block whose first tab comes from `packages/gateway` and whose other tab is the listing the chapter showed before, with the same file, region, notes and replay
-- [ ] Every API identifier in the chapter's inline code resolves or carries a marker citing a ✅ or ✏️ row (BK17)
-- [ ] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, the results-drift check, `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
+- [x] Each qualifying listing is a tabs block whose first tab comes from `packages/gateway` and whose other tab is the listing the chapter showed before, with the same file, region, notes and replay
+- [x] Every API identifier in the chapter's inline code resolves or carries a marker citing a ✅ or ✏️ row (BK17)
+- [x] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, the results-drift check, `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review`, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **The harness.** `apps/manual/src/data/harnesses.json` and `MOCK_PACKAGES` in `scripts/transcripts/write.mjs` now name `packages/gateway`, its own main package. `packages/gateway/test/book-examples.test.ts` and `test/source-condition.mjs` copy the SDK's runner, and the package's `tsconfig.json` type-checks `examples/`. No package source changed, so no changeset is needed.
+- **The examples.** `packages/gateway/examples/01-text-stream.ts` (region `text-stream`) and `02-stream-usage.ts` (region `stream-usage`) run the gateway's real Anthropic adapter over `mockTransport()` with a scripted Messages stream (`examples/lib/check.ts`), so the usage mapping and the cost fold from the shipped catalog both run. `examples/lib/transcript.ts` wraps the adapter to record each request and answer, with usage only for the classes the script set. Transcripts are in `packages/gateway/results/transcripts/`.
+- **The chapter.** `#text-stream` and `#stream-usage` are tabs blocks with `#text-stream-ours` and `#stream-usage-ours` first and the AI SDK listing, notes and replay unchanged. `#system-in-messages` stays a single listing: the gateway has no `system` role in `Message` and no opt-in, and the chapter says so. `#sonnet-rates` stays single, because our tab takes its rates from the shipped catalog. A new source, `buildanagent-gateway-readme`, joins the register.
+- **Found, not fixed.** A message cast to the role `system` is silently dropped by `transformMessages()` instead of being refused (row 133's probe). It is a package bug for a separate gateway pull request; no todo exists for it yet. The chapter claims only the type error.
+- **Fact-check.** Rows 130–149 in `apps/manual/fact-checks/talking-to-a-model.md`; rows 140 and 146 are ✏️ corrections of the check lines the usage replay cites.
+- **Exception to the examples guideline.** The book-example recorder plumbing (`examples/lib/transcript.ts` imports `scripts/transcripts/events.js` by a relative path and runs past the guideline's file length, as the merged SDK examples do) is an exception to `docs/guidelines/examples.md` that the guideline does not yet record. Recording it is a proposal for the owner, not a change here.
+- **Follow-up.** The gateway's `test/book-examples.test.ts` and `test/source-condition.mjs` duplicate the SDK's. Moving them into `scripts/transcripts/` is a design change for a later todo.
+- **Reviews.** The writing review and the code-review rounds are pending at merge time and are recorded in the pull request description.
