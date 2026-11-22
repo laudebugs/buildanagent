@@ -289,6 +289,16 @@
     "verifiedIn": "apps/manual/fact-checks/tools.md"
   },
   {
+    "id": "ruan-skillcfi",
+    "title": "Guarding the Kingdom of Skill-Based Agents in the AI Dynasty of Computation: Control-Flow Integrity for Agent Skills",
+    "publisher": "Bonan Ruan et al., National University of Singapore and Beihang University (arXiv:2611.24185)",
+    "url": "https://arxiv.org/abs/2611.24185",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools.md"
+  },
+  {
     "id": "ghosh-truthgate",
     "title": "Truthgate: Checking Coding Agents Against a Record They Cannot Edit - Cheating, Deterrence and Disclosure on Impossible Tasks",
     "publisher": "Bravish Ghosh, Cygnux Labs (arXiv:2611.23335)",
