@@ -5,7 +5,7 @@
       "CounterAgent": "CounterAgent",
       "LegacyAgent": "LegacyAgent"
     },
-    "ms": 2328,
+    "ms": 3781,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - a new connection first receives the current state (cf_agent_state)\nok - each setState is broadcast to connected clients\n[Agent] onStateUpdate is deprecated. Rename to onStateChanged — the behavior is identical.\nok - routeAgentRequest resolves to null for a non-agent path\nok - so the doc's un-awaited || fallback returns null, not a 404\nok - awaiting first (as think/index.md does) reaches the 404\nok - a /agents/<kebab-class>/<name> path routes (404)\nok - the deprecated onStateUpdate hook still fires (with a console warning)"
@@ -15,7 +15,7 @@
     "durableObjects": {
       "NotesAgent": "NotesAgent"
     },
-    "ms": 2063,
+    "ms": 3148,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - onStart created the table and INSERT added a row\nok - a value containing SQL is bound as a parameter, not executed\nok - the hostile string round-trips as data\nok - rows come back as typed objects (INTEGER -> number)\nok - this.ctx.storage.sql sees the same rows\nok - the user table lives in the agent's SQLite database\nok - the SDK keeps its own tables in the same database (cf_agent_tool_runs, cf_agents_facet_runs, cf_agents_fibers, cf_agents_jobs, cf_agents_mcp_servers, cf_agents_runs, cf_agents_state, cf_agents_task_runs, cf_agents_task_steps, cf_agents_workflows)"
@@ -25,7 +25,7 @@
     "durableObjects": {
       "ReminderAgent": "ReminderAgent"
     },
-    "ms": 2341,
+    "ms": 3888,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - listSchedules includes the pending delayed task\nok - only one interval row exists\nok - the callback ran with the scheduled payload\nok - it ran at or after the schedule's due time\nok - a one-shot schedule is removed after it runs\nok - cancelSchedule returns true for an existing schedule\nok - the cancelled schedule is gone\nok - cancelSchedule returns false for an unknown id"
@@ -35,7 +35,7 @@
     "durableObjects": {
       "SupportChat": "SupportChat"
     },
-    "ms": 2089,
+    "ms": 4381,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - saveMessages runs a full turn (status completed)\nok - the server tool executed once with the model's input\nok - the loop called the model again after the tool result (2 model calls)\nok - this.messages holds the user message and one assistant message\nok - the tool call is persisted as a tool-lookupOrder part with its output\nok - the persisted tool output is the execute() result\nok - the final text is persisted in the same assistant message\nok - a new stub to the same name sees the persisted messages"
@@ -45,7 +45,7 @@
     "durableObjects": {
       "HelpDesk": "HelpDesk"
     },
-    "ms": 2759,
+    "ms": 5212,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "  tools offered on turn 1: delete, edit, find, grep, lookupTicket, ls, purgeTicket, read, write\nok - the allowed tool ran; the blocked tool's execute never ran\nok - the model saw the block reason as the tool's output\nok - runTurn({ input, body }) does not pass body to beforeTurn's ctx.body\nok - so that turn ran without structured output\nok - beforeTurn's activeTools: [] removed every tool for the structured turn\nok - beforeTurn's output asked the model for JSON\nok - TurnResult.output holds the parsed object"
@@ -55,7 +55,7 @@
     "durableObjects": {
       "RefundAgent": "RefundAgent"
     },
-    "ms": 2297,
+    "ms": 4360,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - approved: true moves the part to 'output-available'\nok - the approved tool executed exactly once\nok - autoContinue ran the model again and persisted its answer\nok - the turn ends while waiting for approval (status completed)\nok - the gated call is persisted as 'approval-requested'\nok - the gated tool has not executed\nok - approved: false moves the part to 'output-denied'\nok - a denied tool never executes"
@@ -65,18 +65,18 @@
     "durableObjects": {
       "McpUser": "McpUser"
     },
-    "ms": 2114,
+    "ms": 3680,
     "modelCalls": 0,
     "blockedHost": "mcp.example.com",
     "outcome": "ran",
-    "tail": "ok - createMcpHandler serves /mcp (initialize -> 200)\nok - addMcpServer to a localhost URL connects (state ready)\nok - listTools() returns the server's tool\nok - each tool records the id of the server it came from\nok - getAITools() namespaces it (tool_qYqSDmpU_lookupOrder)\nok - callTool() runs the remote tool\nok - a non-local fetch is refused by the harness (offline guarantee)\nok - getMcpServers() reports the connection"
+    "tail": "ok - createMcpHandler serves /mcp (initialize -> 200)\nok - addMcpServer to a localhost URL connects (state ready)\nok - listTools() returns the server's tool\nok - each tool records the id of the server it came from\nok - getAITools() namespaces it (tool_2QxFi8iH_lookupOrder)\nok - callTool() runs the remote tool\nok - a non-local fetch is refused by the harness (offline guarantee)\nok - getMcpServers() reports the connection"
   },
   {
     "id": "08-hibernation",
     "durableObjects": {
       "Room": "Room"
     },
-    "ms": 2131,
+    "ms": 4177,
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - before eviction: one start\nok - eviction ended the instance: onStart ran again on wake\nok - in-memory fields reset on the new instance\nok - this.state was reloaded from storage\nok - the hibernated WebSocket is still listed by getConnections()\nok - the hibernated WebSocket still delivers messages; onMessage ran on the new instance\nok - per-connection state set in onConnect survived hibernation\nok - the reply came from the new instance (memory reset)"
@@ -86,9 +86,9 @@
     "durableObjects": {
       "TriageAgent": "TriageAgent"
     },
-    "ms": 2216,
+    "ms": 3456,
     "modelCalls": 0,
     "outcome": "ran",
-    "tail": "ok - the escalation is waiting for approval\nok - the gated escalate tool has not run\nok - it still has not run while nobody answers\n[Agent] TriageAgent: sending instance name \"ticket-42\" to clients via sendIdentityOnConnect (the name is not visible in the URL with custom routing). If this name is sensitive, add `static options = { sendIdentityOnConnect: false }` to opt out. Set it to true to silence this message.\nok - approval moved the escalation to output-available\nok - the escalate tool ran exactly once, after approval\nok - the structured turn returns a value matching the TriageResult schema\nok - the typed result reflects the approved escalation"
+    "tail": "ok - the escalation is waiting for approval\nok - the gated escalate tool has not run\nok - it still has not run while nobody answers\n[Agent] TriageAgent: sending instance name \"ticket-42\" to clients via sendIdentityOnConnect (the name is not visible in the URL with custom routing). If this name is sensitive, add `static options = { sendIdentityOnConnect: false }` to opt out. Set it to true to silence this message.\nok - approval moved the escalation to output-available, and the continued turn answered\nok - the escalate tool ran exactly once, after approval\nok - the structured turn returns a value matching the TriageResult schema\nok - the typed result reflects the approved escalation"
   }
 ]
