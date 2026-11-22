@@ -419,8 +419,9 @@ function stopCheck(s: State, message: AssistantMessage, answered: boolean): Outc
 }
 
 function errorOf({ error }: AssistantMessage): RunError {
-  const { kind = "fatal", message = "the model call failed", status } = error ?? {};
-  return { kind, message, ...(status === undefined ? {} : { status }) };
+  const { kind = "fatal", message = "the model call failed", status: s, retryAfterMs: r } = error ?? {};
+  const hints = { ...(s === undefined ? {} : { status: s }), ...(r === undefined ? {} : { retryAfterMs: r }) };
+  return { kind, message, ...hints };
 }
 
 /** The default progress rule: the same call failing again and again. The real loop also has a per-key rule. */

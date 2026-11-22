@@ -29,6 +29,7 @@ import {
   type WireResponse,
 } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
+import { withSentHeaders } from "./fixtures.js";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/openai-chat/", import.meta.url));
 const MODEL = { api: "openai-chat", provider: "openai", id: "gpt-5.4-mini" };
@@ -64,7 +65,7 @@ async function run(
   options: StreamOptions = {},
   config: Omit<OpenAIChatConfig, "apiKey" | "transport"> = {},
 ) {
-  const transport = mockTransport("openai-chat", script);
+  const transport = withSentHeaders(mockTransport("openai-chat", script));
   const adapter = openaiChat({ apiKey: KEY, transport, ...config });
   const events = await assertStreamContract(adapter.stream(MODEL, context, { caps: CAPS, ...options }));
   return { events, transport, adapter, terminal: terminalOf(events) };
@@ -157,7 +158,7 @@ test("the key goes out as a bearer token, and caller key headers are dropped", a
     "OpenAI-Project": "p1",
   };
   const { transport } = await run([streamed("text.sse")], hello, {}, { headers });
-  const sent = transport.requests[0]?.headers ?? {};
+  const sent = transport.sent[0] ?? {};
   assert.equal(sent.authorization, `Bearer ${KEY}`);
   assert.equal("api-key" in sent, false);
   assert.equal("x-api-key" in sent, false);

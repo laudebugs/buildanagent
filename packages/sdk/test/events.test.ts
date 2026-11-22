@@ -160,6 +160,26 @@ test("an error stop emits an error event with the run error before agent_settled
   assert.deepEqual(event?.type === "error" ? event.error : undefined, error);
 });
 
+test("a failure's retry-after hint reaches the error event and the result's error", async () => {
+  const error = { kind: "retryable" as const, message: "rate limited", status: 429, retryAfterMs: 90_000 };
+  const { events, result } = await drive(
+    run({ model: scripted([{ content: [], error }]).model, system: SYSTEM, input: "Hi." }),
+  );
+  const event = events.find((e) => e.type === "error");
+  assert.equal(event?.type === "error" ? event.error.retryAfterMs : undefined, 90_000);
+  assert.equal(result.stopReason === "error" ? result.error.retryAfterMs : undefined, 90_000);
+});
+
+test("a failure without a retry-after hint leaves retryAfterMs out of the run error", async () => {
+  const error = { kind: "quota" as const, message: "out of credit", status: 402 };
+  const { events, result } = await drive(
+    run({ model: scripted([{ content: [], error }]).model, system: SYSTEM, input: "Hi." }),
+  );
+  const event = events.find((e) => e.type === "error");
+  assert.equal(event?.type === "error" && "retryAfterMs" in event.error, false);
+  assert.equal(result.stopReason === "error" && "retryAfterMs" in result.error, false);
+});
+
 test("every iteration of a run replays its events from the first", async () => {
   const started = lookupRun();
   const first = await drive(started);

@@ -5,6 +5,7 @@
  */
 import { GatewayError } from "../errors.js";
 import { markMockTransport } from "../request-policy.js";
+import { redactHeaders, redactUrl } from "./credentials.js";
 
 /** The wire protocols a mock transport can stand in for. */
 export type WireApi = "anthropic-messages" | "openai-chat";
@@ -29,11 +30,14 @@ export interface WireResponse {
 /** The responses a mock transport plays, one per request, in order. */
 export type WireScript = readonly WireResponse[];
 
-/** A request as the mock transport received it. A JSON body is parsed; any other body stays text. */
+/**
+ * A request as the mock transport received it, with credentials redacted: a credential header's value and a key in the
+ * URL are `"[redacted]"`, which a URL spells `%5Bredacted%5D`. A JSON body is parsed; any other body stays text.
+ */
 export interface RecordedRequest {
   readonly url: string;
   readonly method: string;
-  /** The request headers, with lower-case names. */
+  /** The request headers, with lower-case names and every credential header's value redacted. */
   readonly headers: Readonly<Record<string, string>>;
   readonly body: unknown;
 }
@@ -82,10 +86,8 @@ function bodyStream(chunks: Uint8Array[], signal: AbortSignal): ReadableStream<U
 }
 
 async function record(request: Request): Promise<RecordedRequest> {
-  const headers: Record<string, string> = {};
-  request.headers.forEach((value, name) => {
-    headers[name] = value;
-  });
+  // Redact before recording, so a test that prints or snapshots `requests` never leaks the key the adapter sent.
+  const headers = redactHeaders(request.headers);
   const text = await request.clone().text();
   let body: unknown = text;
   if (headers["content-type"]?.includes("json")) {
@@ -95,7 +97,7 @@ async function record(request: Request): Promise<RecordedRequest> {
       // A body that claims to be JSON and isn't stays text, so the test can see what was sent.
     }
   }
-  return { url: request.url, method: request.method, headers, body };
+  return { url: redactUrl(request.url), method: request.method, headers, body };
 }
 
 function responseFor(scripted: WireResponse, signal: AbortSignal): Response {

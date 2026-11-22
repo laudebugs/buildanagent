@@ -11,6 +11,7 @@
 export { type EffectScope, effectKey } from "./effect-key.js";
 export { type EffectClaim, type EffectRecord, type EffectStore, memoryEffectStore } from "./effect-store.js";
 export {
+  CLOUDFLARE_GATEWAY_TOKEN_HEADER,
   CLOUDFLARE_NO_WHOLESALE_HEADER,
   CREDENTIAL_HEADERS,
   type CredentialHeader,
