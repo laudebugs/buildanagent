@@ -41,7 +41,7 @@ An **agent** here is a program that runs a model in a loop with tools. An **A2A 
 **Five rules, ordered from cheapest to most costly, settle when our agents should call or expose another agent; the order is our synthesis.**
 1. **A function or workflow step** when code can do the work, because "If you can write a function to handle the task, do that instead of using an AI agent" ([Microsoft Agent Framework overview](https://learn.microsoft.com/en-us/agent-framework/overview/)).
 2. **A tool**, over MCP when someone else hosts it, when the caller knows the inputs the capability needs.
-3. **An in-process subagent** when we own the agent and want a separate context or parallel branches, as Chapter T17's example will show ([T42](../../todos/ready/T42-example-subagent.md)).
+3. **An in-process subagent** when we own the agent and want a separate context or parallel branches, as Chapter T17's example will show ([T42](../../todos/done/T42-example-subagent.md)).
 4. **An A2A client call** when another team, organization or framework owns the agent, its plan and tools stay hidden from us, and the task may run long or pause for input.
 5. **An A2A server** only when an outside caller needs to delegate to our agent. Such callers already exist in hosted products: Gemini Enterprise can register A2A agents (in preview), Foundry Agent Service calls them through its `a2a` tool, and Bedrock AgentCore Runtime hosts A2A servers ([Gemini Enterprise](https://docs.cloud.google.com/gemini/enterprise/docs/register-and-manage-an-a2a-agent); [Foundry](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/tools/agent-to-agent); [AgentCore](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-a2a.html)).
 

@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T42](T42-example-subagent.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T42](../done/T42-example-subagent.md) |
 | Size | M |
 
 ## Goal
@@ -22,6 +22,7 @@ Write the chapter "Choosing the shape: buy, adopt or build, how to plan, and whe
 - [Anthropic, How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)
 - [Anthropic, Building effective agents](https://www.anthropic.com/engineering/building-effective-agents): routing, orchestrator-workers
 - [Agent research papers](../../research/papers/agent-research-papers.md) (U22): its [architectures section](../../research/papers/agent-research-papers.md#our-loop-already-is-a-react-loop-later-papers-add-layers-around-it-not-a-rival-architecture) gives the primary papers behind the planning section, ReAct (arXiv 2210.03629), Reflexion (2303.11366) and a plan-then-execute guide (2509.08646), which the main report's planning section cites only through practitioner blogs. Its [multi-agent section](../../research/papers/agent-research-papers.md#splitting-an-agent-into-roles-buys-verification-but-the-team-itself-becomes-a-new-failure-surface) gives AutoGen, MetaGPT and CAMEL for handoffs and roles, and the finding that a safety check passed by one agent alone may not hold in a team (2611.24475). Cite them through U22's [fact-check](../../research/papers/fact-check-agent-research-papers.md), rows 1–5, 13–14 and 36–48; the 4× and 15× token figures stay with Anthropic's post.
+- The subagent example, `verify/openai-agents-sdk/examples/12-subagent-as-tool.ts` ([T42](../done/T42-example-subagent.md)), has regions `subagent`, `orchestrator` and `usage`, with notes `summary`, `own-usage`, `shared-usage` and `run-usage`, and a transcript for a replay. Two limits carry into the prose. First, its token counts are scripted, so the run's total of 4× the orchestrator's own tokens measures nothing; cite Anthropic's measured figures (about 4× chat for an agent, about 15× for a multi-agent system) separately, and do not present this run as either of them. Second, the nested run shares the orchestrator's run context, so the subagent's `state.usage` is the shared running total; its own tokens come from its `rawResponses` ([fact-check](../../plans/reviews/fact-check-openai-subagent-example.md), rows T42-6 to T42-8, T42-11 and T42-14).
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
 - `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
@@ -31,7 +32,7 @@ Write the chapter "Choosing the shape: buy, adopt or build, how to plan, and whe
 
 - `apps/manual/src/content/chapters/choosing-the-shape.md`, with `switchTo: [B19b]` and `opening: fact` in its front matter
 - Sections: Buy, adopt or build (the main report's three tiers and build-vs-buy table); Planning patterns: ReAct first, then plan-and-execute and reflection when they earn it (main report); Workflows, routing and handoffs; Subagents for context isolation, and their cost: about 4× the tokens of chat for one agent and 15× for a multi-agent system (Anthropic)
-- Listings and at least one replay from: `verify/openai-agents-sdk/examples/03-handoff.ts`, `verify/google-adk/examples/02-workflow-agents.ts`, `verify/google-adk/examples/03-graph-workflow.ts`, the subagent example from [T42](T42-example-subagent.md)
+- Listings and at least one replay from: `verify/openai-agents-sdk/examples/03-handoff.ts`, `verify/google-adk/examples/02-workflow-agents.ts`, `verify/google-adk/examples/03-graph-workflow.ts`, `verify/openai-agents-sdk/examples/12-subagent-as-tool.ts` from [T42](../done/T42-example-subagent.md)
 - Figures: a flat figure of three tiers of loop ownership, with each SDK placed; a flat analogy illustration of researchers in separate reading rooms
 - Exercise: Rewrite a handoff as a workflow in code, then as a subagent, and compare model calls and tokens.
 - `apps/manual/fact-checks/choosing-the-shape.md`, the chapter's claims log
