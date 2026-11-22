@@ -235,7 +235,7 @@ test("the harness table names every verify/ harness, then our packages with book
   assert.deepEqual(keys.filter((key) => key.startsWith("verify/")).sort(), verify.sort());
   assert.deepEqual(
     keys.filter((key) => !key.startsWith("verify/")),
-    ["packages/sdk"],
+    ["packages/gateway", "packages/sdk"],
   );
   for (const [harness, name] of real.harnesses.harnesses) {
     const manifest = JSON.parse(readFileSync(join(repoRoot, harness, "package.json"), "utf8"));
@@ -261,10 +261,22 @@ test("a listing from packages/sdk/examples shows the package's own version and r
   assert.equal(listing.replay?.transcript.pin, "@buildanagent/sdk@workspace");
 });
 
+test("a listing from packages/gateway/examples shows the package's own version and replays its workspace transcript", () => {
+  const listing = resolveListing(
+    { id: "x", file: "packages/gateway/examples/01-text-stream.ts", region: "text-stream", replay: "" },
+    real,
+  );
+  assert.ok(!("message" in listing), "message" in listing ? listing.message : "");
+  assert.equal(listing.harness, "packages/gateway");
+  assert.equal(listing.pin, realPin("packages/gateway"));
+  assert.equal(listing.recordedPin, "@buildanagent/gateway@workspace");
+  assert.equal(listing.replay?.path, "packages/gateway/results/transcripts/01-text-stream.json");
+});
+
 test("a file in a package that the harness table does not list has no pin", () => {
-  const listing = resolveListing({ id: "x", file: "packages/gateway/src/complete.ts" }, real);
+  const listing = resolveListing({ id: "x", file: "packages/agent-safety/src/index.ts" }, real);
   assert.ok("message" in listing);
-  assert.match(listing.message, /packages\/gateway\/src\/complete\.ts is in no harness that harnesses\.json lists/);
+  assert.match(listing.message, /packages\/agent-safety\/src\/index\.ts is in no harness that harnesses\.json lists/);
 });
 
 test("one of our packages' replay needs a transcript recorded at workspace, not at the version number", () => {

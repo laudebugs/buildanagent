@@ -258,7 +258,7 @@ packages/
     schema/protocol.schema.json generated from messages.ts and committed
     schema/session-entry.schema.json generated from entries.ts and committed
   harness/                      @buildanagent/harness
-    package.json                exports: ".", "./session", "./session/jsonl", "./context", "./tools", "./mcp",
+    package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
                                 "./credentials", "./extensions", "./memory", "./telemetry", "./server",
                                 "./ablation", "./testing"
@@ -397,24 +397,30 @@ declare function processScheduler(): Scheduler; // local default; DO alarms, Eve
 
 ### 3.3 Context policy and tool registry APIs
 
+**Revision (N8, 2026-11-22): the policy is built once and starts per turn.** A harness serves many sessions, so `createContextPolicy(options)` takes no session. `forTurn()` binds the policy to one session and model, and returns the turn's interceptors, its spill lookup and its fill. The write cap counts the log's JSON-escaped bytes and keeps 1 KiB for the entry's own fields, so a capped entry fits the 64 KiB entry bound.
+
 ```ts
 // @buildanagent/harness/context (guide §3; HD3, HD9)
 type LayerName = "write_cap" | "mask" | "summarize" | "mid_turn" | "overflow_retry";
+interface SpillStore { write(key: SessionKey, callId: string, text: string): Promise<string> }   // N8: fileSpillStore() is Node only, in "./context/file"
 interface ContextPolicyOptions {
+  spill?: SpillStore;                       // N8: required while the write_cap layer is on
   budgetTokens?: number;                    // default min(window − 16,384, 200,000)
-  writeCapBytes?: number;                   // 64 KiB
+  writeCapBytes?: number;                   // 64 KiB of the log's bytes: JSON-escaped, with 1 KiB left for the entry's own fields (N8)
   mask?: { keepChars: number; stepMessages: number };      // 500, 8
   summarize?: { tailTokens: number; toolOutputChars: number; model?: Model; focus?: string }; // 20,000, 2,000
   midTurnRatio?: number;                    // 0.9; layer off for windows ≥ 128K unless set
   layers?: Partial<Record<LayerName, boolean>>;
   hooks?: { beforeCompact?(e: CompactEvent): Promise<{ summary?: string } | void>; afterCompact?(e: CompactionEntry): Promise<void> };
 }
-interface ContextPolicy {
+interface ContextPolicy { forTurn(turn: { session: Session; model: Model; onFill?(fill: ContextFill): void }): TurnContext }   // N8
+interface TurnContext {
   interceptors: Pick<Interceptors, "transformContext" | "afterToolCall">;  // layers 2–4 and layer 1
-  onOverflow(result: RunResult<unknown>, session: Session): Promise<Context | undefined>; // layer 5: one retry
+  spillOf(callId: string): { path: string; bytes: number } | undefined;   // fills tool_result.spill
+  onOverflow(result: RunResult<unknown>, session: Session): Promise<Context | undefined>; // layer 5: one retry (N10)
   fill(): { tokens: number; budget: number; window: number };            // shown by the CLI
 }
-declare function createContextPolicy(session: Session, options?: ContextPolicyOptions): ContextPolicy;
+declare function createContextPolicy(options?: ContextPolicyOptions): ContextPolicy;   // HarnessOptions.context; one per harness
 
 // @buildanagent/harness/tools (guide §4)
 type ToolSource = "builtin" | "extension" | `mcp:${string}` | "client";
@@ -708,7 +714,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N8](../todos/ready/N8-write-cap-masking.md) | Layers 1 and 2: write cap with spill, and stepped masking | N6 | M |
+| [N8](../todos/done/N8-write-cap-masking.md) | Layers 1 and 2: write cap with spill, and stepped masking | N6 | M |
 | [N9](../todos/ready/N9-summary-layer.md) | Layer 3: recall-first summary between turns, with hooks and a focus hint | N8, B5, B14 | M |
 | [N10](../todos/ready/N10-mid-turn-overflow.md) | Layers 4 and 5: mid-turn compaction and the overflow retry | N9, N7 | M |
 

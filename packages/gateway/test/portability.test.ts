@@ -37,6 +37,9 @@ const nodeOnlyFiles = new Set([
   "session/file-index.ts",
   // The approval key ring is a file with a mode, so it is Node-only too, and has the same entry.
   "session/file-key-store.ts",
+  // The file spill store writes each capped tool result to a file, so it is Node-only too. It has its own entry,
+  // `@buildanagent/harness/context/file`, and the portable `./context` entry never imports it.
+  "context/file-spill.ts",
 ]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.
