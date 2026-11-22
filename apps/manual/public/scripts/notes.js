@@ -459,12 +459,12 @@ function edgeTerm(text, max, fromEnd) {
     const cut = text.slice(0, max);
     if (!WORD.test(text[max] ?? "")) return cut.trim();
     const space = cut.search(/\s\S*$/);
-    return (space > 0 ? cut.slice(0, space) : cut).trim();
+    return space > 0 ? cut.slice(0, space).trim() : "";
   }
   const cut = text.slice(-max);
   if (!WORD.test(text[text.length - max - 1] ?? "")) return cut.trim();
   const space = cut.search(/\s/);
-  return (space >= 0 ? cut.slice(space) : cut).trim();
+  return space >= 0 ? cut.slice(space).trim() : "";
 }
 
 /** The last `LINK_CONTEXT` characters of a text, without a word the cut starts in the middle of. */
@@ -1028,8 +1028,7 @@ class Notes {
           this.clearSelection();
           return;
         }
-        this.color = color;
-        this.addPending(false);
+        this.addPending(false, color);
       });
     }
     this.noteButton.addEventListener("click", () => this.addPending(true));
@@ -1170,7 +1169,7 @@ class Notes {
    * Highlights the pending selection, or opens the note form for it. The toolbar stays open, with the reason in view,
    * until the highlight is saved.
    */
-  addPending(withNote) {
+  addPending(withNote, color = this.color) {
     const pending = this.pending;
     const fromToolbar = this.toolbar.contains(this.doc.activeElement);
     if (!pending) return;
@@ -1192,12 +1191,13 @@ class Notes {
       this.clearSelection();
       return;
     }
-    const item = this.makeItem(pending.anchor, "", this.color);
+    const item = this.makeItem(pending.anchor, "", color);
     const problem = this.commit([...this.items, item]);
     if (problem) {
       this.notice(problem);
       return;
     }
+    this.color = color;
     this.hideToolbar();
     this.say(`Highlighted “${shorten(item.quote)}”.`);
     this.pending = undefined;
@@ -1420,13 +1420,25 @@ class Notes {
     this.say(`Highlight colour changed to ${COLOR_LABELS[color].toLowerCase()}.`);
     this.renderPop();
     if (this.dialog.open) this.rerender();
-    (this.popColors.querySelector(`[data-color="${color}"]`) ?? this.popShare).focus({ preventScroll: true });
+    // The panel redraws its rows, so focus goes to the same colour in the row; otherwise it stays in the popover.
+    const row = this.dialog.open ? [...this.list.children].find((child) => child.getAttribute("data-id") === id) : null;
+    const scope = row ?? this.popColors;
+    (scope.querySelector(`[data-color="${color}"]`) ?? this.popShare).focus({ preventScroll: true });
   }
 
   /** Removes the highlight the popover is open on, and closes the popover. */
   removePopped() {
+    this.reload();
+    if (this.foreign) {
+      this.say(MESSAGES.foreign);
+      this.popMessage.textContent = MESSAGES.foreign;
+      return;
+    }
     const item = this.items.find((other) => other.id === this.popId);
-    if (!item) return;
+    if (!item) {
+      this.closePop();
+      return;
+    }
     const problem = this.commit(this.items.filter((other) => other.id !== item.id));
     if (problem) {
       this.say(problem);
@@ -1449,6 +1461,7 @@ class Notes {
 
   /** Copies what Share offers for the highlight the popover is open on. */
   sharePopped() {
+    this.reload();
     const item = this.items.find((other) => other.id === this.popId);
     if (!item) return;
     this.share(item, {

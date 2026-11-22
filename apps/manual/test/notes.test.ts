@@ -1336,6 +1336,36 @@ test("Share leaves out text the chapter model skips, such as a hidden glossary c
   assert.match(copied, /#errors:~:text=/, "the section is the one the passage is under now, not the stored one");
 });
 
+test("Remove in the popover works from the stored list, so another tab's change is kept", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  const other = item({ id: "three", quote: "from another tab", section: "errors" });
+  win.localStorage.setItem(KEY, serializeStored(new Map([["tools", [CONTRACT, FAILED, other]]])));
+  popButton(win, "Remove").click();
+  assert.deepEqual(
+    storedItems(win)
+      .map((found) => found.id)
+      .sort(),
+    ["three", "two"],
+  );
+});
+
+test("a refused highlight is not stored", () => {
+  const win = page();
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Green").click();
+  assert.equal(storedItems(win)[0]?.color, "green");
+  const long = "x".repeat(5000);
+  q(win, "article p:last-of-type")?.append(long);
+  select(win, paragraph, 0, q(win, "article p:last-of-type")?.lastChild as Node, long.length);
+  shortcut(win);
+  toolbarButton(win, "Pink").click();
+  assert.equal(storedItems(win).length, 1, "the long passage was refused");
+});
+
 test("a click on a second highlight opens its popover after a light dismiss closed the first", () => {
   const { win, calls } = stage([CONTRACT, FAILED]);
   click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
@@ -1409,6 +1439,15 @@ test("textDirective builds a whole-word directive for a passage, its ends, or it
     one("own fox jumps", "The quick br", " over", "The quick brown fox jumps over. The quick brown fox jumps again."),
     "text=The%20quick%20brown-,fox%20jumps,-over",
     "the fragment of a dropped partial word stays in the context, so the context meets the term",
+  );
+  const run = "w".repeat(50);
+  assert.equal(
+    textDirective(
+      { quote: `Start here ${run}`, before: "", after: "", first: "Start here", last: run, spans: true },
+      "other",
+    ),
+    "",
+    "an end term that is a fragment of one long word leaves no directive",
   );
   assert.equal(one("a-b, c&d", "", "", "other"), "text=a%2Db%2C%20c%26d", "-, and & are percent-encoded");
   assert.equal(one("mid", "x", "y"), "", "a passage with no whole word has no directive");
