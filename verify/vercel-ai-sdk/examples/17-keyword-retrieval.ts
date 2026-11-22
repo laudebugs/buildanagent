@@ -1,7 +1,7 @@
 // A search tool that ranks a small fixture of support documents with BM25, and four checks on where keyword search
 // works and where it fails. BM25 is written in this file (no search package and no embedding API): a document's score
 // for a query is the sum, over the query's words, of the word's rarity in the corpus times how often the document uses
-// it, damped for repetition and for a long document. The tool searches fixtures/support-docs.json, ten documents from
+// it, damped for repetition and for a long document. The tool searches fixtures/support-docs.json, fourteen documents from
 // two tenants. The model is scripted, so the example tests the retriever and what reaches the model, not a model's
 // judgement. Its second turn is defined to repeat the advice of the first search result, which makes the last check
 // concrete: whatever ranks first is what the model reads.
@@ -10,6 +10,7 @@
 // that stuffs the query's words outranks the real one and steers the scripted answer.
 // Docs: ai-sdk-core/tools-and-tool-calling.mdx
 import { readFileSync } from "node:fs";
+import type { LanguageModelV4CallOptions } from "@ai-sdk/provider";
 import { generateText, isStepCount, tool } from "ai";
 import { z } from "zod";
 import { check, scripted } from "./lib/check.ts";
@@ -68,13 +69,23 @@ function searchTool(tenant: string, docs: Doc[] = corpus) {
 }
 // #endregion
 
+type Hit = { id: string; title: string; text: string; score: number };
+
+/** The first search result in a request, read from the tool-result message the model received. */
+function firstResult(request: LanguageModelV4CallOptions): Hit | undefined {
+  const message = request.prompt.at(-1);
+  if (message?.role !== "tool") throw new Error("the last message is not a tool result");
+  const part = message.content[0];
+  if (part?.type !== "tool-result" || part.output.type !== "json") throw new Error("not a JSON tool result");
+  return (part.output.value as Hit[])[0];
+}
+
 /** Runs a one-search agent: the scripted model searches for `query`, then answers with the first result's text. */
 async function ask(query: string, tenant: string, docs: Doc[] = corpus) {
   const { model, requests } = scripted((n) => {
     if (n === 0) return { tools: [{ name: "search_docs", input: { query } }] };
-    const results = JSON.stringify(requests[n].prompt.at(-1)?.content); // the tool result, as the model received it
-    const first = /"text":"([^"]+)"/.exec(results)?.[1];
-    return first ? `The documents say: ${first}` : "The documents have nothing on that.";
+    const first = firstResult(requests[n]);
+    return first ? `The documents say: ${first.text}` : "The documents have nothing on that.";
   });
   const result = await generateText({
     model,
@@ -88,7 +99,7 @@ async function ask(query: string, tenant: string, docs: Doc[] = corpus) {
 const ids = (hits: { doc: Doc }[]) => hits.map((h) => h.doc.id);
 const acme = corpus.filter((d) => d.tenant === "acme");
 
-check(corpus.length === 10, "the fixture holds ten documents");
+check(corpus.length === 14, "the fixture holds fourteen documents");
 
 // 1. An exact identifier is rare, so the one document that holds it ranks first and alone.
 const byCode = bm25(acme, "E4021");
@@ -107,7 +118,23 @@ const paraphrase = bm25(acme, "I forgot my login credentials");
 check(ids(sameWords)[0] === "kb-02", "a query in the document's own words ranks kb-02 first");
 check(paraphrase.length === 0, "a paraphrase of the same need matches no document");
 const missRun = await ask("I forgot my login credentials", "acme");
+check(searches.at(-1)?.ids.length === 0, "the tool returned no ids for the paraphrase");
 check(missRun.result.text === "The documents have nothing on that.", "the scripted model is left with no result");
+
+// A rare word outweighs a common one that a document repeats more often: "password" fills kb-02 three times, but
+// "webhook" is in one document only, so kb-09 ranks first. Counting words without their rarity puts kb-02 first.
+check(
+  ids(bm25(acme, "password webhook"))[0] === "kb-09" && ids(bm25(acme, "password webhook"))[1] === "kb-02",
+  "a rare word outranks a common word that a document repeats more often",
+);
+
+// A result whose text holds quotation marks reaches the model intact.
+const quoteRun = await ask("Share menu", "acme");
+check(searches.at(-1)?.ids[0] === "kb-14", "the tool returned kb-14 for the Share menu query");
+check(
+  quoteRun.result.text.includes('Use the "Share" button'),
+  "a result with quotation marks reaches the answer intact",
+);
 
 // 3. A tenant filter applied before ranking keeps another tenant's near-duplicate out of the results.
 const both = ids(bm25(corpus, "E4021 storage quota"));
@@ -127,12 +154,28 @@ check(
   "each tenant's answer comes from its own document",
 );
 
+// The filter also has to run before ranking, which changes the ranking itself. Across both tenants, "export" is in
+// six documents and so is a common word, and the other tenant's kb-13 takes a place in the top three. Within acme it
+// is in two documents and is rare, so the acme-only ranking leads with the two export documents. Filtering the
+// ranking afterwards would return kb-04, kb-02 and kb-08 instead.
+const scopeRun = await ask("settings export", "acme");
+check(
+  ids(bm25(corpus, "settings export").slice(0, 3)).includes("kb-13"),
+  "unfiltered, the other tenant's kb-13 is in the top three for the query",
+);
+check(
+  searches.at(-1)?.ids.join() === "kb-10,kb-01,kb-04",
+  "the acme search ranks within acme's own documents: rarity counts only its documents, and kb-13 is absent",
+);
+check(scopeRun.requests.length === 2, "the scoping check used one search and one answer");
+
 // #region planted
 // 4. A document that repeats the query's words outranks the real answer, and what ranks first is what the model reads.
 const question = "How do I fix a failed export?";
 const plantedRun = await ask(question, "acme");
 const topHit = bm25(acme, question)[0]?.doc.id;
 check(topHit === "kb-10", "the planted document ranks first for the question"); // book:note planted
+check(searches.at(-1)?.ids[0] === "kb-10", "the tool returned the planted document first");
 check(
   plantedRun.result.text.includes("https://cleanup.example/run"),
   "the scripted answer follows the planted document's instruction",
@@ -148,7 +191,7 @@ check(
 );
 // #endregion
 
-// Every request offered the model only the search tool, and it never called anything else.
+// Every request offered the model only the search tool, so no other tool, host-touching or not, was within its reach.
 const offered = [byCodeRun, missRun, globexRun, acmeRun, plantedRun, withoutPlant].flatMap((r) => r.requests);
 check(
   offered.every((r) => r.tools?.length === 1 && r.tools[0].type === "function" && r.tools[0].name === "search_docs"),
