@@ -40,8 +40,8 @@ Give `SandboxClient` what hosted backends need, and replace the loopback proxy U
 
 ## Acceptance criteria
 
-- [ ] The `none`, `srt` and Docker backends pass the extended conformance suite
-- [ ] `pnpm test` passes offline
+- [ ] The `none`, `srt` and Docker backends pass the extended conformance suite (`none` and the fake pass here; the `srt` and Docker test files skip on a host with no `srt` or Docker daemon, so those two have not run it)
+- [x] `pnpm test` passes offline (`pnpm --filter @buildanagent/harness test`: 951 passed, 83 skipped)
 
 ## Tests
 

@@ -182,7 +182,7 @@ A route of kind `git` carries git over HTTPS for the repositories it lists, and 
 A push is checked before anything is forwarded. The proxy reads the command list at the start of the body and refuses the whole push when one command breaks a rule:
 
 - a deletion, a tag, or a ref that no `pushRefs` pattern matches;
-- a push certificate, a body with a `content-encoding`, or a pkt-line that is malformed or not UTF-8;
+- a push certificate, a body with a `content-encoding` other than `identity`, or a pkt-line that is malformed or not UTF-8;
 - a command list over 64 KiB (`GIT_MAX_COMMAND_BYTES`) or over 64 commands (`GIT_MAX_COMMANDS`).
 
 A pattern is a branch such as `refs/heads/main`, or a prefix such as `refs/heads/agent/*`, which matches the branches under `agent/` and not `agent` itself. A route with no `pushRefs` refuses every push, and one with `fetch` left out refuses every fetch.
