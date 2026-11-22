@@ -174,7 +174,7 @@ Where tuning pays is narrower: it teaches a small model to do one job that a lar
 
 ### A tuned model is a new model, with its own price and a short life
 
-A tuned model has its own price. As of November 2026, OpenAI's tuned GPT-4.1 mini costs $0.80 per million input tokens and $3.20 per million output tokens, twice the base model's $0.40 and $1.60 [@openai-gpt-4-1-mini], and training costs $5 per million training tokens [@openai-pricing]. Take 1,000 examples of 2,000 tokens, trained for three epochs. That is 6 million tokens and a $30 training run, which we judge small next to an engineer's time. The price per token is where the money goes.
+A tuned model has its own price. As of November 2026, OpenAI's tuned GPT-4.1 mini costs $0.80 per million input tokens and $3.20 per million output tokens, twice the base model's $0.40 and $1.60 [@openai-gpt-4-1-mini], and training costs $5 per million training tokens [@openai-pricing]. Take 1,000 examples of 2,000 tokens, trained for three epochs. That is 6 million tokens and a $30 training run, which we judge small next to an engineer's time. The price per token is where the money goes. [[lst:tuned-prices]] holds the two rate sets the next listing prices.
 
 ::listing[GPT-4.1 mini's base and tuned rates, in nano-dollars per token as of November 2026]{#tuned-prices file="verify/vercel-ai-sdk/examples/11-tuned-vs-cached.ts" region="price-table"}
 

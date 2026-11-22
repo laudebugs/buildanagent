@@ -274,14 +274,15 @@ The section was drafted after the model-choice section. Every provider page was 
 | 179 | After the first code review: the lifetimes count from each model's release or snapshot date, and Google's tuning range is described as the models its page lists, including the 2.5 models that retire in 2026 | § Tuning | ✅ | Re-check of rows 152 and 174: wording only, figures unchanged |
 | 180 | After the first code review: the Anthropic no-tuning conclusion, the opening scenario and the closing rule are worded as our inference, an illustration and our rule | § Tuning | ✅ | Re-check of rows 170, 175 and 176: wording only; the three rows stay ⚠️ |
 | 181 | After the medium review: the text says "Of these three providers, only Google still tunes models" and the tally counts rows 177 to 180 | § Tuning | ✅ | Re-check of row 174: wording only; Bedrock tuning of other vendors' models is outside the three providers compared |
+| 182 | After the low review: a sentence introduces the price-table listing | § Tuning | ✅ | Re-check of row 145: the sentence adds no claim |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 157 |
+| ✅ confirmed | 158 |
 | ✏️ corrected | 10 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108 and 116) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 14 (rows 16, 31, 57, 75, 143, 147, 150, 153, 156, 157, 167, 170, 175 and 176) |
-| Total | 181 |
+| Total | 182 |
 
 Six ✅ rows (21, 32, 59, 76, 96 and 124) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).
