@@ -7,7 +7,7 @@ glossary: [mock-model]
 switchTo: [B18, B19]
 ---
 
-It is ten to five on a Friday, and you have reworded one line of your agent's instructions. You run the tests. They call a real model, take a minute, cost a few cents and pass. You run them again before you merge, and one fails, though nothing changed between the runs. The AI SDK's testing guide names the cause: "Testing language models can be challenging, because they are non-deterministic and calling them is slow and expensive" [@ai-sdk-testing]. A test that fails one run in ten teaches your team to ignore failures, and a test you cannot afford to run on every push stops guarding anything.
+It is ten to five on a Friday, and you have reworded one line of your agent's instructions. You run the tests. They call a real model, take a minute, cost a few cents and pass. You run them again before you merge, and one fails, though nothing changed between the runs. The AI SDK's testing guide names the cause: "Testing language models can be challenging, because they are non-deterministic and calling them is slow and expensive" [@ai-sdk-testing]. A test that fails now and then teaches your team to ignore failures, and a test you cannot afford to run on every push stops guarding anything.
 
 A mock model removes the model from the test, so the same code gives the same answer on every run, with no key and no bill. That is the first half of the problem. The second half is knowing what a passing test then proves, which is less than it seems. This chapter shows where each of eight SDKs lets a mock in, what an assertion on a mocked run can and cannot show, and one small support-triage agent that the book writes on each SDK, so you can run a complete agent offline.
 
