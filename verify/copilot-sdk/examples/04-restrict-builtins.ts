@@ -17,24 +17,26 @@ const offered = async (config: object, label: string) => {
   return mockRequests().at(-1)?.tools ?? [];
 };
 
+// #region offered
 const all = await offered({}, "default");
 check(
   all.includes("bash") && all.includes("edit") && all.includes("ping"),
   `default: built-ins plus ping (${all.length} tools)`,
 );
 
-const onlyCustom = await offered({ availableTools: new ToolSet().addCustom("*") }, "custom only");
+const onlyCustom = await offered({ availableTools: new ToolSet().addCustom("*") }, "custom only"); // book:note custom-only
 check(
   JSON.stringify(onlyCustom) === JSON.stringify(["ping"]),
   `availableTools custom:* offers only ping (got ${onlyCustom})`,
 );
 
-const noShell = await offered({ excludedTools: ["bash", "edit", "create"] }, "excluded");
+const noShell = await offered({ excludedTools: ["bash", "edit", "create"] }, "excluded"); // book:note excluded
 check(!noShell.some((t) => ["bash", "edit", "create"].includes(t)), "excludedTools removes bash, edit and create");
 check(noShell.includes("view") && noShell.includes("ping"), "other tools stay");
 
-const both = await offered({ availableTools: ["ping", "view"], excludedTools: ["view"] }, "both");
+const both = await offered({ availableTools: ["ping", "view"], excludedTools: ["view"] }, "both"); // book:note exclude-wins
 check(JSON.stringify(both) === JSON.stringify(["ping"]), `excludedTools wins over availableTools (got ${both})`);
+// #endregion
 
 const isolated = await offered({ availableTools: new ToolSet().addBuiltIn(BuiltInTools.Isolated) }, "isolated");
 check(
