@@ -76,7 +76,7 @@ This is the strongest fit. T17's planning section is "ReAct first, then plan-and
 
 T17's section "Workflows, routing and handoffs" and its subagent section gain AutoGen, MetaGPT and CAMEL (rows 36–43). They also gain the November 2026 concealment result (arXiv 2611.24475, rows 44–48): a safety property checked on one agent alone is not yet one of the team. The subagent cost multipliers (4× and 15×) stay with Anthropic's post.
 
-**Proposed addition to `docs/todos/ongoing/T17-chapter-choosing-the-shape.md`, `## Context`:**
+**Proposed addition to `docs/todos/done/T17-chapter-choosing-the-shape.md`, `## Context`:**
 
 > - [Agent research papers](../../research/papers/agent-research-papers.md) (U22): its [architectures section](../../research/papers/agent-research-papers.md#our-loop-already-is-a-react-loop-later-papers-add-layers-around-it-not-a-rival-architecture) gives the primary papers behind the planning section, ReAct (arXiv 2210.03629), Reflexion (2303.11366) and a plan-then-execute guide (2509.08646), which the main report's planning section cites only through practitioner blogs. Its [multi-agent section](../../research/papers/agent-research-papers.md#splitting-an-agent-into-roles-buys-verification-but-the-team-itself-becomes-a-new-failure-surface) gives AutoGen, MetaGPT and CAMEL for handoffs and roles, and the finding that a safety check passed by one agent alone may not hold in a team (2611.24475). Cite them through U22's [fact-check](../../research/papers/fact-check-agent-research-papers.md), rows 1–5, 13–14 and 36–48; the 4× and 15× token figures stay with Anthropic's post.
 

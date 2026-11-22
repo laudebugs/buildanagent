@@ -1,4 +1,4 @@
-// Chapter 17's flat figure: three tiers of loop ownership, with the eight SDKs this book verifies placed in them and
+// Chapter 8's flat figure: three tiers of loop ownership, with the eight SDKs this book verifies placed in them and
 // the loop this book builds as the third tier's example. Tier one is a vendor's program that owns the loop, tier two
 // is a loop that runs in your process, and tier three is a loop you own and can change.
 import { Figure, type Rect } from "../lib/svgkit.js";

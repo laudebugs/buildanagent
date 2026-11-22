@@ -1,4 +1,4 @@
-// Chapter 17's analogy illustration for subagents: researchers sent to separate reading rooms read their sources there
+// Chapter 8's analogy illustration for subagents: researchers sent to separate reading rooms read their sources there
 // and return with a summary, so the lead sees the question and the summaries and never the sources. Each researcher is
 // paid by the word read, which is where the analogy breaks: the tokens of every room add to the bill. The register's
 // reading-rooms entry names it.
