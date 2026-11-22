@@ -54,7 +54,7 @@ export interface RunOptions<S = unknown, A = unknown> {
    * App data for the tools, which each reads as `ctx.app`: facts the caller knows and the model must not choose, such as
    * the signed-in customer. Build it for each request from the authenticated session, never once at module level. It
    * reaches no model request, event or saved `Context`, so pass it again to every `continueRun()`, and to a nested run
-   * a tool starts. The tools' declared type and this value must agree, and once a tool declares one, `app` is required.
+   * a tool starts. The tools' declared type and this value must agree, and once a tool declares one, `app` is required, which the compiler checks only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass an immutable value.
    */
   readonly app?: A;
   /**

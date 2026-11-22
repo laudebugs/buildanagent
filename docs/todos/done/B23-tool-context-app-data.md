@@ -101,7 +101,8 @@ A caller can now pass trusted facts, such as the signed-in customer, to a run, a
 
 **Decisions.**
 - **Field name: `app`.** Rejected: `context`, because `Context` already means the conversation, and `state`, because it suggests the run changes it.
-- **One `A` per run, not per tool.** Tools of different declared types in one run fail to compile, and a tool that declares none (`A` is `unknown`) mixes with any. The risk note's fallback, typing the field per run only, was not needed.
+- **One `A` per run, not per tool.** Tools whose declared types are unrelated fail to compile in one run, and a tool that declares none (`A` is `unknown`) mixes with any. Related types, one assignable to the other, are accepted, because `execute` is a method and TypeScript checks its parameter both ways. The risk note's fallback, typing the field per run only, was not needed.
+- **The compile-time check needs inference.** With explicit type arguments, such as `run<Triage>()`, `A` stays `unknown` and `app` is optional. The README and the TSDoc say so, and a type test pins it. The suite's `Loop` type is explicit, so the shared suite runs without the check.
 - **The capstone keeps no email argument.** The scripted `LOOKUP` call now sends `{}`, and a new suite case has the model send `victim@example.com` and checks the lookup used `user@example.com`. The reference loop passes `app` to its tools too, and its cap of 400 lines still holds.
 - **The harness follow-up** is recorded in the [harness plan](../../plans/build-harness.md): N6 and N11 pass `hostContext` as `RunOptions.app` instead of binding it in a wrapper.
 

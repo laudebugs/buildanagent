@@ -452,12 +452,13 @@ export function answerFor(session: Session) {
 }
 ```
 
-The model sees the tool's description and its `topic` argument, never `app`. If it sends `{ customerId: "cust-999" }` anyway, the tool still answers for `session.customerId`. A run whose tools declare an `app` type needs an `app` of that type, and leaving it out or passing another type fails to compile.
+The model sees the tool's description and its `topic` argument, never `app`. If it sends `{ customerId: "cust-999" }` anyway, the tool still answers for `session.customerId`. A run whose tools declare an `app` type needs an `app` of that type, and leaving it out or passing another type fails to compile. The check relies on inference, so it does not apply when you give `run()` explicit type arguments, such as `run<Triage>()`: name both, `run<Triage, Session>()`, or none.
 
-Four rules keep the value trusted:
+Five rules keep the value trusted:
 
 - **Build it for each request.** Take `app` from the request's authenticated session. A value built once at module level, or held in a shared variable, hands one user's identity to every request. The SDK itself shares nothing between runs.
-- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`. A `continueRun()` call that leaves `app` out gives its tools `ctx.app === undefined`, so the process that resumes a run passes `app` again, from its own session.
+- **It stays out of everything the SDK stores or sends.** `app` reaches no model request, no event and no saved `Context`. The process that resumes a run passes `app` again, from its own session: `continueRun()` is typed to require it, and where the check does not apply, a call that leaves it out gives its tools `ctx.app === undefined`.
+- **The SDK does not copy it.** Every call of a run, and a nested run you pass it to, gets the same object, so pass an immutable value, such as a frozen object, that no tool can change for the others.
 - **A nested run starts with none.** `nestedRunDepth(ctx)` does not carry it. A tool that starts another agent passes `app: ctx.app` itself, only when the child should act for the same user.
 - **It carries facts, not permission.** The tool or the system behind it still checks that this user may do what the call asks.
 

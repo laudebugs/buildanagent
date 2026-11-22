@@ -71,6 +71,24 @@ test("a run whose tools declare app data must pass it, with the declared type", 
   never(() => run({ ...base, app: { customerId: 7 } }));
   // @ts-expect-error: `app` lacks the declared field.
   never(() => run({ ...base, app: { other: "x" } }));
+  // Tools that declare unrelated app types cannot share a run.
+  const other = defineTool<object, unknown, { tenant: number }>({
+    name: "other",
+    description: "Reads another type.",
+    inputSchema: { type: "object", properties: {} },
+    async execute() {
+      return { content: [] };
+    },
+  });
+  // @ts-expect-error: one run has one app type, and these two are unrelated.
+  never(() => run({ ...base, tools: [lookupTool(), other], app: { customerId: "cust-1" } }));
+  // `continueRun()` has the same rule.
+  const context = { system: SYSTEM, messages: [] };
+  never(() => continueRun(context, { model, tools: [lookupTool()], app: { customerId: "cust-1" } }));
+  // @ts-expect-error: a resume with typed tools must pass `app` too.
+  never(() => continueRun(context, { model, tools: [lookupTool()] }));
+  // With explicit type arguments, `A` is not inferred and stays `unknown`, so the check does not apply.
+  never(() => run<unknown>({ ...base }));
   // A run whose tools declare none takes no app data, and may still pass some.
   never(() => run({ model, system: SYSTEM, input: "Hi.", ...determinism() }));
   never(() => run({ model, system: SYSTEM, input: "Hi.", app: { anything: true }, ...determinism() }));
