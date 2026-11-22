@@ -1,5 +1,6 @@
-// Compares the flow of each live transcript (verify/<sdk>/results/live/<example>.json) with its mock transcript
-// (results/transcripts/<example>.json), for the examples in apps/manual/src/data/live-examples.json. A flow is three
+// Compares the flow of each live transcript (<harness>/results/live/<provider>/<example>.json) with its mock transcript
+// (results/transcripts/<example>.json), for the examples in apps/manual/src/data/live-examples.json. A harness is a
+// verify/<sdk> directory or one of our packages, such as packages/sdk. A flow is three
 // things: the sequence of tool calls, each by name and argument keys; the stop reason, the finish of the last answer;
 // and the result of each check(). Text, argument values, ids and timing are ignored, because a real model words its
 // answers differently on every run.
@@ -74,8 +75,8 @@ export function compareFlows(mock, live) {
 /** Compares every listed example; an example without a live transcript counts as one difference. */
 export function compareAll(config, { root = REPO_ROOT, liveDir } = {}) {
   return config.examples.map((example) => {
-    const { harness, id, mock, live } = exampleOf(example.file);
-    const liveFile = liveDir === undefined ? join(root, live) : join(liveDir, harness, `${id}.json`);
+    const { harness, id, mock, live } = exampleOf(example.file, example.provider);
+    const liveFile = liveDir === undefined ? join(root, live) : join(liveDir, harness, example.provider, `${id}.json`);
     const mockFile = join(root, mock);
     const base = { file: example.file, provider: example.provider, model: example.model };
     if (!existsSync(mockFile)) return { ...base, differences: [`No mock transcript at \`${mock}\`.`] };

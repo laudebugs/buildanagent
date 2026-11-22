@@ -1,5 +1,6 @@
-// A stand-in for the Anthropic Messages API and the OpenAI Responses API on the loopback interface, for the live run's
-// tests (live-run.test.mjs). It answers each request with the next turn of a script, in the provider's own JSON or
+// A stand-in for the Anthropic Messages API and OpenAI's Responses and Chat Completions APIs on the loopback interface,
+// for the live run's tests (live-run.test.mjs). Our gateway's OpenAI adapter speaks Chat Completions; the verify
+// harnesses speak Responses. It answers each request with the next turn of a script, in the provider's own JSON or
 // server-sent events, and records what it received, so a test can check that the key arrived in the right header.
 // Its answers carry the headers a real provider adds about the account and the request, so a test can check that
 // none of them reaches a written file or a log. It never forwards a request anywhere.
@@ -179,21 +180,74 @@ function openaiAnswer(turn, body, n, tokens) {
   return { type: "text/event-stream", text: sse(events) };
 }
 
+function chatAnswer(turn, body, n, tokens) {
+  const chunk = (delta, finish = null) => ({
+    id: `chatcmpl_stub_${n}`,
+    object: "chat.completion.chunk",
+    created: 1_763_510_400,
+    model: body.model,
+    choices: [{ index: 0, delta, finish_reason: finish }],
+  });
+  const usage = {
+    prompt_tokens: tokens.input,
+    completion_tokens: tokens.output,
+    total_tokens: tokens.input + tokens.output,
+    prompt_tokens_details: { cached_tokens: 0 },
+  };
+  const chunks = [chunk({ role: "assistant", content: "" })];
+  if (typeof turn === "string") {
+    // Two deltas, as a real stream sends many.
+    const cut = Math.ceil(turn.length / 2);
+    for (const content of [turn.slice(0, cut), turn.slice(cut)]) chunks.push(chunk({ content }));
+  } else {
+    turn.tools.forEach((tool, index) => {
+      const call = { index, id: `call_stub_${n}_${index}`, type: "function" };
+      chunks.push(chunk({ tool_calls: [{ ...call, function: { name: tool.name, arguments: "" } }] }));
+      chunks.push(chunk({ tool_calls: [{ index, function: { arguments: JSON.stringify(tool.input) } }] }));
+    });
+  }
+  chunks.push(chunk({}, typeof turn === "string" ? "stop" : "tool_calls"));
+  if (body.stream_options?.include_usage) chunks.push({ ...chunk({}), choices: [], usage });
+  if (!body.stream) {
+    const content = typeof turn === "string" ? turn : null;
+    const tool_calls =
+      typeof turn === "string"
+        ? undefined
+        : turn.tools.map((tool, i) => ({
+            id: `call_stub_${n}_${i}`,
+            type: "function",
+            function: { name: tool.name, arguments: JSON.stringify(tool.input) },
+          }));
+    const message = { role: "assistant", content, ...(tool_calls ? { tool_calls } : {}) };
+    const finish_reason = typeof turn === "string" ? "stop" : "tool_calls";
+    const completion = { id: `chatcmpl_stub_${n}`, object: "chat.completion", model: body.model, usage };
+    return {
+      type: "application/json",
+      text: JSON.stringify({ ...completion, choices: [{ index: 0, message, finish_reason }] }),
+    };
+  }
+  const text = `${chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join("")}data: [DONE]\n\n`;
+  return { type: "text/event-stream", text };
+}
+
+const PATHS = { "/v1/messages": "anthropic", "/v1/responses": "openai", "/v1/chat/completions": "openai-chat" };
+const ANSWERS = { anthropic: anthropicAnswer, openai: openaiAnswer, "openai-chat": chatAnswer };
+
 /**
- * Starts the stub. `script(provider, body, n)` returns the n-th turn (from 0) for a provider's request: text, or
- * `{ tools: [{ name, input }] }`. `usage` sets the token counts every answer reports. `fail(provider, body)`, when
+ * Starts the stub. `script(api, body, n)` returns the n-th turn (from 0) for a request to one API, `anthropic`,
+ * `openai` (Responses) or `openai-chat` (Chat Completions): text, or `{ tools: [{ name, input }] }`. `usage` sets the token counts every answer reports. `fail(provider, body)`, when
  * it returns an object, makes the stub answer with that error body and status 401 instead. Resolves with its base
  * URL, the requests it received and `close()`.
  */
 export async function startStub(script, { usage = { input: 120, output: 30 }, fail } = {}) {
   const requests = [];
-  const counts = { anthropic: 0, openai: 0 };
+  const counts = { anthropic: 0, openai: 0, "openai-chat": 0 };
   const server = createServer((req, res) => {
     let raw = "";
     req.on("data", (chunk) => (raw += chunk));
     req.on("end", () => {
       const path = new URL(req.url, "http://stub").pathname;
-      const provider = path === "/v1/messages" ? "anthropic" : path === "/v1/responses" ? "openai" : null;
+      const provider = PATHS[path] ?? null;
       const body = raw ? JSON.parse(raw) : {};
       requests.push({ provider, url: req.url, headers: req.headers, body });
       if (provider === null) {
@@ -209,8 +263,7 @@ export async function startStub(script, { usage = { input: 120, output: 30 }, fa
       }
       const n = counts[provider]++;
       const turn = script(provider, body, n);
-      const answer =
-        provider === "anthropic" ? anthropicAnswer(turn, body, n, usage) : openaiAnswer(turn, body, n, usage);
+      const answer = ANSWERS[provider](turn, body, n, usage);
       res.writeHead(200, {
         "content-type": answer.type,
         "request-id": STUB_IDS.requestId,

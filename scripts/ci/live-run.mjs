@@ -99,7 +99,10 @@ export function dateAfter(report, date, current, config) {
 
 /** The problems with one changed file of the results commit; `read(path)` returns its new contents. */
 export function changeProblems(entry, read, config, date) {
-  const allowed = new Set(config.examples.map((example) => exampleOf(example.file).live));
+  // Each listed entry's live transcript, with the provider whose folder holds it.
+  const allowed = new Map(
+    config.examples.map((example) => [exampleOf(example.file, example.provider).live, example.provider]),
+  );
   const { status, path } = entry;
   if (path === DATE_FILE) {
     if (status !== "M") return [`${path} may only be modified`];
@@ -123,6 +126,8 @@ export function changeProblems(entry, read, config, date) {
   problems.push(...transcriptProblems(transcript).map((problem) => `${path}: ${problem}`));
   if (typeof transcript.live?.provider !== "string" || typeof transcript.live?.model !== "string") {
     problems.push(`${path} does not name the live run's provider and model`);
+  } else if (transcript.live.provider !== allowed.get(path)) {
+    problems.push(`${path} names ${transcript.live.provider}, but it sits in ${allowed.get(path)}'s folder`);
   }
   return problems;
 }

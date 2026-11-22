@@ -40,8 +40,12 @@ export const MOCK_PACKAGES = {
 /** Where a harness keeps the transcript of one example. */
 export const transcriptPath = (harnessDir, example) => join(harnessDir, "results", "transcripts", `${example}.json`);
 
-/** Where a harness keeps the transcript of one example's live run (scripts/live/run.mjs). */
-export const liveTranscriptPath = (harnessDir, example) => join(harnessDir, "results", "live", `${example}.json`);
+/**
+ * Where a harness keeps the transcript of one example's live run on one provider (scripts/live/run.mjs). Each provider
+ * has its own folder, because the live list may run one example on both.
+ */
+export const liveTranscriptPath = (harnessDir, example, provider) =>
+  join(harnessDir, "results", "live", provider, `${example}.json`);
 
 const toPosix = (path) => path.split(sep).join("/");
 const harnessOf = (harnessDir) => toPosix(relative(REPO_ROOT, harnessDir));
@@ -235,14 +239,15 @@ export const serialise = (transcript) => `${JSON.stringify(transcript, null, 2)}
  * file is deleted and the problem printed, so the results-drift check reports it instead of passing on an old run.
  *
  * `live`, `{ provider, model, secrets }`, marks the transcript of a live run (scripts/live/run.mjs), which goes to
- * `results/live/` and names the provider and model. A real model chose every tool-call id in it, so none is kept as
+ * `results/live/<provider>/` and names the provider and model. A real model chose every tool-call id in it, so none is kept as
  * written. A live transcript that holds one of `secrets` or the shape of a key, an account id or a request id
  * (scripts/live/redact.ts) is not written at all, and the problem names only the shape it matched.
  */
 export function writeTranscript({ harnessDir, exampleFile, rawFile, cwd, home, outDir, live, mockEvents }) {
   const example = basename(exampleFile, extname(exampleFile));
   const defaultPath = live === undefined ? transcriptPath : liveTranscriptPath;
-  const file = outDir === undefined ? defaultPath(harnessDir, example) : join(outDir, `${example}.json`);
+  const file =
+    outDir === undefined ? defaultPath(harnessDir, example, live?.provider) : join(outDir, `${example}.json`);
   const raw = existsSync(rawFile) ? (JSON.parse(readFileSync(rawFile, "utf8")).events ?? []) : [];
   const recorded = mergeEvents(mockEvents ?? [], raw).map(({ at: _at, ...event }) => event);
   const events = live === undefined ? recorded : recorded.map(({ scripted: _scripted, ...event }) => event);

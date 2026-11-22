@@ -1,12 +1,14 @@
 // Our SDK's side of the transcript recorder (scripts/transcripts/). When scripts/transcripts/book-examples.ts preloads
 // the recorder, this file attaches it to `ScriptedModel`, so each request and answer of every scripted model joins the
-// example's transcript; otherwise it does nothing. The recorder only reads the request and the stream's events, so the
-// model answers as it would without it.
+// example's transcript; otherwise it does nothing. A live run (live.mjs) records the real adapter the same way, through
+// recordedLiveAdapter(). The recorder only reads the request and the stream's events, so the model answers as it would
+// without it.
 import type {
   AssistantMessage,
   ContentBlock,
   Message as GatewayMessage,
   Model,
+  ModelAdapter,
   ModelContext,
   ModelEvent,
 } from "@buildanagent/gateway";
@@ -126,24 +128,45 @@ function usageOf(message: AssistantMessage, script: AssistantScript | StreamScri
 
 const nameOf = modelNames();
 
+/** How one adapter's answers are recorded: their usage, their model id, and whose tool-call ids they hold. */
+interface AnswerRecord {
+  usage(message: AssistantMessage): Usage | undefined;
+  /** The model id to record, or undefined for none. */
+  modelId(message: AssistantMessage): string | undefined;
+  /** True when a script chose the answer's tool-call ids, so the writer keeps them as written. */
+  scriptedIds: boolean;
+}
+
 /** Records each answer once its stream ends, from the terminal event's message. */
-async function* recorded(model: object, call: number, events: AsyncIterable<ModelEvent>): AsyncGenerator<ModelEvent> {
+async function* recorded(
+  owner: object,
+  events: AsyncIterable<ModelEvent>,
+  answer: AnswerRecord,
+): AsyncGenerator<ModelEvent> {
   for await (const event of events) {
     if (event.type === "done" || event.type === "error") {
       const message: Message = { role: "assistant", parts: event.message.content.map(blockPart) };
-      const { id } = event.message.model;
-      // The scripted model answers with exactly what its script holds, ids and usage included.
       record({
         kind: "response",
-        model: nameOf(model),
+        model: nameOf(owner),
         message,
         finish: event.message.stopReason,
-        ...answerFacts(usageOf(event.message, scripts.get(model)?.[call]), id === SCRIPTED_MODEL_ID ? undefined : id),
-        scripted: toolCallIds(message),
+        ...answerFacts(answer.usage(event.message), answer.modelId(event.message)),
+        ...(answer.scriptedIds ? { scripted: toolCallIds(message) } : {}),
       });
     }
     yield event;
   }
+}
+
+/** Records one call's request, before its answer streams. */
+function recordRequest(owner: object, context: ModelContext): void {
+  record({
+    kind: "request",
+    model: nameOf(owner),
+    messages: messagesOf(context),
+    tools: context.tools.map((tool) => tool.name),
+  });
 }
 
 /** Wraps `ScriptedModel.prototype.stream` so that each call records its request, then its answer. */
@@ -151,18 +174,53 @@ function attach(): void {
   const proto = ScriptedModel.prototype;
   const stream = proto.stream;
   proto.stream = function (this: ScriptedModel, ref, context, options) {
-    record({
-      kind: "request",
-      model: nameOf(this),
-      messages: messagesOf(context),
-      tools: context.tools.map((tool) => tool.name),
+    recordRequest(this, context);
+    // The call's number among this model's calls picks its script: `calls` holds every earlier request. A function
+    // step's script fills its slot only once it runs, so the slot is read when the answer ends.
+    const call = this.calls.length;
+    // The scripted model answers with exactly what its script holds, ids and usage included.
+    return recorded(this, stream.call(this, ref, context, options), {
+      usage: (message) => usageOf(message, scripts.get(this)?.[call]),
+      modelId: ({ model }) => (model.id === SCRIPTED_MODEL_ID ? undefined : model.id),
+      scriptedIds: true,
     });
-    // The call's number among this model's calls picks its script: `calls` holds every earlier request.
-    return recorded(this, this.calls.length, stream.call(this, ref, context, options));
   };
 }
 
 if (recording) attach();
+
+/** The usage a real provider reported, in every class, or none when it reported none. */
+function liveUsage({ usage }: AssistantMessage): Usage | undefined {
+  if (usage.unreported) return undefined;
+  return reportedUsage({
+    uncachedInput: usage.uncachedInput,
+    cacheRead: usage.cacheRead,
+    cacheWrite: usage.cacheWrite["5m"] + usage.cacheWrite["1h"],
+    output: usage.output,
+    reasoning: usage.reasoning,
+  });
+}
+
+/**
+ * The live run's adapter (live.mjs), recording each call as a scripted one is recorded: the request, then the answer
+ * with the usage the provider reported. A real model chose every tool-call id, so the writer keeps none as written.
+ * Without the recorder the adapter comes back unchanged.
+ */
+export function recordedLiveAdapter(adapter: ModelAdapter): ModelAdapter {
+  if (!recording) return adapter;
+  const owner = {};
+  return {
+    ...adapter,
+    stream: (ref, context, options) => {
+      recordRequest(owner, context);
+      return recorded(owner, adapter.stream(ref, context, options), {
+        usage: liveUsage,
+        modelId: () => undefined,
+        scriptedIds: false,
+      });
+    },
+  };
+}
 
 /**
  * The model as a run receives it, lending each run the example line that started it. `run()` is a plain function
