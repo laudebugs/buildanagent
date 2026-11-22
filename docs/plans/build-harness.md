@@ -740,7 +740,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N26](../todos/ready/N26-protocol-package.md) | Protocol package: the typed union, framing and the generated JSON Schema | N2, B11, B15 | M |
+| [N26](../todos/done/N26-protocol-package.md) | Protocol package: the typed union, framing and the generated JSON Schema | N2, B11, B15 | M |
 | [N27](../todos/ready/N27-dispatcher-core.md) | Dispatcher and in-process transport: `initialize`, turns, events, `turn/settled` | N26, N7, B16 | M |
 | [N28](../todos/ready/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/ready/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
