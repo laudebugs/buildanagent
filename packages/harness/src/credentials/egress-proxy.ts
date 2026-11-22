@@ -61,6 +61,14 @@ export interface EgressProxyOptions {
   readonly unsafeAllowAddresses?: readonly string[];
   /** Ends a tunnel, a forwarded request or a push check that is idle this long. Defaults to 120000. */
   readonly idleTimeoutMs?: number;
+  /**
+   * The longest a push's command list may take to arrive, from the start of its body, however often bytes come. The
+   * clock starts once and is never reset, so a client that sends a byte just inside the idle timeout is still cut off;
+   * a push that takes longer is refused with `git_timeout`. Only the command list is timed, not the pack after it. A
+   * whole number of milliseconds from 1 to 2,147,483,647; anything else throws `invalid_egress_options` when the proxy
+   * starts. Defaults to 60000.
+   */
+  readonly pushCheckTimeoutMs?: number;
 }
 
 /** A running egress proxy. */
@@ -125,6 +133,9 @@ const HOP_BY_HOP = new Set([
   "host",
 ]);
 const DEFAULT_IDLE_MS = 120_000;
+const DEFAULT_PUSH_CHECK_MS = 60_000;
+// The longest delay a timer takes; past it, `setTimeout` fires at once.
+const MAX_TIMER_MS = 2_147_483_647;
 // What Node refuses in a header value: anything but tab, printable ASCII and the Latin-1 range. A secret with a line break
 // or another control character would split or break the request, so it is refused before it is sent.
 const INVALID_HEADER_VALUE = /[^\t\x20-\x7e\x80-\xff]/;
@@ -157,6 +168,16 @@ function gitCredentialRefusal(presented: string | string[] | undefined, sentinel
   return typeof presented === "string" && basicCarries(presented, sentinel) ? undefined : refusal(403, "bad_sentinel");
 }
 
+/** Checks `pushCheckTimeoutMs` and returns the value to use. The message never quotes the value. */
+function pushCheckTimeout(ms: unknown): number {
+  if (ms === undefined) return DEFAULT_PUSH_CHECK_MS;
+  if (typeof ms === "number" && Number.isInteger(ms) && ms > 0 && ms <= MAX_TIMER_MS) return ms;
+  throw new HarnessError(
+    "invalid_egress_options",
+    `pushCheckTimeoutMs must be a whole number of milliseconds from 1 to ${MAX_TIMER_MS}`,
+  );
+}
+
 class EgressGate {
   private readonly modules: Modules;
   private readonly allow: readonly AllowEntry[];
@@ -166,11 +187,13 @@ class EgressGate {
   private readonly unsafe: ReadonlySet<string>;
   private readonly sockets = new Set<import("node:net").Socket>();
   private readonly requests = new Set<import("node:http").ClientRequest>();
+  private readonly pushCheckMs: number;
   private origin = "";
 
   constructor(modules: Modules, options: EgressProxyOptions) {
     this.modules = modules;
     this.options = options;
+    this.pushCheckMs = pushCheckTimeout(options.pushCheckTimeoutMs);
     this.allow = parseAllow(options.allow);
     this.routes = new Map(parseRoutes(options.routes ?? [], this.allow).map((route) => [route.route, route]));
     this.unsafe = new Set(options.unsafeAllowAddresses ?? []);
@@ -460,7 +483,8 @@ class EgressGate {
   /**
    * Reads a push's command list and checks it, then hands back a body that starts with what was read. `PushReader`
    * reads each chunk once, so the check is linear in the bytes however small the chunks. The check gives up once the
-   * body is idle for the idle timeout, which each chunk resets.
+   * body is idle for the idle timeout, which each chunk resets, or once `pushCheckTimeoutMs` has passed since it
+   * started, which nothing resets.
    */
   private checkPush(
     body: import("node:stream").Readable | Uint8Array | undefined,
@@ -477,8 +501,10 @@ class EgressGate {
       const idleMs = this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS;
       const timedOut = () => settle({ refused: "git_timeout" });
       let idle = setTimeout(timedOut, idleMs);
+      const deadline = setTimeout(timedOut, this.pushCheckMs);
       const settle = (outcome: { refused: string } | { body: import("node:stream").Readable }) => {
         clearTimeout(idle);
+        clearTimeout(deadline);
         body.off("data", onData);
         body.off("end", onEnd);
         body.off("error", onError);
@@ -508,7 +534,7 @@ class EgressGate {
       body.on("data", onData);
       body.once("end", onEnd);
       body.once("error", onError);
-      // A client that goes away before its command list ends would otherwise hold the check until the idle timeout.
+      // A client that goes away before its command list ends would otherwise hold the check until a timeout.
       body.once("close", onError);
     });
   }

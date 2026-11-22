@@ -345,7 +345,7 @@ test("an in-process fetch takes the same route, with the same push check", async
 });
 
 /** A proxy with its own timeouts, in front of the same fake GitHub. */
-function startTimedProxy(timeouts: { idleTimeoutMs?: number }): Promise<EgressProxy> {
+function startTimedProxy(timeouts: { idleTimeoutMs?: number; pushCheckTimeoutMs?: number }): Promise<EgressProxy> {
   return startEgressProxy({
     ...compileEgressPolicy(
       {
@@ -432,6 +432,39 @@ test("a push body sent a few bytes at a time is read whole and quickly, and one 
     await slow.close();
   }
 }, 30_000);
+
+test("a push check has a total deadline that a trickle of bytes can't extend, and a normal push is not cut off", async () => {
+  fresh();
+  const timed = await startTimedProxy({ idleTimeoutMs: 400, pushCheckTimeoutMs: 900 });
+  try {
+    const body = `${command(`refs/heads/agent/${"x".repeat(200)}`)}0000PACK`;
+    assert.equal(await postPush(timed, [body.slice(0, 50), body.slice(50)], 250), 200, "a normal push");
+    const started = Date.now();
+    const trickle = (body.match(/[\s\S]{1,4}/g) ?? []).slice(0, 20);
+    assert.equal(await postPush(timed, trickle, 250), 403, "four bytes every 250 ms, inside the idle timeout");
+    assert.equal(logs.at(-1)?.reason, "git_timeout");
+    assert.ok(Date.now() - started < 3000, "cut off at the deadline, not after the whole trickle");
+    assert.equal(seen.length, 1, "only the normal push reached the fake GitHub");
+  } finally {
+    await timed.close();
+  }
+}, 30_000);
+
+test("a pushCheckTimeoutMs that isn't a whole number of milliseconds a timer can take is refused at start", async () => {
+  for (const bad of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 31, "60000"]) {
+    const error = await startTimedProxy({ pushCheckTimeoutMs: bad as number }).then(
+      async (started) => {
+        await started.close();
+        return {} as { code?: string; message?: string };
+      },
+      (failure: { code?: string; message?: string }) => failure,
+    );
+    assert.equal(error.code, "invalid_egress_options", String(bad));
+    assert.match(error.message ?? "", /pushCheckTimeoutMs/);
+  }
+  const fine = await startTimedProxy({ pushCheckTimeoutMs: 2 ** 31 - 1 });
+  await fine.close();
+});
 
 test("a whole command list in one piece is held to the size limit, by the proxy and by an in-process fetch", async () => {
   fresh();
