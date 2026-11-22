@@ -8,6 +8,7 @@ import { check, scripted } from "./lib/check.ts";
 type Msg = { jsonrpc: "2.0"; id?: number | string; method?: string; params?: any };
 const received: string[] = [];
 
+// #region in-process-server
 class InProcessServer implements MCPTransport {
   onmessage?: MCPTransport["onmessage"];
   async start() {}
@@ -42,18 +43,20 @@ class InProcessServer implements MCPTransport {
       );
   }
 }
+// #endregion
 
-const client = await createMCPClient({ transport: new InProcessServer() });
+// #region mcp-client
+const client = await createMCPClient({ transport: new InProcessServer() }); // book:note connect
 try {
-  const tools = await client.tools();
+  const tools = await client.tools(); // book:note convert
   check(Object.keys(tools).join() === "lookup_order", "client.tools() exposes the server's tools by name");
   const { model, requests } = scripted([
     { tools: [{ name: "lookup_order", input: { orderId: "A-1" } }] },
     "Your order shipped.",
   ]);
-  const result = await generateText({ model, tools, stopWhen: isStepCount(3), prompt: "Where is order A-1?" });
+  const result = await generateText({ model, tools, stopWhen: isStepCount(3), prompt: "Where is order A-1?" }); // book:note loop
   check(
-    received.includes("initialize") && received.includes("tools/call"),
+    received.includes("initialize") && received.includes("tools/call"), // book:note handshake
     "the client initialises, then sends tools/call",
   );
   check(JSON.stringify(requests[1].prompt).includes("order A-1: shipped"), "the MCP result goes back to the model");
@@ -61,3 +64,4 @@ try {
 } finally {
   await client.close();
 }
+// #endregion

@@ -8,12 +8,13 @@ import { check, MODEL, mockProvider, mockRequests } from "./lib/harness.ts";
 const server = `${process.env.FIXTURES}/mcp-orders.mjs`;
 const asked: PermissionRequest[] = [];
 const client = new CopilotClient({ useLoggedInUser: false });
+// #region mcp-config
 const session = await client.createSession({
   model: MODEL,
   provider: mockProvider(),
-  mcpServers: { orders: { type: "local", command: process.execPath, args: [server], tools: ["*"] } },
+  mcpServers: { orders: { type: "local", command: process.execPath, args: [server], tools: ["*"] } }, // book:note server
   onPermissionRequest: (request) => {
-    asked.push(request);
+    asked.push(request); // book:note permission
     return { kind: "approve-once" };
   },
 });
@@ -24,13 +25,14 @@ const reply = await session.sendAndWait({
 
 const offered = mockRequests()[0].tools ?? [];
 check(
-  offered.includes("orders-order_status"),
+  offered.includes("orders-order_status"), // book:note name
   `the MCP tool is offered as orders-order_status (${offered.filter((t) => t.startsWith("orders"))})`,
 );
 check(
-  asked.length === 1 && asked[0].kind === "mcp",
+  asked.length === 1 && asked[0].kind === "mcp", // book:note kind
   `onPermissionRequest was asked with kind mcp (got ${asked.map((a) => a.kind)})`,
 );
+// #endregion
 check(
   reply?.data.content.includes("Order A-100 is shipped (from mcp-orders)") === true,
   "the MCP server's result reached the model",

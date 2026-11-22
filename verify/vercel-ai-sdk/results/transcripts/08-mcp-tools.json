@@ -8,13 +8,13 @@
   "events": [
     {
       "kind": "check",
-      "line": 49,
+      "line": 52,
       "message": "client.tools() exposes the server's tools by name",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -34,7 +34,7 @@
     },
     {
       "kind": "response",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -53,7 +53,7 @@
     },
     {
       "kind": "request",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "repeated": 2,
       "messages": [
@@ -80,7 +80,7 @@
     },
     {
       "kind": "response",
-      "line": 54,
+      "line": 57,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -95,19 +95,19 @@
     },
     {
       "kind": "check",
-      "line": 55,
+      "line": 58,
       "message": "the client initialises, then sends tools/call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 59,
+      "line": 62,
       "message": "the MCP result goes back to the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 60,
+      "line": 63,
       "message": "the loop completes with the model's answer",
       "pass": true
     }
