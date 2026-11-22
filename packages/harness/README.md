@@ -484,6 +484,35 @@ The loader hashes and checks every folder before it imports any, so a refusal ru
 
 Two limits remain. The pin covers the files inside each folder and nothing an extension imports from outside it, such as a relative path that leaves the folder or a package from the project's `node_modules`. And the lock file sits inside the project it pins, so anyone who can edit the project can pin their own changes: the pin catches a change nobody meant, not an attacker who holds the project. Pin a project only after you have read its extensions.
 
+## A skill is a file the model reads, and only its name, description and path are in the prompt
+
+A skill is a folder under `.agents/skills/` with a `SKILL.md` whose frontmatter has a `name` and a `description`. `discoverSkills(cwd)` from `@buildanagent/harness/extensions/node` finds them in `cwd` and in every folder above it up to the repository root, which is the first folder with a `.git`. A `cwd` in no repository searches only itself. It returns the `skills`, the `records` for `extensionRecords` (tier `skill`, the hash of each `SKILL.md`) and the `notices`. The nearer folder wins when two skills share a name, a file that is not a skill is skipped with a notice, and a `SKILL.md` that is a link leaving the project is skipped too.
+
+```ts
+const { skills, records } = await discoverSkills(cwd);
+const harness = createHarness({ registry, model, system: withSkills("You help.", skills), skills, extensionRecords: records });
+```
+
+`withSkills()` adds a `## Skills` section that lists each skill's name, description and path and never its body. The model loads a skill by reading its `SKILL.md` with the `read` tool, and the turn then writes a `skill_loaded` entry with the skill's name and path. A harness records one entry for each successful `read` whose `path` or `file_path` input names a listed skill's own `SKILL.md`, once per read, because a compaction can drop the body and a second read loads it again. A read of another file in the skill's folder, or one that failed, writes none. Pass `skills` to `createHarness()` for this: it is what the turn matches reads against, with relative paths taken from `env.cwd`.
+
+The frontmatter checks are Pi's. A name is lowercase letters, digits and single hyphens, at most 64 characters, and a description is at most 1,024; a file past either limit, or with no description, is not listed. A name that differs from its folder loads with a notice, because [this repository's skills README](../../.agents/skills/README.md) asks for a match. The Agent Skills specification was unreachable when this was written, so these rules are Pi's and this repository's, not the specification's. The frontmatter reader handles a small subset of YAML: `key: value` lines, quoted or plain, with a value that continues on indented lines or is a `>` or `|` block.
+
+Skills are inside the project-trust gate, as the guide says: pass `{ trust, headless }` as the second argument and an untrusted or headless project lists none, with a notice. Without `trust` every skill found is listed, so a host that has a trust store should pass it. As with extensions, trust decides what loads and nothing more: a loaded skill is text the model may follow, and no sandbox comes with it.
+
+## `AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted
+
+`contextFiles(cwd)` reads `AGENTS.md` and then `CLAUDE.md` in each folder from the repository root down to `cwd`, so the file nearest the work comes last. A `CLAUDE.md` that is a link to the `AGENTS.md` beside it is read once. Context files load whether or not the project is trusted, because they are text and not code, and `contextFiles()` takes no trust store. Each file is cut at 64 KiB, which is our limit, and a link that leaves the project is skipped with a notice, so a cloned repository cannot point `AGENTS.md` at `~/.ssh/id_rsa` and send it to the model provider.
+
+```ts
+const { files } = await contextFiles(cwd);
+const context = projectContext({ files, plan: planFileSource(cwd) });
+const harness = createHarness({ registry, model, system: withPlanConvention(system), interceptors: context.interceptors });
+```
+
+`projectContext()` returns an extension whose `transformContext` hook puts the files at the start of the first user message of every request. Each file sits in an `<untrusted-project-context source="…">` section under a note that says the text is the project's and not the user's, and a file's own text can't close the label. The text is rebuilt from the files for each request and is not written to the log, so a compaction that replaces the early messages with a summary can't remove it: the first request after a compaction holds the `AGENTS.md` text again, beside the summary. The cost is that the log doesn't hold the context files' text, so a replay needs the same files.
+
+A long task keeps its state in two files under the project's `.agents/` folder: `plan.md` (Markdown: the goal, the steps, which are done) and `progress.json` (JSON: what is done and what is next). `withPlanConvention()` adds a paragraph to the system prompt that tells the model to keep and update them. `planFileSource(root)` reads both, and `projectContext()` reads them at the first model call of every run, which is what a new turn or a resume is, so the first request of a resumed session holds what the last process left. The same text is sent for the rest of the run, so the start of the request doesn't move while the model works and the provider's prompt cache holds; the model's own edits show in the next run. A file that doesn't exist is left out, and a `progress.json` that isn't valid JSON, which a crash can leave, is shown as written with a notice. The harness only reads these files; the model writes them with its ordinary tools.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.

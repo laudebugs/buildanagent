@@ -570,6 +570,8 @@ The CLI package is still an empty scaffold, so the CLI's `keys rotate` and `keys
 
 ### 3.5 Extension, protocol, telemetry, eval and ablation APIs
 
+**Revision (N23, 2026-11-22): skills, context files and plan files.** `discoverSkills(cwd, { trust?, headless?, loadInHeadless? })` and `contextFiles(cwd)` are in `@buildanagent/harness/extensions/node`, and `parseSkill()`, `withSkills()`, `projectContext({ files, plan })` and `withPlanConvention()` in the portable `./extensions`. `HarnessOptions.skills` makes a successful `read` of a listed `SKILL.md` write a `skill_loaded` entry. Context files and the plan files reach the model as the start of the first user message of every request, built by a `transformContext` hook and not stored in the log, not in the system prompt, so a compaction cannot remove them.
+
 **Revision (N22, 2026-11-22): the extension loader.** `loadProjectExtensions(root, { trust, headless, loadInHeadless?, lockFile?, extensionsDir? })` returns `{ extensions, records, notices }`, not the `Extension[]` of the sketch below, and lives in the Node-only `@buildanagent/harness/extensions/node` entry beside `fileTrustStore()`, `hashExtensionDir()` and `pinProjectExtensions()`. The portable `./extensions` entry holds `composeExtensions()`, `registerExtensionTools()`, `recordsOf()` and `memoryTrustStore()`. `composeExtensions()` delegates to the SDK's `composeInterceptors()`. `HarnessOptions.extensionRecords` makes a turn write the `extension_loaded` entries.
 
 ```ts
@@ -768,7 +770,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [N22](../todos/done/N22-in-process-extensions.md) | In-process extensions: composition, project trust and content-hash pins | N11, N12 | M |
-| [N23](../todos/ongoing/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
+| [N23](../todos/done/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
 | [N52](../todos/ready/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
