@@ -397,7 +397,7 @@ declare function processScheduler(): Scheduler; // local default; DO alarms, Eve
 
 ### 3.3 Context policy and tool registry APIs
 
-**Revision (N8, 2026-11-22): the policy is built once and starts per turn.** `createContextPolicy(options)` takes no session, because a harness serves many sessions; `forTurn()` binds it to one session and model and returns the turn's interceptors, its spill lookup and its fill. The write cap counts the log's JSON-escaped bytes and keeps 1 KiB for the entry's fields, so a capped entry fits the 64 KiB entry bound.
+**Revision (N8, 2026-11-22): the policy is built once and starts per turn.** A harness serves many sessions, so `createContextPolicy(options)` takes no session. `forTurn()` binds the policy to one session and model, and returns the turn's interceptors, its spill lookup and its fill. The write cap counts the log's JSON-escaped bytes and keeps 1 KiB for the entry's own fields, so a capped entry fits the 64 KiB entry bound.
 
 ```ts
 // @buildanagent/harness/context (guide §3; HD3, HD9)
