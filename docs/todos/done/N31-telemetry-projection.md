@@ -72,17 +72,6 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 - The meter reports and the caller enforces. Wiring it into the runner's `budgetUsd` is left to the caller, and nothing in this todo stops a turn. A rebuilt meter does not repeat a warning for spend the log already holds.
 - Two error codes are new: `invalid_telemetry_options` and `budget_unknown`.
 
-## Where I stopped (2026-11-22; delete this section when the pull request merges)
-
-Pull request [#363](https://github.com/laudebugs/buildanagent/pull/363) holds the finished build. Done: the implementation, the tests, the README, the plan revisions, the SDK export and its changeset, and the fixes for the first review round's nine findings (commit `6110758`). Left, in this order:
-
-1. Confirm CI is green on the branch's tip. Locally everything passed before the review fixes; the full run after them was still going when I stopped, and `scripts/ci/changeset-gate.mjs` hung locally, so only CI has run it.
-2. Second review round. The first round counted nine findings, so it is two reviews: `/code-review medium 363`, then `/code-review low 363`, each fixed in its own commit.
-3. `/anthropic-skills:writing-review` on the README section, the todo, the plan revisions, the two fact-check rows, the chapter sentence and the pull request description. Record the scores before and after in the pull request, and tick the last item of the definition of done above.
-4. Squash-merge with one line per review, then tell the manager.
-
-Two decisions for the owner or manager to confirm: the cache-token attributes now use the conventions' names instead of the `buildanagent.usage.cache_*` names that ADR 0017 and HD7 chose (both amended in this pull request), and the SDK gained five exports from `@buildanagent/sdk/otel`.
-
 ## Risks and open questions
 
 The pinned conventions are Development-only; a move is a deliberate change (ADR 0017).
