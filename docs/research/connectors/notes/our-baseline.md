@@ -25,7 +25,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - An MCP name collision gets a deterministic hash suffix.
   - `toolSearchTool()` activates deferred tools through `ModelCallPatch.activeTools`.
   - `approvalReuse` defaults to `"both"`.
-  — `docs/todos/ready/N11-tool-registry.md#scope`; `docs/plans/build-harness.md#33-context-policy-and-tool-registry-apis`
+  — `docs/todos/ongoing/N11-tool-registry.md#scope`; `docs/plans/build-harness.md#33-context-policy-and-tool-registry-apis`
 - **N24 (stdio).** In scope:
   - the `server/discover` probe with an `initialize` fallback, recording the era;
   - `mcp__<server>__<tool>` names with exposure `deferred`;
