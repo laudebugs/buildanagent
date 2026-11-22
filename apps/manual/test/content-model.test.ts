@@ -9,6 +9,7 @@ import {
   FIXTURE_OUTLINE,
   fixtureInputs,
   mutatedFixture,
+  prose,
   removeFixture,
   renderLikeAstro,
 } from "./book-fixture.js";
@@ -114,10 +115,10 @@ test("a citation links to the sources page and shows the source's place in the c
   );
 });
 
-test("the first use of each tagged term links to the glossary with its definition in aria-describedby text", () => {
+test("a tagged term links to the glossary with its card, and screen readers get its definition through aria-describedby", () => {
   assert.match(
     first,
-    /An <a href="\/glossary\/#agent-loop" class="term" data-def="The cycle that calls a model and runs its tools until it stops\." aria-describedby="termdef-agent-loop">agent loop<\/a> calls/,
+    /An <span class="glossary-term"><a href="\/glossary\/#agent-loop" class="glossary-term__link" aria-describedby="termdef-agent-loop">agent loop<\/a><span class="glossary-card glossary-term__card" aria-hidden="true" data-pagefind-ignore=""><span class="glossary-card__term">agent loop<\/span><span class="glossary-card__definition">The cycle that calls a model and runs its tools until it stops\.<\/span><\/span><\/span> calls/,
   );
   assert.match(
     first,
@@ -125,19 +126,100 @@ test("the first use of each tagged term links to the glossary with its definitio
   );
 });
 
-test("later uses of a term stay plain", () => {
+test("a term links once in each block: again in a later caption, but not twice in one paragraph", () => {
   assert.match(first, /\. The agent loop then ends/);
-  assert.equal(first.match(/href="\/glossary\/#agent-loop"/g)?.length, 1);
+  assert.match(first, /<figcaption[^>]*>.*?The <span class="glossary-term"><a href="\/glossary\/#agent-loop"/);
+  assert.equal(first.match(/href="\/glossary\/#agent-loop"/g)?.length, 2);
 });
 
 test("an abbreviation links in its exact case only, wrapped in abbr, with its expansion in the card", () => {
-  assert.match(first, /aria-describedby="termdef-mcp"><abbr>MCP<\/abbr><\/a> connects/);
+  assert.match(first, /aria-describedby="termdef-mcp"><abbr>MCP<\/abbr><\/a><span class="glossary-card/);
+  assert.match(
+    first,
+    /<span class="glossary-card__term">MCP<\/span><span class="glossary-card__definition">Model Context Protocol\. An open/,
+  );
   assert.match(first, /<span id="termdef-mcp">MCP: Model Context Protocol\. An open standard/);
   assert.match(first, /Lowercase mcp is not the abbreviation/);
 });
 
+/** Tags the agent loop in the second chapter and adds `BLOCKS` to it. */
+function withBlocks(dir: string): void {
+  edit(dir, "chapters/second.md", (text) => text.replace("glossary: []", "glossary: [agent-loop]"));
+  prose(dir, BLOCKS);
+}
+
+// Every place a term can appear, in one chapter: the term links in each block that is prose, once, and nowhere else.
+const BLOCKS = `
+The agent loop starts here. A second agent loop in the same paragraph stays plain.
+
+A later paragraph names the agent loop again, so it links again.
+
+- A list item names the agent loop.
+- So does the next item: agent loop.
+
+> A quoted agent loop links too.
+
+| Part | Role |
+| --- | --- |
+| agent loop | the agent loop runs the steps |
+
+:::box[The agent loop in a box title]{#loop-box}
+Inside the box, the agent loop links.
+:::
+
+### The agent loop in a heading
+
+A [link about the agent loop](https://example.com/) and \`agent loop\` in code stay plain, and so does a fenced block:
+
+\`\`\`text
+agent loop
+\`\`\`
+
+<div>agent loop in HTML</div>
+`;
+
+test("a term links in every prose block but never in a heading, a box title, a link, code or HTML", async () => {
+  const dir = mutatedFixture(withBlocks);
+  try {
+    const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
+    const links = html.match(/href="\/glossary\/#agent-loop"/g)?.length;
+    // Eight blocks link: two paragraphs, two list items, the quote, both table cells and the box's paragraph.
+    assert.equal(links, 8);
+    assert.match(html, /A second agent loop in the same paragraph stays plain/);
+    assert.match(
+      html,
+      /<td><span class="glossary-term"><a[^>]*>agent loop<\/a>.*?<\/td>\s*<td>the <span class="glossary-term">/,
+    );
+    assert.doesNotMatch(html, /<h\d[^>]*>[^<]*<span class="glossary-term"/);
+    assert.match(html, />The agent loop in a box title</);
+    assert.match(html, />The agent loop in a heading</);
+    assert.match(html, /link about the agent loop<\/a>/);
+    assert.match(html, /<code>agent loop<\/code>/);
+    assert.match(html, /<div>agent loop in HTML<\/div>/);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
+test("a term linked many times keeps one hidden definition, so every aria-describedby names a unique id", async () => {
+  const dir = mutatedFixture(withBlocks);
+  try {
+    const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
+    const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]);
+    assert.deepEqual(
+      ids.filter((id, index) => ids.indexOf(id) !== index),
+      [],
+    );
+    assert.equal(ids.filter((id) => id === "termdef-agent-loop").length, 1);
+    for (const [, target] of html.matchAll(/aria-describedby="([^"]+)"/g)) assert.equal(target, "termdef-agent-loop");
+    assert.doesNotMatch(html, /class="glossary-card[^"]*" id=/);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
 test("a chapter with no tagged terms links none", () => {
-  assert.doesNotMatch(second, /class="term"/);
+  assert.doesNotMatch(second, /glossary-term/);
   assert.doesNotMatch(second, /term-defs/);
 });
 

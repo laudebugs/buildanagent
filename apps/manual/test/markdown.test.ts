@@ -37,7 +37,10 @@ afterAll(() => {
 });
 
 test("the config's pipeline renders a chapter's paragraphs and collects its headings", () => {
-  assert.match(rendered.code, /<p>An <a href="\/glossary\/#agent-loop"[^>]*>agent loop<\/a> calls a model/);
+  assert.match(
+    rendered.code,
+    /<p>An <span class="glossary-term"><a href="\/glossary\/#agent-loop"[^>]*>agent loop<\/a><span class="glossary-card glossary-term__card"[^>]*>.+?<\/span><\/span><\/span> calls a model/,
+  );
   assert.deepEqual(
     rendered.metadata.headings.map(({ depth, slug, text }) => ({ depth, slug, text })),
     [

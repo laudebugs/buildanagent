@@ -1,8 +1,9 @@
 ---
 import GlossaryCard from "./GlossaryCard.astro";
 
-// A term's first use in a chapter: a link to its glossary entry, with its card on hover and focus. The card's text
-// is the link's accessible description, so a screen reader hears the definition without opening anything.
+// A term in running text: a link to its glossary entry, with its card on hover and focus. The card's text is the
+// link's accessible description, so a screen reader hears the definition without opening anything. Chapters get the
+// same markup from src/markdown/remark-terms.ts, which points aria-describedby at one hidden definition instead.
 interface Props {
   readonly term: string;
   readonly slug: string;

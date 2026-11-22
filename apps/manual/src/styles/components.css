@@ -1115,6 +1115,21 @@
   height: 0.5rem;
 }
 
+/* Once scripts/glossary.ts has placed a card, it sits at fixed coordinates inside the viewport, so neither the page's
+   edge nor a scrolling table clips it. Without the script, the card opens above its term as above. */
+.glossary-term[data-placed] .glossary-term__card {
+  position: fixed;
+  top: var(--card-y);
+  bottom: auto;
+  left: var(--card-x);
+}
+
+/* A term near the top of the viewport opens its card below, with the bridge above the card. */
+.glossary-term[data-below] .glossary-term__card::after {
+  top: auto;
+  bottom: 100%;
+}
+
 .glossary-term:hover .glossary-term__card,
 .glossary-term:focus-within .glossary-term__card {
   display: block;
