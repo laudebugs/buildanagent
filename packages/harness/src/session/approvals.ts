@@ -30,7 +30,7 @@ export interface QuorumPolicy {
 
 const isDeny = (resolution: Resolution): boolean => "decision" in resolution && resolution.decision === "deny";
 
-/** The default policy: the latest answer decides, an allow or an answer runs the call and a deny refuses it. */
+/** The default policy: the latest answer decides. Any answer that is not a deny runs the call, and a deny refuses it. */
 export const oneResolution: QuorumPolicy = {
   evaluate(_request, resolutions) {
     const latest = resolutions.at(-1);
@@ -56,7 +56,9 @@ export function quorumOf(needed: number): QuorumPolicy {
     evaluate(_request, resolutions) {
       if (resolutions.length === 0) return "pending";
       if (isDeny(resolutions.at(-1) as Resolution)) return "rejected";
-      const approvers = new Set(resolutions.map((resolution) => resolution.by ?? "(unnamed)"));
+      const approvers = new Set(
+        resolutions.filter((resolution) => !isDeny(resolution)).map((resolution) => resolution.by ?? "(unnamed)"),
+      );
       return approvers.size >= needed ? "met" : "pending";
     },
   };
@@ -223,6 +225,12 @@ export function createApprovals<H = unknown>(harness: Harness<H>, settings: Appr
       return pendingApprovals(await session.path());
     },
     async resolve(session, resolutions, options = {}) {
+      if (options.sticky !== undefined && settings.quorum !== undefined) {
+        throw new HarnessError(
+          "sticky_refused",
+          "a sticky allowance needs the default policy: one approver's click would otherwise skip the quorum on every later call",
+        );
+      }
       const path = await session.path();
       const waiting = pendingApprovals(path);
       checkAnswers(

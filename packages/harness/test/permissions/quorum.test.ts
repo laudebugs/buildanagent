@@ -113,22 +113,30 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     await session.close();
   });
 
-  test("a sticky allowance given while the quorum is not met does not take effect", async () => {
+  test("a deny does not count toward a quorum: a deny then one allow is still short of two approvers", async () => {
     const backend = make();
     const { session, id } = await paused(backend);
     const approvals = createApprovals(reuseSetup([done()]).harness, { quorum: quorumOf(2) });
-    await approvals.resolve(session, [{ requestId: id, decision: "allow", by: "ada" }], { sticky: "session" });
-    const entry = (await entriesOf(backend)).find((item) => item.type === "approval_resolved");
-    assert.ok(entry?.type === "approval_resolved" && entry.sticky === undefined && entry.allowance === undefined);
-    // A second approver, with no sticky option, completes the quorum and the call runs.
     const second = reuseSetup([done()]);
-    await createApprovals(second.harness, { quorum: quorumOf(2) }).resolve(session, [
-      { requestId: id, decision: "allow", by: "grace" },
-    ]);
-    assert.deepEqual(second.runs, ["refund:o1"]);
-    const next = reuseSetup([calls("refund", [{ orderId: "o1" }], 7), done()]);
-    assert.equal((await runTurn(session, next.harness, { input: "again" })).stopReason, "awaiting_approval");
-    assert.deepEqual(next.runs, [], "the first approver's sticky option never took effect");
+    const request = {} as never;
+    const deny = { requestId: id, decision: "deny" as const, by: "ada" };
+    const allow = { requestId: id, decision: "allow" as const, by: "grace" };
+    assert.equal(quorumOf(2).evaluate(request, [deny, allow]), "pending");
+    await approvals.resolve(session, [allow]);
+    assert.deepEqual(second.runs, []);
+    await session.close();
+  });
+
+  test("a sticky answer is refused under a custom quorum policy, before anything is written", async () => {
+    const backend = make();
+    const { session, id } = await paused(backend);
+    const before = (await entriesOf(backend)).length;
+    const approvals = createApprovals(reuseSetup([done()]).harness, { quorum: quorumOf(2) });
+    await assert.rejects(
+      () => approvals.resolve(session, [{ requestId: id, decision: "allow", by: "ada" }], { sticky: "session" }),
+      (error) => isHarnessError(error) && error.code === "sticky_refused",
+    );
+    assert.equal((await entriesOf(backend)).length, before);
     await session.close();
   });
 });

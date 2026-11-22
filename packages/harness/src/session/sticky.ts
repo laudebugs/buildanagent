@@ -2,9 +2,9 @@
  * Sticky allowances and grouped approvals: what a person's `allow` may cover beyond the one call. A sticky allowance
  * covers the same call again for a run or a session, matched by the tool and the call's input hash or, for a shell tool,
  * by a command prefix. It never covers a command run through a shell, an interpreter or a wrapper, which would let any
- * script through, nor anything that holds a secret, nor a tool whose `approvalReuse` says each call needs a person. A
- * prefix covers only a simple command, with no operator that starts a second one. A group is the requests of one step
- * that share a tool and an input, answered once.
+ * script through. It never covers anything that holds a secret, or a tool whose `approvalReuse` says each call needs a
+ * person. A prefix covers only a simple command, with no operator that starts a second one. A group is the requests of
+ * one step that share a tool and an input, answered once.
  */
 
 import type { SessionEntry } from "@buildanagent/protocol";
@@ -113,7 +113,10 @@ const commandOf = (input: unknown): string | undefined =>
 const startsWith = (words: readonly string[], prefix: readonly string[]): boolean =>
   prefix.length <= words.length && prefix.every((word, index) => words[index] === word);
 
-/** The listed prefix `words` begin with or are the start of, or the program that runs other code that `words` start with. */
+/**
+ * Returns the listed interpreter prefix that `words` begin with or are the start of, or the first word's program when it
+ * runs other code. Returns `undefined` otherwise.
+ */
 function runsOtherCode(words: readonly string[]): string | undefined {
   if (words.length === 0) return undefined;
   const first = words[0] as string;

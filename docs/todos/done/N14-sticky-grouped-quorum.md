@@ -70,8 +70,9 @@ Cut approval fatigue without widening trust: allow sticky approvals scoped to a 
 - The refusals are three typed errors, `sticky_refused`, `approval_reuse_refused` and `approver_is_requester`, thrown before any entry is written. The secret check takes `createApprovals(harness, { secrets })`, because the harness has no credential store of its own.
 - `resolve()` evaluates the quorum policy for every waiting request, so `resolve(session, [])` expires an old request. A request the quorum still waits on keeps its answers in the log, and the turn ends `awaiting_approval` again.
 - `resolve()` returns a `TurnResult` as before. Showing grouped requests in one `approval/request` is N28's, and `groupId` is the field it will read.
-- A sticky allowance never covers a command run through a shell, an interpreter, a runner or a wrapper (by any path), nor a command prefix on anything but a simple command, so the nine listed prefixes are only the start of the rule. It stores the policy version it was given under and is ignored once that changes.
+- A sticky allowance never covers a command run through a shell, an interpreter, a runner or a wrapper (by any path), nor a command prefix on anything but a simple command, so the listed prefixes are only the start of the rule. It stores the policy version it was given under and is ignored once that changes.
 - `approval_resolved` also carries `quorum: "pending"` on an answer a quorum still waits on, so the resume's crash detection (N13) skips it, and the policy's own denials are written with `by: "policy"`.
+- A sticky answer under a custom quorum policy is refused, because one approver's click would otherwise skip the quorum on every later call. `quorumOf(n)` counts only allows.
 - Out of scope, with its owner: quorum rules and roles (P3).
 
 ## Risks and open questions
