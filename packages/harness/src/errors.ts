@@ -14,7 +14,8 @@ export type HarnessErrorCode =
   | "invalid_sandbox_options"
   | "invalid_spawn_env"
   | "duplicate_tool"
-  | "invalid_tool_registration";
+  | "invalid_tool_registration"
+  | "invalid_permission_config";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -27,7 +28,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * sandbox option, manifest or command is unusable. `invalid_spawn_env`: `spawnEnv()` was given a name or value that
  * can't be part of a clean environment. `duplicate_tool`: a tool registry already holds a tool or alias by that name
  * (`DuplicateToolError`). `invalid_tool_registration`: a tool registration or a registry option is unusable, such as a
- * name that breaks the canonical rule or an unknown source.
+ * name that breaks the canonical rule or an unknown source. `invalid_permission_config`: an allow rule makes the host
+ * callback unreachable (`PermissionConfigError`).
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";

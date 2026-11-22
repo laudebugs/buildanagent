@@ -124,5 +124,14 @@
     "ms": 499,
     "modelCalls": 0,
     "tail": "ok - the scripted agent answered with nothing\nok - the agent answered\nok - the weak check passes on an empty answer\nok - the strong check fails on an empty answer"
+  },
+  {
+    "id": "15-write-crash-idempotency",
+    "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1094,
+    "modelCalls": 0,
+    "tail": "ok - a declined write reports not_applied\nok - a declined write is not a write\nok - a declined write is not sent again\nok - the child process was killed mid-write \nok - the server had already written once for order 42\nok - the log has the key and no outcome, so the state is unknown\nok - the resume reconciles to applied\nok - the server received exactly one write request for order 42"
   }
 ]

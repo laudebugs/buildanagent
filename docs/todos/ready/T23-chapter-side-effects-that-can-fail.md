@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T32](T32-example-failing-writes-and-idempotency.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T32](../done/T32-example-failing-writes-and-idempotency.md) |
 | Size | M |
 
 ## Goal
@@ -31,7 +31,7 @@ Write the chapter "Side effects that can fail: outcomes, idempotency and plan ap
 
 - `apps/manual/src/content/chapters/side-effects-that-can-fail.md`, with `switchTo: [E1, E2, E3, E4a, E4b]` and `opening: incident` in its front matter
 - Sections: Four failure outcomes after a rollback (`not_applied`, `compensated`, `partial`, `unknown`) plus `applied` on success: the five of SG3; Idempotency keys and persisting before executing; The crash between persist and execute; Sagas and one approval for a whole plan
-- Listings and at least one replay from: `verify/cloudflare-agents/examples/06-tool-approval.ts`, the failing-writes, idempotency and crash example from [T32](T32-example-failing-writes-and-idempotency.md)
+- Listings and at least one replay from: `verify/cloudflare-agents/examples/06-tool-approval.ts`, the failing-writes, idempotency and crash example from [T32](../done/T32-example-failing-writes-and-idempotency.md)
 - Figures: a flat figure of the four failure outcomes plus `applied`, and which may be retried; a flat analogy illustration of the ledger written before the courier leaves
 - Exercise: Kill a run between persisting an effect and its result, and say which outcome the resume reports.
 - `apps/manual/fact-checks/side-effects-that-can-fail.md`, the chapter's claims log
