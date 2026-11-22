@@ -100,7 +100,8 @@ export interface McpRemoteSettings {
    * host's own network. Every other loopback, private, carrier-grade NAT, link-local (with the cloud metadata address
    * `169.254.169.254`), unspecified, multicast or reserved address is refused, and so is an IPv6 address that wraps one.
    * A loopback address is never allowed here; see `unsafeAllowLoopback`. A `/0` range is refused, and so is an IPv6
-   * range wider than `/96` that holds the IPv4-mapped addresses, such as `::ffff:10.0.0.0/8`. Default none.
+   * range that holds IPv4 in a wrapped form, such as `::ffff:0:0/96` or `::ffff:10.0.0.0/8`, and a range in brackets.
+   * Default none.
    */
   readonly allowAddresses?: readonly string[];
   /**

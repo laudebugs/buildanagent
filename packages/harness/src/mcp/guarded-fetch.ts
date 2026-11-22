@@ -91,13 +91,17 @@ class EventFilter {
   // A chunk that ended in CR may have its LF at the start of the next one, which is part of the same line end.
   #crEnded = false;
   #started = false;
+  #head = new Uint8Array(0);
 
   constructor(max: number) {
     this.#max = max;
   }
 
   /** The bytes to pass on for this chunk, or an error message when a bound is broken. */
-  push(chunk: Uint8Array): Uint8Array | string {
+  push(input: Uint8Array): Uint8Array | string {
+    // An empty chunk changes nothing, so it can't end a CRLF that spans two chunks.
+    const chunk = input.length === 0 ? undefined : this.#opening(input);
+    if (chunk === undefined || chunk.length === 0) return new Uint8Array(0);
     const out: Uint8Array[] = [];
     let start = this.#startOf(chunk);
     for (let index = nextBreak(chunk, start); index !== -1; index = nextBreak(chunk, start)) {
@@ -112,16 +116,26 @@ class EventFilter {
   }
 
   /**
-   * Where a chunk's lines start: after the LF of a CRLF the last chunk ended, and after a byte order mark at the start
-   * of the stream, which the format ignores, so the first field reads as it is.
+   * The stream's first bytes without a byte order mark, which the format ignores, so the first field reads as it is.
+   * A mark can arrive split across chunks, so bytes that could still start one are held until the mark is whole or
+   * ruled out; `undefined` while they are held.
    */
-  #startOf(chunk: Uint8Array): number {
-    let start = this.#crEnded && chunk[0] === LF ? 1 : 0;
-    this.#crEnded = false;
-    if (!this.#started && chunk.length > 0) {
-      this.#started = true;
-      if (startsWith(chunk, BOM)) start = BOM.length;
+  #opening(input: Uint8Array): Uint8Array | undefined {
+    if (this.#started) return input;
+    const joined = this.#head.length === 0 ? input : concat([this.#head, input]);
+    if (joined.length < BOM.length && joined.every((byte, index) => byte === BOM[index])) {
+      this.#head = joined.slice();
+      return undefined;
     }
+    this.#started = true;
+    this.#head = new Uint8Array(0);
+    return startsWith(joined, BOM) ? joined.subarray(BOM.length) : joined;
+  }
+
+  /** Where a chunk's lines start: after the LF of a CRLF the last chunk ended. */
+  #startOf(chunk: Uint8Array): number {
+    const start = this.#crEnded && chunk[0] === LF ? 1 : 0;
+    this.#crEnded = false;
     return start;
   }
 

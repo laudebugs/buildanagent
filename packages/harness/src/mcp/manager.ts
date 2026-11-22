@@ -553,13 +553,15 @@ class Manager implements McpManager {
       state.pinned.set(tool, hash);
       return;
     }
-    const pins = Object.fromEntries([...state.pinned, [tool, hash]]);
-    // Writes of one server run one after another, so a later approval never lands under an earlier one. The pin is
-    // held in memory only once the store has it, so a failed write enables nothing.
-    const write = state.pinWrites.then(() => store.write(server, pins));
+    // Writes of one server run one after another, and each builds its pins when its turn comes, so a later approval
+    // never lands under an earlier one. The pin is held in memory only once the store has it, so a failed write
+    // enables nothing.
+    const write = state.pinWrites.then(async () => {
+      await store.write(server, Object.fromEntries([...state.pinned, [tool, hash]]));
+      state.pinned.set(tool, hash);
+    });
     state.pinWrites = write.catch(() => {});
     await write;
-    state.pinned.set(tool, hash);
   }
 
   permissionHook(): PermissionHook {

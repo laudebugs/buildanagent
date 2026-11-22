@@ -109,8 +109,26 @@ describe("the config", () => {
   });
 
   test("a range that admits far more than it seems is refused", () => {
-    for (const range of ["::ffff:10.0.0.0/8", "::/8", "0.0.0.0/0", "::/0"]) {
+    for (const range of [
+      "::ffff:10.0.0.0/8",
+      "::/8",
+      "0.0.0.0/0",
+      "::/0",
+      // A mapped prefix of 96 bits or wider is all of IPv4, and so is every other IPv6 form that wraps IPv4.
+      "::ffff:0:0/96",
+      "::ffff:0.0.0.0/96",
+      "::/96",
+      "64:ff9b::/96",
+      "2002::/16",
+      // Brackets belong in a URL, not in a range; read as written they turned an IPv4 range into an IPv6 one.
+      "[10.0.0.0]/8",
+      "[fd00::]/8",
+      "[10.1.2.3]",
+    ]) {
       refusedConfig({ url: "https://mcp.example.com/mcp", allowAddresses: [range] });
+    }
+    for (const range of ["::ffff:10.0.0.0/104", "fd00::/8", "10.0.0.0/8", "10.1.2.3"]) {
+      checkRemoteTransport({ kind: "http", url: "https://mcp.example.com/mcp", allowAddresses: [range] });
     }
     const { allows } = checkRemoteTransport({
       kind: "http",

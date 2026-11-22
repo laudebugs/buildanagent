@@ -14,7 +14,8 @@
  * and writes files.
  */
 import { createHash } from "node:crypto";
-import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { mkdir, open, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors.js";
 
@@ -70,22 +71,47 @@ type LockBody = { version?: unknown; extensions?: unknown; mcp?: unknown };
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** The lock file's parsed body, checked for its version and the shape of both members, or `undefined` without one. */
-async function readBody(file: string): Promise<LockBody | undefined> {
-  let text: string;
+/**
+ * The lock file's text, or `undefined` when there is none. It is checked and read through one handle, so a file
+ * swapped in between the two is never read: the open refuses a link and does not wait on a pipe, the handle must be a
+ * regular file within the cap, and no more than the cap and one byte is ever read.
+ */
+async function readCapped(file: string): Promise<string | undefined> {
+  let handle: import("node:fs/promises").FileHandle;
   try {
-    // A pipe or a device would hang or never end, so only a regular file is read. A link is refused rather than
-    // followed, since it could point anywhere, and a size cap keeps a planted file from filling memory.
-    const found = await lstat(file);
-    if (!found.isFile()) throw new HarnessError("invalid_extension", `${file} is not a regular file`);
-    if (found.size > MAX_LOCK_BYTES) {
-      throw new HarnessError("invalid_extension", `${file} is over ${MAX_LOCK_BYTES} bytes, which no lock file needs`);
-    }
-    text = await readFile(file, "utf8");
+    handle = await open(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
   } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") return undefined;
+    const code = (error as { code?: string }).code;
+    if (code === "ENOENT") return undefined;
+    if (code === "ELOOP")
+      throw new HarnessError("invalid_extension", `${file} is a link, which a lock file may not be`);
     throw error;
   }
+  try {
+    const found = await handle.stat();
+    // A pipe or a device would hang or never end, so only a regular file is read.
+    if (!found.isFile()) throw new HarnessError("invalid_extension", `${file} is not a regular file`);
+    const tooBig = () =>
+      new HarnessError("invalid_extension", `${file} is over ${MAX_LOCK_BYTES} bytes, which no lock file needs`);
+    if (found.size > MAX_LOCK_BYTES) throw tooBig();
+    const buffer = new Uint8Array(MAX_LOCK_BYTES + 1);
+    let length = 0;
+    for (;;) {
+      const { bytesRead } = await handle.read(buffer, length, buffer.length - length, null);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+      if (length > MAX_LOCK_BYTES) throw tooBig();
+    }
+    return new TextDecoder().decode(buffer.subarray(0, length));
+  } finally {
+    await handle.close();
+  }
+}
+
+/** The lock file's parsed body, checked for its version and the shape of both members, or `undefined` without one. */
+async function readBody(file: string): Promise<LockBody | undefined> {
+  const text = await readCapped(file);
+  if (text === undefined) return undefined;
   const parsed = parseObject(text, file) as LockBody;
   const badMember = (value: unknown) => value !== undefined && !isObject(value);
   if (parsed.version !== LOCK_VERSION || badMember(parsed.extensions) || badMember(parsed.mcp)) {

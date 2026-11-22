@@ -155,7 +155,8 @@ function groupsOf(text: string): number[] | undefined {
 /** The prefix length of a range in mapped form: an IPv4 prefix counts from bit 96. */
 function rangeOf(range: string): { readonly groups: number[]; readonly bits: number } | undefined {
   const [address = "", prefix, extra] = range.split("/");
-  if (extra !== undefined) return undefined;
+  // Brackets belong to a URL's host, not to a range: read as written, `[10.0.0.0]/8` would pass as IPv6 `::/8`.
+  if (extra !== undefined || address.includes("[") || address.includes("]")) return undefined;
   const groups = groupsOf(address);
   if (groups === undefined) return undefined;
   const v4 = parseIpv4(address) !== undefined;

@@ -138,19 +138,22 @@ function checkHeaders(headers: unknown): Record<string, string> {
   return checked;
 }
 
+// One address in each IPv6 form that wraps an IPv4 address, at its zero end: mapped, compatible, translated, NAT64
+// and 6to4. An IPv6 range that holds one is IPv4 written another way, and is refused, so IPv4 is written as IPv4.
+const WRAPPED_IPV4 = ["::ffff:0.0.0.0", "::0.0.0.2", "::ffff:0:0.0.0.0", "64:ff9b::0.0.0.0", "2002::"];
+
 /**
- * Refuses a range that allows far more than it seems to: `/0`, and an IPv6 range wider than `/96` that holds the
- * IPv4-mapped addresses, such as `::ffff:10.0.0.0/8`, which is `::/8` and so admits every IPv4 address in mapped form.
+ * Refuses a range that allows far more than it seems to: `/0`, and an IPv6 range that holds the base of a form that
+ * wraps IPv4, such as `::ffff:0:0/96`, which is all of IPv4, or `::ffff:10.0.0.0/8`, which is `::/8`.
  */
 function checkBreadth(range: string): void {
   const [address = "", prefix] = range.split("/");
-  if (prefix === undefined) return;
-  if (Number(prefix) === 0)
+  if (prefix !== undefined && Number(prefix) === 0) {
     invalid(`has the allowAddresses entry ${JSON.stringify(range)}, which allows every address`);
-  const mapped = inAddressRange("::ffff:0.0.0.0", range) || inAddressRange("::ffff:255.255.255.255", range);
-  if (address.includes(":") && Number(prefix) < 96 && mapped) {
+  }
+  if (address.includes(":") && WRAPPED_IPV4.some((base) => inAddressRange(base, range))) {
     invalid(
-      `has the allowAddresses entry ${JSON.stringify(range)}, an IPv6 range wider than /96 that admits every IPv4 address in mapped form; write the IPv4 range itself`,
+      `has the allowAddresses entry ${JSON.stringify(range)}, an IPv6 range that holds IPv4 addresses in a wrapped form; write the IPv4 range itself`,
     );
   }
 }

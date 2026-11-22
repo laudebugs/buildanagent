@@ -16,11 +16,11 @@ const settings = checkRemoteTransport({
 });
 
 /** The text an event stream reads as after the guard, sent in the given chunks. */
-async function filtered(chunks: readonly string[]): Promise<string> {
+async function filtered(chunks: readonly (string | Uint8Array)[]): Promise<string> {
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
-      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      for (const chunk of chunks) controller.enqueue(typeof chunk === "string" ? encoder.encode(chunk) : chunk);
       controller.close();
     },
   });
@@ -55,6 +55,23 @@ describe("the event-stream filter", () => {
     assert.equal(await filtered([`id: ${"x".repeat(257)}\ndata: a\n\n`]), "data: a\n\n");
     assert.equal(await filtered(["id: café\ndata: a\n\n"]), "data: a\n\n");
     assert.equal(await filtered(["id: 42\ndata: a\n\n"]), "id: 42\ndata: a\n\n");
+  });
+
+  test("drops a byte order mark split across chunks, and passes a first chunk that only starts like one", async () => {
+    const bytes = (...parts: (number[] | string)[]) =>
+      new Uint8Array(parts.flatMap((part) => (typeof part === "string" ? [...new TextEncoder().encode(part)] : part)));
+    assert.equal(await filtered([bytes([0xef]), bytes([0xbb, 0xbf], "retry: 987654\ndata: a\n\n")]), "data: a\n\n");
+    assert.equal(
+      await filtered([bytes([0xef, 0xbb]), bytes([0xbf], `id: ${"x".repeat(5000)}\ndata: a\n\n`)]),
+      "data: a\n\n",
+    );
+    assert.equal(await filtered([bytes([0xef]), bytes([0xbb]), bytes([0xbf], "data: a\n\n")]), "data: a\n\n");
+    assert.equal(await filtered(["d", "ata: a\n\n"]), "data: a\n\n");
+    assert.equal(await filtered([bytes([0xef]), bytes("x\n\n")]), "\uFFFDx\n\n");
+  });
+
+  test("an empty chunk between a CR and its LF keeps them one line end", async () => {
+    assert.equal(await filtered(["data: a\r", "", "\ndata: b\n\n"]), "data: a\ndata: b\n\n");
   });
 
   test("drops a byte order mark at the start, so the first field still reads as a field", async () => {

@@ -370,6 +370,15 @@ describe("what a notice and an approval survive", () => {
     assert.match(all[0] ?? "", /mcp__srv__a is new on its server/);
   });
 
+  test("approvals made at once all reach the store, and none lands under another", async () => {
+    const store = memoryMcpPinStore();
+    const { manager } = await pinned(["a", "b", "c"], store);
+    await manager.connect();
+    const pending = manager.pending();
+    await Promise.all(pending.map((tool) => manager.approve("srv", tool.tool, tool.hash)));
+    assert.deepEqual(Object.keys((await store.read("srv")) ?? {}).sort(), ["a", "b", "c"]);
+  });
+
   test("an approval whose store write fails is not held, and the tool stays disabled", async () => {
     const store = memoryMcpPinStore();
     const failing = { read: store.read, write: async () => Promise.reject(new Error("disk full")) };

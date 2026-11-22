@@ -7,7 +7,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import tls from "node:tls";
-import { type EgressProxy, startEgressProxy } from "@buildanagent/harness/credentials";
+import { type EgressProxy, type EgressRecord, startEgressProxy } from "@buildanagent/harness/credentials";
 import { afterAll, beforeAll, test } from "vitest";
 
 let folder = "";
@@ -15,6 +15,7 @@ let server: tls.Server;
 let proxy: EgressProxy;
 let port = 0;
 let closedHeld = 0;
+const records: EgressRecord[] = [];
 
 beforeAll(async () => {
   folder = mkdtempSync(join(tmpdir(), "harness-proxy-status-"));
@@ -36,6 +37,10 @@ beforeAll(async () => {
       const line = chunk.toString();
       const status = /^\w+ \/(?:odd\/)?(?:hold\/)?(\d+)/.exec(line)?.[1] ?? "200";
       const answer = `HTTP/1.1 ${status} Odd\r\ncontent-type: application/json\r\ncontent-length: 2\r\n\r\n{}`;
+      if (line.includes("/204body")) {
+        socket.end("HTTP/1.1 204 No Content\r\ncontent-length: 5\r\n\r\nhello");
+        return;
+      }
       if (line.includes("/hold/")) {
         socket.write(answer);
         socket.once("close", () => {
@@ -57,7 +62,7 @@ beforeAll(async () => {
         secret: async () => "upstream-secret",
       },
     ],
-    log: () => {},
+    log: (record) => records.push(record),
     ca: cert,
     resolve: async () => ["127.0.0.1"],
     unsafeAllowAddresses: ["127.0.0.1"],
@@ -107,4 +112,25 @@ test("a route rejects a status outside 200 to 599 and still passes 200", async (
   const until = Date.now() + 2000;
   while (closedHeld === before && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 20));
   assert.equal(closedHeld, before + 1);
+});
+
+test("the log says why a status was refused, and an answer that breaks after it starts is logged once", async () => {
+  const before = records.length;
+  await settle(proxy.fetch(`https://upstream.test:${port}/999`));
+  const until = Date.now() + 2000;
+  while (records.length === before && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 20));
+  const refused = records.slice(before);
+  assert.equal(refused.length, 1);
+  assert.equal(refused[0]?.reason, "bad_status");
+  const routeMark = records.length;
+  const sentinel = proxy.sentinels.odd ?? "";
+  await settle(proxy.fetch(`${proxy.url}/odd/999`, { headers: { authorization: `Bearer ${sentinel}` } }));
+  const routeUntil = Date.now() + 2000;
+  while (records.length === routeMark && Date.now() < routeUntil)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(records.at(-1)?.reason, "bad_status");
+  const mark = records.length;
+  assert.equal(await settle(proxy.fetch(`https://upstream.test:${port}/204body`)), "status 204");
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.equal(records.length - mark, 1, JSON.stringify(records.slice(mark)));
 });
