@@ -41,6 +41,13 @@ export class SpillLedger {
     return this.#loading;
   }
 
+  /** Reads the log again, after a compaction changed which results the context holds. */
+  reload(): Promise<void> {
+    this.#spills.clear();
+    this.#loading = undefined;
+    return this.learn();
+  }
+
   /** The latest spill of a call id, or `undefined` when its latest result was not capped. */
   latest(callId: string): Spill | undefined {
     const spill = this.#spills.get(callId)?.at(-1);

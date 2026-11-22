@@ -2,7 +2,7 @@
 title: "Side effects that can fail: outcomes, idempotency and plan approvals"
 summary: A tool that writes to the world can fail in five different ways, and the model must be told which one happened. This chapter shows how a write reports applied, not_applied, compensated, partial or unknown, why a key saved before the call lets a crash be settled safely, and why a plan of several writes needs one approval before its first step.
 opening: incident
-sources: [stripe-idempotent-requests, stripe-advanced-error-handling, aws-safe-retries, azure-saga-pattern, stripe-refunds, openai-practical-guide-to-building-agents]
+sources: [stripe-idempotent-requests, stripe-advanced-error-handling, aws-safe-retries, azure-saga-pattern, stripe-refunds, openai-practical-guide-to-building-agents, buildanagent-agent-safety-readme, buildanagent-sdk-write-pauses]
 glossary: [idempotency-key, saga]
 switchTo: [E1, E2, E3, E4a, E4b]
 ---
@@ -35,43 +35,70 @@ A shop that sends orders by courier writes each order in :analogy[a ledger befor
 
 The key is what lets the shop and the server find the same order again. Think of :analogy[a raffle ticket stub]{#raffle-ticket-stub}: one stub, one prize, however often the holder shows it. An idempotency key works the same way. The caller sends the same key with every attempt at one write, and the server applies the write once and answers a repeat with the first result. Stripe saves the status and body of the first request that used a key and replays them on retries, even for a 500 error [@stripe-idempotent-requests]. A stub is printed before anyone wins and the holder keeps it. The key must likewise exist before the call is made, or a crash loses it and the write can repeat.
 
-[[lst:write-tool]] is the charge tool from our example. It builds the key from the order, checks its log, writes the intent and only then calls the server.
+Each of this chapter's six listings comes in two tabs. The first tab runs on our own packages: `@buildanagent/sdk` supplies the tool and the run, and `@buildanagent/agent-safety` supplies the write guard. The second tab shows the same listing on a third-party SDK. As of November 2026 the SDK is a `0.1.0` alpha release and `@buildanagent/agent-safety` is not on npm yet, so their names may still change.
 
-:::listing[The charge tool saves its key first, asks before it repeats, and logs the outcome last]{#write-tool file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="write-tool" replay}
+[[lst:write-tool-ours]] and [[lst:write-tool]] are the charge tool from our example. Each builds the key from the order, checks what it has recorded, writes the intent and only then calls the server. The first saves the outcome last through `guardedWrite()`{checked=row-44}, which stores a record of the write before it runs and settles the record with the outcome after [@buildanagent-agent-safety-readme].
+
+Only the Vercel AI SDK tab has a replay.
+
+::::tabs
+:::listing[Our SDK]{#write-tool-ours file="packages/sdk/examples/charge-tool.ts" region="write-tool"}
+::note[The key comes from the business fact, one charge for one order. `guardedWrite()` hashes it with the tenant into the effect key that `run` receives, so a regenerated turn with a fresh call id maps to the same key.]{#key}
+::note[`guardedWrite()` stores a `started` record before it calls `run`, and settles the record with the outcome after. This is the ledger's first line, and `run` sends the key to the server.]{#persist}
+::note[A `started` record whose lease has lapsed sends the tool here before it writes again. Only a 404 lets the write run once more, under the same key.]{#reconcile}
+::note[Any other answer to the lookup throws, and `guardedWrite()` settles the record as `unknown`.]{#unclear}
+:::
+:::listing[Vercel AI SDK]{#write-tool file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="write-tool" replay}
 ::note[The key comes from the business fact, one charge for one order, not from a random id. Every attempt at this write carries the same key.]{#key}
 ::note[A log entry that says a previous attempt started and never finished sends the tool to the server's records, before it writes again.]{#reconcile}
 ::note[The intent is saved before the request leaves. This is the ledger's first line.]{#persist}
 ::note[The example kills its own process here, after the server's reply and before the outcome is logged.]{#crash}
 :::
+::::
 
-The key is the business fact, so a second run that asks for the same charge finds the first run's entry. A write the log has already settled is answered from the log, whether it applied or was declined, and no request goes out. Only a definite decline, a 402 from this server, becomes `not_applied`; any other failure stays `unknown`, because a 500 or a dropped connection says nothing about whether the write landed.
+The key is the business fact, so a second run that asks for the same charge finds the first run's entry. A write that entry has already settled is answered from it, whether it applied or was declined, and no request goes out. With our tool, a charge for order 7 that applied and a charge for order 13 that the server declined each reach the server once, however often the model asks. Only a definite decline, a 402 from this server, becomes `not_applied`; any other failure stays `unknown`, because a 500 or a dropped connection says nothing about whether the write landed.
 
-Agent vendors treat the tool call id as the natural key, and both the OpenAI Agents SDK and Cloudflare say to persist it before the effect, as our server rollback report records. The OpenAI Agents SDK says that a tool with side effects should be made "idempotent by call ID so an interrupted continuation cannot repeat the effect". Cloudflare's agents documentation tells developers to "Persist idempotency keys or completion records before external side effects". Neither page says how long a call id is unique or what it is unique within. Our plan therefore scopes any key by tenant and session. A key built from the business fact, as the example's is, also survives a resume that regenerates the model's call, because the resume issues a fresh call id for the same charge.
+Agent vendors treat the tool call id as the natural key, and both the OpenAI Agents SDK and Cloudflare say to persist it before the effect, as our server rollback report records. The OpenAI Agents SDK says that a tool with side effects should be made "idempotent by call ID so an interrupted continuation cannot repeat the effect". Cloudflare's agents documentation tells developers to "Persist idempotency keys or completion records before external side effects". Neither page says how long a call id is unique or what it is unique within. Our package therefore scopes a key by tenant, and a key with no business fact by session, branch and call id as well [@buildanagent-agent-safety-readme]. A key built from the business fact, as the example's is, also survives a resume that regenerates the model's call, because the resume issues a fresh call id for the same charge.
 
 ## A crash between the write and the result leaves unknown, and only the other side can settle it
 
 Suppose you phone a restaurant to place an order and :analogy[the line goes dead mid-order]{#dropped-phone-order}. You cannot tell whether the kitchen heard you. Ordering again may feed you twice, and not ordering may leave you hungry. The sensible move is to phone back and ask whether the order is in. The agent's charge tool faces the same silence after a crash, and it needs the same move: ask the server before writing again. A restaurant has no order number to look up, though. That is why the write carried a key that the other side can be asked about.
 
-The tool reads its state from a small log of entries. The state of one operation is the outcome in its last entry, and a last entry that only says the write started means `unknown`.
+The Vercel AI SDK tool reads its state from a small log of entries: the state of one operation is the outcome in its last entry, and a last entry that only says the write started means `unknown`. Here `guardedWrite()` keeps one record for each key in an `EffectStore`, and [[lst:effect-log-ours]] reads it by hand. No record means no write has started, a `started` record means `unknown`, and a settled record holds the outcome.
 
-:::listing[The state of an operation is read from its last log entry]{#effect-log file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="effect-log"}
+::::tabs
+:::listing[Our SDK]{#effect-log-ours file="packages/sdk/examples/charge-tool.ts" region="effect-log"}
+::note[A `started` record has no outcome yet, so the state is `unknown`. The store replaces a record as a whole when it settles, so there is no last entry to find.]{#state}
 :::
+:::listing[Vercel AI SDK]{#effect-log file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="effect-log"}
+:::
+::::
 
-The example then crashes the tool on purpose. A child process runs the charge tool for order 42 and kills itself with `SIGKILL` after the server has answered and before the tool logs the outcome. The kill leaves exactly the state in the opening: the server has written once, and the log holds the key and no outcome.
+The example then crashes the tool on purpose. A child process runs the charge tool for order 42 and kills itself with `SIGKILL` after the server has answered and before the tool logs the outcome. The kill leaves exactly the state in the opening: the server has written once, and the log holds the key and no outcome. Ours cannot kill a process, because a book example runs in one process and keeps no durable store: it uses `memoryEffectStore()`. Ours therefore stands in with a store whose `settle()` never returns once the server has answered, so the run never records its result, as a process killed at that point would not. `packages/agent-safety/test/crash.test.ts` kills a real child with `SIGKILL` at three points, among them while the payment API holds the request unanswered, and then runs the same call in a second process.
 
-:::listing[A child process is killed between the server's reply and the log entry]{#crash file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="crash"}
+::::tabs
+:::listing[Our SDK]{#crash-ours file="packages/sdk/examples/11-charge-crash-resume.ts" region="crash"}
+::note[The server has the charge, and the record still says `started`.]{#written}
+:::
+:::listing[Vercel AI SDK]{#crash file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="crash"}
 ::note[The log has the key and no outcome, so the state is unknown.]{#unknown}
 :::
+::::
 
-A fresh run of the same tool now reads the log, sees `unknown` and asks the server for the key, and the server says it has the write. The tool records `applied` and tells the model so, and it sends nothing.
+A fresh run of the same tool now reads the log, sees `unknown` and asks the server for the key, and the server says it has the write. The tool records `applied` and tells the model so, and it sends nothing. In ours, the record holds a lease, a window in which the first attempt may still be running; the example's lasts 60 seconds. A second run that comes inside the window is told `unknown` and sends nothing. Once the lease has lapsed, the run calls `reconcile`, which asks the server for the key.
 
-:::listing[The resume asks the server instead of writing again]{#resume file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="resume"}
+::::tabs
+:::listing[Our SDK]{#resume-ours file="packages/sdk/examples/11-charge-crash-resume.ts" region="resume"}
+::note[The model's call carries a fresh id, yet the business key finds the same record, and the server is asked before anything is written.]{#resume}
+:::
+:::listing[Vercel AI SDK]{#resume file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="resume"}
 ::note[The server received exactly one write request for order 42, though the tool ran twice.]{#once}
 :::
+::::
 
-A 404 from the lookup shows that this server holds no record of the key, and only then may the tool send the write, under the same key. Any other answer leaves the outcome `unknown` and the model is told so. The model never sees a fresh key.
+A 404 from the lookup shows that this server holds no record of the key, and only then may the tool send the write, under the same key. Any other answer leaves the outcome `unknown` and the model is told so. Our lookup returns `"not_found"` for a 404 only, and `guardedWrite()` then runs the write once under the same key. The model never sees a fresh key.
 
-The log is a small file. It survives a killed process but not a power cut, because nothing is synced to disk before the call. A real deployment needs a store that makes the entry durable first. And the lookup works because the example's server can answer "have you seen this key?". A server that offers neither a lookup nor a replay for a reused key leaves the outcome `unknown` for a person to settle.
+The Vercel AI SDK tool's log is a small file. It survives a killed process but not a power cut, because nothing is synced to disk before the call. Ours keeps its records in `memoryEffectStore()`, which forgets them when the process ends. A real deployment needs a store that makes the entry durable first, and the package has stores for Durable Object SQLite, DynamoDB and Postgres [@buildanagent-agent-safety-readme]. And the lookup works because the example's server can answer "have you seen this key?". A server that offers neither a lookup nor a replay for a reused key leaves the outcome `unknown` for a person to settle.
 
 ## A plan of several writes needs one approval before its first step, and the refund is the pivot
 
@@ -79,21 +106,37 @@ Booking a trip is :analogy[a saga]{#booking-a-trip} you already know. If the fli
 
 Take a refund that updates an order, refunds the card and emails the customer. The refund is the pivot. Stripe can cancel only some card refunds, only "for a short period of time", and "only Dashboard cancellations are currently supported for card refunds", so an agent calling the API cannot count on reversing one [@stripe-refunds]. We treat an email as impossible to unsend. A correction email is a new write, not a compensation. That fixes the sequence of steps, which is our design. The update to the order goes first and writes a lock such as a refund-pending status, and its undo restores the earlier status. The refund goes second, under an idempotency key so a timeout can be retried. The email goes third. A last retryable step turns a refund-pending status into `refunded`. Sending the email before the refund is the one sequence to forbid, because "your refund is on its way" followed by a failed refund leaves a false statement that no step can undo.
 
-The approval has to fit that shape. Every SDK the sagas report surveyed approves one tool call at a time, and none of them models a plan. [[lst:needs-approval]] shows the per-call form in a Cloudflare agent: a rule decides from the call's arguments whether the call waits for a person. As of November 2026, AI SDK 7 deprecates `needsApproval`{checked=row-33} in favour of a call-level `toolApproval`{checked=row-39}, but the Cloudflare chat agent's documentation still uses `needsApproval`, so the listing does too.
+The approval has to fit that shape. Every SDK the sagas report surveyed approves one tool call at a time, and none of them models a plan. [[lst:needs-approval-ours]] and [[lst:needs-approval]] show the per-call form, on our SDK and in a Cloudflare agent: a rule decides from the call's arguments whether the call waits for a person. Ours is a `beforeToolCall` gate that returns `ask` [@buildanagent-sdk-write-pauses], and Cloudflare's is a `needsApproval`{checked=row-33} function on the tool. As of November 2026, AI SDK 7 deprecates `needsApproval`{checked=row-33} in favour of a call-level `toolApproval`{checked=row-39}, but the Cloudflare chat agent's documentation still uses `needsApproval`, so the listing does too.
 
-:::listing[Cloudflare Agents: one call waits for a person]{#needs-approval file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="needs-approval"}
+::::tabs
+:::listing[Our SDK]{#needs-approval-ours file="packages/sdk/examples/12-approval-gate.ts" region="needs-approval"}
+::note[The gate reads the call's arguments: a refund above 100 returns `ask`, and every other call returns an explicit `allow`.]{#rule}
+:::
+:::listing[Cloudflare Agents]{#needs-approval file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="needs-approval"}
 ::note[The rule reads the call's arguments: a refund above 100 waits.]{#rule}
 ::note[The effect: it runs only after approval.]{#effect}
 :::
+::::
 
-:::listing[The turn ends with the call saved as requested and nothing run]{#paused file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="paused"}
+The refund in both tabs is for 250, so the rule fires. In ours the run does not wait on a callback: it signs a pending request for the call and ends with `stopReason: "awaiting_approval"`. The request signs a hash of the call's exact input, so a stored pause whose input changed no longer verifies. Before the call runs, `continueRun()` checks the person's answer against that request [@buildanagent-sdk-write-pauses]. Cloudflare's turn also ends with the call saved and nothing run.
+
+::::tabs
+:::listing[Our SDK]{#paused-ours file="packages/sdk/examples/12-approval-gate.ts" region="paused"}
+::note[The run ends `awaiting_approval`. The call has no result yet.]{#ends}
+::note[`result.pending` holds a signed request for the waiting call, and `verifyResolution()` accepts it under the run's signer.]{#pending}
+::note[The refund has not run.]{#not-run}
+:::
+:::listing[Cloudflare Agents]{#paused file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="paused"}
 ::note[The gated call is saved as `approval-requested`.]{#pending}
 ::note[The refund has not run.]{#not-run}
 :::
+::::
 
 Per-call approval breaks the saga's rule that nothing after the pivot may block. Suppose the refund is approved and runs, and the email waits for a second approval. A reviewer who then rejects or edits the email leaves the plan past its pivot with a required step waiting on a person. The approval therefore has to come before the first compensable step, as one decision whose hash covers every step's arguments, so that a changed amount or email text no longer matches it: the order change, the refund amount and recipient, and the exact text of the email. That placement is our synthesis, because no vendor source discusses approval relative to a pivot. OpenAI's agent guide names "canceling user orders" and "authorizing large refunds" as actions that "should trigger human oversight" [@openai-practical-guide-to-building-agents], and a plan that holds both gets the oversight once, before it starts.
 
 Steps before the pivot could run speculatively and be undone if the reviewer rejects the plan, but each would hold a lock that the rest of the application can see, such as the order's refund-pending status, while a person decides. We therefore approve the whole plan up front, a judgement that only an eval with realistic approval delays can test.
+
+Our `@buildanagent/agent-safety` builds that up-front approval into code, but this chapter has no listing of it, because no other SDK in these tabs has the feature to set it beside. `lintPlan()`{checked=row-56} requires every compensable step before the one pivot and every retryable step after it. `signPlan()`{checked=row-56} signs the hash of every step's input and of the state the plan was computed from, with an expiry. `verifyPlanBeforeStep()`{checked=row-56} checks before each step that it is the signed one. `runPlan()`{checked=row-56} runs the approved steps, undoes the ones that ran if a step fails before the pivot, and never undoes a step after it [@buildanagent-agent-safety-readme].
 
 ## Exercises
 
