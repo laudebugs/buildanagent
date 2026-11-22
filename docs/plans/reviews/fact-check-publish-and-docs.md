@@ -591,6 +591,18 @@ The claims L11 added to PB4, CI plan §3f, `.changeset/README.md`, the four pack
 | L11-33 | The failure was an E409 on the harness, from racing the first run | ⚠️ | The manager's report: this session did not read the error line. The report `release-race-409.md`, on the branch `docs/release-race-409`, is to settle it |
 | L11-34 | npm holds only the first run's versions: `0.1.0-alpha.28` and the two placeholders for each package | ✅ | `npm view @buildanagent/harness dist-tags versions --json` on 2026-11-22 listed `0.0.0-bootstrap.0`, `0.0.0-stage` and `0.1.0-alpha.28`, with `alpha` on `0.1.0-alpha.28` |
 
+## Stale "private" statements corrected (docs/stale-private-statements, 2026-11-22)
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| docs/stale-private-statements-1 | As of November 2026 the harness is published on npm as an alpha release (memory-and-sessions chapter, was "private, not on npm, version 0.0.0") | ✏️ | `npm view @buildanagent/harness dist-tags --json` on 2026-11-22: `alpha` is `0.1.0-alpha.29`, `latest` is the `0.0.0-bootstrap.0` placeholder; `packages/harness/package.json` has no `private` field. Chapter row 142 |
+| docs/stale-private-statements-2 | `createToolRegistry` is in `@buildanagent/harness`, published as an alpha (tools-at-scale chapter, was "the private ... package") | ✏️ | Same npm read; `packages/harness/src/tools/registry.ts`. Chapter row 160 |
+| docs/stale-private-statements-3 | `@buildanagent/agent-safety` is a separate package that no listing imports (approvals chapter, was "a private package") | ✏️ | `packages/agent-safety/package.json` has no `private` field and npm's `alpha` tag is `0.1.0-alpha.29`; `apps/manual/src/data/harnesses.json` lists only the gateway, harness and SDK. Chapter row 83 |
+| docs/stale-private-statements-4 | The SDK and agent-safety are both `0.1.0` alpha releases on npm (side-effects chapter, was "agent-safety is not on npm yet") | ✏️ | `npm view` dist-tags of both on 2026-11-22; `npm view @buildanagent/agent-safety@0.1.0-alpha.29 dist.attestations` shows SLSA provenance. Chapter row 63 |
+| docs/stale-private-statements-5 | The SDK vendors `agent-safety`'s files and does not yet depend on the package at run time, though npm has held it as an alpha since 2026-11-22 (guidelines README, was "the private safety package") | ✅ | `npm view @buildanagent/agent-safety time --json`: `0.1.0-alpha.28` published 2026-11-22T20:43:58Z; `packages/sdk/package.json` lists it only in `devDependencies`; `packages/sdk/src/vendor/agent-safety/` exists |
+
+| docs/stale-private-statements-6 | Corrects row docs/stale-private-statements-3: the claim is that no listing of the approvals chapter imports `@buildanagent/agent-safety`, not that no listing in the book does | ✏️ | `packages/sdk/examples/11-approval-resume.ts` and `12-approval-tamper.ts` import only `@buildanagent/sdk`, `zod` and `./lib/check.js`; `packages/sdk/examples/charge-tool.ts`, `11-charge-crash-resume.ts` and `12-approval-gate.ts`, which the side-effects chapter lists, import `@buildanagent/agent-safety`. Row 3 cited `harnesses.json`, which lists harness packages and says nothing about imports. Chapter row 83 |
+
 ## Release run 45067734004's E409 (2026-11-22)
 
 The claims in [release-race-409.md](release-race-409.md), checked on the branch `docs/release-race-409` on 2026-11-22 against the GitHub Actions API, the job logs and the npm registry. Ids 11, 12 and 14 to 17 are unused: they covered a proposed release.yml change the report dropped.
@@ -651,4 +663,4 @@ The claims the branch `fix/release-plan-released-first` adds to CI plan §3f and
 | fix/release-plan-released-first-20 | `GITHUB_REPOSITORY` and `GH_TOKEN` are now required on every plan not skipped before the GitHub check, and a GitHub answer other than 200 or 404 fails the job before any npm request | ✅ | `scripts/ci/release-plan.mjs` lines 244-246 (`planRelease` throws when `repo` is unset, right after the pre-mode check) and 190-197 (`hasGitHubRelease` throws on other statuses), which runs before the `isPublished` loop |
 | fix/release-plan-released-first-21 | `GITHUB_REPOSITORY` is required on every plan not skipped before the GitHub check, but `GH_TOKEN` is only used when set: without it the release request is unauthenticated, at GitHub's lower rate limit (corrects row -20, which said both are required) | ✏️ | `scripts/ci/release-plan.mjs` `planRelease` throws only when `repo` is unset; `hasGitHubRelease` sends the `Authorization` header only when `token` is set. `release.yml` passes the run's token to the plan job. |
 
-**Totals:** 475 claims: 352 ✅, 73 ✏️, 50 ⚠️.
+**Totals:** 481 claims: 353 ✅, 78 ✏️, 50 ⚠️.
