@@ -204,8 +204,8 @@ async function summarise(
 
 /**
  * Compacts the session when its context is over the budget, or at once when `force` is set. Returns what the new
- * `compaction` entry replaced, or `undefined` when it wrote none. A skipped
- * or failed summary writes nothing but, when the call was made, its `usage` entry, and says why through `log`.
+ * `compaction` entry replaced, or `undefined` when it wrote none. A skipped or failed summary writes nothing but, when
+ * the call was made, its `usage` entry, and says why through `log`.
  */
 export async function compact(input: CompactInput): Promise<Compacted | undefined> {
   const { log, hooks } = input;

@@ -59,6 +59,8 @@ export interface TurnOptions<H = unknown> {
   readonly onRun?: (run: Run<unknown>) => void;
   /** Called with how full the request view is after each model call's view is built, when the harness has a context policy. */
   readonly onContextFill?: (fill: ContextFill) => void;
+  /** Called when the first run has ended because the request was too large and a retry may follow. */
+  readonly onOverflowRetry?: () => void;
   /** Observers for this turn alone. Unlike `Run.on()`, they also see `run_start`. They run after the harness's own. */
   readonly observers?: readonly Observer[];
   /**
@@ -367,11 +369,13 @@ function contextFor<H>(
   session: Session,
   model: Model,
   options: { readonly onContextFill?: (fill: ContextFill) => void; readonly history?: readonly Message[] },
+  retry = false,
 ): TurnContext | undefined {
   return harness.context?.forTurn({
     session,
     model,
     ownHistory: options.history !== undefined,
+    ...(retry ? { midTurn: false } : {}),
     ...(options.onContextFill === undefined ? {} : { onFill: options.onContextFill }),
   });
 }
@@ -753,12 +757,14 @@ async function retryAfterOverflow<H>(
 ): Promise<TurnResult> {
   if (first.stopReason !== "error" || first.error.kind !== "overflow" || options.history !== undefined) return first;
   const model = options.model ?? harness.model;
-  const turnContext = contextFor(harness, session, model, options);
+  const turnContext = contextFor(harness, session, model, options, true);
   if (turnContext === undefined) return first;
   // The retry has what the first attempt left of `maxSteps`; with none left there is nothing to retry into.
   const stepsLeft = options.maxSteps === undefined ? undefined : options.maxSteps - first.steps;
   if (stepsLeft !== undefined && stepsLeft < 1) return first;
   const { signal, newId, writer } = turnPlumbing(session, options);
+  // The first run has ended: a steer sent now waits for the retry's run.
+  options.onOverflowRetry?.();
   let compacted: boolean;
   try {
     compacted = await turnContext.onOverflow({
@@ -768,11 +774,12 @@ async function retryAfterOverflow<H>(
     });
   } catch (error) {
     // An abort during the summary call ends the turn as aborted, not as the overflow it was trying to cure.
-    if (signal.aborted) return { ...withoutError(first), stopReason: "aborted" };
+    if (signal.aborted) return { ...withoutError(first), stopReason: "aborted", lastEntryId: session.head() as string };
     throw error;
   }
   await writer.settled();
-  if (!compacted) return first;
+  // A summary call that was made and rejected wrote its usage entry, so the log ends later than the first result says.
+  if (!compacted) return { ...first, lastEntryId: session.head() as string };
   const context = contextOf(await session.path());
   const recorder = new EventRecorder(
     writer,

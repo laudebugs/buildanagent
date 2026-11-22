@@ -403,12 +403,7 @@ class HarnessDispatcher<H> implements Dispatcher {
     started: Promise<void>,
   ): Promise<void> {
     await started;
-    const observer: Observer = (event) => {
-      // A run that ended has no one to steer: until the next run of the turn, such as the overflow retry's, exists, a
-      // steer or follow-up waits in the queue.
-      if (event.type === "run_end") running.run = undefined;
-      this.emit(session, event);
-    };
+    const observer: Observer = (event) => this.emit(session, event);
     let summary: TurnResultSummary;
     try {
       await this.#seed(handle, session);
@@ -417,6 +412,10 @@ class HarnessDispatcher<H> implements Dispatcher {
         input,
         observers: [observer],
         signal: running.controller.signal,
+        // The first run has ended and a retry may follow: a steer sent now waits in the queue for the retry's run.
+        onOverflowRetry: () => {
+          running.run = undefined;
+        },
         onContextFill: (fill) => this.emit(session, { type: "context_fill", tokens: fill.tokens, budget: fill.budget }),
         onRun: (run) => {
           running.run = run;

@@ -104,6 +104,8 @@ export interface TurnContextOptions {
   readonly model: Model;
   /** Called with the fill after each request view is built. */
   readonly onFill?: (fill: ContextFill) => void;
+  /** False when the turn is a retry after an overflow, which compacts at most once more, through the overflow layer. */
+  readonly midTurn?: boolean;
   /** True when the caller supplied the turn's history, so the log's entries do not describe the context. */
   readonly ownHistory?: boolean;
 }

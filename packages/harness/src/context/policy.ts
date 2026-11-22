@@ -112,7 +112,7 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
   const summarizing = options.layers?.summarize !== false;
   const overflowRetry = options.layers?.overflow_retry !== false;
   return {
-    forTurn({ session, model, onFill, ownHistory }: TurnContextOptions): TurnContext {
+    forTurn({ session, model, onFill, ownHistory, midTurn: midTurnAllowed }: TurnContextOptions): TurnContext {
       const ledger = new SpillLedger(session);
       const window = model.caps.contextWindow;
       const budget = options.budgetTokens ?? Math.max(1, Math.min(window - RESERVE_TOKENS, MAX_BUDGET_TOKENS));
@@ -122,7 +122,8 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
       const midTurn = new MidTurn({
         session,
         // A caller-supplied history is not what the log rebuilds, so a summary of it could not be written as an entry.
-        enabled: ownHistory !== true && (options.layers?.mid_turn ?? window < MID_TURN_WINDOW),
+        enabled:
+          ownHistory !== true && midTurnAllowed !== false && (options.layers?.mid_turn ?? window < MID_TURN_WINDOW),
         limitTokens: Math.floor((options.midTurnRatio ?? MID_TURN_RATIO) * window),
         compact: runCompaction,
         log: options.log,
