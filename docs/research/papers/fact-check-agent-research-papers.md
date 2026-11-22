@@ -225,3 +225,11 @@ Drafting U23's build-guide additions required reading the halo-effect and Agenti
 
 | 150 | Evals ¶2 | τ-bench's grader counting an empty response as a pass lets a trivial agent clear 38% of its tasks | arXiv:2507.02825 abstract page gives no figure; the 38% is in the paper's body (§1) and appendix E.2, where a do-nothing agent the authors ran themselves clears 38% of τ-bench's airline-subset tasks and 6% of its retail-subset tasks | ✏️ the 38% is airline-only, not a blanket figure, and sits in the body, not the abstract; the report now gives both percentages and says where the figure comes from |
 | 151 | Provenance ¶1 | Ali, Siddiqui and Zahid found that demo-based scores "mostly measure presentation, not capability" | arXiv:2611.24039 abstract page, fetched and read word for word: "measures presentation as much as capability" | ✏️ (citation) the report's paraphrase overstated the paper's own hedge; now quoted verbatim |
+
+### SkillCFI re-read in full (issue #165, 2026-11-22)
+
+Row 68 was confirmed from the abstract page. Issue #165 read the whole paper, arXiv:2611.24185 v1, in its arXiv HTML version, from the abstract to the appendices.
+
+| # | Where | Claim | Source | Verdict |
+| --- | --- | --- | --- | --- |
+| fix/165-skillcfi-tool-errors-1 | Tool and skill security, para 2 (row 68) | Listing the next legal steps in a refusal raised recovery from 21% to 65% | The paper, § VI-D "After a refusal" and Figure 6(b): "Strict recovery rises from 17 of 80 (21%) with Bare and 22 with Basic to 52 (65%) with Next-Step". § VI-A defines the messages: Bare "returns only the refusal category and reason", Basic adds that the request did not run, and Next-Step "further adds the current workflow facts and the operations enabled next". The setup is one agent model (GLM-5.3-Flash, low reasoning effort), eight self-written skills and 80 refused sessions per message, with no confidence interval or significance test, and the refusals come from a deterministic enforcer of a skill's step order (§ V-C), not from a tool's schema check | ✏️ narrowed: the 21% is the reason-only message and the 65% adds workflow facts as well as the next steps, so the paper does not isolate the next-step list; the claim holds for that setup only |

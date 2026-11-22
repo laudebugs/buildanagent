@@ -2,7 +2,7 @@
 title: "Tools: schemas, validation, errors the model can read, and identity it cannot fake"
 summary: A tool is a contract between your code and a model. The model learns it from a name, a description and a schema; your SDK checks every argument, a failed call comes back as a message the model can act on, and the user's identity comes from the signed-in session, never from the model.
 opening: incident
-sources: [anthropic-how-tool-use-works, anthropic-writing-tools, claude-agent-sdk-custom-tools, owasp-llm06-excessive-agency, openai-agents-context]
+sources: [anthropic-how-tool-use-works, anthropic-writing-tools, claude-agent-sdk-custom-tools, ruan-skillcfi, owasp-llm06-excessive-agency, openai-agents-context]
 glossary: [tool, agent-loop, mcp, prompt-injection, trusted-context]
 switchTo: [B10]
 ---
@@ -100,7 +100,7 @@ You can do better than any of these defaults by writing the error yourself. Anth
 - "Not found."
 - "No order 4417 was found for this customer. Ask the customer to confirm the order number; do not guess one."
 
-The second is the vending machine's note. It names the cause, gives the next step, and rules out the tempting wrong step, which for a model is to invent a plausible order. We recommend that every error a tool returns say what to try next and, where a wrong next step is likely, what not to do. No source we found measures how much each part helps.
+The second is the vending machine's note. It names the cause, gives the next step, and rules out the tempting wrong step, which for a model is to invent a plausible order. We recommend that every error a tool returns say what to try next and, where a wrong next step is likely, what not to do. One measurement from a neighbouring setup supports the first part. SkillCFI is a run-time enforcer that refuses a request breaking a skill's step order, and its authors tried three refusal messages on one model, over 80 refused sessions each: the reason alone, the reason plus a note that the request did not run, and those plus the steps allowed next. A session counted as recovered only if it then reached the expected ending with no further refusal. That happened in 17 of 80 sessions with the reason alone and 22 with the note, but 52 with the next steps added [@ruan-skillcfi]. The refusal there comes from an enforcer, not from an SDK's schema check, and the third message also carried workflow facts, so the figure shows that naming the next step can help a model, not how much a tool's error should. No source we found measures what not to do.
 
 Here the comparison runs out. You read "exact change only" and go looking for coins. A model may skim the error, retry the same arguments, or answer as though the call had worked, and the replay above retries correctly only because its script says so. So the note has to be specific enough to act on, and the loop still needs the cap from [[ch:call-workflow-loop]]: a model that retries the same broken call forever never stops asking for tools.
 
