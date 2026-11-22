@@ -6,7 +6,7 @@ As of November 2026 the package is private and not on npm. Each removable compon
 
 ## The session log holds twenty entry types
 
-`@buildanagent/harness/session` re-exports the entry union from `@buildanagent/protocol`, where the [stable fields and the JSON Schema](../protocol/README.md#a-session-file-is-a-list-of-entries-one-per-line) are documented. Every entry carries `id`, `parentId`, `seq`, `timestamp`, `type` and `origin`. The types, in the order of the union:
+`@buildanagent/harness/session` re-exports the entry union from `@buildanagent/protocol`, where the [stable fields and the JSON Schema](../protocol/README.md#a-session-file-is-a-list-of-entries-one-per-line) are documented. Every entry carries `id`, `parentId`, `seq`, `timestamp`, `type` and `origin`. The [session format page](docs/session-format.md) lists every field of every type and says which are stable, and a test checks it against the JSON Schema. The types, in the order of the union:
 
 - `session_header`: the first entry of a file, with the format, harness and SDK versions, the defaults hash, the capabilities, the ablation hash and, optionally, the parent session and the product.
 - `turn_start`: a run began, with the frozen system prompt.
@@ -226,6 +226,22 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - **Child.** `child({ spawningCallId })` or `child({ stepId })` starts the log of a subagent or a workflow step as its own session, and records the link in this session with a `subagent_link` entry that carries the one id given. Giving both or neither throws. The child's header names this session and the link entry as `parent` and the id as `spawn`, and its `path()` does not cross into this session, so a child never shares the parent's conversation.
 - **Migration.** `migrateSession()` takes a log in an older format through the migrations it is given, writes the result as a new file in one append, which checks every entry against the current format, reads it back, and only then moves the pointer. The old file stays as it was. A log from a newer format is refused with `unsupported_format`, because only a newer harness can read it. `migrateSession()` takes the session's writer lock for the whole migration. It leaves a log that is already current alone, whatever its header names, and refuses to migrate a file whose header names a parent, because that parent would stay in the old format. It can't see forks that name this file as their parent, because a store has no index of dependents. Migrate only a session with no forks: an existing fork would still name the old-format file as its parent and become unreadable.
 - **A file in another format is not corruption.** A store that finds a header it doesn't read throws `unsupported_format` and not `session_corrupt`, and offers `loadRaw()` so a migration can read the entries as they were written.
+
+## Nothing is deleted unless you set a retention period
+
+`jsonlStore({ dir })` never deletes or moves a file. To expire old sessions, give it `retention: { days, action }`, or call `pruneSessions({ dir, userId, retention })` yourself, both from `@buildanagent/harness/session/jsonl`. A session expires when its last entry is more than `days` old.
+
+- **`archive`** gzips each of the session's files into `<dir>/archive/<user>/` and removes the original once the archive reads back to the same bytes. The pointer stays. `list()` and `load()` still find an archived session, and a write to it restores its file.
+- **`purge`** deletes the session's files and its pointer. An expired session that a surviving fork continues is kept, so no log loses its ancestors.
+- **When it runs.** Only when you call `pruneSessions()`, which a `sessions prune` command calls, and once for each user when a store with `retention` first lists, loads or appends that user's sessions. Never on a timer. An error in that pass goes to `onRetentionError` and does not stop the session.
+- **Locks.** Pass the session `lock` and a session whose writer is running is kept.
+
+```ts
+const store = jsonlStore({ dir, retention: { days: 30, action: "archive" }, lock });
+const { archived, purged, kept } = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" } });
+```
+
+The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. The [session format page](docs/session-format.md#what-a-month-of-sessions-costs-on-disk) has the disk-cost projection.
 
 ## `runTurn()` writes one SDK run into the log, and the user entry goes first
 
