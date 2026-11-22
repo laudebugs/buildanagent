@@ -19,7 +19,10 @@
       "!**/verify/*/.tmp",
       "!apps/manual/**/figures/**/*.svg",
       "!.agents/skills/anatomy",
-      "!apps/manual/src/styles/anatomy.css"
+      "!apps/manual/src/styles/anatomy.css",
+      "!apps/manual/src/data/sources.json",
+      "!apps/manual/src/data/glossary.json",
+      "!apps/manual/src/content/analogies.json"
     ]
   },
   "formatter": {

@@ -20,7 +20,7 @@ Write a type-checked, mock-run example that shows A2A 1.0, the version the stand
 - [U19 report, Examples](../../research/a2a/agent-to-agent-protocols.md#one-new-example-on-adk-would-give-t37-its-listing-and-a-10-example-should-wait-for-a-release): the three behaviours a 1.0 example should assert
 - [U19 report, SDKs](../../research/a2a/agent-to-agent-protocols.md#one-of-our-eight-sdks-ships-a2a-in-typescript-and-it-speaks-03-not-10): ADK's 0.3 types leak into its public API, so its move to 1.0 breaks callers, and `@a2a-js/sdk` 1.3.0's `legacyCompat` talks to 0.3 peers
 - [T45](../done/T45-example-a2a-delegation.md): the 0.3 example this one extends or replaces
-- [Section T37](T37-section-a2a.md), whose listing this example would update
+- [Section T37](../done/T37-section-a2a.md), whose listing this example would update
 
 ## Scope
 

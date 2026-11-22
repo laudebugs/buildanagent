@@ -35,7 +35,7 @@ const outputOf = (output: unknown): unknown =>
   output && typeof output === "object" && "text" in output ? (output as { text: unknown }).text : output;
 
 /** One input or output item as a transcript message. */
-function message(item: Item): Message {
+function message(item: Item, computerName: string): Message {
   if (item.type === "function_call") {
     return {
       role: "assistant",
@@ -46,6 +46,39 @@ function message(item: Item): Message {
     return {
       role: "tool",
       parts: [{ type: "tool-result", id: String(item.callId), name: String(item.name), output: outputOf(item.output) }],
+    };
+  }
+  // A computer call carries its actions, one or a batch, and its result is the screenshot that follows them. A rejected
+  // call's result holds a fallback image with the rejection in `providerData`, and a failed action gives empty data;
+  // both are errors, not screenshots.
+  if (item.type === "computer_call") {
+    const input = Array.isArray(item.actions) && item.actions.length > 0 ? item.actions : item.action;
+    return { role: "assistant", parts: [{ type: "tool-call", id: String(item.callId), name: computerName, input }] };
+  }
+  if (item.type === "computer_call_result") {
+    const output = (item.output ?? {}) as {
+      data?: unknown;
+      providerData?: { approvalStatus?: unknown; message?: unknown };
+    };
+    if (output.providerData?.approvalStatus === "rejected") {
+      const reason = typeof output.providerData.message === "string" ? output.providerData.message : "rejected";
+      return {
+        role: "tool",
+        parts: [{ type: "tool-result", id: String(item.callId), name: computerName, output: reason, error: true }],
+      };
+    }
+    const failed = output.data === "" || output.data === undefined;
+    return {
+      role: "tool",
+      parts: [
+        {
+          type: "tool-result",
+          id: String(item.callId),
+          name: computerName,
+          output: failed ? "the action failed" : output.data,
+          ...(failed ? { error: true as const } : {}),
+        },
+      ],
     };
   }
   if (item.type === "reasoning") {
@@ -65,7 +98,7 @@ function messagesOf(request: ModelRequest): Message[] {
     ? [{ role: "system", parts: [{ type: "text", text: request.systemInstructions }] }]
     : [];
   const input = typeof request.input === "string" ? [{ role: "user", content: request.input }] : request.input;
-  return [...system, ...(input as Item[]).map(message)];
+  return [...system, ...(input as Item[]).map((item) => message(item, computerNameOf(request)))];
 }
 
 /** The tools a request offers, by name: function tools, hosted tools and handoffs. */
@@ -76,7 +109,16 @@ const toolsOf = (request: ModelRequest): string[] => [
 
 const nameOf = modelNames();
 
+/** The name `computerTool()` gives its tool when the example sets none. */
+const DEFAULT_COMPUTER_NAME = "computer_use_preview";
+/** The computer tool a request offers, so a recorded computer call carries the name of the tool that was offered. */
+const computerNameOf = (request: ModelRequest): string =>
+  String(request.tools.find((tool) => tool.type === "computer" && "name" in tool)?.name ?? DEFAULT_COMPUTER_NAME);
+/** Each model's latest offered computer tool name, for the answer that follows its request. */
+const lastComputerName = new WeakMap<object, string>();
+
 function recordRequest(model: object, request: ModelRequest): void {
+  lastComputerName.set(model, computerNameOf(request));
   record({ kind: "request", model: nameOf(model), messages: messagesOf(request), tools: toolsOf(request) });
 }
 
@@ -109,7 +151,9 @@ export function usageOf(value: unknown): Usage | undefined {
 }
 
 function recordResponse(model: object, output: readonly unknown[], usage: unknown): void {
-  const messages = (output as Item[]).map(message);
+  const messages = (output as Item[]).map((item) =>
+    message(item, lastComputerName.get(model) ?? DEFAULT_COMPUTER_NAME),
+  );
   const finish = messages.some((m) => m.parts.some((part) => part.type === "tool-call")) ? "tool-calls" : "stop";
   const answer: Message = { role: "assistant", parts: messages.flatMap((m) => m.parts) };
   // ScriptedModel answers with exactly the items and usage its script holds, call ids included. Its answer names no
