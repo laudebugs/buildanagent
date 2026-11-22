@@ -1,0 +1,278 @@
+{
+  "format": 1,
+  "example": "03-permission-deny",
+  "file": "verify/copilot-sdk/examples/03-permission-deny.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Call issue_refund for order 42.\nmock-reply: Understood."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "issue_refund",
+            "input": {
+              "orderId": "example"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "issue_refund",
+              "output": "The user rejected this tool call. User feedback: Refunds need a human."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Understood.\nTool results: The user rejected this tool call. User feedback: Refunds need a human."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 33,
+      "message": "the handler never ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "the tool call completed as unsuccessful",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "the model saw the feedback string",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "the turn still finished with a reply",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Call issue_refund for order 7.\nmock-reply: ok"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_3",
+            "name": "issue_refund",
+            "input": {
+              "orderId": "example"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_3",
+              "name": "issue_refund",
+              "output": "Permission denied and could not request permission from user. Copilot needed the user's approval and no one could answer."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "issue_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "ok\nTool results: Permission denied and could not request permission from user. Copilot needed the user's approval and no one could answer."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "with no handler the turn still finishes",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 57,
+      "message": "no permission.requested event was emitted and the handler never ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "the model was told no one could approve the call",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "nothing is left pending",
+      "pass": true
+    }
+  ]
+}

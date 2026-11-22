@@ -3,13 +3,15 @@
 // environment, a temp HOME and working directory, and sandbox-preload.mjs, which starts the mock
 // model inside the namespace and points every session at it as a BYOK provider.
 // Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
-// For a directory other than extracted/, every *.ts file is run (our own examples).
+// For a directory other than extracted/, every *.ts file is run (our own examples), and each one's model exchange and
+// checks are written to results/transcripts/.
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -136,7 +138,11 @@ async function runOne(t) {
     runFile = resolve(`.tmp/patched/${t.id}.ts`);
     await writeFile(runFile, `${code}\nconsole.log(${JSON.stringify(DONE)});\n`);
   }
-  const argv = ["--import", TSX, "--import", PRELOAD, runFile];
+  // Our own examples also record their model exchange and checks as a transcript (results/transcripts/). The recorder
+  // loads before the preload, which finds it when it starts the mock; the mock and the example share one process.
+  const argv = ["--import", TSX];
+  const transcript = isDocs ? undefined : transcriptRun(argv, env);
+  argv.push("--import", PRELOAD, runFile);
   const started = Date.now();
   const result = await new Promise((done) => {
     const child = spawn("unshare", ["-rn", "sh", "-c", `${LO_UP} && exec "$0" "$@"`, process.execPath, ...argv], {
@@ -177,6 +183,7 @@ async function runOne(t) {
       done({ exit, timedOut: false, out });
     });
   });
+  transcript?.write({ harnessDir: root, exampleFile: resolve(t.file), cwd });
   await rm(home, { recursive: true, force: true }).catch(() => {});
   const entries = (await readFile(log, "utf8"))
     .split("\n")

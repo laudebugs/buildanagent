@@ -1,0 +1,332 @@
+{
+  "format": 1,
+  "example": "09-triage-agent",
+  "file": "verify/copilot-sdk/examples/09-triage-agent.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "My parcel is late. Use lookup_orders, then escalate_to_human.\nmock-args lookup_orders {\"customerId\":\"cust-evil\"}\nmock-args escalate_to_human {\"reason\":\"late parcel\"}\nmock-reply: {\"category\":\"shipping\",\"escalated\":false,\"summary\":\"Order A-100 shipped.\"}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "lookup_orders",
+            "input": {
+              "customerId": "cust-evil"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "lookup_orders",
+              "output": "A-100 shipped"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_2",
+            "name": "escalate_to_human",
+            "input": {
+              "reason": "late parcel"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_2",
+              "name": "escalate_to_human",
+              "output": "The user rejected this tool call. User feedback: Reviewer declined."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"shipping\",\"escalated\":false,\"summary\":\"Order A-100 shipped.\"}"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 85,
+      "message": "lookup used the trusted customer id, not the model's argument",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 90,
+      "message": "the lookup tool exposes no identity parameter",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 94,
+      "message": "a declined escalation never ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 95,
+      "message": "only the escalation reached the reviewer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 96,
+      "message": "the typed result parsed (run 1)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 98,
+      "message": "no built-in tools offered (lookup_orders,escalate_to_human)",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 6,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "My parcel is late. Use lookup_orders, then escalate_to_human.\nmock-args lookup_orders {\"customerId\":\"cust-evil\"}\nmock-args escalate_to_human {\"reason\":\"late parcel\"}\nmock-reply: {\"category\":\"shipping\",\"escalated\":true,\"summary\":\"Escalated the late parcel.\"}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_4",
+            "name": "lookup_orders",
+            "input": {
+              "customerId": "cust-evil"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 8,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_4",
+              "name": "lookup_orders",
+              "output": "A-100 shipped"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_5",
+            "name": "escalate_to_human",
+            "input": {
+              "reason": "late parcel"
+            }
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 10,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_5",
+              "name": "escalate_to_human",
+              "output": "Escalated; a human will reply within a day."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"shipping\",\"escalated\":true,\"summary\":\"Escalated the late parcel.\"}"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 110,
+      "message": "an approved escalation ran once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 111,
+      "message": "the typed result parsed (run 2)",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 12,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Answer badly.\nmock-no-tools\nmock-reply: {\"category\":\"weather\",\"escalated\":false,\"summary\":\"x\"}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_orders",
+        "escalate_to_human"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"weather\",\"escalated\":false,\"summary\":\"x\"}"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 123,
+      "message": "a result that fails the schema throws (ZodError)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 124,
+      "message": "no further escalation ran",
+      "pass": true
+    }
+  ]
+}

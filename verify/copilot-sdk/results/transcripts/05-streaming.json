@@ -1,0 +1,126 @@
+{
+  "format": 1,
+  "example": "05-streaming",
+  "file": "verify/copilot-sdk/examples/05-streaming.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Tell me a short story\nmock-reply: Once upon a time, the end."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Once upon a time, the end."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "streaming: true emits deltas (got 2)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the deltas concatenate to the final message",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 1,
+      "messages": [],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Once upon a time, the end."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "streaming off emits no deltas",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 33,
+      "message": "and the final message is the same",
+      "pass": true
+    }
+  ]
+}

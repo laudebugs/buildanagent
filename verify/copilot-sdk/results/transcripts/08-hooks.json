@@ -1,0 +1,213 @@
+{
+  "format": 1,
+  "example": "08-hooks",
+  "file": "verify/copilot-sdk/examples/08-hooks.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Use close_ticket, then read_ticket.\nmock-reply: Done."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "close_ticket",
+        "read_ticket"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "close_ticket",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "close_ticket",
+              "output": "Denied by preToolUse hook: Closing needs a supervisor."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "close_ticket",
+        "read_ticket"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_2",
+            "name": "read_ticket",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_2",
+              "name": "read_ticket",
+              "output": "ticket body (redacted)"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "bash",
+        "read_bash",
+        "stop_bash",
+        "list_bash",
+        "view",
+        "create",
+        "edit",
+        "web_fetch",
+        "semantic_code_search",
+        "skill",
+        "run_dynamic_workflow",
+        "dynamic_workflows_manage",
+        "sql",
+        "read_agent",
+        "list_agents",
+        "write_agent",
+        "grep",
+        "glob",
+        "task",
+        "close_ticket",
+        "read_ticket"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done.\nTool results: Denied by preToolUse hook: Closing needs a supervisor. | ticket body (redacted)"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "the denied tool's handler never ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 52,
+      "message": "the allowed tool ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "onPermissionRequest was not asked for the denied tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 54,
+      "message": "onPreToolUse runs before onPermissionRequest",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "the model saw the deny reason",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 60,
+      "message": "onPostToolUse replaced the result",
+      "pass": true
+    }
+  ]
+}

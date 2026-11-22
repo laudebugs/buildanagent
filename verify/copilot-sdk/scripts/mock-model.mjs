@@ -14,7 +14,8 @@
 // Safety: a tool is callable only if the harness allowed it (see allowTools) AND its name does not
 // match BUILTIN_DENY. Built-in tools such as bash, edit or create are never called, so docs code
 // cannot touch the host through the model.
-// Every request is appended to `log` (JSONL) so tests can assert on what the runtime sent.
+// Every request is appended to `log` (JSONL) so tests can assert on what the runtime sent. With a `sink`, the mock also
+// reports each request and answer in the transcript format (scripts/transcripts/events.ts) for the book's replays.
 
 import { appendFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -122,12 +123,79 @@ export function plan(body) {
   return { text: seen.length ? `${reply}\nTool results: ${seen.join(" | ")}` : reply };
 }
 
+/** The tool name of each tool-use id in the conversation, to name the tool a result belongs to. */
+function toolNames(msgs) {
+  const names = {};
+  for (const m of msgs) for (const b of blocks(m)) if (b.type === "tool_use") names[b.id] = b.name;
+  return names;
+}
+
+/**
+ * The runtime puts a system reminder block before each prompt and a clock reading ahead of the prompt's own text. Both
+ * vary by machine and by run, so the transcript drops them and keeps the prompt the example wrote.
+ */
+const CLOCK = /^<current_datetime>[^<]*<\/current_datetime>\n\n/;
+
+/** The request's conversation as transcript messages: prompts, answers, and each tool call with its result. */
+function messagesOf(msgs) {
+  const names = toolNames(msgs);
+  const out = [];
+  for (const m of msgs) {
+    const parts = [];
+    const results = [];
+    for (const b of blocks(m)) {
+      if (b.type === "text") {
+        if (!b.text.startsWith("<system_reminder>")) parts.push({ type: "text", text: b.text.replace(CLOCK, "") });
+      } else if (b.type === "tool_use") {
+        parts.push({ type: "tool-call", id: b.id, name: b.name, input: b.input });
+      } else if (b.type === "tool_result") {
+        results.push({
+          type: "tool-result",
+          id: b.tool_use_id,
+          name: names[b.tool_use_id] ?? "",
+          output: textOf(b.content),
+          ...(b.is_error ? { error: true } : {}),
+        });
+      } else {
+        const { type, ...value } = b;
+        parts.push({ type: "other", kind: type, value });
+      }
+    }
+    if (results.length > 0) out.push({ role: "tool", parts: results });
+    if (parts.length > 0) out.push({ role: m.role, parts });
+  }
+  return out;
+}
+
+/** What the sink hears about one model call: the request, then the answer the mock chose for it. */
+function report(sink, body, p, id) {
+  const model = body.model ?? "mock";
+  sink({
+    kind: "request",
+    model,
+    messages: messagesOf(body.messages ?? []),
+    tools: (body.tools ?? []).map((t) => t.name),
+  });
+  sink({
+    kind: "response",
+    model,
+    message: {
+      role: "assistant",
+      parts: p.tool ? [{ type: "tool-call", id, name: p.tool.name, input: p.input }] : [{ type: "text", text: p.text }],
+    },
+    finish: p.tool ? "tool_use" : "end_turn",
+    // The mock chose this id, so the transcript keeps it as written.
+    ...(p.tool ? { scripted: [id] } : {}),
+  });
+}
+
 function sse(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify({ type: event, ...data })}\n\n`);
 }
 
-function reply(res, body, p) {
+function reply(res, body, p, sink) {
   const id = `msg_mock_${++seq}`;
+  if (sink) report(sink, body, p, `toolu_mock_${seq}`);
   const usage = { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 };
   const block = p.tool
     ? { type: "tool_use", id: `toolu_mock_${seq}`, name: p.tool.name, input: p.input }
@@ -161,7 +229,7 @@ function reply(res, body, p) {
 }
 
 /** Start the mock on 127.0.0.1. Resolves to the http.Server; its port is server.address().port. */
-export function startMock(port = 0, log = process.env.MOCK_LOG) {
+export function startMock(port = 0, log = process.env.MOCK_LOG, sink = undefined) {
   const server = createServer((req, res) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
@@ -178,7 +246,7 @@ export function startMock(port = 0, log = process.env.MOCK_LOG) {
           log,
           `${JSON.stringify({ method: req.method, path, tools: body.tools?.map((t) => t.name), plan: p && (p.tool ? { tool: p.tool.name, input: p.input } : { text: p.text }), body })}\n`,
         );
-      if (isMessages) return reply(res, body, p);
+      if (isMessages) return reply(res, body, p, sink);
       if (path.endsWith("/v1/messages/count_tokens")) {
         res.writeHead(200, { "content-type": "application/json" });
         return res.end(JSON.stringify({ input_tokens: 10 }));

@@ -27,6 +27,7 @@ export const MOCK_PACKAGES = {
   "packages/sdk": "@buildanagent/sdk",
   "verify/claude-agent-sdk": "@anthropic-ai/claude-agent-sdk",
   "verify/cloudflare-agents": "ai",
+  "verify/copilot-sdk": "@github/copilot-sdk",
   "verify/google-adk": "@google/adk",
   "verify/langchain": "@langchain/core",
   "verify/openai-agents-sdk": "@openai/agents",

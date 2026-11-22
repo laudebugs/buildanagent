@@ -7,12 +7,15 @@
 //      point at the mock and pass through unchanged.
 //   3. Tells the mock which tools it may call: the session's custom tools whose handlers don't touch
 //      the host, and tools of MCP servers that run our own fixtures. Built-ins are never callable.
-//   4. Rejects non-local fetch() from the example process (the network namespace already blocks it).
+//   4. When the runner preloads the transcript recorder first, passes the mock a sink for its requests and answers.
+//   5. Rejects non-local fetch() from the example process (the network namespace already blocks it).
 import { appendFileSync } from "node:fs";
 import { CopilotClient } from "@github/copilot-sdk";
+import { record, recording } from "../../../scripts/transcripts/events.ts";
 import { allowTools, startMock } from "./mock-model.mjs";
 
-const server = await startMock(0, process.env.MOCK_LOG);
+// When the runner preloads the transcript recorder before this file, the mock reports each request and answer to it.
+const server = await startMock(0, process.env.MOCK_LOG, recording ? record : undefined);
 server.unref();
 const url = `http://127.0.0.1:${server.address().port}`;
 process.env.COPILOT_MOCK_URL = url;
