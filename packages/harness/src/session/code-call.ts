@@ -30,10 +30,11 @@ import { findSticky, stickyDecision } from "./sticky.js";
 import type { EntryInput } from "./store.js";
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-type Body = DistributiveOmit<EntryInput, "id" | "parentId" | "timestamp" | "origin">;
+/** An entry to write, without the fields the writer fills in. */
+export type Body = DistributiveOmit<EntryInput, "id" | "parentId" | "timestamp" | "origin">;
 
-/** How a code call writes: one entry at a time after the one before, with its ids and clock. */
-interface Io {
+/** How a code call, or a sandbox escalation, writes: one entry at a time after the one before, with its ids and clock. */
+export interface Io {
   readonly session: Session;
   write(origin: Origin, body: Body, id?: string): Promise<SessionEntry>;
   readonly newId: () => string;
@@ -41,7 +42,7 @@ interface Io {
 }
 
 /** The settings both a call and its resolution take: where its ids and time come from. */
-interface IoOptions {
+export interface IoOptions {
   readonly clock?: Clock;
   readonly newId?: () => string;
 }
@@ -55,7 +56,8 @@ interface RunOptions<H> extends IoOptions {
 // The SDK's default nesting cap, so a tool that starts an agent from a code call nests as it would in a run.
 const MAX_DEPTH = 2;
 
-function ioOf(session: Session, options: IoOptions): Io {
+/** A writer for `session` with the given ids and clock, defaulting to random ids and the system clock. */
+export function ioOf(session: Session, options: IoOptions): Io {
   const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
   const clock = options.clock ?? { now: () => new Date().toISOString() };
   return {
