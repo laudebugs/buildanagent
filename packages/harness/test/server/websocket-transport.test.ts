@@ -11,7 +11,7 @@ import { MemorySocket } from "./memory-websocket.js";
 import { approvalSetup, callTool, gate, init, recorded, reply, settledCount, until } from "./server-helpers.js";
 import { initParams, methodsOf, type WsRun, wsRun, wsRunOn } from "./websocket-helpers.js";
 
-/** A global `WebSocket`, as Node, browsers and Workers type it, fits the transport's socket type. */
+/** A global `WebSocket`, as Node and browsers type it, fits the transport's socket type. */
 const fits = (socket: WebSocket): WebSocketLike => socket;
 void fits;
 

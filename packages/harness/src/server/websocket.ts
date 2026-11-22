@@ -1,8 +1,10 @@
 /**
  * The WebSocket transport: one client on one socket, one JSON-RPC message per text frame. It takes the socket by the
- * standard interface that Node, Workers and browsers share, so it needs no library and imports no Node module. Each
- * frame goes through the protocol's `JsonlFramer` as one line, so the rules for `\r`, U+2028 and bad UTF-8 are the
- * stdio transport's, and then through the same `RpcSession` that stdio uses, so a bad message gets the same answer.
+ * standard `WebSocket` interface that Node and browsers share, so it needs no library and imports no Node module. Each
+ * frame goes through the protocol's `JsonlFramer` as one line, so the rules for `\r` and U+2028 are the stdio
+ * transport's, and then through the same `RpcSession` that stdio uses, so a bad message gets the same answer. A text
+ * frame arrives as a JavaScript string, never as bytes, so the framer's UTF-8 check can't fail; the transport refuses
+ * a string with a lone surrogate itself, because UTF-8 can't carry one.
  *
  * A socket reports no event when its send buffer empties, so the transport polls `bufferedAmount` while the buffer is
  * over its bound. One poll timer runs at a time, shared by every message that waits, and it is cleared once there is
@@ -57,8 +59,10 @@ export interface WebSocketLike {
 /** What `webSocketTransport()` takes besides the dispatcher and the socket. */
 export interface WebSocketOptions {
   /**
-   * The most bytes one frame may hold, as UTF-8. A longer frame is answered with `InvalidRequest`, and the transport
-   * then closes the socket with code 1009. Default 8 MiB, the stdio transport's bound on a line.
+   * The most bytes one frame may hold: a text frame counted as UTF-8 without one trailing newline, and a binary frame
+   * by its byte length, which the transport reads without reading the data. A longer frame is answered with
+   * `InvalidRequest`, and the transport then closes the socket with code 1009. Default 8 MiB, the stdio transport's
+   * bound on a line.
    */
   readonly maxMessageBytes?: number;
   /**
@@ -134,7 +138,7 @@ function binarySize(data: unknown): number | undefined {
   return typeof size === "number" ? size : undefined;
 }
 
-/** `text` without one trailing `\n` or `\r\n`, which ends the message as it ends a line on stdio, uncounted by the bound. */
+/** `text` without one trailing `\n` or `\r\n`, which ends the message as it ends a stdio line and is not counted. */
 const withoutNewline = (text: string): string =>
   text.endsWith("\r\n") ? text.slice(0, -2) : text.endsWith("\n") ? text.slice(0, -1) : text;
 
@@ -144,12 +148,14 @@ const withoutNewline = (text: string): string =>
  * transport authenticates nobody, so whoever holds the socket acts as the dispatcher's user.
  *
  * Each frame must hold exactly one message, one line of JSON; a trailing newline is allowed and not needed. A frame
- * that isn't JSON is answered with `ParseError`. A binary frame, a frame with more than one line or none, a batch,
- * and a message without a valid envelope are answered with `InvalidRequest`. Each error carries the request's id when
- * it could be read and `null` otherwise. A malformed response is only logged, because JSON-RPC never answers a
- * response. None of these ends the transport, except a frame over `maxMessageBytes`, after which the socket is closed
- * with code 1009. The transport also stops once 128 of its error answers wait on a full send buffer. Each message the
- * server sends is one text frame with no trailing newline.
+ * that isn't JSON, or holds a lone surrogate, is answered with `ParseError`. A binary frame, a frame with more than one
+ * line or none, a batch, and a message without a valid envelope are answered with `InvalidRequest`. The transport
+ * never decodes a binary frame, so a binary, empty, multi-message or batch frame, and one that isn't JSON, is answered
+ * with a `null` id; a message whose envelope is bad but holds a valid id is answered with that id. A malformed
+ * response is only logged, because JSON-RPC never answers a response. None of these ends the transport, except a
+ * frame over `maxMessageBytes`, text or binary, after which the socket is closed with code 1009. The transport also
+ * stops once 128 of its error answers wait on a full send buffer. Each message the server sends is one text frame
+ * with no trailing newline.
  *
  * What the server sends waits while the socket's `bufferedAmount` is over `maxBufferedBytes`, so a client that stops
  * reading holds the connection's queue, which drops live events past its size instead of buffering them. A buffer
@@ -162,9 +168,9 @@ const withoutNewline = (text: string): string =>
  * The peer's close, or a socket error, stops the transport, and it logs the close code but never the peer's reason.
  * It closes the socket only when it stops itself: with 1008 when the client breaks a bound (128 error answers or
  * refusals unread, or a send buffer that never drains), 1009 for a frame that is too big, 1011 when the socket's
- * `send()` throws, and 1000 when `signal` aborts. Either way it removes its listeners and closes the connection. A turn the client started goes on in the
- * dispatcher. An option out of range, or a socket that is not open, rejects with a `HarnessError`, code
- * `invalid_transport_options`, before the transport connects.
+ * `send()` throws, and 1000 when `signal` aborts. Either way it removes its listeners and closes the connection. A
+ * turn the client started goes on in the dispatcher. An option out of range, or a socket that is not open, rejects
+ * with a `HarnessError`, code `invalid_transport_options`, before the transport connects.
  */
 export async function webSocketTransport(
   dispatcher: Dispatcher,
@@ -272,7 +278,7 @@ class WebSocketSession {
       this.#refuseTooBig();
       return;
     }
-    // `encode()` would write a lone surrogate as U+FFFD, so the frame is refused as stdio refuses a line of bad UTF-8.
+    // `TextEncoder` would write a lone surrogate as U+FFFD, so the frame is refused as stdio refuses bad UTF-8.
     if (LONE_SURROGATE.test(text)) {
       this.#rpc.refuse(notUtf8(), ErrorCodes.ParseError, "a frame");
       return;
