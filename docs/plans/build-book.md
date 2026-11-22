@@ -48,6 +48,7 @@ This repository already holds most of what a book on building agents needs. It h
 | BK21 | Every section is fact-checked before the next is drafted, then the whole chapter is reviewed and fixed | Accepted (owner, 2026-11-19) | none |
 | BK22 | The writing is not dry: varied openings, distinct analogies with their limits, used where they make a concept clearer, and illustrated analogies | Accepted (owner, 2026-11-19); analogies made optional (owner, 2026-11-19) | none |
 | BK23 | The book remembers the furthest section heading a reader reached in each chapter, in that browser's localStorage only, and the Contents page offers a link back to the chapter read most recently | Proposed (asked for by the owner in issue #174, 2026-11-21) | none |
+| BK24 | A reader can highlight a passage of a chapter and attach a short note to it, kept in that browser's localStorage only, with no account or sync, and can export a chapter's notes as Markdown | Proposed (browser-only notes chosen by the owner for issue #173, 2026-11-22) | none |
 
 ### BK1. A textbook in two parts, with figures and code from this repository (accepted)
 
@@ -469,6 +470,20 @@ Each chapter todo lists its planned analogies with where each breaks and whether
 
 [`apps/manual/README.md`](../../apps/manual/README.md#a-readers-place-stays-in-their-own-browser) describes the script, its stored value and its tests.
 
+### BK24. A reader's notes stay in their browser (proposed)
+
+**The request (issue [#173](https://github.com/laudebugs/buildanagent/issues/173), split from #170):** let a reader save personal notes on a chapter. The issue weighed notes kept in the browser against notes synced to a reader's account, and left three questions open. The owner chose browser-only notes and highlights on 2026-11-22: no backend, no accounts and no sync. This decision answers the three questions.
+
+- **Local-only first; account sync deferred.** Notes live in the reader's browser, like the theme choice and the reading place (BK23). Syncing them would need reader sign-in and a server that stores notes, which the static site does not have. That change to the site's architecture stays an owner decision for a later plan note or ADR, and nothing here builds toward it.
+- **A note attaches to a passage, anchored under a heading.** A reader selects text in a chapter's article, then highlights it or adds a note of up to 500 characters. The script stores a text-quote anchor: the selected text, up to 32 characters on each side, the id of the section heading above it and the offset within that section. A whole paragraph, a side note or the whole chapter would each be coarser than what readers mark in a printed book, and a selection covers all three. On the next visit the script scores every repeat of the quote in the article by how much of the stored context matches, and the stored section breaks a tie. A passage whose surrounding text changed is drawn and marked "moved"; one the chapter no longer holds is marked "not found" and stays listed in the notes panel with its text and note, so an edit to the chapter never deletes a reader's note.
+- **Export: yes, as Markdown.** The notes panel copies a chapter's notes to the clipboard as Markdown, with each passage and each note as an escaped quotation so a note's text stays text, shows the same text in a field the reader can copy by hand, and offers it as a `.md` download. The export is the reader's way to keep notes past a cleared browser or move them to another device.
+
+The CSS Custom Highlight API draws the highlights, so no element wraps the chapter's text and the built page stays the same. A browser without `CSS.highlights` gets no notes interface at all, rather than a toolbar that cannot draw what it saves. As of November 2026 Chrome has the API from version 105, Safari from 17.2 and Firefox from 140. Before version 146, Firefox draws the highlight's background but not its underline, so in Firefox 140 to 145 the pale background is the only mark of a highlight and a highlight with a note looks like one without. The notes panel still lists and labels both, and the gap closes with Firefox 146, so the book adds no second background colour for it.
+
+**What leaves the browser: nothing.** The notes live in one localStorage key, `manual-notes`, in the reader's own browser. The script makes no request and sets no cookie, and the book's Worker never sees a note, so §1's non-goal of collecting nothing about readers still holds. Each browser and device keeps its own notes, nothing syncs them, and clearing the site's data deletes them. A chapter keeps at most 200 highlights, and a passage already highlighted can still take a note at that cap. A stored value the script cannot read, written by a newer version of the book or damaged, is never overwritten; the panel says so and exports it as stored. When storage is full or blocked, the script says in view that the note was not saved; with storage blocked or without JavaScript, nothing appears.
+
+[`apps/manual/README.md`](../../apps/manual/README.md#a-readers-notes-stay-in-their-own-browser) describes the script, its stored value, its colours and its tests.
+
 ## 3. Every chapter is written section by section, each fact-checked before the next
 
 A chapter is a document, so it goes through the [five steps](../../AGENTS.md#every-document-is-drafted-fact-checked-and-reviewed-before-it-merges), with the owner's per-section rule (BK21): each section is fact-checked as soon as it is drafted, before the next one starts. Each chapter todo also starts with a research question, answered from the sources the todo names, so a chapter does not repeat a guide's structure for a reader the guide did not address. The writing review of a whole chapter adds the voice check of BK22 to the 5Cs.
@@ -598,7 +613,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T20](../todos/done/T20-chapter-the-session-log-and-context.md) | Chapter: The session log and context policy | T5, T7, T26 | M |
 | [T36](../todos/ready/T36-chapter-retrieval-and-long-term-memory.md) | Chapter: Retrieval and long-term memory | U18, T5, T6, T26, T41, T43, T44 | M |
 | [T21](../todos/ready/T21-chapter-tools-at-scale.md) | Chapter: Tools at scale: the registry, deferred tools, MCP and skills | T5, T6, T26, T30 | M |
-| [T22](../todos/ready/T22-chapter-permissions-sandboxes-and-credentials.md) | Chapter: Permissions, sandboxes and credentials, and the lethal trifecta | T5, T7, T26, T31 | M |
+| [T22](../todos/done/T22-chapter-permissions-sandboxes-and-credentials.md) | Chapter: Permissions, sandboxes and credentials, and the lethal trifecta | T5, T7, T26, T31 | M |
 | [T35](../todos/ready/T35-chapter-agents-people-can-watch.md) | Chapter: Agents people can watch: UIs, browsers and taking over | T5, T6, T26, T40 | M |
 | [T23](../todos/ready/T23-chapter-side-effects-that-can-fail.md) | Chapter: Side effects that can fail: outcomes, idempotency and plan approvals | T5, T6, T26, T32 | M |
 | [T24](../todos/ready/T24-chapter-durable-and-portable-agents.md) | Chapter: Durable and portable agents, and how work reaches them | T5, T6, T26, T33 | M |

@@ -78,7 +78,7 @@
     },
     {
       "kind": "check",
-      "line": 21,
+      "line": 22,
       "message": "default: built-ins plus ping (20 tools)",
       "pass": true
     },
@@ -154,7 +154,7 @@
     },
     {
       "kind": "check",
-      "line": 27,
+      "line": 28,
       "message": "availableTools custom:* offers only ping (got ping)",
       "pass": true
     },
@@ -230,13 +230,13 @@
     },
     {
       "kind": "check",
-      "line": 33,
+      "line": 34,
       "message": "excludedTools removes bash, edit and create",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 34,
+      "line": 35,
       "message": "other tools stay",
       "pass": true
     },
@@ -312,7 +312,7 @@
     },
     {
       "kind": "check",
-      "line": 37,
+      "line": 38,
       "message": "excludedTools wins over availableTools (got ping)",
       "pass": true
     },
@@ -349,13 +349,13 @@
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 42,
       "message": "BuiltInTools.Isolated has no host tools (got skill,read_agent,list_agents,write_agent,task)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 58,
+      "line": 60,
       "message": "mode empty rejects a session without availableTools",
       "pass": true
     },
@@ -431,7 +431,7 @@
     },
     {
       "kind": "check",
-      "line": 61,
+      "line": 63,
       "message": "and with custom:* offers only ping",
       "pass": true
     }

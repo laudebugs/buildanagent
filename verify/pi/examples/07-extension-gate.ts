@@ -26,11 +26,13 @@ const resourceLoader = new DefaultResourceLoader({
           return { content: [{ type: "text", text: "restarted" }], details: {} };
         },
       });
+      // #region gate
       pi.on("tool_call", async (event) => {
-        seen.push(event.toolName);
-        if (event.toolName === "restart_service") return { block: true, reason: "change freeze" };
-        return undefined;
+        seen.push(event.toolName); // book:note event
+        if (event.toolName === "restart_service") return { block: true, reason: "change freeze" }; // book:note block
+        return undefined; // book:note pass
       });
+      // #endregion
     },
   ],
 });
@@ -47,14 +49,16 @@ try {
   check(session.getActiveToolNames().includes("restart_service"), "extension-registered tool is active");
   await session.prompt("Restart the api service.");
   check(seen.includes("restart_service"), "tool_call fires before the tool executes");
-  check(executed === 0, "returning { block: true } stops execution");
+  // #region gate-checks
+  check(executed === 0, "returning { block: true } stops execution"); // book:note not-run
   const result = session.messages.find((m) => m.role === "toolResult") as
     | { isError?: boolean; content: unknown }
     | undefined;
   check(
     result?.isError === true && JSON.stringify(result.content).includes("change freeze"),
-    "the block reason reaches the model as an error result",
+    "the block reason reaches the model as an error result", // book:note reason
   );
+  // #endregion
 } finally {
   session.dispose();
 }

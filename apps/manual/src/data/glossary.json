@@ -170,5 +170,11 @@
     "term": "writer lock",
     "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
     "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "permission-pipeline",
+    "term": "permission pipeline",
+    "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
+    "sources": ["claude-agent-sdk-permissions"]
   }
 ]
