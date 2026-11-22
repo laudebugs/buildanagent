@@ -26,7 +26,7 @@ T37 is one section of Chapter T21, whose other sections cover the registry, defe
 - T37 scope: "One section in `apps/manual/src/content/chapters/tools-at-scale.md`"; "Listings, if the report recommends an example and a later todo writes it" — [T37](../../../todos/ready/T37-section-a2a.md).
 - T37 analogy: "A2A, as firms contracting through a standard purchase order. Where the analogy breaks: an A2A task can stream updates and ask for more input, which a purchase order never does." — [T37](../../../todos/ready/T37-section-a2a.md).
 - T37 risk: "The research may show the topic needs a chapter after all; if so, propose it to the owner instead of overfilling the section." — [T37](../../../todos/ready/T37-section-a2a.md).
-- T21 sections include "MCP after 2026-07-28: stateless requests, `server/discover`, multi round-trip requests (`input_required`), and the deprecation of Roots, Sampling, Logging and dynamic client registration" — [T21](../../../todos/ready/T21-chapter-tools-at-scale.md).
+- T21 sections include "MCP after 2026-07-28: stateless requests, `server/discover`, multi round-trip requests (`input_required`), and the deprecation of Roots, Sampling, Logging and dynamic client registration" — [T21](../../../todos/done/T21-chapter-tools-at-scale.md).
 
 ## Our harness speaks its own protocol and runs subagents in process
 

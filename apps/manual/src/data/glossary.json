@@ -176,5 +176,35 @@
     "term": "permission pipeline",
     "definition": "The fixed sequence of checks, such as hooks, deny rules, ask rules, a mode and allow rules, that decides whether each tool call a model asks for runs, is refused or goes to a person. The first step that decides ends the check, and a deny at any step ends it.",
     "sources": ["claude-agent-sdk-permissions"]
+  },
+  {
+    "id": "tool-registry",
+    "term": "tool registry",
+    "definition": "The one place a harness records every tool of every origin, built-in, extension, client or MCP. It gives each tool one canonical name, decides whether a request carries the tool's definition, and holds what permission rules and the log need to know about it.",
+    "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "deferred-tool",
+    "term": "deferred tool",
+    "definition": "A tool whose name the model can see but whose description and schema stay out of the request until the model searches for it and the harness loads the match.",
+    "sources": ["claude-agent-sdk-tool-search"]
+  },
+  {
+    "id": "skill",
+    "term": "skill",
+    "definition": "A folder with a SKILL.md file of instructions. Its name and description sit in the model's prompt, and the model reads the body only when the task matches, so a skill costs a few tokens until it is opened.",
+    "sources": ["anthropic-agent-skills-overview"]
+  },
+  {
+    "id": "idempotency-key",
+    "term": "idempotency key",
+    "definition": "A unique value that a caller sends with a write so the other side can recognise a repeat. The server applies the write once and answers a repeat with the first result, so a retry after a timeout cannot do the work twice.",
+    "sources": ["stripe-idempotent-requests"]
+  },
+  {
+    "id": "saga",
+    "term": "saga",
+    "definition": "A sequence of separate steps that each commit on their own, with an undo step, called a compensation, for each one that can be undone. If a step fails before the point of no return, the compensations run for the steps already done; steps after it are retried until they finish.",
+    "sources": ["azure-saga-pattern"]
   }
 ]

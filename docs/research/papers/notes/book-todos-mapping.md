@@ -105,7 +105,7 @@ Three of T21's planned sections meet U22's tool-security findings:
 
 For the skills lineage, Voyager's skill library (arXiv 2305.16291, rows 9–10) is the primary source for keeping skills as files.
 
-**Proposed addition to `docs/todos/ready/T21-chapter-tools-at-scale.md`, `## Context`:**
+**Proposed addition to `docs/todos/done/T21-chapter-tools-at-scale.md`, `## Context`:**
 
 > - [Agent research papers, tool-security section](../../research/papers/agent-research-papers.md#our-permission-pipeline-checks-what-a-tool-call-asks-to-do-but-not-what-the-tools-code-or-a-loaded-skill-actually-does) (U22): SkillCFI (arXiv 2611.24185) found that none of 53 public skills stayed within a fixed control-flow graph as written, and that runtime enforcement blocked all 240 violations a plain allowlist admitted. ACaM (arXiv 2611.23507) found tools whose code reaches beyond their description ("capability laundering") in real agents. Use them in the skills and registry sections and in the MCP analogy's break note, and Voyager (arXiv 2305.16291, [architectures section](../../research/papers/agent-research-papers.md#our-loop-already-is-a-react-loop-later-papers-add-layers-around-it-not-a-rival-architecture)) for skills kept as files. The checks both papers imply are U22 proposals 1 and 2, not adopted, so teach the gap without claiming our registry closes it.
 

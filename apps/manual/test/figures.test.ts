@@ -36,6 +36,8 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "permissions-sandboxes-and-credentials/credential-added",
     "permissions-sandboxes-and-credentials/glovebox",
     "permissions-sandboxes-and-credentials/permission-pipeline",
+    "side-effects-that-can-fail/ledger",
+    "side-effects-that-can-fail/outcomes",
     "stopping-and-structured-output/default-caps",
     "stopping-and-structured-output/jelly-mould",
     "talking-to-a-model/resent-history",
@@ -45,6 +47,8 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "the-session-log-and-context/context-layers",
     "the-session-log-and-context/limited-desk",
     "the-session-log-and-context/session-log-tree",
+    "tools-at-scale/back-room",
+    "tools-at-scale/one-registry",
     "tools/tool-round-trip",
     "tools/vending-machine",
   ]);

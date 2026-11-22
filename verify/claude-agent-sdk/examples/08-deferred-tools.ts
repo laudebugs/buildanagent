@@ -22,9 +22,9 @@ const stationTools = [
   tool("set_units", "Switch between Celsius and Fahrenheit", { units: z.enum(["C", "F"]) }, noteCall("set_units")),
 ];
 // Deferred by default: the model sees these tools' names, not their schemas.
-const deferred = createSdkMcpServer({ name: "weather", version: "1.0.0", tools: stationTools });
+const deferred = createSdkMcpServer({ name: "weather", version: "1.0.0", tools: stationTools }); // book:note deferred-default
 // alwaysLoad: true sends every definition in the first request, so no ToolSearch round trip is needed.
-const eager = createSdkMcpServer({ name: "weather", version: "1.0.0", tools: stationTools, alwaysLoad: true });
+const eager = createSdkMcpServer({ name: "weather", version: "1.0.0", tools: stationTools, alwaysLoad: true }); // book:note always-load
 // #endregion
 
 const options = (server: typeof deferred) => ({
