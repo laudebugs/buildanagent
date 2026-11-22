@@ -141,7 +141,8 @@ describe("the params check", () => {
   });
 
   test("only the params are checked: a member outside them is left to the envelope check", () => {
-    assert.equal(paramsProblem({ ...command("session/list", {}), extra: true }), undefined);
+    const extra = { ...command("session/list", {}), extra: true };
+    assert.equal(paramsProblem(extra), undefined);
     assert.equal(paramsProblem({ jsonrpc: "1.0", id: 1, method: "session/list", params: {} } as never), undefined);
   });
 
