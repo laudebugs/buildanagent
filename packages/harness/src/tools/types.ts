@@ -24,6 +24,8 @@ export type ApprovalReuse = "sticky" | "group" | "both" | "none";
 export interface RegisteredTool {
   /** The name every request, permission rule and log entry uses. */
   readonly canonicalName: string;
+  /** The name the tool was registered under, before any namespace or hash. */
+  readonly name: string;
   /** A native or display name that a rule may match too. It never replaces the canonical name. */
   readonly alias?: string;
   readonly source: ToolSource;
@@ -78,7 +80,7 @@ export interface ToolRegistry {
   /**
    * Adds a tool and returns it as registered. Throws a `DuplicateToolError` when the canonical name or alias is
    * taken, and a `HarnessError`, code `invalid_tool_registration`, for a name, source or option that is unusable. An
-   * MCP tool whose server or tool name needs cleaning, holds `__` or runs past 64 characters gets a hash of its source
+   * MCP tool whose server or tool name needs cleaning, holds `__`, starts or ends with `_`, or runs past 64 characters gets a hash of its source
    * and name in its canonical name, so the name depends on the tool alone. Only a final name that is still taken throws.
    */
   register(tool: ToolRegistration): RegisteredTool;
@@ -88,8 +90,9 @@ export interface ToolRegistry {
   list(): readonly RegisteredTool[];
   /**
    * Sets the exposure of every tool of `source`, and of each one registered after. An explicit exposure on a tool is
-   * replaced. A `RegisteredTool` that `register()` or `get()` returned earlier is a snapshot, so call `get()` again to
-   * read the current exposure.
+   * replaced. A run keeps the exposure `definitions()` gave its tools, so take `definitions()` again for the next run.
+   * A `RegisteredTool` that `register()` or `get()` returned earlier is a snapshot, so call `get()` again to read the
+   * current exposure.
    */
   setExposure(source: ToolSource, exposure: ToolExposure): void;
   /**
@@ -98,8 +101,9 @@ export interface ToolRegistry {
    */
   definitions<H = undefined>(wrap?: ToolWrapper<H>, hostContext?: H): ToolDefinition<unknown, unknown, unknown>[];
   /**
-   * The complete list of names a request sends, for `ModelCallPatch.activeTools`: every `direct` tool and every tool
-   * named in `activated`, in registration order. A name the registry doesn't hold is left out.
+   * The registry's own tools a request sends: every `direct` tool and every tool named in `activated`, in
+   * registration order, and a name the registry doesn't hold is left out. It is not the complete list when the run also
+   * has tools from outside the registry, so `toolSearchInterceptors()` builds its list from the request instead.
    */
   activeTools(activated: ReadonlySet<string>): string[];
   /**

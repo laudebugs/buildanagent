@@ -56,9 +56,24 @@ function check(tool: ToolRegistration): void {
   checkOneOf("exposure", tool.exposure, EXPOSURES);
   checkOneOf("outputTrust", tool.outputTrust, TRUSTS);
   checkOneOf("approvalReuse", tool.approvalReuse, REUSES);
+  for (const [field, value] of [
+    ["remoteAgent", tool.remoteAgent],
+    ["override", tool.override],
+  ] as const) {
+    if (value !== undefined && typeof value !== "boolean") invalid(`has a ${field} that is not true or false`);
+  }
   if (tool.alias !== undefined && (typeof tool.alias !== "string" || tool.alias === "")) invalid("has a blank alias");
   if (typeof (tool.definition as Partial<ToolDefinition> | undefined)?.execute !== "function") {
     invalid("needs a definition from defineTool(), whose execute is a function");
+  }
+}
+
+/** Checks the definition as the run will see it, under the canonical name, since an MCP tool's own name is cleaned. */
+function checkDefinition(definition: ToolDefinition<unknown, unknown, unknown>, canonicalName: string): void {
+  try {
+    defineTool({ ...definition, name: canonicalName });
+  } catch (error) {
+    invalid(`has a definition that defineTool() refuses: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -92,7 +107,10 @@ function trustOf(registration: ToolRegistration): OutputTrust {
   return isMcp(registration.source) || registration.remoteAgent === true ? "untrusted" : "trusted";
 }
 
-/** A wire description of a tool, enough to count its tokens. A Standard Schema describes itself; one that can't gives an empty object schema. */
+/**
+ * A wire description of a tool, enough to count its tokens. A Standard Schema describes itself, and `register()`
+ * refuses one that can't, so the empty object schema is only a fallback the types require.
+ */
 function wireOf(definition: ToolDefinition<unknown, unknown, unknown>): WireTool {
   const schema = definition.inputSchema as unknown as Record<string, unknown>;
   const standard = schema["~standard"] as { jsonSchema?: { input?(options: { target: string }): unknown } } | undefined;
@@ -113,6 +131,7 @@ class Registry implements ToolRegistry {
     check(registration);
     const { name, source } = registration;
     const canonicalName = this.#canonicalFor(registration);
+    checkDefinition(registration.definition, canonicalName);
     const existing = this.#entries.findIndex((entry) => entry.tool.canonicalName === canonicalName);
     const replaces = existing >= 0 ? this.#entries[existing] : undefined;
     if (replaces !== undefined && !this.#mayReplace(registration, replaces)) {
@@ -122,6 +141,7 @@ class Registry implements ToolRegistry {
     this.#checkAlias(registration.alias, canonicalName, replaces);
     const tool: RegisteredTool = {
       canonicalName,
+      name,
       ...(registration.alias === undefined ? {} : { alias: registration.alias }),
       source,
       pattern: (registration.pattern ?? "in_process") as HostPattern,
@@ -180,8 +200,13 @@ class Registry implements ToolRegistry {
    * holds `__` and so could blur the namespace, adds a hash of the source and name, so a name depends on its tool and
    * never on what was registered before it.
    */
-  #canonicalFor({ name, source }: ToolRegistration): string {
+  #canonicalFor({ name, alias, source }: ToolRegistration): string {
     if (!isMcp(source)) {
+      for (const taken of [name, alias]) {
+        if (taken?.toLowerCase().startsWith("mcp__")) {
+          invalid(`has the name or alias ${JSON.stringify(taken)}, and only an MCP tool takes the mcp__ prefix`);
+        }
+      }
       if (!isCanonicalName(name)) {
         invalid(`has the name ${JSON.stringify(name)}, which must be 1 to 64 characters from A-Z, a-z, 0-9, _ and -`);
       }

@@ -1,5 +1,11 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.25
+
+### Patch Changes
+
+- e4395da: Document every export, so the generated API reference has a description for each function, class, interface and type
+
 ## 0.1.0-alpha.24
 
 No changes in this release.
