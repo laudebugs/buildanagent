@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http, { type IncomingHttpHeaders } from "node:http";
 import https from "node:https";
-import type net from "node:net";
+import net from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -465,6 +465,77 @@ test("a pushCheckTimeoutMs that isn't a whole number of milliseconds a timer can
   const fine = await startTimedProxy({ pushCheckTimeoutMs: 2 ** 31 - 1 });
   await fine.close();
 });
+
+test("an idleTimeoutMs that isn't a whole number of milliseconds from 0 a timer can take is refused at start", async () => {
+  for (const bad of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 31, "120000"]) {
+    const error = await startTimedProxy({ idleTimeoutMs: bad as number }).then(
+      async (started) => {
+        await started.close();
+        return {} as { code?: string; message?: string };
+      },
+      (failure: { code?: string; message?: string }) => failure,
+    );
+    assert.equal(error.code, "invalid_egress_options", String(bad));
+    assert.match(error.message ?? "", /idleTimeoutMs/);
+    assert.equal((error.message ?? "").includes(String(bad)), false, "the message never quotes the value");
+  }
+  for (const fine of [0, 500, 2 ** 31 - 1]) await (await startTimedProxy({ idleTimeoutMs: fine })).close();
+});
+
+test("an idleTimeoutMs of 0 turns the idle timeout off for a push check, and the deadline still holds", async () => {
+  fresh();
+  const untimed = await startTimedProxy({ idleTimeoutMs: 0, pushCheckTimeoutMs: 900 });
+  try {
+    const body = `${command(`refs/heads/agent/${"x".repeat(200)}`)}0000PACK`;
+    assert.equal(await postPush(untimed, [body.slice(0, 50), body.slice(50, 120), body.slice(120)], 100), 200);
+    assert.equal(seen.at(-1)?.body.toString("latin1"), body, "the streamed push was forwarded whole");
+    const started = Date.now();
+    assert.equal(await postPush(untimed, [body.slice(0, 50), body.slice(50)], 2000), 403, "a stalled push");
+    assert.equal(logs.at(-1)?.reason, "git_timeout");
+    assert.ok(Date.now() - started < 1900, "is cut off at the deadline");
+  } finally {
+    await untimed.close();
+  }
+}, 30_000);
+
+test("a refused push closes its connection instead of reading the rest of its body", async () => {
+  fresh();
+  const { port: proxyPort } = new URL(proxy.url);
+  const total = 256 * 1024 * 1024;
+  const socket = net.connect(Number(proxyPort), "127.0.0.1");
+  let reply = "";
+  socket.on("data", (chunk: Buffer) => {
+    reply += chunk.toString("latin1");
+  });
+  socket.on("error", () => {});
+  const closed = new Promise<void>((done) => socket.once("close", () => done()));
+  await new Promise<void>((done) => socket.once("connect", () => done()));
+  socket.write(
+    `POST /git/owner/repo.git/git-receive-pack HTTP/1.1\r\nhost: proxy\r\nauthorization: ${authorized().authorization}\r\ncontent-length: ${total}\r\n\r\n`,
+  );
+  const refused = Buffer.from(`${command("refs/tags/v1")}0000PACK`, "latin1");
+  socket.write(refused);
+  let sent = refused.length;
+  const filler = Buffer.alloc(64 * 1024, 0x61);
+  let open = true;
+  void closed.then(() => {
+    open = false;
+  });
+  while (open && sent + filler.length <= total) {
+    sent += filler.length;
+    if (!socket.write(filler)) {
+      await Promise.race([new Promise((resume) => socket.once("drain", resume)), closed]);
+    }
+  }
+  await closed;
+  assert.match(reply, /^HTTP\/1\.1 403 /, "the client got the refusal");
+  assert.match(reply, /\r\nconnection: close\r\n/i);
+  assert.equal(logs.at(-1)?.reason, "git_ref_refused");
+  assert.ok(sent < total / 8, "the proxy stopped reading far short of the body");
+  assert.equal(seen.length, 0);
+  const body = `${command("refs/heads/agent/next")}0000PACK`;
+  assert.equal(await postPush(proxy, [body], 0), 200, "a new connection still works");
+}, 30_000);
 
 test("a whole command list in one piece is held to the size limit, by the proxy and by an in-process fetch", async () => {
   fresh();

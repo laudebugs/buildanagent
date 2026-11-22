@@ -59,7 +59,11 @@ export interface EgressProxyOptions {
    * for a real run: the check is what keeps a name that points at the host's own network from being reached.
    */
   readonly unsafeAllowAddresses?: readonly string[];
-  /** Ends a tunnel, a forwarded request or a push check that is idle this long. Defaults to 120000. */
+  /**
+   * Ends a tunnel, a forwarded request or a push check that is idle this long. A whole number of milliseconds from 0 to
+   * 2,147,483,647, where 0 turns the idle timeout off, as it does for a socket; anything else throws
+   * `invalid_egress_options` when the proxy starts. Defaults to 120000.
+   */
   readonly idleTimeoutMs?: number;
   /**
    * The longest a push's command list may take to arrive, from the start of its body, however often bytes come. The
@@ -134,6 +138,9 @@ const HOP_BY_HOP = new Set([
 ]);
 const DEFAULT_IDLE_MS = 120_000;
 const DEFAULT_PUSH_CHECK_MS = 60_000;
+// How much of a refused request's unread body is discarded, and for how long, before its connection is closed.
+const LINGER_BYTES = 1024 * 1024;
+const LINGER_MS = 1000;
 // The longest delay a timer takes; past it, `setTimeout` fires at once.
 const MAX_TIMER_MS = 2_147_483_647;
 // What Node refuses in a header value: anything but tab, printable ASCII and the Latin-1 range. A secret with a line break
@@ -168,13 +175,16 @@ function gitCredentialRefusal(presented: string | string[] | undefined, sentinel
   return typeof presented === "string" && basicCarries(presented, sentinel) ? undefined : refusal(403, "bad_sentinel");
 }
 
-/** Checks `pushCheckTimeoutMs` and returns the value to use. The message never quotes the value. */
-function pushCheckTimeout(ms: unknown): number {
-  if (ms === undefined) return DEFAULT_PUSH_CHECK_MS;
-  if (typeof ms === "number" && Number.isInteger(ms) && ms > 0 && ms <= MAX_TIMER_MS) return ms;
+/**
+ * Checks a timeout option and returns the value to use: `fallback` when it is unset, or a whole number of milliseconds
+ * from `min` to the longest delay a timer takes. The message names the option and never quotes the value.
+ */
+function timeoutOption(name: string, ms: unknown, min: number, fallback: number): number {
+  if (ms === undefined) return fallback;
+  if (typeof ms === "number" && Number.isInteger(ms) && ms >= min && ms <= MAX_TIMER_MS) return ms;
   throw new HarnessError(
     "invalid_egress_options",
-    `pushCheckTimeoutMs must be a whole number of milliseconds from 1 to ${MAX_TIMER_MS}`,
+    `${name} must be a whole number of milliseconds from ${min} to ${MAX_TIMER_MS}`,
   );
 }
 
@@ -188,12 +198,15 @@ class EgressGate {
   private readonly sockets = new Set<import("node:net").Socket>();
   private readonly requests = new Set<import("node:http").ClientRequest>();
   private readonly pushCheckMs: number;
+  // 0 means no idle timeout, as it does for `socket.setTimeout`.
+  private readonly idleMs: number;
   private origin = "";
 
   constructor(modules: Modules, options: EgressProxyOptions) {
     this.modules = modules;
     this.options = options;
-    this.pushCheckMs = pushCheckTimeout(options.pushCheckTimeoutMs);
+    this.idleMs = timeoutOption("idleTimeoutMs", options.idleTimeoutMs, 0, DEFAULT_IDLE_MS);
+    this.pushCheckMs = timeoutOption("pushCheckTimeoutMs", options.pushCheckTimeoutMs, 1, DEFAULT_PUSH_CHECK_MS);
     this.allow = parseAllow(options.allow);
     this.routes = new Map(parseRoutes(options.routes ?? [], this.allow).map((route) => [route.route, route]));
     this.unsafe = new Set(options.unsafeAllowAddresses ?? []);
@@ -295,9 +308,7 @@ class EgressGate {
     this.track(upstream);
     // A client that leaves before the tunnel is up takes the connection attempt with it.
     client.once("close", () => upstream.destroy());
-    upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () =>
-      upstream.destroy(Object.assign(new Error("idle"), { code: "ETIMEDOUT" })),
-    );
+    upstream.setTimeout(this.idleMs, () => upstream.destroy(Object.assign(new Error("idle"), { code: "ETIMEDOUT" })));
     upstream.once("error", (error) => {
       if (established) client.destroy();
       else deny(this.reasonOf(error), 502);
@@ -361,8 +372,8 @@ class EgressGate {
       route: undefined,
     };
     this.routeRequest(request.method ?? "GET", url, request.headers, request, gone.signal).then(
-      (reply) => this.finish(response, reply.reply, reply.base),
-      () => this.finish(response, refusal(502, "request_failed"), base),
+      (reply) => this.finish(response, reply.reply, reply.base, request),
+      () => this.finish(response, refusal(502, "request_failed"), base, request),
     );
   }
 
@@ -370,8 +381,8 @@ class EgressGate {
     response: import("node:http").ServerResponse,
     reply: RouteReply,
     base: Pick<EgressRecord, "kind" | "host" | "port" | "method" | "route">,
+    request?: import("node:http").IncomingMessage,
   ): void {
-    response.writeHead(reply.status, reply.headers);
     let bytes = 0;
     const report = () =>
       this.record({
@@ -380,6 +391,12 @@ class EgressGate {
         bytes,
         ...(reply.reason === undefined ? {} : { reason: reply.reason }),
       });
+    if (reply.body === undefined && reply.status >= 400 && request !== undefined && !request.complete) {
+      this.refuseAndClose(request, response, reply);
+      report();
+      return;
+    }
+    response.writeHead(reply.status, reply.headers);
     if (reply.body === undefined) {
       response.end(reply.status === 403 || reply.status >= 400 ? `${reply.reason ?? "refused"}\n` : undefined);
       report();
@@ -392,6 +409,41 @@ class EgressGate {
     reply.body.once("error", () => response.destroy());
     response.once("close", () => reply.body?.destroy());
     reply.body.pipe(response);
+  }
+
+  /**
+   * Refuses a request whose body has not been read to its end, and closes its connection. Node would otherwise read and
+   * discard the rest of the body, a whole pack perhaps, to keep the connection alive. The answer is written whole, with
+   * its length and `Connection: close`, and the response is ended, which closes the socket, only after the bytes already
+   * on their way are discarded, up to `LINGER_BYTES` or for `LINGER_MS`. Closing a socket with unread bytes resets the
+   * connection, and a client that has not yet read the answer would lose it.
+   */
+  private refuseAndClose(
+    request: import("node:http").IncomingMessage,
+    response: import("node:http").ServerResponse,
+    reply: RouteReply,
+  ): void {
+    const text = `${reply.reason ?? "refused"}\n`;
+    response.writeHead(reply.status, { ...reply.headers, connection: "close", "content-length": String(text.length) });
+    response.write(text);
+    let discarded = 0;
+    const done = () => {
+      clearTimeout(timer);
+      request.off("data", onData);
+      request.off("end", done);
+      request.off("close", done);
+      request.pause();
+      response.end();
+    };
+    const onData = (chunk: Uint8Array) => {
+      discarded += chunk.length;
+      if (discarded >= LINGER_BYTES) done();
+    };
+    const timer = setTimeout(done, LINGER_MS);
+    request.on("data", onData);
+    request.once("end", done);
+    request.once("close", done);
+    request.resume();
   }
 
   /**
@@ -498,9 +550,10 @@ class EgressGate {
     return new Promise((resolve) => {
       const reader = new PushReader(filter);
       const chunks: Uint8Array[] = [];
-      const idleMs = this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS;
       const timedOut = () => settle({ refused: "git_timeout" });
-      let idle = setTimeout(timedOut, idleMs);
+      // An idle timeout of 0 is off, so only the deadline ends a quiet body.
+      const startIdle = () => (this.idleMs === 0 ? undefined : setTimeout(timedOut, this.idleMs));
+      let idle = startIdle();
       const deadline = setTimeout(timedOut, this.pushCheckMs);
       const settle = (outcome: { refused: string } | { body: import("node:stream").Readable }) => {
         clearTimeout(idle);
@@ -509,6 +562,8 @@ class EgressGate {
         body.off("end", onEnd);
         body.off("error", onError);
         body.off("close", onError);
+        // A refused body is not read further; the answer closes its connection.
+        if ("refused" in outcome) body.pause();
         resolve(outcome);
       };
       const judge = (verdict: ReturnType<PushReader["add"]>, ended: boolean) => {
@@ -525,7 +580,7 @@ class EgressGate {
       };
       const onData = (chunk: Uint8Array) => {
         clearTimeout(idle);
-        idle = setTimeout(timedOut, idleMs);
+        idle = startIdle();
         chunks.push(chunk);
         judge(reader.add(chunk), false);
       };
@@ -574,7 +629,7 @@ class EgressGate {
       else signal?.addEventListener("abort", stop, { once: true });
       upstream.once("close", () => signal?.removeEventListener("abort", stop));
       this.requests.add(upstream);
-      upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy(new Error("idle")));
+      upstream.setTimeout(this.idleMs, () => upstream.destroy(new Error("idle")));
       upstream.once("close", () => this.requests.delete(upstream));
       upstream.once("response", (reply) => {
         const passed: Record<string, string | string[]> = {};
@@ -686,7 +741,7 @@ class EgressGate {
         this.requests.delete(upstream);
         request.signal.removeEventListener("abort", abort);
       });
-      upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () => upstream.destroy(new Error("idle")));
+      upstream.setTimeout(this.idleMs, () => upstream.destroy(new Error("idle")));
       upstream.once("response", (reply) => {
         let bytes = 0;
         reply.on("data", (chunk: Buffer) => {
