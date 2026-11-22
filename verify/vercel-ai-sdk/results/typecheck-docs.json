@@ -1960,7 +1960,7 @@
         "line": 19,
         "code": 2367,
         "kind": "api",
-        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | \"start-step\" | ... 11 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
+        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"ping\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | ... 13 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
       },
       {
         "line": 20,
@@ -6482,7 +6482,7 @@
         "line": 4,
         "code": 2345,
         "kind": "context",
-        "message": "Argument of type '{ output: Output.Output<unknown, unknown, never>; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
+        "message": "Argument of type '{ output: Output.Output<any, any, never>; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
       },
       {
         "line": 6,
@@ -6523,7 +6523,7 @@
         "line": 4,
         "code": 2345,
         "kind": "context",
-        "message": "Argument of type '{ output: Output<unknown, unknown, never>; onError({ error }: { error: unknown; }): void; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
+        "message": "Argument of type '{ output: Output<any, any, never>; onError({ error }: { error: unknown; }): void; }' is not assignable to parameter of type '((LanguageModelCallOptions & (RequestOptions<ToolSet> & Prompt)) & { tools?: ToolSet | undefined; }) & { ...; } & { ...; }'."
       },
       {
         "line": 6,
@@ -9739,7 +9739,7 @@
         "line": 11,
         "code": 2367,
         "kind": "api",
-        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | \"start-step\" | ... 11 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
+        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"ping\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | ... 13 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
       },
       {
         "line": 12,
@@ -10629,15 +10629,8 @@
     "importsSdk": true,
     "complete": true,
     "elided": false,
-    "errors": [
-      {
-        "line": 4,
-        "code": 2307,
-        "kind": "context",
-        "message": "Cannot find module 'vitest' or its corresponding type declarations."
-      }
-    ],
-    "status": "fragment"
+    "errors": [],
+    "status": "pass"
   },
   {
     "id": "docs__ai-sdk-core__testing__06",
@@ -11787,9 +11780,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 4,
@@ -11817,9 +11810,9 @@
       },
       {
         "line": 17,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -11844,15 +11837,15 @@
       },
       {
         "line": 2,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 6,
@@ -11880,15 +11873,15 @@
       },
       {
         "line": 15,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 16,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -11925,9 +11918,9 @@
       },
       {
         "line": 4,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -11952,9 +11945,9 @@
       },
       {
         "line": 3,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 4,
@@ -12027,9 +12020,9 @@
       },
       {
         "line": 17,
-        "code": 18004,
+        "code": 2552,
         "kind": "context",
-        "message": "No value exists in scope for the shorthand property 'chatId'. Either declare one or provide an initializer."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -12123,9 +12116,9 @@
       },
       {
         "line": 10,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 11,
@@ -12135,9 +12128,9 @@
       },
       {
         "line": 17,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -15904,7 +15897,7 @@
         "line": 19,
         "code": 2367,
         "kind": "api",
-        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | \"start-step\" | ... 11 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
+        "message": "This comparison appears to be unintentional because the types '\"abort\" | \"custom\" | \"error\" | \"file\" | \"finish\" | \"finish-step\" | \"ping\" | \"raw\" | \"reasoning-delta\" | \"reasoning-end\" | \"reasoning-file\" | \"reasoning-start\" | \"source\" | \"start\" | ... 13 more ... | \"tool-result\"' and '\"reasoning\"' have no overlap."
       },
       {
         "line": 20,
@@ -17307,9 +17300,9 @@
     "errors": [
       {
         "line": 24,
-        "code": 2353,
+        "code": 2769,
         "kind": "api",
-        "message": "Object literal may only specify known properties, and 'schemaName' does not exist in type '{ schema: FlexibleSchema<{ name: string; ingredients: { name: string; amount: string; }[]; steps: string[]; }>; name?: string | undefined; description?: string | undefined; }'."
+        "message": "No overload matches this call."
       }
     ],
     "status": "api-mismatch"
