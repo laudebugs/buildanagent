@@ -1220,4 +1220,12 @@ Checked on 2026-11-22 against the branch `todo/T65-live-run-our-packages` and `n
 | T65-31 | Wording only: the headers of `packages/sdk/examples/lib/live.mjs` and `packages/sdk/scripts/run-examples.mjs` both say `scripts/live/live.ts` reads and deletes the key's file. | `packages/sdk` headers | ✅ | `readFileSync` and `rmSync` of `LIVE_API_KEY_FILE` are in `scripts/live/live.ts`; `live.mjs` imports it and `run-examples.mjs` only passes the path. Comments only. |
 | T65-32 | Wording only: the book plan's note on how our own packages join the list is labelled `T65, done`. | Build-book plan, BK18 | ✅ | The todo is in `docs/todos/done/`. |
 
-**Totals:** 734 claims: 635 ✅, 93 ✏️, 6 ⚠️.
+## docs/agents-live-provider-folder: AGENTS.md names the live transcripts' provider folder
+
+Checked on 2026-11-22 against `scripts/live/config.mjs` and the committed folders on `main`.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| docs/agents-live-provider-folder-1 | A harness's live transcript is `results/live/<provider>/<example>.json`, in a folder for each provider. | AGENTS.md, layout entry for `verify/<sdk>/` | ✅ | `scripts/live/config.mjs` line 65 builds `${harness}/results/live/${provider}/${id}.json`, and `verify/langchain/results/live/anthropic/` and `verify/openai-agents-sdk/results/live/openai/` exist on `main`. |
+
+**Totals:** 735 claims: 636 ✅, 93 ✏️, 6 ⚠️.
