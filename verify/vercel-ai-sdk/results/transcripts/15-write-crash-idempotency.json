@@ -1,0 +1,469 @@
+{
+  "format": 1,
+  "example": "15-write-crash-idempotency",
+  "file": "verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 132,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 7"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 132,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "charge",
+            "input": {
+              "order": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 132,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "charge",
+              "output": {
+                "outcome": "applied"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 132,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 133,
+      "message": "a normal write reports applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 134,
+      "message": "the server wrote once and the log says applied",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 141,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 7"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 141,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "charge",
+            "input": {
+              "order": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 141,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "charge",
+              "output": {
+                "outcome": "applied",
+                "replayed": true
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 141,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 142,
+      "message": "a repeated write is answered from the log and sends no request",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 150,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 13"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 150,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_3",
+            "name": "charge",
+            "input": {
+              "order": 13
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 150,
+      "model": "model-3",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_3",
+              "name": "charge",
+              "output": {
+                "outcome": "not_applied"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 150,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 151,
+      "message": "a declined write reports not_applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 155,
+      "message": "a declined write is not a write",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 156,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 13"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 156,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_4",
+            "name": "charge",
+            "input": {
+              "order": 13
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 156,
+      "model": "model-4",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_4",
+              "name": "charge",
+              "output": {
+                "outcome": "not_applied",
+                "replayed": true
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 156,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 157,
+      "message": "a declined write is not sent again",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 186,
+      "message": "the child process was killed mid-write ",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 187,
+      "message": "the server had already written once for order 42",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 188,
+      "message": "the log has the key and no outcome, so the state is unknown",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 193,
+      "model": "model-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 42"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 193,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_5",
+            "name": "charge",
+            "input": {
+              "order": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 193,
+      "model": "model-5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_5",
+              "name": "charge",
+              "output": {
+                "outcome": "applied",
+                "reconciled": true
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 193,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 194,
+      "message": "the resume reconciles to applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 198,
+      "message": "the server received exactly one write request for order 42",
+      "pass": true
+    }
+  ]
+}
