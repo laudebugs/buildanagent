@@ -148,12 +148,13 @@ The new examples are `packages/sdk/examples/08-observer-events.ts`, `09-gate-and
 | 98 | In the example a steer and a follow-up are sent during the first model call, which also calls a tool. The steer is applied at step 1 before the second model call, the follow-up waits for the answer and is applied at step 2, and the run makes three model calls | § steering | ✅ | `10-steering.ts` checks "the steer was applied at step 1, after the first call's tool batch and before the second model call", "the follow-up waited until the run would have ended, then took a step of its own", `applied` equal to `steer@1,follow_up@2`, "the second model call is the first to read the steer, and it does not read the follow-up" and three steps. `steering.test.ts` tests the same boundary rules without the example |
 | 99 | A steering receipt rejects with `undelivered_message` if the run ends first, and the example awaits the receipts after the stream ends | § steering | ✅ | `packages/sdk/src/run.ts` `steer()` and `followUp()` docs ("rejects with an `SdkError` whose code is `undelivered_message` when the run ends first"); `10-steering.ts` awaits `Promise.all(receipts)` after the region |
 | 100 | After the first code review: the gate check's message says `beforeToolCall` ran for both calls and `afterToolCall` ran only for the call that executed | § tool hooks | ✅ | Re-check of rows 95 and 96: `09-gate-and-redact.ts` check message; the hook list it compares is unchanged
+| 101 | After the writing review: the hook-shape sentences, the events and steering paragraphs and the `#steer` and `#prompt` notes are split or reworded | § events; § tool hooks; § steering | ✅ | Re-check of rows 9, 13, 88, 89, 95, 96 and 99: wording only; the cited rows' claims are unchanged, and the patch claim for our SDK is now stated beside the after moment |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 90 |
+| ✅ confirmed | 91 |
 | ✏️ corrected | 6 (rows 30, 42, 74, 75, 76 and 84) |
 | ⚠️ unverified, an illustration marked as ours in the text | 4 (rows 1, 3, 52 and 69) |
-| Total | 100 |
+| Total | 101 |
