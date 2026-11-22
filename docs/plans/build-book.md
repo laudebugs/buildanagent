@@ -618,7 +618,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T35](../todos/ready/T35-chapter-agents-people-can-watch.md) | Chapter: Agents people can watch: UIs, browsers and taking over | T5, T6, T26, T40 | M |
 | [T23](../todos/done/T23-chapter-side-effects-that-can-fail.md) | Chapter: Side effects that can fail: outcomes, idempotency and plan approvals | T5, T6, T26, T32 | M |
 | [T24](../todos/done/T24-chapter-durable-and-portable-agents.md) | Chapter: Durable and portable agents, and how work reaches them | T5, T6, T26, T33 | M |
-| [T25](../todos/ready/T25-chapter-evals-observability-and-release.md) | Chapter: Evals, observability and release | T5, T6, T26, T34 | M |
+| [T25](../todos/done/T25-chapter-evals-observability-and-release.md) | Chapter: Evals, observability and release | T5, T6, T26, T34 | M |
 | [T37](../todos/done/T37-section-a2a.md) | Section: agent-to-agent protocols (A2A) in Chapter T21 | U19, T21, T45 | S |
 | [T38](../todos/ready/T38-section-voice-and-realtime.md) | Section: voice and realtime agents in Chapter T35 | U20, T35, T46, T47 | S |
 | [T39](../todos/ready/T39-section-fine-tuning-vs-prompting.md) | Section: fine-tuning versus prompting in Chapter T11 | U21, T11, T28 | S |

@@ -244,5 +244,17 @@
     "term": "writer lock",
     "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
     "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "pass-k",
+    "term": "pass^k",
+    "definition": "The share of tasks that an agent gets right on all k of k independent attempts. Unlike pass@k, which counts a task if any one attempt succeeds, pass^k measures consistency, and it falls as k grows.",
+    "sources": ["anthropic-demystifying-evals"]
+  },
+  {
+    "id": "llm-judge",
+    "term": "LLM judge",
+    "definition": "A model that grades another model's output against a written rubric, returning a score and a verdict. It scales to free-form answers that code cannot check, and its grades have to be checked against a person's.",
+    "sources": ["anthropic-multi-agent-research-system"]
   }
 ]

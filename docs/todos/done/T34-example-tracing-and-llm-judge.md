@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T25's todo, [T25](../ready/T25-chapter-evals-observability-and-release.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T25's todo, [T25](../done/T25-chapter-evals-observability-and-release.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 
