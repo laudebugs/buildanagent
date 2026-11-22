@@ -29,8 +29,15 @@ function argsAt(code, start) {
 function sessionsUseScriptedTransport(code) {
   for (const match of code.matchAll(/new\s+RealtimeSession\s*\(/g)) {
     const args = argsAt(code, match.index + match[0].length - 1);
-    const transport = args === undefined ? null : /\btransport\b(?:\s*:\s*([A-Za-z_$][\w$]*)\s*(?=[,}]))?/.exec(args);
-    const name = transport && (transport[1] ?? "transport");
+    // `transport: ident` names the identifier, a bare `transport` is the shorthand, and `transport:` followed by
+    // anything else (a call, a string, a member access) is not a scripted transport we can see, so it fails closed.
+    const key = args === undefined ? null : /\btransport\b(\s*:\s*)?/.exec(args);
+    let name = null;
+    if (key) {
+      const rest = args.slice(key.index + key[0].length);
+      if (key[1] === undefined) name = /^\s*[,}]|^\s*$/.test(rest) ? "transport" : null;
+      else name = /^([A-Za-z_$][\w$]*)\s*(?=[,}])/.exec(rest)?.[1] ?? null;
+    }
     const declared =
       name &&
       new RegExp(`\\b(?:const|let)\\s+${name.replace(/\$/g, "\\$&")}\\s*=\\s*new\\s+ScriptedRealtimeTransport\\s*\\(`);

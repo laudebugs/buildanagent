@@ -39,6 +39,7 @@ const s = new RealtimeSession(agent, { transport: new T() });`,
   "a transport that is not scripted": `${IMPORTS}const transport = makeTransport();
 const s = new RealtimeSession(agent, { transport });`,
   "an inline transport expression": `${IMPORTS}const s = new RealtimeSession(agent, { transport: pick() });`,
+  "an inline transport expression next to a scripted transport of the shorthand name": `${IMPORTS}const transport = new ScriptedRealtimeTransport(); const s = new RealtimeSession(agent, { transport: pick() });`,
   "a renamed session class": `import { RealtimeSession as RS } from "@openai/agents-realtime";
 ${SCRIPTED}const s = new RS(agent);`,
   "a dynamic import": `${SCRIPTED}const m = await import("@openai/agents-realtime");
