@@ -39,14 +39,32 @@ function blockPart(block: ContentBlock): Part {
   }
 }
 
+/** A tool result's output: the text the model reads, or its blocks when there is more than one text. */
+function outputOf(content: readonly ContentBlock[]): unknown {
+  const [only] = content;
+  return content.length === 1 && only?.type === "text" ? only.text : content.map(blockPart);
+}
+
 /** The gateway's context as transcript messages: the system prompt first, then each message in order. */
 function messagesOf(context: ModelContext): Message[] {
+  // A tool message names only its call, so its tool's name comes from the assistant message that made the call.
+  const names = new Map<string, string>();
   const messages: Message[] = context.system
     ? [{ role: "system", parts: [{ type: "text", text: context.system }] }]
     : [];
   for (const message of context.messages as readonly GatewayMessage[]) {
-    // The examples on this gateway call no tools, so a tool result has no shape here until one does.
-    if (message.role === "tool") throw new Error("the transcript recorder maps no tool result for the gateway yet");
+    if (message.role === "tool") {
+      const part: Part = {
+        type: "tool-result",
+        id: message.callId,
+        name: names.get(message.callId) ?? "",
+        output: outputOf(message.content),
+        ...(message.isError ? { error: true as const } : {}),
+      };
+      messages.push({ role: "tool", parts: [part] });
+      continue;
+    }
+    for (const block of message.content) if (block.type === "tool_call") names.set(block.callId, block.name);
     messages.push({ role: message.role, parts: message.content.map(blockPart) });
   }
   return messages;

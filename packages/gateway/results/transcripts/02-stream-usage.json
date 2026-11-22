@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 26,
+      "line": 32,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -35,7 +35,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 32,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -57,73 +57,73 @@
     },
     {
       "kind": "check",
-      "line": 35,
+      "line": 41,
       "message": "the text arrives in several deltas (11)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 36,
+      "line": 42,
       "message": "the deltas join to the whole answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 37,
+      "line": 43,
       "message": "total input is the three input classes together (3,000)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 44,
       "message": "usage reports the uncached input tokens (1,000)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 39,
+      "line": 45,
       "message": "usage reports the cache-read tokens (1,500)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 46,
       "message": "usage reports the cache-write tokens, by lifetime (500, 0)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 50,
       "message": "usage reports the output tokens (200)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 51,
       "message": "the price comes from the catalog, since the provider billed no total",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 44,
+      "line": 53,
       "message": "the shipped catalog lists Claude Sonnet 5.5",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 52,
+      "line": 61,
       "message": "each class times its own catalog rate is 5,400,000 nano-dollars (5400000)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 53,
+      "line": 62,
       "message": "the message's cost is the same $0.0054 (0.0054)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 57,
+      "line": 66,
       "message": "billing every input token at the uncached rate would cost more",
       "pass": true
     }
