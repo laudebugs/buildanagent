@@ -36,7 +36,7 @@ Four listings show how the in-process mocks are scripted. The OpenAI and LangCha
 ::note[Each step is an assistant message. This one calls `lookup_customer`, and the next two, below it in the file, call `escalate` and `submit_triage`.]{#first-turn}
 :::
 :::listing[ADK]{#mock-adk file="verify/google-adk/examples/lib/check.ts" region="scripted-llm"}
-::note[The harness copies each request before the script sees it, so a later change to the request cannot alter the record.]{#record}
+::note[The harness stores a copy of each request, so a later change to the request cannot alter the record.]{#record}
 ::note[The script is a function from the request to the next response, so a test can answer by what the request holds.]{#play}
 :::
 ::::
@@ -65,7 +65,7 @@ Before you trust a check, ask what a do-nothing agent would do to it. If the che
 
 ## A complete agent is two tools, a gate, a typed result and a cap, and the checks say which of them holds
 
-The book's capstone is a support-triage agent, small enough to read in one sitting. Given a ticket, it looks up the customer's order, asks a person before it refunds anything, returns a record that matches a schema, and stops after a fixed number of steps. [[lst:capstone-ai]] is the AI SDK's version in full. It runs offline against a scripted model, and its notes mark the five parts that make it an agent and not a single call.
+The book's capstone is a support-triage agent, small enough to read in one sitting. Given a ticket, it looks up the customer's order, asks a person before it refunds anything, returns a record that matches a schema, and stops after a fixed number of steps. [[lst:capstone-ai]] is the AI SDK's version in full. It runs offline against a scripted model, and its six notes mark the script, the gate, the typed result, the cap and two of the checks.
 
 :::listing[A complete triage agent on the AI SDK, with its checks]{#capstone-ai file="verify/vercel-ai-sdk/examples/09-triage-agent.ts" replay}
 ::note[The script: three turns, in order. The model looks up the order, asks for a refund, and answers with the triage record as JSON.]{#script}
