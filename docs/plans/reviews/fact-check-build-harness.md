@@ -517,4 +517,16 @@ Checked on 2026-11-22 against the branch at `66588c9` after merging `main`.
 | N43-53 | `idleTimeoutMs` takes a whole number from 0 to 2,147,483,647, 0 turns the idle timeout off, and any other value makes `startEgressProxy()` throw `invalid_egress_options`. | README; todo Outcome | ✅ | `egress-proxy.ts` shared timeout check and `git-route.test.ts`: each invalid value is refused with a message that does not contain it, and 0, 500 and the maximum start; a streamed push passes with `idleTimeoutMs` 0 and the deadline still cuts off a stalled push; the fixer's mutations (minimum 1, no validation, idle timer not skipped) failed the tests. |
 | N43-54 | A refused push gets a 403 with `Connection: close`, and the proxy discards what is in flight for up to 1 MiB or 1 second before it ends the response. | README; todo Outcome | ✅ | `egress-proxy.ts`; `git-route.test.ts` sends a refused push with a 256 MiB body and sees the 403, `Connection: close`, a closed connection after less than an eighth of the body, and a working new connection; destroying at once failed the existing push-size test with ECONNRESET. |
 
-**Totals:** 399 claims: 300 ✅, 67 ✏️, 32 ⚠️.
+
+## docs/n44-websocket-decisions: plan §6.4 records two N44 choices
+
+Checked on 2026-11-22 against `packages/harness/src/server/websocket.ts` on `main` and a Node 22 run.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| docs/n44-websocket-decisions-1 | The WebSocket transport closes the socket with 1009 after a frame over the size bound, and stdio keeps its stream open after an oversize line. | Plan §6.4 | ✅ | `MESSAGE_TOO_BIG` in `websocket.ts`; N29's Outcome says a line over `maxLineBytes` gets `InvalidRequest` and the stream goes on. |
+| docs/n44-websocket-decisions-2 | The global `WebSocket` refuses 1008, 1009 and 1011 in `close()`, and the transport retries them as 4008, 4009 and 4011 with the same reason. | Plan §6.4 | ✅ | Run in Node 22 on 2026-11-22: those three codes threw `InvalidAccessError`, and `closeSocket` in `websocket.ts` retries with `4000 + (code - 1000)`. |
+| docs/n44-websocket-decisions-3 | The manager session confirmed both choices on 2026-11-22. | Plan §6.4 | ✅ | The manager's message in this session, which is not an owner decision; the plan says so. |
+
+
+**Totals:** 402 claims: 303 ✅, 67 ✏️, 32 ⚠️.
