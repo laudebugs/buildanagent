@@ -34,6 +34,7 @@ declare global {
   const resolution: sdk.Resolution;
   const findOrder: FindOrder;
   const findPlan: (customerId: string) => Promise<string>;
+  const session: { readonly customerId: string };
   const fixture: string;
   const gate: NonNullable<sdk.Interceptors["beforeToolCall"]>;
   const base: {

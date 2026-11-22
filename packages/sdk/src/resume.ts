@@ -5,11 +5,12 @@
  * call asks again with a new request.
  */
 import type { AssistantMessage, Message } from "@buildanagent/gateway";
+import { isHashable } from "./app-data.js";
 import { fillTemplate, SDK_DEFAULTS } from "./defaults.js";
 import { SdkError } from "./errors.js";
 import type { AgentEventBody, ResolutionRejectionCause } from "./events.js";
 import { denied, textOf } from "./hook-runner.js";
-import type { Context } from "./result.js";
+import type { Context, RunError } from "./result.js";
 import type { ToolCall, ToolResult } from "./tools/types.js";
 import {
   type Recheck,
@@ -204,28 +205,61 @@ function inputOf(inputs: Readonly<Record<string, unknown>>, id: string): unknown
 /** What the checks need from the run. */
 export interface JudgeContext {
   readonly signer: ApprovalSigner;
+  /** The app data this resume received; `undefined` when it received none. */
+  readonly app?: unknown;
   send(body: AgentEventBody): void;
+}
+
+/** Why a resume stops before any call runs: the caller's identity can't be shown to match the request's. */
+export interface Refusal {
+  readonly refused: RunError;
+}
+
+/** The causes that, in a run that has app data, mean a stored request can't be trusted to be asked again. */
+const UNTRUSTED_REQUEST: readonly ResolutionRejectionCause[] = ["malformed", "signature_invalid", "error"];
+
+/** The error a refused resume ends with. It names no app data. */
+function refusalFor(cause: ResolutionRejectionCause, callId: string, hashable: boolean): Refusal {
+  if (cause === "app_mismatch") {
+    const [kind, why] = hashable
+      ? (["app_mismatch", "is bound to other app data than continueRun() received"] as const)
+      : ([
+          "app_unhashable",
+          "is bound to app data, and the app continueRun() received has no canonical JSON form",
+        ] as const);
+    return { refused: { kind, message: `the pending request for call ${callId} ${why}` } };
+  }
+  return {
+    refused: {
+      kind: "request_unverified",
+      message: `the pending request for call ${callId} failed its check (${cause}) in a run that has app data, so it was not asked again for the caller who resumed`,
+    },
+  };
 }
 
 /**
  * Checks each waiting call's stored request and resolution, in model order, and decides what happens to the call.
  * Nothing runs here: the run acts on the verdicts afterwards.
+ *
+ * Every call's binding is checked before any verdict, so a refusal comes before the first `recheck`. A request bound
+ * to other app data, or any request that can't be trusted in a run that has app data, ends the resume with a
+ * `Refusal`: asking again would sign a new request for whoever resumed, so the run stops instead.
  */
-export async function judgeOpenCalls(resume: ResumeSetup, ctx: JudgeContext): Promise<Verdict[]> {
+export async function judgeOpenCalls(resume: ResumeSetup, ctx: JudgeContext): Promise<Verdict[] | Refusal> {
   const reject = (requestId: string, callId: string | undefined, cause: ResolutionRejectionCause) =>
     ctx.send({ type: "resolution_rejected", requestId, ...(callId === undefined ? {} : { callId }), cause });
   for (const id of resume.unmatched) reject(id, undefined, "unknown_request");
+  const checked = await checkAll(resume, ctx, reject);
+  if ("refused" in checked) return checked;
   const verdicts: Verdict[] = [];
-  for (const { call, request } of resume.open) {
+  for (const [index, { call, request }] of resume.open.entries()) {
+    const cause = checked.causes[index];
+    const input = inputOf(resume.inputs, request.id);
+    const resolution = resume.resolutions.get(request.id);
     if (resume.replayed.has(request.id)) {
       reject(request.id, call.callId, "replayed");
       verdicts.push({ kind: "reissue", call });
-      continue;
-    }
-    const input = inputOf(resume.inputs, request.id);
-    const resolution = resume.resolutions.get(request.id);
-    const cause = await failedCheck(request, resolution ?? probeOf(request), call, input, ctx.signer);
-    if (cause !== undefined) {
+    } else if (cause !== undefined) {
       reject(request.id, call.callId, cause);
       verdicts.push({ kind: "reissue", call });
     } else if (resolution === undefined) {
@@ -237,18 +271,40 @@ export async function judgeOpenCalls(resume: ResumeSetup, ctx: JudgeContext): Pr
   return verdicts;
 }
 
+/** Why each waiting call's request or resolution failed, or a `Refusal` for the first one that ends the resume. */
+async function checkAll(
+  resume: ResumeSetup,
+  ctx: JudgeContext,
+  reject: (requestId: string, callId: string | undefined, cause: ResolutionRejectionCause) => void,
+): Promise<{ causes: (ResolutionRejectionCause | undefined)[] } | Refusal> {
+  const hasApp = ctx.app !== undefined;
+  const causes: (ResolutionRejectionCause | undefined)[] = [];
+  for (const { call, request } of resume.open) {
+    const resolution = resume.resolutions.get(request.id);
+    const input = inputOf(resume.inputs, request.id);
+    const cause = await failedCheck(request, resolution ?? probeOf(request), call, input, ctx);
+    if (cause === "app_mismatch" || (hasApp && cause !== undefined && UNTRUSTED_REQUEST.includes(cause))) {
+      reject(request.id, call.callId, cause);
+      return refusalFor(cause, call.callId, !hasApp || isHashable(ctx.app));
+    }
+    causes.push(cause);
+  }
+  return { causes };
+}
+
 /** Why the request or its resolution failed `verifyResolution()`, or `undefined` when both passed. */
 async function failedCheck(
   request: SignedPendingRequest,
   resolution: Resolution,
   call: ToolCall,
   input: unknown,
-  signer: ApprovalSigner,
+  { signer, app }: JudgeContext,
 ): Promise<ResolutionRejectionCause | undefined> {
   try {
     const check = await verifyResolution(request, resolution, {
       signer,
       call: { callId: call.callId, tool: call.name, input },
+      ...(app === undefined ? {} : { app }),
     });
     return check.ok ? undefined : check.cause;
   } catch {

@@ -52,7 +52,7 @@ The sections of README.md and every public export, generated from this package's
 - [Scripted doubles stand in for the approver and an MCP server](README.md#scripted-doubles-stand-in-for-the-approver-and-an-mcp-server)
 - [Tests give the same result every run](README.md#tests-give-the-same-result-every-run)
 - [The support-triage capstone shows the whole SDK working in one agent](README.md#the-support-triage-capstone-shows-the-whole-sdk-working-in-one-agent)
-- [A reference loop shows the real loop's shape in under 400 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-under-400-lines)
+- [A reference loop shows the real loop's shape in about 440 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-about-440-lines)
 - [Build the SDK with its dependencies](README.md#build-the-sdk-with-its-dependencies)
 
 ## Exports from `@buildanagent/sdk`
@@ -78,7 +78,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface ContextEvent`: What `transformContext` receives: the conversation as it stands before the model call.
 - `interface ContinueOptions`: What `continueRun()` takes besides the shared options: the answers to a paused context's requests.
 - `continueRun()`: Goes on with a conversation from a result's `context`, or one you rebuilt from your own store.
-- `createPendingRequest()`: Signs an approval request for a tool call outside a run, such as a call your own code wants to make, with the payload a run writes when a gate returns `ask`: for the same fields, id and signer, the two requests and their signatures are identical.
+- `createPendingRequest()`: Signs an approval request for a tool call outside a run, such as a call your own code wants to make, with the payload a run writes when a gate returns `ask`: for the same fields, id and signer, the two requests and their signatures are identical, an `appHash` included when `fields.app` is the run's `app`.
 - `DEFAULT_PROGRESS`: The defaults, provisional until recorded runs retune them.
 - `DEFAULTS_HASH`: A hash of every default value, built-in prompt and tool description this SDK release uses: 64 lowercase hex digits, the SHA-256 of their canonical JSON.
 - `defineTool()`: Defines a tool.

@@ -18,6 +18,7 @@ interface SpecSignedPendingRequest {
   tool: string;
   inputHash: string;
   policyVersion?: string;
+  appHash?: string;
   question?: string;
   reason?: string;
   keyId: string;

@@ -11,6 +11,7 @@ import {
   type Model,
   type Sleep,
 } from "@buildanagent/gateway";
+import { isHashable } from "./app-data.js";
 import { checkBudgetOption } from "./budget.js";
 import { CAPABILITIES } from "./capabilities.js";
 import { DEFAULTS_HASH, SDK_DEFAULTS } from "./defaults.js";
@@ -76,10 +77,13 @@ export interface RunOptions<S = unknown, A = unknown> {
   /**
    * App data for the tools, which each reads as `ctx.app`: facts the caller knows and the model must not choose, such as
    * the signed-in customer. Build it for each request from the authenticated session, never once at module level. It
-   * reaches no model request, event or saved `Context`, and a signed pending request does not bind it. Pass it again
-   * to every `continueRun()`, and take it from the original caller: store it, or a reference to it, beside the stored
-   * context, because an approved call runs with whatever `app` the resuming process passes, and the approver's own
-   * session would run it as the approver. A nested run a tool starts gets none unless the tool passes it on.
+   * reaches no model request, event or saved `Context`. A pause binds a keyed MAC of it into the signed request, so
+   * pass the original caller's `app` again to `continueRun()`: store it, or a reference to it, beside the stored
+   * context. Another `app`, or none, ends the resume with an `error` result whose `error.kind` is `app_mismatch`,
+   * before any approved call runs. Two values are the same `app` when their RFC 8785 canonical JSON is the same, so
+   * key order does not matter. An `app` with no canonical form, such as one holding a `Date`, cannot be bound, and a
+   * run with a `beforeToolCall` gate refuses it at once with `invalid_run_options`. A nested run a tool starts gets
+   * none unless the tool passes it on.
    *
    * Once a tool declares an app type, `app` is required and must have every declared type, which the compiler checks
    * only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass
@@ -485,6 +489,24 @@ export function nestedRunDepth(
   return { depth: ctx.depth + 1, maxDepth: ctx.maxDepth, ...parentRun };
 }
 
+/**
+ * The `app` setup field. A run that can pause needs an `app` with a canonical JSON form, because a pause binds a MAC of
+ * it, so one with a gate refuses an `app` it could not bind, at once and naming `app`. Without a gate an unusable
+ * `app` is left alone until a pause is signed, such as a clarification or a call a resume asks again, which blocks
+ * that call with a `hook_error`.
+ */
+function appOf(options: RunOptions<unknown>): { app?: unknown } {
+  const { app } = options;
+  if (app === undefined) return {};
+  if (options.interceptors?.beforeToolCall !== undefined && !isHashable(app)) {
+    throw new SdkError(
+      "invalid_run_options",
+      "app has no canonical JSON form (a Date, a class instance, a function or a non-finite number), so a pause could not bind it to the caller",
+    );
+  }
+  return { app };
+}
+
 /** Checks `parentRun`: both ids are non-empty strings. Returns it as a field to spread, or nothing when absent. */
 function parentRunOf(options: RunOptions<unknown>): { parentRun?: ParentRun } {
   const { parentRun } = options;
@@ -600,7 +622,7 @@ function setupOf(
     depth,
     maxDepth,
     ...parentRunOf(options),
-    app: options.app,
+    ...appOf(options),
     modelOptions: options.modelOptions ?? {},
     includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),

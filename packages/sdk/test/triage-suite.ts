@@ -40,13 +40,13 @@ export const BUG: Triage = { category: "bug", priority: "high", summary: "Checko
 const QUESTION: Triage = { category: "question", priority: "low", summary: "A pro customer asked about checkout." };
 export const submit = (input: unknown): ScriptedCall => ({ name: "submit_triage", input });
 
-/** One process's systems: what the tools did, and the audit trail. */
-export function world() {
+/** One process's systems: what the tools did, and the audit trail. `customerEmail` is its signed-in customer. */
+export function world(customerEmail = "user@example.com") {
   const seen = { lookups: [] as string[], escalations: [] as string[], audit: [] as string[] };
   const deps = (model: Model): TriageDeps => ({
     model,
     signer: testSigner(),
-    customerEmail: "user@example.com",
+    customerEmail,
     findCustomer: async (email) => {
       seen.lookups.push(email);
       return { plan: "pro", openTickets: 2 };
@@ -120,6 +120,48 @@ function approvedEscalation(loop: Loop, backend: Backend) {
   });
 }
 
+function resumeAsAnotherCustomer(loop: Loop, backend: Backend) {
+  test(`${backend.name}: a resume as another customer ends in an app_mismatch error, and the approved escalation never runs`, async () => {
+    const first = await pauseForEscalation(loop, backend);
+    const fixture = backend.fixture([], "b");
+    const process = world("lead@example.com");
+    const allow: Resolution = { requestId: first.request.id, decision: "allow", by: "on-call lead" };
+    const { result, events } = await drive(
+      loop.continueRun(roundTrip(first.result.context), {
+        ...triageOptions(process.deps(fixture.model)),
+        resolutions: [allow],
+      }),
+    );
+    assert.equal(result.stopReason, "error");
+    assert.equal(result.stopReason === "error" ? result.error.kind : undefined, "app_mismatch");
+    assert.equal(rejection(events), "app_mismatch");
+    assert.ok(!events.some((event) => event.type === "approval_request"), "no new request was signed for the lead");
+    assert.deepEqual(process.seen.escalations, []);
+    assert.deepEqual(fixture.toolNames(), [], "no model call was made");
+    assert.deepEqual(
+      result.context.pending?.map((r) => r.id),
+      [first.request.id],
+      "the context keeps the request",
+    );
+  });
+
+  test(`${backend.name}: a resume whose app has no canonical form ends in an app_unhashable error`, async () => {
+    const first = await pauseForEscalation(loop, backend);
+    const fixture = backend.fixture([], "b");
+    const options = {
+      ...triageOptions(world().deps(fixture.model)),
+      app: { customerEmail: "user@example.com", at: new Date(0) },
+    };
+    const allow: Resolution = { requestId: first.request.id, decision: "allow" };
+    // The agent's gate would refuse the app at once, so the resume runs without it, as a run that only resumes can.
+    const { interceptors: _gate, ...noGate } = options;
+    const { result } = await drive(
+      loop.continueRun(roundTrip(first.result.context), { ...noGate, resolutions: [allow] } as never),
+    );
+    assert.equal(result.stopReason === "error" ? result.error.kind : undefined, "app_unhashable");
+  });
+}
+
 function rejectedEscalation(loop: Loop, backend: Backend) {
   test(`${backend.name}: a rejected escalation never runs and the model answers without it`, async () => {
     const first = await pauseForEscalation(loop, backend);
@@ -155,7 +197,7 @@ function invalidResult(loop: Loop, backend: Backend) {
 }
 
 function forgedSignature(loop: Loop, backend: Backend) {
-  test(`${backend.name}: a forged signature runs nothing, calls no model and pauses again`, async () => {
+  test(`${backend.name}: a forged signature runs nothing, calls no model and stops the run instead of asking again`, async () => {
     const first = await pauseForEscalation(loop, backend);
     const { request } = first;
     const pending = [{ ...request, signature: `${request.signature.slice(1)}A` }];
@@ -163,8 +205,12 @@ function forgedSignature(loop: Loop, backend: Backend) {
     const allow: Resolution = { requestId: request.id, decision: "allow", by: "attacker" };
     const second = await resume(loop, backend, [], forged, [allow]);
     second.fixture.assertComplete();
-    assert.equal(second.result.stopReason, "awaiting_approval");
+    // The run has app data, so a request that fails its signature is not asked again: a new one would be signed for
+    // whoever resumed. A run without app data asks again, which the reference-loop tests cover.
+    assert.equal(second.result.stopReason, "error");
+    assert.equal(second.result.stopReason === "error" ? second.result.error.kind : undefined, "request_unverified");
     assert.equal(rejection(second.events), "signature_invalid");
+    assert.ok(!second.events.some((event) => event.type === "approval_request"), "no new request was signed");
     assert.deepEqual(second.process.seen.escalations, []);
     assert.deepEqual(second.process.seen.lookups, []);
     assert.deepEqual(second.fixture.toolNames(), [], "no model call was made");
@@ -268,6 +314,7 @@ function stepCapAndBudget(loop: Loop, backend: Backend) {
 export function triageSuite(loop: Loop, backends: readonly Backend[]): void {
   for (const backend of backends) {
     approvedEscalation(loop, backend);
+    resumeAsAnotherCustomer(loop, backend);
     rejectedEscalation(loop, backend);
     invalidResult(loop, backend);
     forgedSignature(loop, backend);

@@ -2,8 +2,10 @@
 // an event or a saved context.
 import assert from "node:assert/strict";
 import {
+  canonicalInputHash,
   continueRun,
   defineTool,
+  isSdkError,
   nestedRunDepth,
   type RunOptions,
   type RunResult,
@@ -12,8 +14,8 @@ import {
   type ToolDefinition,
 } from "@buildanagent/sdk";
 import { test } from "vitest";
-import { pendingOf, processSigner } from "./resume-helpers.js";
-import { determinism, drive, scripted, text, toolCall } from "./run-helpers.js";
+import { otherRingSigner, pendingOf, processSigner, roundTrip } from "./resume-helpers.js";
+import { determinism, drive, scripted, text, toolCall, typesOf } from "./run-helpers.js";
 
 const SYSTEM = "You look customers up.";
 
@@ -272,7 +274,8 @@ test("a nested run sees no app data unless the tool passes it on", async () => {
   assert.deepEqual(childSaw, [undefined, { customerId: "cust-1" }]);
 });
 
-test("a call approved after a pause runs as the caller whose app data the resuming process passes back", async () => {
+/** A refund tool that records the app it ran for, a gate that asks, and the options both phases share. */
+function refundSetup() {
   const seen: unknown[] = [];
   const refund = defineTool<{ reason: string }, unknown, Session>({
     name: "refund",
@@ -291,33 +294,297 @@ test("a call approved after a pause runs as the caller whose app data the resumi
     interceptors: { beforeToolCall: () => ({ decision: "ask" as const, reason: "A person approves refunds." }) },
     ...determinism(),
   };
+  return { seen, options };
+}
+
+/** Pauses a refund for `app`, and returns what a resume needs: the stored context and the request. */
+async function pausedRefund(options: ReturnType<typeof refundSetup>["options"], app: Session) {
   const first = await drive(
-    run({
+    run({ ...options, model: scripted([toolCall("refund", { reason: "late" })]).model, input: "Refund me.", app }),
+  );
+  assert.equal(first.result.stopReason, "awaiting_approval");
+  const [request] = pendingOf(first.result);
+  assert.ok(request);
+  return { context: first.result.context, request, events: first.events };
+}
+
+const asApprover = (request: { id: string }) => ({
+  requestId: request.id,
+  decision: "allow" as const,
+  by: "support-lead-9",
+});
+
+test("a call approved after a pause runs for the caller whose app data the resume passes back", async () => {
+  const { seen, options } = refundSetup();
+  const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
+  assert.deepEqual(seen, [], "nothing runs before a person answers");
+  const resumed = await drive(
+    continueRun(roundTrip(context), {
       ...options,
-      model: scripted([toolCall("refund", { reason: "late" })]).model,
-      input: "Refund me.",
+      model: scripted([text("Refunded.")]).model,
+      resolutions: [asApprover(request)],
       app: { customerId: "cust-1" },
     }),
   );
-  assert.equal(first.result.stopReason, "awaiting_approval");
-  assert.deepEqual(seen, [], "nothing runs before a person answers");
-  const [request] = pendingOf(first.result);
-  assert.ok(request);
-  // The caller stores the original caller's app beside the context, as JSON like the context itself.
-  const stored = JSON.stringify({ context: first.result.context, app: { customerId: "cust-1" } });
-  const approverSession: Session = { customerId: "support-lead-9" };
-  const resolve = (app: Session) => {
-    const { context } = JSON.parse(stored) as { context: typeof first.result.context };
-    const allow = { requestId: request.id, decision: "allow" as const, by: approverSession.customerId };
-    return drive(
-      continueRun(context, { ...options, model: scripted([text("Refunded.")]).model, resolutions: [allow], app }),
-    );
+  assert.equal(resumed.result.stopReason, "done");
+  assert.deepEqual(seen, ["cust-1"], "the refund ran for the customer who asked, though a lead approved it");
+});
+
+/** Resumes a paused refund and collects the run's events, so a refusal can be checked with them. */
+async function resumeWith(
+  options: ReturnType<typeof refundSetup>["options"],
+  context: Awaited<ReturnType<typeof pausedRefund>>["context"],
+  extra: Record<string, unknown>,
+) {
+  const started = continueRun(roundTrip(context), {
+    ...options,
+    model: scripted([text("Refunded.")]).model,
+    ...extra,
+  } as never);
+  return drive(started);
+}
+
+function refusal(driven: Awaited<ReturnType<typeof resumeWith>>) {
+  const { result, events } = driven;
+  const rejected = events.find((event) => event.type === "resolution_rejected");
+  return {
+    kind: result.stopReason === "error" ? result.error.kind : undefined,
+    cause: rejected?.type === "resolution_rejected" ? rejected.cause : undefined,
+    ended: typesOf(events).slice(-2),
+    asked: events.some((event) => event.type === "approval_request"),
   };
-  const asOriginal = await resolve((JSON.parse(stored) as { app: Session }).app);
-  assert.equal(asOriginal.result.stopReason, "done");
-  assert.deepEqual(seen, ["cust-1"], "the refund ran for the customer who asked");
-  // The SDK does not bind `app` to the request, so a resume that passes the approver's own session runs as the approver.
-  // This is why the README tells callers to store the original `app` and pass it back.
-  await resolve(approverSession);
-  assert.deepEqual(seen, ["cust-1", "support-lead-9"]);
+}
+
+test("a resume with other app data ends in an error result with app_mismatch before the approved call runs", async () => {
+  const { seen, options } = refundSetup();
+  const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
+  const driven = await resumeWith(options, context, {
+    resolutions: [asApprover(request)],
+    app: { customerId: "support-lead-9" },
+  });
+  assert.deepEqual(seen, [], "the refund never ran");
+  assert.deepEqual(refusal(driven), {
+    kind: "app_mismatch",
+    cause: "app_mismatch",
+    ended: ["agent_settled", "run_end"],
+    asked: false,
+  });
+});
+
+test("a refused resume keeps the waiting requests in its context, so the right caller can still approve them", async () => {
+  const { seen, options } = refundSetup();
+  const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
+  const refused = await resumeWith(options, context, {
+    resolutions: [asApprover(request)],
+    app: { customerId: "support-lead-9" },
+  });
+  assert.equal(refusal(refused).kind, "app_mismatch");
+  const saved = refused.result.context;
+  assert.deepEqual(
+    saved.pending?.map((r) => r.id),
+    [request.id],
+    "the request is still in the saved context",
+  );
+  const resumed = await resumeWith(options, saved, {
+    resolutions: [asApprover(request)],
+    app: { customerId: "cust-1" },
+  });
+  assert.equal(resumed.result.stopReason, "done");
+  assert.deepEqual(seen, ["cust-1"]);
+});
+
+test("a resume with no app data is refused too, even when the types say it must pass some", async () => {
+  const { seen, options } = refundSetup();
+  const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
+  const driven = await resumeWith(options, context, { resolutions: [asApprover(request)] });
+  assert.equal(refusal(driven).kind, "app_mismatch");
+  assert.deepEqual(seen, []);
+});
+
+test("a resume whose app has no canonical JSON form reports app_unhashable, not a mismatch", async () => {
+  const { seen, options } = refundSetup();
+  const { context, request } = await pausedRefund(options, { customerId: "cust-1" });
+  // A resume with a gate would refuse the app up front, so this one has none, as a run that only resumes can.
+  const { interceptors: _gate, ...noGate } = options;
+  const driven = await resumeWith(noGate as never, context, {
+    resolutions: [asApprover(request)],
+    app: { customerId: "cust-1", at: new Date(0) },
+  });
+  assert.equal(refusal(driven).kind, "app_unhashable");
+  assert.deepEqual(seen, []);
+});
+
+test("a resume as another caller is refused whatever else is wrong with the request, and never asks again", async () => {
+  const lead = { customerId: "support-lead-9" };
+  // Each case corrupts the stored request or its answer a different way; none may reissue a request for the lead.
+  const cases: [string, (c: Awaited<ReturnType<typeof pausedRefund>>) => Record<string, unknown>, string][] = [
+    ["input not stored", (p) => ({ context: { ...p.context, pendingInputs: {} } }), "app_mismatch"],
+    [
+      "input changed",
+      (p) => ({ context: { ...p.context, pendingInputs: { [p.request.id]: { reason: "x" } } } }),
+      "app_mismatch",
+    ],
+    ["the key left the ring", () => ({ signer: otherRingSigner() }), "request_unverified"],
+    [
+      "a signed byte flipped",
+      (p) => ({
+        context: { ...p.context, pending: [{ ...p.request, signature: `${p.request.signature.slice(1)}A` }] },
+      }),
+      "request_unverified",
+    ],
+    [
+      "the app MAC stripped",
+      (p) => ({ context: { ...p.context, pending: [{ ...p.request, appHash: undefined }] } }),
+      "request_unverified",
+    ],
+    [
+      "a second resolution for one request",
+      (p) => ({ resolutions: [asApprover(p.request), asApprover(p.request)] }),
+      "app_mismatch",
+    ],
+  ];
+  for (const [name, change, kind] of cases) {
+    const { seen, options } = refundSetup();
+    const paused = await pausedRefund(options, { customerId: "cust-1" });
+    const stored = { ...paused, ...change(paused) } as typeof paused & {
+      context: typeof paused.context;
+      signer?: unknown;
+      resolutions?: unknown;
+    };
+    const driven = await resumeWith(
+      { ...options, ...(stored.signer === undefined ? {} : { signer: stored.signer }) } as never,
+      stored.context,
+      {
+        resolutions: stored.resolutions ?? [asApprover(paused.request)],
+        app: lead,
+      },
+    );
+    const outcome = refusal(driven);
+    assert.equal(outcome.kind, kind, name);
+    assert.equal(outcome.asked, false, `${name}: no new request was signed for the lead`);
+    assert.deepEqual(seen, [], `${name}: the refund never ran`);
+  }
+});
+
+test("every waiting call is checked before any runs, so an earlier approved call and its recheck never start", async () => {
+  const seen: string[] = [];
+  const rechecked: string[] = [];
+  const refund = defineTool<{ reason: string }, unknown, Session>({
+    name: "refund",
+    description: "Refund.",
+    inputSchema: { type: "object", properties: { reason: { type: "string" } }, required: ["reason"] },
+    effect: { kind: "write" },
+    async execute(input, ctx) {
+      seen.push(`${input.reason}:${ctx.app.customerId}`);
+      return { content: [{ type: "text", text: "refunded" }] };
+    },
+  });
+  const options = {
+    system: SYSTEM,
+    tools: [refund],
+    signer: processSigner(),
+    interceptors: { beforeToolCall: () => ({ decision: "ask" as const, reason: "A person approves refunds." }) },
+    ...determinism(),
+  };
+  const calls = {
+    content: [
+      { type: "tool_call" as const, callId: "c1", name: "refund", input: { reason: "first" } },
+      { type: "tool_call" as const, callId: "c2", name: "refund", input: { reason: "second" } },
+    ],
+  };
+  const first = await drive(
+    run({ ...options, model: scripted([calls]).model, input: "Refund both.", app: { customerId: "cust-1" } }),
+  );
+  const [one, two] = pendingOf(first.result);
+  assert.ok(one && two);
+  const corrupted = {
+    ...roundTrip(first.result.context),
+    pending: [one, { ...two, signature: `${two.signature.slice(1)}A` }],
+  };
+  const resumed = await drive(
+    continueRun(corrupted, {
+      ...options,
+      model: scripted([text("Done.")]).model,
+      resolutions: [asApprover(one), asApprover(two)],
+      recheck: async (request: { id: string }) => {
+        rechecked.push(request.id);
+        return "allow";
+      },
+      app: { customerId: "cust-1" },
+    }),
+  );
+  assert.equal(resumed.result.stopReason === "error" ? resumed.result.error.kind : undefined, "request_unverified");
+  assert.deepEqual(seen, [], "the first call did not run before the second was found unusable");
+  assert.deepEqual(rechecked, [], "no recheck ran");
+});
+
+test("a run with a gate refuses an app with no canonical JSON form at once, naming app, and a run with no gate does not", () => {
+  const { options } = refundSetup();
+  const bad = { customerId: "cust-1", at: new Date(0) };
+  assert.throws(
+    () => run({ ...options, model: scripted([]).model, input: "Hi.", app: bad as never }),
+    (error) =>
+      isSdkError(error) &&
+      error.code === "invalid_run_options" &&
+      /\bapp\b/.test(error.message) &&
+      !error.message.includes("cust-1"),
+  );
+  const { interceptors: _gate, ...noGate } = options;
+  run({ ...noGate, model: scripted([text("Hi.")]).model, input: "Hi.", app: bad as never });
+});
+
+test("the same app with its keys in another order is the same app, and the request holds a keyed MAC, not the app", async () => {
+  const { seen, options } = refundSetup();
+  const app = { customerId: "cust-1", region: "eu" };
+  const { context, request } = await pausedRefund(options as never, app as Session);
+  assert.ok(typeof request.appHash === "string" && request.appHash !== "");
+  assert.notEqual(request.appHash, await canonicalInputHash(app), "not the unkeyed hash, which a guess could test");
+  assert.ok(!JSON.stringify(context).includes("cust-1"), "the stored context holds no app data");
+  const reordered = { region: "eu", customerId: "cust-1" };
+  const resumed = await drive(
+    continueRun(roundTrip(context), {
+      ...options,
+      model: scripted([text("Refunded.")]).model,
+      resolutions: [asApprover(request)],
+      app: reordered,
+    }),
+  );
+  assert.equal(resumed.result.stopReason, "done");
+  assert.deepEqual(seen, ["cust-1"]);
+});
+
+test("a pause signed without app data binds none, so a resume of it takes any app", async () => {
+  const seen: unknown[] = [];
+  const refund = defineTool<{ reason: string }>({
+    name: "refund",
+    description: "Refund.",
+    inputSchema: { type: "object", properties: { reason: { type: "string" } }, required: ["reason"] },
+    effect: { kind: "write" },
+    async execute(_input, ctx) {
+      seen.push(ctx.app);
+      return { content: [{ type: "text", text: "refunded" }] };
+    },
+  });
+  const options = {
+    system: SYSTEM,
+    tools: [refund],
+    signer: processSigner(),
+    interceptors: { beforeToolCall: () => ({ decision: "ask" as const, reason: "A person approves refunds." }) },
+    ...determinism(),
+  };
+  const first = await drive(
+    run({ ...options, model: scripted([toolCall("refund", { reason: "late" })]).model, input: "Refund me." }),
+  );
+  const [request] = pendingOf(first.result);
+  assert.ok(request && !("appHash" in request), "no app data, no binding");
+  const resumed = await drive(
+    continueRun(roundTrip(first.result.context), {
+      ...options,
+      model: scripted([text("Refunded.")]).model,
+      resolutions: [{ requestId: request.id, decision: "allow" }],
+      app: { anything: true },
+    }),
+  );
+  assert.equal(resumed.result.stopReason, "done");
+  assert.deepEqual(seen, [{ anything: true }]);
 });

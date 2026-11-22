@@ -34,8 +34,18 @@ export interface RunError {
    * credit. `retryable`: a temporary failure that outlasted the model's retries. `fatal`: any other failure, such as a
    * rejected request. `hook`: an interceptor threw while the run fails closed, and `message` says which one.
    * `unknown_price`: the run has a `budgetUsd`, but a price it needs is unknown, so it can't check the spend.
+   * `app_mismatch`: `continueRun()` got app data that differs from, or lacks, what a stored request is bound to.
+   * `app_unhashable`: the stored request is bound to app data, and the `app` it got has no canonical JSON form.
+   * `request_unverified`: in a run with app data, a stored request failed its signature or shape check, so the run
+   * stopped instead of asking again for the caller who resumed.
    */
-  readonly kind: NonNullable<AssistantMessage["error"]>["kind"] | "hook" | "unknown_price";
+  readonly kind:
+    | NonNullable<AssistantMessage["error"]>["kind"]
+    | "hook"
+    | "unknown_price"
+    | "app_mismatch"
+    | "app_unhashable"
+    | "request_unverified";
   readonly message: string;
   /** The provider's HTTP status, when the failure came with one. */
   readonly status?: number;
