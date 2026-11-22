@@ -598,6 +598,16 @@
     "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
   },
   {
+    "id": "adk-callbacks-index",
+    "title": "Callbacks: Observe, Customize, and Control Agent Behavior",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/callbacks/index.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
     "id": "copilot-hooks-overview",
     "title": "Session hooks",
     "publisher": "GitHub Copilot SDK documentation",
