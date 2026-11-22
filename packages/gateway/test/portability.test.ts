@@ -35,6 +35,8 @@ const nodeOnlyFiles = new Set([
   "session/jsonl-store.ts",
   "session/file-lock.ts",
   "session/file-index.ts",
+  // The approval key ring is a file with a mode, so it is Node-only too, and has the same entry.
+  "session/file-key-store.ts",
 ]);
 
 // Each pattern names a Node-only API that would break the package on Cloudflare, AWS or Vercel edge targets.

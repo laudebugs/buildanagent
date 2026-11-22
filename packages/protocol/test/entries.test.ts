@@ -21,11 +21,7 @@ const sameType: Equal<(typeof SESSION_ENTRY_TYPES)[number], SessionEntry["type"]
 test("SESSION_ENTRY_TYPES lists every type of the union once, which pnpm typecheck enforces", () => {
   assert.equal(sameType, true);
   assert.equal(new Set(SESSION_ENTRY_TYPES).size, SESSION_ENTRY_TYPES.length);
-  assert.equal(
-    SESSION_ENTRY_TYPES.length,
-    18,
-    "the plan lists 21 types; approvals (N13) and code_call (N40) come later",
-  );
+  assert.equal(SESSION_ENTRY_TYPES.length, 20, "the plan lists 21 types; code_call (N40) comes later");
 });
 
 test("every entry type has a fixture, and parseEntry() reads each as a line and as a value", () => {

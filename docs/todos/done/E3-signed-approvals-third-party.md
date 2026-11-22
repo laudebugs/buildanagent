@@ -20,7 +20,7 @@ Make every approval on the two verified third-party SDKs signed, fail closed on 
 - [build-sdk.md, D5](../../plans/build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5): the signer contract this todo implements, and the fields it signs.
 - [ADR 0043](../../decisions/0043-standalone-safety-core.md) (accepted): why the signer lives in this package.
 - [ADR 0035](../../decisions/0035-read-only-key-store.md): a read-only `KeyStore` backs the key ring on serverless hosts.
-- [N13](../ready/N13-signed-approvals.md): the harness's acceptance criteria, which this todo mirrors for the third-party SDKs.
+- [N13](../done/N13-signed-approvals.md): the harness's acceptance criteria, which this todo mirrors for the third-party SDKs.
 - [Cloudflare reference §9](../../reference/cloudflare-agents/guide.md#9-tool-approval-reuses-the-ai-sdks-needsapproval-and-the-client-answers-over-the-chat-protocol) and [Vercel AI SDK reference §7](../../reference/vercel-ai-sdk/guide.md#7-approval-is-a-call-level-policy-not-a-flag-on-the-tool): each SDK's approval gate, and Vercel's `experimental_toolApprovalSecret`, without which a client can forge approvals.
 
 ## Scope

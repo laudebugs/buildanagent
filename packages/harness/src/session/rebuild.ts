@@ -6,7 +6,7 @@
  */
 import type { AssistantMessage, ContentBlock, Message } from "@buildanagent/gateway";
 import type { SessionEntry } from "@buildanagent/protocol";
-import type { Context } from "@buildanagent/sdk";
+import type { Context, SignedPendingRequest } from "@buildanagent/sdk";
 
 type Block = Extract<SessionEntry, { type: "message_block" }>;
 type Pending = { role: "user" | "assistant"; id: string; blocks: Block[] };
@@ -94,6 +94,60 @@ const EMPTY_USAGE: AssistantMessage["usage"] = {
 };
 const EMPTY_COST: AssistantMessage["cost"] = { total: null, basis: "unknown", currency: "USD" };
 
+/** A request that waits for a person, with the input its call would run with once approved. */
+export interface PendingApproval {
+  readonly request: SignedPendingRequest;
+  readonly input: unknown;
+}
+
+/**
+ * The requests on `path` that still wait: the latest request for each call of the last assistant message, while the call
+ * has no result. A resolution does not end a wait, because the run that applies it may refuse it or never finish: only
+ * the call's result does. A resume that started and died before the result is a crash, which `crashedResumes()` names,
+ * and its requests do not wait.
+ */
+export function pendingApprovals(path: readonly SessionEntry[]): PendingApproval[] {
+  const answered = new Set<string>();
+  const latest = new Map<string, PendingApproval>();
+  let lastMessage: string | undefined;
+  let lastCalls = new Set<string>();
+  for (const entry of path) {
+    if (entry.type === "tool_result") answered.add(entry.callId);
+    if (entry.type === "approval_requested")
+      latest.set(entry.request.callId, { request: entry.request, input: entry.input });
+    if (entry.type === "message_block" && entry.role === "assistant") {
+      if (entry.messageId !== lastMessage) lastCalls = new Set();
+      lastMessage = entry.messageId;
+      if (entry.block.type === "tool_call") lastCalls.add(entry.block.callId);
+    }
+  }
+  const crashed = crashedResumes(path);
+  return [...latest.values()].filter(
+    (entry) =>
+      lastCalls.has(entry.request.callId) && !answered.has(entry.request.callId) && !crashed.has(entry.request.id),
+  );
+}
+
+/**
+ * The ids of the requests whose resume started and died: the log ends in a `continue` turn that has no end, after
+ * allows were written for it. An approved call may have run, so it is settled as a crash and not asked again, even
+ * when the run died before it reached that call.
+ */
+export function crashedResumes(path: readonly SessionEntry[]): Set<string> {
+  const start = path.findLastIndex((entry) => entry.type === "turn_start");
+  const turn = path[start];
+  if (turn?.type !== "turn_start" || turn.mode !== "continue") return new Set();
+  if (path.slice(start).some((entry) => entry.type === "turn_end")) return new Set();
+  // Only the allows this run was given: a deny or an answer runs nothing, and an earlier run's answers are its own.
+  const since = path.slice(0, start).findLastIndex((entry) => entry.type === "turn_end");
+  return new Set(
+    path.slice(since + 1, start).flatMap((entry) => {
+      const answer = entry.type === "approval_resolved" ? entry.resolution : undefined;
+      return answer !== undefined && "decision" in answer && answer.decision === "allow" ? [answer.requestId] : [];
+    }),
+  );
+}
+
 /**
  * The context a path of entries stands for. `path` is a session's `path()`: the root to a HEAD, without `checkout`
  * entries. The system prompt is the latest `turn_start`'s, byte for byte, so a harness whose prompt changed later
@@ -122,5 +176,13 @@ export function contextOf(path: readonly SessionEntry[]): Context {
       default:
     }
   }
-  return { system, messages: builder.finish() };
+  const messages = builder.finish();
+  const waiting = pendingApprovals(path);
+  if (waiting.length === 0) return { system, messages };
+  return {
+    system,
+    messages,
+    pending: waiting.map((entry) => entry.request),
+    pendingInputs: Object.fromEntries(waiting.map((entry) => [entry.request.id, entry.input])),
+  };
 }

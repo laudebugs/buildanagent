@@ -1261,14 +1261,7 @@
       ]
     },
     "Resolution": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/shape-35ea71b268"
-        },
-        {
-          "$ref": "#/$defs/shape-e02ea8c4ec"
-        }
-      ]
+      "$ref": "#/$defs/shape-90890766e5"
     },
     "shape-35ea71b268": {
       "type": "object",
@@ -1315,6 +1308,16 @@
       ],
       "additionalProperties": false
     },
+    "shape-90890766e5": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/shape-35ea71b268"
+        },
+        {
+          "$ref": "#/$defs/shape-e02ea8c4ec"
+        }
+      ]
+    },
     "ModelContent": {
       "$ref": "#/$defs/shape-0541b81445"
     },
@@ -1354,6 +1357,16 @@
     },
     "shape-44136fa355": {},
     "SignedPendingRequest": {
+      "$ref": "#/$defs/shape-e8d48d7dfc"
+    },
+    "shape-be91c07e70": {
+      "type": "string",
+      "enum": [
+        "approval",
+        "clarification"
+      ]
+    },
+    "shape-e8d48d7dfc": {
       "type": "object",
       "properties": {
         "id": {
@@ -1405,13 +1418,6 @@
       ],
       "additionalProperties": false
     },
-    "shape-be91c07e70": {
-      "type": "string",
-      "enum": [
-        "approval",
-        "clarification"
-      ]
-    },
     "SessionEntry": {
       "oneOf": [
         {
@@ -1461,6 +1467,12 @@
         },
         {
           "$ref": "#/$defs/shape-16c3a65781"
+        },
+        {
+          "$ref": "#/$defs/shape-0372685c9f"
+        },
+        {
+          "$ref": "#/$defs/shape-9b94157c3d"
         },
         {
           "$ref": "#/$defs/shape-0ae3e72e7c"
@@ -2602,6 +2614,82 @@
         "origin",
         "type",
         "childSession"
+      ],
+      "additionalProperties": false
+    },
+    "shape-0372685c9f": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/shape-f0ebe3aa93"
+        },
+        "parentId": {
+          "$ref": "#/$defs/shape-174e29b899"
+        },
+        "seq": {
+          "$ref": "#/$defs/shape-83f6485d0d"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/shape-4a251fc3b0"
+        },
+        "origin": {
+          "$ref": "#/$defs/shape-3a32340578"
+        },
+        "type": {
+          "type": "string",
+          "const": "approval_requested"
+        },
+        "request": {
+          "$ref": "#/$defs/shape-e8d48d7dfc"
+        },
+        "input": {}
+      },
+      "required": [
+        "id",
+        "parentId",
+        "seq",
+        "timestamp",
+        "origin",
+        "type",
+        "request",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "shape-9b94157c3d": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/shape-f0ebe3aa93"
+        },
+        "parentId": {
+          "$ref": "#/$defs/shape-174e29b899"
+        },
+        "seq": {
+          "$ref": "#/$defs/shape-83f6485d0d"
+        },
+        "timestamp": {
+          "$ref": "#/$defs/shape-4a251fc3b0"
+        },
+        "origin": {
+          "$ref": "#/$defs/shape-3a32340578"
+        },
+        "type": {
+          "type": "string",
+          "const": "approval_resolved"
+        },
+        "resolution": {
+          "$ref": "#/$defs/shape-90890766e5"
+        }
+      },
+      "required": [
+        "id",
+        "parentId",
+        "seq",
+        "timestamp",
+        "origin",
+        "type",
+        "resolution"
       ],
       "additionalProperties": false
     },
