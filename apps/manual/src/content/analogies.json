@@ -206,5 +206,29 @@
     "chapter": "side-effects-that-can-fail",
     "illustration": null,
     "breaks": "Some steps cannot be undone, and an email cannot be unsent, so the plan needs one pivot after which nothing is compensated."
+  },
+  {
+    "id": "alarm-clock-note",
+    "concept": "durable wake",
+    "analogy": "an alarm clock with a note on the bedside table",
+    "chapter": "durable-and-portable-agents",
+    "illustration": null,
+    "breaks": "An alarm can ring twice, so the note must make a second waking harmless; and the note says where you left off, not what you were thinking."
+  },
+  {
+    "id": "shipping-containers",
+    "concept": "portable seams",
+    "analogy": "standard shipping containers",
+    "chapter": "durable-and-portable-agents",
+    "illustration": "containers",
+    "breaks": "Every port still needs its own crane: each target needs its own adapter behind the same seam, and a seam that fits is proved by a conformance suite, not assumed."
+  },
+  {
+    "id": "mailroom-stamp",
+    "concept": "ingress deduplication",
+    "analogy": "a mailroom that stamps each letter's number and bins duplicates",
+    "chapter": "durable-and-portable-agents",
+    "illustration": null,
+    "breaks": "The mailroom invents no numbers: the id must come from the sender, such as a webhook's delivery id, or two different letters can share a stamp."
   }
 ]

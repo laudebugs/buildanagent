@@ -170,5 +170,17 @@
     "term": "saga",
     "definition": "A sequence of separate steps that each commit on their own, with an undo step, called a compensation, for each one that can be undone. If a step fails before the point of no return, the compensations run for the steps already done; steps after it are retried until they finish.",
     "sources": ["azure-saga-pattern"]
+  },
+  {
+    "id": "wake",
+    "term": "wake",
+    "definition": "An outside trigger, such as a timer or a message, that restarts an agent that is not running, so the run continues from its saved state. A process that has stopped cannot set its own alarm.",
+    "sources": ["cloudflare-durable-object-alarms"]
+  },
+  {
+    "id": "seam",
+    "term": "seam",
+    "definition": "An interface in a design where one implementation can be swapped for another, such as the store that holds a session log. Each deployment target supplies its own implementation behind the same seam.",
+    "sources": ["cloudflare-workflows-limits"]
   }
 ]
