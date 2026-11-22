@@ -139,14 +139,43 @@ export function fluidSize(size: FluidSize, viewport: FluidSize): string {
   return `clamp(${number(min / 16)}rem, ${number(intercept / 16)}rem + ${number(slope * 100)}vw, ${number(max / 16)}rem)`;
 }
 
-function fontFaces(tokens: BookTokens): string[] {
+/** The folder every font file in book-tokens.json is served from; `fontBase` in {@link TokensCssOptions} replaces it. */
+export const FONT_BASE = "/fonts/";
+
+/** What differs between the sites that generate a tokens file: its header comment and where it serves the fonts. */
+export interface TokensCssOptions {
+  /** The comment's lines, without the comment markers: who writes the file and the command that rewrites it. */
+  readonly header?: readonly string[];
+  /** The URL folder the fonts are served from, ending in `/`, in place of the `/fonts/` the token file names. */
+  readonly fontBase?: string;
+}
+
+const BOOK_HEADER = [
+  "Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the",
+  "JSON file and run `pnpm --filter @buildanagent/manual tokens`.",
+];
+
+/** A font file's URL under `fontBase`; a source outside `/fonts/` would be served from nowhere, so it throws. */
+export function fontUrl(src: string, fontBase: string = FONT_BASE): string {
+  if (!src.startsWith(FONT_BASE)) throw new Error(`font file ${src} is not under ${FONT_BASE}`);
+  if (!fontBase.endsWith("/")) throw new Error(`font base ${fontBase} does not end in /`);
+  return fontBase + src.slice(FONT_BASE.length);
+}
+
+function comment(lines: readonly string[]): string[] {
+  if (lines.length === 0) throw new Error("a tokens.css header needs at least one line");
+  if (lines.some((line) => line.includes("*/"))) throw new Error("a tokens.css header cannot contain */");
+  return lines.map((line, index) => `${index === 0 ? "/* " : "   "}${line}${index === lines.length - 1 ? " */" : ""}`);
+}
+
+function fontFaces(tokens: BookTokens, fontBase: string): string[] {
   const lines: string[] = [];
   for (const font of [tokens.font.display, tokens.font.body, tokens.font.code]) {
     for (const file of font.files) {
       lines.push(
         "@font-face {",
         `  font-family: "${font.cssFamily}";`,
-        `  src: url("${file.src}") format("woff2");`,
+        `  src: url("${fontUrl(file.src, fontBase)}") format("woff2");`,
         `  font-style: ${file.style};`,
         `  font-weight: ${file.weight};`,
         "  font-display: swap;",
@@ -188,18 +217,18 @@ function sharedDeclarations(tokens: BookTokens): string[] {
 /**
  * The CSS custom properties for the book. Light values sit on `:root` and on any `[data-theme="light"]` element; dark
  * values apply under `prefers-color-scheme: dark` unless the reader chose light, and on any `[data-theme="dark"]`
- * element. The panel tokens follow the same rule, so a panel always matches its page's mode.
+ * element. The panel tokens follow the same rule, so a panel always matches its page's mode. Without options it writes
+ * the book's own file; another site passes its own header and font folder.
  */
-export function tokensCss(tokens: BookTokens): string {
+export function tokensCss(tokens: BookTokens, options: TokensCssOptions = {}): string {
   const problems = tokenProblems(tokens);
   if (problems.length > 0) throw new Error(`book-tokens.json cannot generate CSS:\n${problems.join("\n")}`);
   const light: readonly ColorSet[] = ["light", "panelLight"];
   const dark: readonly ColorSet[] = ["dark", "panelDark"];
   return [
-    "/* Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the",
-    "   JSON file and run `pnpm --filter @buildanagent/manual tokens`. */",
+    ...comment(options.header ?? BOOK_HEADER),
     "",
-    ...fontFaces(tokens),
+    ...fontFaces(tokens, options.fontBase ?? FONT_BASE),
     ...sharedDeclarations(tokens),
     "",
     ":root,",
