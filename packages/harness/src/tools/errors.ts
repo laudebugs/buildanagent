@@ -3,7 +3,8 @@ import { HarnessError } from "../errors.js";
 
 /**
  * Thrown by `register()` when a registry already holds a tool, or an alias, by that name. An extension that means to
- * replace a built-in passes `override: true`, and an MCP tool whose name collides gets a suffix instead of this error.
+ * replace a built-in passes `override: true`. An MCP tool whose name needs cleaning gets a hash in its name, and this
+ * error is for a final name that is still taken.
  */
 export class DuplicateToolError extends HarnessError {
   override readonly name = "DuplicateToolError";

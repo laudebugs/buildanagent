@@ -7,6 +7,8 @@ import { HarnessError } from "../errors.js";
 import type { ToolRegistry } from "./types.js";
 
 const DEFAULT_MAX_RESULTS = 5;
+// Words that match nearly every description, so they would make every deferred tool a candidate.
+const STOP_WORDS = new Set(["the", "for", "and", "with", "that", "this", "from", "are", "you", "your", "use", "can"]);
 
 /** The options of `toolSearchTool()`. */
 export interface ToolSearchOptions {
@@ -30,7 +32,9 @@ function words(text: string): string[] {
 function scoreOf(query: readonly string[], haystack: readonly string[]): number {
   // A repeated word counts once, so repeating one cannot outrank a tool that matches more of what was asked.
   const matches = (word: string) =>
-    word.length >= 3 && haystack.some((have) => have.length >= 3 && (have.startsWith(word) || word.startsWith(have)));
+    word.length >= 3 &&
+    !STOP_WORDS.has(word) &&
+    haystack.some((have) => have.length >= 3 && (have.startsWith(word) || word.startsWith(have)));
   return new Set(query.filter(matches)).size;
 }
 
@@ -44,6 +48,12 @@ export function toolSearchTool(
   options: ToolSearchOptions = {},
 ): ToolDefinition<{ query: string }, { activated: string[] }, unknown> {
   const max = options.maxResults ?? DEFAULT_MAX_RESULTS;
+  if (!Number.isInteger(max) || max < 1) {
+    throw new HarnessError(
+      "invalid_tool_registration",
+      `toolSearchTool() needs a maxResults of 1 or more, got ${String(max)}`,
+    );
+  }
   return {
     name: "tool_search",
     description:
@@ -91,5 +101,6 @@ export function toolSearchInterceptors(registry: ToolRegistry, activated: Readon
       "toolSearchInterceptors() needs the registry to hold the tool_search tool, because activeTools is the complete list a request sends",
     );
   }
-  return { beforeModelCall: () => ({ activeTools: registry.activeTools(activated) }) };
+  // The search tool is always sent, so a source set to deferred or hidden can't leave the model with no way to find a tool.
+  return { beforeModelCall: () => ({ activeTools: registry.activeTools(new Set([...activated, "tool_search"])) }) };
 }

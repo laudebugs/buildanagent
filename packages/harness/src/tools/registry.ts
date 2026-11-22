@@ -194,10 +194,8 @@ class Registry implements ToolRegistry {
     const taken = this.#entries.find((entry) => entry.tool.canonicalName === canonical);
     if (taken === undefined) return canonical;
     const same = taken.tool.source === source && taken.name === name;
-    throw new DuplicateToolError(
-      canonical,
-      same ? `${source} already registered a tool named "${name}"` : "a hash suffix collided",
-    );
+    const why = same ? `${source} already registered a tool named "${name}"` : `${taken.tool.source} already holds it`;
+    throw new DuplicateToolError(canonical, why);
   }
 
   /** Whether `registration` may take the place of `existing`: only a non-MCP tool that says so, over a built-in. */

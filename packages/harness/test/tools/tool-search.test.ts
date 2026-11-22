@@ -133,3 +133,27 @@ test("toolSearchInterceptors() throws unless the registry holds tool_search, sin
     (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
   );
 });
+
+test("a stop word matches nothing, and a maxResults that is not a positive whole number is refused", async () => {
+  const stops = await runWithSearch("the tool for the job");
+  assert.equal(stops.activated.size, 0, "words found in nearly every description do not make a tool a candidate");
+  const { registry } = setup();
+  for (const maxResults of [0, -1, 1.5, Number.NaN]) {
+    assert.throws(
+      () => toolSearchTool(registry, { maxResults }),
+      (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
+    );
+  }
+});
+
+test("the search tool is sent even when its source is made deferred, so a model can always find a tool", async () => {
+  const { registry, activated } = setup();
+  registry.setExposure("builtin", "deferred");
+  const names = await new Promise<string[]>((resolve) => {
+    const patch = toolSearchInterceptors(registry, activated).beforeModelCall?.({} as never);
+    Promise.resolve(patch).then((value) =>
+      resolve([...((value as { activeTools?: string[] } | undefined)?.activeTools ?? [])]),
+    );
+  });
+  assert.deepEqual(names, ["tool_search"]);
+});

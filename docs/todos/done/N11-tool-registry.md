@@ -88,10 +88,11 @@ The harness now holds every tool in one registry that names, defers and wraps th
 - A canonical name is checked once, with the gateway's `isCanonicalName()`. An MCP tool becomes `mcp__<server>__<tool>`, with characters outside the rule replaced by `_`. An MCP name that needs cleaning, holds `__` or runs past 64 characters appends `_` and an FNV-1a hash of the source and name, so a name depends on its tool alone and not on registration order. The same server listing the same tool twice is a duplicate, and a new name may not equal another tool's alias.
 - An extension, client or other non-MCP tool replaces a built-in only with `override: true`, in the built-in's place in the order. Override reaches nothing else.
 - Aliases are unique among aliases and never equal another tool's canonical name.
-- `definitions()` returns frozen definitions in registration order, with the registry's name and exposure. `activeTools()` is every `direct` tool plus the activated names, in that order.
+- `definitions()` returns frozen definitions in registration order, with the registry's name and exposure. `activeTools()` is every `direct` tool and every activated tool, in registration order.
 - `outputTrust` resolves to `untrusted` for an MCP tool or a `remoteAgent` tool and `trusted` otherwise, and a declared value wins. The registry only resolves it: the session runner (N6) copies it into `tool_result.trust`.
 
 **Decisions.**
+- **A hash marks a name that needed cleaning, not a collision.** The scope said an MCP collision gets a deterministic suffix, but a suffix added only on a collision depends on registration order. So a name that needs cleaning, holds `__` or runs past 64 characters always carries one, and a final name that is still taken throws.
 - **A flag marks a remote-agent tool,** `remoteAgent: true`, because the plan's `ToolSource` union has no `agent:` source and a flag leaves that union as it is.
 - **`preambleTokens()` takes no model.** The gateway's `estimateInputTokens()` counts characters and does not depend on the model, so the plan's `model` argument would do nothing. It takes the system prompt as an option instead.
 - **`register()` takes `exposure` as optional,** because the registry defaults it per source, and `outputTrust` on a `RegisteredTool` is always resolved.
