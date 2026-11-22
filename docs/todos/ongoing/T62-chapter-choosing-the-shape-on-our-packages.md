@@ -15,12 +15,36 @@ Chapter 8 ("Choosing the shape") shows third-party listings only. This todo adds
 
 ## Scope
 
-To be written by the first working commit, once the chapter's listings are read: which listings our packages can show, and which stay single and why.
+Chapter 8 has six listings. Each is read against `packages/sdk/README.md` and `packages/sdk/src`, not memory.
+
+**In scope: our SDK first**
+
+| Listing | Stays | Our SDK, first |
+| --- | --- | --- |
+| `#sequential-order` | `verify/google-adk/examples/02-workflow-agents.ts`, region `sequential` | The existing `packages/sdk/examples/02-workflow.ts`, region `sequential` (Chapter 1's tab): two `complete()` calls in an order the code sets. No new example |
+| `#route-by-code` | `verify/google-adk/examples/03-graph-workflow.ts`, region `routing` | A new example: a regular expression picks the branch, the digit branch is a plain function and the other makes one model call |
+| `#subagent`, `#orchestrator`, `#usage` | `verify/openai-agents-sdk/examples/12-subagent-as-tool.ts`, regions `subagent`, `orchestrator`, `usage` | A new example: a tool whose `execute` starts a nested `run()` with `nestedRunDepth(ctx)` (README, "`depth` and `maxDepth` stop a tree of agents"), so only the child's summary reaches the orchestrator, with each run's own usage and a code-summed total |
+
+**Stays single**
+
+| Listing | Why |
+| --- | --- |
+| `#handoff-tool` | Our SDK has no handoff: no `handoffs` option, no transfer tool and no way to make another agent active mid-turn. A tab would have to hand-build a stop-on-tool plus a second `run()` over the first run's messages, which shows our own glue and not what the OpenAI listing shows. The prose points at the missing primitive instead |
+
+**Out of scope.** The harness packages (`protocol`, `harness`, `cli`, `evals`) are private scaffolds with nothing to list. The exercises keep pointing at the OpenAI harness.
+
+- New examples under `packages/sdk/examples/` with `// #region` and `// book:note` markers, run offline by `test/book-examples.test.ts`, with transcripts in `packages/sdk/results/transcripts/`.
+- The prose, notes and fact-check rows the tabs change.
 
 ## Tasks
 
-- [ ] Read the chapter, its log and the packages; write Scope and Tasks.
+- [x] Read the chapter, its log and the packages; write Scope and Tasks.
+- [ ] Write the router and subagent examples, with regions, notes and transcripts.
+- [ ] Turn `#sequential-order`, `#route-by-code`, `#subagent`, `#orchestrator` and `#usage` into tabs blocks with our tab first, and pin the harness's version in the caption.
+- [ ] Fact-check every changed claim into `apps/manual/fact-checks/choosing-the-shape.md` as new rows, and update the tally.
+- [ ] Update the plan row and move this todo to `done/`.
 
 ## Acceptance criteria
 
-- [ ] See the Scope section once written.
+- [ ] Each supported listing is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged; `#handoff-tool` stays single for the reason in Scope
+- [ ] `check:book`, the manual's `test`, `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
