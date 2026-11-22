@@ -37,6 +37,7 @@ export type HarnessErrorCode =
   | "entry_too_large"
   | "invalid_session_entry"
   | "invalid_session_key"
+  | "invalid_retention"
   | "session_corrupt";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
@@ -68,7 +69,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * file is unreadable, malformed or readable by others. `session_conflict`: an append found the log in a state it did
  * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
- * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
+ * `invalid_session_key`: a user or session id the store can't use. `invalid_retention`: a retention period that is not a
+ * positive number, or an action other than `archive` and `purge`. `session_corrupt`: a log file has a bad line before
  * its last line.
  */
 export class HarnessError extends Error {

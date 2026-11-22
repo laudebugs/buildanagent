@@ -8,6 +8,17 @@ import { mkdir, open, readdir, readFile, rm, stat, truncate } from "node:fs/prom
 import { join } from "node:path";
 import { isProtocolError, parseEntry, type SessionEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
+import type { SessionLock } from "./lock.js";
+import {
+  ARCHIVE_DIR,
+  ARCHIVE_EXTENSION,
+  archivePath,
+  checkRetention,
+  pruneSessions,
+  type Retention,
+  readArchive,
+  restoreArchive,
+} from "./retention.js";
 import {
   type AppendOptions,
   byAge,
@@ -34,6 +45,16 @@ export interface JsonlStoreOptions {
   readonly dir: string;
   /** The bound on one entry's JSON, in bytes. Default 64 KiB. */
   readonly maxEntryBytes?: number;
+  /**
+   * How long to keep a session. Without it the store never deletes or moves a file. With it, the first time the store
+   * touches a user's sessions, it archives or purges that user's expired ones (see `pruneSessions()`), and it never does
+   * so again in the background. An archived session is still listed and loaded, and a write restores it.
+   */
+  readonly retention?: Retention;
+  /** The writer lock, so that expiry leaves a session whose writer is running. Only used with `retention`. */
+  readonly lock?: SessionLock;
+  /** Called with an error that stopped expiry, which never stops the session that triggered it. */
+  readonly onRetentionError?: (error: unknown) => void;
 }
 
 interface ReadLog {
@@ -115,12 +136,44 @@ const MAX_CACHED_LOGS = 64;
 class JsonlStore implements SessionStore {
   readonly #dir: string;
   readonly #maxBytes: number;
+  readonly #options: JsonlStoreOptions;
+  readonly #expiry = new Map<string, Promise<void>>();
   readonly #cache = new Map<string, { size: number; state: LogState }>();
   readonly #queues = new Map<string, Promise<unknown>>();
 
   constructor(options: JsonlStoreOptions) {
     this.#dir = options.dir;
     this.#maxBytes = options.maxEntryBytes ?? DEFAULT_MAX_ENTRY_BYTES;
+    this.#options = options;
+    if (options.retention !== undefined) checkRetention(options.retention);
+  }
+
+  /** Expires a user's sessions once, the first time this store touches them. A failure is reported and never thrown. */
+  #expire(userId: string): Promise<void> {
+    const { retention } = this.#options;
+    if (retention === undefined) return Promise.resolve();
+    let done = this.#expiry.get(userId);
+    if (done === undefined) {
+      done = pruneSessions({
+        dir: this.#dir,
+        userId,
+        retention,
+        ...(this.#options.lock === undefined ? {} : { lock: this.#options.lock }),
+      }).then(
+        () => undefined,
+        (error: unknown) => this.#options.onRetentionError?.(error),
+      );
+      this.#expiry.set(userId, done);
+    }
+    return done;
+  }
+
+  /** The log in the live file, or else in its archive. */
+  async #readAny(key: SessionKey, path: string): Promise<ReadLog | undefined> {
+    const live = await readLog(path);
+    if (live !== undefined) return live;
+    const archived = await readArchive(archivePath(this.#dir, key.userId, key.sessionId));
+    return archived === undefined ? undefined : parseLog(archived, path);
   }
 
   #userDir(userId: string): string {
@@ -168,7 +221,11 @@ class JsonlStore implements SessionStore {
 
   async #appendNow(key: SessionKey, inputs: readonly EntryInput[], options: AppendOptions | undefined) {
     const path = this.#pathOf(key);
-    const { state, size, torn, exists } = await this.#read(path);
+    let read = await this.#read(path);
+    // Writing an archived session brings its file back, so the log grows where the store looks for it.
+    if (!read.exists && (await restoreArchive(this.#dir, key.userId, key.sessionId, path)))
+      read = await this.#read(path);
+    const { state, size, torn, exists } = read;
     const plan = planAppend(state, inputs, options, this.#maxBytes);
     if (plan.fresh.length === 0) return structuredClone(plan.result);
     const created = await mkdir(this.#userDir(key.userId), { recursive: true });
@@ -184,6 +241,7 @@ class JsonlStore implements SessionStore {
 
   async append(key: SessionKey, inputs: readonly EntryInput[], options?: AppendOptions): Promise<SessionEntry[]> {
     checkKey(key);
+    await this.#expire(key.userId);
     const path = this.#pathOf(key);
     return this.#queued(path, () => this.#appendNow(key, inputs, options));
   }
@@ -194,9 +252,10 @@ class JsonlStore implements SessionStore {
   }
 
   async *#entries(key: SessionKey, options: LoadOptions | undefined): AsyncGenerator<SessionEntry> {
+    await this.#expire(key.userId);
     const path = this.#pathOf(key);
     // A load waits for the appends already queued, so it never sees a line that is still being written.
-    const log = await this.#queued(path, () => readLog(path));
+    const log = await this.#queued(path, () => this.#readAny(key, path));
     if (log === undefined) return;
     if (log.tornBytes > 0) options?.onTornLine?.({ bytes: log.tornBytes });
     const from = options?.fromSeq ?? 0;
@@ -209,11 +268,12 @@ class JsonlStore implements SessionStore {
   }
 
   async *#raw(key: SessionKey): AsyncGenerator<unknown> {
+    await this.#expire(key.userId);
     const path = this.#pathOf(key);
     const buffer = await this.#queued(path, () =>
       readFile(path).catch((error: NodeJS.ErrnoException) => {
-        if (error.code === "ENOENT") return undefined;
-        throw error;
+        if (error.code !== "ENOENT") throw error;
+        return readArchive(archivePath(this.#dir, key.userId, key.sessionId));
       }),
     );
     if (buffer === undefined) return;
@@ -237,21 +297,34 @@ class JsonlStore implements SessionStore {
   }
 
   async *#summaries(userId: string): AsyncGenerator<SessionSummary> {
+    await this.#expire(userId);
     const dir = this.#userDir(userId);
-    const files = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    const archiveDir = join(this.#dir, ARCHIVE_DIR, encodeName(userId));
+    const live = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    const archived = await readdir(archiveDir, { withFileTypes: true }).catch(() => []);
     const found: SessionSummary[] = [];
-    for (const file of files.filter((entry) => entry.isFile() && entry.name.endsWith(EXTENSION))) {
-      const summary = await this.#summary(dir, file.name);
-      if (summary !== undefined) found.push(summary);
+    const seen = new Set<string>();
+    for (const [folder, files, extension] of [
+      [dir, live, EXTENSION],
+      [archiveDir, archived, ARCHIVE_EXTENSION],
+    ] as const) {
+      for (const file of files.filter((entry) => entry.isFile() && entry.name.endsWith(extension))) {
+        const sessionId = decodeURIComponent(file.name.slice(0, -extension.length));
+        // A file that is both live and archived is mid-move, and the live one is whole.
+        if (seen.has(sessionId)) continue;
+        seen.add(sessionId);
+        const summary = await this.#summary(join(folder, file.name), sessionId, extension === EXTENSION);
+        if (summary !== undefined) found.push(summary);
+      }
     }
     yield* found.sort(byAge);
   }
 
   /** One file's summary, or `undefined` for a file the store didn't write or can't read, so one bad file hides no other. */
-  async #summary(dir: string, name: string): Promise<SessionSummary | undefined> {
+  async #summary(path: string, sessionId: string, isLive: boolean): Promise<SessionSummary | undefined> {
     try {
-      const sessionId = decodeURIComponent(name.slice(0, -EXTENSION.length));
-      return summaryOf(sessionId, (await readLog(join(dir, name)))?.entries ?? []);
+      const log = isLive ? await readLog(path) : parseLog((await readArchive(path)) ?? Buffer.alloc(0), path);
+      return summaryOf(sessionId, log?.entries ?? []);
     } catch {
       return undefined;
     }
@@ -263,6 +336,7 @@ class JsonlStore implements SessionStore {
     await this.#queued(path, async () => {
       this.#cache.delete(path);
       await rm(path, { force: true });
+      await rm(archivePath(this.#dir, key.userId, key.sessionId), { force: true });
     });
   }
 }
@@ -273,7 +347,8 @@ class JsonlStore implements SessionStore {
  * the next append cuts off before it writes. Names are percent-encoded, so no id can reach another user's folder. A
  * log's state is cached by file size, so one process appends without rereading the file, and another process's write
  * is seen on the next append. Appends to one session from one process run one at a time, and a second process needs the
- * writer lock.
+ * writer lock. With `retention`, expired sessions are gzipped into `<dir>/archive/<user>/` or deleted, and without it
+ * no file is ever deleted or moved.
  */
 export function jsonlStore(options: JsonlStoreOptions): SessionStore {
   return new JsonlStore(options);
