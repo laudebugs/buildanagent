@@ -12,6 +12,7 @@
       "!**/verify/*/results",
       "!**/verify/*/fixtures",
       "!**/pnpm-lock.yaml",
+      "!packages/*/schema",
       "!**/*.md",
       "!**/verify/*/extracted",
       "!**/verify/*/.tmp",
