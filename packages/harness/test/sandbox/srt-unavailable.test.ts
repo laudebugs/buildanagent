@@ -78,7 +78,7 @@ test("an srt that can't start a command makes provisioning throw SandboxUnavaila
   assert.deepEqual(privateFolders(), before, "no private folder was left behind");
 });
 
-test("srt is started with only the environment it was given, plus its own TMPDIR", async (context) => {
+test("srt is started with a fixed environment, and the command's variables go through env inside", async (context) => {
   if (!linux) context.skip("this backend runs on Linux only");
   vi.stubEnv("PATH", `${fakePrograms}${delimiter}${process.env.PATH ?? ""}`);
   vi.stubEnv("HARNESS_TEST_HOST_SECRET", "must-not-reach-srt");
@@ -90,9 +90,10 @@ test("srt is started with only the environment it was given, plus its own TMPDIR
   chmodSync(binary, 0o755);
   const sandbox = await srtSandbox({ binary }).provision({ root }, policy(root));
   try {
-    const env = spawnEnv([]);
+    const base = spawnEnv([]);
+    const env = { ...base, NODE_OPTIONS: "--require ./evil.cjs", LD_PRELOAD: "/tmp/evil.so" };
     await sandbox.exec(["echo", "hi"], { env, signal: new AbortController().signal });
-    rmSync(env.HOME ?? "", { recursive: true, force: true });
+    rmSync(base.HOME ?? "", { recursive: true, force: true });
     const starts = readFileSync(log, "utf8").split("ARGS: ");
     const last = starts[starts.length - 2] ?? "";
     const names = last
@@ -100,14 +101,46 @@ test("srt is started with only the environment it was given, plus its own TMPDIR
       .filter((line) => /^[A-Za-z_][A-Za-z0-9_]*=/.test(line))
       .map((line) => line.slice(0, line.indexOf("=")));
     assert.ok(!names.includes("HARNESS_TEST_HOST_SECRET"), "the host's own variables must not reach srt");
-    const allowed = new Set([...Object.keys(env), "TMPDIR", "PWD", "SHLVL", "_", "OLDPWD"]);
+    assert.ok(!names.includes("NODE_OPTIONS") && !names.includes("LD_PRELOAD"), "no loader variable reaches srt");
+    const allowed = new Set(["PATH", "TMPDIR", "PWD", "SHLVL", "_", "OLDPWD"]);
     assert.deepEqual(
       names.filter((name) => !allowed.has(name)),
       [],
-      "srt may hold only the given names and its own TMPDIR",
+      "srt may hold only PATH and its own TMPDIR",
     );
-    assert.ok(last.includes("--settings"), "srt is told which settings file to read");
-    assert.match(readFileSync(log, "utf8"), /ARGS: .*-- \/usr\/bin\/env .*echo hi/);
+    const ran = readFileSync(log, "utf8");
+    assert.match(ran, /ARGS: .*--settings .*-- \/usr\/bin\/env /);
+    assert.match(ran, /NODE_OPTIONS=--require \.\/evil\.cjs/, "the command still gets what it was given, through env");
+    assert.match(
+      ran,
+      /-- .*NODE_OPTIONS=--require \.\/evil\.cjs .*echo hi/,
+      "the command follows env's -- and its assignments",
+    );
+  } finally {
+    await sandbox.dispose();
+  }
+});
+
+test("a command whose first word starts with - follows env's --, and one that holds = is not found", async (context) => {
+  if (!linux) context.skip("this backend runs on Linux only");
+  vi.stubEnv("PATH", `${fakePrograms}${delimiter}${process.env.PATH ?? ""}`);
+  const root = folder();
+  const log = join(folder(), "args.log");
+  const binary = join(folder(), "srt");
+  writeFileSync(binary, `#!/bin/sh\necho "ARGS: $*" >> ${JSON.stringify(log)}\nexit 0\n`);
+  chmodSync(binary, 0o755);
+  const sandbox = await srtSandbox({ binary }).provision({ root }, policy(root));
+  try {
+    const signal = new AbortController().signal;
+    await sandbox.exec(["-x", "y"], { env: {}, signal });
+    const assignment = await sandbox.exec(["FOO=1", "printenv"], { env: {}, signal });
+    const lines = readFileSync(log, "utf8").split("\n");
+    assert.ok(
+      lines.some((line) => line.endsWith("-- -x y")),
+      "-x follows env's --",
+    );
+    assert.ok(!lines.some((line) => line.includes("FOO=1")), "a first word with = never reaches env");
+    assert.deepEqual(assignment, { exitCode: 127, stdout: "", stderr: "command not found: FOO=1\n" });
   } finally {
     await sandbox.dispose();
   }
@@ -128,7 +161,7 @@ test("dispose removes the sandbox's private folder", async (context) => {
   mkdirSync(join(root, "x"), { recursive: true });
 });
 
-test("a root that is not absolute, or is /, is refused before anything starts", async (context) => {
+test("a root, an extra read root or a denyWrite folder that is not absolute, or is /, is refused before anything starts", async (context) => {
   if (!linux) context.skip("this backend runs on Linux only");
   vi.stubEnv("PATH", `${fakePrograms}${delimiter}${process.env.PATH ?? ""}`);
   const root = folder();
@@ -137,5 +170,15 @@ test("a root that is not absolute, or is /, is refused before anything starts", 
       .provision({ root }, { readRoots: [bad], writeRoots: [root], network: { allow: [], deny: [] } })
       .catch((caught: unknown) => caught);
     assert.equal((error as { code?: string }).code, "invalid_sandbox_options", `${bad} must be refused`);
+  }
+  for (const option of [{ denyWrite: ["relative/log"] }, { extraReadRoots: ["tools"] }]) {
+    const error = await srtSandbox(option)
+      .provision({ root }, policy(root))
+      .catch((caught: unknown) => caught);
+    assert.equal(
+      (error as { code?: string }).code,
+      "invalid_sandbox_options",
+      `${JSON.stringify(option)} must be refused`,
+    );
   }
 });

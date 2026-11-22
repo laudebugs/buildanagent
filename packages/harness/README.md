@@ -65,15 +65,15 @@ The policy maps to `srt`'s settings like this:
 - **Writes.** Only the write roots are writable. `denyWrite` keeps a folder read-only inside a write root, which is how the session's own log folder stays out of the agent's reach.
 - **Network.** The command has no network of its own. Its traffic goes through a proxy that allows only the policy's hosts. `parentProxy` sends allowed traffic through an upstream proxy for a host that sits behind one.
 
-Every path is passed as a literal, so a folder named like a pattern is never read as one. The settings file and `srt`'s proxy sockets live in a private folder that `dispose()` removes.
+Every path is passed as a literal, so a folder named like a pattern is never read as one. The settings file and a run folder for `srt`'s proxy sockets live in a private folder that `dispose()` removes. A command can read the run folder and nothing else in it, so it can't read the settings file, which may hold a proxy address.
 
-A command's environment holds the variables it was given, plus the proxy variables `srt` adds, which `SRT_ADDED_ENVIRONMENT` lists. A command is started by `srt` with `spawnEnv()`'s variables and nothing from the host: the backend never copies `process.env`.
+A command's environment holds the variables it was given, plus the proxy variables `srt` adds, which `SRT_ADDED_ENVIRONMENT` lists. `srt` itself starts with only a `PATH` and its own `TMPDIR`. The given variables pass through `env` inside the sandbox, so a variable such as `NODE_OPTIONS` can't make `srt`'s own Node load code outside it. The backend never copies the host's `process.env`. A command whose first word contains `=` resolves with exit code 127, as under `none`.
 
 Four limits are worth knowing:
 
 - **Shared kernel.** The sandbox is a set of Linux namespaces, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
 - **No TLS inspection.** The proxy allows or refuses a host by name and does not read what a command sends it.
-- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path, so a symlink that leads out is refused, and they check the opened file again through `/proc`. A hostile process could still win a race. They don't run under `srt`, because two `srt` processes in one workspace can disturb each other: each makes and removes empty protected files there, such as `.bashrc` and `.claude`. Commands that run at the same time in one workspace share that risk.
+- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path, so a symlink that leads out is refused, and they check the opened file again through `/proc`. `writeFile` also refuses what the sandbox keeps read-only: a `denyWrite` folder and the files `srt` protects, such as `.bashrc`, `.claude` and `.git/hooks`. A hostile process could still win a race. They don't run under `srt`, because two `srt` processes in one workspace can disturb each other: each makes and removes empty protected files there, such as `.bashrc` and `.claude`. Commands that run at the same time in one workspace share that risk.
 - **A kill leaves nothing behind only if `srt` can clean up.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
 
 `pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the escape cases against the real `srt`. It is opt-in because it starts bubblewrap, and it fails on a skipped case instead of skipping. Without `srt`, the rest of `pnpm test` checks the settings and the unavailable paths.

@@ -197,6 +197,76 @@ suite("srt: what a command can't do", () => {
     }
   }, 60_000);
 
+  test("writeFile keeps a denyWrite folder and srt's protected files read-only, and reads them", async () => {
+    const root = tempFolder("ws");
+    const log = join(root, "log");
+    mkdirSync(log);
+    writeFileSync(join(log, "session.jsonl"), "kept");
+    const sandbox = await client([log]).provision({ root }, policyFor(root));
+    try {
+      for (const path of [
+        "log/session.jsonl",
+        "log/new.jsonl",
+        ".bashrc",
+        ".git/hooks/pre-commit",
+        ".claude/settings.json",
+      ]) {
+        const error = await sandbox.writeFile(path, new Uint8Array([1])).catch((caught: unknown) => caught);
+        assert.equal((error as { code?: string }).code, "sandbox_denied", `${path} must be refused`);
+      }
+      assert.equal(readFileSync(join(log, "session.jsonl"), "utf8"), "kept");
+      assert.equal(new TextDecoder().decode(await sandbox.readFile("log/session.jsonl")), "kept");
+      await sandbox.writeFile("..env.example", new Uint8Array([1]));
+      await sandbox.writeFile("notes/ok.txt", new Uint8Array([1]));
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 60_000);
+
+  test("a file call that fails for another reason is a sandbox_io_failed error", async () => {
+    const { sandbox } = await provisioned();
+    try {
+      await sandbox.writeFile("dir/file.txt", new Uint8Array([1]));
+      const folder = await sandbox.readFile("dir").catch((caught: unknown) => caught);
+      const beneath = await sandbox
+        .writeFile("dir/file.txt/under", new Uint8Array([1]))
+        .catch((caught: unknown) => caught);
+      assert.equal((folder as { code?: string }).code, "sandbox_io_failed");
+      assert.equal((beneath as { code?: string }).code, "sandbox_io_failed");
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 60_000);
+
+  test("a command that starts with = or - is a program name, and a loader variable runs only inside", async () => {
+    const { sandbox, root } = await provisioned();
+    try {
+      const assignment = outcome(await sandbox.exec(["FOO=1", "printenv"], { env: {}, signal: never() }));
+      assert.equal(assignment?.exitCode, 127, "FOO=1 is a program that does not exist, as under none");
+      assert.match(assignment?.stderr ?? "", /not found/);
+      const dashed = outcome(await sandbox.exec(["-x"], { env: {}, signal: never() }));
+      assert.equal(dashed?.exitCode, 127);
+      // A loader variable in the command's environment must not run code outside the sandbox: the evil file would
+      // write a marker into the workspace from the host's own Node, where the sandbox could not have reached.
+      const marker = join(tempFolder("marker"), "ran");
+      writeFileSync(join(root, "evil.cjs"), `require("node:fs").writeFileSync(${JSON.stringify(marker)}, "ran");`);
+      await sandbox.exec(["true"], { env: { NODE_OPTIONS: "--require ./evil.cjs" }, signal: never() });
+      assert.equal(existsSync(marker), false, "NODE_OPTIONS did not run code in srt's own Node");
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 60_000);
+
+  test("a command can't read srt's settings file", async () => {
+    const { sandbox } = await provisioned();
+    try {
+      const found = outcome(await run(sandbox, "find / -name settings.json -path '*harness-srt-*' 2>/dev/null"));
+      assert.equal(found?.stdout.trim(), "");
+    } finally {
+      await sandbox.dispose();
+    }
+  }, 60_000);
+
   test("it can't reach the host's network except through the proxy, which allows only the policy's hosts", async () => {
     const { sandbox } = await provisioned();
     const before = seen.length;

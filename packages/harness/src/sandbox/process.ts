@@ -23,6 +23,7 @@ export type NodeModules = {
   readonly fs: typeof import("node:fs/promises");
   readonly os: typeof import("node:os");
   readonly path: typeof import("node:path");
+  readonly url: typeof import("node:url");
 };
 
 /** Node's modules, or a `SandboxUnavailableError` for `backend` on a runtime that lacks them. */
@@ -38,6 +39,7 @@ export function nodeModules(backend: string): NodeModules {
     fs: process.getBuiltinModule("node:fs/promises"),
     os: process.getBuiltinModule("node:os"),
     path: process.getBuiltinModule("node:path"),
+    url: process.getBuiltinModule("node:url"),
   };
 }
 
@@ -187,14 +189,20 @@ export class ProcessRunner {
 
   /** Ends the process's group: at once, or with a `SIGTERM` first and a `SIGKILL` after `graceMs` for what is left. */
   private async end(child: import("node:child_process").ChildProcess, graceMs: number): Promise<void> {
-    if (graceMs > 0 && process.platform !== "win32" && child.pid !== undefined && child.exitCode === null) {
+    const running = child.exitCode === null && child.signalCode === null;
+    if (graceMs > 0 && process.platform !== "win32" && child.pid !== undefined && running) {
       const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const expired = new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, graceMs);
+      });
       try {
         process.kill(-child.pid, "SIGTERM");
       } catch {
         // The group is already gone.
       }
-      await Promise.race([exited, new Promise<void>((resolve) => setTimeout(resolve, graceMs))]);
+      await Promise.race([exited, expired]);
+      clearTimeout(timer);
     }
     this.kill(child);
   }
