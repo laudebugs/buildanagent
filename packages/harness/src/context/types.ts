@@ -79,6 +79,8 @@ export interface ContextPolicyOptions {
   readonly mask?: { readonly keepChars: number; readonly stepMessages: number };
   /** The token budget `fill()` reports against. Default the model's window less 16,384, at most 200,000. */
   readonly budgetTokens?: number;
+  /** The share of the window at which the mid-turn layer compacts. Default 0.9. */
+  readonly midTurnRatio?: number;
   /** The summary layer's settings. */
   readonly summarize?: SummarizeSettings;
   /** Hooks around a compaction. */
@@ -102,6 +104,10 @@ export interface TurnContextOptions {
   readonly model: Model;
   /** Called with the fill after each request view is built. */
   readonly onFill?: (fill: ContextFill) => void;
+  /** False when the turn is a retry after an overflow, which compacts at most once more, through the overflow layer. */
+  readonly midTurn?: boolean;
+  /** True when the caller supplied the turn's history, so the log's entries do not describe the context. */
+  readonly ownHistory?: boolean;
 }
 
 /** The policy's hooks and state for one turn. */
@@ -118,6 +124,20 @@ export interface TurnContext {
     readonly path: readonly SessionEntry[];
     readonly append: AppendEntry;
     /** Stops the summary call when the turn is aborted. */
+    readonly signal?: AbortSignal;
+  }): Promise<boolean>;
+  /**
+   * Gives the turn's writer to the layers that write inside a run, once it exists: `append` writes an entry and
+   * `settle` waits for every entry the run has produced so far.
+   */
+  attach(bindings: { readonly append: AppendEntry; readonly settle: () => Promise<void> }): void;
+  /**
+   * Called when a model call failed because the request was too large. Compacts once, whatever the size, and returns
+   * whether it wrote a `compaction` entry; the caller then tries the call again on the rebuilt context.
+   */
+  onOverflow(input: {
+    readonly path: readonly SessionEntry[];
+    readonly append: AppendEntry;
     readonly signal?: AbortSignal;
   }): Promise<boolean>;
   /** The fill after the latest request view. */

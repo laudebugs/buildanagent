@@ -326,6 +326,29 @@ A failed summary never fails the turn, and `log` reports each failure. A skip be
 
 No entry is edited or removed. `session.toContext()` and `contextOf()` start from the latest compaction: its summary as a user message, then the kept tail, then everything written after it. The tail loses its signed reasoning blocks, because a block that follows the summarised span carries a signature the summary made stale; blocks written after the compaction stay. A re-run from an entry before the compaction rebuilds the original context from the file.
 
+## Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow
+
+Layer 3 runs between turns. Layers 4 and 5 run inside one: layer 4 when a model call would fill most of a small window, layer 5 when the provider has already refused a request as too large. Both use layer 3's summary call, template, hooks, cap and `log`, and each writes a `compaction` entry whose `layer` is `mid_turn` or `overflow_retry`.
+
+**Layer 4, mid-turn.** The SDK's loop keeps the run's whole transcript, so a compaction in the middle of a run cannot shorten it. It changes the view that every later model call of the run reads. The first call whose context would pass `midTurnRatio` (default 0.9) of the model's window summarises the span before the verbatim tail and writes the entry. From then on the run reads the summary, the tail and what the run adds, and later turns rebuild the same view from the log. A turn compacts mid-turn at most once.
+
+The layer is on by default only for windows under 128,000 tokens, where a single turn can fill the window. Set `layers: { mid_turn: true }` to turn it on for a larger one. The estimate is the last response's input and output tokens plus a character count of what the view added since. The compaction drops the signed reasoning of the kept tail's older messages from the view, because the summary made their signatures stale, and keeps the thinking the run wrote after it.
+
+**Layer 5, overflow retry.** When a run ends because the provider said the request was too large (`error.kind` `overflow`), `runTurn()` asks the policy to compact once, whatever the context's size, and goes on from the rebuilt context with `continueRun()`. That call asks the model again, because the gateway leaves the failed response out of the request. `onRun` is called again with the retry's run. The dispatcher holds a steer or follow-up sent in between until that run exists, and still sends one `turn/settled`. The turn's result adds the two attempts' steps, usage and cost, and the retry gets what the first attempt left of `maxSteps`. `layers: { overflow_retry: false }` turns the layer off.
+
+Three cases end the turn with the overflow error as its result (`stopReason: "error"`) and no further attempt:
+
+- A second overflow, because only one retry is made.
+- Nothing before the tail to summarise, such as one message too large for the window.
+- A turn given its own `history`, which has neither layer, because the log does not describe its context.
+
+Four limits and interactions follow from this design:
+
+- The retry gets the turn's `budgetUsd` again, not what the first attempt left.
+- The retry does not compact mid-turn again.
+- The context policy's interceptors run before the harness's own `interceptors` and the permission gate. A mid-turn compaction therefore indexes the run's own transcript, a harness `transformContext` or `beforeModelCall` hook sees the masked and compacted view, and a harness `afterToolCall` hook sees the capped result.
+- A steer or follow-up accepted while the retry's summary call runs is delivered only if the retry goes ahead. When the summary is skipped or the turn is aborted, the message is dropped.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.

@@ -397,6 +397,8 @@ declare function processScheduler(): Scheduler; // local default; DO alarms, Eve
 
 ### 3.3 Context policy and tool registry APIs
 
+**Revision (N10, 2026-11-22): layers 4 and 5.** `ContextPolicyOptions.midTurnRatio` (0.9) sets the share of the window at which a turn compacts mid-turn. `layers.mid_turn` defaults to on below a 128K window, and `layers.overflow_retry` to on. `TurnContext.attach({ append, settle })` hands the turn's writer to the mid-turn layer once it exists. `TurnContext.onOverflow({ path, append, signal })` replaces the planned `ContextPolicy.onOverflow(result, session)`: `runTurn()` calls it after a run ends with `error.kind: "overflow"` and goes on with `continueRun()`. The policy's interceptors now run before the harness's own and the permission gate, so the policy indexes the run's transcript and a harness `afterToolCall` hook sees a capped result.
+
 **Revision (N9, 2026-11-22): the summary layer's options.** `summarize` takes `model`, `focus`, `tailTokens` (20,000), `toolOutputChars` (2,000), `maxOutputTokens` (4,096) and `capUsd`. The harness has no session-wide cap yet, so `capUsd` is the cap the projected summary cost is checked against. `hooks.beforeCompact` receives `{ span, tokens, focus? }`. `ContextPolicyOptions.log` reports each compaction and each skipped one. `TurnContext.compact({ path, append, signal? })` runs between turns, and `contextOf()` applies the latest `compaction`.
 
 **Revision (N8, 2026-11-22): the policy is built once and starts per turn.** A harness serves many sessions, so `createContextPolicy(options)` takes no session. `forTurn()` binds the policy to one session and model, and returns the turn's interceptors, its spill lookup and its fill. The write cap counts the log's JSON-escaped bytes and keeps 1 KiB for the entry's own fields, so a capped entry fits the 64 KiB entry bound.
@@ -718,7 +720,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N8](../todos/done/N8-write-cap-masking.md) | Layers 1 and 2: write cap with spill, and stepped masking | N6 | M |
 | [N9](../todos/done/N9-summary-layer.md) | Layer 3: recall-first summary between turns, with hooks and a focus hint | N8, B5, B14 | M |
-| [N10](../todos/ready/N10-mid-turn-overflow.md) | Layers 4 and 5: mid-turn compaction and the overflow retry | N9, N7 | M |
+| [N10](../todos/done/N10-mid-turn-overflow.md) | Layers 4 and 5: mid-turn compaction and the overflow retry | N9, N7 | M |
 
 ### 4.3 Stage 3 adds the registry, the permission pipeline, signed approvals and code-initiated calls
 

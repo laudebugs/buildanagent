@@ -29,6 +29,26 @@ export interface CompactInput {
   readonly log: CompactionLog | undefined;
   /** Stops the summary call when the turn is aborted. */
   readonly signal?: AbortSignal | undefined;
+  /** Which layer is compacting; written on the entry and in each log record. */
+  readonly layer: CompactionEntry["layer"];
+  /** Compact whatever the size: a provider has already said the context is too big. */
+  readonly force?: boolean;
+  /**
+   * The context to compact, when it is not the one the log rebuilds: a run's own transcript in the middle of a turn.
+   * `starts` names the entry each message begins at, and must line up with `messages`.
+   */
+  readonly view?: {
+    readonly system: string;
+    readonly messages: readonly Message[];
+    readonly starts: readonly (string | null)[];
+    readonly lastUsage?: LastUsage | undefined;
+  };
+}
+
+/** What a compaction replaced: the summary, and the index of the first message kept. */
+export interface Compacted {
+  readonly summary: string;
+  readonly keptFrom: number;
 }
 
 const ZERO_USAGE = {
@@ -124,13 +144,16 @@ interface Plan {
   readonly kept: readonly Message[];
   readonly firstKept: string;
   readonly system: string;
+  readonly cut: number;
 }
 
 /** What to do with the context: nothing (under budget), skip with a reason, or compact this span. */
 function plan(input: CompactInput): Plan | { readonly skip: string } | undefined {
-  const { context, starts } = contextWithStarts(input.path);
-  const before = estimate(context.system, context.messages, lastUsageSince(input.path));
-  if (before <= input.budgetTokens) return undefined;
+  const { context, starts } =
+    input.view === undefined ? contextWithStarts(input.path) : { context: input.view, starts: input.view.starts };
+  const lastUsage = input.view === undefined ? lastUsageSince(input.path) : input.view.lastUsage;
+  const before = estimate(context.system, context.messages, lastUsage);
+  if (input.force !== true && before <= input.budgetTokens) return undefined;
   const cut = tailStart(context.messages, input.settings.tailTokens);
   const firstKept = starts[cut];
   // Nothing to drop when the tail is the whole context, or the only message before it is an earlier summary.
@@ -143,6 +166,7 @@ function plan(input: CompactInput): Plan | { readonly skip: string } | undefined
     kept: context.messages.slice(cut),
     firstKept,
     system: context.system,
+    cut,
   };
 }
 
@@ -179,17 +203,18 @@ async function summarise(
 }
 
 /**
- * Compacts the session when its context is over the budget. Returns whether it wrote a `compaction` entry. A skipped
- * or failed summary writes nothing but, when the call was made, its `usage` entry, and says why through `log`.
+ * Compacts the session when its context is over the budget, or at once when `force` is set. Returns what the new
+ * `compaction` entry replaced, or `undefined` when it wrote none. A skipped or failed summary writes nothing but, when
+ * the call was made, its `usage` entry, and says why through `log`.
  */
-export async function compact(input: CompactInput): Promise<boolean> {
+export async function compact(input: CompactInput): Promise<Compacted | undefined> {
   const { log, hooks } = input;
   const p = plan(input);
-  if (p === undefined) return false;
-  const skipped = (detail: string) => log?.({ layer: "summarize", event: "skipped", detail });
+  if (p === undefined) return undefined;
+  const skipped = (detail: string) => log?.({ layer: input.layer, event: "skipped", detail });
   if ("skip" in p) {
     skipped(p.skip);
-    return false;
+    return undefined;
   }
   let made: Awaited<ReturnType<typeof summarise>>;
   try {
@@ -198,23 +223,23 @@ export async function compact(input: CompactInput): Promise<boolean> {
     // The layer is optional: a provider error or a throwing hook must not stop the turn. An abort still does.
     if (input.signal?.aborted === true) throw error;
     skipped(`the summary call failed: ${error instanceof Error ? error.message : String(error)}`);
-    return false;
+    return undefined;
   }
   if ("skip" in made) {
     skipped(made.skip);
-    return false;
+    return undefined;
   }
   const usageEntryId = await writeUsage(input, made.message);
   // A reply that stopped for any reason but its own end, such as the output limit, is cut off and would replace the span for good.
   if (made.summary === "" || (made.message !== undefined && made.message.stopReason !== "stop")) {
     skipped(`the summary call returned no usable summary (${made.message?.stopReason ?? "empty"})`);
-    return false;
+    return undefined;
   }
   const hooked = made.message === undefined;
   const keptChars = p.kept.reduce((sum, m) => sum + charsOf(m), 0);
   const entry = await input.append("harness", {
     type: "compaction",
-    layer: "summarize",
+    layer: input.layer,
     summary: made.summary,
     firstKeptEntryId: p.firstKept,
     tokensBefore: p.before,
@@ -225,7 +250,7 @@ export async function compact(input: CompactInput): Promise<boolean> {
     ...(input.settings.focus === undefined ? {} : { focus: input.settings.focus }),
   });
   log?.({
-    layer: "summarize",
+    layer: input.layer,
     event: "compacted",
     detail: `${p.before} tokens before, ${tokensOfChars(keptChars)} kept`,
   });
@@ -235,5 +260,5 @@ export async function compact(input: CompactInput): Promise<boolean> {
     .catch((error: unknown) =>
       skipped(`afterCompact failed: ${error instanceof Error ? error.message : String(error)}`),
     );
-  return true;
+  return { summary: made.summary, keptFrom: p.cut };
 }
