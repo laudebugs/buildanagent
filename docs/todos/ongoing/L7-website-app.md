@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L7` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | None |
