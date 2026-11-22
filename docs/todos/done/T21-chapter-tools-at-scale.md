@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T21` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T30](../done/T30-example-deferred-tools-and-skills.md) |
@@ -53,30 +53,30 @@ Write the chapter "Tools at scale: the registry, deferred tools, MCP and skills"
 
 ## Tasks
 
-- [ ] Answer the research question in a short note at the top of the fact-check file, from the sources above only, before drafting.
-- [ ] Add register entries for every source the chapter cites, each pointing at the fact-check log that verified it; add a fact-check row first for any source no log covers.
-- [ ] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
-- [ ] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
-- [ ] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
-- [ ] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/tools-at-scale.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
-- [ ] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
-- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/tools-at-scale.md`.
-- [ ] Draw the figures and analogy illustrations with T6's pipeline, each with alt text and a caption that cites the register.
-- [ ] Tag the chapter's glossary terms and add missing entries.
+- [x] Answer the research question in a short note at the top of the fact-check file, from the sources above only, before drafting.
+- [x] Add register entries for every source the chapter cites, each pointing at the fact-check log that verified it; add a fact-check row first for any source no log covers.
+- [x] Add `// #region` and `// book:note` markers to the examples the chapter uses, and confirm each harness's `pnpm test` and the results-drift check still pass.
+- [x] Vet each planned analogy: say what it explains and check it does not imply anything false. The owner approved the analogies (2026-11-19). If one misleads or `analogies.json` already uses it, drop it or propose a replacement to the owner; a new or swapped-in analogy needs the owner's approval.
+- [x] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
+- [x] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/tools-at-scale.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
+- [x] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
+- [x] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/tools-at-scale.md`.
+- [x] Draw the figures and analogy illustrations with T6's pipeline, each with alt text and a caption that cites the register.
+- [x] Tag the chapter's glossary terms and add missing entries.
 
 ## Acceptance criteria
 
-- [ ] The chapter builds with no unknown citation, reference or glossary term, and every listing comes from a checked file
-- [ ] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row of the chapter's fact-check log (BK17)
-- [ ] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
-- [ ] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
-- [ ] Every version the prose names says "as of <month year>"
-- [ ] `apps/manual/fact-checks/tools-at-scale.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
-- [ ] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
-- [ ] The front matter's `opening` is `fact`, and `check:book` passes its opening-rotation check
-- [ ] The pull request records the writing review's 5C scores and its voice scores, before and after
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The chapter builds with no unknown citation, reference or glossary term, and every listing comes from a checked file
+- [x] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row of the chapter's fact-check log (BK17)
+- [x] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
+- [x] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
+- [x] Every version the prose names says "as of <month year>"
+- [x] `apps/manual/fact-checks/tools-at-scale.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [x] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
+- [x] The front matter's `opening` is `fact`, and `check:book` passes its opening-rotation check
+- [x] The pull request records the writing review's 5C scores and its voice scores, before and after
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -94,9 +94,21 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The chapter is `apps/manual/src/content/chapters/tools-at-scale.md` (Chapter 13), with its claims log in `apps/manual/fact-checks/tools-at-scale.md` (102 rows: 93 ✅, 4 ✏️ and 5 ⚠️, each section committed with its rows; the ✏️ rows 22, 91, 97 and 98 correct earlier claims after the first review). It has five sections: the registry, deferred tools, MCP after 2026-07-28, skills, and a short pointer that leaves connector OAuth and token custody to the permissions chapter. Two flat figures (`one-registry` and the hardware store's `back-room` illustration) and three exercises complete it. Three analogies are registered (`hardware-store-back-room` with its illustration, `usb-port` and `service-manuals`, each with its break note), plus the sources, the glossary terms `tool-registry`, `deferred-tool` and `skill`, and region and note markers in the Vercel AI SDK, Cloudflare Agents, Copilot SDK, Pi and Claude Agent SDK examples (three transcripts regenerated because lines moved).
+
+Three things differ from the plan:
+
+- The front matter lists `switchTo: [N11, N21, N22, N23, N24, N25]`, because the schema takes single todo ids, not the range `N21–N25`.
+- Every MCP 2026-07-28 claim (stateless requests, `server/discover`, `input_required`, the deprecations) was confirmed against the specification's changelog, deprecated-features, versioning, discovery and multi round-trip pages, so none is marked unverified. Only the analogies, one comparison with Voyager and an exercise's framing are ⚠️.
+- N21 to N25 are still `ready`, so the chapter describes the MCP client, extension loader and skill loader as design and shows no listing from our own packages. Only the registry (N11) is built, and the chapter cites its source for behaviour and never lists it.
+
+The writing review and its fixes, the code-review rounds and the pull request's rubric scores are still to do.

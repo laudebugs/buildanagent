@@ -198,5 +198,61 @@
     "chapter": "permissions-sandboxes-and-credentials",
     "illustration": null,
     "breaks": "A coat stays the same coat; tokens expire and refresh, and the counter must also know whose coat is whose, because one user's token must never answer another user's request."
+  },
+  {
+    "id": "hardware-store-back-room",
+    "concept": "deferred tools",
+    "analogy": "a hardware store that shelves the common tools and fetches the rest from the back room",
+    "chapter": "tools-at-scale",
+    "illustration": "back-room",
+    "breaks": "A clerk fetches a tool in a minute for the price of waiting; a deferred tool costs a round trip and the tokens of its definition, and it keeps costing those tokens each turn it stays loaded, so the shelf must hold the tools used most."
+  },
+  {
+    "id": "usb-port",
+    "concept": "MCP",
+    "analogy": "a USB port: one plug shape for many devices",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "Plugging in an MCP server is closer to installing software than to plugging in a mouse: the server chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted."
+  },
+  {
+    "id": "service-manuals",
+    "concept": "skills",
+    "analogy": "a mechanic's service manuals, opened only when that model of car comes in",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."
+  },
+  {
+    "id": "raffle-ticket-stub",
+    "concept": "idempotency key",
+    "analogy": "a raffle ticket stub",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": null,
+    "breaks": "A stub is printed before anyone wins and kept by the holder; an idempotency key must be stored before the call, or a crash loses it and the write can repeat."
+  },
+  {
+    "id": "dropped-phone-order",
+    "concept": "unknown outcome",
+    "analogy": "a dropped phone order",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": null,
+    "breaks": "A restaurant has no order number to look up; an agent's write should carry an idempotency key that the other side can be asked about."
+  },
+  {
+    "id": "ledger-before-courier",
+    "concept": "persist before execute",
+    "analogy": "writing the order in the ledger before the courier leaves",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": "ledger",
+    "breaks": "The ledger entry records intent, not success; the result is a second entry, and a missing second entry is the unknown outcome."
+  },
+  {
+    "id": "booking-a-trip",
+    "concept": "saga",
+    "analogy": "booking a trip",
+    "chapter": "side-effects-that-can-fail",
+    "illustration": null,
+    "breaks": "Some steps cannot be undone, and an email cannot be unsent, so the plan needs one pivot after which nothing is compensated."
   }
 ]

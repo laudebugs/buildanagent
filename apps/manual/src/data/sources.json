@@ -731,5 +731,227 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "anthropic-advanced-tool-use",
+    "title": "Introducing advanced tool use on the Claude Developer Platform",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/advanced-tool-use",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "pi-mcp-servers",
+    "title": "MCP Servers",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/mcp.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "pi-sdk-docs",
+    "title": "Pi SDK",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/sdk.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "buildanagent-harness-readme",
+    "title": "@buildanagent/harness README",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c2e80fff77540da496110a5ec36330273c/packages/harness/README.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "2174e4c",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-changelog-2026-07-28",
+    "title": "Key Changes: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/changelog",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-deprecated-features",
+    "title": "Deprecated Features: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/deprecated",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-multi-round-trip-requests",
+    "title": "Multi Round-Trip Requests: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-versioning",
+    "title": "Versioning and Compatibility: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-server-discover",
+    "title": "Discovery: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/discover",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-tools-spec",
+    "title": "Tools: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "ai-sdk-mcp-tools",
+    "title": "Model Context Protocol (MCP)",
+    "publisher": "AI SDK documentation",
+    "url": "https://github.com/vercel/ai/blob/ai%407.0.162/content/docs/03-ai-sdk-core/16-mcp-tools.mdx",
+    "kind": "docs",
+    "version": "ai@7.0.162",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "cloudflare-agents-mcp-client",
+    "title": "MCP client",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/mcp-client.md",
+    "kind": "docs",
+    "version": "agents@0.33.0",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "copilot-sdk-nodejs-readme",
+    "title": "Copilot SDK for Node.js and TypeScript",
+    "publisher": "GitHub Copilot SDK",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/nodejs/README.md",
+    "kind": "docs",
+    "version": "v1.0.31",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "anthropic-agent-skills-overview",
+    "title": "Agent Skills overview",
+    "publisher": "Claude API documentation",
+    "url": "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "claude-agent-sdk-skills",
+    "title": "Extend agents with skills",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/skills",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "pi-skills",
+    "title": "Skills",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/skills.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "wang-voyager",
+    "title": "Voyager: An Open-Ended Embodied Agent with Large Language Models",
+    "publisher": "Guanzhi Wang et al. (arXiv:2305.16291)",
+    "url": "https://arxiv.org/abs/2305.16291",
+    "kind": "paper",
+    "version": "v2",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "mcp-authorization",
+    "title": "Authorization: MCP specification 2026-07-28",
+    "publisher": "Model Context Protocol",
+    "url": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization",
+    "kind": "spec",
+    "version": "2026-07-28",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "stripe-idempotent-requests",
+    "title": "Idempotent requests",
+    "publisher": "Stripe API reference",
+    "url": "https://docs.stripe.com/api/idempotent_requests.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-server-rollback.md"
+  },
+  {
+    "id": "stripe-advanced-error-handling",
+    "title": "Advanced error handling",
+    "publisher": "Stripe documentation",
+    "url": "https://docs.stripe.com/error-low-level.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-server-rollback.md"
+  },
+  {
+    "id": "aws-safe-retries",
+    "title": "Making retries safe with idempotent APIs",
+    "publisher": "Amazon Builders' Library",
+    "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-server-rollback.md"
+  },
+  {
+    "id": "azure-saga-pattern",
+    "title": "Saga distributed transactions pattern",
+    "publisher": "Microsoft Azure Architecture Center",
+    "url": "https://learn.microsoft.com/en-us/azure/architecture/patterns/saga",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-sagas.md"
+  },
+  {
+    "id": "stripe-refunds",
+    "title": "Refunds",
+    "publisher": "Stripe documentation",
+    "url": "https://docs.stripe.com/refunds",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/reversible-actions/fact-check-sagas.md"
   }
 ]

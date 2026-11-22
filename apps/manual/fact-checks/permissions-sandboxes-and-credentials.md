@@ -83,12 +83,15 @@ The claims log for [`permissions-sandboxes-and-credentials.md`](../src/content/c
 | 47 | The centerpiece's six gates are in the order hooks, deny rules, ask rules, mode, allow rules, host callback; a command runs in a walled floor with a writable workspace and a read-only folder; the sandbox has one lane out to a proxy that adds a secret from a vault and forwards to allowed hosts | Figure `permission-pipeline` | ✅ | `packages/harness/README.md`: the pipeline order (row 14), the sandbox mounts (row 22) and the proxy's routes (row 31). The vault stands on the host as the credential route's secret function; the lane and the walls are drawn for the picture, not a measured layout |
 | 48 | The `bypassPermissions` mode is step 4 of the six, after the deny rules | § A permission pipeline | ✅ | Row 4 and the permissions page, step 4; replaces the draft's "last in the order", which row 4 contradicted (found in the first code review) |
 | 49 | The glovebox figure shows things passing in and out through its port, and the analogy's breaks note says a glovebox does not filter what leaves | § A sandbox limits | ✏️ | Corrects row 28's figure: the drawing and caption said "one labelled item" and "chosen things", which implied filtering; both now say things pass in and out |
+| 50 | After the writing review's rewording, the opening still says: a permission list and a private config directory did not contain the run; an allowlisted environment stopped both the extra tools and the agent-proxy request; the earlier credentials case stays as before | Opening | ✅ | Re-check of rows 1 and 2: F5 records that an allowlisted environment removed both the deferred tools and the agent-proxy request, with a private `CLAUDE_CONFIG_DIR` and `settingSources: []` already in place |
+| 51 | ACaM "calls" the mismatch "Description-Code Inconsistency"; on injected variants of annotated agents a tool's code can do more than its description says; its authors found 123 code-execution and credential-exposure paths in 43 real agents and checked each by hand | § Prompt injection | ✅ | Re-check of row 43 after the sentence was split: the whole-paper read says the 123 paths were each checked by hand and the laundered capabilities appear only in the injected variants |
+| 52 | The six custody rules, now listed one by one, are the same six as row 36, and the rules come from the spec and from vendors' designs; no connector in the harness implements them | § The credential boundary | ✅ | Re-check of row 36: the connectors report's list, in a different order; `packages/harness/README.md` has no connector or vault section |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 46 |
+| ✅ confirmed | 49 |
 | ✏️ corrected | 2 (rows 11 and 49) |
 | ⚠️ unverified, our reading, marked as ours in the text | 1 (row 42) |
-| Total | 49 |
+| Total | 52 |
