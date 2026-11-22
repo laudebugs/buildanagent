@@ -39,7 +39,7 @@ const STABLE = /^\d+\.\d+\.\d+$/;
 const PRE_TAG = /^[a-z][a-z0-9-]*$/;
 
 /** Joins names as a sentence reads them: "a", "a and b", "a, b and c". */
-function listNames(names) {
+export function listNames(names) {
   return names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
 }
 

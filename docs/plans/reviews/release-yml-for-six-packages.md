@@ -2,18 +2,19 @@
 
 This document holds the whole `.github/workflows/release.yml` that releases the six `@buildanagent` packages: gateway, SDK, agent-safety, protocol, harness and CLI, in that order ([PB4](../publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted), [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md)). Sessions never edit `.github/`, so todo [L11](../../todos/ongoing/L11-bootstrap-and-release-protocol-harness-cli.md) delivers the file here, and the owner copies the code block below to `.github/workflows/release.yml` on L11's branch before merging it. Copy the block's contents exactly, without the fence lines.
 
-The file must land in the same merge as L11. It loops over six packages, while `main`'s `release-plan.mjs` lists two and four of the packages are still private there. Until the owner adds it, three tests in `scripts/ci/release.test.mjs` fail on L11's branch on purpose. They check that the pack and publish loops follow `RELEASE_ORDER`, and they fail with a message naming this document.
+The file must land in the same merge as L11. It loops over six packages, while `main`'s `release-plan.mjs` lists two and four of the packages are still private there. Until the owner adds it, four tests in `scripts/ci/release.test.mjs` fail on L11's branch on purpose. They check that the pack, summary and publish loops follow `RELEASE_ORDER`, and they fail with a message naming this document.
 
 ## What changed from main's release.yml
 
-The base is `main`'s file at commit `576f7c7` (last changed in `ced295e`). Every change concerns the package list; the jobs, permissions, triggers, secrets and actions are as they were.
+The base is `main`'s file at commit `576f7c7` (last changed in `ced295e`). Every change concerns the package list and what the pack job reports about it; the jobs, permissions, triggers, secrets and actions are as they were.
 
 1. **The pack loop covers six packages.** The step "Pack both packages" becomes "Pack the six packages, gateway first", and its loop goes from `gateway sdk` to `gateway sdk agent-safety protocol harness cli`. The order matters here as well as in the publish job: each package's `prepack` builds its `dist/` against the declaration files of the workspace packages it imports, so those packages must already be packed. A local run of the step from empty `dist/` folders packed all six.
 2. **The pack step checks each tarball's name.** After packing a package, the step fails unless `buildanagent-<pkg>-<version>.tgz` exists, the file the publish job uploads. It reads `<version>` from that package's own `package.json`, not from the plan, because a `workflow_dispatch` dry run can pack while the versions still differ, as on L11's merge, where four packages sit at 0.0.0 beside `0.1.0-alpha.27`. The step also sets `set -euo pipefail`.
 3. **A new step checks the CLI's binary.** "Check the CLI's binary" runs after the pack. It extracts the CLI tarball's `package.json` and `dist/bin.js` into `$RUNNER_TEMP/cli-check`, outside the uploaded `release` folder. It then fails unless `bin.buildanagent` is `./dist/bin.js` and the file's first line is `#!/usr/bin/env node`. Last, it runs `node packages/cli/dist/bin.js --help`, so a binary that can't start stops the release before anything uploads.
 4. **The publish loop covers six packages.** "Publish each tarball, gateway first" keeps its name, its registry check and its `npm publish` flags. Its loop goes from `gateway sdk` to the same six names in the same order, so npm never holds a package before a workspace package it depends on.
 5. **The release notes cover six changelogs without a workflow change.** The "Write the release notes" step still runs `node scripts/ci/release-plan.mjs notes`, which joins one section per package in `RELEASE_ORDER`. With L11's `RELEASE_ORDER`, that is six `CHANGELOG.md` files. The four new packages get theirs from the first version commit.
-6. **The comments name six packages.** The header names the six and PB4 and ADR 0058, and it says that `release.test.mjs` fails when the loops and `RELEASE_ORDER` differ. The concurrency comment says a cancelled publish could upload some packages and not the rest, and the pack job's comment says it packs six.
+6. **The dry run's summary lists every tarball.** "Summarise the run" no longer prints the plan's one version, which is the gateway's. On a `workflow_dispatch` it loops over the same six names and prints each tarball with its package's name and version, read from that package's own `package.json`, so a dry run that packs mixed versions reports each one. The step drops its `VERSION` variable and sets `set -euo pipefail`.
+7. **The comments name six packages.** The header names the six and PB4 and ADR 0058, and it says that `release.test.mjs` fails when the loops and `RELEASE_ORDER` differ. The concurrency comment says a cancelled publish could upload some packages and not the rest, and the pack job's comment says it packs six.
 
 Three things stay as they were on purpose:
 
@@ -29,7 +30,7 @@ The YAML parses, every `run` script is valid Bash, and every release test passes
 RELEASE_WORKFLOW=docs/plans/reviews/release-yml-for-six-packages.md node --test scripts/ci/release.test.mjs
 ```
 
-`RELEASE_WORKFLOW` makes `release.test.mjs` read the one `yaml` block of this document instead of `.github/workflows/release.yml`, and run every test on it. Those tests cover the shape checks (no npm token, one secret in one step, the triggers, permissions and concurrency, the dry run), the loops against `RELEASE_ORDER`, the CLI check, a `bash -n` of every `run` script, and the version and version-pr jobs' scripts, which they run for real against a local Git remote. On 2026-11-22 the run passed 61 tests and skipped 2 that read the checkout's own state: "this checkout, on main, publishes its version under its dist-tag" skips while L11's changeset is pending, and the 0.0.0 check skips because the gateway is at `0.1.0-alpha.27`. The same run against `main`'s file fails exactly the three loop tests.
+`RELEASE_WORKFLOW` makes `release.test.mjs` read the one `yaml` block of this document instead of `.github/workflows/release.yml`, and run every test on it. Those tests cover the shape checks (no npm token, one secret in one step, the triggers, permissions and concurrency, the dry run), the loops against `RELEASE_ORDER`, the CLI check, a `bash -n` of every `run` script, and the version and version-pr jobs' scripts, which they run for real against a local Git remote. On 2026-11-22 the run passed 62 tests and skipped 2 that read the checkout's own state: "this checkout, on main, publishes its version under its dist-tag" skips while L11's changeset is pending, and the 0.0.0 check skips because the gateway is at `0.1.0-alpha.27`. The same run against `main`'s file fails exactly the four loop tests.
 
 Each `run` script also passed `bash -n`, and the file parsed with both the `yaml` package the tests use and PyYAML. `actionlint` isn't installed in the session, so it didn't run. Run it on the file after copying it, and run `gh actions-lock --verify`; the file adds no action, so `actions.lock` needs no new entry.
 
@@ -317,14 +318,23 @@ jobs:
       - name: Write the release notes
         if: needs.plan.outputs.publish == 'true'
         run: node scripts/ci/release-plan.mjs notes "$RUNNER_TEMP/release/release-notes.md"
+      # The summary names each tarball with its own package's version, because a dry run may pack mixed versions.
       - name: Summarise the run
         env:
-          VERSION: ${{ needs.plan.outputs.version }}
           PUBLISH: ${{ needs.plan.outputs.publish }}
           EVENT: ${{ github.event_name }}
         run: |
+          set -euo pipefail
           {
-            if [ "$EVENT" = "workflow_dispatch" ]; then echo "Dry run: built and packed $VERSION; nothing was published."; fi
+            if [ "$EVENT" = "workflow_dispatch" ]; then
+              echo "Dry run: built and packed these tarballs; nothing was published."
+              echo
+              for pkg in gateway sdk agent-safety protocol harness cli; do
+                version=$(node -p "require('./packages/$pkg/package.json').version")
+                echo "- \`buildanagent-$pkg-$version.tgz\`: @buildanagent/$pkg $version"
+              done
+              echo
+            fi
             echo "Plan says publish: **$PUBLISH**"
             for file in "$RUNNER_TEMP"/release/*.tgz; do
               echo

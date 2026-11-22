@@ -2,7 +2,7 @@
 
 The protocol package holds the types that cross a boundary in a buildanagent harness: the entries of a session log, the messages a client and a harness exchange, and the JSONL framing that carries them. Use it to read a session file, or to write a client in TypeScript or another language.
 
-As of November 2026 npm holds only a deprecated placeholder of this package, and its first alpha publishes with the gateway and the SDK. It depends on the gateway and the SDK for their types only, so its JavaScript loads neither. The harness serves these messages; this package only describes and checks them.
+The package depends on the gateway and the SDK for their types only, so its JavaScript loads neither. The harness serves these messages; this package only describes and checks them.
 
 `parseEntry()` reads one line of a session file and returns a typed `SessionEntry`:
 
@@ -12,6 +12,16 @@ import { parseEntry } from "@buildanagent/protocol";
 const entry = parseEntry(line); // throws a ProtocolError for a line it can't read
 if (entry.type === "session_header") console.log(entry.formatVersion); // 1
 ```
+
+## Install the alpha with `pnpm add @buildanagent/protocol@alpha`
+
+Every release is an alpha until the first stable one, and npm serves the alphas under the `alpha` dist-tag:
+
+```sh
+pnpm add @buildanagent/protocol@alpha
+```
+
+All six buildanagent packages share one version, and the protocol depends on that exact version of the gateway and the SDK. Name the tag: a plain `pnpm add @buildanagent/protocol` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22.19 or later.
 
 ## A session file is a list of entries, one per line
 

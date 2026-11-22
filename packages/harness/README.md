@@ -2,7 +2,17 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-As of November 2026 npm holds only a deprecated placeholder of this package, and its first alpha publishes with the gateway and the SDK. Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server` and `testing` are built. `mcp`, `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `server` and `testing` are built. `mcp`, `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+
+## Install the alpha with `pnpm add @buildanagent/harness@alpha`
+
+Every release is an alpha until the first stable one, and npm serves the alphas under the `alpha` dist-tag:
+
+```sh
+pnpm add @buildanagent/harness@alpha
+```
+
+All six buildanagent packages share one version, and the harness depends on that exact version of the gateway, the SDK, the protocol and the safety package, `@buildanagent/agent-safety`. Name the tag: a plain `pnpm add @buildanagent/harness` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22.19 or later.
 
 ## The session log holds twenty entry types
 

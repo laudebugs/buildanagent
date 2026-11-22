@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { runGate, statusEnv } from "./changeset-gate.mjs";
 import {
+  listNames,
   needsVersion,
   pendingChangesets,
   planRelease,
@@ -240,16 +241,19 @@ describe("version-pr.mjs", () => {
     });
     // The body names every package RELEASE_ORDER lists, in its order, so it can't fall behind the release.
     const names = RELEASE_ORDER.map((dir) => `\`@buildanagent/${dir}\``);
-    assert.ok(
-      body.startsWith(
-        `Merging this pull request publishes ${names.slice(0, -1).join(", ")} and ${names.at(-1)} 0.1.0-alpha.1`,
-      ),
-      body,
-    );
+    assert.ok(body.startsWith(`Merging this pull request publishes ${listNames(names)} 0.1.0-alpha.1`), body);
     assert.match(body, /^Merging this pull request publishes `@buildanagent\/gateway`, `@buildanagent\/sdk`, /);
     assert.match(body, /and `@buildanagent\/cli` 0\.1\.0-alpha\.1 to npm under the `alpha` dist-tag, in that order\./);
     assert.match(body, /^- `a\.md` \("@buildanagent\/gateway": minor\): Breaking Changes: x\.$/m);
     assert.match(body, /^- `b\.md` \(no package\): \(no summary\)$/m);
+  });
+
+  test("listNames joins one, two or more names as a sentence reads them", () => {
+    // One name stands alone, so a one-package release never reads "publishes  and `x`".
+    assert.equal(listNames(["`@buildanagent/gateway`"]), "`@buildanagent/gateway`");
+    assert.equal(listNames(["a", "b"]), "a and b");
+    assert.equal(listNames(["a", "b", "c"]), "a, b and c");
+    assert.equal(listNames([]), "");
   });
 
   test("the guard lets only changeset-release/main in this repository, into main, keep auto-merge", () => {

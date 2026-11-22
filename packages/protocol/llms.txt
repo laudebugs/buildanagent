@@ -6,6 +6,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
+- [Install the alpha with `pnpm add @buildanagent/protocol@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentprotocolalpha)
 - [A session file is a list of entries, one per line](README.md#a-session-file-is-a-list-of-entries-one-per-line)
   - [`parseEntry()` reads a line and refuses a format it does not know](README.md#parseentry-reads-a-line-and-refuses-a-format-it-does-not-know)
   - [The JSON Schema describes every entry for other languages](README.md#the-json-schema-describes-every-entry-for-other-languages)

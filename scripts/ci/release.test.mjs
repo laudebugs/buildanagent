@@ -188,6 +188,17 @@ describe("release.yml", () => {
     assert.doesNotMatch(run, /-C "\$RUNNER_TEMP\/release/);
   });
 
+  test("the pack job's summary lists each tarball in RELEASE_ORDER with its own package's version", () => {
+    const step = jobs.pack.steps.find((s) => s.name === "Summarise the run");
+    assert.ok(step.run.includes(loop), loopMessage);
+    assert.match(step.run, /version=\$\(node -p "require\('\.\/packages\/\$pkg\/package\.json'\)\.version"\)/);
+    assert.match(step.run, /echo "- \\`buildanagent-\$pkg-\$version\.tgz\\`: @buildanagent\/\$pkg \$version"/);
+    // The plan's one version, the gateway's, says nothing about a dry run that packs mixed versions.
+    assert.equal(step.env.VERSION, undefined);
+    assert.doesNotMatch(step.run, /\$VERSION/);
+    assert.match(step.run, /^set -euo pipefail$/m);
+  });
+
   test("every run step is valid bash", () => {
     for (const [name, job] of Object.entries(jobs)) {
       for (const step of job.steps ?? []) {
