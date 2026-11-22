@@ -382,8 +382,9 @@ function lastAtOf(files: readonly SessionFile[], readablePointer: boolean): numb
 /**
  * Groups the files into sessions. A session owns its first file, the derived files its pointer's chain reaches, and the
  * derived files that continue one of its files. Its files are ordered so that a file goes before the file it continues:
- * the loose files, then the chain from its far end, then the first file. A run that stops part-way so leaves every
- * remaining file reachable from the pointer or the first file, and the next run finds the session again.
+ * the loose files, newest first, then the chain from the file the pointer names, then the first file. A run that stops
+ * part-way so never leaves a file whose parent it removed, and every remaining file still continues, through files that
+ * remain, the first file, so the next run finds the session again.
  */
 function sessionsOf(found: Scan): { sessions: Map<string, Session>; owner: Map<string, string> } {
   const owner = new Map<string, string>();
@@ -393,7 +394,7 @@ function sessionsOf(found: Scan): { sessions: Map<string, Session>; owner: Map<s
   const sessions = new Map<string, Session>();
   for (const id of new Set([...owner.values(), ...found.pointers.keys()])) {
     const first = found.files.get(id);
-    const files = [...(loose.get(id) ?? []), ...(chains.get(id) ?? []).reverse(), ...(first ? [first] : [])];
+    const files = [...(loose.get(id) ?? []), ...(chains.get(id) ?? []), ...(first ? [first] : [])];
     const pointer = found.pointers.has(id);
     const lastAt = lastAtOf(files, !pointer || found.pointers.get(id) !== undefined);
     sessions.set(id, { id, files, pointer, lastAt });

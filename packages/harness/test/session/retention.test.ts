@@ -414,6 +414,39 @@ describe("a run that stopped part-way", () => {
     assert.deepEqual(files(dir, "ada"), [], "the derived file and the pointer are found from the pointer");
   });
 
+  test("a purge that stops part-way never leaves a file whose parent it removed", async () => {
+    const { dir, store, index } = await withRevert();
+    // A second revert, so the session is old <- ~rg1 <- ~rg2 with the pointer on ~rg2.
+    const session = await openSession({
+      store,
+      index,
+      lock: memoryLock(),
+      key: OLD,
+      now: () => new Date("2026-01-03T00:00:00.000Z"),
+      newId: counter("x"),
+    });
+    const second = await session.revert("r1");
+    await second.close();
+    const derived = files(dir, "ada").filter((name) => name.startsWith("%7E"));
+    assert.equal(derived.length, 2);
+    // A folder where the older derived file's archive copy would be makes the purge stop at that file.
+    const older = derived.find((name) => name !== "%7Erx1.jsonl") as string;
+    mkdirSync(join(dir, ARCHIVE, "ada", `${older}.gz`, "x"), { recursive: true });
+    const options = { dir, userId: "ada", retention: { days: 30, action: "purge" as const }, now: NOW };
+    const result = await pruneSessions(options);
+    assert.deepEqual(result.kept, [{ sessionId: "old", reason: "error" }]);
+    for (const name of files(dir, "ada").filter((entry) => entry.endsWith(".jsonl"))) {
+      const first = JSON.parse((await readFile(join(dir, "ada", name), "utf8")).split("\n")[0] ?? "");
+      const parent = first.parent?.session as string | undefined;
+      if (parent === undefined) continue;
+      const encoded = encodeURIComponent(parent).replaceAll("~", "%7E");
+      assert.ok(existsSync(join(dir, "ada", `${encoded}.jsonl`)), `${name} continues ${parent}, which is gone`);
+    }
+    rmSync(join(dir, ARCHIVE, "ada", `${older}.gz`), { recursive: true });
+    assert.deepEqual((await pruneSessions(options)).purged, ["old"]);
+    assert.deepEqual(files(dir, "ada"), []);
+  });
+
   test("an archive that stopped after the newest file is finished by the next run", async () => {
     const { dir, derived } = await withRevert();
     const options = { dir, userId: "ada", retention: { days: 30, action: "archive" as const }, now: NOW };
