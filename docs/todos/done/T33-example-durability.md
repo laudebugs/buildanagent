@@ -74,8 +74,8 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 `verify/cloudflare-agents/examples/10-durable-wake.ts` shows an agent whose state and schedule survive eviction, and whose schedule wakes the evicted agent with no request.
 
-- **The wake is real.** The agent stores a note in `this.state` and schedules a callback. The harness evicts the Durable Object, the example sends no request for 6.5 seconds, and the callback's row shows it ran on a new instance (its start count is 2, which the example checks) before the example's first read.
-- **State and schedule survive, memory does not.** After the wake the note is back from storage, the in-memory field is 0, the callback ran once with its payload, and the one-shot schedule is removed. Rows T33-1 to T33-5 in `docs/plans/reviews/fact-check-cloudflare-durable-wake-example.md` check each claim against the pinned docs or the run, and the log says which.
-- **It adds to `03-scheduling.ts` and `08-hibernation.ts`.** Those show a schedule firing and state surviving eviction apart. This one joins them: the alarm fires into an evicted object.
+- **The wake is real.** The callback's row shows a start count of 2, so it ran on a new instance before the example's first read, and the example checks the count.
+- **State and schedule survive, memory does not.** After the wake the note is back from storage, the in-memory field is 0, the callback ran once with its payload, and the one-shot schedule is removed. Rows T33-1 to T33-5 in `docs/plans/reviews/fact-check-cloudflare-durable-wake-example.md` check each claim against the pinned docs or the run.
+- **It adds to `03-scheduling.ts` and `08-hibernation.ts`.** `03-scheduling.ts` shows a schedule firing, and `08-hibernation.ts` shows state surviving eviction, but neither shows both together. This one does: the alarm fires into an evicted object.
 - **AWS and Vercel stay prose.** `verify/` has no AWS or Vercel harness, so the harness README and Chapter T24's todo say so and name N47a and N48a as where those behaviours get built.
-- **No transcript.** The example makes no model call, so the recorder has nothing to write.
+- **No transcript.** The example makes no model call.

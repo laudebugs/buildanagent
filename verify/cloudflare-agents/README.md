@@ -27,9 +27,9 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 
 ## One example evicts an agent that has a wake scheduled
 
-`10-durable-wake.ts` has an agent store a note in `this.state`, schedule a callback and set an in-memory field. The harness then evicts the Durable Object, and the example sends no request for 6.5 seconds. The schedule's alarm wakes a new instance, which runs the callback and writes a row that names its own start count. The example then reads the agent and checks that the note survived, the in-memory field did not, the callback ran once with its payload before any request arrived, and the one-shot schedule is gone. It carries `// #region` and `// book:note` markers for Chapter T24.
+`10-durable-wake.ts` has an agent store a note in `this.state`, schedule a callback and set an in-memory field. The harness then evicts the Durable Object. After 6.5 seconds with no request, the schedule's alarm has woken a new instance, which ran the callback and wrote a row that names its own start count. The example then reads the agent. The note survived, the in-memory field did not, and the one-shot schedule is gone. The callback ran once with its payload, before any request arrived. The example carries `// #region` and `// book:note` markers for Chapter T24.
 
-Only Cloudflare's runtime runs here, and the example imports Cloudflare's `agents`, so it cannot run on AWS or Vercel. Their wakes are not runnable in `verify/`; our own packages get them in N47a and N48a. The example makes no model call, so it records no transcript.
+Only Cloudflare's runtime runs here, and the example imports Cloudflare's `agents`, so it cannot run on AWS or Vercel. AWS and Vercel wakes are not runnable in `verify/`. Our own packages get them in N47a and N48a. The example makes no model call, so it records no transcript.
 
 ## Region markers feed the book's listings
 
