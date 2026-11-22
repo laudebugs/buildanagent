@@ -1,6 +1,6 @@
 // A check proves only the rule it states. An agent that answers with nothing passes a check that asks whether it
-// answered at all, and only a check on what the answer holds tells the two apart. The book's Chapter 7 lists it
-// beside the AI SDK's version.
+// answered at all. Only a check on what the answer holds tells the two apart. The book's Chapter 7 lists it beside
+// the AI SDK's version.
 import { run } from "@buildanagent/sdk";
 import { check, scripted } from "./lib/check.js";
 

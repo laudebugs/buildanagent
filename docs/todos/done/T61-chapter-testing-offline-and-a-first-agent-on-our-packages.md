@@ -26,7 +26,7 @@ Chapter 7 has fourteen listings in five blocks. Our SDK, `@buildanagent/sdk` wit
 - The seven gate listings: our tab is the `gate` region of `13-triage-agent.ts`, a `beforeToolCall` interceptor that asks.
 - `capstone-differences`: a ninth row for our SDK.
 
-**Stays single:** no listing. The chapter says that our SDK is a ninth beside the eight it compares, and that its test model is strict like three of theirs.
+**Stays single:** no listing. The chapter also says that our SDK is a ninth beside the eight it compares, and that its test model is strict like three of theirs.
 
 The unnumbered `triage-agent.ts` follows the full example rules and has no checks, so the chapter lists the numbered `13-triage-agent.ts` instead.
 
@@ -50,7 +50,7 @@ The unnumbered `triage-agent.ts` follows the full example rules and has no check
 
 ## Outcome
 
-- **The examples.** `packages/sdk/examples/` gains `11-scripted-turns.ts` (region `turns`), `12-weak-check.ts` (region `weak-and-strong`) and `13-triage-agent.ts` (regions `agent` and `gate`), and `lib/check.ts` gains a `check` region. Each runs offline under the SDK's `test`, and `results/transcripts/` holds the three transcripts. The unnumbered `triage-agent.ts` follows the full example rules and carries no checks, so the chapter lists the numbered capstone instead. The capstone is listed whole, with its `scripted()` call carrying the `script` note, so its replay has a line on each model event.
+- **The examples.** `packages/sdk/examples/` gains `11-scripted-turns.ts` (region `turns`), `12-weak-check.ts` (region `weak-and-strong`) and `13-triage-agent.ts` (region `gate`; the capstone tab lists the whole file), and `lib/check.ts` gains a `check` region. Each runs offline under the SDK's `test`, and `results/transcripts/` holds the three transcripts. The unnumbered `triage-agent.ts` follows the full example rules and carries no checks, so the chapter lists the numbered capstone instead. The capstone is listed whole, with its `scripted()` call carrying the `script` note, so its replay has a line on each model event.
 - **The chapter.** Five blocks became tabs with our SDK first: the mock listings, `check()`, the weak check, the capstone and the gates. The table gained a row for our SDK. No listing stayed single, and the third-party tabs are unchanged. The opening says every listing has our SDK's tab first and that the SDK is an alpha release.
 - **Mutations.** Each example failed on every change tried: a wrong tool result or step count in `11`, a non-empty answer or a strong check made weak in `12`, and in `13` a gate that allows, a double escalation, an invalid typed answer, an extra step and a missing step.
-- **Fact-check.** Rows 42 to 62 in `apps/manual/fact-checks/testing-offline-and-a-first-agent.md`, rows 48, 53, 54 and 56 were corrected by rows 57 and 60 after the first review; the tally reads 62 rows.
+- **Fact-check.** Rows 42 to 65 in `apps/manual/fact-checks/testing-offline-and-a-first-agent.md`. The first review corrected rows 48, 53, 54 and 56 in rows 57, 60 and 61, and the writing review added rows 63 to 65. The tally reads 65 rows.

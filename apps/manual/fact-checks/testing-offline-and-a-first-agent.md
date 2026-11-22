@@ -103,12 +103,15 @@ Package claims are checked against `@buildanagent/sdk@0.1.0-alpha.26` at the com
 | 60 | Corrects row 56: `packages/sdk/package.json` says `"version": "0.1.0-alpha.27"` at this head, after the merge of `origin/main`; row 56 first quoted `0.1.0-alpha.26`. The chapter says only "a `0.1.0` alpha release", which holds for both | Opening | ✅ | `grep '"version"' packages/sdk/package.json` on 2026-11-22 |
 | 61 | Rows 42 and 52 cite the README at the tag `v0.1.0-alpha.19`, which is the register's pin for `buildanagent-sdk-readme`. I diffed the sections they quote against the current `packages/sdk/README.md`: "Test against a strict scripted model" and "Continue a conversation with `continueRun()`" are identical, and "Every run ends with a stop reason" differs only in its `error` and `stopped` bullets, so the `awaiting_approval` bullet that row 52 quotes is unchanged. The register's tag is not stale for the sentences this chapter relies on | Our SDK's tabs | ✅ | `git show v0.1.0-alpha.19:packages/sdk/README.md` against `packages/sdk/README.md`, section by section with `diff`, on 2026-11-22 |
 | 62 | The table's row for our SDK now reads `maxSteps` of 8 for each run | § A complete agent (table) | ✅ | Row 57; the cell is in the chapter's `capstone-differences` table |
+| 63 | Writing-review move: the sentence that our capstone looks up a customer and gates an escalation, as the seven others do, where the AI SDK's looks up an order and gates a refund, now sits only in the paragraph that opens "Seven more capstones", which says "as ours does"; row 51's claim is unchanged | § A complete agent | ✅ | Row 51; `check:book` renders the chapter |
+| 64 | The header comment of `11-scripted-turns.ts` says the chapter lists it beside the mock models of four other SDKs: the chapter's mock block holds OpenAI, LangChain, Pi and ADK beside ours | § A mock replaces the provider | ✅ | The `::::tabs` block of `mock-openai`, `mock-langchain`, `mock-pi` and `mock-adk` in the chapter |
+| 65 | The todo's Outcome says `13-triage-agent.ts` has the region `gate` only and that the capstone tab lists the whole file | Todo T61 | ✅ | Row 58; `grep -n '#region' packages/sdk/examples/13-triage-agent.ts` shows one region, `gate` |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 53 |
+| ✅ confirmed | 56 |
 | ✏️ corrected | 6 (rows 10 and 39, correcting the draft's claim about the four mock listings; rows 48, 53 and 54, the cap's scope; row 56, the version quoted) |
 | ⚠️ unverified, an illustration or our reading, marked as ours in the text | 3 (rows 2, 25 and 38) |
-| Total | 62 |
+| Total | 65 |

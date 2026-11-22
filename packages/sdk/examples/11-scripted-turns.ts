@@ -1,6 +1,6 @@
 // A scripted model on our SDK: one answer per model call, played back in order, with a frozen copy of each request
 // kept in `calls` so a test can check what the run sent. The book's Chapter 7 lists it beside the mock models of
-// eight other SDKs.
+// four other SDKs.
 import { createModel } from "@buildanagent/gateway";
 import { defineTool, run } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
