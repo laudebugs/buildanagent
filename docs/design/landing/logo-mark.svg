@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="buildanagent">
+  <!-- Inline this drawing in a header: it takes the text colour from currentColor and the accent from --accent. -->
+  <rect x="7" y="7" width="50" height="50" rx="11" fill="none" stroke="currentColor" stroke-width="5"/>
+  <path d="M21 23L34 32L21 41" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M38 43H48" fill="none" stroke="var(--accent, #B04E29)" stroke-width="5" stroke-linecap="round"/>
+</svg>
