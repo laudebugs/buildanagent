@@ -45,7 +45,10 @@ test("figures, tables and listings are numbered from the chapter's place in the 
     first,
     /<figcaption id="tbl-stop-reasons--caption"><span class="number">Table 1\.1<\/span> How the loop stops<\/figcaption><div class="table__scroll"/,
   );
-  assert.match(second, /<figcaption><span class="number">Listing 2\.1<\/span> Saying hello<\/figcaption><pre/);
+  assert.match(
+    second,
+    /<figcaption class="listing__caption" id="lst-hello-caption"><span class="listing__number number">Listing 2\.1<\/span><span class="listing__title">Saying hello<\/span><\/figcaption><pre/,
+  );
 });
 
 test("a table scrolls inside a region that takes focus and is named by the table's caption", () => {
@@ -93,7 +96,10 @@ test("moving a chapter in the outline renumbers its blocks and every reference t
     movedFirst,
     /class="xref">Listing 3\.1<\/a> in <a href="\/second\/" class="xref">Chapter 3<\/a>; Chapter 1 is/,
   );
-  assert.match(movedSecond, /<span class="number">Listing 3\.1<\/span> Saying hello/);
+  assert.match(
+    movedSecond,
+    /<span class="listing__number number">Listing 3\.1<\/span><span class="listing__title">Saying hello<\/span>/,
+  );
   assert.match(
     movedSecond,
     /Back to <a href="\/first\/#fig-ticket-rail" class="xref">Figure 2\.1<\/a> in <a href="\/first\/" class="xref">Chapter 2<\/a>/,
