@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { isHarnessError } from "@buildanagent/harness";
 import { type Dispatcher, type WebSocketLike, webSocketTransport } from "@buildanagent/harness/server";
 import type { SessionStore } from "@buildanagent/harness/session";
-import { ErrorCodes, type ServerMessage } from "@buildanagent/protocol";
+import { ErrorCodes, JsonlFramer, type ServerMessage } from "@buildanagent/protocol";
 import { describe, test, vi } from "vitest";
 import { memoryBackend } from "../session/memory-backend.js";
 import { MemorySocket } from "./memory-websocket.js";
@@ -181,17 +181,37 @@ describe("a bad frame gets the stdio transport's answer, and the socket stays op
     run.send(message(1));
     run.send(`${message(2)}\n`);
     run.send(`${message(3)}\r\n`);
-    await until(() => run.messages().length === 3, "three answers");
+    // The framer drops a trailing \r from a line before it counts it, so a lone one is not counted either.
+    run.send(`${message(4)}\r`);
+    await until(() => run.messages().length === 4, "four answers");
     assert.deepEqual(
       run.messages().map((m) => !("method" in m) && "result" in m && m.id),
-      [1, 2, 3],
+      [1, 2, 3, 4],
     );
     assert.equal(run.server.readyState, 1);
     // One byte over, a space the JSON allows, is too big.
-    run.send(`${message(4)} \n`);
+    run.send(`${message(5)} \n`);
     await run.done;
     assert.deepEqual(run.server.closeCalls, [{ code: 1009, reason: `a frame went over the bound of ${bound} bytes` }]);
   });
+
+  for (const ending of ["", "\n", "\r\n", "\r", "\r\r\n", "\r\r", " \r\n"]) {
+    test(`the bound treats a frame ending ${JSON.stringify(ending)} as stdio's framer treats that line`, async () => {
+      const { dispatcher } = approvalSetup([]);
+      const message = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: initParams });
+      const bound = new TextEncoder().encode(message).length;
+      // The frame as one stdio line: its own newline, if it ends with one, ends the line.
+      const line = ending.endsWith("\n") ? `${message}${ending}` : `${message}${ending}\n`;
+      const framed = new JsonlFramer({ maxLineBytes: bound }).push(new TextEncoder().encode(line));
+      const stdioTooBig = framed.some((m) => !m.ok && m.error.code === "line_too_long");
+      const run = wsRun(dispatcher, { maxMessageBytes: bound });
+      run.send(`${message}${ending}`);
+      await until(() => run.messages().length > 0, "an answer");
+      assert.equal(run.server.closeCalls[0]?.code === 1009, stdioTooBig);
+      run.client.close(1000);
+      await run.done;
+    });
+  }
 
   for (const [name, frame] of [
     ["an ArrayBuffer", () => new ArrayBuffer(65)],

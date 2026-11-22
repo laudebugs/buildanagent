@@ -62,10 +62,10 @@ export interface WebSocketLike {
 /** What `webSocketTransport()` takes besides the dispatcher and the socket. */
 export interface WebSocketOptions {
   /**
-   * The most bytes one frame may hold: a text frame counted as UTF-8 without one trailing newline, and a binary frame
-   * by its byte length, which the transport reads without reading the data. A longer frame is answered with
-   * `InvalidRequest`, and the transport then closes the socket with code 1009, or 4009 on a socket that refuses 1009.
-   * Default 8 MiB, the stdio transport's bound on a line.
+   * The most bytes one frame may hold: a text frame counted as UTF-8 without one trailing `\n` and then one trailing
+   * `\r`, as the stdio transport counts a line, and a binary frame by its byte length, which the transport reads
+   * without reading the data. A longer frame is answered with `InvalidRequest`, and the transport then closes the
+   * socket with code 1009, or 4009 on a socket that refuses 1009. Default 8 MiB, the stdio transport's bound on a line.
    */
   readonly maxMessageBytes?: number;
   /**
@@ -144,9 +144,14 @@ function binarySize(data: unknown): number | undefined {
   return typeof size === "number" ? size : undefined;
 }
 
-/** `text` without one trailing `\n` or `\r\n`, which ends the message as it ends a stdio line and is not counted. */
-const withoutNewline = (text: string): string =>
-  text.endsWith("\r\n") ? text.slice(0, -2) : text.endsWith("\n") ? text.slice(0, -1) : text;
+/**
+ * `text` without one trailing `\n` and then one trailing `\r`, which the framer drops from a stdio line before it
+ * counts the line, so a frame ending in `\r\n`, `\n` or a lone `\r` is bounded as that line is.
+ */
+function withoutNewline(text: string): string {
+  const line = text.endsWith("\n") ? text.slice(0, -1) : text;
+  return line.endsWith("\r") ? line.slice(0, -1) : line;
+}
 
 /**
  * Serves one client over one open WebSocket, one JSON-RPC 2.0 message per text frame, and resolves once the client is
