@@ -34,7 +34,6 @@
       "entry": ["schema-check/*.ts"]
     },
     // Scaffolds that name the packages they will import once their todos land.
-    "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] },
-    "packages/harness": { "ignoreDependencies": ["@buildanagent/sdk"] }
+    "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] }
   }
 }

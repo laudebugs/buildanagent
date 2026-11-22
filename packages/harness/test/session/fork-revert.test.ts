@@ -178,11 +178,24 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     assert.equal(session.head(), byCall.id, "each link moves HEAD, as any entry does");
     assert.equal(reader.head(), (await all(backend.store.load(reader.key)))[0]?.id, "a child starts at its header");
     const [childHeader] = await all(backend.store.load(reader.key));
-    assert.ok(
-      childHeader?.type === "session_header" && childHeader.parent === undefined,
-      "a child is its own log, with no parent prefix",
+    assert.ok(childHeader?.type === "session_header");
+    assert.deepEqual(
+      childHeader.parent,
+      { session: "s1", entryId: byStep.id },
+      "a child's header names the session and the link that started it",
     );
-    assert.deepEqual(ids(await reader.path()), [childHeader.id]);
+    assert.deepEqual(childHeader.spawn, { stepId: "step:reader" });
+    assert.deepEqual(
+      ids(await reader.path()),
+      [childHeader.id],
+      "but a child is its own log, so its path doesn't cross into the parent",
+    );
+    const [callerHeader] = await all(backend.store.load(caller.key));
+    assert.ok(
+      callerHeader?.type === "session_header" &&
+        callerHeader.spawn?.spawningCallId === "call-7" &&
+        callerHeader.spawn.stepId === undefined,
+    );
     await reader.close();
     await caller.close();
     await session.close();

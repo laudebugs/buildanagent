@@ -144,7 +144,22 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 - **Revert.** `revert(id)` writes the same kind of file and points this session at it, so the session goes on from `id`. The old file keeps every entry and is never touched, but the entries after `id` are no longer part of this session's tree: `path()` and `checkout()` reach only the entries from the root to `id` and the new file's own. A crash before the pointer moves leaves the old file in use.
 - **The pointer.** The pointer to a session's current file is the only mutable state. `memoryIndex()` keeps it in memory, and `fileIndex({ dir })` in `@buildanagent/harness/session/jsonl` replaces a small JSON file by writing a temp file and renaming it.
 - **Derived files.** The files a revert or a migration writes have names that start with `~`, and `listSessions()` leaves them out of a listing, because a session is known by its key.
-- **Child.** `child({ spawningCallId })` or `child({ stepId })` starts the log of a subagent or a workflow step as its own session, with no parent prefix, and records the link in this session with a `subagent_link` entry that carries the one id given. Giving both or neither throws.
+- **Child.** `child({ spawningCallId })` or `child({ stepId })` starts the log of a subagent or a workflow step as its own session, and records the link in this session with a `subagent_link` entry that carries the one id given. Giving both or neither throws. The child's header names this session and the link entry as `parent` and the id as `spawn`, and its `path()` does not cross into this session, so a child never shares the parent's conversation.
 - **Migration.** `migrateSession()` takes a log in an older format through the migrations it is given, writes the result as a new file in one append, which checks every entry against the current format, reads it back, and only then moves the pointer. The old file stays as it was. A log from a newer format is refused with `unsupported_format`, because only a newer harness can read it. `migrateSession()` takes the session's writer lock for the whole migration. It leaves a log that is already current alone, whatever its header names, and refuses to migrate a file whose header names a parent, because that parent would stay in the old format. It can't see forks that name this file as their parent, because a store has no index of dependents. Migrate only a session with no forks: an existing fork would still name the old-format file as its parent and become unreadable.
 - **A file in another format is not corruption.** A store that finds a header it doesn't read throws `unsupported_format` and not `session_corrupt`, and offers `loadRaw()` so a migration can read the entries as they were written.
 
+## `runTurn()` writes one SDK run into the log, and the user entry goes first
+
+`runTurn(session, harness, options)` from `@buildanagent/harness/session` runs one turn of a `Harness` (built with `createHarness()` from `@buildanagent/harness/server`) on an open session. The input blocks are durable before `run()` starts, so a turn that dies before its first model call leaves the question in the file. A new session's first turn writes the `session_header` and an `env_stamp` from the SDK's version, defaults hash and capabilities, and a `loadout` when the model or tool set differs from the last one recorded. Every write goes through one queue, so the permission pipeline's `permission_decision` entries and the run's own never race for a parent. A failed write aborts the run, and `runTurn()` rethrows it.
+
+| SDK event | Entry |
+| --- | --- |
+| input (before `run()`) | `message_block` with `delivery: "input"`, origin `user` or `operator` |
+| `run_start` | `turn_start`, with the turn's exact system prompt |
+| `model_call_end` | one `message_block` per block, a `message_end` and a `usage` |
+| a turn-layer `retry` | a `usage` entry only |
+| `tool_call_end` | `tool_result` with its own `callId` and the tool's declared output trust |
+| `steer_applied` | `message_block` with `delivery: "steer"` or `"followUp"` |
+| `run_end` | `turn_end` |
+
+A turn may set `system`, `tools` (an allowlist of registered names; an unknown one throws `invalid_turn_options`), `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal` and `hostContext`, which a tool reads as `ctx.app` and which reaches no entry. `onRun` hands the caller the run, to `steer()` it. A hook that swaps the model inside a turn is refused; set `model` on the next turn and the change is written as a `loadout`.

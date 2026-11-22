@@ -374,6 +374,8 @@ interface TurnOptions<H = unknown> {
   hostContext?: H;                          // Revision (agent AH2): per turn; reaches execute, never a schema or the log. Follow-up (B23): N6 and N11 pass it as RunOptions.app, which tools read as ctx.app, instead of binding it in a ToolWrapper
   system?: string; tools?: string[];        // Revision (agent AH1): per-turn settings; tools is an allowlist of registered names
   output?: ToolDefinition<any, any>; model?: Model; maxSteps?: number; modelOptions?: StreamOptions;
+  turnRetries?: number; onRun?: (run: Run<unknown>) => void;   // built in N6: onRun hands the caller the run, to steer it
+  history?: Message[];                      // built in N6: the caller passes the conversation until N7 rebuilds it from the log
 }
 type TurnResult = RunResult<unknown> & { sessionKey: string; lastEntryId: string };
 declare function runTurn<H>(session: Session, harness: Harness<H>, options: TurnOptions<H>): Promise<TurnResult>;
@@ -696,7 +698,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N3](../todos/done/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
 | [N4](../todos/done/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
 | [N5](../todos/done/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
-| [N6](../todos/ready/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
+| [N6](../todos/done/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
 | [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15b, E2 | M |
 
 ### 4.2 Stage 2 adds the five context layers, cheapest first

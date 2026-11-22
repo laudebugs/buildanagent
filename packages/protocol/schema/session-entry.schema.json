@@ -75,6 +75,18 @@
           ],
           "additionalProperties": false
         },
+        "spawn": {
+          "type": "object",
+          "properties": {
+            "spawningCallId": {
+              "type": "string"
+            },
+            "stepId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
         "product": {
           "type": "object",
           "properties": {

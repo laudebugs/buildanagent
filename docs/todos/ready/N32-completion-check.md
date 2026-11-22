@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N15](../done/N15-sandbox-interface.md), [N6](N6-session-runner.md) |
+| Depends on | [N15](../done/N15-sandbox-interface.md), [N6](../done/N6-session-runner.md) |
 | Size | M |
 
 ## Goal

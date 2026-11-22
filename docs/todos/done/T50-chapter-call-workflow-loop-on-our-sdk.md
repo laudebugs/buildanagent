@@ -46,7 +46,7 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md` that ou
 
 **Out of scope** (and which todo covers it)
 
-- `#pi-hello` (`verify/pi/examples/01-hello-session.ts`): the chapter shows a harness keeping a session and bringing its own tools, which our harness does only once its session runner lands ([N6](../ready/N6-session-runner.md)). The listing stays a single Pi listing until then; a later todo adds our tab, and the chapter's `switchTo` gains N6 if the owner wants that tab.
+- `#pi-hello` (`verify/pi/examples/01-hello-session.ts`): the chapter shows a harness keeping a session and bringing its own tools, which our harness does only once its session runner lands ([N6](../done/N6-session-runner.md)). The listing stays a single Pi listing until then; a later todo adds our tab, and the chapter's `switchTo` gains N6 if the owner wants that tab.
 - The exercises keep their AI SDK and ADK files; a later todo can add versions on our SDK.
 - The other chapters' listings: each gains our tabs in its own follow-up when its `switchTo` todos are done.
 

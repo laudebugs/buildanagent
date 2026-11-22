@@ -1415,7 +1415,7 @@
     "SessionEntry": {
       "oneOf": [
         {
-          "$ref": "#/$defs/shape-8755e442b7"
+          "$ref": "#/$defs/shape-69ae87f1b5"
         },
         {
           "$ref": "#/$defs/shape-22fcb79a8f"
@@ -1470,7 +1470,7 @@
         }
       ]
     },
-    "shape-8755e442b7": {
+    "shape-69ae87f1b5": {
       "type": "object",
       "properties": {
         "id": {
@@ -1528,6 +1528,18 @@
             "session",
             "entryId"
           ],
+          "additionalProperties": false
+        },
+        "spawn": {
+          "type": "object",
+          "properties": {
+            "spawningCallId": {
+              "type": "string"
+            },
+            "stepId": {
+              "type": "string"
+            }
+          },
           "additionalProperties": false
         },
         "product": {
