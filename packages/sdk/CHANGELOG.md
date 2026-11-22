@@ -1,5 +1,13 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.20
+
+### Patch Changes
+
+- f8df359: Add retryAfterMs to RunError when the failure that ended the run carried a retry-after hint
+- Updated dependencies [5e87946]
+  - @buildanagent/gateway@0.1.0-alpha.20
+
 ## 0.1.0-alpha.19
 
 ### Patch Changes
