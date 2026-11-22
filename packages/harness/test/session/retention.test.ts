@@ -777,6 +777,31 @@ describe("a delete while expiry runs", () => {
   });
 });
 
+describe("what a delete leaves", () => {
+  // delete() removes only the session's first file and its archive, so a revert's file and the pointer stay behind.
+  test("a purge removes the derived file and pointer a delete left, once they expire, and brings nothing back", async () => {
+    const { dir, store, derived } = await withRevert();
+    await store.delete(OLD);
+    assert.deepEqual(files(dir, "ada"), [derived, "old.pointer.json"]);
+    const options = { dir, userId: "ada", retention: { days: 30, action: "purge" as const } };
+    assert.deepEqual(await pruneSessions({ ...options, now: () => new Date("2026-01-05") }), EMPTY);
+    assert.deepEqual(files(dir, "ada"), [derived, "old.pointer.json"], "nothing is removed before it expires");
+    assert.deepEqual((await pruneSessions({ ...options, now: NOW })).purged, ["old"]);
+    assert.deepEqual(files(dir, "ada"), []);
+    assert.equal(existsSync(join(dir, ARCHIVE)), false);
+  });
+
+  test("an archive moves what a delete left and never makes the deleted file again", async () => {
+    const { dir, store, derived } = await withRevert();
+    await store.delete(OLD);
+    const result = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "archive" }, now: NOW });
+    assert.deepEqual(result.archived, ["old"]);
+    assert.deepEqual(files(dir, "ada"), ["old.pointer.json"]);
+    assert.deepEqual(files(dir, ARCHIVE, "ada"), [`${derived}.gz`], "no archive of the deleted first file");
+    assert.deepEqual(await all(store.load(OLD)), []);
+  });
+});
+
 describe("when expiry runs", () => {
   test("a store with retention expires a user's sessions the first time it touches that user, and not before", async () => {
     const { dir } = await setup();

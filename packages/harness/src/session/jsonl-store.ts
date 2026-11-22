@@ -48,8 +48,9 @@ export interface JsonlStoreOptions {
   /**
    * How long to keep a session. Without it the store never deletes or moves a file. With it, the first time the store
    * touches a user's sessions, it archives or purges that user's expired ones (see `pruneSessions()`), and it never does
-   * so in the background. A pass that had an error runs again on the first touch at least a minute after it ended. An
-   * archived session is still listed and loaded, and a write restores the file it writes to.
+   * so in the background. That happens once per user for the life of the store: a long-running server calls
+   * `pruneSessions()` on a schedule of its own. A pass that had an error runs again on the first touch at least a minute
+   * after it ended. An archived session is still listed and loaded, and a write restores the file it writes to.
    */
   readonly retention?: Retention;
   /** The writer lock, so that expiry leaves a session whose writer is running. Only used with `retention`. */
