@@ -126,24 +126,24 @@
     {
       "kind": "check",
       "line": 24,
-      "message": "tools: [...] sends a read-only set, in registration order",
+      "message": "tools: [...] sends a read-only set, whatever order the list names them in",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 25,
+      "line": 28,
       "message": "a list built from the registry leaves out two tools",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 26,
+      "line": 29,
       "message": "tools: [] sends no tool",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 38,
+      "line": 41,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -172,7 +172,7 @@
     },
     {
       "kind": "response",
-      "line": 38,
+      "line": 41,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -191,7 +191,7 @@
     },
     {
       "kind": "request",
-      "line": 38,
+      "line": 41,
       "model": "model-2",
       "repeated": 3,
       "messages": [
@@ -214,7 +214,7 @@
     },
     {
       "kind": "response",
-      "line": 38,
+      "line": 41,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -229,13 +229,13 @@
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 43,
       "message": "the call to glob yields an error tool result that says no tool has that name",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 44,
+      "line": 47,
       "message": "the loop sends a second request",
       "pass": true
     }

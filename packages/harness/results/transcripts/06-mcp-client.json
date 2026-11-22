@@ -8,25 +8,25 @@
   "events": [
     {
       "kind": "check",
-      "line": 19,
+      "line": 21,
       "message": "the server answered server/discover, so it connects in the new era",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 20,
+      "line": 22,
       "message": "the tool is registered under a namespaced name",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 21,
+      "line": 23,
       "message": "an MCP tool is deferred by default",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 27,
+      "line": 37,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -55,7 +55,7 @@
     },
     {
       "kind": "response",
-      "line": 27,
+      "line": 37,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -74,7 +74,7 @@
     },
     {
       "kind": "request",
-      "line": 27,
+      "line": 37,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -96,7 +96,7 @@
     },
     {
       "kind": "response",
-      "line": 27,
+      "line": 37,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -111,13 +111,19 @@
     },
     {
       "kind": "check",
-      "line": 30,
+      "line": 39,
       "message": "the server's result goes back to the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 31,
+      "line": 42,
+      "message": "the pipeline decided the call and the log recorded it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 46,
       "message": "and the registry marks it untrusted",
       "pass": true
     }

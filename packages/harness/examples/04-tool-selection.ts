@@ -16,12 +16,15 @@ const said = (text: string) => ({ content: [{ type: "text" as const, text }] });
   const { adapter, model } = scripted([said("Looked."), said("Fixed."), said("Hello.")]); // book:note scripted
   const harness = createHarness({ registry, model, system: "You help with code." });
   const session = await ask({ userId: "ada", sessionId: "select" });
-  await runTurn(session, harness, { input: "Look around.", tools: ["read", "grep", "glob"] }); // book:note allowlist
+  await runTurn(session, harness, { input: "Look around.", tools: ["glob", "read", "grep"] }); // book:note allowlist
   const kept = registry.list().filter((tool) => tool.name !== "bash" && tool.name !== "write");
   await runTurn(session, harness, { input: "Fix it.", tools: kept.map((tool) => tool.name) }); // book:note exclude
   await runTurn(session, harness, { input: "Just talk.", tools: [] }); // book:note none
   const sent = adapter.calls.map((call) => call.context.tools.map((tool) => tool.name));
-  check(sent[0]?.join() === "read,grep,glob", "tools: [...] sends a read-only set, in registration order");
+  check(
+    sent[0]?.join() === "read,grep,glob",
+    "tools: [...] sends a read-only set, whatever order the list names them in",
+  );
   check(sent[1]?.join() === "read,edit,grep,glob", "a list built from the registry leaves out two tools");
   check(sent[2]?.length === 0, "tools: [] sends no tool");
   await session.close();

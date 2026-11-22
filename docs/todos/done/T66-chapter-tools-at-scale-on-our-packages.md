@@ -53,4 +53,4 @@ Chapter 13 has eleven listings. Our harness, `@buildanagent/harness`, can show n
 - **The chapter.** Seven tabs blocks carry our tab first, with ids ending in `-ours`. The other tabs' code and notes are unchanged, and their captions became tab names. The prose says where our harness differs: no exclusion option, no deferred tool named in a request, and no option that enables a skill.
 - **N25.** No tab shows HTTP, so the chapter's `switchTo` no longer lists N25, and its prose about N25 stays as intent. The report now lists Chapter 13 as ready for tabs.
 - **Corrections.** `@buildanagent/harness` is a public alpha, not private (row 160). The built-in tools and the `read` tool are built (rows 161 and 172).
-- **Fact-check.** Rows 160 to 176 in `apps/manual/fact-checks/tools-at-scale.md`, tallied at 176 rows. Rows 160, 161 and 172 are ✏️ corrections. All others are ✅.
+- **Fact-check.** Rows 160 to 177 in `apps/manual/fact-checks/tools-at-scale.md`, tallied at 177 rows. Rows 160, 161 and 172 are ✏️ corrections. All others are ✅.

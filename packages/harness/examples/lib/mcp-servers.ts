@@ -24,12 +24,16 @@ const reply = (text: string) => ({ content: [{ type: "text" as const, text }] })
 
 /** A server named `name` whose tools are `[name, description, input schema, answer]`, served in the 2026-07-28 era. */
 function serve(name: string, tools: readonly (readonly [string, string, never, string])[]): McpChannel {
-  const server = new McpServer({ name, version: "1.0.0" }, { capabilities: { tools: {} } });
-  for (const [tool, description, inputSchema, answer] of tools) {
-    server.registerTool(tool, { description, inputSchema }, (async () => reply(answer)) as never);
-  }
+  // serveStdio() asks for its server through a factory, as the library's own servers do.
+  const build = () => {
+    const server = new McpServer({ name, version: "1.0.0" }, { capabilities: { tools: {} } });
+    for (const [tool, description, inputSchema, answer] of tools) {
+      server.registerTool(tool, { description, inputSchema }, (async () => reply(answer)) as never);
+    }
+    return server;
+  };
   const [client, serverEnd] = InMemoryTransport.createLinkedPair();
-  serveStdio(() => server, { transport: serverEnd });
+  serveStdio(build, { transport: serverEnd });
   // The client's end of the pair has the shape of a channel; the library types its messages more narrowly.
   return client as unknown as McpChannel;
 }

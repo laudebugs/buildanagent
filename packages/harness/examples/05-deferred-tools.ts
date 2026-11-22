@@ -4,9 +4,10 @@
 // a scripted one, so the example runs offline.
 import type { ModelContext } from "@buildanagent/gateway";
 import { createMcpManager } from "@buildanagent/harness/mcp";
+import { createHarness } from "@buildanagent/harness/server";
+import { memoryIndex, memoryStore, openSession, runTurn } from "@buildanagent/harness/session";
 import { createToolRegistry, toolSearchInterceptors, toolSearchTool } from "@buildanagent/harness/tools";
-import { run } from "@buildanagent/sdk";
-import { check, scripted } from "./lib/check.js";
+import { check, memoryLock, scripted } from "./lib/check.js";
 import { weatherServer } from "./lib/mcp-servers.js";
 
 const registry = createToolRegistry();
@@ -38,14 +39,19 @@ const { adapter, model } = scripted([
   call("c2", "mcp__weather__get_forecast", { city: "Lisbon" }),
   { content: [{ type: "text", text: "Sunny in Lisbon." }] },
 ]); // book:note scripted
-const started = run({
+const harness = createHarness({
+  registry,
   model,
   system: "You use tools.",
-  input: "Use get_forecast for Lisbon.",
-  tools: registry.definitions(),
   interceptors: toolSearchInterceptors(registry, activated),
 });
-await started.result;
+const session = await openSession({
+  store: memoryStore(),
+  index: memoryIndex(),
+  lock: memoryLock(),
+  key: { userId: "ada", sessionId: "deferred" },
+});
+await runTurn(session, harness, { input: "Use get_forecast for Lisbon." });
 const [first, second] = adapter.calls.map((entry) => entry.context);
 check(deferred(first).length === 0, "the first request holds no deferred definition"); // book:note no-definition
 check(!JSON.stringify(first).includes("mcp__weather__"), "and does not name one either"); // book:note names-hidden
@@ -58,5 +64,6 @@ check(deferred(second).join() === "mcp__weather__get_forecast", "after the searc
 // #endregion
 const everSent = new Set(adapter.calls.flatMap((entry) => deferred(entry.context)));
 check(everSent.size === 1, "the other two definitions never reach the model");
+await session.close();
 await manager.close();
 adapter.assertComplete();

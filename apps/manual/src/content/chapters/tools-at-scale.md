@@ -111,7 +111,7 @@ A `hidden`{checked=row-13} tool never appears in a search, because hiding a tool
 
 Anthropic announced MCP in November 2024 as an open standard that replaces fragmented integrations with a single protocol [@anthropic-model-context-protocol], so any client that speaks it can use any server's tools, much like :analogy[a USB port: one plug shape for many devices]{#usb-port}. The comparison stops at trust. A mouse only moves a cursor, while an MCP server is closer to installed software. It chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted, and to keep a human able to deny tool calls [@mcp-tools-spec]. That is why the registry from the first section marks MCP output untrusted.
 
-Connecting takes little code, and each of the four clients below puts it in a different place. Our harness's `createMcpManager()` connects each server in a list and registers its tools in the tool registry. The AI SDK converts a server's tools into its own and hands them to `generateText`. Cloudflare's `Agent` class connects and holds the connection for you. The Copilot SDK starts the server inside its runtime and renames each tool `<server-key>-<tool-name>`{checked=row-66}, here `orders-order_status`. Our harness names the same tool `mcp__orders__order_status` [@ai-sdk-mcp-tools; @cloudflare-agents-mcp-client; @copilot-sdk-nodejs-readme].
+Connecting takes little code, and each of the four clients below puts it in a different place. Our harness's `createMcpManager()` connects each server in a list and registers its tools in the tool registry. The AI SDK converts a server's tools into its own and hands them to `generateText`. Cloudflare's `Agent` class connects and holds the connection for you. The Copilot SDK starts the server inside its runtime and renames each tool `<server-key>-<tool-name>`{checked=row-66}, here `orders-order_status`. [@ai-sdk-mcp-tools; @cloudflare-agents-mcp-client; @copilot-sdk-nodejs-readme]. Our harness names the same tool `mcp__orders__order_status`.
 
 ::::tabs
 :::listing[Our harness]{#mcp-ours file="packages/harness/examples/06-mcp-client.ts" region="mcp-client"}
@@ -121,7 +121,9 @@ Connecting takes little code, and each of the four clients below puts it in a di
 ::note[An MCP tool is deferred by default, so a model finds it only through tool search.]{#exposure}
 ::note[`setExposure()` sends this server's tools in every request, so the loop below needs no search.]{#direct}
 ::note[`scripted` puts our SDK's test model behind the gateway's `createModel()`, so the run needs no key. A real run passes a model from `createModel()`.]{#scripted}
-::note[`registry.definitions()` hands the registered tools, MCP tools included, to the normal loop.]{#loop}
+::note[The gate is the harness's permission pipeline. This rule allows the orders server's tools, and a call that no rule allowed would be denied, because nobody can answer.]{#gate}
+::note[`runTurn()` runs the turn through the harness, so the call goes through the gate and the registry's tools reach the model.]{#loop}
+::note[The pipeline decided the call, and the session's log recorded the decision.]{#decided}
 ::note[The server wrote this result, not you, so the registry marks its output untrusted.]{#untrusted}
 :::
 :::listing[AI SDK]{#mcp-ai file="verify/vercel-ai-sdk/examples/08-mcp-tools.ts" region="mcp-client"}
@@ -228,7 +230,7 @@ A skill adds instructions, not an interface. Pi's documentation draws the line: 
 ::listing[Claude Agent SDK]{#skills-run file="verify/claude-agent-sdk/examples/09-skills.ts" region="skills-run"}
 :::::
 
-[[lst:skills-checks-ours]] and [[lst:skills-checks]] show what the model receives. In each, the first request lists the enabled skill's name and description and carries no body. In the Claude Agent SDK, the skill left out of the `skills` option never reaches the model, though it stays on disk, because the option is "a context filter, not a sandbox" [@claude-agent-sdk-skills]. The Claude Agent SDK's mock model then calls the `Skill` tool, and from that request on, the body sits in every request of the run. Our scripted model instead reads the skill's file with the ordinary `read` tool.
+[[lst:skills-checks-ours]] and [[lst:skills-checks]] show what the model receives. In each, the first request lists the enabled skill's name and description and carries no body. In the Claude Agent SDK, the skill left out of the `skills` option never reaches the model, though it stays on disk, because the option is "a context filter, not a sandbox" [@claude-agent-sdk-skills]. Its mock model then calls the `Skill` tool, and from that request on, the body sits in every request of the run. Our scripted model instead reads the skill's file with the ordinary `read` tool.
 
 :::::tabs
 :::listing[Our harness]{#skills-checks-ours file="packages/harness/examples/07-skills.ts" region="skills-checks" replay}

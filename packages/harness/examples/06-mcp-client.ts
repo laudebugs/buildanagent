@@ -3,9 +3,11 @@
 // real server library. The book's Chapter 13 lists it beside the AI SDK's, Cloudflare's and the Copilot SDK's clients.
 // The model is a scripted one, so the example runs offline.
 import { createMcpManager } from "@buildanagent/harness/mcp";
+import { createPermissionPipeline } from "@buildanagent/harness/permissions";
+import { createHarness } from "@buildanagent/harness/server";
+import { memoryIndex, memoryStore, openSession, runTurn } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";
-import { run } from "@buildanagent/sdk";
-import { check, scripted } from "./lib/check.js";
+import { check, memoryLock, scripted } from "./lib/check.js";
 import { ordersServer } from "./lib/mcp-servers.js";
 
 // #region mcp-client
@@ -24,11 +26,25 @@ const { adapter, model } = scripted([
   { content: [{ type: "tool_call", callId: "c1", name: "mcp__orders__order_status", input: { orderId: "A-1" } }] },
   { content: [{ type: "text", text: "Your order shipped." }] },
 ]); // book:note scripted
-const started = run({ model, system: "You help.", input: "Where is order A-1?", tools: registry.definitions() }); // book:note loop
-await started.result;
+const pipeline = createPermissionPipeline(
+  { mode: "default", allow: [{ tool: "mcp__orders__*" }], interactive: false, policyVersion: "p1" },
+  registry,
+); // book:note gate
+const harness = createHarness({ registry, model, system: "You help.", pipeline });
+const store = memoryStore();
+const key = { userId: "ada", sessionId: "orders" };
+const session = await openSession({ store, index: memoryIndex(), lock: memoryLock(), key });
+await runTurn(session, harness, { input: "Where is order A-1?" }); // book:note loop
 const reply = adapter.calls[1]?.context.messages.at(-1);
 check(JSON.stringify(reply).includes("order A-1: shipped"), "the server's result goes back to the model");
+const logged = [];
+for await (const entry of store.load(key)) logged.push(entry);
+check(
+  logged.some((entry) => entry.type === "permission_decision" && entry.tool === "mcp__orders__order_status"),
+  "the pipeline decided the call and the log recorded it",
+); // book:note decided
 check(registry.get("mcp__orders__order_status")?.outputTrust === "untrusted", "and the registry marks it untrusted"); // book:note untrusted
 // #endregion
+await session.close();
 await manager.close();
 adapter.assertComplete();
