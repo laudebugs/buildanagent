@@ -486,7 +486,7 @@ Two limits remain. The pin covers the files inside each folder and nothing an ex
 
 ## A skill is a file the model reads, and only its name, description and path are in the prompt
 
-A skill is a folder under `.agents/skills/` with a `SKILL.md` whose frontmatter has a `name` and a `description`. `discoverSkills(cwd, { trust })` from `@buildanagent/harness/extensions/node` finds them in `cwd` and in every folder above it up to the repository root, which is the first folder with a `.git`. A `cwd` in no repository searches only itself. It returns the `skills`, the `records` for `extensionRecords` (tier `skill`, the hash of each `SKILL.md`) and the `notices`. The nearer folder wins when two skills share a name, a file that is not a skill is skipped with a notice, and a `SKILL.md` that is a link leaving the project is skipped too.
+A skill is a folder under `.agents/skills/` with a `SKILL.md` whose frontmatter has a `name` and a `description`. `discoverSkills(cwd, { trust })` from `@buildanagent/harness/extensions/node` finds them in `cwd` and in every folder above it up to the repository root, which is the first folder with a `.git`. A `cwd` in no repository searches only itself. It returns the `skills`, the `records` for `extensionRecords` (tier `skill`, the SHA-256 of each `SKILL.md`'s bytes as stored) and the `notices`. The nearer folder wins when two skills share a name, a file that is not a skill is skipped with a notice, and so are a `SKILL.md` that is a link leaving the project and one past 256 KiB, our own limit, so that every record's hash covers a whole file.
 
 ```ts
 const { skills, records } = await discoverSkills(cwd, { trust: fileTrustStore(trustFile), headless: false });
@@ -501,7 +501,7 @@ Skills are inside the project-trust gate, as the guide says, and `trust` is requ
 
 ## `AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted
 
-`contextFiles(cwd)` reads `AGENTS.md` and then `CLAUDE.md` in each folder from the repository root down to `cwd`, so the file nearest the work comes last. A `CLAUDE.md` that is a link to the `AGENTS.md` beside it is read once. Context files load whether or not the project is trusted, because they are text and not code, and `contextFiles()` takes no trust store. Each file is cut at 64 KiB, which is our limit, and a link that leaves the project is skipped with a notice, so a cloned repository cannot point `AGENTS.md` at `~/.ssh/id_rsa` and send it to the model provider.
+`contextFiles(cwd)` reads `AGENTS.md` and then `CLAUDE.md` in each folder from the repository root down to `cwd`, so the file nearest the work comes last. A `CLAUDE.md` that is a link to the `AGENTS.md` beside it is read once. Context files load whether or not the project is trusted, because they are text and not code, and `contextFiles()` takes no trust store. Each file is cut at 64 KiB, which is our limit: no more than that is read, however long the file, and the cut falls between characters. A link that leaves the project is skipped with a notice, so a cloned repository cannot point `AGENTS.md` at `~/.ssh/id_rsa` and send it to the model provider.
 
 ```ts
 const { files } = await contextFiles(cwd);

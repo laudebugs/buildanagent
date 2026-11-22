@@ -61,9 +61,10 @@ export function registerExtensionTools(registry: ToolRegistry, extensions: reado
   }
 }
 
-/** The digest of `text`, as `sha256:` and hex. */
-export async function sha256(text: string): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+/** The digest of `data`, as `sha256:` and hex. A string is hashed as its UTF-8 bytes. */
+export async function sha256(data: string | Uint8Array): Promise<string> {
+  const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
   return `sha256:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
 }
 

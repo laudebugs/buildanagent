@@ -35,6 +35,8 @@ export interface DiscoveredSkills {
 }
 
 const MAX_DEPTH = 4;
+/** The longest `SKILL.md` listed, our own limit. A longer one is skipped with a notice, so a record's hash covers the whole file. */
+const SKILL_FILE_MAX_BYTES = 256 * 1024;
 
 /** The `SKILL.md` files under `dir`, found by walking down at most `MAX_DEPTH` levels. Links are not followed. */
 async function skillFiles(dir: string, depth = 0): Promise<string[]> {
@@ -76,16 +78,18 @@ async function loadSkill(
 ): Promise<
   { skill: Skill; record: ExtensionLoadedRecord; warning?: string } | { notice: string } | Record<string, never>
 > {
-  const read = await readProjectFile(root, file, 256 * 1024);
+  const read = await readProjectFile(root, file, SKILL_FILE_MAX_BYTES);
   if (read === undefined) return {};
   if ("notice" in read) return read;
+  // The record's hash must cover the whole file, and a cut file's hash would not.
+  if (read.truncated) return { notice: `${file} is longer than ${SKILL_FILE_MAX_BYTES} bytes, so it is not listed` };
   // The path the model reads is the one found, not a link's target.
   const parsed = parseSkill(read.text, file);
   if ("problem" in parsed) return { notice: `${parsed.problem}, so it is not listed` };
   if (taken.has(parsed.skill.name)) {
     return { notice: `${file} is skipped: a nearer skill is already named "${parsed.skill.name}"` };
   }
-  const record = { name: parsed.skill.name, tier: "skill" as const, contentHash: await sha256(read.text) };
+  const record = { name: parsed.skill.name, tier: "skill" as const, contentHash: await sha256(read.bytes) };
   return { skill: parsed.skill, record, ...(parsed.notice === undefined ? {} : { warning: parsed.notice }) };
 }
 

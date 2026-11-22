@@ -1,7 +1,18 @@
 // Context files and the plan-file convention: found without the trust gate, labelled untrusted, and in every request,
 // including the first one after a compaction and the first one of a resumed session.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  ftruncateSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+  writeSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -87,6 +98,29 @@ describe("contextFiles", () => {
     assert.equal(file?.text.length, CONTEXT_FILE_MAX_BYTES);
     assert.equal(file?.truncated, true);
     assert.ok(contextText([file as ContextFile]).includes("this is its start"));
+  });
+
+  test("a cut never splits a character: a four-byte character across the limit is left out whole", async () => {
+    // "😀" is four bytes in UTF-8; placed to start one byte before the limit, it crosses it.
+    const root = repo({ "AGENTS.md": `${"x".repeat(CONTEXT_FILE_MAX_BYTES - 1)}😀${"y".repeat(10)}` });
+    const [file] = (await contextFiles(root)).files;
+    assert.equal(file?.truncated, true);
+    assert.equal(file?.text, "x".repeat(CONTEXT_FILE_MAX_BYTES - 1));
+    assert.ok(!file?.text.includes("\uFFFD"));
+  });
+
+  test("a file far past the limit is read only up to it", async () => {
+    const root = repo();
+    // A sparse 3 GiB file, which takes no disk. Node refuses to buffer a file past 2 GiB, so a reader that loads the
+    // whole file and then cuts it finds nothing here.
+    const handle = openSync(join(root, "AGENTS.md"), "w");
+    writeSync(handle, "start");
+    ftruncateSync(handle, 3 * 1024 ** 3);
+    closeSync(handle);
+    const [file] = (await contextFiles(root)).files;
+    assert.equal(file?.truncated, true);
+    assert.equal(file?.text.length, CONTEXT_FILE_MAX_BYTES);
+    assert.ok(file?.text.startsWith("start"));
   });
 
   test("a link that leaves the project is skipped with a notice, so no outside file reaches a prompt", async () => {

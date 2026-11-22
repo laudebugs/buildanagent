@@ -1,5 +1,6 @@
 // Skills: discovery from .agents/skills up to the repository root, the prompt section, and the skill_loaded entry.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
   mkdtempSync,
@@ -149,6 +150,29 @@ describe("discoverSkills", () => {
       ["good"],
     );
     assert.equal(notices.length, 2);
+  });
+
+  test("a record hashes the file's bytes as stored, not the text they decode to", async () => {
+    const root = repo({});
+    // 0xFF is never valid UTF-8, so the decoded text holds U+FFFD and hashing the text would give another digest.
+    const bytes = Buffer.concat([Buffer.from(skillFile("raw", "Raw bytes.")), Buffer.from([0xff, 0x0a])]);
+    mkdirSync(join(root, ".agents/skills/raw"), { recursive: true });
+    writeFileSync(join(root, ".agents/skills/raw/SKILL.md"), bytes);
+    const { records } = await discoverSkills(root, OPEN);
+    assert.equal(records[0]?.contentHash, `sha256:${createHash("sha256").update(bytes).digest("hex")}`);
+  });
+
+  test("a SKILL.md past 256 KiB is skipped with a notice, so no record hashes half a file", async () => {
+    const root = repo({
+      ".agents/skills/big/SKILL.md": skillFile("big", "Big.", "b".repeat(256 * 1024)),
+      ".agents/skills/small/SKILL.md": skillFile("small", "Small."),
+    });
+    const { skills, notices } = await discoverSkills(root, OPEN);
+    assert.deepEqual(
+      skills.map((skill) => skill.name),
+      ["small"],
+    );
+    assert.ok(notices.some((notice) => notice.includes("big/SKILL.md is longer than 262144 bytes")));
   });
 
   test("a SKILL.md that is a link out of the project is skipped", async () => {
