@@ -100,7 +100,7 @@ The public API, in the root entry:
 
 What the build changed from the design notes above:
 
-- **The step record is the compensation log, so no separate list exists.** Each step's key is fixed by the plan id and the step id, so the records read in plan order show which steps ran. The one extra record is the plan's decision to unwind, stored as a settled `EffectRecord` under its own key, so a resume reads it first and never retries the failed step while the plan is half undone.
+- **The step record is the compensation log, so no separate list exists.** Each step's key is fixed by the plan id and the step id, or by its business key alone when it has one, and each record names the plan and step of the call that wrote it. So the records read in plan order show which steps this plan ran. The one extra record is the plan's decision to unwind, stored as a settled `EffectRecord` under its own key, so a resume reads it first and never retries the failed step while the plan is half undone.
 - **`PlanStepImpl` also holds the step's input and its `dedupe` rule**, because `verifyPlanBeforeStep()` hashes the input and `guardedWrite()` needs the rule. `reconcile` and `reconcileCompensation` are optional hooks; a compensation runs with `dedupe: "idempotency_key"`.
 - **`PlanOutcome` gains a `reason` code on the failed statuses and a `stepId` on `pending`**, so the model and a person can see which step stopped the plan and why. The three statuses for a plan that never ran carry a `reason` sentence.
 - **A pivot that only partly took effect is handed to a person without undoing the steps before it**, because undoing them could leave the plan worse. A pivot that was rejected is undone like any failed step.

@@ -497,7 +497,12 @@ async function smallPlan(ids: string[], businessKeys: Record<string, string> = {
       return step.id === ids.at(-1) ? notApplied(step.tool) : applied(step.tool);
     },
     ...(step.class === "compensable"
-      ? { compensate: async () => (calls.push(`undo:${step.id}`), applied(`undo_${step.id}`)) }
+      ? {
+          compensate: async () => {
+            calls.push(`undo:${step.id}`);
+            return applied(`undo_${step.id}`);
+          },
+        }
       : {}),
   }));
   const run = () =>

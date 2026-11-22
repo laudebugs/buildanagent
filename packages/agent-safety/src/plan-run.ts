@@ -152,31 +152,31 @@ function invalid(message: string): SafetyError {
 
 const label = (impl: PlanStepImpl): string => `${impl.step.id}: ${impl.step.summary}`;
 
-/** Checks that the host's steps are the signed ones, in order, and that only compensable steps can be undone. */
+/** Checks that one of the host's steps is the signed step at its place, and that only compensable steps undo. */
+function checkStep(impl: PlanStepImpl, signed: PlanStep, position: number): void {
+  const { step } = impl;
+  if (step.id !== signed.id || step.tool !== signed.tool || step.class !== signed.class) {
+    throw invalid(`step ${position} of runPlan is not the plan's signed step ${signed.id}`);
+  }
+  if (step.businessKey !== signed.businessKey) throw invalid(`step ${signed.id} has another business key than signed`);
+  if (step.businessKey?.startsWith(COMPENSATION_KEY)) {
+    throw invalid(`step ${signed.id} has a business key that starts with ${COMPENSATION_KEY}, which compensations use`);
+  }
+  const undoes = impl.compensate !== undefined || impl.reconcileCompensation !== undefined;
+  if (step.class === "compensable" && impl.compensate === undefined) {
+    throw invalid(`step ${step.id} is compensable and needs a compensate function`);
+  }
+  if (step.class !== "compensable" && undoes) {
+    throw invalid(`step ${step.id} is ${step.class}, which can't be undone, so it takes no compensate function`);
+  }
+}
+
+/** Checks that the host's steps are the signed ones, in order. */
 function checkSteps(approval: PlanApproval, steps: readonly PlanStepImpl[]): void {
   if (steps.length !== approval.steps.length) {
     throw invalid(`runPlan got ${steps.length} steps for a plan that signs ${approval.steps.length}`);
   }
-  for (const [index, impl] of steps.entries()) {
-    const signed = approval.steps[index] as PlanStep;
-    const step = impl.step;
-    if (step.id !== signed.id || step.tool !== signed.tool || step.class !== signed.class) {
-      throw invalid(`step ${index + 1} of runPlan is not the plan's signed step ${signed.id}`);
-    }
-    if (step.businessKey !== signed.businessKey)
-      throw invalid(`step ${signed.id} has another business key than signed`);
-    if (step.businessKey?.startsWith(COMPENSATION_KEY)) {
-      throw invalid(
-        `step ${signed.id} has a business key that starts with ${COMPENSATION_KEY}, which compensations use`,
-      );
-    }
-    if (step.class === "compensable" && impl.compensate === undefined) {
-      throw invalid(`step ${step.id} is compensable and needs a compensate function`);
-    }
-    if (step.class !== "compensable" && (impl.compensate !== undefined || impl.reconcileCompensation !== undefined)) {
-      throw invalid(`step ${step.id} is ${step.class}, which can't be undone, so it takes no compensate function`);
-    }
-  }
+  for (const [index, impl] of steps.entries()) checkStep(impl, approval.steps[index] as PlanStep, index + 1);
 }
 
 function stepScope(run: Run, id: string, part: "run" | "compensate" | "failed"): EffectScope {
