@@ -33,6 +33,12 @@ Commit the transcripts with the change that alters them, unlike a regenerated `r
 
 The book's occasional live run ([`scripts/live/`](../../scripts/live/), started only by `.github/workflows/live-run.yml`) calls `scripts/run-examples.mjs examples --only <example> --live`. In that mode `scripted()` in `examples/lib/check.ts` returns the `MockLanguageModelV4` from `examples/lib/live.ts` instead of playing its turns, so the listed `scripted` region holds the two lines that make the switch. That model records each request in `requests`, as the script's does, and forwards the call to the pinned `@ai-sdk/anthropic` or `@ai-sdk/openai` with the key passed explicitly. Each call has its output capped at the run's `maxTokens`, is refused when it offers a provider-defined tool, and goes through the cost guard first. The answer keeps only its content, finish reason, usage and warnings, so no response header or id reaches the transcript, which goes to `results/live/<example>.json`. Without `--live`, nothing in the live mode runs, so `pnpm test` and the committed transcripts are unchanged.
 
+## One example kills a write between the server's reply and its log
+
+`15-write-crash-idempotency.ts` runs a `charge` tool that logs an idempotency key before it calls a fake payment server, then logs an outcome. A normal write reports `applied`, and a write the server declines reports `not_applied`. A child process then runs the same tool and kills itself after the server's reply and before it logs the outcome. The parent reads the log, finds a key with no outcome, and calls that state `unknown`. A fresh run of the tool reads the same log, asks the server instead of writing again, reports `applied` with `reconciled: true`, and the server has seen exactly one write for that order.
+
+The effect log is a small file inside the example, and the five outcome names come from our own design. The AI SDK has no idempotency or effect-log feature, so this shows what a tool has to do around the SDK, not something the SDK does. The child process gets an allowlisted environment, runs the example's own file with the parent's `execArgv`, and records no transcript, so the transcript holds the parent's model calls only. The example carries `// #region` and `// book:note` markers for Chapter T23.
+
 ## Scripts
 
 | Command | Does |

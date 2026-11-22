@@ -1,0 +1,299 @@
+{
+  "format": 1,
+  "example": "15-write-crash-idempotency",
+  "file": "verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 104,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 7"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 104,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "charge",
+            "input": {
+              "order": 7
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 104,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "charge",
+              "output": {
+                "outcome": "applied"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 104,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 105,
+      "message": "a normal write reports applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 106,
+      "message": "the server wrote once and the log says applied",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 113,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 13"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 113,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_2",
+            "name": "charge",
+            "input": {
+              "order": 13
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 113,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_2",
+              "name": "charge",
+              "output": {
+                "outcome": "not_applied"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 113,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 114,
+      "message": "a declined write reports not_applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 118,
+      "message": "a declined write is not a write",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 137,
+      "message": "the child process was killed mid-write",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 138,
+      "message": "the server had already written once for order 42",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 139,
+      "message": "the log has the key and no outcome, so the state is unknown",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 144,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Charge order 42"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 144,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_3",
+            "name": "charge",
+            "input": {
+              "order": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "line": 144,
+      "model": "model-3",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_3",
+              "name": "charge",
+              "output": {
+                "outcome": "applied",
+                "reconciled": true
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "charge"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 144,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 145,
+      "message": "the resume reconciles to applied",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 149,
+      "message": "the server saw exactly one write for order 42",
+      "pass": true
+    }
+  ]
+}
