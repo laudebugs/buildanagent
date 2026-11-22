@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T12](../done/T12-chapter-tools.md), [B10](../done/B10-tool-runtime.md), [T50](T50-chapter-call-workflow-loop-on-our-sdk.md) |
+| Depends on | [T12](../done/T12-chapter-tools.md), [B10](../done/B10-tool-runtime.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
 | Size | M |
 
 ## Goal
@@ -16,7 +16,7 @@ Give Chapter 3, "Tools: schemas, validation, errors the model can read, and iden
 ## Context
 
 - [T12's Outcome](../done/T12-chapter-tools.md#outcome): the chapter's listings, replays, figures and fact-check log.
-- [T50](T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
+- [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md): widens the listing rule to `packages/` and adds a transcript recorder for our examples; this todo reuses both, so it depends on T50.
 - `packages/sdk/README.md` and `packages/sdk/src/tools/`: `defineTool()`, `ToolContext`, `formatError` and `redactErrors`.
 
 ## Scope
