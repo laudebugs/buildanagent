@@ -327,7 +327,7 @@ The sections of README.md and every public export, generated from this package's
 - `discoverSkills()`: Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and every folder above it up to the repository root (the first folder with a `.git`).
 - `interface DiscoverSkillsOptions`: The settings of `discoverSkills()`.
 - `fileTrustStore()`: A trust store in the file at `file`, created on the first `trust()`.
-- `interface FoundContextFiles`: The context files found, and why any were left out.
+- `interface FoundContextFiles`: The context files found, and why any were skipped.
 - `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
 - `interface LoadOptions`: What `loadProjectExtensions()` needs to decide.
 - `loadProjectExtensions()`: Loads the extensions in a project, or skips them with a notice.
@@ -335,6 +335,7 @@ The sections of README.md and every public export, generated from this package's
 - `planFileSource()`: A plan source that reads `.agents/plan.md` and `.agents/progress.json` under `root` each time it is called.
 - `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
 - `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file.
+- `realPathTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself, that resolves each folder to its real path when the store is built and when `trust()` adds it.
 - `writeLock()`: Writes the lock file for these pins, replacing the old one in one step.
 
 ## Exports from `@buildanagent/harness/memory`
