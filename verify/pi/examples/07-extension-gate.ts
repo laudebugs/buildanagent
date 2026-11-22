@@ -28,8 +28,7 @@ const resourceLoader = new DefaultResourceLoader({
       });
       // #region gate
       pi.on("tool_call", async (event) => {
-        // book:note event
-        seen.push(event.toolName);
+        seen.push(event.toolName); // book:note event
         if (event.toolName === "restart_service") return { block: true, reason: "change freeze" }; // book:note block
         return undefined; // book:note pass
       });
