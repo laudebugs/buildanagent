@@ -58,7 +58,9 @@ describe("the dispatcher", () => {
     const { session } = await client.request("session/create", { cwd: "/work" });
     // A raw connection sees the response and the notifications in the order the server sent them.
     const wire: string[] = [];
-    const raw = dispatcher.connect((message) => wire.push("method" in message ? message.method : "response"));
+    const raw = dispatcher.connect((message) => {
+      wire.push("method" in message ? message.method : "response");
+    });
     await raw.receive({ jsonrpc: "2.0", id: 1, method: "session/open", params: { session, cwd: "/work" } });
     wire.length = 0;
     await raw.receive({ jsonrpc: "2.0", id: 2, method: "turn/start", params: { session, input: text("Hi") } });
@@ -234,6 +236,41 @@ describe("the dispatcher", () => {
     const settledMessage = seen.find((m) => "method" in m && m.method === "turn/settled");
     assert.ok(settledMessage !== undefined && "method" in settledMessage && settledMessage.method === "turn/settled");
     assert.equal(settledMessage.params.result.stopReason, "aborted");
+  });
+
+  test("a steer accepted before its run exists ends with the turn when the turn fails before the run starts", async () => {
+    const backend = memoryBackend();
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const failing = {
+      ...backend.store,
+      async append(): Promise<never> {
+        await held;
+        throw new Error("the disk is full");
+      },
+    };
+    const { client, seen } = setup([reply("One.")], { ...backend, store: failing });
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    const started = await client.request("turn/start", { session, input: text("a") });
+    const steered = await client.request("turn/steer", { session, input: text("and b") });
+    assert.ok(started.accepted);
+    assert.deepEqual(steered, { accepted: true, turn: started.turn });
+    release();
+    await settled(seen);
+    const settledMessage = seen.find((m) => "method" in m && m.method === "turn/settled");
+    assert.ok(settledMessage !== undefined && "method" in settledMessage && settledMessage.method === "turn/settled");
+    assert.equal(settledMessage.params.turn, started.turn);
+    assert.equal(settledMessage.params.result.stopReason, "error");
+    // Nothing was written, the steer included, and the session is free for the next turn.
+    for await (const _ of backend.store.load({ userId: "ada", sessionId: session }))
+      assert.fail("an entry was written");
+    assert.deepEqual(await client.request("turn/steer", { session, input: text("c") }), {
+      accepted: false,
+      reason: "invalid",
+    });
   });
 
   test("a client that did not open a session cannot drive it, and a closed dispatcher refuses new turns", async () => {

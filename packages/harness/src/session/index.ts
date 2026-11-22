@@ -56,7 +56,14 @@ export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
 export { type MigrateOptions, type Migration, type MigrationResult, migrateSession } from "./migrate.js";
 export { memoryIndex, type SessionIndex } from "./pointer.js";
 export type { PendingApproval } from "./rebuild.js";
-export { rerunFrom, runTurn, type TurnOptions, type TurnResult } from "./runner.js";
+export {
+  type ClientToolCall,
+  type ClientToolRunner,
+  rerunFrom,
+  runTurn,
+  type TurnOptions,
+  type TurnResult,
+} from "./runner.js";
 export {
   type ChildLink,
   DERIVED,

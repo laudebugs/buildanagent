@@ -1,0 +1,272 @@
+/**
+ * One client's end of the dispatcher: what it may see, what it has asked, and what the server has asked it. A
+ * connection receives only the events of the sessions it created or opened. It holds at most `limit` commands at a
+ * time, counting each until its response has gone out, so a client that sends faster than it reads is refused with
+ * `QueueFull` instead of growing the queue. The server requests it holds are bounded by what waits: one per pending
+ * approval or clarification of a session it watches, and one per `client_request` tool call a turn it started makes.
+ */
+import {
+  type ClientCommand,
+  type ClientMessage,
+  ErrorCodes,
+  type Id,
+  type RpcError,
+  type ServerMessage,
+  type ServerNotification,
+  type ServerRequest,
+} from "@buildanagent/protocol";
+import { isHarnessError } from "../errors.js";
+import { type Deliver, Outbox } from "./outbox.js";
+
+/** A client's answer to a server request: its result, or the error it sent instead. */
+export type ServerAnswer = { readonly result: unknown } | { readonly error: RpcError };
+
+/** A server request the client has not answered yet. */
+export interface Asked {
+  readonly session: string;
+  /** For an approval or a clarification, the id of the signed request it asks about. */
+  readonly pendingId?: string;
+  /** Called once with the client's answer. */
+  answer(answer: ServerAnswer): void;
+  /** Called once if the connection closes before an answer. */
+  lost(): void;
+}
+
+/** What a connection asks of the dispatcher it belongs to. */
+export interface ConnectionHost {
+  /** Runs one command and returns its result, with what to do once the response has gone out. */
+  dispatch(connection: ServerConnection, command: ClientCommand & { id: Id }): Promise<Dispatched>;
+  /** Forgets a connection that closed. */
+  detach(connection: ServerConnection): void;
+}
+
+/** A command's outcome: its result, and what runs right after its response has been queued. */
+export interface Dispatched {
+  readonly result: unknown;
+  readonly after?: () => void;
+}
+
+/** An error the dispatcher answers a command with. */
+export class Failure extends Error {
+  readonly rpc: RpcError;
+  constructor(code: number, message: string) {
+    super(message);
+    this.rpc = { code, message };
+  }
+}
+
+type EventMessage = Extract<ServerNotification, { method: "event" }>;
+
+/** Live events that arrived while a `session/open` was reading the log, waiting to go out after its replay. */
+interface Held {
+  readonly events: EventMessage[];
+  dropped: number;
+  lastDroppedSeq: number;
+}
+
+const isId = (value: unknown): value is Id =>
+  typeof value === "string" || (typeof value === "number" && Number.isFinite(value));
+
+/** One client's connection to the dispatcher, as the module comment describes. */
+export class ServerConnection {
+  readonly #host: ConnectionHost;
+  readonly #outbox: Outbox;
+  readonly #limit: number;
+  readonly #watching = new Set<string>();
+  readonly #held = new Map<string, Held>();
+  readonly #optedIn = new Set<string>();
+  readonly #asked = new Map<string, Asked>();
+  readonly #turns = new Map<Id, () => void>();
+  #inFlight = 0;
+  #open = true;
+
+  constructor(host: ConnectionHost, deliver: Deliver, limit: number) {
+    this.#host = host;
+    this.#outbox = new Outbox(deliver, limit);
+    this.#limit = limit;
+  }
+
+  /** Whether the client is still connected. */
+  get open(): boolean {
+    return this.#open;
+  }
+
+  /** Sends a message that is not an event: a response, a `turn/settled` or a cancel. */
+  send(message: ServerMessage): void {
+    this.#outbox.push(message);
+  }
+
+  /** Sends a live event of a session this connection watches, or holds it while the session is being opened. */
+  event(message: EventMessage): void {
+    const held = this.#held.get(message.params.session);
+    if (held === undefined) {
+      if (this.#watching.has(message.params.session)) this.#outbox.push(message);
+      return;
+    }
+    // A hold lasts one read of the log, and is bounded as the queue is: past the bound, events are counted as dropped.
+    if (held.events.length < this.#limit) held.events.push(message);
+    else {
+      held.dropped += 1;
+      held.lastDroppedSeq = Math.max(held.lastDroppedSeq, message.params.seq);
+    }
+  }
+
+  watch(session: string): void {
+    this.#watching.add(session);
+  }
+
+  /** Whether this connection created or opened the session. */
+  watching(session: string): boolean {
+    return this.#watching.has(session);
+  }
+
+  /** Starts holding a session's live events, so none is lost or sent early while its log is read. False if one is already held. */
+  hold(session: string): boolean {
+    if (this.#held.has(session)) return false;
+    this.#held.set(session, { events: [], dropped: 0, lastDroppedSeq: -1 });
+    return true;
+  }
+
+  /** Drops what a failed open held, and leaves the session as watched or unwatched as it was. */
+  unhold(session: string): void {
+    this.#held.delete(session);
+  }
+
+  /**
+   * Watches the session: sends `replay`, which is never dropped, then the events held since `hold()`, leaving out an
+   * appended entry whose `seq` is at or before `replayedTo` because the replay already carried it.
+   */
+  release(session: string, replay: readonly EventMessage[], replayedTo: number): void {
+    const held = this.#held.get(session);
+    this.#held.delete(session);
+    this.#watching.add(session);
+    for (const message of replay) this.#outbox.push(message, { keep: true });
+    for (const message of held?.events ?? []) {
+      const { event, seq } = message.params;
+      if (event.type === "entry_appended" && seq <= replayedTo) continue;
+      this.#outbox.push(message);
+    }
+    if (held !== undefined && held.dropped > 0) this.#outbox.markGap(session, held.dropped, held.lastDroppedSeq);
+  }
+
+  optIn(methods: readonly string[]): void {
+    for (const method of methods) this.#optedIn.add(method);
+  }
+
+  optedIn(method: string): boolean {
+    return this.#optedIn.has(method);
+  }
+
+  /** Sends a server request and remembers it until the client answers, the server withdraws it, or the connection closes. */
+  ask(request: ServerRequest, asked: Asked): void {
+    if (!this.#open) {
+      asked.lost();
+      return;
+    }
+    this.#asked.set(request.id, asked);
+    this.#outbox.push(request);
+  }
+
+  /** Whether an approval or clarification about this signed request waits for this client's answer. */
+  asking(pendingId: string): boolean {
+    for (const asked of this.#asked.values()) if (asked.pendingId === pendingId) return true;
+    return false;
+  }
+
+  /** Withdraws a server request with `$/cancelRequest`. Returns false when it was already answered or withdrawn. */
+  withdraw(id: string): boolean {
+    if (!this.#asked.delete(id)) return false;
+    if (this.#open) this.send({ jsonrpc: "2.0", method: "$/cancelRequest", params: { id } });
+    return true;
+  }
+
+  /** Withdraws every request this client holds about one signed request, because someone else answered it. */
+  withdrawPending(pendingId: string): void {
+    for (const [id, asked] of [...this.#asked]) if (asked.pendingId === pendingId) this.withdraw(id);
+  }
+
+  /** Lets the client cancel its own `turn/start` by id until the turn settles. */
+  trackTurn(id: Id, cancel: () => void): void {
+    this.#turns.set(id, cancel);
+  }
+
+  untrackTurn(id: Id): void {
+    this.#turns.delete(id);
+  }
+
+  close(): void {
+    if (!this.#open) return;
+    this.#open = false;
+    this.#outbox.close();
+    const asked = [...this.#asked.values()];
+    this.#asked.clear();
+    this.#turns.clear();
+    this.#held.clear();
+    this.#host.detach(this);
+    for (const request of asked) request.lost();
+  }
+
+  /** Handles one message from the client, and resolves once its response, if it has one, is queued. */
+  async receive(message: ClientMessage): Promise<void> {
+    if (!this.#open) return;
+    if (!("method" in message)) {
+      this.#answered(message);
+      return;
+    }
+    if (!("id" in message)) {
+      if (message.method === "$/cancelRequest") this.#cancel(message.params?.id);
+      return;
+    }
+    await this.#command(message as ClientCommand & { id: Id });
+  }
+
+  /** A client's answer to a server request. One with an id this connection is not waiting on is ignored. */
+  #answered(message: Exclude<ClientMessage, ClientCommand>): void {
+    if (typeof message.id !== "string") return;
+    const asked = this.#asked.get(message.id);
+    if (asked === undefined) return;
+    this.#asked.delete(message.id);
+    asked.answer("error" in message ? { error: message.error } : { result: message.result });
+  }
+
+  #cancel(id: unknown): void {
+    if (isId(id)) this.#turns.get(id)?.();
+  }
+
+  async #command(command: ClientCommand & { id: Id }): Promise<void> {
+    if (this.#inFlight >= this.#limit) {
+      this.send({
+        jsonrpc: "2.0",
+        id: command.id,
+        error: { code: ErrorCodes.QueueFull, message: `the queue holds ${this.#limit} commands; send again later` },
+      });
+      return;
+    }
+    this.#inFlight += 1;
+    // The command holds its place until its response has gone out, so a client that doesn't read is refused soon.
+    const onSent = () => {
+      this.#inFlight -= 1;
+    };
+    let after: (() => void) | undefined;
+    try {
+      const outcome = await this.#host.dispatch(this, command);
+      after = outcome.after;
+      this.#outbox.push({ jsonrpc: "2.0", id: command.id, result: outcome.result as never }, { onSent });
+    } catch (error) {
+      this.#outbox.push({ jsonrpc: "2.0", id: command.id, error: rpcErrorOf(error) }, { onSent });
+    } finally {
+      // A closed outbox drops the response, so it never calls back.
+      if (!this.#open) this.#inFlight = 0;
+      after?.();
+    }
+  }
+}
+
+/** The error a failed command answers with. */
+function rpcErrorOf(error: unknown): RpcError {
+  if (error instanceof Failure) return error.rpc;
+  const message = error instanceof Error ? error.message : String(error);
+  if (isHarnessError(error) && error.code === "entry_not_found") return { code: ErrorCodes.InvalidParams, message };
+  if (isHarnessError(error) && error.code === "session_locked") return { code: ErrorCodes.SessionLocked, message };
+  return { code: ErrorCodes.InternalError, message };
+}
