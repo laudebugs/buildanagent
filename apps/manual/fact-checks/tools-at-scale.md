@@ -190,12 +190,17 @@ The specification pages were fetched on 2026-11-22 in their Markdown form (`.md`
 | 147 | The 25.8% to 92.3% recall comes from the 260-card synthetic adversarial set, not from the 310 deployed cards | § A2A | ✏️ | Corrected from "in one study of 310 deployed cards, nine LLM judges … reached recall from 25.8% to 92.3%" (row 134). The paper's HTML, read 2026-11-22: abstract, "collecting 310 deployed Agent Cards"; §VII-C, "260 adversarial cards spanning all ten attack categories"; §VIII-D, "security recall ranges from 25.8% to 92.3%"; Table VIII's caption names the 260-card dataset. The text now splits the two datasets |
 | 148 | The chapter's summary and introduction now name the A2A section | frontmatter, intro | ✅ | Wording only: both say the chapter covers when to delegate to another agent over A2A, which the section supplies (rows 119 and 120) |
 | 149 | The `a2a-spec` source entry records version 1.0.0, matching the page its URL shows | `sources.json` | ✏️ | Corrected from "1.0.1": the specification page prints "Latest Released Version 1.0.0" (row 108). The 1.0.1 patch is cited in row 108 from the GitHub releases page |
+| 150 | The tag date (12 March 2026) and patch date (28 May 2026) now cite the `a2a-releases` source, the GitHub releases page of a2aproject/A2A, and the compatibility rule still cites `a2a-spec` | § A2A, `sources.json` | ✏️ | Corrected from citing only `a2a-spec` for the dates (row 108). [GitHub releases](https://github.com/a2aproject/A2A/releases), fetched 2026-11-22: v1.0.1 marked Latest, released 28 May (changelog entry 2026-05-26); v1.0.0 released 12 Mar (changelog 2026-03-12), the year read from the changelog entries. The spec page prints "Latest Released Version 1.0.0" (row 149), so it cannot carry the dates |
+| 151 | The study sentence is split: 310 deployed cards were collected, and on a separate set of 260 synthetic manipulated cards nine LLM judges caught between 25.8% and 92.3% of the manipulations | § A2A | ✅ | Rows 134 and 147: abstract (310 deployed cards), §VII-C (260 adversarial cards), §VIII-D and Table VIII (security recall 25.8% to 92.3%). "Caught" restates recall; no number changed |
+| 152 | The text now says a firm would never sign with a supplier it had not vetted, while an Agent Card asks the model to rely on the card's word alone | § A2A | ⚠️ | The analogy's second break (row 140), repeated as an image in the distrust paragraph; ours, no new factual claim |
+| 153 | The text says no source states the pin-by-card-URL advice, and that the five-rung order was drawn up from sources that do not state it | § A2A | ⚠️ | Rewording of the labels on rows 139 and 120 (both ⚠️, ours); the claims are unchanged |
+| 154 | The text says the reader must write the A2A client for now, because as of November 2026 the harness gives only the `remoteAgent` flag | § A2A | ✅ | Row 138 (grep of `packages/*/src` on 2026-11-22 finds no A2A client; the flag's uses are in the registry and its types); the instruction follows from that |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 129 |
-| ✏️ corrected | 11 (rows 22, 91, 97, 98, 114, 143, 144, 145, 146, 147, 149) |
-| ⚠️ unverified, an analogy, one comparison or an exercise's framing, marked as ours in the text | 9 (rows 39, 70, 87, 88, 96, 118, 120, 139, 140) |
-| Total | 149 |
+| ✅ confirmed | 131 |
+| ✏️ corrected | 12 (rows 22, 91, 97, 98, 114, 143, 144, 145, 146, 147, 149, 150) |
+| ⚠️ unverified, an analogy, one comparison or an exercise's framing, marked as ours in the text | 11 (rows 39, 70, 87, 88, 96, 118, 120, 139, 140, 152, 153) |
+| Total | 154 |
