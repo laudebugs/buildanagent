@@ -132,10 +132,17 @@ async function view(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContext):
   );
 }
 
-/** The record as written now, by this session, with its expiry from its type and the session's trust. */
-function stamped(deps: MemoryToolDeps, fields: Omit<MemoryRecord, "validated" | "expires" | "trust" | "session">) {
+/**
+ * The record as written now, by this session, with its expiry from its type and its trust. The trust is the session's,
+ * or `floor` when that is lower, so a change or a renewal of a low-trust record never makes it trusted.
+ */
+function stamped(
+  deps: MemoryToolDeps,
+  fields: Omit<MemoryRecord, "validated" | "expires" | "trust" | "session">,
+  floor: MemoryTrust = "trusted",
+) {
   const validated = deps.now().toISOString();
-  const trust = deps.trust();
+  const trust: MemoryTrust = floor === "low" ? "low" : deps.trust();
   const record: MemoryRecord = {
     ...fields,
     validated,
@@ -216,7 +223,9 @@ async function replace(deps: MemoryToolDeps, input: MemoryInput, ctx: ToolContex
     );
   }
   const fact = existing.fact.replace(input.old_str, () => input.new_str as string);
-  const record = stamped(deps, { ...existing, fact, source: input.source ?? existing.source });
+  // The record keeps the trust it was written with when that is lower: a trusted session that renews or changes part
+  // of a planted fact has not made the rest of it true.
+  const record = stamped(deps, { ...existing, fact, source: input.source ?? existing.source }, existing.trust);
   if (typeof record === "string") return error(record);
   const refused = refusedText(deps, record);
   if (refused !== undefined) return error(refused);

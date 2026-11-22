@@ -9,7 +9,7 @@ import { openSession, runTurn } from "@buildanagent/harness/session";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
 import { memoryBackend } from "../session/memory-backend.js";
-import { filesAt, harnessFor, project, results, type Setup, testClock, textOf, turn } from "./helpers.js";
+import { DAY_MS, filesAt, harnessFor, project, results, type Setup, testClock, textOf, turn } from "./helpers.js";
 
 const BUILD = {
   command: "create",
@@ -193,6 +193,36 @@ describe("trust", () => {
     ]);
     await turn(setup, key("s2"), [view(".agents/memory/low.md"), { name: "memory", input: BUILD }]);
     assert.equal(recordAt(setup.root, "build.md")?.trust, "low");
+  });
+
+  test("a renewal or a change in a trusted session keeps a low-trust record low trust", async () => {
+    const setup = setupOf();
+    await turn(setup, key("s1"), [
+      { name: "web", input: {} },
+      { name: "memory", input: { ...BUILD, path: ".agents/memory/low.md" } },
+    ]);
+    const before = recordAt(setup.root, "low.md");
+    assert.equal(before?.trust, "low");
+    setup.advance(10);
+    const fact = BUILD.fact;
+    const renewed = await turn(setup, key("s2"), [
+      {
+        name: "memory",
+        input: { command: "str_replace", path: ".agents/memory/low.md", old_str: fact, new_str: fact },
+      },
+      {
+        name: "memory",
+        input: { command: "str_replace", path: ".agents/memory/low.md", old_str: "pnpm", new_str: "pnpm" },
+      },
+    ]);
+    assert.ok(results(renewed.model).get("c1")?.text.startsWith("Renewed"));
+    const after = recordAt(setup.root, "low.md");
+    assert.equal(after?.trust, "low");
+    assert.equal(
+      Date.parse(after?.expires ?? ""),
+      Date.parse(after?.validated ?? "") + 30 * DAY_MS,
+      "a renewal gives the low-trust period, not the trusted one",
+    );
   });
 
   test("a write that holds a credential, or a secret the host named, is refused and stored nowhere", async () => {
