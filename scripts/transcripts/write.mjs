@@ -205,8 +205,15 @@ export function compactRequests(events) {
 }
 
 /**
+ * The time an event happened at, in milliseconds with a fraction, on a clock that the processes of one run share: the
+ * wall clock at a process's start plus the time since, so a clock step during the run cannot reorder events, and two
+ * events a millisecond apart still sort in the order they happened.
+ */
+export const eventTime = () => performance.timeOrigin + performance.now();
+
+/**
  * The events of a mock that runs in another process, merged with the example process's events in the order they
- * happened. Each event carries the `at` time in milliseconds that recorded it; when two share a millisecond the mock's
+ * happened. Each event carries the `at` time (`eventTime`) that recorded it; when two share one the mock's
  * comes first, because an example checks what a call answered after the answer arrived.
  */
 export function mergeEvents(mockEvents, exampleEvents) {

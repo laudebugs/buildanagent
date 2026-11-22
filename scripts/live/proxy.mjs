@@ -24,6 +24,7 @@ import { appendFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
+import { eventTime as now } from "../transcripts/write.mjs";
 import { PLACEHOLDER_KEY } from "./forward.mjs";
 import { beginCall, denyHostTools, live } from "./live.ts";
 import { redact } from "./redact.ts";
@@ -119,7 +120,16 @@ export function prepareBody(provider, body, { model, maxTokens }) {
   const field = provider === "anthropic" ? "max_tokens" : "max_output_tokens";
   out[field] = Math.min(Number(body[field]) || maxTokens, maxTokens);
   // An extended-thinking budget must stay under max_tokens; one that the cap now exceeds goes, rather than fail.
-  if (out.thinking?.type === "enabled" && !(out.thinking.budget_tokens < out[field])) delete out.thinking;
+  if (out.thinking?.type === "enabled" && !(out.thinking.budget_tokens < out[field])) {
+    delete out.thinking;
+    // The CLI's edits that clear earlier thinking act on thinking blocks, which a run without thinking has none of. The
+    // context-editing page does not say how the API treats them then, so they go with the thinking.
+    const edits = (out.context_management?.edits ?? []).filter(
+      (edit) => !String(edit?.type).startsWith("clear_thinking"),
+    );
+    if (edits.length > 0) out.context_management = { ...out.context_management, edits };
+    else delete out.context_management;
+  }
   return out;
 }
 
@@ -299,67 +309,75 @@ export async function startLiveProxy({ allowTool, messagesOf, secrets, log }) {
       refused.push(error.message);
       return answer(res, 400, error.message);
     }
-    if (log) {
-      const path = new URL(req.url ?? "/", "http://proxy").pathname;
-      appendFileSync(
-        log,
-        `${JSON.stringify({ method: "POST", path, tools: sent.tools?.map((t) => t.name), body: sent })}\n`,
-      );
-    }
-    const headers = { "content-type": "application/json" };
-    for (const name of PASSED_HEADERS[provider]) if (req.headers[name]) headers[name] = req.headers[name];
-    if (provider === "anthropic") {
-      headers["x-api-key"] = live.apiKey;
-      headers["anthropic-version"] ??= "2023-06-01";
-    } else headers.authorization = `Bearer ${live.apiKey}`;
-    const messages = provider === "anthropic" ? withoutThinking(sent.messages ?? []) : openaiMessages(sent.input);
-    events.push({
-      kind: "request",
-      model: live.model,
-      messages: messagesOf(messages),
-      tools: (sent.tools ?? []).map((tool) => tool.name ?? tool.type),
-      at: Date.now(),
-    });
-    let status;
-    let type;
-    let text;
     try {
-      const response = await fetch(upstream, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(sent),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+      if (log) {
+        const path = new URL(req.url ?? "/", "http://proxy").pathname;
+        appendFileSync(
+          log,
+          `${JSON.stringify({ method: "POST", path, tools: sent.tools?.map((t) => t.name), body: sent })}\n`,
+        );
+      }
+      const headers = { "content-type": "application/json" };
+      for (const name of PASSED_HEADERS[provider]) if (req.headers[name]) headers[name] = req.headers[name];
+      if (provider === "anthropic") {
+        headers["x-api-key"] = live.apiKey;
+        headers["anthropic-version"] ??= "2023-06-01";
+      } else headers.authorization = `Bearer ${live.apiKey}`;
+      const messages = provider === "anthropic" ? withoutThinking(sent.messages ?? []) : openaiMessages(sent.input);
+      // A call that fails, or that the CLI retries, adds nothing to the transcript, so a flow that matched the mock's
+      // still matches: the request joins it with its answer once the provider answers 2xx.
+      const requestEvent = {
+        kind: "request",
+        model: live.model,
+        messages: messagesOf(messages),
+        tools: (sent.tools ?? []).map((tool) => tool.name ?? tool.type),
+        at: now(),
+      };
+      let status;
+      let type;
+      let text;
+      try {
+        const response = await fetch(upstream, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(sent),
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+        status = response.status;
+        type = response.headers.get("content-type") ?? "application/json";
+        text = await response.text();
+      } catch (error) {
+        guard.settle(undefined);
+        return answer(res, 502, `the provider did not answer (${error.name})`);
+      }
+      if (status < 200 || status >= 300) {
+        // A provider that bills a failed call reports no usage, so the guard records the call's projection.
+        guard.settle(undefined);
+        res.writeHead(status, { "content-type": type });
+        return res.end(redact(text, [live.apiKey]));
+      }
+      let parsed;
+      try {
+        const streamed = type.includes("text/event-stream");
+        parsed = provider === "anthropic" ? anthropicAnswer(text, streamed) : openaiAnswer(text, streamed);
+      } catch {
+        parsed = { blocks: [], stop: null, usage: undefined };
+      }
+      guard.settle(parsed.usage);
+      events.push(requestEvent, {
+        kind: "response",
+        model: live.model,
+        message: { role: "assistant", parts: partsOf(parsed.blocks) },
+        finish: parsed.stop ?? "unknown",
+        at: now(),
       });
-      status = response.status;
-      type = response.headers.get("content-type") ?? "application/json";
-      text = await response.text();
-    } catch (error) {
-      guard.settle(undefined);
-      return answer(res, 502, `the provider did not answer (${error.name})`);
-    }
-    if (status < 200 || status >= 300) {
-      // A provider that bills a failed call reports no usage, so the guard records the call's projection.
-      guard.settle(undefined);
       res.writeHead(status, { "content-type": type });
-      return res.end(redact(text, [live.apiKey]));
+      res.end(text.split(live.apiKey).join("<redacted>"));
+    } catch (error) {
+      // The call is in the ledger as in flight, so a failure after beginCall settles it at its projection.
+      guard.settle(undefined);
+      throw error;
     }
-    let parsed;
-    try {
-      const streamed = type.includes("text/event-stream");
-      parsed = provider === "anthropic" ? anthropicAnswer(text, streamed) : openaiAnswer(text, streamed);
-    } catch {
-      parsed = { blocks: [], stop: null, usage: undefined };
-    }
-    guard.settle(parsed.usage);
-    events.push({
-      kind: "response",
-      model: live.model,
-      message: { role: "assistant", parts: partsOf(parsed.blocks) },
-      finish: parsed.stop ?? "unknown",
-      at: Date.now(),
-    });
-    res.writeHead(status, { "content-type": type });
-    res.end(text.split(live.apiKey).join("<redacted>"));
   }
 
   const server = createServer((req, res) => {

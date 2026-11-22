@@ -42,6 +42,10 @@ const FIXTURE_MCP = /verify\/copilot-sdk\/fixtures\/mcp-[\w-]+\.mjs$/;
  * custom tools. The session keeps the model id it asked for, which the runtime uses to choose its prompts and limits.
  */
 function prepareLive(config = {}) {
+  // A live session runs only its own custom tools; an MCP server is a process on the host, so a session with one stops.
+  if (Object.keys(config.mcpServers ?? {}).length > 0) {
+    throw new Error("live mode: the session configures MCP servers, whose processes would run on the host");
+  }
   for (const t of config.tools ?? []) {
     if (!t.handler || HOST_EFFECTS.test(String(t.handler)) || t.overridesBuiltInTool) {
       throw new Error(`live mode: the custom tool "${t.name}" touches the host or overrides a built-in`);

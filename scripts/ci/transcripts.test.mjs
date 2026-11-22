@@ -231,6 +231,11 @@ test("a mock's events and an example's events merge in the order they happened, 
     mergeEvents(mock, example).map((event) => `${event.kind}@${event.at}`),
     ["request@10", "response@20", "check@20", "check@30", "request@40", "check@50"],
   );
+  // Times keep their fraction, so events less than a millisecond apart sort in the order they happened.
+  assert.deepEqual(
+    mergeEvents([{ kind: "request", at: 10.7 }], [{ kind: "check", at: 10.2 }]).map((event) => event.kind),
+    ["check", "request"],
+  );
 });
 
 test("the recorder counts only the checks that check() reports, not text an example prints or throws", () => {

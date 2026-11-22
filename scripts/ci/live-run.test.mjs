@@ -619,6 +619,58 @@ test("the proxy sets the run's model and output cap and drops the machine's ids"
   assert.equal(prepareBody("openai", { user: "u" }, settings).user, undefined);
 });
 
+test("the proxy drops the edits that clear thinking together with the thinking they need", () => {
+  const settings = { model: "claude-haiku-5-5", maxTokens: 1024 };
+  const thinking = { type: "enabled", budget_tokens: 31999 };
+  const cleared = { edits: [{ type: "clear_thinking_20251015" }] };
+  assert.equal(
+    prepareBody("anthropic", { max_tokens: 64000, thinking, context_management: cleared }, settings).context_management,
+    undefined,
+  );
+  const mixed = { edits: [{ type: "clear_thinking_20251015" }, { type: "clear_tool_uses_20250919" }] };
+  assert.deepEqual(
+    prepareBody("anthropic", { max_tokens: 64000, thinking, context_management: mixed }, settings).context_management,
+    {
+      edits: [{ type: "clear_tool_uses_20250919" }],
+    },
+  );
+  // Thinking that fits the cap stays, with its edits.
+  const fits = prepareBody(
+    "anthropic",
+    { max_tokens: 64000, thinking: { type: "enabled", budget_tokens: 512 }, context_management: cleared },
+    settings,
+  );
+  assert.deepEqual(fits.context_management, cleared);
+});
+
+test("calls that overlap, or that a killed run never settled, count against the cap while they are in flight", () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-inflight-"));
+  const prices = readCatalog(fixtureCatalog(dir));
+  const ledger = join(dir, "ledger.json");
+  writeLedger(ledger, newLedger(1, 0.5));
+  // Each call projects $0.30 (see above), so three in flight reach $0.90 and the fourth would pass the $1.00 cap.
+  const call = {
+    example: "x",
+    provider: "anthropic",
+    model: "claude-haiku-5-5",
+    inputTokens: 2000,
+    maxOutputTokens: 100,
+  };
+  const projected = [
+    reserveCall(ledger, call, prices),
+    reserveCall(ledger, call, prices),
+    reserveCall(ledger, call, prices),
+  ];
+  assert.ok(close(readLedger(ledger).inflight, 0.9));
+  assert.throws(() => reserveCall(ledger, call, prices), /in flight/);
+  // A call that settles moves from in flight to spent, and a ledger with nothing in flight holds no `inflight` field.
+  for (const p of projected) settleCall(ledger, call, p, { uncachedInput: 2000, output: 100 }, prices);
+  const after = readLedger(ledger);
+  assert.equal(after.inflight, undefined);
+  assert.ok(close(after.spent, 0.9));
+  rmSync(dir, { recursive: true, force: true });
+});
+
 /** Runs `script` in a child whose environment is a live run's, with a dummy key file; resolves with its stdout. */
 function proxyChild(script, env) {
   const dir = mkdtempSync(join(tmpdir(), "live-proxy-test-"));
@@ -721,9 +773,10 @@ console.log(JSON.stringify({ results, refused: proxy.refused, events: proxy.even
     for (const header of Object.keys(result.headers)) assert.ok(!/request-id|organization|workspace/.test(header));
     for (const secret of SECRETS) assert.ok(!result.text.includes(secret), "an answer holds a secret");
   }
+  // The failed call, which a CLI would retry, adds no request to the transcript.
   assert.deepEqual(
     events.map((e) => e.kind),
-    ["request", "response", "request"],
+    ["request", "response"],
   );
   assert.deepEqual(events[1].message.parts, [{ type: "text", text: "Hello." }]);
 });

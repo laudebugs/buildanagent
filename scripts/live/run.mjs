@@ -62,10 +62,16 @@ function runExample({ example, harnessDir, env, secrets }) {
     let out = "";
     child.stdout.on("data", (chunk) => (out += chunk));
     child.stderr.on("data", (chunk) => (out += chunk));
+    // The runner stops the example's own process group when it gets SIGTERM, so it goes first and SIGKILL follows.
     const timer = setTimeout(() => {
       try {
-        process.kill(-child.pid, "SIGKILL");
+        process.kill(-child.pid, "SIGTERM");
       } catch {}
+      setTimeout(() => {
+        try {
+          process.kill(-child.pid, "SIGKILL");
+        } catch {}
+      }, 5000).unref();
     }, TIMEOUT_MS);
     child.on("close", (code, signal) => {
       clearTimeout(timer);

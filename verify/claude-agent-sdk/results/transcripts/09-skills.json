@@ -91,43 +91,43 @@
     },
     {
       "kind": "check",
-      "line": 50,
+      "line": 51,
       "message": "run finished with success",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 51,
+      "line": 52,
       "message": "the first request offers the Skill tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 56,
+      "line": 57,
       "message": "the skill left out of `skills` never reached the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 65,
       "message": "the first request lists the skill's name and description",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 65,
+      "line": 66,
       "message": "the first request does not carry the skill's body",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 66,
+      "line": 67,
       "message": "the model called the Skill tool",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 71,
       "message": "after the call, the body is in every request",
       "pass": true
     }

@@ -167,6 +167,7 @@ async function runOne(t) {
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    groups.add(child.pid);
     let out = "";
     let finished = false;
     const kill = () => {
@@ -200,13 +201,17 @@ async function runOne(t) {
     });
   });
   await live?.close();
-  transcript?.write({
-    harnessDir: root,
-    exampleFile: resolve(t.file),
-    cwd,
-    ...(live ? { mockEvents: live.events } : {}),
-    ...liveRun?.transcript,
-  });
+  // A killed example never wrote its checks, so a transcript of only its requests and answers would replace a complete
+  // one; the timeout is the finding, and the file stays as it was.
+  if (!result.timedOut) {
+    transcript?.write({
+      harnessDir: root,
+      exampleFile: resolve(t.file),
+      cwd,
+      ...(live ? { mockEvents: live.events } : {}),
+      ...liveRun?.transcript,
+    });
+  }
   await rm(home, { recursive: true, force: true }).catch(() => {});
   const entries = (await readFile(log, "utf8"))
     .split("\n")
@@ -261,6 +266,24 @@ async function runOne(t) {
         .slice(-(VERBOSE ? 4000 : 1000)),
     ),
   };
+}
+
+// Each example runs in its own process group, which a signal to this runner does not reach, so the runner stops every
+// group itself when it is told to stop or exits.
+const groups = new Set();
+const stopGroups = () => {
+  for (const pid of groups) {
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {}
+  }
+};
+process.on("exit", stopGroups);
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => {
+    stopGroups();
+    process.exit(1);
+  });
 }
 
 const results = [];

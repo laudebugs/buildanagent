@@ -12,7 +12,7 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { liveMode } from "../../../scripts/live/harness.mjs";
-import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
+import { eventTime, transcriptRun } from "../../../scripts/transcripts/write.mjs";
 import { liveTool } from "./live-tools.mjs";
 import { messagesOf, startMock } from "./mock-anthropic.mjs";
 
@@ -90,7 +90,7 @@ async function runOne(t) {
     : undefined;
   const server = live
     ? undefined
-    : await startMock(0, log, ownExamples ? (event) => mockEvents.push({ ...event, at: Date.now() }) : undefined);
+    : await startMock(0, log, ownExamples ? (event) => mockEvents.push({ ...event, at: eventTime() }) : undefined);
   // Allowlisted environment: no inherited credentials or host config reach the spawned CLI. In a live run the preload
   // sets the base URL and a placeholder key, and the example gets only the proxy's socket, never LIVE_API_KEY_FILE.
   const env = {
@@ -120,6 +120,7 @@ async function runOne(t) {
   const result = await new Promise((done) => {
     // A live run's example gets its own process group, so a timeout also stops the CLI it spawned.
     const child = spawn(command, argv, { cwd, env, stdio: ["ignore", "pipe", "pipe"], detached: Boolean(live) });
+    if (live) groups.add(child.pid);
     const kill = () => {
       try {
         if (live) process.kill(-child.pid, "SIGKILL");
@@ -141,13 +142,17 @@ async function runOne(t) {
   });
   server?.close();
   await live?.close();
-  transcript?.write({
-    harnessDir: root,
-    exampleFile: resolve(t.file),
-    cwd,
-    mockEvents: live ? live.events : mockEvents,
-    ...liveRun?.transcript,
-  });
+  // A killed example never wrote its checks, so a transcript of only its requests and answers would replace a complete
+  // one; the timeout is the finding, and the file stays as it was.
+  if (!result.timedOut) {
+    transcript?.write({
+      harnessDir: root,
+      exampleFile: resolve(t.file),
+      cwd,
+      mockEvents: live ? live.events : mockEvents,
+      ...liveRun?.transcript,
+    });
+  }
   // The CLI keeps its session files under the temporary home; a live run's hold a real model's answers, so they go.
   if (live) await rm(cwd, { recursive: true, force: true });
   const requests = (await readFile(log, "utf8"))
@@ -190,6 +195,24 @@ async function runOne(t) {
         .slice(-800),
     ),
   };
+}
+
+// A live example runs in its own process group, which a signal to this runner does not reach, so the runner stops every
+// live group itself when it is told to stop or exits.
+const groups = new Set();
+const stopGroups = () => {
+  for (const pid of groups) {
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {}
+  }
+};
+process.on("exit", stopGroups);
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => {
+    stopGroups();
+    process.exit(1);
+  });
 }
 
 const results = [];
