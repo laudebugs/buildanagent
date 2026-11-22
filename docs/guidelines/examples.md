@@ -20,12 +20,13 @@ An example is code a reader will paste into their own agent, so it must be code 
 
 ## An example about testing may build the double it teaches
 
-A reader who copies an agent example must not copy its test double, so the rule above keeps doubles out. A reader who is learning to test needs to see one, though, so an example whose subject is testing, such as one that shows `ScriptedModel`, may build the double and check that the run used it up. Those lines are the lesson. The other rules still apply, with two changes in how they read:
+A reader who copies an agent example must not copy its test double, so the rule above keeps doubles out. A reader who is learning to test needs to see one, though, so an example whose subject is testing, such as one that shows `ScriptedModel`, may build the double and check that the run used it up. The double and that check are the lesson. The other rules still apply. These rules say how a testing example differs:
 
 - **MUST:** its header says that it shows a test double, and it may use the double's name, such as `ScriptedModel`, where the header rule above would otherwise ban test vocabulary.
-- **MUST:** a reader could paste it into their own test suite and run it after changing only the names of their own code, in place of the provider config that an agent example asks for.
+- **MUST:** a reader could paste it into their own test suite and run it after changing only the names of their own code, because it has no provider config.
 - **MUST:** it builds only what the run needs: the double, a stub for the reader's own system, such as an order store, and the ids its script needs. A fixed clock appears only when determinism is the lesson.
-- **MUST NOT:** it asserts the agent's output or imports a test runner. A test runs the example and checks what it returns, as for every example.
+- **MUST NOT:** it asserts the agent's output or imports a test runner.
+- **MUST:** a test runs it and checks what it returns, as for every example.
 - **MUST:** it still holds one lesson, reads top to bottom, and stays within the length limits.
 
 `packages/sdk/examples/offline-order-agent.ts` is the first such example: it scripts two model answers, stubs the order store, runs the order agent, checks that the script ran out and returns the answer.
