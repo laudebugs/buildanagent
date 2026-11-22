@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T34](T34-example-tracing-and-llm-judge.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T34](../done/T34-example-tracing-and-llm-judge.md) |
 | Size | M |
 
 ## Goal
@@ -31,7 +31,7 @@ Write the chapter "Evals, observability and release" (`evals-observability-and-r
 
 - `apps/manual/src/content/chapters/evals-observability-and-release.md`, with `switchTo: [N31, N36, N38]` and `opening: analogy` in its front matter
 - Sections: pass@k and pass^k, and why the capstones' scripted failures are synthetic; LLM-as-judge: a rubric, a 0.0–1.0 score and a starting set of about 20 queries (Anthropic); Tracing: spans projected from the session log; Release: four stages behind a graded kill switch, and handing off to people (agent guide §7)
-- Listings and at least one replay from: the triage capstones' `check()` assertions, read as eval-shaped tests, the tracing and LLM-judge example from [T34](T34-example-tracing-and-llm-judge.md)
+- Listings and at least one replay from: the triage capstones' `check()` assertions, read as eval-shaped tests, `verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts` from [T34](../done/T34-example-tracing-and-llm-judge.md)
 - Figures: a flat figure of pass@k versus pass^k on the same results; a flat figure of a run's spans projected from its session log; a flat analogy illustration of the bridge that must hold every crossing
 - Exercise: Run a capstone five times with a scripted failure, compute pass^5, and grade one answer with the scripted judge.
 - `apps/manual/fact-checks/evals-observability-and-release.md`, the chapter's claims log

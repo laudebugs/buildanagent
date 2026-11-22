@@ -133,5 +133,14 @@
     "ms": 1094,
     "modelCalls": 0,
     "tail": "ok - a declined write reports not_applied\nok - a declined write is not a write\nok - a declined write is not sent again\nok - the child process was killed mid-write \nok - the server had already written once for order 42\nok - the log has the key and no outcome, so the state is unknown\nok - the resume reconciles to applied\nok - the server received exactly one write request for order 42"
+  },
+  {
+    "id": "16-tracing-and-judge",
+    "file": "/home/user/buildanagent/verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 710,
+    "modelCalls": 0,
+    "tail": "ok - and the answer it grades\nok - the judge's output is rejected for not JSON\nok - the judge's output is rejected for a score above 1\nok - the judge's output is rejected for a grade that is not pass or fail\nok - the judge's output is rejected for a missing reason\nok - the judge's output is rejected for a pass below the mark\nok - the judge's output is rejected for a fail at the mark\nok - every scripted judge answer was used"
   }
 ]

@@ -1,0 +1,493 @@
+{
+  "format": 2,
+  "example": "16-tracing-and-judge",
+  "file": "verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "events": [
+    {
+      "kind": "request",
+      "line": 31,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order 42?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 31,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call_1",
+            "name": "lookupOrder",
+            "input": {
+              "id": 42
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls",
+      "usage": {
+        "uncachedInput": 100,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 20
+      },
+      "modelId": "agent-model"
+    },
+    {
+      "kind": "request",
+      "line": 31,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call_1",
+              "name": "lookupOrder",
+              "output": "shipped 3 November"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 31,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Order 42 shipped on 3 November."
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 100,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 20
+      },
+      "modelId": "agent-model"
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "the run itself still answers",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "one agent span, two steps, two model calls and one tool call, named for what they did",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 62,
+      "message": "the agent span is the root",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 63,
+      "message": "each step is a child of the agent span",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 67,
+      "message": "each model call is a child of a step",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 71,
+      "message": "the tool call is a child of the step that asked for it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 75,
+      "message": "the tool span names the tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 76,
+      "message": "each model call carries its own token counts (100 in, 20 out)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 80,
+      "message": "the agent span carries the total across both calls (200 in, 40 out)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 84,
+      "message": "the first model call ended asking for a tool and the second ended with an answer",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Grade the answer from 0 to 1. Pass it at 0.7 or above. Reply with JSON: score, grade, reason."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Question: Where is order 42?\nAnswer: Order 42 shipped on 3 November."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.9,\"grade\":\"pass\",\"reason\":\"names the order and the date\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 154,
+      "message": "a well-formed pass is parsed into its score and grade",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 155,
+      "message": "the verdict keeps the judge's reason",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Question: Where is order 42?\nAnswer: Probably somewhere."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.3,\"grade\":\"fail\",\"reason\":\"does not say when\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 157,
+      "message": "a well-formed fail is parsed too",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Question: Where is order 42?\nAnswer: Order 42 shipped on 3 November."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.7,\"grade\":\"pass\",\"reason\":\"exactly at the pass mark\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 159,
+      "message": "a score exactly at the pass mark passes",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 161,
+      "message": "the judge receives the rubric as its instructions",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 162,
+      "message": "and the answer it grades",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Looks good to me!"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the judge's output is rejected for not JSON",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":1.4,\"grade\":\"pass\",\"reason\":\"great\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the judge's output is rejected for a score above 1",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.8,\"grade\":\"maybe\",\"reason\":\"unsure\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the judge's output is rejected for a grade that is not pass or fail",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.8,\"grade\":\"pass\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the judge's output is rejected for a missing reason",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.4,\"grade\":\"pass\",\"reason\":\"fine\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the judge's output is rejected for a pass below the mark",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 123,
+      "model": "model-2",
+      "repeated": 2,
+      "messages": [],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 123,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"score\":0.7,\"grade\":\"fail\",\"reason\":\"harsh\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "modelId": "judge-model"
+    },
+    {
+      "kind": "check",
+      "line": 166,
+      "message": "the judge's output is rejected for a fail at the mark",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 171,
+      "message": "every scripted judge answer was used",
+      "pass": true
+    }
+  ]
+}
