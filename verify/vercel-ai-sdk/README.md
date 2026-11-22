@@ -49,6 +49,14 @@ The effect log is a small file in a temp folder that the example makes and remov
 
 A second scripted model plays the judge. It answers with a score from 0 to 1 and a pass or fail grade, and the grading code parses the text into a verdict. The code rejects text that is not JSON, a score out of range, a grade that is neither pass nor fail, and a missing reason. It also rejects a grade that contradicts the score: a pass below the mark of 0.7, or a fail at it. The judge is scripted, so the example tests the grading code and says nothing about how well a real model judges. The example carries `// #region` and `// book:note` markers for Chapter T25.
 
+## One example ranks a fixture of support documents with BM25 and checks where keyword search fails
+
+`17-keyword-retrieval.ts` gives a tool loop a `search_docs` tool that ranks `fixtures/support-docs.json`, ten short documents from two tenants, with BM25 written in the example. It uses no search package and no embedding API. The tool takes the tenant from the session, not from the model, filters the documents to that tenant, and only then ranks them.
+
+Four checks show what keyword search does. An exact identifier, the error code E4021, finds its one document. A paraphrase that shares no word with its document, "I forgot my login credentials" for a document on resetting a password, finds nothing, though the same need in the document's words ranks it first. A tenant filter keeps the other tenant's near-duplicate of the E4021 document out of the results, and each tenant's answer comes from its own document. A planted document that repeats a question's words outranks the real answer. The scripted model's second turn is defined to repeat the first result, so it follows the planted document's instruction. The same question with the planted document removed gets the real answer.
+
+The checks read the tool's recorded calls (its tenant, query and returned ids) and the ranked lists, and a last check finds that every model request offered only the `search_docs` function tool. The model is scripted, so the example tests the retriever and what reaches the model, not how a real model would answer. The planted document is our own construction, not a measured attack. The example has no hybrid variant: it has no vector search, so it shows keyword search's failure without a repair. It carries `// #region` and `// book:note` markers for Chapter T36.
+
 ## Scripts
 
 | Command | Does |
