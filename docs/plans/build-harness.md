@@ -329,7 +329,7 @@ type SessionEntry = EntryBase & (
 );                                                            // data sits outside HD11's stable surface
 
 interface SessionKey { readonly userId: string; readonly sessionId: string }   // revision (N3, owner amendment 2026-11-19): no lookup by id alone
-type EntryInput = Omit<SessionEntry, "seq">;                  // revision (N3): the store assigns seq, per member of the union
+type EntryInput = Omit<SessionEntry, "seq">;                  // revision (N3): the store assigns seq; Omit applies to each variant of the union, so the type keeps its discriminant
 interface SessionStore {                                      // revision (N3): keyed by user and session
   append(key: SessionKey, entries: EntryInput[], options?: { expectedLastId?: string | null }): Promise<SessionEntry[]>; // idempotent by id; returns the stored entries
   load(key: SessionKey, options?: { fromSeq?: number; onTornLine?: (line: { bytes: number }) => void }): AsyncIterable<SessionEntry>; // skips a torn last line and reports it once

@@ -1,7 +1,7 @@
 /**
  * The session store conformance suite: what every `SessionStore` must do. The cases import no test runner and no Node
- * module, so any runner can call them, in workerd too. A case that needs a backend to expose a file skips when the
- * factory doesn't give it the means, with its reason.
+ * module, so any runner can call them, in workerd too. A case that needs a backend to expose a file skips, and
+ * reports why, when the factory gives it no `tearLastLine`.
  */
 import type { SessionEntry } from "@buildanagent/protocol";
 import { isHarnessError } from "../errors.js";

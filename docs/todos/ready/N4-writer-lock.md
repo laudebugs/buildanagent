@@ -24,7 +24,7 @@ Enforce one writer per session with a lock file that fails fast, survives a cras
 **In scope**
 
 - `fileLock({ dir, leaseMs, renewMs })` implementing `SessionLock`
-- `acquire(key)` takes the store's `SessionKey`, `{ userId, sessionId }`, so a lock can't reach another user's session; N3 decided this, and the lock file's name encodes both parts as the JSONL store's file names do (reuse `encodeName` from `packages/harness/src/session/store.ts`)
+- `acquire(key)` takes the store's `SessionKey`, `{ userId, sessionId }`, so a lock can't reach another user's session (decided in N3). Name the lock file from both parts with `encodeName` in `packages/harness/src/session/store.ts`, as the JSONL store does
 - Lease renewal, release, and stale detection (lapsed lease and dead pid on the same host)
 - `buildanagent session unlock --force` as a library function the CLI calls later
 - The crash test

@@ -93,13 +93,12 @@ The harness now has a `SessionStore` with a memory and a JSONL backend and a con
 
 **Behavior.**
 - Every method takes the user. A session under another user looks like a missing one on `load`, `delete` and `list`, and a type test shows a call with the session id alone fails to compile.
-- `append` takes entries without `seq`, assigns it, validates each entry with `parseEntry()`, requires a `session_header` first and only first, and returns the stored entries. It is idempotent by id, with a `ConflictError` for an id stored with other content, and a partly stored batch finishes on a retry.
+- `append` takes entries without `seq`, assigns it, validates each entry with `parseEntry()`, requires a `session_header` first and only first, and returns the stored entries. It is idempotent by id, with a `ConflictError` for an id stored with other content, and a partly stored batch finishes on a retry and conflicts if another writer has extended the log since.
 - `expectedLastId` is a compare-and-swap, where `null` means the session must not exist.
 - An entry over 64 KiB of JSON, in bytes, throws `EntryTooLargeError`, and a batch with one writes none of it.
 - The JSONL store writes one `appendFile` of whole lines and an `fsync`, then syncs the folder for a new file. A torn last line is skipped by `load()`, reported once, and cut off by the next append.
 - File names percent-encode every byte outside `a-z0-9_-`, so `..` can't climb out of a user's folder and `Ada` can't collide with `ada` on a case-insensitive file system. A key whose encoded name is over 200 bytes is refused by both stores.
 - One process queues appends, loads and deletes per session, and keeps the state of the 64 logs used last.
-- A retry of a partly stored batch conflicts once another writer has extended the log.
 
 **Decisions.**
 - **`openSession` and `SessionLock.acquire` take the same `SessionKey`.** The todo recommended it, and the plan's sketch and N4's scope now say so, with N6 and N7 told to pass the key.
@@ -108,7 +107,7 @@ The harness now has a `SessionStore` with a memory and a JSONL backend and a con
 - **A log must start with its header.** The plan's `list()` reads session headers, so a log without one can't be listed, and the store refuses it at the first write.
 - **`load` of a missing session yields nothing** and doesn't throw, so another user's session and a missing one can't be told apart.
 - **The cache is keyed by file size.** It saves rereading a log on every append, and a write by another process changes the size and forces a reread. The writer lock (N4) is still what keeps two processes from writing at once.
-- **`fsync` on every append is kept.** Its cost wasn't measured here; the README says a timing run should.
+- **`fsync` on every append is kept.** Its cost wasn't measured here.
 
-**Left out.** The writer lock (N4), spilling oversize tool output to a file (N8), and a SQLite projection for search.
+**Left out.** The writer lock (N4), spilling oversize tool output to a file (N8), and a SQLite projection for search, a later read-side index.
 

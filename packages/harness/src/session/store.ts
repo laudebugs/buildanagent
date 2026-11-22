@@ -41,7 +41,8 @@ export interface AppendOptions {
   /**
    * The id of the entry the log must end with, or `null` for a session that doesn't exist yet. A different tail throws
    * a `ConflictError` and writes nothing, so two writers can't both extend the same log. A batch that is already
-   * stored, in whole or in part, is a retry and skips this check.
+   * stored, in whole or in part, is a retry and skips this check. A partly stored batch still throws a `ConflictError`
+   * if its stored part is no longer the end of the log.
    */
   readonly expectedLastId?: string | null;
 }
@@ -60,8 +61,8 @@ export interface SessionStore {
    * Appends entries, assigns each its `seq` and returns them as stored. It is idempotent by entry id: an entry already
    * stored with the same content is not written again, and one stored with different content throws a
    * `ConflictError`. A new session's first entry must be a `session_header`. It throws an `EntryTooLargeError` above
-   * the size bound and a `HarnessError` for an entry that is not valid. A batch is written in one step, and a failure
-   * writes none of it.
+   * the size bound, a `ConflictError` when `expectedLastId` is stale, and a `HarnessError` for an entry that is not
+   * valid. A failed append writes none of its batch.
    */
   append(key: SessionKey, entries: readonly EntryInput[], options?: AppendOptions): Promise<SessionEntry[]>;
   /** The entries from `fromSeq` on, in order. A session that doesn't exist, or belongs to another user, yields none. */
@@ -87,7 +88,10 @@ export function encodeName(part: string): string {
 
 const MAX_NAME_BYTES = 200;
 
-/** Throws a `HarnessError` with code `invalid_session_key` unless both parts are usable as a name, in every backend. */
+/**
+ * Throws a `HarnessError` with code `invalid_session_key` unless `userId` and `sessionId` are each 1 to 64 characters
+ * with no control characters or lone surrogates and fit in a file name once encoded. Both backends apply this rule.
+ */
 export function checkKey(key: SessionKey): void {
   for (const [label, value] of [
     ["userId", key?.userId],
