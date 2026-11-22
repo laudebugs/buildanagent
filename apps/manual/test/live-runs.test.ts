@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, test } from "vitest";
-import { readableDate, verificationLine } from "../src/book/live-runs.js";
-import { loadBook } from "../src/book/load.js";
+import { liveTranscriptPath, readableDate, readLiveRuns, verificationLine } from "../src/book/live-runs.js";
+import { bookInputs, loadBook } from "../src/book/load.js";
+import { ProblemList } from "../src/book/problems.js";
 import { MOCK_ONLY } from "../src/components/listing-html.js";
 import {
   edit,
@@ -45,6 +46,58 @@ test("the book reads the live list and the date, and refuses a date that is not 
   const bad = mutatedFixture((copy) => edit(copy, "live-comparison.json", () => '{ "lastCompared": "soon" }'));
   assert.throws(() => loadBook(fixtureInputs(bad)), /live-comparison\.json: lastCompared must be a YYYY-MM-DD date/);
   removeFixture(bad);
+});
+
+test("a listed file counts as compared only once a live transcript of it is committed", async () => {
+  assert.equal(
+    liveTranscriptPath("packages/sdk/examples/13-triage-agent.ts", "openai"),
+    "packages/sdk/results/live/openai/13-triage-agent.json",
+  );
+  // The list still names the file, but no run left its transcript in the repository, as when the live run's commit
+  // stages only verify/: the file is not compared, so its listing says only mock models verify it.
+  const uncommitted = mutatedFixture((copy) => {
+    withInteractive(copy);
+    rmSync(join(copy, "verify/demo-sdk/results/live"), { recursive: true });
+  });
+  try {
+    const book = loadBook(fixtureInputs(uncommitted));
+    assert.deepEqual([...book.live.compared], []);
+    const html = await renderLikeAstro(book, "second");
+    const greeting = html.match(
+      /<figure id="lst-[^"]+"[\s\S]*?listing__path">verify\/demo-sdk\/examples\/01-hello\.ts<[\s\S]*?<\/figure>/,
+    );
+    assert.ok(greeting?.[0].includes(MOCK_ONLY));
+  } finally {
+    removeFixture(uncommitted);
+  }
+  // An entry must say which provider it runs on, because that names the folder of its transcript.
+  const unnamed = mutatedFixture((copy) =>
+    edit(copy, "live-examples.json", () =>
+      JSON.stringify({ examples: [{ file: "verify/demo-sdk/examples/01-hello.ts" }] }),
+    ),
+  );
+  assert.throws(() => loadBook(fixtureInputs(unnamed)), /01-hello\.ts needs the provider it runs on/);
+  removeFixture(unnamed);
+});
+
+test("the book counts each entry of its own live list as compared exactly when its live transcript is committed", () => {
+  const root = join(app, "../..");
+  const list = JSON.parse(readFileSync(join(app, "src/data/live-examples.json"), "utf8"));
+  const inputs = bookInputs();
+  const problems = new ProblemList();
+  const live = readLiveRuns(
+    { examples: inputs.liveExamplesFile, comparison: inputs.liveComparisonFile, repoRoot: inputs.repoRoot },
+    { examples: "live-examples.json", comparison: "live-comparison.json" },
+    problems,
+  );
+  assert.deepEqual(problems.all, []);
+  for (const file of new Set<string>(list.examples.map((example: { file: string }) => example.file))) {
+    const providers = list.examples
+      .filter((e: { file: string }) => e.file === file)
+      .map((e: { provider: string }) => e.provider);
+    const committed = providers.some((provider: string) => existsSync(join(root, liveTranscriptPath(file, provider))));
+    assert.equal(live.compared.has(file), committed, file);
+  }
 });
 
 test("a listing of a file the live run compares has no mock-only caption, and any other listing has one", async () => {
