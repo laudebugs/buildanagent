@@ -30,7 +30,7 @@ import {
 import { checkBudget, unknownPriceError } from "./budget.js";
 import { isSdkError, SdkError } from "./errors.js";
 import type { AgentEventBody } from "./events.js";
-import type { StopVerdict } from "./hook-checks.js";
+import { isModelCallStop, type StopVerdict } from "./hook-checks.js";
 import { HookFailure, HookRunner } from "./hook-runner.js";
 import type { CallOptions, Interceptors, ModelCallPatch } from "./hooks.js";
 import type { ProgressCheck } from "./progress.js";
@@ -282,7 +282,7 @@ function patched(state: LoopState, request: Request, patch: ModelCallPatch): Req
  * Builds one call's request: the transcript, or the view `transformContext` returns for this call alone, then the
  * changes `beforeModelCall` asks for. The run's own transcript is never replaced by either.
  */
-async function buildRequest(state: LoopState): Promise<Request> {
+async function buildRequest(state: LoopState): Promise<Request | { readonly stop: string }> {
   const { model, system, modelOptions, tools } = state.setup;
   const view = await state.hooks.transformContext({
     system,
@@ -294,7 +294,8 @@ async function buildRequest(state: LoopState): Promise<Request> {
   const context = { system, messages: [...(view ?? state.messages)], tools: state.wireOf(active) };
   const request: Request = { model, context, options: modelOptions, active };
   const patch = await state.hooks.beforeModelCall({ context, options: modelOptions });
-  return patch === undefined ? request : patched(state, request, patch);
+  if (patch === undefined) return request;
+  return isModelCallStop(patch) ? { stop: patch.stop } : patched(state, request, patch);
 }
 
 /**
@@ -440,6 +441,8 @@ async function retryWait(state: LoopState, delayMs: number): Promise<void> {
 async function callModel(state: LoopState): Promise<AssistantMessage | { readonly blocked: Outcome }> {
   for (let streak = 1; ; streak += 1) {
     const request = await buildRequest(state);
+    // A hook ended the run before this call, so nothing is sent and no model_call_start is emitted.
+    if ("stop" in request) return { blocked: hookStop(state, request.stop) };
     const blocked = budgetBlock(state, request);
     if (blocked !== undefined) return { blocked };
     state.active = request.active;
@@ -471,6 +474,11 @@ async function callModel(state: LoopState): Promise<AssistantMessage | { readonl
     state.send({ type: "step_start" });
     applySteering(state);
   }
+}
+
+/** The outcome of a `beforeModelCall` stop. A signal that fired while the hook ran outranks its stop, as for any hook. */
+function hookStop(state: LoopState, stoppedBy: string): Outcome {
+  return state.setup.signal.aborted ? { stopReason: "aborted" } : { stopReason: "stopped", stoppedBy };
 }
 
 /** The tool message the model reads for one call. */
