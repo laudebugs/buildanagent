@@ -1,127 +1,127 @@
 [
   {
     "id": "01-hello-agent",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/01-hello-agent.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/01-hello-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5442,
+    "ms": 3866,
     "modelCalls": 0,
     "tail": "ok - finalOutput holds the final text\nok - lastAgent is the agent that answered\nok - one model call for a text-only answer\nok - instructions reach the model as system instructions\nok - assertComplete() passes when every scripted step was consumed"
   },
   {
     "id": "02-function-tool",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/02-function-tool.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/02-function-tool.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 3720,
+    "ms": 4088,
     "modelCalls": 0,
     "tail": "ok - execute() received the parsed arguments\nok - the tool is offered to the model\nok - the second request carries the tool result\nok - the final answer follows the tool result"
   },
   {
     "id": "03-handoff",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/03-handoff.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/03-handoff.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4107,
+    "ms": 3963,
     "modelCalls": 0,
     "tail": "ok - a handoff is a tool named transfer_to_<agent name, case kept>\nok - lastAgent is the specialist after the handoff\nok - the specialist's answer is the final output"
   },
   {
     "id": "04-guardrails",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/04-guardrails.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/04-guardrails.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 3946,
+    "ms": 4151,
     "modelCalls": 0,
     "tail": "ok - a tripped input guardrail throws InputGuardrailTripwireTriggered\nok - with runInParallel: false the model is never called\nok - a tripped output guardrail throws OutputGuardrailTripwireTriggered"
   },
   {
     "id": "05-approval-resume",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/05-approval-resume.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/05-approval-resume.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 8131,
+    "ms": 2280,
     "modelCalls": 0,
     "tail": "ok - the run pauses with one interruption\nok - the tool does not execute before approval\nok - after approve() and resume, the tool executes once\nok - the resumed run finishes\nok - after reject(), the tool never executes\nok - the model receives the rejection and still finishes"
   },
   {
     "id": "06-session",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/06-session.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/06-session.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6956,
+    "ms": 2151,
     "modelCalls": 0,
     "tail": "ok - the second request includes the first run's user message\nok - the second request includes the first run's answer\nok - the session stores both turns\nok - the second run answers"
   },
   {
     "id": "07-structured-output",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/07-structured-output.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/07-structured-output.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 7498,
+    "ms": 2118,
     "modelCalls": 0,
     "tail": "ok - finalOutput is the parsed, typed object\nok - the model receives a JSON Schema output type\nok - output that fails the schema throws ModelBehaviorError"
   },
   {
     "id": "08-max-turns",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/08-max-turns.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/08-max-turns.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6802,
+    "ms": 2167,
     "modelCalls": 0,
     "tail": "ok - exceeding maxTurns throws MaxTurnsExceededError\nok - the error carries the run state\nok - the loop stops after one model call with maxTurns: 1"
   },
   {
     "id": "09-triage-agent",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/09-triage-agent.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/09-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 7174,
+    "ms": 3584,
     "modelCalls": 0,
     "tail": "ok - escalation pauses for approval\nok - lookup ran and the rejected escalation never did\nok - the run ends with a typed triage result\nok - the input guardrail blocks injection before any model call\ntriage: {\"category\":\"bug\",\"priority\":\"high\",\"summary\":\"Checkout returns 500.\"}"
   },
   {
     "id": "10-approval-tamper",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/10-approval-tamper.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/10-approval-tamper.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 6552,
+    "ms": 3037,
     "modelCalls": 0,
     "tail": "ok - the run pauses before the refund\nok - the refund runs for the edited order, not the one the reviewer saw"
   },
   {
     "id": "11-injection-reworded",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/11-injection-reworded.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/11-injection-reworded.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5688,
+    "ms": 2954,
     "modelCalls": 0,
     "tail": "ok - the phrase the guardrail knows is blocked before any model call\nok - the same attack in other words passes and reaches the model"
   },
   {
     "id": "12-subagent-as-tool",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/12-subagent-as-tool.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/12-subagent-as-tool.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 5241,
+    "ms": 4031,
     "modelCalls": 0,
     "tail": "ok - the subagent read both sources in its own context\nok - both models are offered only the research and read_source function tools\norchestrator 800, subagent 2400, run 3200 tokens\nwith these scripted counts, the run's total is 4x the orchestrator's own\nok - each run's rawResponses hold only that run's own model responses, so each reports its own usage\nok - the orchestrator's run usage counts the subagent's tokens too\nok - the subagent's state.usage is the shared running total: the orchestrator's first call plus the subagent's calls\nok - the orchestrator answers from the summary"
   },
   {
     "id": "13-computer-use-approval",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/13-computer-use-approval.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/13-computer-use-approval.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 4917,
+    "ms": 2341,
     "modelCalls": 0,
     "tail": "ok - after approve() and resume, the Pay click reaches the computer\nok - the approved click runs once, followed by one screenshot\nok - the model's last request carries the receipt screenshot as the result of call c3\nok - the resumed run finishes with the model's answer\nok - after reject(), the computer receives no further action\nok - the model's next request holds a rejected result for c3 with a fallback image, not the page's screenshot\nok - the model still gets its next turn after the rejection and answers from it\nok - the model is offered one tool, the computer tool: no shell, file-editing or function tool"
   },
   {
     "id": "14-realtime-session",
-    "file": "/home/user/n25/verify/openai-agents-sdk/examples/14-realtime-session.ts",
+    "file": "/home/user/n24/verify/openai-agents-sdk/examples/14-realtime-session.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 3153,
+    "ms": 2603,
     "modelCalls": 0,
     "tail": "ok - after approve(), the tool runs once and its output returns through the transport for call_2\nok - after reject(), the model receives the rejection text and the tool does not run again\nok - the session sees the first audio chunk of the reply as audio_start\nok - interrupt() sends the request but does not itself raise audio_interrupted\nok - a scripted audio_interrupted reaches the session's listener once\nok - the agent offers only lookup_order and cancel_order: no shell, file-editing or handoff\nok - every call the session made was matched by an expectation\nok - the transport is closed after session.close()"
   }
