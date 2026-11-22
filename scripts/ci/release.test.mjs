@@ -523,7 +523,7 @@ describe("release-plan.mjs", () => {
     assert.equal(plan.pending, true);
   });
 
-  test("publishes what npm lacks, in order, and nothing once npm holds all six", async () => {
+  test("publishes what npm lacks, in order, and nothing once the GitHub release exists", async () => {
     const root = fixture();
     const none = await planRelease({ root, repo, fetchImpl: registry().fetchImpl });
     assert.equal(none.publish, true);
@@ -562,8 +562,11 @@ describe("release-plan.mjs", () => {
     assert.equal(plan.version, "0.1.0-alpha.28");
     assert.deepEqual(plan.toPublish, NAMES);
     assert.deepEqual(
-      calls.slice(1),
-      RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/0.1.0-alpha.28`),
+      [...calls],
+      [
+        `https://api.github.com/repos/${repo}/releases/tags/v0.1.0-alpha.28`,
+        ...RELEASE_ORDER.map((pkg) => `https://registry.npmjs.org/@buildanagent%2f${pkg}/0.1.0-alpha.28`),
+      ],
     );
   });
 
@@ -652,6 +655,17 @@ describe("release-plan.mjs", () => {
     assert.equal(plan.reason, "v0.1.0-alpha.28 is already released");
     assert.deepEqual(plan.toPublish, []);
     assert.match(formatOutputs(plan), /^publish=false$/m);
+    assert.deepEqual([...calls], [`https://api.github.com/repos/${repo}/releases/tags/v0.1.0-alpha.28`]);
+  });
+
+  // Deliberate: a release means released, so a package missing from npm behind an existing release stays missing
+  // until someone deletes the release and its tag and re-runs (docs/plans/ci.md §3f).
+  test("skips a version whose GitHub release exists even when npm lacks a package, without asking npm", async () => {
+    const { fetchImpl, calls } = registry(NAMES.slice(0, 5), undefined, { releases: ["v0.1.0-alpha.28"] });
+    const plan = await planRelease({ root: fixture({ version: "0.1.0-alpha.28", pre: alpha }), repo, fetchImpl });
+    assert.equal(plan.publish, false);
+    assert.equal(plan.reason, "v0.1.0-alpha.28 is already released");
+    assert.deepEqual(plan.toPublish, []);
     assert.deepEqual([...calls], [`https://api.github.com/repos/${repo}/releases/tags/v0.1.0-alpha.28`]);
   });
 

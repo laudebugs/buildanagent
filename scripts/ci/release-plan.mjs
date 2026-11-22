@@ -21,10 +21,14 @@
 //   identifier is pre.json's `tag` (0.1.0-alpha.0 for `alpha`), published under that dist-tag; otherwise only a
 //   plain x.y.z, published under `latest`. A mismatch throws, because publishing it would move the wrong dist-tag;
 // - the GitHub release v<version> doesn't exist yet. The plan asks GitHub before npm, because the publish job creates
-//   that release only after its last upload returns, while npm makes an accepted upload public 1 to 3 minutes later.
+//   that release only after its last upload returns, while npm makes an accepted upload public 75 to 187 seconds later.
 //   A run queued behind the one that released, as run 45067734004 was, would otherwise read npm's 404s as "not
 //   published" and upload again into an E409. Without the release, the plan asks npm which packages it lacks; it
 //   still publishes when npm holds all six, so a run that failed after the uploads can still tag the release.
+//   Skipping on the release alone is deliberate: a successful `npm publish` is the confirmation, so a release means
+//   released. A release made by hand, or one left over a partial or lost upload, would therefore leave the missing
+//   packages unpublished with a green run. To recover, delete the GitHub release v<version> and its tag, then re-run:
+//   the plan asks npm, and the publish job skips each package npm already holds and uploads the rest.
 // release.yml adds the last condition itself: only a push to main publishes.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -237,7 +241,8 @@ export async function planRelease({ root, repo, token, fetchImpl = fetch }) {
   if (mismatch) throw new Error(mismatch);
 
   // The release first: once it exists, every upload of this version has returned, and npm's version index refuses
-  // another, whatever the registry answers in the minutes before it makes the uploads public.
+  // another, whatever the registry answers in the minutes before it makes the uploads public. The plan deliberately
+  // trusts the release over npm; the header comment says how to recover from a release without its packages.
   if (!repo) throw new Error("set GITHUB_REPOSITORY to owner/name, so the plan can check the GitHub release");
   if (await hasGitHubRelease(repo, base.tag, { token, fetchImpl })) return skip(`${base.tag} is already released`);
   const toPublish = [];
