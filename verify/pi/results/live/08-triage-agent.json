@@ -1,0 +1,206 @@
+{
+  "format": 2,
+  "example": "08-triage-agent",
+  "file": "verify/pi/examples/08-triage-agent.ts",
+  "harness": "verify/pi",
+  "pin": "@earendil-works/pi-coding-agent@1.5.2",
+  "mock": "@earendil-works/pi-ai@1.5.2",
+  "live": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5"
+  },
+  "events": [
+    {
+      "kind": "check",
+      "line": 88,
+      "message": "noTools: \"builtin\" leaves only our three tools",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 93,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": ""
+            },
+            {
+              "type": "other",
+              "kind": "sections",
+              "value": [
+                "preamble",
+                "tools",
+                "rules",
+                "docs",
+                "cwd"
+              ]
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Checkout 500 for user@example.com. Look up, escalate once, submit triage even if blocked."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 93,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "lookup_customer",
+            "input": {
+              "email": "user@example.com"
+            }
+          }
+        ]
+      },
+      "finish": "toolUse"
+    },
+    {
+      "kind": "request",
+      "line": 93,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "lookup_customer",
+              "output": "{\"email\":\"user@example.com\",\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 93,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-2>",
+            "name": "escalate",
+            "input": {
+              "reason": "Checkout returning HTTP 500 for customer user@example.com (plan: pro, 2 open tickets). Needs on-call investigation."
+            }
+          }
+        ]
+      },
+      "finish": "toolUse"
+    },
+    {
+      "kind": "request",
+      "line": 93,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-2>",
+              "name": "escalate",
+              "output": "Escalation needs a human.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 93,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-3>",
+            "name": "submit_triage",
+            "input": {
+              "category": "bug",
+              "priority": "high",
+              "summary": "Checkout returning HTTP 500 for user@example.com (pro plan, 2 open tickets). Escalation attempted once but failed with \"Escalation needs a human\"; needs manual on-call escalation. Root cause not investigated."
+            }
+          }
+        ]
+      },
+      "finish": "toolUse"
+    },
+    {
+      "kind": "check",
+      "line": 94,
+      "message": "the extension audited every call in order",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 101,
+      "message": "escalation was blocked and the reason went back to the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 102,
+      "message": "submit_triage captured the typed result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 103,
+      "message": "terminate: true ended the run without an extra model turn",
+      "pass": true
+    }
+  ]
+}
