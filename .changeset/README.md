@@ -14,7 +14,7 @@ Run `pnpm changeset status --verbose` to see the versions the pending changesets
 
 ## All six packages always share one version
 
-The six packages form one `fixed` group, so a bump to any of them moves all six to the same version. Each one past the gateway depends on another: the SDK and agent-safety on the gateway, the protocol on the gateway and the SDK, the harness on those and agent-safety, and the CLI on the gateway, the SDK, the protocol and the harness. A user should never have to match six version numbers. The cost is that a change to one package gives the other five a version and a changelog entry too ([publish-and-docs PB4](../docs/plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted)).
+The six packages form one `fixed` group, so a bump to any of them moves all six to the same version. Each package past the gateway depends on others. The SDK and agent-safety depend on the gateway, and the protocol on the gateway and the SDK. The harness depends on the gateway, the SDK, the protocol and agent-safety, and the CLI on the gateway, the SDK, the protocol and the harness. A user should never have to match six version numbers. The cost is that a change to one package gives the other five a version and a changelog entry too ([publish-and-docs PB4](../docs/plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted)).
 
 ## Under 0.x, a breaking change is a `minor` bump that says so
 
@@ -35,7 +35,7 @@ The owner decided on 2026-11-19: "let's make the releases automated too. Let's k
 
 `latest` stays on the deprecated placeholder `0.0.0-bootstrap.0` until the first stable release, so users install with `pnpm add @buildanagent/sdk@alpha`.
 
-The first alpha of agent-safety, the protocol, the harness and the CLI publishes the same way: only through `release.yml` on a push to `main`, never from a session or a developer's machine. The owner published deprecated placeholders of the four by hand, because npm adds a trusted publisher only to a package that exists, and every package's `prepublishOnly` script refuses a publish from its folder. The details are in the [CI plan](../docs/plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19).
+The first alpha of agent-safety, the protocol, the harness and the CLI publishes the same way: only through `release.yml` on a push to `main`, never from a session or a developer's machine. The owner published deprecated placeholders of the four by hand, because npm adds a trusted publisher only to a package that exists. Every package's `prepublishOnly` script refuses a publish from its folder. The details are in the [CI plan](../docs/plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19).
 
 ## Leave alpha with `pnpm changeset pre exit`
 

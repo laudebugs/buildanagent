@@ -1,6 +1,6 @@
 # The npm placeholders before the L11 release
 
-This file records what npm held for the six `@buildanagent` packages before todo [L11](../../todos/ongoing/L11-bootstrap-and-release-protocol-harness-cli.md) publishes the first alpha of four of them. It's the output for L11's pull request description, as [PB4](../publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) asks. Every command below only reads from the registry. The session ran them at about 18:25 UTC on 2026-11-22, with npm's default public registry and no login.
+Before todo [L11](../../todos/ongoing/L11-bootstrap-and-release-protocol-harness-cli.md) publishes the first alpha of four of the six `@buildanagent` packages, npm holds a deprecated placeholder of each of those four. This file records that state as the output for L11's pull request description, as [PB4](../publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) asks. Every command below only reads from the registry. The session ran them at about 18:25 UTC on 2026-11-22, with npm's default public registry and no login.
 
 ## What the output shows
 

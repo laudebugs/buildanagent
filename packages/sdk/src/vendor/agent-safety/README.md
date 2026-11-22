@@ -6,4 +6,4 @@
 
 The copies are separate modules, so each holds its own state. `ephemeralSigner()` keeps one random key per module, and a process that loads both the SDK and the safety package has two ephemeral keys: a pause signed by one's default signer does not verify with the other's. Hosts that need both pass one `hmacSigner()` to each.
 
-Once an alpha of `@buildanagent/agent-safety` is on npm, delete this folder and import from the package's root export instead, and `testSigner()` from its `testing` subpath, as the SDK plan's dependency rule says.
+Once an alpha of `@buildanagent/agent-safety` is on npm, delete this folder. Import from the package's root export and take `testSigner()` from its `testing` subpath, as the SDK plan's dependency rule says.

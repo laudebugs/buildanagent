@@ -15,13 +15,13 @@ if (entry.type === "session_header") console.log(entry.formatVersion); // 1
 
 ## Install the alpha with `pnpm add @buildanagent/protocol@alpha`
 
-Every release is an alpha until the first stable one, and npm serves the alphas under the `alpha` dist-tag:
+The package needs Node 22.19 or later. npm serves every release under the `alpha` dist-tag until the first stable one:
 
 ```sh
 pnpm add @buildanagent/protocol@alpha
 ```
 
-All six buildanagent packages share one version, and the protocol depends on that exact version of the gateway and the SDK. Name the tag: a plain `pnpm add @buildanagent/protocol` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22.19 or later.
+All six buildanagent packages share one version, and the protocol depends on that exact version of the gateway and the SDK. Name the tag: a plain `pnpm add @buildanagent/protocol` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release.
 
 ## A session file is a list of entries, one per line
 

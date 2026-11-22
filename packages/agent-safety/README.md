@@ -6,13 +6,13 @@ The package holds the write outcomes (`renderOutcome()`, `canonicalInputHash()`)
 
 ## Install the alpha with `pnpm add @buildanagent/agent-safety@alpha`
 
-Every release is an alpha until the first stable one, and npm serves the alphas under the `alpha` dist-tag:
+The package needs Node 22 or later. npm serves every release under the `alpha` dist-tag until the first stable one:
 
 ```sh
 pnpm add @buildanagent/agent-safety@alpha
 ```
 
-All six buildanagent packages share one version, and this package depends on that exact version of the gateway. Name the tag: a plain `pnpm add @buildanagent/agent-safety` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. The package needs Node 22 or later. Its other dependencies are optional peers: the subpaths that adapt the Vercel AI SDK need its packages, which [the root entry's section](#the-root-entry-loads-without-any-third-party-sdk) lists, and `./stores/dynamodb` needs `@aws-sdk/client-dynamodb`.
+All six buildanagent packages share one version, and this package depends on that exact version of the gateway. Name the tag: a plain `pnpm add @buildanagent/agent-safety` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release. Its other dependencies are optional peers. The subpaths that adapt the Vercel AI SDK need its packages, which [the root entry's section](#the-root-entry-loads-without-any-third-party-sdk) lists. The `./stores/dynamodb` subpath needs `@aws-sdk/client-dynamodb`.
 
 ## A failed write reports one of five outcomes
 
