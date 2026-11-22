@@ -4,7 +4,7 @@
 // cases assert only what a loop without observers can show, because the reference loop has none. capstone.test.ts
 // checks the audit trail.
 import assert from "node:assert/strict";
-import type { Model } from "@buildanagent/gateway";
+import type { Message, Model } from "@buildanagent/gateway";
 import type { AgentEvent, Context, ContinueOptions, Resolution, RunInput, RunOptions } from "@buildanagent/sdk";
 import { testSigner } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
@@ -114,6 +114,7 @@ function approvedEscalation(loop: Loop, backend: Backend) {
     assert.deepEqual(second.process.seen.escalations, [REASON]);
     assert.deepEqual(first.process.seen.escalations, []);
     assert.deepEqual(second.process.seen.lookups, [], "the resume does not look the customer up again");
+    assert.deepEqual(second.fixture.systemPrompts(), [SYSTEM_PROMPT], "the resumed run keeps the system prompt");
     assertSurface(first.fixture, second.fixture);
   });
 }
@@ -211,9 +212,20 @@ function hostToolsDenied(loop: Loop, backend: Backend) {
     fixture.assertComplete();
     assert.equal(result.stopReason, "done");
     assert.deepEqual(outputOf(result), BUG);
-    const denied = result.messages.filter((m) => m.role === "tool" && m.isError);
-    assert.equal(denied.length, HOST_TOOLS.length, "each host tool call came back as an error result");
-    for (const [i, tool] of HOST_TOOLS.entries()) assert.match(JSON.stringify(denied[i]), new RegExp(tool.name));
+    const asked = result.messages.flatMap((m) =>
+      m.role === "assistant" ? m.content.filter((block) => block.type === "tool_call") : [],
+    );
+    for (const tool of HOST_TOOLS) {
+      const call = asked.find((block) => block.name === tool.name);
+      assert.ok(call, `the model asked for ${tool.name}`);
+      const answer: Message | undefined = result.messages.find((m) => m.role === "tool" && m.callId === call.callId);
+      assert.equal(answer?.role === "tool" && answer.isError, true, `${tool.name} came back as an error result`);
+      // The reference loop words its refusal differently from the real one, so the case reads only that it says the
+      // tool is unknown and names it.
+      const text: string = JSON.stringify(answer);
+      assert.match(text, /(unknown|no) tool/i);
+      assert.ok(text.includes(tool.name));
+    }
     assert.deepEqual(process.seen.lookups, ["user@example.com"], "only the agent's own lookup ran");
     assert.deepEqual(process.seen.escalations, []);
     assertSurface(fixture);

@@ -190,6 +190,9 @@ function textOf(content: unknown): string {
   return content.map((part: { text?: string }) => part.text ?? "").join("");
 }
 
+// Both adapters send the prompt as one string or one block, so the helpers below read one. An adapter that split it
+// would make the suite's equality check fail, which is the signal to teach the helper its new shape.
+
 /** The Messages API takes the system prompt as a top-level `system` field. */
 const anthropicSystemIn = (request: unknown): string => textOf((request as { system?: unknown }).system);
 

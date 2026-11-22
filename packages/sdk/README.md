@@ -594,7 +594,7 @@ The conformance suite in [`test/triage-suite.ts`](test/triage-suite.ts) takes a 
 - the step cap and the budget each end a runaway run;
 - every request offers only `lookup_customer`, `escalate` and `submit_triage`;
 - a call to a host tool the agent never offered, such as `bash` or `write_file`, runs nothing and comes back to the model as an error;
-- the system prompt reaches the model on every request.
+- the system prompt reaches the model on every request, on a resumed run too.
 
 The cases assert nothing about observers, so a loop without them can run the suite. `test/capstone.test.ts` checks the audit trail on the SDK's loop.
 
@@ -603,7 +603,7 @@ The tables in the [deep comparison](../../docs/comparison/deep-comparison.md#1-t
 | Capstone | Code lines | Hooks |
 | --- | --- | --- |
 | Our capstone, the agent alone | 80 | 2 |
-| Our capstone with its cases and backends | 485 | 2 |
+| Our capstone with its cases and backends | 495 | 2 |
 | Vercel AI SDK | 58 | |
 | Claude Agent SDK | 62 | |
 | LangChain.js | 67 | 2 |
