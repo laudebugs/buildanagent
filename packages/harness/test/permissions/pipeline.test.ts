@@ -162,7 +162,10 @@ test("a tool registered after construction that an allow rule covers fails close
     registry,
   );
   registry.register({ name: "late", source: "builtin", definition: tool("late") });
-  await assert.rejects(pipeline.decide(call("late"), input()), PermissionConfigError);
+  const session = recorder();
+  const decision = await pipeline.decide(call("late"), input(session));
+  assert.deepEqual([decision.decision, decision.rule], ["deny", "invalid_config"]);
+  assert.equal(session.entries.length, 1, "the refusal is logged like any decision");
   const gated = await pipeline.gate(() => input()).beforeToolCall?.({ callId: "c1", tool: "late", input: {} } as never);
   assert.equal(gated?.decision, "deny", "the gate refuses the call and does not let it through");
 });
@@ -297,4 +300,27 @@ test("the gate maps allow, deny and ask, and an ask carries the policy version i
   assert.equal(result.stopReason === "awaiting_approval" ? result.pending[0]?.policyVersion : undefined, "p1");
   assert.deepEqual(ran, [], "the tool did not run");
   assert.equal(session.entries.length, 1);
+});
+
+test("a failure inside the rules or a hook logs the call's own input hash, not the marker", async () => {
+  const broken = new Proxy(/x/, {
+    get() {
+      throw new Error("bad rule");
+    },
+  });
+  const pipeline = createPermissionPipeline({ ...base, deny: [{ tool: broken }] }, registryOf());
+  const session = recorder();
+  const decision = await pipeline.decide(call("read", { path: "a" }), input(session));
+  assert.deepEqual([decision.decision, decision.rule], ["deny", "evaluation_failed"]);
+  const clean = createPermissionPipeline({ ...base, mode: "bypass" }, registryOf());
+  const other = recorder();
+  await clean.decide(call("read", { path: "a" }), input(other));
+  const hash = (log: ReturnType<typeof recorder>) =>
+    log.entries[0]?.type === "permission_decision" ? log.entries[0].inputHash : "";
+  assert.equal(hash(session), hash(other), "the same input has the same hash whichever way the decision went");
+});
+
+test("a pattern with ? in a tool name is matched as text, and does not break the pipeline", async () => {
+  const pipeline = createPermissionPipeline({ ...base, interactive: false, allow: [{ tool: "?x*" }] }, registryOf());
+  assert.equal((await pipeline.decide(call("read"), input())).rule, "no_match");
 });

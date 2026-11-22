@@ -4,11 +4,7 @@ import type { PermissionMode, PolicySession } from "./types.js";
 
 const SHADOW_RESULT = "Shadow mode: this call was recorded and not run.";
 
-/**
- * A `ToolWrapper` for `registry.definitions()`. In `shadow` mode it replaces each tool's `execute` with one that writes
- * a `shadow_call` entry and returns a fixed result, so the tool never runs. In any other mode it returns the tool as
- * registered. The mode is read when the wrapper is called, so build the turn's definitions after it is set.
- */
+/** The wrapper behind `PermissionPipeline.shadowWrapper()`, which owns the mode it is given. */
 export function shadowWrapper(
   session: PolicySession,
   mode: PermissionMode,

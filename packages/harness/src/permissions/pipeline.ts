@@ -7,6 +7,7 @@ import { canonicalInputHash } from "@buildanagent/sdk";
 import type { ToolRegistry } from "../tools/types.js";
 import { PermissionConfigError } from "./errors.js";
 import { isUnconditional, permits, restricts, type Target, targetOf, toolMatches } from "./rules.js";
+import { shadowWrapper } from "./shadow.js";
 import type {
   Decision,
   PermissionConfig,
@@ -14,6 +15,7 @@ import type {
   PermissionPipeline,
   PolicyContext,
   PolicyInput,
+  PolicySession,
   Rule,
   ToolCall,
 } from "./types.js";
@@ -34,6 +36,7 @@ const describe = (error: unknown): string => (error instanceof Error ? error.mes
 class Pipeline implements PermissionPipeline {
   readonly #config: PermissionConfig;
   readonly #registry: ToolRegistry;
+  #wrapped = false;
 
   constructor(config: PermissionConfig, registry: ToolRegistry) {
     this.#config = config;
@@ -63,19 +66,43 @@ class Pipeline implements PermissionPipeline {
 
   async decide(call: ToolCall, input: PolicyInput): Promise<Decision> {
     const ctx: PolicyContext = { ...input, mode: this.#config.mode, policyVersion: this.#config.policyVersion };
-    let inputHash: string;
-    let decision: Decision;
-    try {
-      inputHash = await canonicalInputHash(call.input);
-      decision = await this.#evaluate(call, ctx);
-    } catch (error) {
-      if (error instanceof PermissionConfigError) throw error;
-      // An input with no canonical form can't be hashed into its entry or compared on resume, so it is not run.
-      inputHash = await canonicalInputHash("unhashable");
-      decision = deny(`the call could not be checked: ${describe(error)}`, "unreadable_call");
-    }
-    await this.#record(call, ctx, decision, inputHash);
+    const hashed = await this.#hash(call.input);
+    const decision = hashed.error === undefined ? await this.#settle(call, ctx) : deny(hashed.error, "unreadable_call");
+    await this.#record(call, ctx, decision, hashed.hash);
     return decision;
+  }
+
+  /** The hash of an input. One with no canonical form can't be compared on resume, so it is denied under a marker hash. */
+  async #hash(value: unknown): Promise<{ hash: string; error?: string }> {
+    try {
+      return { hash: await canonicalInputHash(value) };
+    } catch (error) {
+      return {
+        hash: await canonicalInputHash("unhashable"),
+        error: `the input could not be checked: ${describe(error)}`,
+      };
+    }
+  }
+
+  /** `#evaluate()` with a failure turned into a denial, which is logged like any other decision. */
+  async #settle(call: ToolCall, ctx: PolicyContext): Promise<Decision> {
+    try {
+      if (ctx.mode === "shadow" && !this.#wrapped) {
+        return deny(
+          "shadow mode needs the tools wrapped by this pipeline's shadowWrapper(), so the call was refused",
+          "shadow_unwrapped",
+        );
+      }
+      return await this.#evaluate(call, ctx);
+    } catch (error) {
+      const rule = error instanceof PermissionConfigError ? "invalid_config" : "evaluation_failed";
+      return deny(`the call could not be decided, so it was refused: ${describe(error)}`, rule);
+    }
+  }
+
+  shadowWrapper(session: PolicySession): ReturnType<PermissionPipeline["shadowWrapper"]> {
+    this.#wrapped = true;
+    return shadowWrapper(session, this.#config.mode);
   }
 
   gate(context: Parameters<PermissionPipeline["gate"]>[0]): ReturnType<PermissionPipeline["gate"]> {
@@ -119,6 +146,9 @@ class Pipeline implements PermissionPipeline {
     if (hook?.decision === "deny") return hook;
     const denied = this.#firstMatch("deny", this.#config.deny, target);
     if (denied !== undefined) return denied;
+    // Read-only mode is a limit, so no approval may widen it.
+    const readOnly = ctx.mode === "read_only" ? this.#byMode(target, ctx.mode) : undefined;
+    if (readOnly?.decision === "deny") return readOnly;
     // Nothing runs in shadow mode, so a question to a person would have no call to wait for.
     const shadow = ctx.mode === "shadow";
     if (hook !== undefined && !shadow) return hook;

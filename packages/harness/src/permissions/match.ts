@@ -7,8 +7,19 @@
 const PATH_KEYS = ["path", "file", "file_path", "filePath", "target", "destination", "source"];
 const PATH_LIST_KEYS = ["paths", "files"];
 const COMMAND_KEYS = ["command", "cmd"];
-// Words that start a command without changing which program runs, so a deny or ask rule looks past them.
-const WRAPPERS = new Set(["sudo", "env", "command", "nohup", "time", "exec", "nice"]);
+// Words that start a command without changing which program runs, so a deny or ask rule looks past them. The value is
+// the options that take a value, which are skipped with it.
+const WRAPPERS: ReadonlyMap<string, readonly string[]> = new Map([
+  ["sudo", ["-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"]],
+  ["env", ["-u", "-C", "-S"]],
+  ["nice", ["-n"]],
+  ["time", ["-f", "-o"]],
+  ["exec", ["-a"]],
+  ["command", []],
+  ["nohup", []],
+]);
+// Shell syntax that starts a command without being its program: a group, a negation or a keyword.
+const LEADERS = new Set(["{", "}", "!", "if", "then", "else", "elif", "do", "while", "until"]);
 const SHELLS = new Set(["bash", "sh", "zsh", "dash"]);
 const MAX_DEPTH = 3;
 
@@ -37,11 +48,23 @@ export function pathsOf(input: unknown): string[] {
   return found.filter((value): value is string => typeof value === "string").map(normalizePath);
 }
 
-const escapeRegExp = (text: string): string => text.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (text: string): string => text.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
 
-/** A glob as a regular expression: `*` is any run of characters but `/`, `**` any run, `?` one character but `/`. */
-export function globToRegExp(glob: string): RegExp {
+const isRelative = (pattern: string): boolean => !pattern.startsWith("/") && !pattern.startsWith("**");
+
+/**
+ * A glob as a regular expression: `*` is any run of characters but `/`, `**` any run, `?` one character but `/`. With
+ * `anywhere`, a relative glob also matches below any directory, because the pipeline doesn't know the working
+ * directory and a deny or ask rule must not miss `/repo/secrets/a` for `secrets/**`.
+ */
+export function globToRegExp(glob: string, anywhere = false): RegExp {
   const pattern = normalizePath(glob);
+  const prefix = anywhere && isRelative(pattern) ? "(?:.*/)?" : "";
+  return new RegExp(`^${prefix}${globBody(pattern)}$`);
+}
+
+/** The regular expression source of a glob's text. */
+function globBody(pattern: string): string {
   let source = "";
   for (let i = 0; i < pattern.length; i += 1) {
     const char = pattern[i] as string;
@@ -53,7 +76,7 @@ export function globToRegExp(glob: string): RegExp {
     else if (char === "?") source += "[^/]";
     else source += escapeRegExp(char);
   }
-  return new RegExp(`^${source}$`);
+  return source;
 }
 
 /** A name pattern: a `*` matches any run of characters. */
@@ -87,16 +110,18 @@ function endPart(scan: Scan): void {
   scan.words = [];
 }
 
-/** The length of the separator that starts at `i`, or 0. */
+/** The length of the separator that starts at `i`, or 0. A `(` or `)` ends a command, as a subshell's edges do. */
 function separatorAt(text: string, i: number): number {
   const pair = text.slice(i, i + 2);
   if (pair === "&&" || pair === "||") return 2;
-  return ";|&\n".includes(text[i] as string) ? 1 : 0;
+  return ";|&\n()".includes(text[i] as string) ? 1 : 0;
 }
 
 /** Reads one quoted run starting at the quote at `i` and returns where it ended. */
 function readQuoted(text: string, i: number, scan: Scan): number {
   const quote = text[i] as string;
+  // `$'...'` is ANSI-C quoting, and the `$` is not part of the word.
+  if (quote === "'" && scan.word === "$") scan.word = "";
   scan.inWord = true;
   let at = i + 1;
   for (; at < text.length && text[at] !== quote; at += 1) {
@@ -111,7 +136,7 @@ function splitWords(text: string): string[][] {
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i] as string;
     const separator = separatorAt(text, i);
-    if (separator > 0) {
+    if (separator > 0 && !(char === "(" && text[i - 1] === "$")) {
       endPart(scan);
       i += separator - 1;
     } else if (char === "'" || char === '"') i = readQuoted(text, i, scan);
@@ -126,35 +151,57 @@ function splitWords(text: string): string[][] {
   return scan.parts;
 }
 
-// `$( )`, backticks and process substitution run commands the outer words don't show.
-const SUBSTITUTION = /\$\(([^()]*)\)|`([^`]*)`|[<>]\(([^()]*)\)/g;
+/** The text between the parenthesis at `open` and its match, with nesting, or the rest of the text when unbalanced. */
+function balanced(text: string, open: number): string {
+  let level = 0;
+  for (let i = open; i < text.length; i += 1) {
+    if (text[i] === "(") level += 1;
+    else if (text[i] === ")") {
+      level -= 1;
+      if (level === 0) return text.slice(open + 1, i);
+    }
+  }
+  return text.slice(open + 1);
+}
 
-/** The commands inside a command text's substitutions, read the same way, to a fixed depth. */
-function innerParts(text: string, depth: number): string[][] {
-  if (depth >= MAX_DEPTH) return [];
-  const found: string[][] = [];
-  for (const match of text.matchAll(SUBSTITUTION)) {
-    found.push(...parseCommandAt(match[1] ?? match[2] ?? match[3] ?? "", depth + 1).parts);
+/** The texts a command runs inside `$( )`, backticks and process substitution, which the outer words don't show. */
+function substitutions(text: string): string[] {
+  const found: string[] = [];
+  for (let i = 0; i < text.length; i += 1) {
+    if ((text[i] === "$" || text[i] === "<" || text[i] === ">") && text[i + 1] === "(")
+      found.push(balanced(text, i + 1));
+    else if (text[i] === "`") {
+      const end = text.indexOf("`", i + 1);
+      found.push(text.slice(i + 1, end < 0 ? text.length : end));
+      if (end < 0) break;
+      i = end;
+    }
   }
   return found;
 }
 
-/** The text a `bash -c` style part runs, when it is one. */
+/** The script a `bash -c` style part runs, when it is one: a shell whose options include `-c`. */
 function shellScript(words: readonly string[]): string | undefined {
-  const [program, flag, script] = words;
-  const isShell = program !== undefined && SHELLS.has(program.split("/").at(-1) as string);
-  return isShell && flag !== undefined && /^-[a-z]*c[a-z]*$/.test(flag) ? script : undefined;
+  const [program, ...rest] = strippedWords(words);
+  if (program === undefined || !SHELLS.has(program.split("/").at(-1) as string)) return undefined;
+  const flag = rest.findIndex((word) => /^-[a-z]*c[a-z]*$/.test(word));
+  return flag < 0 ? undefined : rest.slice(flag + 1).find((word) => !word.startsWith("-"));
+}
+
+/** Every simple command in `parts`, and the commands inside the `-c` script of any of them. */
+function withScripts(parts: string[][], depth: number): string[][] {
+  const found = [...parts];
+  for (const words of parts) {
+    const script = depth < MAX_DEPTH ? shellScript(words) : undefined;
+    if (script !== undefined) found.push(...parseCommandAt(script, depth + 1).parts);
+  }
+  return found;
 }
 
 function parseCommandAt(text: string, depth: number): ParsedCommand {
-  const parts = splitWords(text);
-  const opaque = new RegExp(SUBSTITUTION.source).test(text);
-  const inner = innerParts(text, depth);
-  for (const words of [...parts]) {
-    const script = shellScript(words);
-    if (script !== undefined && depth < MAX_DEPTH) inner.push(...parseCommandAt(script, depth + 1).parts);
-  }
-  return { parts: [...parts, ...inner], opaque };
+  const inner = depth < MAX_DEPTH ? substitutions(text) : [];
+  const parts = [...splitWords(text), ...inner.flatMap((command) => parseCommandAt(command, depth + 1).parts)];
+  return { parts: withScripts(parts, depth), opaque: substitutions(text).length > 0 || /\$'[^']*\\/.test(text) };
 }
 
 /** The commands an input carries, or `undefined` when it has no command field. A list is one command's words. */
@@ -165,20 +212,34 @@ export function commandOf(input: unknown): ParsedCommand | undefined {
     const value = record[key];
     if (typeof value === "string") return parseCommandAt(value, 0);
     if (Array.isArray(value) && value.every((word) => typeof word === "string")) {
-      return { parts: value.length === 0 ? [] : [value as string[]], opaque: false };
+      return { parts: withScripts(value.length === 0 ? [] : [value as string[]], 0), opaque: false };
     }
   }
   return undefined;
 }
 
-/** A command's words without leading `NAME=value` words and wrappers such as `sudo`, for a deny or ask rule. */
+/** The index after a wrapper's options, skipping the value of each option that takes one. */
+function skipOptions(words: readonly string[], from: number, withValue: readonly string[]): number {
+  let at = from;
+  while (at < words.length && (words[at] as string).startsWith("-")) {
+    if ((words[at] as string) === "--") return at + 1;
+    at += withValue.includes(words[at] as string) ? 2 : 1;
+  }
+  return at;
+}
+
+/**
+ * A command's words without leading `NAME=value` words, group and keyword leaders such as `{` and `!`, and wrappers
+ * such as `sudo -u root` or `env -i`, for a deny or ask rule.
+ */
 export function strippedWords(words: readonly string[]): string[] {
   let at = 0;
-  while (
-    at < words.length &&
-    (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[at] as string) || WRAPPERS.has(words[at] as string))
-  ) {
-    at += 1;
+  while (at < words.length) {
+    const word = words[at] as string;
+    const options = WRAPPERS.get(word);
+    if (options !== undefined) at = skipOptions(words, at + 1, options);
+    else if (LEADERS.has(word) || /^[A-Za-z_][A-Za-z0-9_]*=/.test(word)) at += 1;
+    else break;
   }
   return words.slice(at);
 }

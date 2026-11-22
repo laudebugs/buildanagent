@@ -1,6 +1,7 @@
 /** The types of `@buildanagent/harness/permissions`. */
 import type { PermissionDecisionEntry, PermissionMode, SessionEntry, ShadowCallEntry } from "@buildanagent/protocol";
-import type { Interceptors, ToolCallEvent } from "@buildanagent/sdk";
+import type { Interceptors, ToolCallEvent, ToolDefinition } from "@buildanagent/sdk";
+import type { RegisteredTool } from "../tools/types.js";
 
 export type { PermissionMode };
 
@@ -101,4 +102,11 @@ export interface PermissionPipeline {
    * gate denies a call when `context` or `decide()` throws. An `ask` carries the config's `policyVersion`.
    */
   gate(context: (event: ToolCallEvent) => PolicyInput | Promise<PolicyInput>): Pick<Interceptors, "beforeToolCall">;
+  /**
+   * A `ToolWrapper` for `registry.definitions()`. In `shadow` mode it replaces each tool's `execute` with one that
+   * writes a `shadow_call` entry to `session` and returns a fixed result, so the tool never runs. In every other mode
+   * it returns the tool as registered. A pipeline in `shadow` mode refuses every call until this has been called, so a
+   * host can't shadow by mode alone and run the tools for real.
+   */
+  shadowWrapper(session: PolicySession): (tool: RegisteredTool) => ToolDefinition<unknown, unknown, unknown>;
 }

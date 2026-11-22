@@ -35,13 +35,14 @@ export function isUnconditional(rule: Rule): boolean {
   return rule.paths === undefined && rule.commandPrefix === undefined;
 }
 
-const pathHits = (rule: Rule, path: string): boolean =>
-  (rule.paths ?? []).some((glob) => globToRegExp(glob).test(path));
+// A deny or ask rule matches a relative glob below any directory, and an allow rule only from the workspace root.
+const pathHits = (rule: Rule, path: string, anywhere: boolean): boolean =>
+  (rule.paths ?? []).some((glob) => globToRegExp(glob, anywhere).test(path));
 
 /** A deny or ask rule matches when the tool matches and any path and any command part it names is in the call. */
 export function restricts(rule: Rule, target: Target): boolean {
   if (!toolMatches(rule.tool, target.names)) return false;
-  if (rule.paths !== undefined && !target.paths.some((path) => pathHits(rule, path))) return false;
+  if (rule.paths !== undefined && !target.paths.some((path) => pathHits(rule, path, true))) return false;
   const prefix = rule.commandPrefix;
   if (prefix === undefined) return true;
   return (target.command?.parts ?? []).some(
@@ -52,7 +53,10 @@ export function restricts(rule: Rule, target: Target): boolean {
 /** Whether `rule` could allow this part of a call: its tool, its paths (all of the call's) and its command prefix. */
 function permitsPart(rule: Rule, target: Target, words: readonly string[] | undefined): boolean {
   if (!toolMatches(rule.tool, target.names)) return false;
-  if (rule.paths !== undefined && !(target.paths.length > 0 && target.paths.every((path) => pathHits(rule, path)))) {
+  if (
+    rule.paths !== undefined &&
+    !(target.paths.length > 0 && target.paths.every((path) => pathHits(rule, path, false)))
+  ) {
     return false;
   }
   if (rule.commandPrefix === undefined) return true;

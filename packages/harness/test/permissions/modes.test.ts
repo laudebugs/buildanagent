@@ -1,15 +1,18 @@
 // The five modes, and shadow mode's wrapper that records a call instead of running it.
 import assert from "node:assert/strict";
 import { createModel } from "@buildanagent/gateway";
-import { createPermissionPipeline, type PermissionMode, shadowWrapper } from "@buildanagent/harness/permissions";
+import { createPermissionPipeline, type PermissionMode } from "@buildanagent/harness/permissions";
 import { createToolRegistry } from "@buildanagent/harness/tools";
 import { run } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
 import { base, call, input, recorder, registryOf, tool } from "./helpers.js";
 
-const decide = (mode: PermissionMode, name: string, extra = {}) =>
-  createPermissionPipeline({ ...base, interactive: false, mode, ...extra }, registryOf()).decide(call(name), input());
+const decide = (mode: PermissionMode, name: string, extra = {}) => {
+  const pipeline = createPermissionPipeline({ ...base, interactive: false, mode, ...extra }, registryOf());
+  pipeline.shadowWrapper(recorder());
+  return pipeline.decide(call(name), input());
+};
 
 test("default mode adds no rule of its own, so only rules and the no-match default decide", async () => {
   assert.equal((await decide("default", "write")).decision, "deny");
@@ -70,7 +73,7 @@ async function shadowRun(mode: PermissionMode) {
     model: createModel({ adapter, id: "scripted-model", retries: 0 }),
     system: "You use tools.",
     input: "Go.",
-    tools: registry.definitions(shadowWrapper(session, mode)),
+    tools: registry.definitions(pipeline.shadowWrapper(session)),
     interceptors: pipeline.gate(() => input(session)),
   }).result;
   return { ran, session, result };
@@ -95,5 +98,26 @@ test("outside shadow mode the wrapper leaves the tool as registered", async () =
   assert.deepEqual(
     session.entries.map((entry) => entry.type),
     ["permission_decision"],
+  );
+});
+
+test("a pipeline in shadow mode refuses every call until its shadowWrapper() has been taken", async () => {
+  const pipeline = createPermissionPipeline({ ...base, mode: "shadow" }, registryOf());
+  const refused = await pipeline.decide(call("bash"), input());
+  assert.deepEqual([refused.decision, refused.rule], ["deny", "shadow_unwrapped"]);
+  pipeline.shadowWrapper(recorder());
+  assert.equal((await pipeline.decide(call("bash"), input())).decision, "allow");
+});
+
+test("an ask rule or a hook's ask can't widen read_only, because the mode's denial comes first", async () => {
+  const hook = async () => ({ decision: "ask" as const, reason: "?" });
+  for (const extra of [{ ask: [{ tool: "write" }] }, { hooks: [hook] }]) {
+    const decision = await decide("read_only", "write", extra);
+    assert.deepEqual([decision.decision, decision.rule], ["deny", "mode:read_only"]);
+  }
+  assert.equal(
+    (await decide("read_only", "read", { ask: [{ tool: "read" }] })).decision,
+    "ask",
+    "an allowed tool can still ask",
   );
 });

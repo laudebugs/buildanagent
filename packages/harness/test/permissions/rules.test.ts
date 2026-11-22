@@ -57,10 +57,11 @@ test("a path is normalised before matching, so ./ and .. do not slip past a rule
     assert.equal(await decisionFor(rules, "write", { path }), "deny", path);
   }
   assert.equal(
-    await decisionFor(rules, "write", { path: "../../.github/ci.yml" }),
-    "allow",
-    "a path that leaves the tree is another path",
+    await decisionFor(rules, "write", { path: "/repo/.github/ci.yml" }),
+    "deny",
+    "a relative glob matches below any directory",
   );
+  assert.equal(await decisionFor(rules, "write", { path: "../repo/.github/ci.yml" }), "deny");
 });
 
 test("an allow rule with paths needs every path of the call inside its globs", async () => {
@@ -192,4 +193,48 @@ test("a rule's reason reaches the decision", async () => {
     registryOf(),
   );
   assert.equal((await pipeline.decide(call("bash"), input())).reason, "no shell here");
+});
+
+test("a deny rule sees a command through wrapper options, shells with options, word lists and groups", async () => {
+  const deny = [{ tool: "bash", commandPrefix: ["rm"] }];
+  const allow = [{ tool: "bash" }];
+  const commands: unknown[] = [
+    "sudo -u root rm -rf /",
+    "env -i rm x",
+    "nice -n 10 rm x",
+    "time -p rm x",
+    "sudo bash -c 'rm -rf /'",
+    "env bash -c 'rm x'",
+    "bash -e -c 'rm x'",
+    "bash --norc -c 'rm x'",
+    ["bash", "-c", "rm -rf /"],
+    ["sudo", "rm", "x"],
+    "(rm -rf /)",
+    "{ rm -rf /; }",
+    "! rm x",
+    "if true; then rm x; fi",
+    "$'rm' -rf /",
+  ];
+  for (const command of commands) {
+    assert.equal(await decisionFor({ deny, allow }, "bash", { command }), "deny", JSON.stringify(command));
+  }
+});
+
+test("a substitution nested inside another still shows its commands", async () => {
+  const deny = [{ tool: "bash", commandPrefix: ["rm"] }];
+  const allow = [{ tool: "bash" }];
+  for (const command of [
+    "echo $(rm -rf / $(true))",
+    "echo $(echo $(rm x))",
+    "echo `echo $(rm x)`",
+    "echo $(ls) $(rm x)",
+  ]) {
+    assert.equal(await decisionFor({ deny, allow }, "bash", { command }), "deny", command);
+  }
+});
+
+test("an ANSI-C quoted word with an escape is opaque, so an allow rule never covers it", async () => {
+  const allow = [{ tool: "bash", commandPrefix: ["echo"] }];
+  assert.equal(await decisionFor({ allow }, "bash", { command: "echo $'a\\x41'" }), "deny");
+  assert.equal(await decisionFor({ allow }, "bash", { command: "echo $'plain'" }), "allow");
 });

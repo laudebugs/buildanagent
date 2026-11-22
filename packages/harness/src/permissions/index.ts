@@ -6,7 +6,6 @@
 export { defaultAskRules } from "./default-rules.js";
 export { PermissionConfigError } from "./errors.js";
 export { createPermissionPipeline } from "./pipeline.js";
-export { shadowWrapper } from "./shadow.js";
 export type {
   Decision,
   HookDecision,

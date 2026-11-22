@@ -84,21 +84,25 @@ The harness now decides every tool call in one ordered pipeline, in `packages/ha
 
 **Public API (`@buildanagent/harness/permissions`).**
 - `createPermissionPipeline(config, registry)` returns a `PermissionPipeline` with `decide(call, input)` and `gate(context)`.
-- `defaultAskRules`, `shadowWrapper(session, mode)` and `PermissionConfigError`, a `HarnessError` with the new code `invalid_permission_config`.
+- `defaultAskRules` and `PermissionConfigError`, and `pipeline.shadowWrapper(session)`, a `HarnessError` with the new code `invalid_permission_config`.
 - Types: `PermissionConfig`, `PermissionMode`, `Rule`, `ToolCall`, `PolicyInput`, `PolicyContext`, `PermissionHook`, `HookDecision`, `Decision`, `PolicySession` and `RecordedEntry`.
 
 **Behavior.**
 - The order is hooks, deny rules, ask rules, the mode, allow rules, the host callback, then no match. A hook's deny and a deny rule end the decision in every mode. A hook's ask is held until the deny rules have run.
 - `permission_decision` is written on every `decide()`, with `rule` such as `deny[0]`, `mode:bypass`, `hook[1]` or `no_match`.
 - It fails closed: a hook or callback that throws or returns nonsense, an input with no canonical form and an entry that can't be written each deny the call.
-- Rules read `path`-like fields and the `command` field. A command is split on chain operators and `bash -c` scripts, and a command with a substitution is never allowed by a rule.
+- Rules read `path`-like fields and the `command` field. A command is split on chain operators, subshells and groups, and its substitutions and `-c` scripts are read to a depth of three. A command with a substitution or an escaped `$'...'` word is never allowed by a rule.
+- A deny or ask rule's relative path glob matches below any directory, and an allow rule's matches from the workspace root only.
+- `read_only` denies before any ask, so an approval can't widen it.
+- A failure inside the pipeline, `PermissionConfigError` included, becomes a logged deny, so every `decide()` writes its entry.
 
 **Decisions.**
 - **`gate(context)` takes a function.** The sketch's `gate()` had no way to reach the session, host context or entries that a hook receives, so the host passes one function that gives them per call.
 - **`decide(call, input)` takes `PolicyInput`, not `PolicyContext`.** The pipeline adds `mode` and `policyVersion` itself, so a caller can't hand a hook a mode the pipeline isn't in.
 - **The session is a small interface, `PolicySession`, with `append()`.** N3's store doesn't exist yet. Its `Session` will satisfy the interface, and the store fills in each entry's id, sequence, time and origin.
 - **The mode meanings are ours.** The plan names five modes and doesn't define them. `accept_edits` and `read_only` read two new options, `editTools` and `readOnlyTools`, because the registry has no read-only or edit flag. `read_only` denies other tools even when an allow rule matches. `bypass` and `shadow` still honour deny and ask rules, and shadow skips asks because nothing runs.
-- **`PermissionConfigError` extends `HarnessError`,** following the one-error-class-per-package rule. A tool registered after construction is checked at decide time and refused.
+- **`PermissionConfigError` extends `HarnessError`,** following the one-error-class-per-package rule. A tool registered after construction is checked at decide time and refused and logged.
+- **The pipeline owns the shadow wrapper.** A wrapper that takes its mode separately could differ from the pipeline's, so the pipeline refuses calls in `shadow` mode until its own `shadowWrapper()` has been taken. It can't tell whether the host then used it.
 - **`defaultAskRules` is path-based,** so it asks for any change to a test, hook, CI or rules file. Telling a deletion from an edit is the product's hook.
 
 **Left out.** Pauses and resolutions (N13), sticky and grouped approvals (N14), and a path rule for a bash command that edits a file.
