@@ -814,7 +814,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | --- | --- | --- | --- |
 | [N41](../todos/done/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
 | [N42](../todos/done/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
-| [N43](../todos/ongoing/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
+| [N43](../todos/done/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
 | [N44](../todos/ready/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight portable seams (`EffectStore` is the eighth, ADR 0043) | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
