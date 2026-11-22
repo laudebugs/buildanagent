@@ -301,7 +301,7 @@ test("the contents page holds the resume link hidden, with no address, inside a 
   assert.match(link, /data-resume-link/);
   assert.match(link, /\shidden(\s|>|=)/, "the link stays hidden until the script finds a place");
   assert.doesNotMatch(link, /\shref=/, "a hidden link has no address until the script sets one");
-  assert.match(slot, /<span class="resume__action label">Resume reading<\/span>/);
+  assert.match(slot, /<span class="resume__action label">Resume reading <span data-resume-chapter><\/span><\/span>/);
   assert.match(slot, /<span class="resume__where" data-resume-where><\/span>/);
   assert.ok(html.indexOf("data-resume") < html.indexOf('class="contents"'), "the link sits above the contents");
   const css = files(".css")

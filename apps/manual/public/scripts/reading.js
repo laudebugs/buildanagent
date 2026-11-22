@@ -178,17 +178,20 @@ function trackChapter(win, storage, article, slug) {
 
 function showResume(doc, storage, slot) {
   const link = slot.querySelector("[data-resume-link]");
+  const chapter = slot.querySelector("[data-resume-chapter]");
   const where = slot.querySelector("[data-resume-where]");
-  if (!link || !where) return;
+  if (!link || !chapter || !where) return;
   // The chapter's number and title come from the Contents list itself, so a removed chapter shows no link.
   const entry = (slug) => doc.querySelector(`.contents a[href="/${slug}/"]`);
   const target = resumeTarget(readPlaces(storage), (slug) => entry(slug) !== null);
   if (!target) return;
   const anchor = entry(target.slug);
-  const number = anchor?.closest(".contents__chapter")?.querySelector(".contents__number")?.textContent?.trim();
+  const number = Number(anchor?.closest(".contents__chapter")?.querySelector(".contents__number")?.textContent);
   const title = anchor?.textContent?.trim() ?? "";
-  const chapter = number ? `Chapter ${Number(number)}, ${title}` : title;
-  where.textContent = target.text ? `${chapter}: ${target.text}` : chapter;
+  // A chapter title is too long to sit beside the heading on one line, so the number names the chapter and the
+  // heading the reader reached fills the second line.
+  chapter.textContent = Number.isInteger(number) && number > 0 ? `Chapter ${number}` : title;
+  where.textContent = target.text || title;
   link.href = resumeHref(target.slug, target.id);
   link.hidden = false;
 }

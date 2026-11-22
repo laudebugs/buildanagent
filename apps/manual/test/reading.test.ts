@@ -124,7 +124,7 @@ const CHAPTER = `
 const CONTENTS = `
   <p class="resume" data-resume>
     <a class="resume__link" data-resume-link hidden>
-      <span class="resume__action label">Resume reading</span><span class="visually-hidden">: </span>
+      <span class="resume__action label">Resume reading <span data-resume-chapter></span></span><span class="visually-hidden">: </span>
       <span class="resume__where" data-resume-where></span>
     </a>
   </p>
@@ -252,10 +252,20 @@ test("the Contents page shows one link to the most recent chapter's heading, nam
   assert.equal(link?.getAttribute("href"), "/tools/#a-subsection");
   assert.equal(
     link?.textContent?.replace(/\s+/g, " ").trim(),
-    "Resume reading: Chapter 3, Tools: A subsection",
+    "Resume reading Chapter 3: A subsection",
     "a removed chapter is skipped, and the name says where the link goes",
   );
   assert.deepEqual(requests, []);
+});
+
+test("a place stored with no heading text names the chapter by its title", () => {
+  const win = page("https://manual.buildanagent.fyi/", CONTENTS);
+  win.localStorage.setItem(KEY, stored({ "call-workflow-loop": { id: "a", text: "", at: 1 } }));
+  start(win as unknown as globalThis.Window);
+  assert.equal(
+    resumeLink(win)?.textContent?.replace(/\s+/g, " ").trim(),
+    "Resume reading Chapter 1: Use the least autonomy",
+  );
 });
 
 test("the Contents page keeps the link hidden with no place stored, with a damaged value and with storage blocked", () => {

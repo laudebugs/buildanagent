@@ -19,7 +19,7 @@ const parts = contentsParts(book);
         The paragraph keeps its height while the link is hidden, so the contents never move when it appears. */}
     <p class="resume" data-resume>
       <a class="resume__link" data-resume-link hidden>
-        <span class="resume__action label">Resume reading</span><span class="visually-hidden">: </span>
+        <span class="resume__action label">Resume reading <span data-resume-chapter></span></span><span class="visually-hidden">: </span>
         <span class="resume__where" data-resume-where></span>
       </a>
     </p>
