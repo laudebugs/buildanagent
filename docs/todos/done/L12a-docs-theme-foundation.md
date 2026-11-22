@@ -50,8 +50,8 @@ Make `docs.buildanagent.fyi` look like `manual.buildanagent.fyi` without copying
 - [x] No hex value appears in `starlight.css` or any other docs stylesheet (a test checks it).
 - [x] The contrast test passes for every named pair in light and dark.
 - [x] The docs font files are byte-identical to the book's (a test checks it).
-- [ ] The book's tests and build still pass.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the docs build is no more than a few seconds slower than its 19 s baseline.
+- [x] The book's tests and build still pass. (`pnpm --filter @buildanagent/manual test`: 496 passed; the build was not rerun.)
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the docs build is no more than a few seconds slower than its 19 s baseline.
 
 ## Tests
 
@@ -76,7 +76,7 @@ Starlight's Expressive Code themes and `--sl-*` variables may change in a minor 
 
 ## Outcome
 
-**What shipped.** `apps/manual` exports `./design/tokens`, `./design/contrast`, `./design/woff2`, `./figures/svgkit` and `./styles/figures.css`. The `fig-*` rules moved from `components.css` to `figures.css` so the book's `figureRules()` and the docs can read them without the book's page styles, and `tokensCss()` takes a header comment and a font folder. `apps/docs` generates `src/styles/tokens.css` with that function, copies the book's six WOFF2 subsets and their licence files into `public/fonts/`, maps the tokens onto Starlight 0.42.10's `--sl-*` variables in `src/styles/starlight.css`, and builds two Expressive Code themes from the panel colours. A `Head` override preloads the two roman faces. `pairs.ts` lists 29 colour pairs that Starlight's roles create, and four test files (`tokens`, `fonts`, `contrast`, `styles`) guard the result. `pnpm --filter @buildanagent/docs test` passes with 141 tests. The README's theme section says where each piece lives, what the mapping depends on and how to upgrade Starlight.
+**What shipped.** `apps/manual` exports `./design/tokens`, `./design/contrast`, `./design/woff2`, `./figures/svgkit` and `./styles/figures.css`. The `fig-*` rules moved from `components.css` to `figures.css` so the book's `figureRules()` and the docs can read them without the book's page styles, and `tokensCss()` takes a header comment and a font folder. `apps/docs` generates `src/styles/tokens.css` with that function, copies the book's six WOFF2 subsets and their licence files into `public/fonts/`, maps the tokens onto Starlight 0.42.10's `--sl-*` variables in `src/styles/starlight.css`, and builds two Expressive Code themes from the panel colours. A `Head` override preloads the two roman faces. `pairs.ts` lists 47 colour pairs that Starlight's roles, linked inline code and the code markers create, and four test files (`tokens`, `fonts`, `contrast`, `styles`) guard the result. The generated `tokens.css` ends with an `@media print` block that sets the light and light-panel colours, and a print rule switches code to Expressive Code's light syntax colours, so printing in dark mode gives dark text on a light page. Marked, inserted and deleted code take measured panel colours, because zero contrast correction also turned off Expressive Code's own marker correction. `pnpm --filter @buildanagent/docs test` passes with 147 tests. The README's theme section says where each piece lives, what the mapping depends on and how to upgrade Starlight.
 
 **Decisions and rejected alternatives.**
 
@@ -85,4 +85,4 @@ Starlight's Expressive Code themes and `--sl-*` variables may change in a minor 
 - `minSyntaxHighlightingColorContrast` is 0. Rejected: keeping Expressive Code's default of 5.5, which would shift measured panel colours to unmeasured ones.
 - Light and dark follow the system, as the book does, and the body font is Literata (the manager's defaults of 2026-11-22). Rejected: a docs-only palette.
 
-**Not verified.** The light and dark screenshots of the built site and the build time against the 19 s baseline are the builder's own measurements, which the documentation pass did not repeat. Starlight's search dialog, a file tree and the print stylesheet were not looked at in a browser. The book's tests and build were not rerun in the documentation pass.
+**Not verified.** The light and dark screenshots of the built site and the build time against the 19 s baseline are the builder's own measurements, which the documentation pass did not repeat. The builder checked the print stylesheet in Chromium with print media and a dark scheme and saw dark text on a light page; the documentation pass opened no browser. Starlight's search dialog and a file tree were not looked at in a browser. The book's build was not rerun in the documentation pass.
