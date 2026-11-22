@@ -63,8 +63,8 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <rect x="4" y="198" width="112" height="50" rx="4" class="fig-paper fig-paper--accent"/>
 <text x="60" y="227.2" text-anchor="middle" class="fig-text">4 mid-turn</text>
 <rect x="122" y="198" width="250" height="50" rx="4" class="fig-paper"/>
-<text x="247" y="219.1" text-anchor="middle" class="fig-text">the same, when one step</text>
-<text x="247" y="235.3" text-anchor="middle" class="fig-text">reaches 90% of the window</text>
+<text x="247" y="219.1" text-anchor="middle" class="fig-text">the same, when one step reaches</text>
+<text x="247" y="235.3" text-anchor="middle" class="fig-text">90% of a window under 128K</text>
 <rect x="378" y="198" width="138" height="50" rx="4" class="fig-paper fig-paper--muted"/>
 <text x="447" y="219.1" text-anchor="middle" class="fig-text">one compaction</text>
 <text x="447" y="235.3" text-anchor="middle" class="fig-text">entry</text>

@@ -21,7 +21,7 @@ const LAYERS = [
   },
   {
     name: ["4 mid-turn"],
-    does: ["the same, when one step", "reaches 90% of the window"],
+    does: ["the same, when one step reaches", "90% of a window under 128K"],
     log: ["one compaction", "entry"],
   },
   {
