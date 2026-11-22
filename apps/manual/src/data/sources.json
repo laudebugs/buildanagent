@@ -546,5 +546,54 @@
     "asOf": "November 2026",
     "version": "v5",
     "verifiedIn": "apps/manual/fact-checks/testing-offline-and-a-first-agent.md"
+  },
+  {
+    "id": "anthropic-advanced-tool-use",
+    "title": "Introducing advanced tool use on the Claude Developer Platform",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/advanced-tool-use",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "pi-mcp-servers",
+    "title": "MCP Servers",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/mcp.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "pi-sdk-docs",
+    "title": "Pi SDK",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/sdk.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "buildanagent-harness-readme",
+    "title": "@buildanagent/harness README",
+    "publisher": "buildanagent",
+    "url": "https://github.com/laudebugs/buildanagent/blob/2174e4c2e80fff77540da496110a5ec36330273c/packages/harness/README.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "2174e4c",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "santra-acam",
+    "title": "ACaM: Automated Capability Modeling for Agentic AI Security",
+    "publisher": "Monika Santra et al., Penn State and IBM Research (arXiv:2611.23507)",
+    "url": "https://arxiv.org/abs/2611.23507",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
   }
 ]
