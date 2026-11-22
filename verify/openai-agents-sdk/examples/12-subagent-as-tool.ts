@@ -3,7 +3,7 @@
 // receives only the subagent's summary, as the tool call's output. Each run's model responses report that run's own
 // tokens, and the orchestrator's run usage adds the subagent's tokens to its own. Because the nested run shares the
 // orchestrator's run context, the subagent's `state.usage` holds that shared running total rather than its own count.
-// The token counts are scripted to show the cost a subagent adds; no model measured them.
+// The token counts are scripted: they make the run's total 4× the orchestrator's own tokens, and no model measured them.
 // Docs: guides/tools.mdx "Agents as tools", guides/context.mdx, guides/results.mdx "Usage"
 import { Agent, type ModelResponse, tool, Usage } from "@openai/agents";
 import { assistantMessage, functionCall, modelResponse, ScriptedModel } from "@openai/agents/testing";
@@ -44,12 +44,14 @@ const researcher = new Agent({
   model: researchModel,
 });
 let subagentTokens = 0;
+let subagentResponses = 0;
 let sharedTotalAtReturn = 0;
 const researchTool = researcher.asTool({
   toolName: "research",
   toolDescription: "Research a question in the sources and return a one-sentence summary",
   customOutputExtractor: (run) => {
     subagentTokens = tokens(run.rawResponses); // book:note own-usage
+    subagentResponses = run.rawResponses.length;
     sharedTotalAtReturn = run.state.usage.totalTokens; // book:note shared-usage
     return String(run.finalOutput); // book:note summary
   },
@@ -71,8 +73,16 @@ const result = await runner.run(orchestrator, "Has tool-call logging become more
 // #endregion
 
 // The orchestrator's second request holds the summary as the tool's output, and nothing else from the subagent.
-const second = JSON.stringify(orchestratorModel.lastCall?.request.input);
-check(second.includes(SUMMARY), "the subagent's summary enters the orchestrator's transcript as a tool result");
+const input = orchestratorModel.lastCall?.request.input;
+const toolResult = Array.isArray(input)
+  ? input.find((item) => item.type === "function_call_result" && item.callId === "o1")
+  : undefined;
+const toolOutput = toolResult?.type === "function_call_result" ? toolResult.output : undefined;
+check(
+  (typeof toolOutput === "string" ? toolOutput : (toolOutput as { text?: string })?.text) === SUMMARY,
+  "the subagent's summary enters the orchestrator's transcript as the research call's result",
+);
+const second = JSON.stringify(input);
 check(
   !second.includes("read_source") && !Object.values(SOURCES).some((text) => second.includes(text)),
   "the subagent's tool calls and the sources it read never enter the orchestrator's transcript",
@@ -94,15 +104,18 @@ check(
 const orchestratorTokens = tokens(result.rawResponses);
 const runTokens = result.state.usage.totalTokens; // book:note run-usage
 console.log(`orchestrator ${orchestratorTokens}, subagent ${subagentTokens}, run ${runTokens} tokens`);
-console.log(`the subagent multiplies the orchestrator's tokens by ${runTokens / orchestratorTokens}`);
+console.log(`with these scripted counts, the run's total is ${runTokens / orchestratorTokens}x the orchestrator's own`);
 // #endregion
-check(orchestratorTokens === 800 && subagentTokens === 2400, "each run's responses report that run's own usage");
+check(
+  result.rawResponses.length === orchestratorModel.calls.length && subagentResponses === researchModel.calls.length,
+  "each run's rawResponses hold only that run's own model responses, so each reports its own usage",
+);
 check(
   runTokens === orchestratorTokens + subagentTokens,
   "the orchestrator's run usage counts the subagent's tokens too",
 );
 check(
-  sharedTotalAtReturn === 340 + subagentTokens,
+  sharedTotalAtReturn === result.rawResponses[0].usage.totalTokens + subagentTokens,
   "the subagent's state.usage is the shared running total: the orchestrator's first call plus the subagent's calls",
 );
 check(result.finalOutput === `The research found: ${SUMMARY}`, "the orchestrator answers from the summary");

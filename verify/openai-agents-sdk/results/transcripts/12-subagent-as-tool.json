@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 70,
+      "line": 72,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -37,7 +37,7 @@
     },
     {
       "kind": "response",
-      "line": 70,
+      "line": 72,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -60,7 +60,7 @@
     },
     {
       "kind": "request",
-      "line": 70,
+      "line": 72,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -89,7 +89,7 @@
     },
     {
       "kind": "response",
-      "line": 70,
+      "line": 72,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -112,7 +112,7 @@
     },
     {
       "kind": "request",
-      "line": 70,
+      "line": 72,
       "model": "model-2",
       "repeated": 3,
       "messages": [
@@ -134,7 +134,7 @@
     },
     {
       "kind": "response",
-      "line": 70,
+      "line": 72,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -157,7 +157,7 @@
     },
     {
       "kind": "request",
-      "line": 70,
+      "line": 72,
       "model": "model-2",
       "repeated": 5,
       "messages": [
@@ -179,7 +179,7 @@
     },
     {
       "kind": "response",
-      "line": 70,
+      "line": 72,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -198,7 +198,7 @@
     },
     {
       "kind": "request",
-      "line": 70,
+      "line": 72,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -220,7 +220,7 @@
     },
     {
       "kind": "response",
-      "line": 70,
+      "line": 72,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -239,49 +239,49 @@
     },
     {
       "kind": "check",
-      "line": 75,
-      "message": "the subagent's summary enters the orchestrator's transcript as a tool result",
+      "line": 81,
+      "message": "the subagent's summary enters the orchestrator's transcript as the research call's result",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 76,
+      "line": 86,
       "message": "the subagent's tool calls and the sources it read never enter the orchestrator's transcript",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 81,
+      "line": 91,
       "message": "the subagent read both sources in its own context",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 88,
+      "line": 98,
       "message": "both models are offered only the research and read_source function tools",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 99,
-      "message": "each run's responses report that run's own usage",
+      "line": 109,
+      "message": "each run's rawResponses hold only that run's own model responses, so each reports its own usage",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 100,
+      "line": 113,
       "message": "the orchestrator's run usage counts the subagent's tokens too",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 104,
+      "line": 117,
       "message": "the subagent's state.usage is the shared running total: the orchestrator's first call plus the subagent's calls",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 108,
+      "line": 121,
       "message": "the orchestrator answers from the summary",
       "pass": true
     }
