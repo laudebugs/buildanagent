@@ -7,6 +7,7 @@ import type { Model } from "@buildanagent/gateway";
 import type { ApprovalPolicy, PermissionMode, SandboxTier } from "@buildanagent/protocol";
 import type { ApprovalSigner, Interceptors, Observer } from "@buildanagent/sdk";
 import type { ContextPolicy } from "./context/types.js";
+import type { ExtensionLoadedRecord } from "./extensions/types.js";
 import type { PermissionPipeline } from "./permissions/types.js";
 import type { ToolRegistry, ToolWrapper } from "./tools/types.js";
 
@@ -42,6 +43,11 @@ export interface HarnessOptions<H = unknown> {
   readonly interceptors?: Interceptors;
   /** The context layers every turn runs through, from `createContextPolicy()`. Without one a turn sends its whole transcript. */
   readonly context?: ContextPolicy;
+  /**
+   * The extensions this harness runs, as `recordsOf()` or `loadProjectExtensions()` gives them. A turn writes an
+   * `extension_loaded` entry for each the session's log does not hold yet, so a session shows which code ran.
+   */
+  readonly extensionRecords?: readonly ExtensionLoadedRecord[];
   /** Observers that see every event of every turn, after the runner's own. */
   readonly observers?: readonly Observer[];
   /** Binds a tool to the turn's host context, such as a write cap. A tool can also read it as `ctx.app`. */
