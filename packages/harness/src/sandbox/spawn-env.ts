@@ -15,8 +15,10 @@ const NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 // A name that says it holds a credential, matched by each `_`-separated segment so `GIT_AUTHOR_NAME` and
 // `KEYBOARD_LAYOUT` pass and `GH_PAT` and `ANTHROPIC_API_KEY` don't. These reach a child only through `extra`, where the
 // caller writes the value in code, such as a dummy key for a proxy, and never by being copied from the parent.
-const CREDENTIAL_SEGMENT =
-  /^(.*KEY|TOKEN|SECRET|PASSWORD|PASSWD|PASS|PGPASS|PAT|CREDENTIALS?|AUTH|AUTHORIZATION|COOKIE|DSN)$/;
+// A word that ends a part catches a joined one such as `GITHUBTOKEN`; a short word must be the whole part, so `PATH` and
+// `PASSIVE` pass. `PASS` and `AUTH` refuse a name like `PASS_THROUGH`, which is the safe side: it passes as an `extra`.
+const CREDENTIAL_ENDING = /(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?)$/;
+const CREDENTIAL_WORD = /^(PASS|PGPASS|PAT|AUTH|AUTHORIZATION|COOKIE|DSN)$/;
 // Names that hold a credential without a word that says so: a connection string or a proxy URL can carry a password.
 const CREDENTIAL_NAMES = new Set([
   "DATABASE_URL",
@@ -36,11 +38,25 @@ const LOADER_NAMES = new Set([
   "DYLD_LIBRARY_PATH",
   "BASH_ENV",
   "ENV",
+  "NODE_PATH",
+  "NODE_EXTRA_CA_CERTS",
+  "PYTHONPATH",
+  "PYTHONSTARTUP",
+  "PERL5OPT",
+  "RUBYOPT",
+  "LD_AUDIT",
+  "GIT_SSH_COMMAND",
+  "GIT_ASKPASS",
+  "GIT_CONFIG_GLOBAL",
+  "GIT_CONFIG_COUNT",
 ]);
 
 function looksLikeCredential(name: string): boolean {
   const upper = name.toUpperCase();
-  return CREDENTIAL_NAMES.has(upper) || upper.split("_").some((segment) => CREDENTIAL_SEGMENT.test(segment));
+  return (
+    CREDENTIAL_NAMES.has(upper) ||
+    upper.split("_").some((part) => CREDENTIAL_ENDING.test(part) || CREDENTIAL_WORD.test(part))
+  );
 }
 
 // The parent's PATH without an entry that isn't absolute, because "." or an empty entry would run a program from

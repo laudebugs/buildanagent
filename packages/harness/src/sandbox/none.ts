@@ -28,6 +28,8 @@ const NOT_FOUND_EXIT_CODE = 127;
 // A shell reports a command that a signal killed as 128 plus the signal's number.
 const SIGNAL_EXIT_BASE = 128;
 const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
+// The longest delay a timer takes: a larger one fires at once.
+const MAX_TIMER_MS = 2 ** 31 - 1;
 
 type Modules = {
   readonly cp: typeof import("node:child_process");
@@ -49,6 +51,30 @@ function nodeModules(): Modules {
     os: process.getBuiltinModule("node:os"),
     path: process.getBuiltinModule("node:path"),
   };
+}
+
+/** The length to keep of cut output, backing up over a UTF-8 character that the cut split. */
+function whole(chunks: readonly Uint8Array[], size: number): number {
+  const last = chunks[chunks.length - 1];
+  if (last === undefined) return 0;
+  // Find the lead byte of the last character within the final three bytes, and drop it if its character is incomplete.
+  for (let back = 1; back <= Math.min(3, last.length); back += 1) {
+    const byte = last[last.length - back] as number;
+    if ((byte & 0xc0) === 0x80) continue;
+    const need = byte >= 0xf0 ? 4 : byte >= 0xe0 ? 3 : byte >= 0xc0 ? 2 : 1;
+    return need > back ? size - back : size;
+  }
+  return size;
+}
+
+function checkOptions(options: ExecOptions): void {
+  const { maxOutputBytes, timeoutMs } = options;
+  if (maxOutputBytes !== undefined && !(Number.isInteger(maxOutputBytes) && maxOutputBytes >= 0)) {
+    throw new HarnessError("invalid_sandbox_options", "maxOutputBytes must be a non-negative whole number");
+  }
+  if (timeoutMs !== undefined && !(Number.isFinite(timeoutMs) && timeoutMs > 0 && timeoutMs <= MAX_TIMER_MS)) {
+    throw new HarnessError("invalid_sandbox_options", `timeoutMs must be a number from 1 to ${MAX_TIMER_MS}`);
+  }
 }
 
 function checkCommand(command: readonly string[]): void {
@@ -84,7 +110,7 @@ function capture(stream: NodeJS.ReadableStream, limit: number) {
         all.set(chunk, at);
         at += chunk.length;
       }
-      return new TextDecoder().decode(all);
+      return new TextDecoder().decode(truncated ? all.subarray(0, whole(chunks, size)) : all);
     },
   };
 }
@@ -134,6 +160,7 @@ class NoneSandbox implements Sandbox {
   async exec(command: readonly string[], options: ExecOptions): Promise<ExecResult> {
     this.live();
     checkCommand(command);
+    checkOptions(options);
     options.signal.throwIfAborted();
     const cwd = await this.workingDirectory(options);
     // The sandbox or the signal may have changed while the folder was checked.
@@ -196,7 +223,14 @@ class NoneSandbox implements Sandbox {
         });
       });
       child.on("close", (code, signal) => {
-        done(() => resolve({ ...this.exit(code, signal), ...output() }));
+        // A failure while building the result must reject, not leave the promise pending.
+        done(() => {
+          try {
+            resolve({ ...this.exit(code, signal), ...output() });
+          } catch (error) {
+            reject(error);
+          }
+        });
       });
     });
   }
@@ -209,7 +243,15 @@ class NoneSandbox implements Sandbox {
 
   async readFile(path: string): Promise<Uint8Array> {
     this.live();
-    return new Uint8Array(await this.modules.fs.readFile(this.resolve(path)));
+    const target = this.resolve(path);
+    try {
+      return new Uint8Array(await this.modules.fs.readFile(target));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new HarnessError("sandbox_not_found", `no such file: ${target}`, { cause: error });
+      }
+      throw error;
+    }
   }
 
   async writeFile(path: string, data: Uint8Array): Promise<void> {

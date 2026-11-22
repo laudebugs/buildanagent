@@ -69,7 +69,7 @@ None beyond the plan's.
 
 ## Outcome
 
-`@buildanagent/harness` now has `./sandbox` and `./testing`: the sandbox types, `noneSandbox({ unsafe: true })`, `spawnEnv()`, a `HarnessError`, `fakeSandbox()` and a fourteen-case conformance suite (`runSandboxConformance()`, `sandboxConformanceCases()`). The README says what each tier stops.
+`@buildanagent/harness` now has `./sandbox` and `./testing`: the sandbox types, `noneSandbox({ unsafe: true })`, `spawnEnv()`, a `HarnessError`, `fakeSandbox()` and a sixteen-case conformance suite (`runSandboxConformance()`, `sandboxConformanceCases()`). The README says what each tier stops.
 
 - **`none` is a real backend that needs an acknowledgement.** Leaving out `unsafe: true` is a type error and a `HarnessError` (`unsafe_sandbox_not_acknowledged`). It warns at each provision, claims `stops: []`, runs processes with no shell, and reports exit 124 on a timeout and 127 for a command it can't find.
 - **`spawnEnv` refuses credential-looking names in `allow`.** A key reaches a child only as an explicit `extra`, so a key set in the parent never leaks by accident. The test sets `ANTHROPIC_API_KEY` in the parent and finds it absent in the child.

@@ -79,7 +79,7 @@ test("the fake passes every case, and none skips", async () => {
     report.skipped.map((skip) => skip.name),
     ["an abort and a timeout end the command's whole process tree, and exec settles"],
   );
-  assert.ok(report.passed.length >= 13, "the suite ran its cases");
+  assert.ok(report.passed.length >= 15, "the suite ran its cases");
 });
 
 test("none passes the cases that don't need enforcement and skips the rest with a reason", async () => {

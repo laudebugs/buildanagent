@@ -72,7 +72,7 @@ export interface ExecOptions {
 export interface Sandbox {
   /** Runs `command`, an executable and its arguments with no shell, and resolves with what it did. */
   exec(command: readonly string[], options: ExecOptions): Promise<ExecResult>;
-  /** Reads a file by path relative to the workspace root, or absolute. */
+  /** Reads a file by path relative to the workspace root, or absolute. A missing file rejects with `sandbox_not_found`. */
   readFile(path: string): Promise<Uint8Array>;
   /** Writes a file by path relative to the workspace root, or absolute, making its folders. */
   writeFile(path: string, data: Uint8Array): Promise<void>;

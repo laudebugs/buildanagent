@@ -9,6 +9,7 @@ export type HarnessErrorCode =
   | "sandbox_unavailable"
   | "sandbox_denied"
   | "sandbox_disposed"
+  | "sandbox_not_found"
   | "unsafe_sandbox_not_acknowledged"
   | "invalid_sandbox_options"
   | "invalid_spawn_env";

@@ -233,6 +233,17 @@ function workspaceCases(sandboxed: Sandboxed): readonly SandboxCase[] {
       }),
     },
     {
+      name: "reading a file that doesn't exist rejects with sandbox_not_found",
+      run: sandboxed(async (sandbox) => {
+        const code = await sandbox.readFile("no/such/file.txt").then(
+          () => "it resolved",
+          (error: unknown) => codeOf(error) ?? String(error),
+        );
+        check(code === "sandbox_not_found", `a missing file must reject with sandbox_not_found, not ${code}`);
+        return undefined;
+      }),
+    },
+    {
       name: "an already aborted signal rejects exec before the command runs",
       run: sandboxed(async (sandbox) => {
         const controller = new AbortController();
@@ -259,8 +270,29 @@ function workspaceCases(sandboxed: Sandboxed): readonly SandboxCase[] {
 }
 
 /** The case that checks `dispose()`. */
-function disposeCases(factory: SandboxFactory, options: SandboxConformanceOptions): readonly SandboxCase[] {
+function disposeCases(
+  factory: SandboxFactory,
+  options: SandboxConformanceOptions,
+  sandboxed: Sandboxed,
+): readonly SandboxCase[] {
   return [
+    {
+      name: "dispose ends a command that is still running, which rejects with sandbox_disposed",
+      run: sandboxed(async (sandbox) => {
+        const running = exec(sandbox, ["sleep", "30"]).then(
+          () => "it resolved",
+          (error: unknown) => codeOf(error) ?? String(error),
+        );
+        await sleep(100);
+        await sandbox.dispose();
+        const outcome = await Promise.race([running, sleep(SETTLE_MS).then(() => "it never settled")]);
+        check(
+          outcome === "sandbox_disposed",
+          `a command running at dispose must reject with sandbox_disposed, not ${outcome}`,
+        );
+        return undefined;
+      }),
+    },
     {
       name: "dispose ends the sandbox: a later call rejects, and a second dispose does nothing",
       async run() {
@@ -423,7 +455,7 @@ export function sandboxConformanceCases(
     ...honestyCases(factory),
     ...workspaceCases(sandboxed),
     ...processCases(sandboxed),
-    ...disposeCases(factory, options),
+    ...disposeCases(factory, options, sandboxed),
     ...policyCases(sandboxed),
   ];
 }

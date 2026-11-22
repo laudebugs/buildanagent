@@ -67,6 +67,8 @@ const within = (path: string, root: string): boolean => {
 
 class FakeSandbox implements Sandbox {
   private disposed = false;
+  // What ends each command still running, so `dispose()` can reject them as a real backend does.
+  private readonly running = new Set<() => void>();
   readonly store = new Map<string, Uint8Array>();
   readonly links = new Map<string, string>();
   private readonly root: string;
@@ -115,7 +117,7 @@ class FakeSandbox implements Sandbox {
     const denial = this.readDenial(target);
     if (denial) throw new SandboxDeniedError(denial);
     const data = this.store.get(target);
-    if (data === undefined) throw new HarnessError("invalid_sandbox_options", `no such file: ${target}`);
+    if (data === undefined) throw new HarnessError("sandbox_not_found", `no such file: ${target}`);
     return data.slice();
   }
 
@@ -200,12 +202,20 @@ class FakeSandbox implements Sandbox {
       const done = (result: ExecResult) => {
         clearTimeout(timer);
         options.signal.removeEventListener("abort", aborted);
+        this.running.delete(disposed);
         resolve(result);
       };
       const aborted = () => {
         clearTimeout(timer);
+        this.running.delete(disposed);
         reject(options.signal.reason);
       };
+      const disposed = () => {
+        clearTimeout(timer);
+        options.signal.removeEventListener("abort", aborted);
+        reject(new HarnessError("sandbox_disposed", "the sandbox was disposed"));
+      };
+      this.running.add(disposed);
       const stopAt = options.timeoutMs !== undefined && options.timeoutMs < ms ? options.timeoutMs : ms;
       const timer = setTimeout(() => {
         const timedOut = stopAt < ms;
@@ -217,6 +227,8 @@ class FakeSandbox implements Sandbox {
 
   async dispose(): Promise<void> {
     this.disposed = true;
+    for (const stop of [...this.running]) stop();
+    this.running.clear();
   }
 }
 

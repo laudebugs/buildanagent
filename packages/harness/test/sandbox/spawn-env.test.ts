@@ -96,6 +96,9 @@ test("a name that is reserved, looks like a credential or isn't a name is refuse
     "HTTPS_PROXY",
     "https_proxy",
     "AWS_SESSION_TOKEN",
+    "GITHUBTOKEN",
+    "APITOKEN",
+    "CLIENTSECRET",
   ];
   for (const name of credentials) assertInvalid(() => spawnEnv([name]), /looks like a credential/);
   assertInvalid(() => spawnEnv(["1BAD"]), /not a valid variable name/);
@@ -113,7 +116,8 @@ test("the credential check goes by whole parts of the name, so GIT_AUTHOR_NAME a
 });
 
 test("a name that makes a program load code is refused in allow, and passes as an explicit extra", () => {
-  for (const name of ["NODE_OPTIONS", "LD_PRELOAD", "LD_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES", "BASH_ENV"]) {
+  const loaders = ["NODE_OPTIONS", "LD_PRELOAD", "LD_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES", "BASH_ENV"];
+  for (const name of [...loaders, "PYTHONSTARTUP", "PYTHONPATH", "NODE_PATH", "RUBYOPT", "GIT_SSH_COMMAND"]) {
     assertInvalid(() => spawnEnv([name]), /changes what a program loads/);
   }
   assert.equal(env([], { NODE_OPTIONS: "--max-old-space-size=512" }).NODE_OPTIONS, "--max-old-space-size=512");

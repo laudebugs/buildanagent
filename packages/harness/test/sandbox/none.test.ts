@@ -3,8 +3,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
-import { NONE_SANDBOX_WARNING, noneSandbox, SandboxUnavailableError, spawnEnv } from "@buildanagent/harness/sandbox";
+import { NONE_SANDBOX_WARNING, noneSandbox, SandboxUnavailableError } from "@buildanagent/harness/sandbox";
 import { afterAll, test } from "vitest";
+import { testEnv } from "./home.js";
 
 const roots: string[] = [];
 const POLICY = { readRoots: [], writeRoots: [], network: { allow: [], deny: [] } };
@@ -63,7 +64,7 @@ test("exec runs a real program with exactly the environment given, in the worksp
   const root = workspace();
   mkdirSync(join(root, "sub"));
   const sandbox = await client.provision({ root }, POLICY);
-  const env = spawnEnv([], { MARKER: "present" });
+  const env = testEnv([], { MARKER: "present" });
   const signal = new AbortController().signal;
   const where = await sandbox.exec([process.execPath, "-p", "process.cwd()"], { cwd: "sub", env, signal });
   assert.deepEqual(where, { exitCode: 0, stdout: `${join(root, "sub")}\n`, stderr: "" });
@@ -111,7 +112,7 @@ async function waitDead(pid: number): Promise<void> {
 test("a timeout stops a command with 124, and an abort rejects with the signal's reason", async () => {
   const client = noneSandbox({ unsafe: true, warn: () => {} });
   const sandbox = await client.provision({ root: workspace() }, POLICY);
-  const env = spawnEnv([]);
+  const env = testEnv();
   const slow = await sandbox.exec(["sleep", "30"], { env, signal: new AbortController().signal, timeoutMs: 100 });
   assert.ok(!("denied" in slow) && slow.exitCode === 124 && /timed out/.test(slow.stderr));
   const controller = new AbortController();
@@ -123,7 +124,7 @@ test("a timeout stops a command with 124, and an abort rejects with the signal's
 test("a timeout settles and kills the whole tree, though a background process holds the pipes", async () => {
   const root = workspace();
   const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root }, POLICY);
-  const result = await sandbox.exec(TREE, { env: spawnEnv([]), signal: new AbortController().signal, timeoutMs: 500 });
+  const result = await sandbox.exec(TREE, { env: testEnv(), signal: new AbortController().signal, timeoutMs: 500 });
   assert.ok(!("denied" in result) && result.exitCode === 124);
   await waitDead(await pidOf(root));
 });
@@ -132,14 +133,14 @@ test("an abort kills the whole tree, and a dispose kills what is still running",
   const root = workspace();
   const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root }, POLICY);
   const controller = new AbortController();
-  const aborted = sandbox.exec(TREE, { env: spawnEnv([]), signal: controller.signal });
+  const aborted = sandbox.exec(TREE, { env: testEnv(), signal: controller.signal });
   const first = await pidOf(root);
   controller.abort(new Error("cancelled"));
   await assert.rejects(aborted, /cancelled/);
   await waitDead(first);
 
   rmSync(join(root, "pid"), { force: true });
-  const running = sandbox.exec(TREE, { env: spawnEnv([]), signal: new AbortController().signal });
+  const running = sandbox.exec(TREE, { env: testEnv(), signal: new AbortController().signal });
   const second = await pidOf(root);
   await sandbox.dispose();
   await assert.rejects(running, (error: unknown) => isHarnessError(error) && error.code === "sandbox_disposed");
@@ -149,7 +150,7 @@ test("an abort kills the whole tree, and a dispose kills what is still running",
 test("a command that a signal kills reports 128 plus the signal's number and names the signal", async () => {
   const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
   const result = await sandbox.exec([process.execPath, "-e", "process.kill(process.pid, 'SIGTERM')"], {
-    env: spawnEnv([]),
+    env: testEnv(),
     signal: new AbortController().signal,
   });
   assert.ok(!("denied" in result));
@@ -159,20 +160,58 @@ test("a command that a signal kills reports 128 plus the signal's number and nam
 test("output past the cap is dropped and marked truncated, and the command still finishes", async () => {
   const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
   const result = await sandbox.exec([process.execPath, "-e", "process.stdout.write('x'.repeat(100000))"], {
-    env: spawnEnv([]),
+    env: testEnv(),
     signal: new AbortController().signal,
     maxOutputBytes: 1000,
   });
   assert.ok(!("denied" in result));
   assert.deepEqual([result.exitCode, result.stdout.length, result.truncated], [0, 1000, true]);
-  const small = await sandbox.exec(["echo", "ok"], { env: spawnEnv([]), signal: new AbortController().signal });
+  const small = await sandbox.exec(["echo", "ok"], { env: testEnv(), signal: new AbortController().signal });
   assert.ok(!("denied" in small) && small.truncated === undefined);
+});
+
+test("a bad timeoutMs or maxOutputBytes is refused up front, not left to hang or fire at once", async () => {
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
+  const base = { env: testEnv(), signal: new AbortController().signal };
+  for (const bad of [
+    { maxOutputBytes: -1 },
+    { maxOutputBytes: 1.5 },
+    { timeoutMs: 0 },
+    { timeoutMs: 2 ** 31 },
+    { timeoutMs: Number.NaN },
+  ]) {
+    await assert.rejects(
+      sandbox.exec(["echo", "hi"], { ...base, ...bad }),
+      (error: unknown) => isHarnessError(error) && error.code === "invalid_sandbox_options",
+      JSON.stringify(bad),
+    );
+  }
+});
+
+test("cut output ends on a whole character, not a half of one", async () => {
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
+  // Each euro sign is three bytes, so a cap of 10 lands in the middle of the fourth.
+  const result = await sandbox.exec([process.execPath, "-e", "process.stdout.write('\u20ac'.repeat(10))"], {
+    env: testEnv(),
+    signal: new AbortController().signal,
+    maxOutputBytes: 10,
+  });
+  assert.ok(!("denied" in result));
+  assert.deepEqual([result.stdout, result.truncated], ["\u20ac\u20ac\u20ac", true]);
+});
+
+test("a file that doesn't exist rejects with sandbox_not_found", async () => {
+  const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
+  await assert.rejects(
+    sandbox.readFile("nothing/here.txt"),
+    (error: unknown) => isHarnessError(error) && error.code === "sandbox_not_found",
+  );
 });
 
 test("a working directory that doesn't exist is an error, not a command that can't be found", async () => {
   const sandbox = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: workspace() }, POLICY);
   await assert.rejects(
-    sandbox.exec(["echo", "hi"], { cwd: "missing", env: spawnEnv([]), signal: new AbortController().signal }),
+    sandbox.exec(["echo", "hi"], { cwd: "missing", env: testEnv(), signal: new AbortController().signal }),
     (error: unknown) =>
       isHarnessError(error) && error.code === "invalid_sandbox_options" && /missing/.test(error.message),
   );
