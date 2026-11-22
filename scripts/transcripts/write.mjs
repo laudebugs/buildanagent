@@ -1,8 +1,8 @@
 // Turns the raw events that record.mjs saved for one example into its committed transcript,
 // <harness>/results/transcripts/<example>.json, and checks a transcript's shape. A harness is a verify/<sdk> directory
 // or one of our own packages, such as packages/sdk. Each verify harness's scripts/run-examples.mjs, and
-// and the shared book-examples.ts that packages/*/test/book-examples.test.ts call, call transcriptRun() before an example runs and its write() after the
-// process exits. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed transcript
+// the shared book-examples.ts that our packages' tests call, call transcriptRun() before an example runs and its
+// write() after the process exits. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed transcript
 // differs from the one a run writes. The shapes themselves live in events.ts.
 //
 // Two runs on two machines must write the same bytes, so the file holds no absolute path, temporary directory or
