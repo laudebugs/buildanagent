@@ -286,7 +286,7 @@ packTest("every packed declaration file imports only its own dist/ files or othe
 });
 
 // The entries that fail to import under `--conditions=source`, because they reach pi-schema 1.5.2, whose `source`
-// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions` and `server` entries reach it through the SDK.
+// condition names a file its tarball lacks. The harness's `session`, `tools`, `permissions`, `server` and `extensions` entries reach it through the SDK.
 // Every other entry must import; an entry listed here that imports again fails the test, so the list is cut once
 // pi-schema ships a fix.
 const SOURCE_CONDITION_FAILURES = [
@@ -295,6 +295,7 @@ const SOURCE_CONDITION_FAILURES = [
   "@buildanagent/harness/tools",
   "@buildanagent/harness/permissions",
   "@buildanagent/harness/server",
+  "@buildanagent/harness/extensions",
 ];
 
 // The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the

@@ -1,2 +1,8 @@
-/** `@buildanagent/harness/extensions`: a stub that holds the entry's place until its component is built. */
-export {};
+/**
+ * `@buildanagent/harness/extensions`: in-process extensions. `composeExtensions()` joins their hooks by the SDK's rules,
+ * `registerExtensionTools()` registers their tools, and `recordsOf()` gives the `extension_loaded` records a harness
+ * writes to the log. Loading an extension from a project folder needs Node's file system, so it has its own entry,
+ * `@buildanagent/harness/extensions/node`.
+ */
+export { composeExtensions, memoryTrustStore, recordsOf, registerExtensionTools, sha256 } from "./compose.js";
+export type { Extension, ExtensionLoadedRecord, ExtensionTool, TrustStore } from "./types.js";

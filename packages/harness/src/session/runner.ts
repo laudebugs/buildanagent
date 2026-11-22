@@ -181,6 +181,13 @@ async function recordLoadout<H>(
     refKey(last.model) === refKey(model.ref) &&
     [...last.tools].sort().join() === [...names].sort().join();
   if (!same) await writer.write("harness", { type: "loadout", tools: names, model: model.ref });
+  for (const record of harness.extensionRecords ?? []) {
+    const known = started.some(
+      (entry) =>
+        entry.type === "extension_loaded" && entry.name === record.name && entry.contentHash === record.contentHash,
+    );
+    if (!known) await writer.write("harness", { type: "extension_loaded", ...record });
+  }
 }
 
 async function writeInput(
