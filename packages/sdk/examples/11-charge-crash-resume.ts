@@ -30,14 +30,16 @@ async function charge(order: number, callId: string, withStore = store): Promise
   const read = adapter.calls[1]?.context.messages.find((m) => m.role === "tool");
   return read?.content.map((block) => (block.type === "text" ? block.text : "")).join("") ?? "";
 }
+/** True for the applied outcome's text; the unknown outcome's text also says "took effect", so it is excluded. */
+const reportsApplied = (text: string) => text.includes("took effect") && !text.includes("not known");
 /** The effect key of a charge: with a business key it holds only the tenant and the order. */
 const keyOf = (order: number) => effectKey({ ...SCOPE, toolCallId: "any" }, chargeKey(order));
 
 try {
-  check((await charge(7, "call-1")).includes("took effect"), "a normal write reports applied");
+  check(reportsApplied(await charge(7, "call-1")), "a normal write reports applied");
   check(written() === 1, "the server wrote once");
   const repeat = await charge(7, "call-2");
-  check(repeat.includes("took effect") && writeRequests() === 1, "a repeat is answered from its record");
+  check(reportsApplied(repeat) && writeRequests() === 1, "a repeat is answered from its record");
   check((await charge(DECLINED_ORDER, "call-3")).includes("did not take effect"), "a declined write is not_applied");
   await charge(DECLINED_ORDER, "call-4");
   check(payments.posts.filter((p) => p.order === DECLINED_ORDER).length === 1, "a decline is not sent again");
@@ -53,7 +55,8 @@ try {
       return new Promise<boolean>(() => {});
     },
   };
-  void charge(ORDER, "call-5", dying);
+  // This run is abandoned on purpose: its settle() never returns, as in a killed process, so it never settles or throws.
+  void charge(ORDER, "call-5", dying).catch(() => {});
   await settleReached;
   check(written() === 2, "the server had already written for order 42"); // book:note written
   check((await stateOf(store, await keyOf(ORDER))) === "unknown", "the record says started, so the state is unknown");
@@ -64,7 +67,7 @@ try {
   // #region resume
   // The lease has lapsed. A fresh run, with a fresh call id, finds the record and asks the server before it writes.
   clock += HOUR_MS;
-  check((await charge(ORDER, "call-7")).includes("took effect"), "the resume reconciles to applied"); // book:note resume
+  check(reportsApplied(await charge(ORDER, "call-7")), "the resume reconciles to applied"); // book:note resume
   check(payments.posts.filter((p) => p.order === ORDER).length === 1, "the server received one write for order 42");
   check((await stateOf(store, await keyOf(ORDER))) === "applied", "the record is settled as applied");
   // #endregion

@@ -96,12 +96,14 @@ Added when the six listings gained a tab on our packages (T63). The tabs' code i
 | 58 | In our charge tool, `effect: { kind: "write" }` only marks the tool as one that changes the world; the SDK reads `tool.effect` for that and never calls `effect.businessKey`. The key that names the order is the `businessKey` that `chargeKey()` gives `guardedWrite()`, and the crash example uses the same `chargeKey()` to compute the key it looks up | Our tabs, § The tool saves its key | ✏️ | Corrects the first draft, whose `#key` note sat on `effect.businessKey`. `grep businessKey packages/sdk/src` finds only the `ToolEffect` type in `src/tools/types.ts`; `packages/agent-safety/src/guarded-write.ts` takes `options.businessKey` into `effectKey()`. Examples: `packages/sdk/examples/charge-tool.ts` and `11-charge-crash-resume.ts` |
 | 59 | The pending request in the approval example verifies: the run signs with an explicit `ephemeralSigner()`, and `verifyResolution()` accepts the request for the call's id, tool and input under that signer | Our tabs, § A plan of several writes | ✅ | `packages/sdk/examples/12-approval-gate.ts`, check "the request's signature verifies under the run's signer"; `verifyResolution()` in `packages/agent-safety/src/pending.ts` checks the signature first, then the call and the input hash |
 | 60 | The gate reads `amount` only for the `refund` tool, and `crash.test.ts`, not the agent-safety README, holds the SIGKILL claim; the SDK's `0.1.0-alpha.26` version comes from `packages/sdk/package.json`, not the README | Our tabs | ✅ | `packages/sdk/examples/12-approval-gate.ts`, the `needs-approval` region; the chapter's citations now point at the file that holds each claim (rows 45 and 57) |
+| 61 | Our `#write-tool` tab has no replay and the Vercel AI SDK tab keeps its own, because a replay needs a transcript recorded for the listing's own file and our charge tool sits in `charge-tool.ts`, which the example runner does not start | Our tabs, § The tool saves its key | ✅ | `scripts/transcripts/book-examples.ts` line 36 selects only files named `NN-name.ts`, so `charge-tool.ts` is never run or recorded; the Vercel tab's file `15-write-crash-idempotency.ts` is, and the chapter's `replay` flag sits on that listing only |
+| 62 | In the crash example the applied outcome's text and the unknown outcome's text both contain "took effect", so the example's checks for `applied` now exclude "not known" | Our tabs, § A crash between | ✅ | `packages/sdk/src/vendor/agent-safety/render.ts` lines 38 and 42: "The {op} call took effect." and "It is not known whether the {op} call took effect."; `reportsApplied()` in `packages/sdk/examples/11-charge-crash-resume.ts` |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 41 |
-| ✏️ corrected | 3 (rows 8, 38 and 46, correcting rows 6, the Amazon claim and the key's scope as first drafted) |
+| ✅ confirmed | 45 |
+| ✏️ corrected | 5 (rows 8, 38, 46, 57 and 58: the Amazon claim as first drafted, the retry key after `not_applied`, the key's scope, where `crash.test.ts` kills and what the example's stand-in does, and which `businessKey` names the order) |
 | ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 12 |
-| Total | 56 |
+| Total | 62 |

@@ -102,13 +102,13 @@
     },
     {
       "kind": "check",
-      "line": 37,
+      "line": 39,
       "message": "a normal write reports applied",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 40,
       "message": "the server wrote once",
       "pass": true
     },
@@ -208,7 +208,7 @@
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 42,
       "message": "a repeat is answered from its record",
       "pass": true
     },
@@ -309,7 +309,7 @@
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 43,
       "message": "a declined write is not_applied",
       "pass": true
     },
@@ -410,7 +410,7 @@
     },
     {
       "kind": "check",
-      "line": 43,
+      "line": 45,
       "message": "a decline is not sent again",
       "pass": true
     },
@@ -464,13 +464,13 @@
     },
     {
       "kind": "check",
-      "line": 58,
+      "line": 61,
       "message": "the server had already written for order 42",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 59,
+      "line": 62,
       "message": "the record says started, so the state is unknown",
       "pass": true
     },
@@ -571,13 +571,13 @@
     },
     {
       "kind": "check",
-      "line": 61,
+      "line": 64,
       "message": "while the lease is live a second run answers unknown",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 62,
+      "line": 65,
       "message": "and sends nothing",
       "pass": true
     },
@@ -677,19 +677,19 @@
     },
     {
       "kind": "check",
-      "line": 67,
+      "line": 70,
       "message": "the resume reconciles to applied",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 68,
+      "line": 71,
       "message": "the server received one write for order 42",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 69,
+      "line": 72,
       "message": "the record is settled as applied",
       "pass": true
     }

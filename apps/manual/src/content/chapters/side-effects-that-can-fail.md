@@ -39,6 +39,8 @@ Each of this chapter's six listings comes in two tabs. The first runs on our own
 
 [[lst:write-tool-ours]] and [[lst:write-tool]] are the charge tool from our example. Each builds the key from the order, checks what it has recorded, writes the intent and only then calls the server. The first saves the outcome last through `guardedWrite()`{checked=row-44}, which stores a record of the write before it runs and settles the record with the outcome after [@buildanagent-agent-safety-readme]. The second keeps a log file of its own.
 
+Only the Vercel AI SDK tab has a replay. Ours has none, because a replay needs a transcript recorded for the listing's own file, and our tool sits in an un-numbered file that the example runner does not start.
+
 ::::tabs
 :::listing[Our SDK]{#write-tool-ours file="packages/sdk/examples/charge-tool.ts" region="write-tool"}
 ::note[The key comes from the business fact, one charge for one order. `guardedWrite()` hashes it with the tenant into the effect key that `run` receives, so a regenerated turn with a fresh call id maps to the same key.]{#key}
