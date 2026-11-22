@@ -22,7 +22,6 @@ import {
   recording,
   reportedUsage,
 } from "../../../../scripts/transcripts/events.js";
-import type { ScriptedUsage } from "./check.js";
 
 /** The model id the examples' scripted() helper gives a model that names none, which names no real model. */
 export const SCRIPTED_MODEL_ID = "scripted-model";
@@ -72,6 +71,15 @@ function messagesOf(context: ModelContext): Message[] {
 }
 
 const nameOf = modelNames();
+
+/** The token counts a script reports, in Anthropic's classes: a class left out is not reported. */
+export interface ScriptedUsage {
+  uncachedInput?: number;
+  cacheRead?: number;
+  /** Tokens written to the 5-minute cache. */
+  cacheWrite?: number;
+  output?: number;
+}
 
 /** The usage classes the script reported, which the transcript records; the gateway splits cache writes by lifetime. */
 function usageOf(event: Extract<ModelEvent, { type: "done" | "error" }>, script: ScriptedUsage | undefined) {

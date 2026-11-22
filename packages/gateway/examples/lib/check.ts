@@ -9,20 +9,11 @@ import { createModel, type Model } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { mockTransport, serverSentEvents } from "@buildanagent/gateway/testing";
 // Attaches the transcript recorder when the test preloads it (scripts/transcripts/).
-import { lendCallerLine, recordedAdapter, SCRIPTED_MODEL_ID } from "./transcript.js";
+import { lendCallerLine, recordedAdapter, SCRIPTED_MODEL_ID, type ScriptedUsage } from "./transcript.js";
 
 export function check(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
   console.log(`ok - ${msg}`);
-}
-
-/** The token counts a script reports, in Anthropic's classes: a class left out is not reported. */
-export interface ScriptedUsage {
-  uncachedInput?: number;
-  cacheRead?: number;
-  /** Tokens written to the 5-minute cache. */
-  cacheWrite?: number;
-  output?: number;
 }
 
 export interface Script {
