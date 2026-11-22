@@ -248,5 +248,11 @@
     "term": "vector search",
     "definition": "Search that turns the query and each document into an embedding, a list of numbers, and ranks documents by the distance between the vectors. A paraphrase can land near its document, but an exact identifier or a combination of terms can be missed.",
     "sources": ["weller-limit"]
+  },
+  {
+    "id": "long-term-memory",
+    "term": "long-term memory",
+    "definition": "Anything an agent writes during one task and reads in a later one, such as a fact about a user or a lesson from a failed attempt. Each stored item is a record, best kept small, with its source and an expiry, and checked against that source before the agent acts on it.",
+    "sources": ["github-copilot-agentic-memory", "shinn-reflexion"]
   }
 ]

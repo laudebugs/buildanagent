@@ -1190,5 +1190,80 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "shinn-reflexion",
+    "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+    "publisher": "Noah Shinn et al. (arXiv:2303.11366)",
+    "url": "https://arxiv.org/abs/2303.11366",
+    "kind": "paper",
+    "version": "v4",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "github-copilot-agentic-memory",
+    "title": "Building an agentic memory system for GitHub Copilot",
+    "publisher": "GitHub blog",
+    "url": "https://github.blog/ai-and-ml/github-copilot/building-an-agentic-memory-system-for-github-copilot/",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "dong-minja",
+    "title": "Memory Injection Attacks on LLM Agents via Query-Only Interaction",
+    "publisher": "Shen Dong et al., Michigan State University (arXiv:2503.03704)",
+    "url": "https://arxiv.org/abs/2503.03704",
+    "kind": "paper",
+    "version": "v5",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "claude-code-memory",
+    "title": "How Claude remembers your project",
+    "publisher": "Claude Code documentation",
+    "url": "https://code.claude.com/docs/en/memory",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "cloudflare-agents-context",
+    "title": "Context",
+    "publisher": "Cloudflare Agents documentation",
+    "url": "https://github.com/cloudflare/agents/blob/agents@0.33.0/docs/agents/context.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "agents@0.33.0",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "cloudflare-bindings-per-env",
+    "title": "Supported bindings per development mode",
+    "publisher": "Cloudflare Workers documentation",
+    "url": "https://developers.cloudflare.com/workers/local-development/bindings-per-env/",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "github-copilot-memory-docs",
+    "title": "About GitHub Copilot Memory",
+    "publisher": "GitHub Docs",
+    "url": "https://docs.github.com/en/copilot/concepts/agents/copilot-memory",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "zep-deleting-data",
+    "title": "Deleting Data from the Graph",
+    "publisher": "Zep documentation",
+    "url": "https://help.getzep.com/v4/deleting-data-from-the-graph.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
   }
 ]
