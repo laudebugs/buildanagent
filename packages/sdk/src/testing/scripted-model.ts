@@ -184,7 +184,7 @@ async function* playEvents(script: StreamScript, model: ModelRef, options: Strea
 
 /**
  * A model adapter that plays back the answers you script, one for each model call. It keeps a frozen copy of every
- * request in `calls`, throws `UnexpectedModelCallError` for a call past the script, and `assertComplete()` fails the
+ * request in `calls`, fails a call past the script with `UnexpectedModelCallError`, and `assertComplete()` fails the
  * test when a scripted answer went unused. Wrap it with `createModel()` to give a run a model that needs no API key.
  */
 export class ScriptedModel implements ModelAdapter {

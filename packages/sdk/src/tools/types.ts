@@ -193,7 +193,7 @@ export interface ToolDefinition<I = unknown, S = unknown, A = unknown> {
    * result's `details`. Default false.
    */
   readonly redactErrors?: boolean;
-  /** Runs the tool on input that passed the schema, and returns what the model reads, in `content`, and more. */
+  /** Runs the tool on input that passed the schema, and returns a result: what the model reads in `content`, plus `details` and `structured`. */
   execute(input: I, ctx: ToolContext<A>): Promise<ToolResult<S>>;
 }
 

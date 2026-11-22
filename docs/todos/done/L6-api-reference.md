@@ -55,8 +55,8 @@ If TypeDoc reads a TypeScript 7 construct differently, record the gap and the ty
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
@@ -64,6 +64,6 @@ If TypeDoc reads a TypeScript 7 construct differently, record the gap and the ty
 
 - **The reference follows each package's `exports`.** `src/api/packages.ts` reads the entry points from the manifest's `source` conditions, and one TypeDoc plugin and sidebar group for each package write the pages under `reference/gateway/` and `reference/sdk/` at build time. The pages are not committed. A test builds the site and requires a page for each of the packages' declarations, 20 or more for each package, with re-exports skipped.
 - **CI enforces it through `pnpm test`.** The docs app's tests run the check over both packages and over a fixture with and without TSDoc, so `ci.yml` needs no new step. Removing the TSDoc from `modelRequestsAreAllowed()` made the check exit 1 and name it.
-- **The check covers exports, not every member.** With `notDocumented` over everything, TypeDoc warned on 344 properties and methods. Limited to the six kinds of export, it found 16 declarations, which this change documents, with a patch changeset for both packages because the comments ship in the declaration files. A property or method stays a reader's judgement.
-- **TypeScript 6.0.3 is the docs app's own.** TypeDoc 0.28.20 reads TypeScript up to 6.0, so the app's `typescript` devDependency is 6.0.3 while the repo builds with 7.0.2. No TypeScript 7 construct in the two packages read differently, so there is no gap to record.
+- **The check covers exports, not every member.** With `notDocumented` over everything, TypeDoc warned on 344 properties and methods. Limited to the six kinds of export, it found 16 declarations. This change documents them, with a patch changeset for both packages, because the comments ship in the declaration files. A property or method stays a reader's judgement.
+- **TypeScript 6.0.3 is the docs app's own.** TypeDoc 0.28.20 reads TypeScript up to 6.0, so the app's `typescript` devDependency is 6.0.3 while the repo builds with 7.0.2. TypeDoc converted every entry point of both packages without a compiler error, so there is no gap to record.
 - **The pins are the plan's.** `starlight-typedoc` 0.23.3 appeared on 2026-11-19, less than a week old, so 0.23.2 stays.

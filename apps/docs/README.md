@@ -26,7 +26,11 @@ The build replaces the fence's body with the region and titles the block with th
 
 TypeDoc writes a page for every export of the gateway and the SDK under `src/content/docs/reference/gateway/` and `reference/sdk/` each time Astro builds. The pages are not committed, and the tests skip them. The entry points come from each package's own `exports` map, so the reference matches what users import (`src/api/packages.ts`).
 
-`pnpm check:api-docs` fails when an exported function, class, interface, type alias, variable or enum has no TSDoc, or a `{@link}` doesn't resolve. `pnpm test` runs the same check, so CI enforces it, and a test builds the site and requires a page for every export. TypeDoc 0.28 reads TypeScript only up to 6.0, so this app pins TypeScript 6.0.3 for it, while the rest of the repo builds with TypeScript 7. Only TypeDoc should use the pin: any tool that resolves `typescript` from this app sees 6.0.3, so the `typecheck` script and the test that type-checks inline blocks resolve the repo root's TypeScript instead. Each entry file names its module for its import path with an `@module` tag, so the reference shows `@buildanagent/gateway/anthropic`, not the path of a source file.
+`pnpm check:api-docs` fails when an exported function, class, interface, type alias, variable or enum has no TSDoc, or a `{@link}` doesn't resolve. `pnpm test` runs the same check, so CI enforces it, and a test builds the site and requires a page for every export.
+
+TypeDoc 0.28 reads TypeScript only up to 6.0, so this app pins TypeScript 6.0.3 for it, while the rest of the repo builds with TypeScript 7. Only TypeDoc should use the pin: any tool that resolves `typescript` from this app sees 6.0.3, so the `typecheck` script and the test that type-checks inline blocks resolve the repo root's TypeScript instead.
+
+Each entry file names its module for its import path with an `@module` tag, so the reference shows `@buildanagent/gateway/anthropic`, not the path of a source file.
 
 ## Licence
 
