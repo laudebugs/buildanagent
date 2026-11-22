@@ -73,7 +73,7 @@ export interface EscalationOptions<H = unknown> {
   readonly approvalPolicy: ApprovalPolicy;
   /**
    * The approvals from `createApprovals()`. The escalation signs with their harness's signer, decides the rerun with
-   * their harness's permission pipeline, and settles answers with their quorum policy.
+   * their harness's permission pipeline, and lets their quorum policy decide each answer.
    */
   readonly approvals: Approvals<H>;
   /** The rules a `granular` policy needs, and that any other policy refuses. */
@@ -143,8 +143,10 @@ export interface EscalationResolveOptions<H = unknown> {
 }
 
 /**
- * How an escalation call ended. `states` is the path it took through the transition table in this call, and `result`
- * is what the model reads: the command's output, or why it did not run.
+ * How an escalation call ended. `states` is the path it took through the transition table in this call. `result` is a
+ * tool result a tool can return to the model: the command's output, or why it did not run. The model reads it only
+ * when nothing was written, as under `never`; once a request exists, the rebuilt context leaves it out and the host
+ * reads it.
  *
  * - `ran`: the command finished without a denial. `rerun` is true when it was the approved rerun.
  * - `denied`: the command did not run to an end the caller can use: a denial that went back with no request, a refused
@@ -152,7 +154,7 @@ export interface EscalationResolveOptions<H = unknown> {
  * - `awaiting_approval`: `pending` waits for an answer through `resolve()`. `widened` is the policy the rerun would get.
  *
  * `escalationId` names the escalation once it has a request; a denial that went back with no request has none.
- * `denial` is what the backend refused, and `reason` is the sentence the model reads.
+ * `denial` is what the backend refused, and `reason` is the sentence `result` carries.
  */
 export type EscalationResult =
   | {
@@ -188,7 +190,7 @@ export interface PendingEscalation {
   readonly escalationId: string;
   /** The signed request, to show the approver with the record. */
   readonly request: SignedPendingRequest;
-  /** What the request signs: the command, the policy it ran under and the denial. */
+  /** What the request signs: the tool and its input, the command, the workspace root, the policy and the denial. */
   readonly record: EscalationRecord;
 }
 
