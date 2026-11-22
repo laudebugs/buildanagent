@@ -512,9 +512,10 @@ describe("lockfileProblems", () => {
       "  pi-ai@1.0.0:\n    resolution: {integrity: sha512-cGktYWkx}\n",
       "  peer@2.0.0:\n    resolution: {integrity: sha512-cGVlcjI=}\n    deprecated: |-\n      Use peer 3; it's: #faster\n\n  pi-ai@1.1.0:\n    resolution: {integrity: sha512-cGktYWky}\n",
     )
+    // pi-ai's old snapshot goes, and sdk-x's moves with its peer, as pnpm writes them.
     .replace(
-      "  pi-ai@1.0.0(peer@1.0.0):",
-      "  pi-ai@1.1.0(peer@2.0.0):\n    dependencies:\n      peer: 2.0.0\n\n  sdk-x@3.0.0(peer@2.0.0):",
+      "  pi-ai@1.0.0(peer@1.0.0):\n    dependencies:\n      peer: 1.0.0\n",
+      "  peer@2.0.0: {}\n\n  pi-ai@1.1.0(peer@2.0.0):\n    dependencies:\n      peer: 2.0.0\n\n  sdk-x@3.0.0(peer@2.0.0):\n    dependencies:\n      peer: 2.0.0\n",
     );
 
   test("accepts a bump: the harness's pins, a peer another harness shares, and new or removed entries", () => {
@@ -541,7 +542,7 @@ describe("lockfileProblems", () => {
     [
       "changes another harness's pin",
       (t) => t.replace("specifier: 3.0.0", "specifier: 3.0.1"),
-      /more of the verify\/other importer/,
+      /changes the verify\/other importer$/m,
     ],
     [
       "changes another harness's resolved version",
@@ -627,7 +628,7 @@ describe("lockfileProblems", () => {
     [
       "points another harness's peer at a local path",
       (t) => t.replace("version: 3.0.0(peer@2.0.0)", "version: 3.0.0(peer@file:x)"),
-      /verify\/other importer points a dependency/,
+      /verify\/other importer.s sdk-x: peer peer@file:x isn.t a registry version/,
     ],
     [
       "gives a new snapshot a local dependency",
@@ -644,96 +645,314 @@ describe("lockfileProblems", () => {
   }
 });
 
-describe("lockfileProblems on the workspace's own importers", () => {
-  // The cloudflare-agents update of 2026-11-22: bumping the harness's @cloudflare/workers-types moved the optional peer
-  // pnpm resolves for wrangler in the apps' importers, which share one resolution with the harness.
+describe("lockfileProblems on peers that move in other importers", () => {
+  // A lockfile shaped like main's on 2026-11-22: an app's wrangler, the cloudflare-agents harness that pins
+  // @cloudflare/workers-types and miniflare, and another harness whose sdk-x has a peer.
+  const MAIN = `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+
+importers:
+
+  apps/docs:
+    devDependencies:
+      wrangler:
+        specifier: 4.160.1
+        version: 4.160.1(@types/node@26.6.6)
+
+  apps/manual:
+    devDependencies:
+      wrangler:
+        specifier: 4.160.1
+        version: 4.160.1(@types/node@26.6.6)
+
+  verify/cloudflare-agents:
+    dependencies:
+      '@cloudflare/workers-types':
+        specifier: 5.20261103.1
+        version: 5.20261103.1
+      miniflare:
+        specifier: 5.20261103.0-beta
+        version: 5.20261103.0-beta
+      x:
+        specifier: 1.0.0
+        version: 1.0.0
+
+  verify/other:
+    dependencies:
+      sdk-x:
+        specifier: 3.0.0
+        version: 3.0.0(x@1.0.0)
+
+packages:
+
+  miniflare@4.20261110.0:
+    resolution: {integrity: sha512-bTQ=}
+    peerDependencies:
+      '@cloudflare/workers-types': ^5.20261110.1
+
+  wrangler@4.160.1:
+    resolution: {integrity: sha512-dw==}
+    hasBin: true
+    peerDependencies:
+      '@cloudflare/workers-types': ^5.20261110.1
+    peerDependenciesMeta:
+      '@cloudflare/workers-types':
+        optional: true
+
+  x@1.0.0:
+    resolution: {integrity: sha512-eDE=}
+
+snapshots:
+
+  '@cloudflare/workers-types@5.20261103.1': {}
+
+  '@types/node@26.6.6': {}
+
+  left-pad@1.0.0: {}
+
+  miniflare@4.20261110.0:
+    dependencies:
+      workerd: 1.20261110.1
+
+  miniflare@5.20261103.0-beta:
+    dependencies:
+      workerd: 1.20261110.1
+
+  sdk-x@3.0.0(x@1.0.0):
+    dependencies:
+      x: 1.0.0
+
+  workerd@1.20261110.1: {}
+
+  wrangler@4.160.1(@types/node@26.6.6):
+    dependencies:
+      miniflare: 4.20261110.0
+      workerd: 1.20261110.1
+    optionalDependencies:
+      fsevents: 2.3.3
+    transitivePeerDependencies:
+      - '@types/node'
+
+  x@1.0.0: {}
+`;
   const WORKERS = "@cloudflare/workers-types@5.20261115.1";
-  const bumps = parseBumps(`${WORKERS} ai@7.0.173`);
-  const importer = (version) =>
-    `  apps/docs:\n    devDependencies:\n      wrangler:\n        specifier: 4.160.1\n        version: ${version}\n\n  verify/other:`;
-  // wrangler's snapshot, as pnpm writes it: the resolved peer of workers-types becomes an optional dependency.
-  const snapshot = (version, extra = "") => {
-    const workers = /@cloudflare\/workers-types@([^()]+)/.exec(version)?.[1];
-    const optional = workers ? `      '@cloudflare/workers-types': ${workers}\n` : "";
-    return `  wrangler@${version}:\n    dependencies:\n      esbuild: 0.28.2${extra}\n    optionalDependencies:\n${optional}      fsevents: 2.3.3\n\n`;
+  const bumps = parseBumps(`${WORKERS} miniflare@5.20261113.0-beta`);
+  const OLD_WRANGLER = "wrangler@4.160.1(@types/node@26.6.6)";
+  const NEW_WRANGLER = `wrangler@4.160.1(${WORKERS})(@types/node@26.6.6)`;
+  const wranglerBody = (deps = "      miniflare: 4.20261110.0\n      workerd: 1.20261110.1", optional = "") =>
+    `    dependencies:\n${deps}\n    optionalDependencies:\n${optional}      fsevents: 2.3.3\n    transitivePeerDependencies:\n      - '@types/node'\n`;
+  // What pnpm writes for the bumps: the harness's pins, the new packages and snapshots, and wrangler's peer resolved to
+  // the bumped workers-types in both apps, with its snapshot renamed and given one optional dependency.
+  const honest = ({
+    workersSnapshot = "{}",
+    body = wranglerBody(undefined, `      '@cloudflare/workers-types': 5.20261115.1\n`),
+    apps = ["docs", "manual"],
+  } = {}) => {
+    let text = MAIN.replace(
+      "specifier: 5.20261103.1\n        version: 5.20261103.1",
+      "specifier: 5.20261115.1\n        version: 5.20261115.1",
+    )
+      .replace(
+        "specifier: 5.20261103.0-beta\n        version: 5.20261103.0-beta",
+        "specifier: 5.20261113.0-beta\n        version: 5.20261113.0-beta",
+      )
+      .replace(
+        "\nsnapshots:\n",
+        `  '${WORKERS}':\n    resolution: {integrity: sha512-d2s=}\n\n  miniflare@5.20261113.0-beta:\n    resolution: {integrity: sha512-bWY=}\n\nsnapshots:\n`,
+      )
+      .replace(
+        "  '@types/node@26.6.6': {}\n",
+        `  '${WORKERS}':${workersSnapshot.startsWith("\n") ? workersSnapshot : ` ${workersSnapshot}`}\n\n  '@types/node@26.6.6': {}\n`,
+      )
+      .replace("  miniflare@5.20261103.0-beta:\n", "  miniflare@5.20261113.0-beta:\n")
+      .replace(`  ${OLD_WRANGLER}:\n${wranglerBody()}`, `  ${NEW_WRANGLER}:\n${body}`);
+    for (const app of apps) {
+      text = text.replace(
+        `  apps/${app}:\n    devDependencies:\n      wrangler:\n        specifier: 4.160.1\n        version: 4.160.1(@types/node@26.6.6)`,
+        `  apps/${app}:\n    devDependencies:\n      wrangler:\n        specifier: 4.160.1\n        version: 4.160.1(${WORKERS})(@types/node@26.6.6)`,
+      );
+    }
+    return text;
   };
-  // A version that can't be a snapshot key keeps no snapshot of its own; the importer check refuses it first.
-  const lock = (version, extra = "") =>
-    LOCK.replace("  verify/other:", importer(version)).replace(
-      "  typescript@7.0.2: {}",
-      `${/[\s:]/.test(version) ? "" : snapshot(version, extra)}  typescript@7.0.2: {}`,
+  const problems = (after, planned = bumps) => lockfileProblems(MAIN, after, "cloudflare-agents", planned).join("\n");
+
+  test("accepts the honest cloudflare-agents update", () => {
+    assert.equal(problems(honest()), "");
+  });
+
+  test("refuses the reviewer's patch: wrangler's own miniflare swapped to a bump, and left-pad added to both bumps", () => {
+    const leftPad = "\n    dependencies:\n      left-pad: 1.3.0";
+    const body = wranglerBody(
+      "      miniflare: 5.20261113.0-beta\n      workerd: 1.20261110.1",
+      `      '@cloudflare/workers-types': 5.20261115.1\n`,
     );
-  const before = lock("4.160.1(@types/node@26.6.6)");
-  const problems = (version, from = before, planned = bumps, extra = "") =>
-    lockfileProblems(from, lock(version, extra), "pi", planned).join("\n");
-
-  test("accepts a peer group that names one of the plan's bumps", () => {
-    assert.equal(problems(`4.160.1(${WORKERS})(@types/node@26.6.6)`), "");
+    const patch = honest({ workersSnapshot: leftPad, body })
+      .replace(
+        "  miniflare@5.20261113.0-beta:\n    dependencies:\n",
+        `  miniflare@5.20261113.0-beta:\n    dependencies:\n      left-pad: 1.3.0\n`,
+      )
+      .replace("  x@1.0.0: {}", "  left-pad@1.3.0: {}\n\n  x@1.0.0: {}");
+    assert.match(problems(patch), /moves miniflare from 4\.20261110\.0 to 5\.20261113\.0-beta/);
   });
 
-  test("accepts a bumped peer replacing, or dropping, an older version of itself", () => {
-    const older = lock("4.160.1(@cloudflare/workers-types@5.20261103.1)(@types/node@26.6.6)");
-    assert.equal(problems(`4.160.1(${WORKERS})(@types/node@26.6.6)`, older), "");
-    assert.equal(problems("4.160.1(@types/node@26.6.6)", older), "");
+  test("refuses a bump's new snapshot that adds a dependency neither main nor the bumps hold", () => {
+    const patch = honest({ workersSnapshot: "\n    dependencies:\n      left-pad: 1.3.0" }).replace(
+      "  x@1.0.0: {}",
+      "  left-pad@1.3.0: {}\n\n  x@1.0.0: {}",
+    );
+    assert.match(
+      problems(patch),
+      /points @cloudflare\/workers-types at the new snapshot @cloudflare\/workers-types@5\.20261115\.1, which depends on left-pad@1\.3\.0, which is neither in main/,
+    );
+    // A dependency main already holds unchanged is main's code, and passes.
+    assert.equal(problems(honest({ workersSnapshot: "\n    dependencies:\n      left-pad: 1.0.0" })), "");
   });
 
-  for (const [name, version, message] of [
-    ["adds a peer the plan didn't bump", "4.160.1(evil@1.0.0)(@types/node@26.6.6)", /peer evil@1\.0\.0 isn't one of/],
+  test("checks a snapshot two importers share once, and holds every importer to it", () => {
+    const patch = honest({ body: wranglerBody(undefined, "      evil: 1.0.0\n") });
+    const lines = problems(patch).split("\n");
+    assert.equal(lines.length, 1, lines.join("\n"));
+    assert.match(
+      lines[0],
+      /the apps\/docs importer's wrangler@4\.160\.1\(@types\/node@26\.6\.6\): the snapshot .* changes more than/,
+    );
+  });
+
+  for (const [name, body] of [
     [
-      "gives a bumped peer another version",
-      "4.160.1(@cloudflare/workers-types@5.20261116.0)(@types/node@26.6.6)",
-      /peer @cloudflare\/workers-types@5\.20261116\.0 isn't one of the planned bumps/,
+      "puts the bumped peer under another heading",
+      wranglerBody(
+        `      '@cloudflare/workers-types': 5.20261115.1\n      miniflare: 4.20261110.0\n      workerd: 1.20261110.1`,
+      ),
     ],
     [
-      "changes the resolved version itself",
-      `4.160.2(${WORKERS})(@types/node@26.6.6)`,
-      /changes the apps\/docs importer$/,
+      "adds a dependency line under transitivePeerDependencies",
+      `${wranglerBody(undefined, `      '@cloudflare/workers-types': 5.20261115.1\n`)}      left-pad: 1.0.0\n`,
     ],
-    ["points the dependency at a path", "link:../../evil", /changes the apps\/docs importer$/],
-    ["points a peer at a path", "4.160.1(@cloudflare/workers-types@link:../x)(@types/node@26.6.6)", /isn't a registry/],
-    ["drops a peer no bump replaces", `4.160.1(${WORKERS})`, /drops peer @types\/node@26\.6\.6/],
     [
-      "nests an unbumped peer in a bumped one",
-      `4.160.1(ai@7.0.173(zod@4.6.7))(@types/node@26.6.6)`,
-      /zod@4\.6\.7 isn't/,
+      "adds a heading of its own",
+      wranglerBody(
+        undefined,
+        `      '@cloudflare/workers-types': 5.20261115.1\n    dependencies:\n      left-pad: 1.0.0\n`,
+      ),
     ],
-    ["writes text outside the peer groups", `4.160.1(${WORKERS}) (@types/node@26.6.6)`, /aren't a list pnpm writes/],
-    ["lists a peer twice", `4.160.1(${WORKERS})(${WORKERS})(@types/node@26.6.6)`, /lists a peer twice/],
+    [
+      "lists the bumped peer twice",
+      wranglerBody(
+        undefined,
+        `      '@cloudflare/workers-types': 5.20261115.1\n      '@cloudflare/workers-types': 5.20261115.1\n`,
+      ),
+    ],
+    [
+      "drops a dependency",
+      wranglerBody("      miniflare: 4.20261110.0", `      '@cloudflare/workers-types': 5.20261115.1\n`),
+    ],
   ]) {
-    test(`refuses a workspace importer that ${name}`, () => {
-      assert.match(problems(version), message);
-      assert.match(problems(version), /^pnpm-lock\.yaml: changes the apps\/docs importer/);
+    test(`refuses a moved snapshot that ${name}`, () => {
+      assert.match(problems(honest({ body })), /changes more than|lists @cloudflare\/workers-types twice/);
     });
   }
 
-  test("refuses a moved snapshot that changes more than the bumped peer", () => {
-    const moved = `4.160.1(${WORKERS})(@types/node@26.6.6)`;
-    const more =
-      /the snapshot wrangler@4\.160\.1\(@cloudflare\/workers-types@5\.20261115\.1\)\(@types\/node@26\.6\.6\) changes more than wrangler@4\.160\.1\(@types\/node@26\.6\.6\)/;
-    assert.match(problems(moved, before, bumps, "\n      evil: 1.0.0"), more);
-    const otherEsbuild = lock(moved).replace(
-      `${moved}:\n    dependencies:\n      esbuild: 0.28.2`,
-      `${moved}:\n    dependencies:\n      esbuild: 0.99.0`,
-    );
-    assert.match(lockfileProblems(before, otherEsbuild, "pi", bumps).join("\n"), more);
-    const missing = lock(moved).replace(snapshot(moved), "");
+  test("accepts an ordinary dependency that gains a bumped peer when its snapshot moves the same way, and nothing else", () => {
+    const withPeer = (peer) =>
+      honest({
+        body: wranglerBody(
+          `      miniflare: 4.20261110.0(${peer})\n      workerd: 1.20261110.1`,
+          `      '@cloudflare/workers-types': 5.20261115.1\n`,
+        ),
+      }).replace(
+        "  miniflare@4.20261110.0:\n    dependencies:\n      workerd: 1.20261110.1\n",
+        `  miniflare@4.20261110.0(${peer}):\n    dependencies:\n      '${peer.replace(/@([^@]+)$/, "': $1")}\n      workerd: 1.20261110.1\n`,
+      );
+    assert.equal(problems(withPeer(WORKERS)), "");
     assert.match(
-      lockfileProblems(before, missing, "pi", bumps).join("\n"),
-      /moves to the snapshot .* which has no counterpart/,
+      problems(withPeer("left-pad@1.0.0")),
+      /changes miniflare's peers: peer left-pad@1\.0\.0 isn't one of the planned bumps/,
     );
   });
 
-  test("refuses a reordered peer list, a changed specifier, a new dependency, and any change with no bumps", () => {
-    const two = lock("4.160.1(@types/node@26.6.6)(typescript@7.0.2)");
-    assert.match(problems(`4.160.1(typescript@7.0.2)(@types/node@26.6.6)`, two), /reorders its peers/);
-    const specifier = lockfileProblems(before, before.replace("specifier: 4.160.1", "specifier: 4.160.2"), "pi", bumps);
-    assert.match(specifier.join("\n"), /changes the apps\/docs importer$/);
-    const added = before.replace(
+  for (const [name, version, message] of [
+    [
+      "names a longer version than the bump",
+      "4.160.1(@cloudflare/workers-types@5.20261115.10)(@types/node@26.6.6)",
+      /isn't one of the planned bumps/,
+    ],
+    [
+      "names an npm alias",
+      "4.160.1(@cloudflare/workers-types@npm:evil@1.0.0)(@types/node@26.6.6)",
+      /isn't a registry version/,
+    ],
+    ["quotes the version", `'4.160.1(${WORKERS})(@types/node@26.6.6)'`, /changes the apps\/docs importer$/m],
+    ["uses a YAML anchor", `4.160.1(&a ${WORKERS})(@types/node@26.6.6)`, /isn't a registry version/],
+    ["uses a flow mapping", `4.160.1({${WORKERS}})(@types/node@26.6.6)`, /isn't a registry version/],
+    ["nests an unbalanced group", `4.160.1(${WORKERS}(x@1.0.0)(@types/node@26.6.6)`, /aren't a list pnpm writes/],
+  ]) {
+    test(`refuses a workspace importer whose peer ${name}`, () => {
+      const patch = honest().replace(`version: 4.160.1(${WORKERS})(@types/node@26.6.6)`, `version: ${version}`);
+      assert.match(problems(patch), message);
+    });
+  }
+
+  test("refuses another harness's peer that the updated harness doesn't resolve, and accepts one it does", () => {
+    const evil = honest()
+      .replace("version: 3.0.0(x@1.0.0)", "version: 3.0.0(evil@9.9.9)")
+      .replace(
+        "  sdk-x@3.0.0(x@1.0.0):\n    dependencies:\n      x: 1.0.0\n",
+        "  sdk-x@3.0.0(evil@9.9.9):\n    dependencies:\n      evil: 9.9.9\n",
+      )
+      .replace("  x@1.0.0: {}", "  evil@9.9.9: {}\n\n  x@1.0.0: {}");
+    assert.match(
+      problems(evil),
+      /verify\/other importer's sdk-x: peer evil@9\.9\.9 isn't in the updated harness's own resolution/,
+    );
+    const shared = honest()
+      .replace("specifier: 1.0.0\n        version: 1.0.0\n", "specifier: 2.0.0\n        version: 2.0.0\n")
+      .replace("version: 3.0.0(x@1.0.0)", "version: 3.0.0(x@2.0.0)")
+      .replace(
+        "  sdk-x@3.0.0(x@1.0.0):\n    dependencies:\n      x: 1.0.0\n",
+        "  sdk-x@3.0.0(x@2.0.0):\n    dependencies:\n      x: 2.0.0\n",
+      )
+      .replace("  x@1.0.0: {}", "  x@1.0.0: {}\n\n  x@2.0.0: {}")
+      .replace("\nsnapshots:\n", "  x@2.0.0:\n    resolution: {integrity: sha512-eDI=}\n\nsnapshots:\n");
+    assert.equal(problems(shared), "");
+    // The same move with sdk-x's snapshot gaining a dependency is refused.
+    const more = shared.replace(
+      "  sdk-x@3.0.0(x@2.0.0):\n    dependencies:\n      x: 2.0.0\n",
+      "  sdk-x@3.0.0(x@2.0.0):\n    dependencies:\n      evil: 9.9.9\n      x: 2.0.0\n",
+    );
+    assert.match(problems(more), /the snapshot sdk-x@3\.0\.0\(x@2\.0\.0\) changes more than/);
+  });
+
+  test("refuses peer groups that aren't the plan's bumps, and any change with no bumps", () => {
+    assert.match(problems(honest(), parseBumps("miniflare@5.20261113.0-beta")), /isn't one of the planned bumps/);
+    const wrong = honest().replaceAll(WORKERS, "@cloudflare/workers-types@5.20261116.0");
+    assert.match(problems(wrong), /peer @cloudflare\/workers-types@5\.20261116\.0 isn't one of the planned bumps/);
+  });
+
+  test("refuses a changed specifier, base version or dependency list in a workspace importer", () => {
+    const base = honest().replace(`version: 4.160.1(${WORKERS})`, `version: 4.160.2(${WORKERS})`);
+    assert.match(problems(base), /changes the apps\/docs importer$/m);
+    const specifier = honest().replace("specifier: 4.160.1", "specifier: 4.160.2");
+    assert.match(problems(specifier), /changes the apps\/docs importer$/m);
+    const added = honest().replace(
       "      wrangler:\n",
       "      evil:\n        specifier: 1.0.0\n        version: 1.0.0\n      wrangler:\n",
     );
-    assert.match(lockfileProblems(before, added, "pi", bumps).join("\n"), /changes the apps\/docs importer$/);
-    assert.match(problems(`4.160.1(${WORKERS})(@types/node@26.6.6)`, before, []), /isn't one of the planned bumps/);
+    assert.match(problems(added), /changes the apps\/docs importer$/m);
+    const link = honest().replace(`version: 4.160.1(${WORKERS})(@types/node@26.6.6)`, "version: link:../../evil");
+    assert.match(problems(link), /changes the apps\/docs importer$/m);
+  });
+
+  test("keeps an importer that fails out of the moved snapshots, so its snapshot isn't reported", () => {
+    // apps/manual moves wrangler but also changes its specifier; only apps/docs's move is followed.
+    const patch = honest({ body: wranglerBody(undefined, "      evil: 1.0.0\n"), apps: ["manual"] }).replace(
+      "  apps/manual:\n    devDependencies:\n      wrangler:\n        specifier: 4.160.1",
+      "  apps/manual:\n    devDependencies:\n      wrangler:\n        specifier: 4.160.2",
+    );
+    const lines = problems(patch).split("\n");
+    assert.deepEqual(lines, ["pnpm-lock.yaml: changes the apps/manual importer"]);
   });
 });
 
