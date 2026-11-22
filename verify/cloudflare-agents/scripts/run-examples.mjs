@@ -72,8 +72,8 @@ async function writeWorkerTranscript(t, out, cwd, nonce) {
 // otherwise delete each other's bundles. The docs run keeps a fixed name, which its committed results mention,
 // so two docs runs at once are not supported.
 const WORK = join(PKG, ".tmp", ownExamples ? `examples-${process.pid}` : "docs");
-// Our own run removes its folder however it ends, including a crash or a kill, because a per-process name
-// means no later run's startup would. KEEP_TMP=1 keeps it, to inspect a failing bundle.
+// Our own run removes its folder however it ends, including a crash or a kill, because no later run reuses
+// a per-process name, so none would clean it up. KEEP_TMP=1 keeps it, to inspect a failing bundle.
 if (ownExamples && !process.env.KEEP_TMP) {
   process.on("exit", () => rmSync(WORK, { recursive: true, force: true }));
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => process.exit(1));
