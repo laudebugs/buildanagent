@@ -7,6 +7,7 @@
  */
 export { BudgetExceeded, type BudgetRefusalCode, type BudgetRefusalInit, budgetRefusal } from "./budget-exceeded.js";
 export { type CostGuardOptions, costGuard, type GuardedCall } from "./cost-guard.js";
+export type { FileRef, FileSize, FileSizer } from "./estimate.js";
 export {
   type GuardableModel,
   type GuardableProvider,

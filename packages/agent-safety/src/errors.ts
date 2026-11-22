@@ -16,8 +16,8 @@
  * order. `invalid_effect`: a guarded write's scope, business key or options break a rule. `invalid_budget`: a cost
  * guard's cap is not a finite number of dollars, 0 or more. `budget_exceeded`: a model call was refused before it was
  * sent, because what the run or session has spent plus the call's projected cost would pass its USD cap.
- * `unknown_price`: a model call was refused before it was sent, because the model has no catalog price or an earlier
- * call reported no usage, so the cap can't be checked.
+ * `unknown_price`: a model call was refused before it was sent, because the model has no catalog price, an earlier
+ * call reported no usage or the request holds a file with no known size, so the cap can't be checked.
  */
 export type SafetyErrorCode =
   | "invalid_outcome"

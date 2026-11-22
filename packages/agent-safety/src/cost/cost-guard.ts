@@ -19,14 +19,19 @@ import { SafetyError } from "../errors.js";
 import type { CallOptions, InnerModel, ModelUsage, Prompt, StreamPart } from "./ai-types.js";
 import { BudgetExceeded, type BudgetRefusalCode } from "./budget-exceeded.js";
 import {
+  describeFile,
+  type FileSize,
+  type FileSizer,
   gatewayContext,
   gatewayUsage,
   messageKeys,
   priceResponse,
   type ReportedCall,
   responsePartChars,
+  sizeFiles,
   toolsKey,
 } from "./estimate.js";
+
 import type { Spend } from "./spend.js";
 
 /** One call the guard let through, reported once its cost is known. */
@@ -57,6 +62,18 @@ export interface CostGuardOptions {
    * priced at the catalog's output limit for the model and sent unchanged.
    */
   readonly maxOutputTokens?: number;
+  /**
+   * The size of a file a request points at by URL or by provider reference, which holds none of its bytes: `{ bytes }`
+   * or `{ pages }`, or `undefined` when you don't know it. Bytes count as the base64 characters of the file, and each
+   * page as one image; the text a provider reads from a page isn't counted, so give bytes when you have them. A usable
+   * size is a whole number, up to 2 ** 32 bytes or 100,000 pages. The guard remembers each size it was given, so a
+   * tool loop asks once for each file.
+   *
+   * A file that is not an image and has no usable size, one whose `fileSize` throws included, is refused with
+   * `unknown_price`, because the guard can't tell what it costs. An image needs no size, because it counts at the
+   * largest per-image size a provider documents.
+   */
+  readonly fileSize?: FileSizer;
   /** Called after each call the guard let through, once its cost is known. */
   readonly onCallCost?: (call: GuardedCall) => void;
 }
@@ -128,6 +145,7 @@ class Ledger {
   private addedUsd = 0;
   private unknown: string | undefined;
   private readonly recent: Recorded[] = [];
+  private readonly fileSizes = new Map<string, FileSize>();
   private readonly options: CostGuardOptions;
 
   constructor(options: CostGuardOptions) {
@@ -196,7 +214,17 @@ class Ledger {
     const prompt = messageKeys(params.prompt);
     const tools = toolsKey(params.tools);
     const continued = this.reported(id, prompt, tools, params.prompt);
-    const context = gatewayContext(params.prompt, params.tools, continued);
+    // A call that continues a recorded one is priced from its usage up to that answer, so only the files after it need a size.
+    const { sizes, unsized } = await sizeFiles(
+      params.prompt.slice(continued?.index ?? 0),
+      this.options.fileSize,
+      this.fileSizes,
+    );
+    if (unsized !== undefined) {
+      const message = `${id} was not called: the request points at ${describeFile(unsized)} (${unsized.mediaType}) by ${unsized.kind} and its size is unknown or out of range, so a call under a USD cap can't be checked; set fileSize on costGuard() to size it`;
+      this.refuse("unknown_price", model, message, (await this.readSpend(model))(), null);
+    }
+    const context = gatewayContext(params.prompt, params.tools, continued, sizes);
     const tokens = {
       inputTokens: estimateInputTokens(context),
       maxOutputTokens: params.maxOutputTokens ?? entry.maxOutputTokens,

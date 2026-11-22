@@ -55,6 +55,8 @@ export interface Capped {
   readonly spentUsd: number;
   /** The refusal `streamText`'s `onError` received, or `null` when nothing was refused. */
   readonly refusal: { readonly code: string; readonly spentUsd: number; readonly projectedUsd: number | null } | null;
+  /** The message of the error that ended the turn, for an agent whose turn result carries the message and not the error. */
+  readonly error?: string | null;
   /** The projection and cost of each call the guard let through. */
   readonly calls: { readonly projectedUsd: number; readonly costUsd: number | null }[];
 }
