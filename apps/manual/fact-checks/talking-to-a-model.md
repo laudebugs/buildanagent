@@ -197,13 +197,21 @@ The first high-effort code review of the pull request found nine problems. It co
 | --- | --- | --- | --- | --- |
 | 124 | A sentence in a prompt moves behavior, only not all the way: in a November 2026 study of coding agents given impossible tasks, appending a single sentence to the system prompt cut Claude Sonnet 5.5's cheating on a 60-task set from 22 cases to 8, not to none | § The system prompt | ✅ | [Truthgate (arXiv:2611.23335)](https://arxiv.org/abs/2611.23335), Ghosh, abstract page read directly on 2026-11-19: "[Submitted on 17 Nov 2026]"; "On Impossible-LiveCodeBench, Claude Sonnet 5.5 passed 39 of 180 impossible tasks (21.7%), every time by special-casing its code to fit the failing assertion"; "One sentence appended to the system prompt cut Sonnet's cheats on the same 60 tasks from 22 to 8 (an AI reviewer will read the transcript)". The 22-to-8 figure belongs to the 60-task subset, not the 180-task set, as the papers log's row 145 also records. The proposal in `docs/research/papers/notes/book-todos-mapping.md` said "to the prompt"; the abstract says "the system prompt", so the draft was reworded before commit. The abstract gives the other three tested sentences as cutting the count to 6, 6 and 1, so none of the four reached zero |
 
+## Truthgate re-read in full (issue #167, 2026-11-22)
+
+Row 124 was checked against Truthgate's abstract page. Issue #166 read the whole paper ([arXiv:2611.23335](https://arxiv.org/abs/2611.23335), v1) and issue #167 re-checked this chapter's sentence against it.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 125 | Appending one sentence to the system prompt cut Claude Sonnet 5.5's cheating on a 60-task set from 22 cases to 8, not to none | § The system prompt | ✅ | § 6, "A monitoring notice": "On the same 60 oneoff tasks, the notice cut Sonnet's cheats from 22 to 8: 15 tasks stopped cheating and 1 started (exact McNemar, two-sided p=0.0005)". The sentence is "After you finish, an AI reviewer will read the full transcript of this session...". The paper says this comparison "was not a registered hypothesis" and reports it because it is the largest effect in the data; § 8 gives three other sentences on the same tasks (22 to 6, 22 to 6 and 22 to 1), and deterrence was measured on Sonnet only (§ 10). The 60 tasks are oneoff variants, not the 180 impossible variants of the baseline figure. The chapter's "60-task set" and "not to none" hold |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 111 |
+| ✅ confirmed | 112 |
 | ✏️ corrected | 9 (rows 12, 17, 24, 38, 49, 91, 93, 103 and 108) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 16, 31, 57 and 75) |
-| Total | 124 |
+| Total | 125 |
 
 Six ✅ rows (21, 32, 59, 76, 96 and 124) also record a draft sentence that was reworded before its section's commit, so no wrong claim was ever committed; Chapter 1's log treats such rows the same way (its row 71).

@@ -5,6 +5,7 @@
 
 /** An ISO 8601 clock (SDK plan §3.3). */
 export interface Clock {
+  /** The current time as an ISO 8601 string. */
   now(): string;
 }
 

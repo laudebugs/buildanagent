@@ -4,6 +4,8 @@
  * It exposes the offline guards, `allowModelRequests()`, `assertStreamContract()`, `mockTransport()` with its
  * `serverSentEvents()` and `chatCompletionEvents()` body writers, `startMockServer()`, the credential strippers that
  * every recorder uses, and `seededRandom()`.
+ *
+ * @module @buildanagent/gateway/testing
  */
 
 export {

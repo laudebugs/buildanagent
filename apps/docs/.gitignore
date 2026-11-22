@@ -4,3 +4,7 @@ dist/
 
 # The type-check test's temporary folder
 .snippets-*/
+
+# The API reference that TypeDoc writes at build time
+src/content/docs/reference/gateway/
+src/content/docs/reference/sdk/

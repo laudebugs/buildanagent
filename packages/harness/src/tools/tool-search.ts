@@ -13,7 +13,7 @@ const STOP_WORDS = new Set(["the", "for", "and", "with", "that", "this", "from",
 /** The options of `toolSearchTool()`. */
 export interface ToolSearchOptions {
   /** Where the tool records the names it activates. Pass the same set to `toolSearchInterceptors()`. */
-  readonly activated?: Set<string>;
+  readonly activated: Set<string>;
   /** The most tools one search activates. Default 5. */
   readonly maxResults?: number;
 }
@@ -34,7 +34,9 @@ function scoreOf(query: readonly string[], haystack: readonly string[]): number 
   const matches = (word: string) =>
     word.length >= 3 &&
     !STOP_WORDS.has(word) &&
-    haystack.some((have) => have.length >= 3 && (have.startsWith(word) || word.startsWith(have)));
+    haystack.some(
+      (have) => have.length >= 3 && !STOP_WORDS.has(have) && (have.startsWith(word) || word.startsWith(have)),
+    );
   return new Set(query.filter(matches)).size;
 }
 
@@ -45,8 +47,11 @@ function scoreOf(query: readonly string[], haystack: readonly string[]): number 
  */
 export function toolSearchTool(
   registry: ToolRegistry,
-  options: ToolSearchOptions = {},
+  options: ToolSearchOptions,
 ): ToolDefinition<{ query: string }, { activated: string[] }, unknown> {
+  if (!(options?.activated instanceof Set)) {
+    throw new HarnessError("invalid_tool_registration", "toolSearchTool() needs an activated set");
+  }
   const max = options.maxResults ?? DEFAULT_MAX_RESULTS;
   if (!Number.isInteger(max) || max < 1) {
     throw new HarnessError(
@@ -70,14 +75,14 @@ export function toolSearchTool(
         .filter((tool) => tool.exposure === "deferred")
         .map((tool) => ({
           tool,
-          // The tool's own name, not the canonical one, so `mcp` and the server's name match nothing by themselves.
-          score: scoreOf(wanted, words(`${tool.definition.name} ${tool.alias ?? ""} ${tool.definition.description}`)),
+          // The name it was registered under, not the canonical one, so `mcp` and the server's name match nothing by themselves.
+          score: scoreOf(wanted, words(`${tool.name} ${tool.alias ?? ""} ${tool.definition.description}`)),
         }))
         .filter((match) => match.score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, max);
       const activated = matches.map(({ tool }) => tool.canonicalName);
-      for (const name of activated) options.activated?.add(name);
+      for (const name of activated) options.activated.add(name);
       const text =
         activated.length === 0
           ? `No tool matches "${query}". Try other words.`
@@ -90,17 +95,24 @@ export function toolSearchTool(
 }
 
 /**
- * The interceptor that sends what tool search activated: each model call's `activeTools` is every `direct` tool plus
- * the names in `activated`. Register `toolSearchTool()` in the registry first, because `activeTools` is the complete list a
- * request sends and the interceptor throws a `HarnessError` otherwise. Pass the same set to the tool, and a new one for each run.
+ * The interceptor that sends what tool search activated. Each model call's `activeTools` is the run's tools, plus
+ * `tool_search`, plus the activated names the registry holds. Register `toolSearchTool()` in the registry first, then
+ * take `registry.definitions()` after the last registration, because the SDK throws when `activeTools` names a tool the
+ * run does not hold. Pass the same set to the tool, and a new one for each run.
  */
 export function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors {
-  if (registry.get("tool_search") === undefined) {
+  if (!registry.list().some((tool) => tool.canonicalName === "tool_search")) {
     throw new HarnessError(
       "invalid_tool_registration",
-      "toolSearchInterceptors() needs the registry to hold the tool_search tool, because activeTools is the complete list a request sends",
+      "toolSearchInterceptors() needs the registry to hold the tool_search tool under that name, because every request sends it by that name",
     );
   }
-  // The search tool is always sent, so a source set to deferred or hidden can't leave the model with no way to find a tool.
-  return { beforeModelCall: () => ({ activeTools: registry.activeTools(new Set([...activated, "tool_search"])) }) };
+  return {
+    beforeModelCall: ({ context }) => {
+      const known = new Set(registry.list().map((tool) => tool.canonicalName));
+      const held = [...activated].filter((name) => known.has(name));
+      // The search tool is always sent, so a source set to deferred or hidden can't leave the model with no way to find a tool.
+      return { activeTools: [...new Set([...context.tools.map((tool) => tool.name), ...held, "tool_search"])] };
+    },
+  };
 }

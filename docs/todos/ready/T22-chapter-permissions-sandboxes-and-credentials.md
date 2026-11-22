@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](../done/T7-book-isometric-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T31](T31-example-sandbox-behaviour.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T7](../done/T7-book-isometric-figures.md), [T26](../done/T26-book-checked-inline-code.md), [T31](../done/T31-example-sandbox-behaviour.md) |
 | Size | M |
 
 ## Goal
@@ -22,7 +22,7 @@ Write the chapter "Permissions, sandboxes and credentials, and the lethal trifec
 - [Connectors report](../../research/connectors/agent-connectors.md): per-user OAuth and the vault
 - ADRs [0019](../../decisions/0019-permission-pipeline-and-approval-modes.md), [0020](../../decisions/0020-default-sandbox-backend.md) and [0036](../../decisions/0036-loop-outside-sandbox-and-pr-approval.md)
 - [OWASP Top 10 for LLM applications 2025](https://genai.owasp.org/llm-top-10/): LLM01 and LLM06
-- [Agent research papers, tool-security section](../../research/papers/agent-research-papers.md#our-permission-pipeline-checks-what-a-tool-call-asks-to-do-but-not-what-the-tools-code-or-a-loaded-skill-actually-does) (U22): a permission pipeline judges a tool call by the tool's declared contract, and ACaM (arXiv 2611.23507) shows that contract can understate what the code does. Staron (arXiv 2611.23251) measured, across 932,791 coding-agent pull requests, far higher governance risk in changes to CI/CD workflows and permission settings than in application code. Both bear on the pipeline section and the incident opening; a stricter path for CI/CD diffs is U22 proposal 3, awaiting the owner, so present the risk, not a rule we have adopted.
+- [Agent research papers, tool-security section](../../research/papers/agent-research-papers.md#our-permission-pipeline-checks-what-a-tool-call-asks-to-do-but-not-what-the-tools-code-or-a-loaded-skill-actually-does) (U22): a permission pipeline judges a tool call by the tool's declared contract, and ACaM (arXiv 2611.23507) shows, on injected variants of its annotated agents, that a contract can understate what the code does. Staron (arXiv 2611.23251) measured, across 932,791 coding-agent pull requests, far higher governance risk in changes to CI/CD workflows and permission settings than in application code, on a measure that builds in a control-plane premium (the paper says the differences between agents are not explained by cost or merge rate, without a statistical control). Both bear on the pipeline section and the incident opening; a stricter path for CI/CD diffs is U22 proposal 3, awaiting the owner, so present the risk, not a rule we have adopted.
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted): the per-section workflow and the voice rules
 - `apps/manual/README.md` (from T3–T7 and T26): front matter, citations, listings, notes, tabs, replays, checked inline code, figures and the analogy register
 
@@ -32,7 +32,7 @@ Write the chapter "Permissions, sandboxes and credentials, and the lethal trifec
 
 - `apps/manual/src/content/chapters/permissions-sandboxes-and-credentials.md`, with `switchTo: [N12–N20]` and `opening: incident` in its front matter
 - Sections: A deny-first permission pipeline; Sandboxes and egress; The credential boundary, then connector OAuth and token custody (moved from the tools chapter); Prompt injection contained: the lethal trifecta and cutting the outbound leg (agent guide §5)
-- Listings and at least one replay from: `verify/claude-agent-sdk/examples/03-permission-order.ts`, `verify/copilot-sdk/examples/03-permission-deny.ts`, `verify/copilot-sdk/examples/04-restrict-builtins.ts`, `verify/pi/examples/07-extension-gate.ts`, `verify/copilot-sdk/examples/00-sandbox.ts` (labelled as our harness's network self-check, not an SDK feature), the sandbox example from [T31](T31-example-sandbox-behaviour.md)
+- Listings and at least one replay from: `verify/claude-agent-sdk/examples/03-permission-order.ts`, `verify/copilot-sdk/examples/03-permission-deny.ts`, `verify/copilot-sdk/examples/04-restrict-builtins.ts`, `verify/pi/examples/07-extension-gate.ts`, `verify/copilot-sdk/examples/00-sandbox.ts` (labelled as our harness's network self-check, not an SDK feature), `verify/claude-agent-sdk/examples/10-refusals-are-recorded.ts` from [T31](../done/T31-example-sandbox-behaviour.md), which shows a call the SDK refuses and records in `permission_denials`, not an operating-system sandbox (the mock never calls the host tools a sandbox confines, so the sandbox tier stays prose)
 - Figures: a flat analogy illustration of the lab glovebox, placed just before the centerpiece; an isometric centerpiece of an exact technical diagram of the deny-first permission pipeline, the sandbox and its egress allowlist, with real labels; a flat figure of where the credential is added, outside the sandbox
 - Exercise: Add a deny rule after an approval and predict which calls it blocks; then remove the outbound tool and show the injected instruction has nowhere to go.
 - `apps/manual/fact-checks/permissions-sandboxes-and-credentials.md`, the chapter's claims log

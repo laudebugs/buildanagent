@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
+import { API_PACKAGES } from "../api/packages.js";
 
 export const DOCS_DIR = fileURLToPath(new URL("../content/docs/", import.meta.url));
 
@@ -26,11 +27,20 @@ export interface Page {
   readonly fences: readonly Fence[];
 }
 
-/** The path of every `.md` and `.mdx` page under the docs folder. */
+/** TypeDoc writes the API reference under these folders at build time, so the pages in them are not ours to check. */
+const GENERATED = API_PACKAGES.map((pkg) => join(DOCS_DIR, pkg.output));
+
+/**
+ * The path of every `.md` and `.mdx` page we write under the docs folder. The generated reference folders are skipped
+ * while walking, because TypeDoc deletes and rewrites them during a build that another test may be running.
+ */
 export function pagePaths(dir = DOCS_DIR): string[] {
-  return readdirSync(dir, { recursive: true, withFileTypes: true })
-    .filter((entry) => entry.isFile() && /\.mdx?$/.test(entry.name))
-    .map((entry) => join(entry.parentPath, entry.name))
+  return readdirSync(dir, { withFileTypes: true })
+    .flatMap((entry) => {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) return GENERATED.includes(path) ? [] : pagePaths(path);
+      return /\.mdx?$/.test(entry.name) ? [path] : [];
+    })
     .sort();
 }
 
@@ -85,7 +95,7 @@ function splitFences(rest: string): { body: string; fences: Fence[] } {
   return { body: prose.join("\n"), fences };
 }
 
-/** Every page, read from disk. */
+/** Every page we write, read from disk. */
 export function readPages(): Page[] {
   return pagePaths().map((file) => {
     const { frontmatter, texts, rest } = frontmatterOf(readFileSync(file, "utf8"));
