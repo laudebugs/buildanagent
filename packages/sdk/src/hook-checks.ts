@@ -4,7 +4,7 @@
  */
 import type { AssistantMessage, ContentBlock, Message, Model } from "@buildanagent/gateway";
 import { SdkError } from "./errors.js";
-import type { GateDecision, ModelCallPatch, StopDecision } from "./hooks.js";
+import type { GateDecision, ModelCallPatch, ModelCallStop, StopDecision } from "./hooks.js";
 import { isContentList } from "./tools/pipeline.js";
 
 function invalid(hook: string, problem: string): never {
@@ -29,10 +29,30 @@ export function checkMessages(hook: string, value: unknown): Message[] {
   return [...value];
 }
 
-/** Checks `beforeModelCall`'s return value: nothing, or a patch of well-formed fields. */
-export function checkModelPatch(value: unknown): ModelCallPatch | undefined {
+/** Checks a `beforeModelCall` return that carries `stop`: its text is not blank, and nothing else comes with it. */
+function checkStop(value: Record<string, unknown>): ModelCallStop {
+  const { stop } = value;
+  if (typeof stop !== "string" || stop.trim() === "")
+    invalid("beforeModelCall", "returned a stop that is blank or not text");
+  if (stop === "hook" || stop === "no_progress") {
+    invalid("beforeModelCall", `returned the stop text "${stop}", which shouldStop uses for its own stops`);
+  }
+  if (Object.keys(value).some((key) => key !== "stop" && value[key] !== undefined)) {
+    invalid("beforeModelCall", "returned stop with other fields, so return it alone");
+  }
+  return { stop };
+}
+
+/** Whether a checked `beforeModelCall` return is a stop and not a patch. */
+export function isModelCallStop(value: ModelCallPatch | ModelCallStop): value is ModelCallStop {
+  return typeof value.stop === "string";
+}
+
+/** Checks `beforeModelCall`'s return value: nothing, a stop, or a patch of well-formed fields. */
+export function checkModelPatch(value: unknown): ModelCallPatch | ModelCallStop | undefined {
   if (value === undefined) return undefined;
   if (!isObject(value)) invalid("beforeModelCall", "must return a patch object or nothing");
+  if (value.stop !== undefined) return checkStop(value);
   const { system, messages, activeTools, model, options } = value;
   if (system !== undefined && typeof system !== "string")
     invalid("beforeModelCall", "returned a system that is not a string");

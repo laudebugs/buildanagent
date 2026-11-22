@@ -52,7 +52,7 @@ The sections of README.md and every public export, generated from this package's
 - [Scripted doubles stand in for the approver and an MCP server](README.md#scripted-doubles-stand-in-for-the-approver-and-an-mcp-server)
 - [Tests give the same result every run](README.md#tests-give-the-same-result-every-run)
 - [The support-triage capstone shows the whole SDK working in one agent](README.md#the-support-triage-capstone-shows-the-whole-sdk-working-in-one-agent)
-- [A reference loop shows the real loop's shape in about 440 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-about-440-lines)
+- [A reference loop shows the real loop's shape in about 450 lines](README.md#a-reference-loop-shows-the-real-loops-shape-in-about-450-lines)
 - [Build the SDK with its dependencies](README.md#build-the-sdk-with-its-dependencies)
 
 ## Exports from `@buildanagent/sdk`
@@ -101,6 +101,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface ModelCallEvent`: What `beforeModelCall` receives: the request about to be sent.
 - `interface ModelCallPatch`: Changes to one model call's request.
 - `interface ModelCallRequest`: One model call's request as the loop sends it: the model, the context and the options.
+- `interface ModelCallStop`: The value `beforeModelCall` returns to end the run before a call.
 - `interface ModelResultEvent`: What `afterModelCall` receives: the model's finished response.
 - `nestedRunDepth()`: The `depth`, `maxDepth` and `parentRun` options for a run that a tool starts: one level deeper than the tool's own run, under the same cap, and named after the tool call that starts it.
 - `interface NoProgressResult`: A run that stopped making progress.
@@ -137,7 +138,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface SignPendingOptions`: Where `signPending()` takes its request id and time from.
 - `interface StepEvent`: What `shouldStop` receives, after a step's tool calls have their results.
 - `type StopDecision`: What `shouldStop` decides.
-- `interface StoppedResult`: A run that stopped before it finished, because a `shouldStop` hook ended it.
+- `interface StoppedResult`: A run that stopped before it finished, because a `shouldStop` hook ended it after a step or a `beforeModelCall` hook ended it before a call with `{ stop }`.
 - `interface ToolAnnotations`: What a tool says about itself, using the names of the Model Context Protocol's tool annotations.
 - `interface ToolCallEvent`: What `beforeToolCall` receives: a call whose input has passed the tool's schema.
 - `interface ToolContext`: What a tool's `execute` receives besides its input.
