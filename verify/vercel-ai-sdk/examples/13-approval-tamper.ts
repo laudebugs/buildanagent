@@ -27,9 +27,9 @@ function setup(secret: string | undefined) {
   return { agent, executed };
 }
 
-/** Pauses at the refund, edits the saved call from order A-1 to Z-9, and then approves it. */
+/** Pauses at the refund, optionally edits the saved call from order A-1 to Z-9, and then approves it. */
 // #region tamper
-async function approveAfterEditing(secret: string | undefined) {
+async function approve(secret: string | undefined, edit: boolean) {
   const { agent, executed } = setup(secret);
   const messages: ModelMessage[] = [{ role: "user", content: "Refund order A-1" }];
   const first = await agent.generate({ messages }); // book:note pause
@@ -37,7 +37,9 @@ async function approveAfterEditing(secret: string | undefined) {
   check(ask !== undefined && executed.length === 0, "the run pauses before the refund");
   // Whoever stores the messages can change them before the approval arrives.
   const saved = JSON.stringify([...messages, ...first.responseMessages]);
-  const edited: ModelMessage[] = JSON.parse(saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"')); // book:note edit
+  const edited: ModelMessage[] = JSON.parse(
+    edit ? saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"') : saved, // book:note edit
+  );
   edited.push({
     role: "tool",
     content: [{ type: "tool-approval-response", approvalId: ask.approvalId, approved: true }],
@@ -52,12 +54,18 @@ async function approveAfterEditing(secret: string | undefined) {
 // #endregion
 
 {
-  const { executed, error } = await approveAfterEditing(undefined);
+  const { executed, error } = await approve(undefined, true);
   check(error === undefined, "unsigned: the edited call is accepted");
   check(JSON.stringify(executed) === '["Z-9"]', "unsigned: the refund runs for the edited order, not the one shown");
 }
 {
-  const { executed, error } = await approveAfterEditing(SECRET);
+  const { executed, error } = await approve(SECRET, true);
   check(InvalidToolApprovalSignatureError.isInstance(error), "signed: the edited call fails signature verification");
   check(executed.length === 0, "signed: the tool never runs");
+}
+{
+  // The control: the same signed approval with no edit still runs, so the edit is what breaks the signature.
+  const { executed, error } = await approve(SECRET, false);
+  check(error === undefined, "signed, unedited: the approval is accepted");
+  check(JSON.stringify(executed) === '["A-1"]', "signed, unedited: the refund runs for the order the reviewer saw");
 }

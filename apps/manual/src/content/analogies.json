@@ -117,7 +117,7 @@
     "analogy": "a bank's second signature on a large payment",
     "chapter": "approvals-guardrails-and-injection",
     "illustration": "second-signature",
-    "breaks": "A teller checks the signature against the paper order in front of them. A saved run is text that your storage can change, so the SDK has to compute the signature over the tool name, call id and input, and only the AI SDK among the three here does, and only when you set a secret."
+    "breaks": "A teller checks the signature against the paper order in front of them. A saved run is text that your storage can change, so the SDK has to compute the signature over the tool name, call id and input, and of the three SDKs here, only the AI SDK documents such a signature, and only when you set a secret."
   },
   {
     "id": "smoke-detectors",

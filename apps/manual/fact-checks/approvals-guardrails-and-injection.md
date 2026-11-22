@@ -96,11 +96,24 @@ The OWASP entries are [LLM01:2025 Prompt Injection](https://raw.githubuserconten
 | 54 | `noInjection` is the name of the triage example's input guardrail, a regular expression over the serialised input | § Exercises | ✅ | `verify/openai-agents-sdk/examples/11-injection-reworded.ts`, region `injection-check`: `const noInjection: InputGuardrail = {…}`, a copy of the one in `09-triage-agent.ts`; the regex is `/ignore (all|previous) instructions/i` |
 | 55 | `lookup_order`, `send_reply`, `issue_refund` and `delete_account` are tool names of an imagined shop, not names from any SDK | § Exercises | ✅ | Our invention for the paper exercise; only `issue_refund` also appears in the listings (`verify/openai-agents-sdk/examples/05-approval-resume.ts`, a tool named `issue_refund`). None is an API identifier, so no listing or declaration file needs to hold it |
 
+## Re-checks of the review fixes
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 56 | `tripped` is a field of the object `tripsOn` returns in example 11, true when the guardrail's tripwire fired | § Exercises | ✅ | `verify/openai-agents-sdk/examples/11-injection-reworded.ts`: `return { tripped: false, … }` and `tripped: e instanceof InputGuardrailTripwireTriggered`. Our own code, not an SDK name |
+| 57 | Corrects row 35: a tool guardrail wraps each call of the function tool it is attached to, set through `tool()` options or a local MCP server's options; it does not cover handoffs, hosted tools or the built-in execution tools | § guardrails | ✏️ | SDK page, "Tool guardrails": "set `inputGuardrails`, `outputGuardrails`, or both on `tool({...})`" and "Hosted MCP tools, other hosted tools, and built-in execution tools … do not use this guardrail pipeline". Row 35 said "every function-tool call", which overstated it. The chapter now says "around each call of the function tool it is attached to" |
+| 58 | Corrects row 26: of the three SDKs here, only the AI SDK documents such a signature, and only when you set a secret | § A saved approval (analogy note) | ✏️ | Rows 19 and 25: the AI SDK page describes the signature; the OpenAI and LangChain pages describe none. The analogy note now says "documents", so it no longer claims anything about LangChain's checkpointer beyond its docs |
+| 59 | Opening, after the writing fix: the OpenAI SDK leaves the check to the application and the AI SDK makes it only when given a secret | Opening | ✅ | Rows 3 and 19 |
+| 60 | The OpenAI docs state the gap, "so the application must verify": the restore does not authenticate the snapshot or the person submitting it | § A saved approval | ✅ | OpenAI page: "Only deserialize snapshots from trusted storage or after your application verifies the complete snapshot's integrity, ownership, and replay protection." |
+| 61 | The triage example gives its agent an `escalate` tool that needs approval, so an injected request reaches a person's decision instead of an action | § prompt injection | ✅ | Row 48; the sentence now names the tool and claims no removed trifecta leg |
+| 62 | A signed, unedited approval still runs, and the refund goes to order A-1 | § A saved approval | ✅ | Example 13's new control run: checks "signed, unedited: the approval is accepted" and "…the refund runs for the order the reviewer saw". It shows the edit, not the signing, is what the signature rejects |
+| 63 | In the AI SDK the second call rejects with the error; the example turns the rejection into a value to check it | § A saved approval | ✅ | Example 13: `agent.generate(...)` is awaited through `.then(() => undefined, (e) => e)`; the check uses `InvalidToolApprovalSignatureError.isInstance(error)` |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 50 |
-| ✏️ corrected | 0 |
+| ✅ confirmed | 56 |
+| ✏️ corrected | 2 (rows 57 and 58, correcting rows 35 and 26) |
 | ⚠️ unverified, an illustration or our reading, marked as ours in the text | 5 (rows 26, 27, 31, 41 and 53) |
-| Total | 55 |
+| Total | 63 |
