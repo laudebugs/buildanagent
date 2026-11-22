@@ -148,7 +148,7 @@ function expandGroup(
 }
 
 /** The answers already written for each request, oldest first. */
-function answersByRequest(path: readonly SessionEntry[]): Map<string, Resolution[]> {
+export function answersByRequest(path: readonly SessionEntry[]): Map<string, Resolution[]> {
   const answers = new Map<string, Resolution[]>();
   for (const entry of path) {
     if (entry.type === "approval_resolved") {
@@ -159,9 +159,9 @@ function answersByRequest(path: readonly SessionEntry[]): Map<string, Resolution
 }
 
 /** Refuses an answer set that can't be applied: no signer, an answer twice, a request that doesn't wait, a self-approval. */
-function checkAnswers<H>(
+export function checkAnswers<H>(
   harness: Harness<H>,
-  waiting: ReadonlyMap<string, PendingApproval>,
+  waiting: ReadonlyMap<string, unknown>,
   resolutions: readonly Resolution[],
   requesterId: string | undefined,
 ): void {
@@ -224,9 +224,9 @@ function outcomeOf(
  * of this resume never counts them as given. The records returned are the entries to write, denials by the policy
  * included, so the log tells an expiry from any other refusal.
  */
-async function settled(
+export async function settled(
   policy: QuorumPolicy,
-  waiting: readonly PendingApproval[],
+  waiting: readonly Pick<PendingApproval, "request">[],
   earlier: ReadonlyMap<string, Resolution[]>,
   records: readonly ResolutionRecord[],
 ): Promise<{ forRun: Resolution[]; records: ResolutionRecord[] }> {
@@ -242,10 +242,20 @@ async function settled(
   return { forRun, records: out };
 }
 
+/** The harness and quorum policy each `Approvals` was made with, so a sandbox escalation shares them. */
+const made = new WeakMap<object, { readonly harness: Harness<never>; readonly quorum: QuorumPolicy }>();
+
+/** The harness and quorum policy `approvals` was made with, or `undefined` for one `createApprovals()` did not make. */
+export function approvalsBinding<H>(
+  approvals: Approvals<H>,
+): { readonly harness: Harness<H>; readonly quorum: QuorumPolicy } | undefined {
+  return made.get(approvals) as { readonly harness: Harness<H>; readonly quorum: QuorumPolicy } | undefined;
+}
+
 /** Creates the approvals of `harness`, which needs a `signer` to check the requests it resumes. */
 export function createApprovals<H = unknown>(harness: Harness<H>, settings: ApprovalsOptions = {}): Approvals<H> {
   const policy = settings.quorum ?? oneResolution;
-  return {
+  const approvals: Approvals<H> = {
     async pending(session) {
       const path = await session.path();
       return [...pendingApprovals(path), ...pendingCodeCalls(path).map(({ request, input }) => ({ request, input }))];
@@ -281,6 +291,8 @@ export function createApprovals<H = unknown>(harness: Harness<H>, settings: Appr
       return resumeTurn(session, harness, { ...options, resolutions: forRun, records: toWrite });
     },
   };
+  made.set(approvals, { harness: harness as Harness<never>, quorum: policy });
+  return approvals;
 }
 
 const nameOf = <H>(harness: Harness<H>, tool: string): string => harness.registry.get(tool)?.canonicalName ?? tool;
