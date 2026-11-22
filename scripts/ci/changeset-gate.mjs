@@ -16,7 +16,7 @@
 // A bump passes without a changeset. Any other change to shipped files, a bump that also touches src/ included, must
 // add or edit a top-level `.changeset/*.md` that `changeset version` would consume. `pnpm changeset status` alone
 // isn't enough: it also counts an edit to an already consumed changeset in `.changeset/pre/`, which would let the
-// change merge and never publish. The change then goes to `pnpm changeset status`, which checks the rest.
+// change merge and never publish. A change with such a changeset then goes to `pnpm changeset status`, which checks the rest.
 //
 // One kind of change needs more than any changeset: a new value of a stamp in RELEASE_STAMPS, such as the SDK's
 // DEFAULTS_HASH. The hash changes when a default, a built-in prompt or a tool description does, and users must read
@@ -152,8 +152,8 @@ export function changedStamps(stamps, read) {
 
 /**
  * Lists the stamps whose pattern finds no value at head, such as a hash that a reformat or a type annotation moved
- * out of the pattern's reach, or a file that the base has and the head moved or deleted. The gate fails on them, because a stamp it can't read would let
- * every later change of it through.
+ * out of the pattern's reach, or a file that the base has and the head moved or deleted. The gate fails on them,
+ * because a stamp it can't read would let every later change of it through.
  */
 export function unreadableStamps(stamps, read) {
   return stamps.filter((stamp) => {
