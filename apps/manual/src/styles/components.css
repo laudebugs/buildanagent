@@ -1214,7 +1214,8 @@
    Highlight API, so no element wraps the chapter's text. Each of the four colours has a plain name and a noted name,
    because the specification advises one name per highlight. A highlight's pale background stays decorative; the accent
    underline marks it, at 3:1 or more on the highlight in both modes, and a dashed underline marks one with a note.
-   Firefox 140 to 145 draws no underline, so a note also has its own marker (.notes-marker, or .notes-dot when it is narrow). Highlighted text
+   Firefox 140 to 145 draws no underline, so a note also has its own marker: .notes-marker, or .notes-dot when the
+   window is narrow. Highlighted text
    takes the text colour, which keeps 4.5:1 on every highlight colour (book-tokens.json). */
 ::highlight(manual-hl-amber),
 ::highlight(manual-note-amber) {
@@ -1258,7 +1259,7 @@
 }
 
 /* While a margin marker is hovered or focused, its passage takes a stronger shade of its own colour. Text keeps 4.5:1 on
-   every shade (book-tokens.json), and the underline turns to the text colour, which the accent would not match on it. */
+   every shade (book-tokens.json), and the underline takes the text colour, because the accent was not measured against the hover shades. */
 ::highlight(manual-hover-amber),
 ::highlight(manual-hover-green),
 ::highlight(manual-hover-blue),

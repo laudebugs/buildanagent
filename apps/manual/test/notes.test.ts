@@ -1567,6 +1567,19 @@ test("a noted passage in a block wider than the column gives every note a dot, n
   assert.equal(dots(win).length, 1);
 });
 
+test("a hovered marker that goes when the window narrows leaves no brightened passage behind", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  start(win as unknown as globalThis.Window);
+  (markers(win)[0] as HTMLElement).dispatchEvent(new win.Event("mouseover", { bubbles: true }) as unknown as Event);
+  const highlights = (win as unknown as { CSS: { highlights: Map<string, unknown> } }).CSS.highlights;
+  assert.equal(highlights.has("manual-hover-amber"), true);
+  narrow(win);
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(markers(win).length, 0);
+  assert.equal(highlights.has("manual-hover-amber"), false, "the dot has no hover, so nothing stays brightened");
+});
+
 test("a focused dot keeps focus through a redraw", () => {
   const { win } = stage([CONTRACT, FAILED], { narrow: true });
   (dots(win)[0] as HTMLElement).focus();

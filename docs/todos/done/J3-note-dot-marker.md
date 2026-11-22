@@ -79,10 +79,10 @@ The manual's README section "A reader's notes stay in their own browser", the J1
 
 ## Outcome
 
-J2's bubble marker is replaced by a pair that depends on the room beside the text column. `hasGutter()` measures it from the first paragraph's right edge (the article's box is wider than its text), and `refit()` swaps the two when a resize or rotation crosses the width.
+J2's bubble marker is replaced by a pair that depends on the room beside the text column. `hasGutter()` measures it from the right edge of the first paragraph (the article's box is wider than its text) or of the widest block that holds a noted passage, and `refit()` swaps the two when a resize or rotation crosses the width.
 
 - **Wide (44 pixels or more beside the column): a margin marker.** `layoutMarkers()` draws a 28 pixel speech-bubble button level with the passage's first line, in the highlight's colour, in a container outside the article, so nothing is added to the article. Markers that begin close together are stacked. Hovering or focusing one brightens its passage with a stronger shade (`manual-hover-*`), and Enter, Space or a click opens the popover. A redraw moves a marker instead of replacing it, so focus and hover survive.
 - **Narrow: a numbered inline dot.** `placeDots()` inserts an inline `span` after the passage's last word, in space the line reserves. It holds no text (generated content), carries `data-pagefind-ignore`, and the text model, Pagefind, copy and the stored anchors are unchanged. It goes after every inline element the passage ends in. `clearDots()` removes every dot and joins the split text nodes before each redraw. Enter opens on keydown and Space on keyup, and focus returns after the popover closes or a redraw.
 - **Colour.** `book-tokens.json` gains `highlightEdge*` (3:1 on the page, the marker and dot outline) and `highlightHover*` (4.5:1 under the text), both checked in `test/contrast.test.ts`.
-- **Mutation observer.** The script drops its own mutation records after it changes the article, and reads the chapter again when another script's records were dropped with them.
+- **Mutation observer.** After it changes the article, the script discards its own mutation records and, when that also discards another script's, reads the chapter again.
 - **Checks.** The Playwright run at 1280 and 393 pixels checks the marker's size, position and hover, the dot's size, raise, target, position and no overlap, the swap across a resize, the article's markup restored, no sideways scroll, and the keyboard path.

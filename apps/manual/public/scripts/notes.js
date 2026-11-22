@@ -1322,7 +1322,15 @@ class Notes {
       this.markers.replaceChildren();
       this.placeDots();
     }
-    this.hover(this.hovered);
+    // A marker that is gone, as when the window narrows to dots, can no longer send its mouseout or focusout, so a
+    // hover or focus source that names one is cleared here.
+    for (const source of ["pointer", "focus"]) {
+      const id = this.hoverSources[source];
+      if (![...this.markers.children].some((marker) => marker.getAttribute("data-id") === id)) {
+        this.hoverSources[source] = undefined;
+      }
+    }
+    this.hover(this.hoverSources.pointer ?? this.hoverSources.focus);
     if (focusedId !== undefined) this.noteControl(focusedId)?.focus({ preventScroll: true });
     this.updateCount();
   }
