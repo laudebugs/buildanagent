@@ -41,11 +41,23 @@ export function groupRequests(requests: readonly PersonRequest[], inputs: Readon
   return [...groups.values()];
 }
 
-/** The lines that describe a group's input: each chained command on its own line, or the input as JSON. */
+/**
+ * The lines that describe a group's input: each chained command on its own line, or the input as JSON. The input's
+ * other fields follow the command as compact JSON, because they change what it does: `rm -rf build` with `cwd` set to
+ * `/` is not the command it reads as alone. A command whose quotes never close gets a warning line, since its split
+ * may hide a command inside the last line.
+ */
 export function inputLines(input: unknown): string[] {
   const command = commandOf(input);
   if (command === undefined) return [visible(JSON.stringify(input) ?? "(no input)")];
-  return chainedCommands(command).map((part) => visible(`${part.operator} ${part.command}`.trim()));
+  const parts = chainedCommands(command);
+  const lines = parts.map((part) => visible(`${part.operator} ${part.command}`.trim()));
+  if (parts.at(-1)?.unclosed === true) {
+    lines.push("(a quote or parenthesis never closes, so the last line may hold more than one command)");
+  }
+  const { command: _command, ...rest } = input as Record<string, unknown>;
+  if (Object.keys(rest).length > 0) lines.push(`with ${visible(JSON.stringify(rest))}`);
+  return lines;
 }
 
 function describe(group: Group): string {

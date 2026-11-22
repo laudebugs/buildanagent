@@ -12,6 +12,11 @@ const OPERATORS = ["&&", "||", ";;", ";", "|&", "|", "&", "\n"] as const;
 export interface ChainedCommand {
   readonly operator: string;
   readonly command: string;
+  /**
+   * Set on the last command when the text ends inside a quote or a parenthesis the scan never saw closed, such as a
+   * here-document's `it's`. The shell may read that text differently, so the split before it can't be trusted.
+   */
+  readonly unclosed?: true;
 }
 
 /**
@@ -23,13 +28,13 @@ export interface ChainedCommand {
  */
 function normalised(text: string): string {
   let out = "";
-  const scan: Scan = { quote: undefined, depth: 0 };
+  const scan = newScan();
   let space = false;
   // No trim: leading and trailing spaces are dropped by the loop, and an escaped trailing space is kept.
   for (let at = 0; at < text.length; ) {
-    const token = tokenAt(text, at, scan.quote);
+    const token = tokenAt(text, at, scan.open.at(-1));
     at += token.length;
-    if (scan.quote === undefined && scan.depth === 0 && (token === " " || token === "\t")) {
+    if (outside(scan) && (token === " " || token === "\t")) {
       space = true;
       continue;
     }
@@ -37,6 +42,7 @@ function normalised(text: string): string {
     space = false;
     out += token;
     if (token.length === 1) step(scan, token);
+    else stepEscaped(scan);
   }
   return out;
 }
@@ -60,23 +66,58 @@ function operatorAt(text: string, at: number, afterRedirect: boolean): string | 
   return found;
 }
 
-/** Where the scan of a command stands: inside which quote, and how deep in parentheses. */
+/**
+ * Where the scan of a command stands: the quotes and parentheses it is inside, innermost last, and the character it
+ * read last, which is empty after an escape. Inside double quotes, `$(` opens a substitution whose own quotes nest, as
+ * in the shell: `"$(echo '"')"` is one word, and a flat scan would read its inner `"` as the end of the outer quote.
+ */
 interface Scan {
-  quote: string | undefined;
-  depth: number;
+  readonly open: string[];
+  last: string;
+}
+
+const newScan = (): Scan => ({ open: [], last: "" });
+
+/** Whether the scan is outside every quote and parenthesis. */
+const outside = (scan: Scan): boolean => scan.open.length === 0;
+
+/** Whether the scan is inside a quote, rather than in a parenthesis or outside. */
+const quoted = (scan: Scan): boolean => ['"', "'", "`"].includes(scan.open.at(-1) ?? "");
+
+/** Moves the scan past `char` inside double quotes, where only `"`, a backtick and `$(` open or close anything. */
+function stepDoubleQuoted(scan: Scan, char: string, last: string): void {
+  if (char === '"') scan.open.pop();
+  else if (char === "`" || (char === "(" && last === "$")) scan.open.push(char);
+}
+
+/** Moves the scan past `char` outside quotes, and says whether `char` is outside every parenthesis too. */
+function stepUnquoted(scan: Scan, char: string): boolean {
+  if (char === '"' || char === "'" || char === "`" || char === "(") scan.open.push(char);
+  else if (char === ")") {
+    if (scan.open.at(-1) === "(") scan.open.pop();
+  } else return outside(scan);
+  return false;
 }
 
 /** Moves the scan past `char`, and says whether `char` is outside every quote and parenthesis. */
 function step(scan: Scan, char: string): boolean {
-  if (scan.quote !== undefined) {
-    if (char === scan.quote) scan.quote = undefined;
+  const last = scan.last;
+  scan.last = char;
+  const inner = scan.open.at(-1);
+  if (inner === "'" || inner === "`") {
+    if (char === inner) scan.open.pop();
     return false;
   }
-  if (char === '"' || char === "'" || char === "`") scan.quote = char;
-  else if (char === "(") scan.depth += 1;
-  else if (char === ")") scan.depth = Math.max(0, scan.depth - 1);
-  else return scan.depth === 0;
-  return false;
+  if (inner === '"') {
+    stepDoubleQuoted(scan, char, last);
+    return false;
+  }
+  return stepUnquoted(scan, char);
+}
+
+/** Moves the scan past a character a backslash escaped, which is a plain character and opens or closes nothing. */
+function stepEscaped(scan: Scan): void {
+  scan.last = "";
 }
 
 /**
@@ -84,7 +125,7 @@ function step(scan: Scan, char: string): boolean {
  * `escaped` is the index of the last character a backslash escaped, which is part of a word.
  */
 const startsComment = (command: string, at: number, scan: Scan, escaped: number): boolean =>
-  scan.quote === undefined &&
+  !quoted(scan) &&
   command[at] === "#" &&
   (at === 0 || (escaped !== at - 1 && " \t\n;&|()".includes(command[at - 1] as string)));
 
@@ -105,7 +146,7 @@ const afterRedirect = (command: string, at: number, escaped: number): boolean =>
  */
 export function chainedCommands(command: string): ChainedCommand[] {
   const parts: ChainedCommand[] = [];
-  const scan: Scan = { quote: undefined, depth: 0 };
+  const scan = newScan();
   let operator = "";
   let start = 0;
   const close = (end: number, next: string) => {
@@ -117,13 +158,15 @@ export function chainedCommands(command: string): ChainedCommand[] {
   let escaped = -1;
   for (let at = 0; at < command.length; at++) {
     const char = command[at] as string;
-    if (char === "\\" && scan.quote !== "'") {
+    if (char === "\\" && scan.open.at(-1) !== "'") {
       at += 1;
       escaped = at;
+      stepEscaped(scan);
       continue;
     }
     if (startsComment(command, at, scan, escaped)) {
       at = commentEnd(command, at);
+      scan.last = "";
       continue;
     }
     const found = step(scan, char) ? operatorAt(command, at, afterRedirect(command, at, escaped)) : undefined;
@@ -133,6 +176,8 @@ export function chainedCommands(command: string): ChainedCommand[] {
     start = at + 1;
   }
   close(command.length, "");
+  const last = parts.at(-1);
+  if (last !== undefined && !outside(scan)) parts[parts.length - 1] = { ...last, unclosed: true };
   return parts;
 }
 

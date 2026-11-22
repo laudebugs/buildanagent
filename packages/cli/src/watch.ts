@@ -234,6 +234,10 @@ export async function runTurn(client: InProcessClient, watch: SessionWatch, text
       disposition.reason === "locked" ? "another process is writing it" : `the server said ${disposition.reason}`;
     throw new CliError("session_unavailable", `session ${watch.session} can't take a turn: ${why}`);
   }
+  // A settlement of another turn taken here is dropped safely. The server runs one turn of a session at a time and
+  // refuses `turn/start` while a resume runs, so such a settlement is a resume that ended before this turn started;
+  // and `settlePending()` never waits on it, because every `turn/settled` clears the written answers as it arrives,
+  // whoever takes it, and an unwritten answer counts only while the log still shows its request waiting.
   for (;;) {
     const settled = await watch.nextSettled();
     if (settled.turn === disposition.turn) return settled.result;

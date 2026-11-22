@@ -117,6 +117,44 @@ describe("chainedCommands", () => {
   });
 });
 
+describe("chainedCommands inside double quotes", () => {
+  test("a quote inside $(...) within double quotes nests, so the command after the word still splits", () => {
+    assert.deepEqual(chainedCommands(`echo "$(echo '"')"; rm x`), [
+      { operator: "", command: `echo "$(echo '"')"` },
+      { operator: ";", command: "rm x" },
+    ]);
+    assert.deepEqual(chainedCommands('echo "a (b" ; c'), [
+      { operator: "", command: 'echo "a (b"' },
+      { operator: ";", command: "c" },
+    ]);
+    assert.deepEqual(chainedCommands('echo "\\$(" ; c'), [
+      { operator: "", command: 'echo "\\$("' },
+      { operator: ";", command: "c" },
+    ]);
+  });
+
+  test("a quote that never closes marks the last command, and the approval prompt warns about it", () => {
+    const heredoc = "cat <<EOF\nit's\nEOF\nrm x";
+    const parts = chainedCommands(heredoc);
+    assert.equal(parts.at(-1)?.unclosed, true);
+    assert.deepEqual(inputLines({ command: heredoc }), [
+      "cat <<EOF",
+      "; it's\\nEOF\\nrm x",
+      "(a quote or parenthesis never closes, so the last line may hold more than one command)",
+    ]);
+  });
+});
+
+describe("inputLines", () => {
+  test("shows the input's other fields after the command, so a cwd or env can't hide", () => {
+    assert.deepEqual(inputLines({ command: "rm -rf build", cwd: "/", env: { HOME: "/\u001b[2K" }, timeout: 5 }), [
+      "rm -rf build",
+      'with {"cwd":"/","env":{"HOME":"/\\u001b[2K"},"timeout":5}',
+    ]);
+    assert.deepEqual(inputLines({ command: "ls" }), ["ls"]);
+  });
+});
+
 describe("groupRequests", () => {
   const bash = (id: string) =>
     ({

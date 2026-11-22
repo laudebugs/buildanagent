@@ -22,6 +22,17 @@ describe("visible", () => {
     assert.equal(visible("x\u202ey\u00a0z"), "x\\u202ey\\xa0z");
     assert.equal(visibleBlock("one\ntwo\tthree\r\u001b"), "one\ntwo\tthree\\r\\x1b");
   });
+
+  test("escapes the joiners, invisible operators, variation selectors and tag characters, by code point", () => {
+    assert.equal(
+      visible("a\u2060b\u2064c\u061cd\u00ade\u180ef\u034fg"),
+      "a\\u2060b\\u2064c\\u061cd\\xade\\u180ef\\u034fg",
+    );
+    assert.equal(visible("ok\ufe0f\u{e0072}\u{e006d}\u{e0100}"), "ok\\ufe0f\\u{e0072}\\u{e006d}\\u{e0100}");
+    assert.equal(visibleBlock("x\n\u{e0041}"), "x\n\\u{e0041}");
+    assert.equal(visible("\ud800!"), "\\ud800!");
+    assert.equal(visible("caf\u00e9 \u{1f600}"), "caf\u00e9 \u{1f600}");
+  });
 });
 
 test("an approval prompt shows a carriage return and an escape in the command, reason and tool as escapes", async () => {

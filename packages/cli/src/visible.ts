@@ -10,15 +10,27 @@ const NAMED: Readonly<Record<string, string>> = { "\n": "\\n", "\r": "\\r", "\t"
 
 type Range = readonly [number, number];
 
-// The control characters below space, DEL and those from 0x80 to 0x9f, the zero-width characters, the bidirectional
-// marks, embeddings, overrides and isolates, the line and paragraph separators, and the byte-order mark.
+// The control characters below space, DEL and those from 0x80 to 0x9f, the soft hyphen, the combining grapheme
+// joiner, the Arabic letter mark, the Mongolian vowel separator, the zero-width characters, the bidirectional marks,
+// embeddings, overrides and isolates, the line and paragraph separators, the word joiner and the invisible operators,
+// the variation selectors, the byte-order mark, the tag characters, and a surrogate that pairs with nothing. A
+// variation selector or a tag character draws nothing, so a run of them can carry text an approver never sees.
 const INVISIBLE: readonly Range[] = [
   [0x00, 0x1f],
   [0x7f, 0x9f],
+  [0xad, 0xad],
+  [0x34f, 0x34f],
+  [0x61c, 0x61c],
+  [0x180e, 0x180e],
   [0x200b, 0x200f],
   [0x2028, 0x202e],
+  [0x2060, 0x2064],
   [0x2066, 0x2069],
+  [0xd800, 0xdfff],
+  [0xfe00, 0xfe0f],
   [0xfeff, 0xfeff],
+  [0xe0000, 0xe007f],
+  [0xe0100, 0xe01ef],
 ];
 
 // The spaces that are not ASCII's. The shell reads a no-break space as part of a word, so on one line, such as a
@@ -35,25 +47,30 @@ const SPACES: readonly Range[] = [
 const within = (code: number, ranges: readonly Range[]): boolean =>
   ranges.some(([low, high]) => code >= low && code <= high);
 
-// Every character outside printable ASCII, which the functions below then sort into safe and unsafe.
-const NOT_PRINTABLE_ASCII = /[^ -~]/g;
+// Every code point outside printable ASCII, which the functions below then sort into safe and unsafe. The `u` flag
+// makes a character beyond U+FFFF, such as a tag character, one match instead of two halves of a surrogate pair.
+const NOT_PRINTABLE_ASCII = /[^ -~]/gu;
+
+const codeOf = (char: string): number => char.codePointAt(0) as number;
 
 function escaped(char: string): string {
   const named = NAMED[char];
   if (named !== undefined) return named;
-  const code = char.charCodeAt(0);
-  return code <= 0xff ? `\\x${code.toString(16).padStart(2, "0")}` : `\\u${code.toString(16).padStart(4, "0")}`;
+  const code = codeOf(char);
+  const hex = code.toString(16);
+  if (code <= 0xff) return `\\x${hex.padStart(2, "0")}`;
+  return code <= 0xffff ? `\\u${hex.padStart(4, "0")}` : `\\u{${hex}}`;
 }
 
 /** `text` on one line, with every control character, invisible character and non-ASCII space shown as an escape. */
 export const visible = (text: string): string =>
   text.replace(NOT_PRINTABLE_ASCII, (char) => {
-    const code = char.charCodeAt(0);
+    const code = codeOf(char);
     return within(code, INVISIBLE) || within(code, SPACES) ? escaped(char) : char;
   });
 
 /** `text` with its line breaks, tabs and spaces kept, and every other control or invisible character escaped. */
 export const visibleBlock = (text: string): string =>
   text.replace(NOT_PRINTABLE_ASCII, (char) =>
-    char !== "\n" && char !== "\t" && within(char.charCodeAt(0), INVISIBLE) ? escaped(char) : char,
+    char !== "\n" && char !== "\t" && within(codeOf(char), INVISIBLE) ? escaped(char) : char,
   );
