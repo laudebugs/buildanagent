@@ -1,5 +1,15 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.26
+
+### Minor Changes
+
+- 179e1e7: `SDK_VERSION` is now exported. It is the string `run_start.sdkVersion` carries, so a host that writes a session's header before the run starts, as the harness does, can stamp the same version.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.26
+
 ## 0.1.0-alpha.25
 
 ### Patch Changes
