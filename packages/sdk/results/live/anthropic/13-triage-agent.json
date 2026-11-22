@@ -65,8 +65,8 @@
         "uncachedInput": 4,
         "cacheRead": 0,
         "cacheWrite": 734,
-        "output": 80,
-        "reasoning": 50
+        "output": 79,
+        "reasoning": 49
       }
     },
     {
@@ -109,7 +109,7 @@
             "id": "<id-2>",
             "name": "escalate",
             "input": {
-              "reason": "Pro-plan customer reports a 500 error at checkout, and the report says every pro customer is affected. This looks like a checkout service bug that needs on-call engineering investigation. Customer has 2 open tickets."
+              "reason": "Reported bug: every Pro customer receives a 500 error at checkout. Customer lookup confirms a Pro plan account with 2 open tickets. This looks like a broad checkout outage affecting all Pro users, so it needs engineering investigation."
             }
           }
         ]
@@ -118,9 +118,9 @@
       "usage": {
         "uncachedInput": 2,
         "cacheRead": 734,
-        "cacheWrite": 103,
-        "output": 166,
-        "reasoning": 49
+        "cacheWrite": 102,
+        "output": 236,
+        "reasoning": 107
       }
     },
     {
@@ -180,8 +180,8 @@
       "finish": "tool_calls",
       "usage": {
         "uncachedInput": 2,
-        "cacheRead": 837,
-        "cacheWrite": 174,
+        "cacheRead": 836,
+        "cacheWrite": 244,
         "output": 72,
         "reasoning": 0
       }
