@@ -41,7 +41,7 @@ const api = API_PACKAGES.map((pkg) => {
       sidebar: { label: pkg.label, collapsed: true },
       // The package's root entry is its main page, so the module list leads with its exports. Each module is named for
       // its import path by an `@module` tag in the entry file.
-      typeDoc: { ...typeDoc, entryModule: pkg.name, entryFileName: "index" },
+      typeDoc: { ...typeDoc, entryFileName: "index" },
     }),
     sidebarGroup,
   };

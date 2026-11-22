@@ -27,6 +27,9 @@ export const API_PACKAGES: readonly ApiPackage[] = [
   { name: "@buildanagent/sdk", folder: "sdk", label: "SDK API", output: "reference/sdk" },
 ];
 
+/** The TypeDoc validation the check and the generated reference share. */
+export const VALIDATION = { notExported: false, invalidLink: true, notDocumented: true } as const;
+
 /** What a declaration must carry before the check passes. Members of a type are left to a reader's judgement. */
 export const REQUIRED_TO_BE_DOCUMENTED = ["Enum", "Variable", "Function", "Class", "Interface", "TypeAlias"] as const;
 
@@ -48,7 +51,7 @@ export function typeDocOptions(pkg: ApiPackage) {
   return {
     entryPoints: entryPoints(pkg),
     tsconfig: tsconfigOf(pkg),
-    validation: { notExported: false, invalidLink: true, notDocumented: true },
+    validation: VALIDATION,
     requiredToBeDocumented: [...REQUIRED_TO_BE_DOCUMENTED],
   };
 }

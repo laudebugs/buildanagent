@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterAll, beforeAll, describe, test } from "vitest";
 import { checkApiDocs, listExports } from "../src/api/check.js";
-import { API_PACKAGES, typeDocOptions } from "../src/api/packages.js";
+import { API_PACKAGES, REQUIRED_TO_BE_DOCUMENTED, typeDocOptions, VALIDATION } from "../src/api/packages.js";
 
 const APP = fileURLToPath(new URL("..", import.meta.url));
 const fixture = (name: string) => join(APP, "test/fixtures/api", name);
@@ -35,8 +35,7 @@ describe("the undocumented-export check", { timeout: 120_000 }, () => {
 
 /** The same rules the packages are held to, for a fixture that has no `exports` map. */
 function fixtureRules() {
-  const { validation, requiredToBeDocumented } = typeDocOptions(API_PACKAGES[0] as never);
-  return { validation, requiredToBeDocumented };
+  return { validation: VALIDATION, requiredToBeDocumented: [...REQUIRED_TO_BE_DOCUMENTED] };
 }
 
 describe("the built reference", { timeout: 180_000 }, () => {
