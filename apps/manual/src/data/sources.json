@@ -582,5 +582,15 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "docs/research/connectors/fact-check-agent-connectors.md"
+  },
+  {
+    "id": "santra-acam",
+    "title": "ACaM: Automated Capability Modeling for Agentic AI Security",
+    "publisher": "Santra et al. (arXiv:2611.23507)",
+    "url": "https://arxiv.org/abs/2611.23507",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/papers/fact-check-agent-research-papers.md"
   }
 ]
