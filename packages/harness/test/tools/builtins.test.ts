@@ -568,6 +568,16 @@ describe("grep and glob", () => {
     assert.equal(textOf(insensitive), "/work/notes.md:3:alpha beta");
   });
 
+  test("a relative glob below a search base of / keeps the first path segment", async () => {
+    const policy: SandboxPolicy = { readRoots: ["/"], writeRoots: [ROOT], network: { allow: [], deny: [] } };
+    const client = fakeSandbox();
+    const sandbox = await client.provision({ root: ROOT, files: { "../etc/x": "needle\n" } }, policy);
+    const tools = builtinTools(sandbox, undefined, { root: ROOT, policy });
+    const glob = tools.find((entry) => entry.name === "glob")?.definition;
+    assert.ok(glob);
+    assert.match(textOf(await call(glob, { pattern: "etc/*", path: "/" })), /\/etc\/x/);
+  });
+
   test("glob matches below its folder, and a read root can be searched", async () => {
     const { tool } = await setup();
     assert.equal(textOf(await call(tool("glob"), { pattern: "*.ts", path: "src" })), "/work/src/app.ts");

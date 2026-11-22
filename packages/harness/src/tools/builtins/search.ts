@@ -78,8 +78,9 @@ async function listFiles(deps: SearchDeps, base: string, timeoutMs: number, sign
   return { files: names, cut: result.truncated === true, warning };
 }
 
+// A base of "/" already ends in the separator, so the slice starts right after it.
 const relativeTo = (base: string, path: string): string =>
-  path === base ? (path.split("/").at(-1) ?? "") : path.slice(base.length + 1);
+  path === base ? (path.split("/").at(-1) ?? "") : path.slice(base === "/" ? 1 : base.length + 1);
 
 /** A filter for the listed files: an absolute glob matches the whole path, and a relative one the path below `base`. */
 function matcher(pattern: string, base: string, byName: boolean): (path: string) => boolean {
