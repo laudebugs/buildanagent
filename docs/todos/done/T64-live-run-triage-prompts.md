@@ -1,4 +1,4 @@
-# T64: Make the live run's triage capstones ask for the gated step, and record the patch step's fix
+# T64: Make the live list's triage capstones ask for the gated step their checks test, and hand the owner the workflow fix
 
 | Field | Value |
 | --- | --- |
@@ -11,7 +11,7 @@
 
 ## Goal
 
-The owner's first live run (workflow run 45026707288, 2026-11-22) failed in both provider jobs. All five listed triage capstones ended with a failed check, and then each job's "Write the patch" step exited 128, so no live transcript reached the report job and the run produced no comparison. This todo fixes what the repository can fix. It makes each capstone's prompt ask for the path its checks test, so a real model has a reason to call the gated tool. It also makes the Cloudflare check on the escalation compare only the customer, which the example fixes, not the reason the model writes. The Cloudflare result check still compares the priority the model chooses, because the ticket describes a full outage and `p1` is the right answer. The workflow's pathspec fix goes to the owner as a diff, because agents don't edit `.github/workflows/`.
+The owner's first live run (workflow run 45026707288, 2026-11-22) failed in both provider jobs. All five listed triage capstones ended with a failed check, and the patch step then exited 128, so the run produced no comparison. This todo fixes what the repository can fix. It makes each capstone's prompt ask for the path its checks test, so a real model has a reason to call the gated tool. It also changes the Cloudflare capstone's escalation check to compare only the customer, which the example fixes, and not the reason, which the model words itself. The result check still compares the priority, because the ticket describes a full outage and `p1` is right. The workflow's pathspec fix goes to the owner as a diff, because agents don't edit `.github/workflows/`.
 
 ## Context
 
@@ -58,13 +58,13 @@ The book plan's todo table and status line.
 
 ## Risks and open questions
 
-A real model may still choose a different path, such as asking the customer before it refunds. The live run records that as a difference in its issue, which is what the run is for. Only the owner's next run shows which examples now keep the mock's flow.
+A real model may still choose a different path, such as asking the customer before it refunds. The live run records that as a difference in its issue. Only the owner's next run shows which examples now keep the mock's flow.
 
 ## Outcome
 
-**The patch step never matched a file.** A wildcard pathspec must match a whole path, so `'verify/*/results/live'` matches no file under that directory, and `git add` exits 128 even when the run wrote transcripts. The run did write them: the job's report counted each example's checks, and `run.mjs` reads those counts from the live transcript. No change to `run.mjs` can fix that, because git tracks no empty directory and the pathspec misses the files inside one. The report job's `git checkout HEAD -- 'verify/*/results/live' …` has the same fault. The fix for both steps went to the owner as a diff of `live-run.yml`: stage `verify/`, diff `':(glob)verify/*/results/live/**'`, and check the transcripts out only when the commit changed one.
+**The patch step never matched a file.** A wildcard pathspec must match a whole path, so `'verify/*/results/live'` matches no file under that directory, and `git add` exits 128 even when the run wrote transcripts. The run did write the transcripts: the report counted each example's checks, and `run.mjs` reads those counts from the transcript. No change to `run.mjs` can fix the exit 128, because the pathspec misses files inside a directory even when it exists. The report job's `git checkout HEAD -- 'verify/*/results/live' …` has the same fault. The fix for both steps went to the owner as a diff of `live-run.yml`: stage `verify/`, diff `':(glob)verify/*/results/live/**'`, and check the transcripts out only when the commit changed one.
 
-**Each capstone's prompt now asks for the path its checks test.** A failed check already reaches the comparison: the recorder writes it to the live transcript with `pass: false`, `live-diff.mjs` reports it as a difference, and `run.mjs` exits 0. The examples failed because nothing in their prompts asked for the gated tool, so each real model made two calls, a lookup and an answer, where the mock made three. The LangChain, OpenAI Agents SDK and Pi prompts also ask for one escalation and a result whether or not a person allows it, because those examples always reject or block it, and a model that asked again would fail the call-order checks. The LangChain example reads its typed result with optional chaining, so a run that ends without one records the failed check instead of throwing a `TypeError` first. The Cloudflare capstone failed on a check that compared the escalation's reason, which a real model words itself. Its check now requires exactly one escalation, for customer C-9, whatever the reason says. The new check spans four lines, so the SDK README's code-line count for the Cloudflare capstone moved from 122 to 125.
+**Each capstone's prompt now asks for the path its checks test.** A failed check already reached the comparison (the recorder writes `pass: false`, `live-diff.mjs` reports it, and `run.mjs` exits 0), so the fix belongs in the prompts. Each real model made two calls, a lookup and an answer, where the mock made three. The LangChain, OpenAI Agents SDK and Pi prompts also ask for one escalation and a result whether or not a person allows it, because those examples always reject or block it, and a model that asked again would fail the call-order checks. The LangChain example reads its typed result with optional chaining, so a run that ends without one records the failed check instead of throwing a `TypeError` first. The Cloudflare capstone failed on a check that compared the escalation's reason, which a real model words itself. Its check now requires exactly one escalation, for customer C-9, whatever the reason says. The new check spans four lines, so the SDK README's code-line count for the Cloudflare capstone moved from 122 to 125.
 
 ## Definition of done
 
@@ -72,5 +72,5 @@ A real model may still choose a different path, such as asking the customer befo
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
