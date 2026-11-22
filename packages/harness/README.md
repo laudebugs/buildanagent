@@ -349,6 +349,30 @@ Four limits and interactions follow from this design:
 - The context policy's interceptors run before the harness's own `interceptors` and the permission gate. A mid-turn compaction therefore indexes the run's own transcript, a harness `transformContext` or `beforeModelCall` hook sees the masked and compacted view, and a harness `afterToolCall` hook sees the capped result.
 - A steer or follow-up accepted while the retry's summary call runs is delivered only if the retry goes ahead. When the summary is skipped or the turn is aborted, the message is dropped.
 
+## A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal
+
+A model's "done" is a claim, so a turn can check it in code. Pass `completion: { sandbox, env }` to `runTurn()`, where `sandbox` is the session's sandbox and `env` is the checks' whole environment, built with `spawnEnv()`. The turn then takes a snapshot of the workspace before the model runs. When the run ends `done`, the harness runs the project's checks in the sandbox, takes a second snapshot, and writes one `completion_check` entry after `turn_end`. It also calls `onCompletionCheck` with that entry, and the dispatcher sends it to clients as a `completion_check` event. The turn's stop reason is unchanged: a failed check or a flag is recorded for the CLI and the eval reports to show, and a turn that ends any other way runs no check. `lastEntryId` on the result is the new entry.
+
+**Configure the checks in `.agents/harness.json`.** `completionChecks` is a list, and each item is a command string, split on spaces, or a list of an executable and its arguments. Neither goes through a shell, so write `["sh", "-c", "make lint && make test"]` for one that needs it. A configured list replaces discovery, and an empty list runs nothing:
+
+```json
+{ "completionChecks": ["pnpm run typecheck", "pnpm run test", ["make", "e2e"]] }
+```
+
+Without the key, the harness runs the `package.json` scripts `typecheck`, `test` and `check`, in that order, when they exist, with `pnpm` or `yarn` when the project has that lockfile and `npm` otherwise. When no script matches, it runs `make test` if the `Makefile` has a `test` target. `resolveChecks()` shows what a sandbox would run. A file that is not JSON, or a `completionChecks` that is not a list of commands, throws `HarnessError` with code `invalid_completion_config`.
+
+**What the entry holds.** Every check runs, even after one fails, with `timeoutMs` (default 10 minutes) each. `checks` lists each command with its exit code: 124 for a timeout, and 126 when the sandbox's policy refused it. `passed` is true when every exit code is 0, so it is also true for a project with no checks, where `checks` is empty. `flagged` holds one sentence for each diff pattern:
+
+- an added skip marker: `.skip(`, `xit(` or `@pytest.mark.skip`
+- an added placeholder: `TODO`, `FIXME` or "not implemented", in any case for the last
+- a new file whose name has `mock`, `stub` or `fake` in it
+- a deleted test file
+- a test file with fewer assertion lines (`expect(`, `assert(`, `assert.x(`, `assertEqual(` and Python `assert` statements) than before
+
+A test file is one in a `test`, `tests` or `__tests__` folder, or named `*.test.*`, `*.spec.*`, `*_test.*` or `test_*.py`. A line counts as added when the file has more copies of it than before, so moving a line flags nothing. These patterns have honest causes, which is why they never stop a run: expect false positives, and read a flag as a prompt to look.
+
+**The diff needs a way to snapshot the workspace.** The default, `gitSnapshotter`, lists `git ls-files --cached --others --exclude-standard` in the sandbox and reads each file up to 256 KiB as UTF-8 text, at most 5,000 files. In a workspace that is no repository it returns nothing, and the entry then has checks and no flags. Pass `snapshotter` in `completion` to diff another way.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.

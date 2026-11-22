@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N32` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N15](../done/N15-sandbox-interface.md), [N6](../done/N6-session-runner.md) |
@@ -33,15 +33,15 @@ Check completion in code: after a `done` result, run the project's configured or
 
 ## Tasks
 
-- [ ] Use `fakeSandbox()` in tests with scripted exit codes and a scripted diff.
+- [x] Use `fakeSandbox()` in tests with scripted exit codes and a scripted diff.
 
 ## Acceptance criteria
 
-- [ ] A project with only a `test` script runs `test` and records its exit code
-- [ ] A diff adding `it.skip(` is flagged and the run still ends `done`
-- [ ] A deleted test file and a test file with fewer `expect` lines are both flagged
-- [ ] Configured checks replace discovery
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] A project with only a `test` script runs `test` and records its exit code
+- [x] A diff adding `it.skip(` is flagged and the run still ends `done`
+- [x] A deleted test file and a test file with fewer `expect` lines are both flagged
+- [x] Configured checks replace discovery
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -57,7 +57,18 @@ Pattern flags will have false positives; they are recorded, never fatal.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+The check is in `packages/harness/src/completion/` and the 19 tests in `test/completion/check.test.ts` cover the acceptance criteria. The code is exported from `@buildanagent/harness/session`, because adding a `completion` subpath means editing `package.json`, which this todo left alone; a later todo can move it.
+
+- **Wiring.** `runTurn()` takes `completion: { sandbox, env, timeoutMs?, snapshotter? }` and `onCompletionCheck`. The start state is snapshotted before the run. A turn that ends `done` runs the checks, snapshots again, and writes a `completion_check` entry after `turn_end`, and `lastEntryId` is that entry. The dispatcher forwards the entry as a `completion_check` event. The stop reason never changes, and a turn that ends any other way runs nothing.
+- **Checks.** `resolveChecks()` reads `completionChecks` from `.agents/harness.json`, which replaces discovery (an empty list runs nothing). Without it, it takes `typecheck`, `test` and `check` from `package.json` in that order with the runner the lockfile names, then `make test`. Each check runs with a 10-minute default timeout (exit 124), and one the sandbox refuses is recorded as exit 126 with a flag. A bad config throws `invalid_completion_config`.
+- **Flags.** The patterns are the plan's list and no others: `.skip(`, `xit(` and `@pytest.mark.skip` added; `TODO`, `FIXME` and "not implemented" added; a new file named for a mock, stub or fake; a deleted test file; a test file with fewer assertion lines. A moved line is not an added one, and a list of more than 100 flags is cut.
+- **Diff.** `gitSnapshotter` reads the files `git ls-files` lists, as text up to 256 KiB, at most 5,000. A workspace that is no repository gets checks and no flags.
+- **Tests.** They use `fakeSandbox()`: `true`, `false` and `sleep` give real exit codes and a real timeout, a thin wrapper scripts `npm run test` and `git ls-files`, and a scripted snapshotter is the scripted diff.
+- **Not done.** N38 tunes the patterns on recorded false claims. `resumeTurn()` runs no completion check. A check that throws (a disposed sandbox, a bad config) fails the turn's `runTurn()` after the run's entries are written.

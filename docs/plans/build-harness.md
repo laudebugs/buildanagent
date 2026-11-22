@@ -174,6 +174,8 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 **Evidence.** Agents claim success they did not achieve and game visible tests, so the harness checks completion in code and flags new mocks, stubs, placeholders and skip markers ([harness guide §10][hg10]). Tests, types and linters are the oracle practitioners trust, which makes the project's own scripts the default checks ([harness guide §5][hg5]). The guide's settling test, tuning the flags on recorded false claims, needs recorded runs, so N38 records them and tunes the patterns.
 
+**Revision (N32, 2026-11-22): how the check is wired.** `runTurn()` takes `completion: { sandbox, env, timeoutMs?, snapshotter? }` and `onCompletionCheck`. The turn snapshots the workspace before the run, and a turn that ends `done` runs the checks and writes the `completion_check` entry after `turn_end`; the dispatcher forwards it as a `completion_check` event. A configured entry is a command string split on spaces or an argument list, with no shell. The diff compares two snapshots of the files `git ls-files` lists (text files up to 256 KiB), so a workspace that is no repository gets checks and no flags. The code is under `src/completion/` and is exported from the `session` subpath until a `completion` subpath is added to `package.json`. Assertion lines are `expect(`, `assert(`, `assert.x(`, `assertEqual(` and Python `assert` statements, and a flag is one sentence per pattern. N38 tunes the patterns.
+
 ### HD11. Keep transcripts until the owner sets a retention period, and keep the entry base stable (accepted)
 
 **Accepted by the owner on 2026-11-18.**
@@ -769,7 +771,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
 | [N31](../todos/ready/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
-| [N32](../todos/ongoing/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
+| [N32](../todos/done/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
 | [N33](../todos/ready/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
 | [N34](../todos/ready/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |
 | [N35](../todos/ready/N35-harness-capstone.md) | Harness triage capstone, second-process resume and the granularity test (HD1) | N29, N30, N34, B19, B20 | M |
