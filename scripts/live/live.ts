@@ -127,6 +127,28 @@ export function denyHostTools(tools: readonly { name: string; type?: string }[],
   }
 }
 
+type UsageFields = Record<string, unknown>;
+const isUsageObject = (value: unknown): value is UsageFields =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+/**
+ * Overlays a later Anthropic usage report on an earlier one, as the gateway's own adapter merges them
+ * (packages/gateway/src/adapters/anthropic/usage.ts, `mergeUsage`). The Messages API types a `message_delta`'s
+ * `input_tokens` and cache counts as `number | null`, so a field it sends as null or leaves out keeps the
+ * `message_start` value; a plain spread would let the null through and the guard would price that input as free.
+ * The gateway doesn't export its merge, and a relative import into its `src/` would cross packages, so this mirrors it.
+ */
+export function mergeAnthropicUsage(earlier: UsageFields, later: unknown): UsageFields {
+  if (!isUsageObject(later)) return earlier;
+  const merged: UsageFields = { ...earlier };
+  for (const [key, value] of Object.entries(later)) {
+    if (value === null || value === undefined) continue;
+    const before = earlier[key];
+    merged[key] = isUsageObject(value) && isUsageObject(before) ? { ...before, ...value } : value;
+  }
+  return merged;
+}
+
 /** A live call the cost guard let through; `settle` records its cost once it has answered. */
 export interface LiveCall {
   settle(usage: TokenUsage | undefined): void;

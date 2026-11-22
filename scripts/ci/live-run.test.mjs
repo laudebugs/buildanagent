@@ -37,7 +37,14 @@ import {
 import { exampleOf, LIVE_HARNESSES, liveConfigProblems, projection, readLiveConfig } from "../live/config.mjs";
 import { liveMode } from "../live/harness.mjs";
 import { guardStream, HOST_TOOL_NAMES } from "../live/live.ts";
-import { exampleEnv, loopbackNamespace, PLACEHOLDER_KEY, prepareBody, requestProblem } from "../live/proxy.mjs";
+import {
+  anthropicAnswer,
+  exampleEnv,
+  loopbackNamespace,
+  PLACEHOLDER_KEY,
+  prepareBody,
+  requestProblem,
+} from "../live/proxy.mjs";
 import { findSecret, redact } from "../live/redact.ts";
 import { childSpend } from "../live/run.mjs";
 import { transcriptProblems, writeTranscript } from "../transcripts/write.mjs";
@@ -796,9 +803,12 @@ const config = { provider: "anthropic", model: "claude-haiku-5-5", maxTokens: 10
   example: "${SDK_TRIAGE}", ledger, catalog: undefined };
 const sent = [];
 const sse = (events) => events.map((e) => "event: " + e.type + "\\ndata: " + JSON.stringify(e) + "\\n\\n").join("");
+// The Messages API types a message_delta's input and cache counts as number | null; a null keeps message_start's count.
 let answer = () => new Response(sse([
   { type: "message_start", message: { usage: { input_tokens: 40, cache_read_input_tokens: 10, output_tokens: 1 } } },
-  { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 20 } },
+  { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: {
+    input_tokens: null, cache_read_input_tokens: null, cache_creation_input_tokens: null, output_tokens: 20,
+  } },
   { type: "message_stop" },
 ]), { headers: { "content-type": "text/event-stream", "request-id": "req_0123456789abcdef" } });
 const send = async (url, init) => { sent.push(url); return answer(); };
@@ -880,6 +890,25 @@ results.chatFields = {
   several: requestProblem(chatConfig, { ...chat, n: 2 }),
   audio: requestProblem(chatConfig, { ...chat, modalities: ["text", "audio"] }),
 };
+// Every allowance field the body carries is held to the run's limit, not only the one OpenAI reads first.
+const { max_completion_tokens: _, ...noAllowance } = chat;
+results.allowances = {
+  completionOver: requestProblem(chatConfig, { ...chat, max_completion_tokens: 4096 }),
+  legacyOverBesideCompletion: requestProblem(chatConfig, { ...chat, max_tokens: 100000 }),
+  legacyOver: requestProblem(chatConfig, { ...noAllowance, max_tokens: 4096 }),
+  bothWithin: requestProblem(chatConfig, { ...chat, max_tokens: 1024 }) ?? null,
+  legacyWithin: requestProblem(chatConfig, { ...noAllowance, max_tokens: 2048 }) ?? null,
+  neither: requestProblem(chatConfig, noAllowance),
+  fraction: requestProblem(chatConfig, { ...chat, max_completion_tokens: 1.5 }),
+  text: requestProblem(chatConfig, { ...chat, max_tokens: "100" }),
+  anthropicNone: requestProblem(config, { model: "claude-haiku-5-5", messages: [] }),
+  anthropicFraction: requestProblem(config, { ...ok, max_tokens: 512.5 }),
+};
+const nullDelta = usageReader("anthropic");
+results.nullDelta = nullDelta.usageOf(new TextEncoder().encode(sse([
+  { type: "message_start", message: { usage: { input_tokens: 40, cache_creation_input_tokens: 5, cache_read_input_tokens: 10, output_tokens: 1 } } },
+  { type: "message_delta", usage: { input_tokens: null, cache_creation_input_tokens: null, cache_read_input_tokens: null, output_tokens: 20 } },
+])));
 const now = readLedger(ledger);
 writeLedger(ledger, { ...now, cap: now.spent + 0.0001 });
 results.overCap = await post(ok);
@@ -904,7 +933,7 @@ console.log(JSON.stringify(results));
   assert.match(r.host, /the host tool "bash"/);
   assert.match(r.typed, /of type "computer_20250124", not an in-process function/);
   assert.match(r.model, /names the model "claude-opus-5-5"/);
-  assert.match(r.allowance, /allows 4096 output tokens, not at most the run's 1024/);
+  assert.match(r.allowance, /allows 4096 output tokens in max_tokens, not at most the run's 1024/);
   assert.match(r.mcp, /carries "mcp_servers", which the live mode doesn't send/);
   assert.match(r.container, /carries "container"/);
   assert.match(r.unknown, /carries "metadata"/);
@@ -912,6 +941,18 @@ console.log(JSON.stringify(results));
   assert.equal(r.chatFields.one, null);
   assert.match(r.chatFields.several, /asks for 2 answers, not one/);
   assert.match(r.chatFields.audio, /carries "modalities"/);
+  const a = r.allowances;
+  assert.match(a.completionOver, /allows 4096 output tokens in max_completion_tokens, not at most the run's 2048/);
+  assert.match(a.legacyOverBesideCompletion, /allows 100000 output tokens in max_tokens/);
+  assert.match(a.legacyOver, /allows 4096 output tokens in max_tokens/);
+  assert.equal(a.bothWithin, null);
+  assert.equal(a.legacyWithin, null);
+  assert.match(a.neither, /sets no output allowance \(max_completion_tokens or max_tokens\)/);
+  assert.match(a.fraction, /allows 1\.5 output tokens in max_completion_tokens/);
+  assert.match(a.text, /allows "100" output tokens in max_tokens/);
+  assert.match(a.anthropicNone, /sets no output allowance \(max_tokens\)/);
+  assert.match(a.anthropicFraction, /allows 512\.5 output tokens in max_tokens/);
+  assert.deepEqual(r.nullDelta, { uncachedInput: 40, cacheRead: 10, cacheWrite: 5, output: 20 });
   assert.equal(r.sentBefore, 0, "nothing refused reached the provider");
   assert.equal(r.ok.status, 200);
   assert.deepEqual(r.ok.headers, ["content-type"], "the provider's headers stay behind");
@@ -1065,6 +1106,30 @@ test("the proxy refuses a host tool by name or type, a tool its harness doesn't 
   assert.match(responses([{ type: "web_search" }]), /host tool "web_search"/);
   assert.match(responses([{ type: "mcp", server_url: "https://example.com" }]), /of type "mcp"/);
   assert.match(responses([{ type: "function", name: "shell" }]), /host tool "shell"/);
+});
+
+test("the proxy prices a streamed Anthropic answer whose message_delta sends its input counts as null", () => {
+  const sse = (events) => events.map((e) => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`).join("");
+  const text = sse([
+    {
+      type: "message_start",
+      message: {
+        usage: { input_tokens: 40, cache_creation_input_tokens: 5, cache_read_input_tokens: 10, output_tokens: 1 },
+      },
+    },
+    {
+      type: "message_delta",
+      delta: { stop_reason: "end_turn" },
+      usage: {
+        input_tokens: null,
+        cache_creation_input_tokens: null,
+        cache_read_input_tokens: null,
+        output_tokens: 20,
+      },
+    },
+    { type: "message_stop" },
+  ]);
+  assert.deepEqual(anthropicAnswer(text, true).usage, { uncachedInput: 40, cacheRead: 10, cacheWrite: 5, output: 20 });
 });
 
 test("the proxy sets the run's model and output cap and drops the machine's ids", () => {

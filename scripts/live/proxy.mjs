@@ -26,7 +26,7 @@ import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { eventTime as now } from "../transcripts/write.mjs";
 import { PLACEHOLDER_KEY } from "./forward.mjs";
-import { beginCall, denyHostTools, live } from "./live.ts";
+import { beginCall, denyHostTools, live, mergeAnthropicUsage } from "./live.ts";
 import { redact } from "./redact.ts";
 
 export { PLACEHOLDER_KEY };
@@ -168,7 +168,7 @@ const parseJSON = (text) => {
 };
 
 /** An Anthropic answer, streamed or not, as its content blocks, stop reason and usage. */
-function anthropicAnswer(text, streamed) {
+export function anthropicAnswer(text, streamed) {
   if (!streamed) {
     const message = JSON.parse(text);
     return { blocks: message.content ?? [], stop: message.stop_reason ?? null, usage: anthropicUsage(message.usage) };
@@ -188,7 +188,8 @@ function anthropicAnswer(text, streamed) {
       if (event.delta?.type === "input_json_delta") json[event.index] += event.delta.partial_json;
     } else if (event.type === "message_delta") {
       stop = event.delta?.stop_reason ?? stop;
-      usage = { ...usage, ...event.usage };
+      // A count the delta sends as null keeps the message_start value, as the gateway merges them.
+      usage = mergeAnthropicUsage(usage, event.usage);
     }
   }
   blocks.forEach((block, i) => {

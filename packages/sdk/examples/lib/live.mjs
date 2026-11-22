@@ -11,7 +11,7 @@
 //
 // The adapter receives the key explicitly, from the file scripts/live/live.ts read and deleted, and sends HTTP only
 // through `ProviderConfig.transport`, the gateway's own seam. Before each request leaves, the transport refuses a host
-// tool, a model other than the run's, an output allowance above the run's maxTokens, a body field outside the
+// tool, a model other than the run's, a missing output allowance or any above the run's maxTokens, a body field outside the
 // adapter's known set and more than one answer, and checks the call against the cost guard. It settles the guard from the usage the answer streams once its final event arrives, which is where the
 // gateway stops reading and cancels the body, or at the call's projection when the answer fails, stops before its final
 // event or reports no usage. The answer reaches the adapter with only its status, content type and body, plus a failed
@@ -22,7 +22,7 @@ import { createModel } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { openaiChat } from "@buildanagent/gateway/openai-chat";
 import { allowModelRequests } from "@buildanagent/gateway/testing";
-import { beginCall, denyHostTools, guardStream, live } from "../../../../scripts/live/live.ts";
+import { beginCall, denyHostTools, guardStream, live, mergeAnthropicUsage } from "../../../../scripts/live/live.ts";
 
 // Kept before the offline setup replaces it (see above).
 const fetchOutside = globalThis.fetch;
@@ -89,6 +89,27 @@ const FIELDS = {
   ]),
 };
 
+/** The body fields that set a request's output allowance, each of which the transport holds to the run's maxTokens. */
+const ALLOWANCE_FIELDS = { anthropic: ["max_tokens"], openai: ["max_completion_tokens", "max_tokens"] };
+
+/**
+ * The problem with a body's output allowance, or undefined when it holds the run's limit. Every allowance field the
+ * body carries must hold it, not only the one the provider reads first: OpenAI takes both `max_completion_tokens` and
+ * the older `max_tokens`, and an `extraBody` could set the one a single check skipped.
+ */
+function allowanceProblem(config, body) {
+  const fields = ALLOWANCE_FIELDS[config.provider];
+  const present = fields.filter((field) => body[field] !== undefined);
+  if (present.length === 0) return `the request sets no output allowance (${fields.join(" or ")})`;
+  for (const field of present) {
+    const limit = body[field];
+    if (!Number.isInteger(limit) || limit > config.maxTokens) {
+      return `the request allows ${JSON.stringify(limit)} output tokens in ${field}, not at most the run's ${config.maxTokens}`;
+    }
+  }
+  return undefined;
+}
+
 /** The problem with a request body, or undefined when the transport may send it. */
 export function requestProblem(config, body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "the request body is not a JSON object";
@@ -98,10 +119,8 @@ export function requestProblem(config, body) {
   // One answer a request, as the projection counts: several would each write up to the output allowance.
   if (body.n !== undefined && body.n !== 1) return `the request asks for ${JSON.stringify(body.n)} answers, not one`;
   if (body.model !== config.model) return `the request names the model ${JSON.stringify(body.model)}`;
-  const limit = config.provider === "anthropic" ? body.max_tokens : (body.max_completion_tokens ?? body.max_tokens);
-  if (!Number.isInteger(limit) || limit > config.maxTokens) {
-    return `the request allows ${limit} output tokens, not at most the run's ${config.maxTokens}`;
-  }
+  const allowance = allowanceProblem(config, body);
+  if (allowance !== undefined) return allowance;
   const tools = body.tools ?? [];
   if (!Array.isArray(tools)) return "the request's tools are not a list";
   try {
@@ -179,7 +198,8 @@ const USAGE = {
   anthropic: {
     merge: (counts, event) => {
       const usage = event.type === "message_start" ? event.message?.usage : event.usage;
-      return isObject(usage) ? { ...counts, ...usage } : counts;
+      // A message_delta may send an input or cache count as null, which keeps the message_start value, as in the gateway.
+      return mergeAnthropicUsage(counts, usage);
     },
     isFinal: (event) => event.type === "message_stop",
     usage: (counts) =>
