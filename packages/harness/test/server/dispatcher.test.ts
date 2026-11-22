@@ -245,10 +245,28 @@ describe("the dispatcher", () => {
     });
     assert.deepEqual(await other.request("turn/interrupt", { session }), { interrupted: false });
     await dispatcher.close();
-    assert.deepEqual(await client.request("turn/start", { session, input: text("a") }), {
-      accepted: false,
-      reason: "busy",
-    });
+    await assert.rejects(client.request("turn/start", { session, input: text("a") }), RpcFailure);
     assert.equal(seen.length, 0);
+  });
+
+  test("a failed session/open leaves the client with no access, and a created session can be opened before its first turn", async () => {
+    const { dispatcher, client } = setup([reply("One.")]);
+    await init(client);
+    const other = inProcessTransport(dispatcher);
+    await assert.rejects(other.request("session/open", { session: "nope", cwd: "/work" }), RpcFailure);
+    assert.deepEqual(await other.request("turn/start", { session: "nope", input: text("a") }), {
+      accepted: false,
+      reason: "invalid",
+    });
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    assert.deepEqual(await other.request("session/open", { session, cwd: "/work" }), { session, head: null });
+  });
+
+  test("a request on a closed client rejects, and a cursor the server did not give is invalid", async () => {
+    const { client } = setup([reply("One.")]);
+    await init(client);
+    await assert.rejects(client.request("session/list", { cursor: "1e1" }), RpcFailure);
+    client.close();
+    await assert.rejects(client.request("session/list", {}), /closed/);
   });
 });

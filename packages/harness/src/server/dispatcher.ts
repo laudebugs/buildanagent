@@ -82,6 +82,8 @@ interface Running {
   readonly turn: string;
   run: Run<unknown> | undefined;
   readonly done: Promise<void>;
+  /** Resolves `done`. */
+  readonly finish: () => void;
   /** Aborts the turn even before its run exists. */
   readonly controller: AbortController;
   /** Steers and follow-ups that arrived before the run existed; they go in as soon as it does. */
@@ -288,9 +290,16 @@ class HarnessDispatcher<H> implements Dispatcher {
     params: Command<"session/create">["params"],
   ): Promise<ClientResultMap["session/create"]> {
     const id = params.session ?? this.#newId();
-    if (this.#opened.has(id) || (await this.#exists(id)))
-      throw failure(ErrorCodes.InvalidParams, `session ${id} already exists`);
-    this.#opened.set(id, { cwd: params.cwd });
+    if (this.#opened.has(id)) throw failure(ErrorCodes.InvalidParams, `session ${id} already exists`);
+    // Reserve the id before the first await, so two creates of one id cannot both pass.
+    const reserved: Opened = { cwd: params.cwd };
+    this.#opened.set(id, reserved);
+    try {
+      if (await this.#exists(id)) throw failure(ErrorCodes.InvalidParams, `session ${id} already exists`);
+    } catch (error) {
+      if (this.#opened.get(id) === reserved) this.#opened.delete(id);
+      throw error;
+    }
     connection.watch(id);
     return { session: id, head: null };
   }
@@ -301,18 +310,22 @@ class HarnessDispatcher<H> implements Dispatcher {
   ): Promise<ClientResultMap["session/open"]> {
     const id = params.session ?? "";
     // A session this dispatcher created has no file until its first turn, but a second client may still open it.
-    if (id === "" || !(this.#opened.has(id) || (await this.#exists(id))))
+    const created = this.#opened.has(id);
+    if (id === "" || !(created || (await this.#exists(id))))
       throw failure(ErrorCodes.InvalidParams, `no session ${JSON.stringify(id)}`);
+    const exists = await this.#exists(id);
+    const reader = exists
+      ? await openSession({ store: this.#options.store, index: this.#options.index, key: this.key(id) })
+      : undefined;
     if (!this.#opened.has(id)) this.#opened.set(id, { cwd: params.cwd });
+    // Subscribe only once the session has opened, so a failed open leaves the client with no access.
     connection.watch(id);
-    const reader = await openSession({ store: this.#options.store, index: this.#options.index, key: this.key(id) });
-    return { session: id, head: reader.head() };
+    return { session: id, head: reader?.head() ?? null };
   }
 
   async #list(cursor: string | undefined): Promise<ClientResultMap["session/list"]> {
-    const from = cursor === undefined ? 0 : Number(cursor);
-    if (!Number.isInteger(from) || from < 0)
-      throw failure(ErrorCodes.InvalidParams, "the cursor is not one this server gave");
+    const from = cursor === undefined ? 0 : /^\d+$/.test(cursor) ? Number(cursor) : -1;
+    if (from < 0) throw failure(ErrorCodes.InvalidParams, "the cursor is not one this server gave");
     const all: ClientResultMap["session/list"]["sessions"] = [];
     for await (const item of listSessions(this.#options.store, this.#options.userId)) {
       all.push({
@@ -331,15 +344,21 @@ class HarnessDispatcher<H> implements Dispatcher {
   async #start(connection: ConnectionImpl<H>, session: string, input: Command<"turn/start">["params"]["input"]) {
     const opened = connection.watching(session) ? this.#opened.get(session) : undefined;
     if (opened === undefined) return { result: { accepted: false, reason: "invalid" } satisfies Disposition };
-    if (opened.running !== undefined || opened.branching === true || this.#closed) {
+    if (this.#closed) throw failure(ErrorCodes.InternalError, "the dispatcher is closed");
+    if (opened.running !== undefined || opened.branching === true) {
       return { result: { accepted: false, reason: "busy" } satisfies Disposition };
     }
     // Claim the session before the first await, so a second start in the same tick sees it busy.
     const turn = this.#newId();
+    let finish!: () => void;
+    const done = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
     const running: Running = {
       turn,
       run: undefined,
-      done: Promise.resolve(),
+      done,
+      finish,
       controller: new AbortController(),
       queued: [],
     };
@@ -354,16 +373,24 @@ class HarnessDispatcher<H> implements Dispatcher {
       });
     } catch (error) {
       opened.running = undefined;
+      finish();
       if (isHarnessError(error) && error.code === "session_locked")
         return { result: { accepted: false, reason: "locked" } satisfies Disposition };
       throw error;
+    }
+    if (this.#closed) {
+      // close() returned while this turn was still taking the lock: give it back and refuse.
+      await handle.close().catch(() => undefined);
+      opened.running = undefined;
+      finish();
+      throw failure(ErrorCodes.InternalError, "the dispatcher is closed");
     }
     // The response goes out first; the run starts after it, so no event can reach a client before its disposition.
     let begin!: () => void;
     const started = new Promise<void>((resolve) => {
       begin = resolve;
     });
-    (running as { done: Promise<void> }).done = this.#run(handle, session, opened, running, input, started);
+    void this.#run(handle, session, opened, running, input, started);
     return { result: { accepted: true, turn } satisfies Disposition, after: begin };
   }
 
@@ -396,9 +423,11 @@ class HarnessDispatcher<H> implements Dispatcher {
     } finally {
       // A lock that will not release must not leave the session busy or the turn unsettled.
       await handle.close().catch(() => undefined);
+      running.run = undefined;
       opened.running = undefined;
     }
     this.settled(session, running.turn, summary);
+    running.finish();
   }
 
   /** Seeds the sequence a run's own events carry, so a session an earlier process wrote does not start at -1. */
@@ -415,14 +444,21 @@ class HarnessDispatcher<H> implements Dispatcher {
   ): Disposition {
     const running = connection.watching(session) ? this.#opened.get(session)?.running : undefined;
     if (running === undefined) return { accepted: false, reason: "invalid" };
-    const apply = (run: Run<unknown>) => {
-      const queued = method === "turn/steer" ? run.steer([...input]) : run.followUp([...input]);
-      // A message the run ends before applying is rejected as undelivered: the turn's own end says what happened.
-      queued.catch(() => undefined);
+    const apply = (run: Run<unknown>): boolean => {
+      try {
+        const queued = method === "turn/steer" ? run.steer([...input]) : run.followUp([...input]);
+        // A message the run ends before applying is rejected as undelivered: the turn's own end says what happened.
+        Promise.resolve(queued).catch(() => undefined);
+        return true;
+      } catch {
+        return false;
+      }
     };
-    if (running.run === undefined) running.queued.push(apply);
-    else apply(running.run);
-    return { accepted: true, turn: running.turn };
+    if (running.run === undefined) {
+      running.queued.push((run) => void apply(run));
+      return { accepted: true, turn: running.turn };
+    }
+    return apply(running.run) ? { accepted: true, turn: running.turn } : { accepted: false, reason: "invalid" };
   }
 
   #interrupt(
@@ -466,6 +502,7 @@ class HarnessDispatcher<H> implements Dispatcher {
     if (opened.running !== undefined || opened.branching === true) {
       throw failure(ErrorCodes.SessionLocked, "a turn is running in this session");
     }
+    if (this.#closed) throw failure(ErrorCodes.InternalError, "the dispatcher is closed");
     opened.branching = true;
     try {
       return await this.#branchLocked(connection, command, opened);

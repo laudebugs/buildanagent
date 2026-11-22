@@ -40,6 +40,7 @@ export function inProcessTransport(dispatcher: Dispatcher): InProcessClient {
   const listeners = new Set<(message: ServerMessage) => void>();
   const waiting = new Map<number | string, { resolve: (value: never) => void; reject: (error: Error) => void }>();
   let nextId = 1;
+  let closed = false;
   const connection: Connection = dispatcher.connect((message) => {
     if ("id" in message && message.id !== null && ("result" in message || "error" in message)) {
       const pending = waiting.get(message.id);
@@ -53,6 +54,7 @@ export function inProcessTransport(dispatcher: Dispatcher): InProcessClient {
   });
   return {
     request(method, params) {
+      if (closed) return Promise.reject(new Error("the connection closed"));
       const id = nextId++;
       const answer = new Promise<never>((resolve, reject) => waiting.set(id, { resolve, reject }));
       void connection.receive({ jsonrpc: "2.0", id, method, params } as ClientCommand);
@@ -63,6 +65,7 @@ export function inProcessTransport(dispatcher: Dispatcher): InProcessClient {
       return () => listeners.delete(listener);
     },
     close() {
+      closed = true;
       connection.close();
       for (const pending of waiting.values()) pending.reject(new Error("the connection closed"));
       waiting.clear();
