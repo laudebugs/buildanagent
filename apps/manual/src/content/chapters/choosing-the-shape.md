@@ -2,8 +2,8 @@
 title: "Choosing the shape: buy, adopt or build, how to plan, and when subagents pay"
 summary: An agent's shape is three choices made before any prompt is written. This chapter sorts the SDKs by who owns the loop, says why to start planning with ReAct, separates workflows, routing and handoffs by who decides the next step, and runs one subagent to show what it keeps out of the parent's context and what it adds to the bill.
 opening: fact
-sources: [anthropic-multi-agent-research-system, claude-agent-sdk-hosting, claude-agent-sdk-overview, copilot-sdk-nodejs-readme, openai-agents-running-agents, pi-how-pi-works, ai-sdk-generate-text, cloudflare-agents-chat-agents, buildanagent-sdk-readme, liu-what-does-a-harness-buy]
-glossary: [agent, agent-loop, harness]
+sources: [anthropic-multi-agent-research-system, claude-agent-sdk-hosting, claude-agent-sdk-overview, copilot-sdk-nodejs-readme, openai-agents-running-agents, pi-how-pi-works, ai-sdk-generate-text, cloudflare-agents-chat-agents, buildanagent-sdk-readme, liu-what-does-a-harness-buy, yao-react, del-rosario-plan-then-execute, shinn-reflexion]
+glossary: [agent, agent-loop, harness, react, plan-and-execute]
 switchTo: [B19b]
 ---
 
@@ -32,6 +32,18 @@ Three questions place a team in a tier. Do you need to control the loop, for exa
 :::
 
 The case for buying is weaker than a vendor's score table suggests. One study ran seven models through three production coding harnesses, Claude Code, mini-SWE-agent and OpenCode, and reran each setup unchanged. A harness swap changed the outcome of about as many tasks as a rerun of the same harness did: both changed 13% of the 45 tasks in its two hardest difficulty bands at the median. Cost was what differed between harnesses, from under 10% to three or four times, depending on the model [@liu-what-does-a-harness-buy]. That is no reason to buy a loop for a better score, though the time it saves and the work it was tuned for can still be reasons. Whatever the tier, keep your evaluations and your telemetry in your own hands, because they are what let you leave a tier when the numbers turn.
+
+## ReAct is the default plan, and an upfront plan or a reflection pass has to earn its extra model calls
+
+Ask an agent why order 42's refund never reached the customer, and it cannot know its route in advance. It reads the order, then the payment, then perhaps the bank's note, and each result decides the next lookup. :analogy[A hiker who reads the sign at each fork, against one who follows a route planned the night before]{#hiker-signs-or-route} makes the choice plain. The sign-reader holds no plan beyond the next fork, so a closed bridge is only new information. The route-follower can describe the whole trip to anyone before leaving, and a closed bridge leaves them off the map until they redraw it. The picture breaks on cost. Redrawing a hiker's route costs a day, but a model can redraw its plan at every step for the price of a call.
+
+ReAct is the sign-reader. The model writes a reasoning trace and a task action in an interleaved sequence, so each observation can change the next thought [@yao-react]. The loop of [[ch:call-workflow-loop]] has this shape. On two interactive benchmarks, ALFWorld and WebShop, ReAct prompted with one or two examples on a frozen PaLM-540B model beat imitation-learning and reinforcement-learning baselines by 34 and 10 absolute points of success rate. That model is from 2022, so read the margins as a direction, not as a gap you would see today. Without the thoughts, the agent failed to split goals into subgoals or lost track of the state of the world. ReAct also has a failure of its own: the model repeats its earlier thoughts and actions and cannot jump out of the loop [@yao-react]. The step cap of [[ch:stopping-and-structured-output]] is what cuts such a loop off.
+
+Plan-and-execute is the route-follower. A planner model writes the whole plan before any tool runs, and an executor works through it, perhaps with a smaller model or plain code. A 2025 guide argues that the split makes the trajectory predictable, uses the expensive planner sparingly, and keeps text injected through a tool result from rewriting the plan. It also names the price. Once the plan is set, the agent follows it, so a flawed plan needs a re-planning step, and the executor can itself be a ReAct agent [@del-rosario-plan-then-execute]. The guide is an argument with code blueprints and reports no measurements of its own. The pattern fits work whose steps depend on one another and whose order is worth auditing, such as a refund that must update the order, refund the card and send the email in that order, which [[ch:side-effects-that-can-fail]] approves as one plan.
+
+Reflection adds a second pass. In Reflexion, an evaluator scores a finished attempt, the agent writes a verbal reflection on what went wrong and stores it in a memory, and the next trial starts with that memory. No weights change [@shinn-reflexion]. The authors report 91% pass@1 on HumanEval against 80.1% for GPT-4, and 77.1% on MBPP in Python against GPT-4's 80.1%, so the gain is not uniform. Reflexion needs something to reflect on, such as unit tests, and it reruns whole attempts: its loop runs until the evaluator passes or a trial limit is reached. Each reflection therefore costs another full run, and the multiple depends on how often the first attempt fails.
+
+No controlled benchmark that we found compares these patterns under identical models, as of November 2026, so the rule is ours. Start with ReAct, and add a plan or a reflection only for a failure you can name, such as steps that must happen in order or an attempt you can score by running tests. Then measure the change with the evals of [[ch:evals-observability-and-release]], because a pattern that adds calls has to show it adds passes.
 
 ## Exercises
 
