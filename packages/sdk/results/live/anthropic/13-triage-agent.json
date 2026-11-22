@@ -1,0 +1,214 @@
+{
+  "format": 2,
+  "example": "13-triage-agent",
+  "file": "packages/sdk/examples/13-triage-agent.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "live": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5"
+  },
+  "events": [
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You triage support tickets. Look the customer up first. Escalate only what an engineer must see."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Every pro customer gets a 500 at checkout. Look the customer up, escalate, then submit the triage."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "lookup_customer",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 4,
+        "cacheRead": 0,
+        "cacheWrite": 734,
+        "output": 80,
+        "reasoning": 50
+      }
+    },
+    {
+      "kind": "request",
+      "line": 57,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "lookup_customer",
+              "output": "{\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 57,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-2>",
+            "name": "escalate",
+            "input": {
+              "reason": "Pro-plan customer reports a 500 error at checkout, and the report says every pro customer is affected. This looks like a checkout service bug that needs on-call engineering investigation. Customer has 2 open tickets."
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 2,
+        "cacheRead": 734,
+        "cacheWrite": 103,
+        "output": 166,
+        "reasoning": 49
+      }
+    },
+    {
+      "kind": "check",
+      "line": 58,
+      "message": "the run waits for a person before it escalates",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 59,
+      "message": "no escalation before approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 62,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-2>",
+              "name": "escalate",
+              "output": "escalated"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_customer",
+        "escalate",
+        "submit_triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 62,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "<id-3>",
+            "name": "submit_triage",
+            "input": {
+              "category": "bug",
+              "priority": "high"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 2,
+        "cacheRead": 837,
+        "cacheWrite": 174,
+        "output": 72,
+        "reasoning": 0
+      }
+    },
+    {
+      "kind": "check",
+      "line": 63,
+      "message": "after approval the escalation runs exactly once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "the run returns a typed triage record",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "the instructions arrive as the system prompt",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 66,
+      "message": "the run made exactly the three model calls the script holds",
+      "pass": true
+    }
+  ]
+}

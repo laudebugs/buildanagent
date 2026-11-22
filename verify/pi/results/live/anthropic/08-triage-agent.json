@@ -121,7 +121,7 @@
             "id": "<id-2>",
             "name": "escalate",
             "input": {
-              "reason": "Checkout returning HTTP 500 for customer user@example.com (plan: pro, 2 open tickets). Needs on-call investigation."
+              "reason": "Checkout returning HTTP 500 for user@example.com (plan: pro, 2 open tickets). Customer cannot complete checkout. Needs on-call investigation."
             }
           }
         ]
@@ -171,7 +171,7 @@
             "input": {
               "category": "bug",
               "priority": "high",
-              "summary": "Checkout returning HTTP 500 for user@example.com (pro plan, 2 open tickets). Escalation attempted once but failed with \"Escalation needs a human\"; needs manual on-call escalation. Root cause not investigated."
+              "summary": "Checkout returns HTTP 500 for user@example.com (plan: pro, 2 open tickets). Customer cannot complete checkout. Escalation attempt failed with \"Escalation needs a human\"; needs manual escalation to on-call engineer."
             }
           }
         ]
