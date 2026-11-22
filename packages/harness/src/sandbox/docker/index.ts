@@ -436,11 +436,13 @@ async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: 
   const denied = denyWrite.filter(underWrite);
   const protectedPaths = writeRoots.flatMap((root) => PROTECTED_TOP_LEVEL.map((name) => modules.path.join(root, name)));
   const readOnlyRoots = [...readRoots, ...extra].filter((path) => !underWrite(path));
+  // One look at which read roots exist feeds both the mounts and the names, so a folder made in between can't make them
+  // disagree.
+  const present = await existing(modules, readOnlyRoots);
   const base: Mount[] = [
     ...writeRoots.map((from) => ({ from, to: from, readOnly: false })),
-    ...(await existing(modules, readOnlyRoots)).map((from) => ({ from, to: from, readOnly: true })),
+    ...present.map((from) => ({ from, to: from, readOnly: true })),
   ];
-  const present = await existing(modules, readOnlyRoots);
   const protectedPresent = await existing(modules, protectedPaths);
   const guarded = [...denied, ...protectedPresent].map((from) => ({ from, to: from, readOnly: true }));
   const names: DockerPolicyNames = {
