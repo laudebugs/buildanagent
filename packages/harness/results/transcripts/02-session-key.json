@@ -1,0 +1,175 @@
+{
+  "format": 2,
+  "example": "02-session-key",
+  "file": "packages/harness/examples/02-session-key.ts",
+  "harness": "packages/harness",
+  "pin": "@buildanagent/harness@workspace",
+  "mock": "@buildanagent/harness@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 23,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are terse."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I am Ada."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 23,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello, Ada."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 23,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Who am I?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 23,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "You are Ada."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 23,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is my name?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 23,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I don't know your name."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 23,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Do you know me?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 23,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "I don't know you."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "the second call on ada's session a sees the first exchange and the new question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 33,
+      "message": "ada's new session b starts empty: only the new question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "bob's session a starts empty: only the new question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "bob's log holds his turn and none of ada's",
+      "pass": true
+    }
+  ]
+}
