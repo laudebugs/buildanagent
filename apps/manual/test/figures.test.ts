@@ -26,6 +26,8 @@ afterAll(() => {
 test("the book's figures hold its chapters' figures, and the fixtures hold their own, isometric ones too", () => {
   const ids = (root: string) => figureScripts(root).map((figure) => `${figure.chapter}/${figure.id}`);
   assert.deepEqual(ids(BOOK_FIGURES), [
+    "agents-people-can-watch/dual-controls",
+    "agents-people-can-watch/one-log-three-views",
     "approvals-guardrails-and-injection/paused-run",
     "approvals-guardrails-and-injection/second-signature",
     "call-workflow-loop/loop-bench",
