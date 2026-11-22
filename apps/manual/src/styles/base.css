@@ -20,7 +20,9 @@ body {
   font-size: var(--size-text);
   line-height: var(--line-height-body);
   font-optical-sizing: auto;
-  /* A long unbroken word, such as a URL, wraps instead of widening the page; blocks that scroll set their own overflow. */
+  /* An unbroken string, such as an inline call or a URL, wraps inside the article column instead of widening the page.
+     Code blocks and tables keep their own scroll boxes. Not `anywhere`: that shrinks a table cell's minimum width, so the
+     table would squeeze its columns and split identifiers, not scroll. */
   overflow-wrap: break-word;
 }
 
@@ -94,9 +96,6 @@ pre {
 
 :not(pre) > code {
   font-size: 0.86em;
-  /* A call such as `check(JSON.stringify(x).includes(...))` has no space to break at, so without this an inline span
-     is as wide as its text and widens the whole page on a phone. Code blocks keep their own scroll box. */
-  overflow-wrap: anywhere;
 }
 
 hr {

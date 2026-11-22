@@ -170,10 +170,10 @@ test("the chapter title stretches to where the article ends, breaks its lines in
   );
 });
 
-test("inline code breaks inside a long call, so a chapter never widens the page on a phone", () => {
+test("body text breaks an unbroken string, so a chapter never widens the page on a phone", () => {
   const base = files.find(({ path }) => path === "styles/base.css")?.text ?? "";
-  const rule = base.match(/:not\(pre\) > code\s*\{([^}]*)\}/)?.[1] ?? "";
-  assert.match(rule, /overflow-wrap:\s*anywhere/, "inline code needs overflow-wrap: anywhere");
   const body = base.match(/\nbody\s*\{([^}]*)\}/)?.[1] ?? "";
   assert.match(body, /overflow-wrap:\s*break-word/, "body text needs overflow-wrap: break-word");
+  // `anywhere` would shrink table cells' minimum width, and the table would squeeze its columns instead of scrolling.
+  assert.doesNotMatch(base, /overflow-wrap:\s*anywhere/, "base.css leaves table sizing to .table__scroll");
 });
