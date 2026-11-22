@@ -12,10 +12,8 @@ const CAUSES = [
   ["summarization-trigger-shape", /Type 'number' has no properties in common with type '\{ fraction\?/],
   ["store-api", /Property '(get|put|search|delete)' does not exist on type 'BaseStore<string, unknown>'/],
   ["interrupt-field", /Property '__interrupt__' does not exist/],
-  [
-    "newer-release-name",
-    /Property '(executionInfo|serverInfo)' does not exist|modelRefusalMiddleware|ModelRefusalError/,
-  ],
+  // langgraph's Runtime type has these fields since 1.7, but core's ToolRuntime, which a tool receives, lacks them.
+  ["tool-runtime-missing-fields", /Property '(executionInfo|serverInfo)' does not exist/],
   ["hitl-allow-flags", /'allow(Accept|Edit|Respond|Ignore)' does not exist/],
   ["untyped-message-narrowing", /Property 'tool_calls' does not exist on type 'BaseMessage/],
   ["missing-export", /has no exported member/],

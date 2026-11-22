@@ -1,5 +1,5 @@
 {
-  "package": "langchain@1.6.1",
+  "package": "langchain@1.6.6",
   "checks": {
     "middlewareHooks": {
       "documented": 6,
@@ -9,20 +9,20 @@
     },
     "builtInMiddleware": {
       "documented": 14,
-      "actual": 21,
+      "actual": 24,
       "undocumented": [
         "anthropicPromptCachingMiddleware",
+        "autoModeMiddleware",
         "bedrockPromptCachingMiddleware",
         "dynamicSystemPromptMiddleware",
+        "modelRouterMiddleware",
         "openAIAutoModeMiddleware",
         "openAIModelRouterMiddleware",
         "openAIModerationMiddleware",
         "piiRedactionMiddleware",
         "toolErrorMiddleware"
       ],
-      "notInPackage": [
-        "modelRefusalMiddleware"
-      ],
+      "notInPackage": [],
       "fromOtherPackages": [
         "createFilesystemMiddleware"
       ]
