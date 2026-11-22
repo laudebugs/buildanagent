@@ -117,6 +117,7 @@
     "@ai-sdk/provider": "4.0.35",
     "@ai-sdk/provider-utils": "5.0.74",
     "@cloudflare/ai-chat": "0.12.2",
+    "@cloudflare/think": "0.23.0",
     "@cloudflare/workers-types": "5.20261103.1",
     "agents": "0.33.0",
     "ai": "7.0.162",

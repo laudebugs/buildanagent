@@ -4,71 +4,16 @@
 // received and the refusal that ended the turn.
 //
 // It imports the package's source by relative path, which esbuild bundles.
-import type { LanguageModelV4CallOptions, LanguageModelV4StreamPart } from "@ai-sdk/provider";
+import type { LanguageModelV4CallOptions } from "@ai-sdk/provider";
 import { AIChatAgent } from "@cloudflare/ai-chat";
 import { getAgentByName } from "agents";
 import { customProvider, isStepCount, jsonSchema, streamText, tool } from "ai";
-import { MockLanguageModelV4, simulateReadableStream } from "ai/test";
 import { budgetRefusal, costGuard, type GuardedCall, guardedProvider, memorySpend } from "../../src/cost/index.js";
+import { CATALOG, lookupModel, STEPS } from "./cost-model.js";
 import type { Capped } from "./scenario.js";
 
 interface Env {
   readonly CappedAgent: DurableObjectNamespace;
-}
-
-const SOURCE = "https://provider.test/pricing";
-const CATALOG = {
-  models: [
-    {
-      provider: "mock",
-      id: "priced",
-      rates: [
-        { uncachedInput: 3, cacheRead: 0.3, cacheWrite: { "5m": 3.75, "1h": 6 }, output: 15, upToInputTokens: null },
-      ],
-      contextWindow: 200_000,
-      maxOutputTokens: 4000,
-      asOf: "2026-11-01",
-      sources: { rates: SOURCE, contextWindow: SOURCE, maxOutputTokens: SOURCE },
-    },
-  ],
-};
-const STEPS = 10;
-
-/** A model that calls `lookup` on every step but the last, with input that grows by 100 tokens a call. */
-function lookupModel(requests: LanguageModelV4CallOptions[]) {
-  return new MockLanguageModelV4({
-    provider: "mock.chat",
-    modelId: "priced",
-    doStream: async (options) => {
-      requests.push(options);
-      const n = requests.length - 1;
-      const last = n === STEPS - 1;
-      const body: LanguageModelV4StreamPart[] = last
-        ? [
-            { type: "text-start", id: "t" },
-            { type: "text-delta", id: "t", delta: "All shipped." },
-            { type: "text-end", id: "t" },
-          ]
-        : [{ type: "tool-call", toolCallId: `call_${n}`, toolName: "lookup", input: JSON.stringify({ order: n }) }];
-      const chunks: LanguageModelV4StreamPart[] = [
-        ...body,
-        {
-          type: "finish",
-          finishReason: { unified: last ? "stop" : "tool-calls", raw: undefined },
-          usage: {
-            inputTokens: {
-              total: 1000 + 100 * n,
-              noCache: 1000 + 100 * n,
-              cacheRead: undefined,
-              cacheWrite: undefined,
-            },
-            outputTokens: { total: 200, text: 200, reasoning: undefined },
-          },
-        },
-      ];
-      return { stream: simulateReadableStream({ chunks }) };
-    },
-  });
 }
 
 export class CappedAgent extends AIChatAgent<Env> {

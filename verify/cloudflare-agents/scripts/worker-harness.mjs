@@ -30,7 +30,12 @@ function recordFailedCheck(e) {
 const errText = (e) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e));
 // A 500 body is often a stack trace. Drop the checkout path from its frames before truncating, so the
 // recorded text doesn't depend on where the repo is checked out.
-const errBody = (text) => text.replace(/file:\/\/\/\S*?\/\.tmp\/docs\//g, ".tmp/docs/").slice(0, 300);
+// A per-process folder name (examples-<pid>) is rewritten to examples too, so the text doesn't depend on the process.
+const errBody = (text) =>
+  text
+    .replace(/file:\/\/\/\S*?\/\.tmp\/docs\//g, ".tmp/docs/")
+    .replace(/file:\/\/\/\S*?\/\.tmp\/examples-\d+\//g, ".tmp/examples/")
+    .slice(0, 300);
 
 function defaultFetch(mod) {
   const d = mod.default;
