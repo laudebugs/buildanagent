@@ -33,32 +33,32 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 
 ## Draw a diagram where a picture answers faster
 
-The docs app has no figure pipeline yet, so no test checks these rules today. A reviewer applies them by hand; the book's figure kit already enforces its own versions ([apps/manual/README.md](../../apps/manual/README.md#a-figure-is-a-script-that-draws-an-svg-and-the-build-inlines-it)).
+The docs app has no figure pipeline yet, so no test checks these rules today. A reviewer applies them by hand; the book's figure kit already enforces similar rules ([apps/manual/README.md](../../apps/manual/README.md#a-figure-is-a-script-that-draws-an-svg-and-the-build-inlines-it)).
 
-- **MUST:** add a figure only where a picture answers the reader's question faster than prose, and give each figure one idea. A reviewer states the figure's point in one sentence; a point that needs "and" means two figures.
-- **MUST:** write alt text that states the figure's point, such as "The loop calls tools until the model answers", never "Diagram of the loop". A reviewer reads the alt text alone and checks that it teaches the point.
-- **MUST:** give every figure a caption.
+- **MUST:** add a figure only where a picture answers the reader's question faster than prose, and give each figure one idea. A point that needs "and" means two figures.
+- **MUST:** write alt text that states the figure's point, such as "The loop calls tools until the model answers", never "Diagram of the loop". A reviewer reads the alt text alone.
+- **MUST:** give every figure a caption. A reviewer checks that no figure on the page lacks one.
 - **MUST:** set every label at 12 px or larger at the size the page shows it. A reviewer reads the rendered page on a phone.
 - **MUST:** take every colour from the theme tokens, never a colour attribute or a hex value, so the figure follows light and dark mode.
 - **MUST:** state in the page's text every fact a figure shows. A reviewer covers the figure and checks that the page still says it.
-- **SHOULD:** add a text description beside a figure with more than five nodes, which is our choice of "more than a few".
+- **SHOULD:** add a text description beside a figure with more than five nodes. Five is our threshold for "more than a few".
 
 ## Use a callout for an aside, never for the point
 
-Starlight's four kinds are note, tip, caution and danger. The docs test does not check callouts yet.
+Starlight's four kinds are note, tip, caution and danger. The docs test does not check callouts.
 
-- **MUST:** use each kind for one job. A note adds context a reader can skip. A tip gives a faster or safer way. A caution warns of a mistake that wastes time. A danger warns of an action that loses data, spends money or exposes a secret.
+- **MUST:** use each kind for one job. A note adds skippable context. A tip gives a faster or safer way. A caution warns of a mistake that wastes time. A danger warns of an action that loses data, spends money or exposes a secret.
 - **SHOULD:** keep a page to three callouts or fewer. A reviewer counts them.
-- **MUST NOT:** put the page's main point in a callout. A reviewer deletes every callout and checks that the page still teaches its task.
-- **MUST NOT:** nest a callout inside a callout.
+- **MUST NOT:** put the page's main point in a callout. A reviewer deletes every callout and rereads the page.
+- **MUST NOT:** nest a callout inside a callout. A reviewer looks for a callout block within a callout block.
 
 ## Use code tabs only for one task in two forms
 
-The docs app has no tabs component yet. Its long-block test already fails any fence of more than five lines that lacks an `examples/` file, wherever the fence sits on the page, so that part of the tab rule is enforced today. The rest is not.
+The docs app has no tabs component. Its long-block test already fails any fence of more than five lines that lacks an examples file, so the tab-code rule is enforced today; a reviewer checks the rest by hand.
 
-- **MUST:** use tabs only for the same task in different languages or runtimes, or for code and its output. A reviewer checks that each tab does what the others do. Different tasks get headings.
-- **SHOULD:** put the tab most readers need first.
-- **MUST:** take every tab's code from a tested example file, as [examples.md](examples.md) requires, with a sentence before the tabs that says what the code does.
+- **MUST:** use tabs only for the same task in different languages or runtimes, or for code and its output. A reviewer checks that each tab does what the others do.
+- **SHOULD:** put the tab most readers need first. A reviewer checks that the first tab is the one the page's own examples use most.
+- **MUST:** take every code tab of a page from its own example file, as [examples.md](examples.md) requires, and put a sentence before the tabs that says what the code does.
 
 ## Reviewer checklist
 

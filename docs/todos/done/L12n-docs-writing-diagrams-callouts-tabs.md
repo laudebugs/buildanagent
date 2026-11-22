@@ -64,4 +64,4 @@ A rule the docs test cannot check stays advice; say so in the rule.
 
 ## Outcome
 
-`docs-writing.md` has three new sections: when a figure earns a place (one idea, alt text that states the point, a caption, 12 px labels, token colours, no fact only in the picture), what each callout kind is for, and when code tabs fit. Each rule is MUST or SHOULD, says how a reviewer checks it and says whether the docs test enforces it; none of the new rules is machine-checked today, and only the existing long-block test covers tab code. `examples.md` points to the tab rule, and the claims are logged in `fact-check-docs-guidelines.md` as rows L12n-1 to L12n-9.
+`docs-writing.md` has three new sections: when a figure earns a place (one idea, alt text that states the point, a caption, 12 px labels, token colours, no fact only in the picture), what each callout kind is for, and when code tabs fit. Each rule is MUST or SHOULD and, where a reviewer can check it, says how. None is machine-checked today; only the existing long-block test covers tab code. `examples.md` points to the tab rule, and the claims are logged in `fact-check-docs-guidelines.md` as rows L12n-1 to L12n-9.
