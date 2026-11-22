@@ -80,19 +80,19 @@
     },
     {
       "kind": "check",
-      "line": 26,
+      "line": 27,
       "message": "the MCP tool is offered as orders-order_status (orders-order_status)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 30,
+      "line": 31,
       "message": "onPermissionRequest was asked with kind mcp (got mcp)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 34,
+      "line": 36,
       "message": "the MCP server's result reached the model",
       "pass": true
     },
@@ -129,7 +129,7 @@
     },
     {
       "kind": "check",
-      "line": 47,
+      "line": 49,
       "message": "tools: [] offers none of the server's tools",
       "pass": true
     }

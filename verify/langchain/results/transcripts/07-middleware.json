@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 39,
+      "line": 41,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -28,7 +28,7 @@
     },
     {
       "kind": "response",
-      "line": 39,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -54,7 +54,7 @@
     },
     {
       "kind": "request",
-      "line": 39,
+      "line": 41,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -108,7 +108,7 @@
     },
     {
       "kind": "response",
-      "line": 39,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -123,19 +123,19 @@
     },
     {
       "kind": "check",
-      "line": 43,
+      "line": 45,
       "message": "wrapToolCall can block a tool by returning its own ToolMessage",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 45,
+      "line": 47,
       "message": "the model receives the middleware's message",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 48,
       "message": "hooks run in loop order: beforeModel, wrapToolCall:restart_service, beforeModel, afterAgent",
       "pass": true
     }

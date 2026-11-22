@@ -83,7 +83,7 @@ The claims log for [`call-workflow-loop.md`](../src/content/chapters/call-workfl
 | 50 | `bash` runs commands and `write` changes files on the machine that runs the agent | § A harness | ✅ | Pi's `cli.md` at `v1.5.2`, its tool table: `bash` "Run shell commands", `write` "Create or overwrite a file" |
 | 51 | The scripted model answers with text at once, so the loop ends after one model request | § A harness | ✅ | The example's check "one model request for a text-only answer" passes |
 | 52 | The session emits `message_update` and `message_end` while the answer streams, then `agent_settled` last | § A harness | ✅ | The example's checks "streams message_update then message_end" and "agent_settled is the last event of the run" pass; `sdk.md`: "Use `agent_settled` when the host needs to know that Pi will not continue automatically." |
-| 53 | The replay shows one request with Pi's system prompt and "Say hello.", and the answer coming back | § A harness | ✅ | `verify/pi/results/transcripts/01-hello-session.json`: one request for line 10, whose system message keeps only its section names, and one response, "Hello from Pi." |
+| 53 | The replay shows one request with Pi's system prompt and "Say hello.", and the answer coming back | § A harness | ✅ | `verify/pi/results/transcripts/01-hello-session.json`: one request for line 11 (line 10 before row 137's move), whose system message keeps only its section names, and one response, "Hello from Pi." |
 | 54 | The mock never calls the session's tools | § A harness | ✅ | The faux script holds one text message and no tool call (line 6), and the transcript's one response holds only text |
 | 55 | The model decides the next step in Pi, and the harness runs the steps it chooses | § A harness | ✅ | Row 46: Pi starts another turn only when tool results the model asked for require one |
 
@@ -210,12 +210,13 @@ T50 turned five of the chapter's six listings into tabs blocks, with a listing o
 | 134 | Row 118's evidence counts the messages our loop's second request repeats before its `tool-result` | § The loop, [[fig:loop-bench]] | ✏️ | Row 118 first said two repeated messages; `packages/sdk/results/transcripts/03-tool-loop.json` records `"repeated": 3`, the system prompt, the question and the tool call, so row 118 now says three. The order of the steps, and the chapter's claim, are unchanged |
 | 135 | The README rows 119–131 cite is the one at the tag `v0.1.0-alpha.19`, which matches this branch's `packages/sdk/README.md` | Our SDK's tabs | ✏️ | The register entry and these rows first linked the README on `main`, which changes with each merge. They now link the tag; `git diff v0.1.0-alpha.19 HEAD -- packages/sdk/README.md` is empty on 2026-11-22 |
 | 136 | After the writing review, the reworded sentences keep their claims: our SDK has no workflow class (row 114), and our `maxSteps: 1` run ends after one model call that ran the tool but brought no answer (row 125) | § Workflow; § The loop | ✅ | Re-read against the same sources on 2026-11-22; the review split two paragraphs and reordered two sentences, and changed no claim |
+| 137 | Row 53's transcript cites line 11 of `verify/pi/examples/01-hello-session.ts`, where the `prompt()` call now sits | Listings | ✏️ | Corrects row 53, which said line 10. Chapter 10's marker pass on the example added one line above the call, and `results/transcripts/01-hello-session.json` records `"line": 11` for the request (`grep -n 'prompt(' verify/pi/examples/01-hello-session.ts` gives line 11). No other row or page of this chapter cites that line |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 123 |
-| ✏️ corrected | 9 (rows 26, 42, 61, 70, 85, 86, 98, 134 and 135) |
+| ✏️ corrected | 10 (rows 26, 42, 61, 70, 85, 86, 98, 134, 135 and 137) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 11, 41, 63 and 97) |
-| Total | 136 |
+| Total | 137 |

@@ -63,7 +63,7 @@ GitHub's webhooks show why. A webhook receiver should use the `X-GitHub-Delivery
 
 Our agent plan had no design for this: our 12-factor report found no "webhook", "cron" or "idempot" in it on 2026-11-18. The coding agent plan closes the gap once. Every trigger becomes a task request with a stable id, and the control plane drops a second request with the same id. The first triggers are a command-line command and a GitHub issue label or comment, accepted only from the owner, with hidden HTML stripped. That control plane is a ready todo, not code, as of November 2026.
 
-:::listing[Write the sender's id first, and start a task only when the id was new]{#accept file="verify/cloudflare-agents/examples/11-trigger-dedup.ts" region="accept"}
+:::listing[Write the sender's id first, and start a task only when the id was new]{#accept file="verify/cloudflare-agents/examples/12-trigger-dedup.ts" region="accept"}
 ::note[The id goes into a table whose primary key is the id. `INSERT OR IGNORE` does nothing when the id is already there.]{#stamp}
 ::note[SQLite reports how many rows the last statement changed. One means the id was new.]{#first}
 ::note[Only a new id starts a task. Every repeat reaches this line and skips it.]{#start}
@@ -71,13 +71,13 @@ Our agent plan had no design for this: our 12-factor report found no "webhook", 
 
 The agent writes the stamp before it starts any work, which is the same order as the key in the previous chapter's tool: the record comes first, so a crash after it leaves a trace and not a gap. The same id sent twice starts one task.
 
-:::listing[Two deliveries of one id start one task]{#twice file="verify/cloudflare-agents/examples/11-trigger-dedup.ts" region="twice"}
+:::listing[Two deliveries of one id start one task]{#twice file="verify/cloudflare-agents/examples/12-trigger-dedup.ts" region="twice"}
 ::note[The second call returns `started: false` and the task count stays at one.]{#once}
 :::
 
 The stamp lives in the agent's storage, so it outlasts the agent. The example evicts the object and sends the same delivery again. It is still dropped.
 
-:::listing[A redelivery after an eviction is still dropped]{#evicted file="verify/cloudflare-agents/examples/11-trigger-dedup.ts" region="evicted"}
+:::listing[A redelivery after an eviction is still dropped]{#evicted file="verify/cloudflare-agents/examples/12-trigger-dedup.ts" region="evicted"}
 ::note[The id is in storage, not in memory, so the new instance finds it.]{#storage}
 :::
 
@@ -88,5 +88,5 @@ But the stamp and the task must be written in one atomic step, such as a DynamoD
 ## Exercises
 
 1. **Add a field, evict the agent, and list what it must reload.** In `verify/cloudflare-agents/examples/10-durable-wake.ts`{checked=row-1}, add a second in-memory field to `Reminders`{checked=row-1} and a second key to its state, then run the example. Before you run it, write down which of the two survive the eviction and which checks you must add. Say what an agent on any host must reload on every start, and which of those things sit in the table of seams.
-2. **Send the same trigger twice, with different goals.** In `verify/cloudflare-agents/examples/11-trigger-dedup.ts`{checked=row-36}, send `delivery-1` a second time with a different goal. Predict the task count and which goal the task holds, run `pnpm test` in `verify/cloudflare-agents`, and decide whether dropping the second delivery silently is what you want. What would you change to reject a mismatch?
+2. **Send the same trigger twice, with different goals.** In `verify/cloudflare-agents/examples/12-trigger-dedup.ts`{checked=row-36}, send `delivery-1` a second time with a different goal. Predict the task count and which goal the task holds, run `pnpm test` in `verify/cloudflare-agents`, and decide whether dropping the second delivery silently is what you want. What would you change to reject a mismatch?
 3. **Pick the AWS parts on paper.** For each of the eight seams, name the AWS service you would put behind it, say which of them the figure's cells are inference for, and which one is already built in `agent-safety`.

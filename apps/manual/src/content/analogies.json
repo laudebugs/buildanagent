@@ -144,6 +144,30 @@
     "breaks": "A check knows only the rules you wrote; a game can go wrong in ways no rule names, and a check that holds for the right behaviour may hold for no behaviour at all."
   },
   {
+    "id": "court-stenographer",
+    "concept": "event stream",
+    "analogy": "a court stenographer's record",
+    "chapter": "events-and-hooks",
+    "illustration": null,
+    "breaks": "A stenographer's record is final as typed. A run's stream also carries partial deltas that the end event supersedes, so a log that kept every delta would hold text the finished message replaces."
+  },
+  {
+    "id": "toll-booths",
+    "concept": "interceptors",
+    "analogy": "toll booths that can stop, charge or turn back a car",
+    "chapter": "events-and-hooks",
+    "illustration": "toll-booths",
+    "breaks": "A toll booth leaves the car as it is. An interceptor can rewrite the request itself, as if the attendant swapped the driver's destination, so the run records which replacement it used."
+  },
+  {
+    "id": "traffic-cameras",
+    "concept": "observers",
+    "analogy": "traffic cameras that only watch",
+    "chapter": "events-and-hooks",
+    "illustration": null,
+    "breaks": "A camera that jams cannot close the road, but an observer that throws or never returns can still break a run unless the SDK isolates it and bounds the wait."
+  },
+  {
     "id": "club-door-list",
     "concept": "permission pipeline",
     "analogy": "a club's door list read top to bottom",
@@ -174,6 +198,30 @@
     "chapter": "permissions-sandboxes-and-credentials",
     "illustration": null,
     "breaks": "A coat stays the same coat; tokens expire and refresh, and the counter must also know whose coat is whose, because one user's token must never answer another user's request."
+  },
+  {
+    "id": "hardware-store-back-room",
+    "concept": "deferred tools",
+    "analogy": "a hardware store that shelves the common tools and fetches the rest from the back room",
+    "chapter": "tools-at-scale",
+    "illustration": "back-room",
+    "breaks": "A clerk fetches a tool in a minute for the price of waiting; a deferred tool costs a round trip and the tokens of its definition, and it keeps costing those tokens each turn it stays loaded, so the shelf must hold the tools used most."
+  },
+  {
+    "id": "usb-port",
+    "concept": "MCP",
+    "analogy": "a USB port: one plug shape for many devices",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "Plugging in an MCP server is closer to installing software than to plugging in a mouse: the server chooses its tools' names, descriptions and results, and the specification tells clients to treat a tool's annotations as untrusted unless the server is trusted."
+  },
+  {
+    "id": "service-manuals",
+    "concept": "skills",
+    "analogy": "a mechanic's service manuals, opened only when that model of car comes in",
+    "chapter": "tools-at-scale",
+    "illustration": null,
+    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."
   },
   {
     "id": "raffle-ticket-stub",
@@ -230,5 +278,29 @@
     "chapter": "durable-and-portable-agents",
     "illustration": null,
     "breaks": "The mailroom invents no numbers: the id must come from the sender, such as a webhook's delivery id, or a repeat would get a fresh stamp and slip through."
+  },
+  {
+    "id": "adventure-book",
+    "concept": "session log tree",
+    "analogy": "a choose-your-own-adventure book that keeps every path taken",
+    "chapter": "the-session-log-and-context",
+    "illustration": null,
+    "breaks": "A reader chooses each path in the book, but in a session log the harness and the user make the forks, every path stays readable to them, and the model sees only the path being followed."
+  },
+  {
+    "id": "limited-desk",
+    "concept": "context window",
+    "analogy": "a desk with limited space",
+    "chapter": "the-session-log-and-context",
+    "illustration": "limited-desk",
+    "breaks": "A person can open the drawer and fetch a folder; the model cannot, so only the harness decides what goes on the desk."
+  },
+  {
+    "id": "previously-on-recap",
+    "concept": "compaction",
+    "analogy": "a TV show's \"previously on\" recap",
+    "chapter": "the-session-log-and-context",
+    "illustration": null,
+    "breaks": "A model writes the recap and can drop facts, so the original entries stay in the log and the harness can put any of them back in front of the model."
   }
 ]
