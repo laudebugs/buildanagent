@@ -2,6 +2,7 @@
 // the experimental gate.
 import assert from "node:assert/strict";
 import { createModel, type Model } from "@buildanagent/gateway";
+import { createContextPolicy, memorySpillStore } from "@buildanagent/harness/context";
 import { createPermissionPipeline } from "@buildanagent/harness/permissions";
 import {
   createDispatcher,
@@ -269,5 +270,29 @@ describe("the dispatcher", () => {
     await assert.rejects(client.request("session/list", { cursor: "1e1" }), RpcFailure);
     client.close();
     await assert.rejects(client.request("session/list", {}), /closed/);
+  });
+
+  test("a harness with a context policy sends context_fill events", async () => {
+    const harness = createHarness({
+      registry: createToolRegistry(),
+      model: scripted([reply("Done.")]),
+      system: "You triage tickets.",
+      context: createContextPolicy({ spill: memorySpillStore() }),
+    });
+    const backend = memoryBackend();
+    const dispatcher = createDispatcher({ harness, ...backend, userId: "ada" });
+    const client = inProcessTransport(dispatcher);
+    const seen: ServerMessage[] = [];
+    client.onMessage((message) => seen.push(message));
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Hi") });
+    await settled(seen);
+    const fills = seen.flatMap((m) =>
+      "method" in m && m.method === "event" && m.params.event.type === "context_fill" ? [m.params.event] : [],
+    );
+    assert.ok(fills.length > 0);
+    assert.ok((fills[0]?.tokens ?? 0) > 0);
+    assert.equal(fills[0]?.budget, 200_000 - 16_384);
   });
 });

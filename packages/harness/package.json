@@ -42,6 +42,11 @@
       "types": "./dist/context/index.d.ts",
       "default": "./dist/context/index.js"
     },
+    "./context/file": {
+      "source": "./src/context/file-spill.ts",
+      "types": "./dist/context/file-spill.d.ts",
+      "default": "./dist/context/file-spill.js"
+    },
     "./tools": {
       "source": "./src/tools/index.ts",
       "types": "./dist/tools/index.d.ts",
@@ -125,6 +130,10 @@
       "./context": {
         "types": "./dist/context/index.d.ts",
         "default": "./dist/context/index.js"
+      },
+      "./context/file": {
+        "types": "./dist/context/file-spill.d.ts",
+        "default": "./dist/context/file-spill.js"
       },
       "./tools": {
         "types": "./dist/tools/index.d.ts",

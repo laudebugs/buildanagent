@@ -11,6 +11,7 @@ import {
   type ClientResultMap,
   type Disposition,
   ErrorCodes,
+  type HarnessEvent,
   type InitializeResult,
   type ResponseMessage,
   type RpcError,
@@ -196,7 +197,7 @@ class HarnessDispatcher<H> implements Dispatcher {
   }
 
   /** Sends to every connection that has opened the session. `seq` is the log's sequence number at that moment. */
-  emit(session: string, event: AgentEvent | { type: "entry_appended"; entry: SessionEntry }, seq?: number): void {
+  emit(session: string, event: AgentEvent | HarnessEvent, seq?: number): void {
     const at = seq ?? this.#lastSeq.get(session) ?? -1;
     for (const connection of this.#connections) {
       if (connection.watching(session)) {
@@ -411,6 +412,7 @@ class HarnessDispatcher<H> implements Dispatcher {
         input,
         observers: [observer],
         signal: running.controller.signal,
+        onContextFill: (fill) => this.emit(session, { type: "context_fill", tokens: fill.tokens, budget: fill.budget }),
         onRun: (run) => {
           running.run = run;
           for (const apply of running.queued.splice(0)) apply(run);
