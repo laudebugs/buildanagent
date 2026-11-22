@@ -48,6 +48,8 @@ export function postgresEffectStore(client: PgClientLike): EffectStore {
   };
   const lost = async (key: string): Promise<EffectClaim> => {
     const existing = await read(key);
+    // A record that vanished between the failed write and this read would mean that another process won and was then
+    // deleted, which no store method does. The claim can't be answered, so this throws.
     if (existing === undefined) throw new Error(`the effect record ${key} changed while it was being claimed`);
     return { existing };
   };

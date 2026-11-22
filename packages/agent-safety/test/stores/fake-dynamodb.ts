@@ -25,6 +25,8 @@ interface Part {
 
 interface Body extends Part {
   TransactItems?: { Put?: Part; ConditionCheck?: Part }[];
+  ClientRequestToken?: string;
+  ReturnValuesOnConditionCheckFailure?: string;
 }
 
 /** One request the fake received: the operation and its JSON body. */
@@ -65,12 +67,56 @@ function required<T>(value: T | undefined): T {
   return value;
 }
 
+/** The `#name` and `:value` tokens that an expression uses. */
+function tokensOf(expression: string | undefined, prefix: "#" | ":"): Set<string> {
+  return new Set((expression ?? "").match(prefix === "#" ? /#\w+/g : /:\w+/g) ?? []);
+}
+
+/**
+ * What DynamoDB says when the names or values a request carries are not the ones its expression uses: a name or value
+ * that no expression uses, or one that the expression needs and the request lacks. `undefined` when they match.
+ */
+function expressionProblem(part: {
+  ConditionExpression?: string;
+  ExpressionAttributeNames?: Names;
+  ExpressionAttributeValues?: Values;
+}): string | undefined {
+  const checks = [
+    [
+      "ExpressionAttributeNames",
+      Object.keys(part.ExpressionAttributeNames ?? {}),
+      tokensOf(part.ConditionExpression, "#"),
+    ],
+    [
+      "ExpressionAttributeValues",
+      Object.keys(part.ExpressionAttributeValues ?? {}),
+      tokensOf(part.ConditionExpression, ":"),
+    ],
+  ] as const;
+  for (const [field, provided, used] of checks) {
+    const unused = provided.filter((token) => !used.has(token));
+    if (unused.length > 0) return `Value provided in ${field} unused in expressions: keys: {${unused.join(", ")}}`;
+    const missing = [...used].filter((token) => !provided.includes(token));
+    if (missing.length > 0) return `An expression attribute in ${field} is not defined: {${missing.join(", ")}}`;
+  }
+  return undefined;
+}
+
+const VALIDATION = "com.amazon.coral.validate#ValidationException";
+const SERVER_ERROR = "com.amazonaws.dynamodb.v20120810#InternalServerError";
+const MISMATCH = "com.amazonaws.dynamodb.v20120810#IdempotentParameterMismatchException";
 const CONDITION_FAILED = "com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException";
 const CANCELED = "com.amazonaws.dynamodb.v20120810#TransactionCanceledException";
 
 /** A fake DynamoDB, the SDK client that talks to it, and the requests it has received. */
 export function fakeDynamoDb() {
   const items = new Map<string, Item>();
+  // The request tokens of transactions that took effect, with their parameters, as DynamoDB keeps them for ten minutes.
+  const tokens = new Map<string, string>();
+  // Faults for the next requests: a response lost after the write took effect, and a transaction cancelled for a reason
+  // that says nothing about its conditions.
+  const lose: string[] = [];
+  const cancel: string[][] = [];
   const requests: RecordedRequest[] = [];
   const get = (key: Item | undefined) => items.get(String(key?.pk?.S));
   const answer = (statusCode: number, body: unknown) => ({
@@ -82,6 +128,7 @@ export function fakeDynamoDb() {
   });
   const fail = (type: string, extra: Record<string, unknown> = {}) =>
     answer(400, { __type: type, message: "The conditional request failed", ...extra });
+  const invalid = (message: string) => answer(400, { __type: VALIDATION, message });
 
   /** Whether the condition on one part of a request holds for the item it names. */
   const partHolds = (part: Part, fallback?: Part): boolean =>
@@ -93,24 +140,60 @@ export function fakeDynamoDb() {
     );
 
   function putItem(body: Body) {
+    const problem = expressionProblem(body);
+    if (problem !== undefined) return invalid(problem);
     const item = required(body.Item);
-    if (!partHolds(body)) return fail(CONDITION_FAILED);
+    if (!partHolds(body)) {
+      const old = get(item);
+      // `ReturnValuesOnConditionCheckFailure: ALL_OLD` returns the item that made the condition false.
+      const returned = body.ReturnValuesOnConditionCheckFailure === "ALL_OLD" && old !== undefined ? { Item: old } : {};
+      return fail(CONDITION_FAILED, returned);
+    }
     items.set(String(item.pk?.S), item);
     return answer(200, {});
   }
 
+  /** The first problem with the expressions of a transaction's parts, if any. */
+  function transactionProblem(entries: NonNullable<Body["TransactItems"]>): string | undefined {
+    for (const entry of entries) {
+      const problem = expressionProblem(required(entry.Put ?? entry.ConditionCheck));
+      if (problem !== undefined) return problem;
+    }
+    return undefined;
+  }
+
+  /** The answer to a retried transaction whose token DynamoDB remembers, or `undefined` for a new one. */
+  function replay(body: Body, payload: string) {
+    const seen = body.ClientRequestToken === undefined ? undefined : tokens.get(body.ClientRequestToken);
+    if (seen === undefined) return undefined;
+    return seen === payload ? answer(200, {}) : fail(MISMATCH, { message: "The token was used with other parameters" });
+  }
+
   function transactWriteItems(body: Body) {
     const entries = body.TransactItems ?? [];
+    const problem = transactionProblem(entries);
+    if (problem !== undefined) return invalid(problem);
+    const payload = JSON.stringify(entries);
+    const replayed = replay(body, payload);
+    if (replayed !== undefined) return replayed;
+    const cancelled = cancel.shift();
+    if (cancelled !== undefined) return fail(CANCELED, { CancellationReasons: cancelled.map((Code) => ({ Code })) });
     const checks = entries.map((entry) => partHolds(required(entry.Put ?? entry.ConditionCheck)));
     if (checks.some((ok) => !ok)) {
       const reasons = checks.map((ok) => ({ Code: ok ? "None" : "ConditionalCheckFailed" }));
       return fail(CANCELED, { CancellationReasons: reasons });
     }
+    applyTransaction(entries, body.ClientRequestToken, payload);
+    return answer(200, {});
+  }
+
+  /** Writes a transaction's puts and remembers its token. */
+  function applyTransaction(entries: NonNullable<Body["TransactItems"]>, token: string | undefined, payload: string) {
     for (const entry of entries) {
       const item = entry.Put?.Item;
       if (item !== undefined) items.set(String(item.pk?.S), item);
     }
-    return answer(200, {});
+    if (token !== undefined) tokens.set(token, payload);
   }
 
   function operate(operation: string, body: Body) {
@@ -128,7 +211,13 @@ export function fakeDynamoDb() {
       const operation = String(request.headers["x-amz-target"]).split(".")[1] as string;
       const body = JSON.parse(String(request.body)) as Record<string, unknown>;
       requests.push({ operation, body });
-      return operate(operation, body);
+      const answered = operate(operation, body);
+      // A lost response: the write took effect, and the caller gets a server error it will retry.
+      if (lose.length > 0 && lose[0] === operation && answered.response.statusCode === 200) {
+        lose.shift();
+        return answer(500, { __type: SERVER_ERROR, message: "Internal server error" });
+      }
+      return answered;
     },
     updateHttpClientConfig() {},
     httpHandlerConfigs: () => ({}),
@@ -138,15 +227,27 @@ export function fakeDynamoDb() {
     region: "us-east-1",
     credentials: { accessKeyId: "test", secretAccessKey: "test" },
     requestHandler: handler as never,
-    maxAttempts: 1,
+    // The SDK's retries are on, as a deployed client's are, so a lost response is retried as it would be.
+    maxAttempts: 3,
   });
   return {
     client,
     requests,
     items,
-    /** Forgets every item and request, so each conformance case starts empty. */
+    /** The next `operation` takes effect, but its response is lost: the caller gets a server error, which it retries. */
+    loseNextResponse(operation: "PutItem" | "TransactWriteItems") {
+      lose.push(operation);
+    },
+    /** The next transaction is cancelled with these reason codes and changes nothing, as under a conflict or throttling. */
+    cancelNextTransaction(...codes: string[]) {
+      cancel.push(codes);
+    },
+    /** Forgets every item, token, fault and request, so each conformance case starts empty. */
     reset() {
       items.clear();
+      tokens.clear();
+      lose.length = 0;
+      cancel.length = 0;
       requests.length = 0;
     },
   };

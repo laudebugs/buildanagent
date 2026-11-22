@@ -8,11 +8,9 @@
  * Reads are consistent reads. The table needs one string partition key named `pk` and no sort key.
  */
 import {
-  ConditionalCheckFailedException,
   type DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
-  TransactionCanceledException,
   TransactWriteItemsCommand,
 } from "@aws-sdk/client-dynamodb";
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
@@ -27,18 +25,45 @@ export interface DynamoStoreOptions {
 const effectPk = (key: string) => `effect#${key}`;
 const stepPk = (planId: string, stepIndex: number) => `plan#${planId}#${stepIndex}`;
 
-function item(record: EffectRecord) {
+type Attributes = Record<string, { S: string } | { N: string }>;
+
+/** The item for a record. `token` names the call that wrote it, so that call can tell its own retried write apart. */
+function item(record: EffectRecord, token: string) {
   return {
     pk: { S: effectPk(record.key) },
     attempt: { N: String(record.attempt) },
     state: { S: record.state },
     record: { S: JSON.stringify(record) },
+    token: { S: token },
   };
 }
 
-/** Whether an SDK error is the answer "the condition was false", which is an expected result and not a failure. */
-function conditionFailed(error: unknown): boolean {
-  return error instanceof ConditionalCheckFailedException || error instanceof TransactionCanceledException;
+// The parts of an SDK error these stores read. They compare an error's `name`, not its class, so a host that loads
+// its own copy of the SDK next to this package's still gets its errors recognised.
+interface SdkErrorLike {
+  readonly name?: string;
+  readonly Item?: { readonly token?: { readonly S?: string } };
+  readonly CancellationReasons?: readonly { readonly Code?: string }[];
+}
+
+const asSdkError = (error: unknown): SdkErrorLike => (typeof error === "object" && error !== null ? error : {});
+
+/** The token on the item that made a put's condition false, `undefined` when the answer isn't "the condition was false". */
+function failedConditionToken(error: unknown): { readonly token: string | undefined } | undefined {
+  const { name, Item } = asSdkError(error);
+  return name === "ConditionalCheckFailedException" ? { token: Item?.token?.S } : undefined;
+}
+
+/**
+ * Whether a transaction was refused because a condition was false. A cancellation for another reason, such as a
+ * conflict with another transaction or throttling, says nothing about the items, so it is not a refusal.
+ */
+function transactionRefused(error: unknown): boolean {
+  const { name, CancellationReasons } = asSdkError(error);
+  return (
+    name === "TransactionCanceledException" &&
+    CancellationReasons?.some((r) => r.Code === "ConditionalCheckFailed") === true
+  );
 }
 
 /** An `EffectStore` on DynamoDB. */
@@ -52,45 +77,62 @@ export function dynamoEffectStore(client: DynamoDBClient, options: DynamoStoreOp
   };
   const lost = async (key: string): Promise<EffectClaim> => {
     const existing = await read(key);
+    // A record that vanished between the failed write and this read would mean that another process won and was then
+    // deleted, which no store method does. The claim can't be answered, so this throws.
     if (existing === undefined) throw new Error(`the effect record ${key} changed while it was being claimed`);
     return { existing };
   };
-  /** A put that needs `condition`, answering whether it was true. */
+  /**
+   * A put that needs `condition`, answering whether it took effect. The SDK retries a put after a timeout or a server
+   * error, and a retry of a put that already took effect fails its own condition. DynamoDB then returns the item that
+   * made it fail, and when that item carries this call's token it is this call's own write, so the put counts as won.
+   * Each call has a token of its own, so another caller's write never does.
+   */
   const put = async (
     record: EffectRecord,
     condition: string,
-    values?: Record<string, { S: string } | { N: string }>,
+    names: Record<string, string>,
+    values?: Attributes,
   ): Promise<boolean> => {
+    const token = crypto.randomUUID();
     try {
       await client.send(
         new PutItemCommand({
           TableName: tableName,
-          Item: item(record),
+          Item: item(record, token),
           ConditionExpression: condition,
-          ExpressionAttributeNames: { "#pk": "pk", "#attempt": "attempt", "#state": "state" },
+          ExpressionAttributeNames: names,
           ...(values === undefined ? {} : { ExpressionAttributeValues: values }),
+          ReturnValuesOnConditionCheckFailure: "ALL_OLD",
         }),
       );
       return true;
     } catch (error) {
-      if (conditionFailed(error)) return false;
-      throw error;
+      const failed = failedConditionToken(error);
+      if (failed === undefined) throw error;
+      return failed.token === token;
     }
   };
   return {
     async begin(record) {
-      return (await put(record, "attribute_not_exists(#pk)")) ? "started" : lost(record.key);
+      return (await put(record, "attribute_not_exists(#pk)", { "#pk": "pk" })) ? "started" : lost(record.key);
     },
     async takeOver(record) {
-      const previous = { ":previous": { N: String(record.attempt - 1) } };
-      const won = await put(record, "attribute_not_exists(#pk) OR #attempt = :previous", previous);
+      const won = await put(
+        record,
+        "attribute_not_exists(#pk) OR #attempt = :previous",
+        { "#pk": "pk", "#attempt": "attempt" },
+        { ":previous": { N: String(record.attempt - 1) } },
+      );
       return won ? "started" : lost(record.key);
     },
     async settle(record) {
-      return put(record, "#state = :started AND #attempt = :attempt", {
-        ":started": { S: "started" },
-        ":attempt": { N: String(record.attempt) },
-      });
+      return put(
+        record,
+        "#state = :started AND #attempt = :attempt",
+        { "#state": "state", "#attempt": "attempt" },
+        { ":started": { S: "started" }, ":attempt": { N: String(record.attempt) } },
+      );
     },
     get: read,
   };
@@ -98,8 +140,10 @@ export function dynamoEffectStore(client: DynamoDBClient, options: DynamoStoreOp
 
 /**
  * A `PlanLedger` on DynamoDB. Step `n` is an item that exists once the step passed. A claim of step `n` is one
- * transaction: put the item for `n` if it is absent, and check that the item for `n - 1` exists. When the transaction
- * is refused, a read of the item for `n` tells `replayed` from `out_of_order`.
+ * transaction: put the item for `n` if it is absent, and check that the item for `n - 1` exists. The transaction
+ * carries a `ClientRequestToken`, so an SDK retry of a claim that already took effect is answered as the same claim, not
+ * as a replay. When the transaction is refused because a condition was false, a read of the item for `n` tells
+ * `replayed` from `out_of_order`; a cancellation for any other reason is rethrown.
  */
 export function dynamoPlanLedger(client: DynamoDBClient, options: DynamoStoreOptions): PlanLedger {
   const { tableName } = options;
@@ -133,10 +177,12 @@ export function dynamoPlanLedger(client: DynamoDBClient, options: DynamoStoreOpt
               },
             ];
       try {
-        await client.send(new TransactWriteItemsCommand({ TransactItems: [...earlier, put] }));
+        await client.send(
+          new TransactWriteItemsCommand({ TransactItems: [...earlier, put], ClientRequestToken: crypto.randomUUID() }),
+        );
         return "claimed" as const;
       } catch (error) {
-        if (!conditionFailed(error)) throw error;
+        if (!transactionRefused(error)) throw error;
         return (await exists(planId, stepIndex)) ? ("replayed" as const) : ("out_of_order" as const);
       }
     },

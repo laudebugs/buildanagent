@@ -2,9 +2,10 @@
  * `@buildanagent/agent-safety/stores/cloudflare`: the effect store and the plan ledger on a Durable Object's SQLite
  * storage, `ctx.storage.sql`. SQL calls in a Durable Object complete synchronously, and none of the methods below awaits
  * between its statements, so no other event in the object runs between two of them. The SQL still makes every change
- * conditional, so the same code is correct if a host ever lets two callers interleave. A store belongs to one object: give every tenant or session that
- * must keep its own records its own object, or pass records whose keys are already unique across tenants, as
- * `effectKey()` makes them.
+ * conditional, so the same code is correct if a host ever lets two callers interleave.
+ *
+ * A store belongs to one object: give every tenant or session that must keep its own records its own object, or pass
+ * records whose keys are already unique across tenants, as `effectKey()` makes them.
  */
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
@@ -53,8 +54,8 @@ export function durableObjectEffectStore(sql: SqlStorageLike): EffectStore {
   };
   const lost = (key: string): EffectClaim => {
     const existing = read(key);
-    // A record that vanished between the failed write and this read means another process won and was then deleted,
-    // which no store method does; treat it as a lost claim on a record nobody can show.
+    // A record that vanished between the failed write and this read would mean that another process won and was then
+    // deleted, which no store method does. The claim can't be answered, so this throws.
     if (existing === undefined) throw new Error(`the effect record ${key} changed while it was being claimed`);
     return { existing };
   };

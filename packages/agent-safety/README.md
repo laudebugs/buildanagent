@@ -157,7 +157,7 @@ createCloudflareTables(this.ctx.storage.sql);
 const store = durableObjectEffectStore(this.ctx.storage.sql); // pass it to guardedWrite() as `store`
 ```
 
-Every change is one conditional write that the database decides, so two processes that race for one record can't both win. The Durable Object stores run their statements with no `await` between them, so no other event in the object runs between two of them, and each statement is conditional as well. The Postgres stores use `INSERT … ON CONFLICT` and `UPDATE … WHERE attempt = …` with `RETURNING`. The DynamoDB effect store puts items under a condition expression, and its ledger claims a step in one transaction that checks the step before and puts this one.
+Every change is one conditional write that the database decides, so two processes that race for one record can't both win. The Durable Object stores run their statements with no `await` between them, so no other event in the object runs between two of them, and each statement is conditional as well. The Postgres stores use `INSERT … ON CONFLICT` and `UPDATE … WHERE attempt = …` with `RETURNING`. The DynamoDB effect store puts items under a condition expression, and its ledger claims a step in one transaction that checks the step before and puts this one. The AWS SDK may send a write twice when a response is lost, so each effect-store put carries a token that names the call, which lets the call recognise its own retried write, and each ledger claim carries a `ClientRequestToken`, which DynamoDB uses to treat the retry as the same claim. A transaction that DynamoDB cancels for a reason other than a false condition, such as a conflict or throttling, is thrown, never read as an out-of-order claim.
 
 A Durable Object store belongs to one object, so give each tenant or session its own object, or rely on the keys that `effectKey()` makes unique across tenants.
 
@@ -169,7 +169,7 @@ This package's own tests run the cases on every store, each on the nearest thing
 
 - **Durable Object stores:** inside workerd, on real Durable Object storage.
 - **Postgres stores:** on PGlite, which is Postgres compiled to WebAssembly and run in the test's process.
-- **DynamoDB stores:** through the AWS SDK, against a fake that speaks DynamoDB's wire protocol, applies the condition expressions and records each request.
+- **DynamoDB stores:** through the AWS SDK, against a fake that speaks DynamoDB's wire protocol, applies the condition expressions, rejects the unused names that DynamoDB would, drops a response on request and records each request.
 
 A DynamoDB test proves the request shapes and the store's reading of DynamoDB's answers, not DynamoDB's own atomicity. PGlite and the fake run one request at a time, so their concurrent cases are serialized. A live check of the DynamoDB conditions belongs with the first deploy.
 
