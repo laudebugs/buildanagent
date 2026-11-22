@@ -20,7 +20,7 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 - [Cloudflare voice doc, mirrored](../../reference/cloudflare-agents/source/agents/docs/agents/voice.md): "**Experimental.** This API is under active development and will break between releases"
 - `verify/cloudflare-agents/node_modules/agents/dist/voice/index.d.ts`: `withVoice`, `onTurn(transcript, context)` and `VoiceTurnContext`
 - [`verify/cloudflare-agents/scripts/run-examples.mjs`](../../../verify/cloudflare-agents/scripts/run-examples.mjs): it skips `agents/voice` only in doc blocks, so our own example needs no runner change
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T38](../ready/T38-section-voice-and-realtime.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T38](../done/T38-section-voice-and-realtime.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 
 ## Scope
@@ -36,7 +36,7 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 - The speech-to-speech session: [T46](../done/T46-example-realtime-session.md)
 - Workers AI's built-in speech models, which have no local simulation
-- Section T38's prose: [T38](../ready/T38-section-voice-and-realtime.md)
+- Section T38's prose: [T38](../done/T38-section-voice-and-realtime.md)
 - Voice sections in the SDK references: [S10](../ready/S10-voice-reference-sections.md)
 
 ## Tasks
