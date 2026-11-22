@@ -115,5 +115,14 @@
     "ms": 718,
     "modelCalls": 0,
     "tail": "ok - after approve() and resume, the Pay click reaches the computer\nok - the approved click runs once, followed by one screenshot\nok - the model's last request carries the receipt screenshot as the result of call c3\nok - the resumed run finishes with the model's answer\nok - after reject(), the computer receives no further action\nok - the model's next request holds a rejected result for c3 with a fallback image, not the page's screenshot\nok - the model still gets its next turn after the rejection and answers from it\nok - the model is offered one tool, the computer tool: no shell, file-editing or function tool"
+  },
+  {
+    "id": "14-realtime-session",
+    "file": "/home/user/buildanagent/verify/openai-agents-sdk/examples/14-realtime-session.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 1734,
+    "modelCalls": 0,
+    "tail": "ok - after approve(), the tool runs once and its output returns through the transport for call_2\nok - after reject(), the model receives the rejection text and the tool does not run again\nok - the session sees the first audio chunk of the reply as audio_start\nok - interrupt() sends the request but does not itself raise audio_interrupted\nok - a scripted audio_interrupted reaches the session's listener once\nok - the agent offers only lookup_order and cancel_order: no shell, file-editing or handoff\nok - every call the session made was matched by an expectation\nok - the transport is closed after session.close()"
   }
 ]

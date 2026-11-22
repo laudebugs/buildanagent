@@ -1,4 +1,4 @@
-// Chapter 26's analogy illustration for browser takeover: a driving instructor's dual controls. The instructor can take
+// This chapter's analogy illustration for browser takeover: a driving instructor's dual controls. The instructor can take
 // the wheel at any moment, and the car must know who is driving. An agent that does not pause when a person takes
 // over keeps sending its own input, and the two fight for the wheel. The register's dual-controls entry names it.
 import { Figure } from "../lib/svgkit.js";

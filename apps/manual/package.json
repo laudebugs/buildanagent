@@ -15,6 +15,7 @@
     "book:switch-report": "tsx scripts/switch-report.ts",
     "figures:build": "tsx scripts/build-figures.ts figures test/fixtures/book/figures test/fixtures/site/figures",
     "figures:audit": "tsx scripts/audit-figures.ts figures test/fixtures/book/figures test/fixtures/site/figures",
+    "registers:format": "tsx scripts/format-registers.ts",
     "tokens": "tsx scripts/generate-tokens.ts",
     "anatomy:css": "tsx scripts/generate-anatomy-css.ts",
     "typecheck": "tsc -p tsconfig.json",

@@ -531,7 +531,7 @@ The owner chose to cover every topic group the coverage review named (2026-11-19
 | Voice and realtime agents | [U20](../todos/done/U20-research-voice-and-realtime.md); report: [voice-and-realtime.md](../research/voice/voice-and-realtime.md) | T38, a section of T35 | Voice and realtime change how a person interacts with a running agent, which is Chapter T35's subject |
 | Fine-tuning versus prompting | [U21](../todos/done/U21-research-fine-tuning-vs-prompting.md); report: [fine-tuning-vs-prompting.md](../research/fine-tuning/fine-tuning-vs-prompting.md) | T39, a section of T11 | The question arises the moment a reader chooses a model, which Chapter T11 teaches |
 
-The three research rounds behind the sections each confirmed its placement, and the owner approved their proposed changes on 2026-11-19 (owner decision 2026-11-19, BK20). Each section stays a section and waits for the example that gives it a listing. T37 follows the MCP section of T21 and uses T45's ADK example. T38 uses T46's scripted OpenAI session and T47's Cloudflare pipeline. T39 uses the tuned-versus-cached pricing example that T28 now also writes.
+The three research rounds behind the sections each confirmed its placement, and the owner approved their proposed changes on 2026-11-19 (owner decision 2026-11-19, BK20). Each section stays a section and waits for the example that gives it a listing. T37 follows the MCP section of T21 and uses T45's ADK example. T38 uses T46's scripted OpenAI session, `verify/openai-agents-sdk/examples/14-realtime-session.ts`, and T47's Cloudflare pipeline. T39 uses the tuned-versus-cached pricing example that T28 now also writes.
 
 ### 4.4 Where each topic of the coverage review lands
 
@@ -586,7 +586,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T43](../todos/done/T43-example-store-recall-expire.md) | Example: store, recall and expire a fact across runs on LangChain's store | T5, U18 | M |
 | [T44](../todos/done/T44-example-context-memory.md) | Example: context-block memory that survives eviction and stays inside one agent | T5, U18 | M |
 | [T45](../todos/done/T45-example-a2a-delegation.md) | Example: delegation to a remote agent over A2A on ADK, both ends offline | T5, U19 | M |
-| [T46](../todos/ready/T46-example-realtime-session.md) | Example: an OpenAI realtime session on the SDK's scripted transport | T5, U20 | M |
+| [T46](../todos/done/T46-example-realtime-session.md) | Example: an OpenAI realtime session on the SDK's scripted transport | T5, U20 | M |
 | [T47](../todos/done/T47-example-voice-pipeline.md) | Example: a chained voice pipeline with a tool and barge-in on Cloudflare | T5, U20 | M |
 | [T48](../todos/ready/T48-example-a2a-1-0.md) | Example: A2A 1.0 delegation, once a pinned SDK ships 1.0 support (on hold) | T45 | M |
 | [T49](../todos/done/T49-book-http-mock-transcripts.md) | Transcripts for the Claude Agent SDK and Copilot SDK, whose mocks answer over HTTP | T5 | M |

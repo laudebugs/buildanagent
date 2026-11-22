@@ -1,4 +1,4 @@
-// Chapter 26's flat figure of one event log feeding three views: a chat view, a plan view and a review view. Each view
+// This chapter's flat figure of one event log feeding three views: a chat view, a plan view and a review view. Each view
 // is a projection of the same ordered log, so the three agree by construction, and an approval made in one view goes
 // back into the log as an entry.
 import { Figure } from "../lib/svgkit.js";
