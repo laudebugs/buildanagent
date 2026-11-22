@@ -101,21 +101,46 @@ export interface PendingApproval {
 }
 
 /**
- * The requests on `path` that still wait: a request with no `approval_resolved` entry and whose call has no result.
- * A request the resume re-issued replaces the earlier one for the same call.
+ * The requests on `path` that still wait: the latest request for each call of the last assistant message, while the call
+ * has no result. A resolution does not end a wait, because the run that applies it may refuse it or never finish: only
+ * the call's result does. A resume that started and died before the result is a crash, which `crashedResumes()` names,
+ * and its requests do not wait.
  */
 export function pendingApprovals(path: readonly SessionEntry[]): PendingApproval[] {
-  const resolved = new Set<string>();
   const answered = new Set<string>();
+  const latest = new Map<string, PendingApproval>();
+  let lastMessage: string | undefined;
+  let lastCalls = new Set<string>();
   for (const entry of path) {
-    if (entry.type === "approval_resolved") resolved.add(entry.resolution.requestId);
     if (entry.type === "tool_result") answered.add(entry.callId);
+    if (entry.type === "approval_requested")
+      latest.set(entry.request.callId, { request: entry.request, input: entry.input });
+    if (entry.type === "message_block" && entry.role === "assistant") {
+      if (entry.messageId !== lastMessage) lastCalls = new Set();
+      lastMessage = entry.messageId;
+      if (entry.block.type === "tool_call") lastCalls.add(entry.block.callId);
+    }
   }
-  return path.flatMap((entry) =>
-    entry.type === "approval_requested" && !resolved.has(entry.request.id) && !answered.has(entry.request.callId)
-      ? [{ request: entry.request, input: entry.input }]
-      : [],
+  const crashed = crashedResumes(path);
+  return [...latest.values()].filter(
+    (entry) =>
+      lastCalls.has(entry.request.callId) && !answered.has(entry.request.callId) && !crashed.has(entry.request.id),
   );
+}
+
+/**
+ * The ids of the requests whose resume started and died: the log ends in a `continue` turn that has no end, after
+ * answers were written. The approved call may have run, so it is settled as a crash and not asked again.
+ */
+export function crashedResumes(path: readonly SessionEntry[]): Set<string> {
+  const start = path.findLastIndex((entry) => entry.type === "turn_start");
+  const turn = path[start];
+  if (turn?.type !== "turn_start" || turn.mode !== "continue") return new Set();
+  if (path.slice(start).some((entry) => entry.type === "turn_end")) return new Set();
+  const resolved = path
+    .slice(0, start)
+    .flatMap((entry) => (entry.type === "approval_resolved" ? [entry.resolution.requestId] : []));
+  return new Set(resolved);
 }
 
 /**

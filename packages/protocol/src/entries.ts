@@ -226,7 +226,7 @@ export interface SubagentLinkEntry {
 /**
  * A tool call waits for a person. `request` is the SDK's signed record, unchanged, and `input` is the input the call
  * would run with once approved, which the approver is shown and the resume passes back with the signature. The harness
- * writes this entry before any client hears of the request. It holds no key bytes: the signature names the key by id.
+ * writes this entry before its own observers see the request. It holds no key bytes: the signature names the key by id.
  */
 export interface ApprovalRequestedEntry {
   /** The entry type name. @stable */

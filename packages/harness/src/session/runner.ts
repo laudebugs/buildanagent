@@ -391,7 +391,12 @@ function afterWrites(observers: readonly Observer[] | undefined, writer: EntryWr
 }
 
 /** The run options a turn sets only when it has a value, so a missing one leaves the SDK's default. */
-function optionalRunOptions<H>(options: TurnOptions<H>, harness: Harness<H>, history: readonly Message[]) {
+type RunSettings<H> = Pick<
+  TurnOptions<H>,
+  "clock" | "newId" | "hostContext" | "output" | "maxSteps" | "turnRetries" | "modelOptions" | "budgetUsd"
+>;
+
+function optionalRunOptions<H>(options: RunSettings<H>, harness: Harness<H>, history: readonly Message[]) {
   return {
     ...(history.length === 0 ? {} : { history }),
     ...(options.clock === undefined ? {} : { clock: options.clock }),
@@ -510,15 +515,37 @@ export async function rerunFrom<H = unknown>(
 }
 
 /** What resuming a paused turn takes: the answers, and the same per-turn settings a turn has. */
-export interface ResumeOptions<H = unknown> {
+export interface ResumeOptions<H = unknown> extends RunSettings<H> {
   readonly resolutions: readonly Resolution[];
-  /** The caller's app data, bound into each request when it paused: the resume must pass the same value. */
+  /**
+   * The caller's app data. A request bound to app data when it paused runs only when the resume passes the same value,
+   * so this is the caller's identity. The tools and the model are the paused turn's; pass the turn's `maxSteps`,
+   * `output`, `turnRetries` and `modelOptions` again, because the log does not hold them.
+   */
   readonly hostContext?: H;
-  readonly budgetUsd?: number;
   readonly signal?: AbortSignal;
-  readonly clock?: Clock;
-  readonly newId?: () => string;
   readonly onRun?: (run: Run<unknown>) => void;
+}
+
+/** The resume's policy check: the pipeline decides the call again, so a deny written after the pause wins. */
+function recheckThrough<H>(
+  session: Session,
+  harness: Harness<H>,
+  writer: EntryWriter,
+  recorder: EventRecorder,
+  hostContext: H | undefined,
+): Recheck {
+  return async (pending, input) => {
+    // The earlier results and decisions are queued first, so the pipeline reads a log that holds them.
+    recorder.flush();
+    await writer.settled();
+    const decision = await harness.pipeline?.decide(
+      { callId: pending.callId, tool: pending.tool, input, initiator: "model" },
+      { session: { append: (entry) => writer.write("harness", entry) }, hostContext, entries: await session.path() },
+    );
+    // A person approved the call, so a question the pipeline would ask again doesn't stop it; a deny does.
+    return decision?.decision === "deny" ? { deny: decision.reason } : "allow";
+  };
 }
 
 /**
@@ -536,43 +563,34 @@ export async function resumeTurn<H = unknown>(
     throw new HarnessError("approval_unavailable", "the harness has no signer, so no approval can be checked");
   }
   const { signal, newId, writer } = turnPlumbing(session, options);
-  const context = contextOf(await session.path());
+  const path = await session.path();
+  const context = contextOf(path);
   const waiting = new Set((context.pending ?? []).map((request) => request.id));
   for (const resolution of options.resolutions) {
     if (!waiting.has(resolution.requestId)) {
       throw new HarnessError("approval_not_pending", `no request ${resolution.requestId} is waiting in this session`);
     }
   }
+  // The paused turn's tools: the latest `loadout` names them, and one the registry has lost stops the resume.
+  const names = path.findLast((entry) => entry.type === "loadout");
+  const tools = toolsOf(harness, {
+    input: "",
+    ...(names?.type === "loadout" ? { tools: names.tools } : {}),
+    ...(options.hostContext === undefined ? {} : { hostContext: options.hostContext }),
+  });
   for (const resolution of options.resolutions) await writer.write("user", { type: "approval_resolved", resolution });
+  await recordLoadout(harness, writer, harness.model, tools, path);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, context.system, newId, "continue");
-  const recheck: Recheck = async (pending, input) => {
-    const decision = await harness.pipeline?.decide(
-      { callId: pending.callId, tool: pending.tool, input, initiator: "model" },
-      {
-        session: { append: (entry) => writer.write("harness", entry) },
-        hostContext: options.hostContext,
-        entries: await session.path(),
-      },
-    );
-    // A person approved the call, so a question the pipeline would ask again doesn't stop it; a deny does.
-    return decision?.decision === "deny" ? { deny: decision.reason } : "allow";
-  };
   const handle = continueRun(context, {
     model: harness.model,
-    tools: toolsOf(harness, {
-      input: "",
-      ...(options.hostContext === undefined ? {} : { hostContext: options.hostContext }),
-    }),
+    tools,
     resolutions: [...options.resolutions],
-    recheck,
+    recheck: recheckThrough(session, harness, writer, recorder, options.hostContext),
     signer: harness.signer,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, harness.model),
     observers: [(event: AgentEvent) => recorder.handle(event), ...afterWrites(harness.observers, writer)],
-    ...(options.hostContext === undefined ? {} : { app: options.hostContext }),
-    ...(options.budgetUsd === undefined ? {} : { budgetUsd: options.budgetUsd }),
-    ...(options.clock === undefined ? {} : { clock: options.clock }),
-    ...(options.newId === undefined ? {} : { idGenerator: options.newId }),
+    ...optionalRunOptions(options, harness, []),
   });
   options.onRun?.(handle);
   return settleTurn(handle, writer, session);

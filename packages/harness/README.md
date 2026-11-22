@@ -246,7 +246,7 @@ When a tool has a business key, a model that proposes the same write again reach
 
 ## A call that needs a person is a signed pause in the log, and any process with the key file resumes it
 
-When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.
+When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that reads the run's own handle, and not the harness's observers, can see the event a moment earlier. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.
 
 `createApprovals(harness)` from `@buildanagent/harness/session` reads and answers the pauses:
 

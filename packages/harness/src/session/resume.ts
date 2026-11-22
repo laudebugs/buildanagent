@@ -9,6 +9,7 @@
 import { renderOutcome, writeOutcome } from "@buildanagent/agent-safety";
 import type { SessionEntry, ToolResultEntry } from "@buildanagent/protocol";
 import type { Harness } from "../harness.js";
+import { crashedResumes } from "./rebuild.js";
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 type Body = DistributiveOmit<SessionEntry, "id" | "parentId" | "timestamp" | "origin" | "seq">;
@@ -80,14 +81,12 @@ export function unansweredCalls(
   includePaused = false,
 ): { callId: string; name: string }[] {
   const answered = new Set(path.flatMap((entry) => (entry.type === "tool_result" ? [entry.callId] : [])));
-  // A paused call whose request has an answer was being resumed when the process died, so it counts as a crash.
+  // A paused call whose resume started and died counts as a crash: the approved call may have run.
+  const crashed = crashedResumes(path);
   const requestOf = new Map(
     path.flatMap((entry) =>
       entry.type === "approval_requested" ? [[entry.request.callId, entry.request.id] as const] : [],
     ),
-  );
-  const resolved = new Set(
-    path.flatMap((entry) => (entry.type === "approval_resolved" ? [entry.resolution.requestId] : [])),
   );
   const calls: { callId: string; name: string; turn: number }[] = [];
   const paused = new Set<number>();
@@ -100,7 +99,7 @@ export function unansweredCalls(
     }
   }
   return calls.filter(
-    (call) => includePaused || !paused.has(call.turn) || resolved.has(requestOf.get(call.callId) ?? ""),
+    (call) => includePaused || !paused.has(call.turn) || crashed.has(requestOf.get(call.callId) ?? ""),
   );
 }
 

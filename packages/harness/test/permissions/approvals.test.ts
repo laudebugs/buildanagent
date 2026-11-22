@@ -248,4 +248,117 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     );
     await session.close();
   });
+  test("a request bound to a caller resumes only for that caller, and a refused resume leaves the pause intact", async () => {
+    const backend = make();
+    let runs = 0;
+    const first = setup([call()], { onRun: () => (runs += 1) });
+    const session = await open(backend);
+    await runTurn(session, first.harness, { input: "refund o1", hostContext: { user: "ada" } });
+    const approvals = createApprovals(first.harness);
+    const [waiting] = await approvals.pending(session);
+    const answer = [{ requestId: waiting?.request.id as string, decision: "allow" as const, by: "eve" }];
+    const wrong = setup([{ content: [{ type: "text", text: "never" }] }], { onRun: () => (runs += 1) });
+    const refused = await createApprovals(wrong.harness).resolve(session, answer, { hostContext: { user: "eve" } });
+    assert.equal(refused.stopReason, "error");
+    assert.equal(runs, 0, "another caller's resume ran nothing");
+    assert.equal((await approvals.pending(session)).length, 1, "the pause is still waiting");
+    const right = setup([{ content: [{ type: "text", text: "Refunded." }] }], { onRun: () => (runs += 1) });
+    const resumed = await createApprovals(right.harness).resolve(session, answer, { hostContext: { user: "ada" } });
+    assert.equal(resumed.stopReason, "done");
+    assert.equal(runs, 1);
+    await session.close();
+  });
+
+  test("only the requests of the open calls wait, and a later pause is resolvable", async () => {
+    const backend = make();
+    let runs = 0;
+    const first = setup([call("c1")], { onRun: () => (runs += 1) });
+    const session = await open(backend);
+    await runTurn(session, first.harness, { input: "refund o1" });
+    const second = setup([call("c2")], { onRun: () => (runs += 1) });
+    await runTurn(session, second.harness, { input: "and o2", history: [] });
+    const waiting = await createApprovals(second.harness).pending(session);
+    assert.deepEqual(
+      waiting.map((entry) => entry.request.callId),
+      ["c2"],
+    );
+    const third = setup([{ content: [{ type: "text", text: "Done." }] }], { onRun: () => (runs += 1) });
+    const resumed = await createApprovals(third.harness).resolve(session, [
+      { requestId: waiting[0]?.request.id as string, decision: "allow", by: "ada" },
+    ]);
+    assert.equal(resumed.stopReason, "done");
+    assert.equal(runs, 1);
+    await session.close();
+  });
+
+  test("a resume uses the paused turn's tools, and records a loadout when its model differs", async () => {
+    const backend = make();
+    const registry = tools(() => undefined);
+    registry.register({
+      name: "lookup",
+      source: "builtin",
+      definition: defineTool({
+        name: "lookup",
+        description: "Looks something up.",
+        inputSchema: { type: "object", properties: {} },
+        async execute() {
+          return { content: [{ type: "text", text: "found" }] };
+        },
+      }) as never,
+    });
+    const build = (steps: ConstructorParameters<typeof ScriptedModel>[0], id = "scripted-model") => {
+      const adapter = new ScriptedModel(steps);
+      const model = createModel({ adapter, id, retries: 0 }) as Model;
+      const pipeline = createPermissionPipeline(
+        { mode: "default", interactive: true, policyVersion: "p1", ask: [{ tool: "refund" }] },
+        registry,
+      );
+      return { adapter, harness: createHarness({ registry, model, system: "s", pipeline, signer: signer() }) };
+    };
+    const first = build([call()]);
+    const session = await open(backend);
+    await runTurn(session, first.harness, { input: "refund o1", tools: ["refund"] });
+    const [waiting] = await createApprovals(first.harness).pending(session);
+    const second = build([{ content: [{ type: "text", text: "Done." }] }], "other-model");
+    await createApprovals(second.harness).resolve(session, [
+      { requestId: waiting?.request.id as string, decision: "allow", by: "ada" },
+    ]);
+    assert.deepEqual(
+      second.adapter.calls[0]?.context.tools.map((tool) => tool.name),
+      ["refund"],
+    );
+    const loadouts = (await entriesOf(backend)).filter((entry) => entry.type === "loadout");
+    assert.equal(loadouts.length, 2, "the resume on another model is recorded");
+    await session.close();
+  });
+
+  test("a resume that died after it started is settled as a crash, and its request is not asked again", async () => {
+    const full = make();
+    let runs = 0;
+    const first = setup([call()], { onRun: () => (runs += 1) });
+    const session = await open(full);
+    await runTurn(session, first.harness, { input: "refund o1" });
+    const [waiting] = await createApprovals(first.harness).pending(session);
+    const second = setup([{ content: [{ type: "text", text: "Done." }] }], { onRun: () => (runs += 1) });
+    await createApprovals(second.harness).resolve(session, [
+      { requestId: waiting?.request.id as string, decision: "allow", by: "ada" },
+    ]);
+    await session.close();
+    // Cut the log after the resume's turn_start, before the call's result: the process died while the call ran.
+    const crashed = make();
+    const all = await entriesOf(full);
+    const cut = all.findIndex((entry) => entry.type === "tool_result");
+    await crashed.store.append(
+      KEY,
+      all.slice(0, cut).map(({ seq: _seq, ...rest }) => rest as EntryInput),
+    );
+    const reopened = await open(crashed);
+    assert.deepEqual(await createApprovals(second.harness).pending(reopened), []);
+    const next = setup([{ content: [{ type: "text", text: "Checking." }] }]);
+    await runTurn(reopened, next.harness, { input: "did it go through?" });
+    const settled = (await entriesOf(crashed)).find((entry) => entry.type === "tool_result");
+    assert.ok(settled?.type === "tool_result" && settled.isError);
+    assert.match(JSON.stringify(settled.content), /interrupted/);
+    await reopened.close();
+  });
 });

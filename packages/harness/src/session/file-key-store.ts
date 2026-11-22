@@ -1,6 +1,6 @@
 /**
  * `fileKeyStore()`: a `KeyStore` that keeps the approval key ring in one file, outside every sandbox and outside the
- * session log. The file is created with mode `0600` in a folder of mode `0700`, and a ring that group or others can read
+ * session log. The file is created with mode `0600`, in a new folder of mode `0700`, and a ring that group or others can read
  * is refused, because a key anyone can read signs nothing. A change is written to a temp file and renamed over the ring,
  * so a crash leaves the old ring or the new and never half of one.
  */
@@ -72,7 +72,8 @@ async function read(path: string): Promise<KeyRing | undefined> {
     throw error;
   });
   if (info === undefined) return undefined;
-  if ((info.mode & 0o077) !== 0) {
+  // Windows reports a file mode that has no group or other bits to read, so only POSIX systems check it.
+  if (process.platform !== "win32" && (info.mode & 0o077) !== 0) {
     throw invalid("the key file can be read by others; run chmod 600 on it, or rotate keys that may have leaked");
   }
   try {
@@ -89,28 +90,30 @@ async function read(path: string): Promise<KeyRing | undefined> {
  * time, such as a host's key command; two that run together may lose one of the changes.
  */
 export function fileKeyStore(path: string = defaultKeyPath()): KeyStore {
+  // Plain functions, not methods, so a store passed around as `setInterval(store.rotate, ...)` still works.
+  const load = async (): Promise<KeyRing> => {
+    const existing = await read(path);
+    if (existing !== undefined) return existing;
+    const id = newKeyId(new Date());
+    const ring: KeyRing = { keys: { [id]: new Uint8Array(randomBytes(KEY_BYTES)) }, current: id };
+    try {
+      await write(path, ring, true);
+      return ring;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      return (await read(path)) as KeyRing;
+    }
+  };
   return {
-    async load() {
-      const existing = await read(path);
-      if (existing !== undefined) return existing;
-      const id = newKeyId(new Date());
-      const ring: KeyRing = { keys: { [id]: new Uint8Array(randomBytes(KEY_BYTES)) }, current: id };
-      try {
-        await write(path, ring, true);
-        return ring;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-        return (await read(path)) as KeyRing;
-      }
-    },
+    load,
     async rotate() {
-      const ring = await this.load();
+      const ring = await load();
       const id = newKeyId(new Date());
       await write(path, { keys: { ...ring.keys, [id]: new Uint8Array(randomBytes(KEY_BYTES)) }, current: id }, false);
       return id;
     },
     async prune(inUse) {
-      const ring = await this.load();
+      const ring = await load();
       const removed = Object.keys(ring.keys).filter((id) => id !== ring.current && !inUse.has(id));
       if (removed.length === 0) return [];
       const kept = Object.fromEntries(Object.entries(ring.keys).filter(([id]) => !removed.includes(id)));
