@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T62` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T17](../done/T17-chapter-choosing-the-shape.md), [B19b](../done/B19b-reference-loop.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
@@ -39,12 +39,19 @@ Chapter 8 has six listings. Each is read against `packages/sdk/README.md` and `p
 ## Tasks
 
 - [x] Read the chapter, its log and the packages; write Scope and Tasks.
-- [ ] Write the router and subagent examples, with regions, notes and transcripts.
-- [ ] Turn `#sequential-order`, `#route-by-code`, `#subagent`, `#orchestrator` and `#usage` into tabs blocks with our tab first, and pin the harness's version in the caption.
-- [ ] Fact-check every changed claim into `apps/manual/fact-checks/choosing-the-shape.md` as new rows, and update the tally.
-- [ ] Update the plan row and move this todo to `done/`.
+- [x] Write the router and subagent examples, with regions, notes and transcripts.
+- [x] Turn `#sequential-order`, `#route-by-code`, `#subagent`, `#orchestrator` and `#usage` into tabs blocks with our tab first, and pin the harness's version in the caption.
+- [x] Fact-check every changed claim into `apps/manual/fact-checks/choosing-the-shape.md` as new rows, and update the tally.
+- [x] Update the plan row and move this todo to `done/`.
 
 ## Acceptance criteria
 
-- [ ] Each supported listing is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged; `#handoff-tool` stays single for the reason in Scope
-- [ ] `check:book`, the manual's `test`, `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
+- [x] Each supported listing is a tabs block whose first tab comes from `packages/` and whose other tabs are unchanged; `#handoff-tool` stays single for the reason in Scope
+- [x] `check:book`, the manual's `test`, `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
+
+## Outcome
+
+- **Tabs.** `#sequential-order-ours` (the existing `02-workflow.ts`), `#route-by-code-ours` (new `11-route-by-code.ts`) and `#subagent-ours`, `#orchestrator-ours` and `#usage-ours` (new `12-subagent-as-tool.ts`) each come first in a tabs block, beside the ADK and OpenAI Agents SDK listings, whose files, regions and notes are unchanged. The orchestrator tab replays its transcript. Transcripts for both new examples are in `packages/sdk/results/transcripts/`.
+- **Stays single.** `#handoff-tool`: our SDK has no handoff, and the prose says so (row 99).
+- **Difference from OpenAI's usage.** Our `result.usage` counts only the run's own calls, so the code adds the subagent's tokens to get the total, and the prose says so (row 101).
+- **Fact-check.** Rows 97 to 103 of `apps/manual/fact-checks/choosing-the-shape.md`; the tally is updated.

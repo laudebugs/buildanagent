@@ -1,0 +1,295 @@
+{
+  "format": 2,
+  "example": "12-subagent-as-tool",
+  "file": "packages/sdk/examples/12-subagent-as-tool.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 73,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Delegate research to the research tool, then answer the user."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Has tool-call logging become more common?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "research"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 73,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "o1",
+            "name": "research",
+            "input": {
+              "input": "How did tool-call logging change?"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 300,
+        "output": 40
+      }
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Read every source you need, then answer in one sentence."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "How did tool-call logging change?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read_source"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "r1",
+            "name": "read_source",
+            "input": {
+              "name": "a.md"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 300,
+        "output": 20
+      }
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "r1",
+              "name": "read_source",
+              "output": "Source A: the 2024 survey found that 61% of teams log every tool call."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read_source"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "r2",
+            "name": "read_source",
+            "input": {
+              "name": "b.md"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls",
+      "usage": {
+        "uncachedInput": 800,
+        "output": 20
+      }
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-2",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "r2",
+              "name": "read_source",
+              "output": "Source B: the 2025 follow-up found that 74% of teams log every tool call."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "read_source"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Tool-call logging rose from 61% of teams in 2024 to 74% in 2025."
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 1200,
+        "output": 60
+      }
+    },
+    {
+      "kind": "request",
+      "line": 73,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "o1",
+              "name": "research",
+              "output": "Tool-call logging rose from 61% of teams in 2024 to 74% in 2025."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "research"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 73,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "The research found: Tool-call logging rose from 61% of teams in 2024 to 74% in 2025."
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 380,
+        "output": 80
+      }
+    },
+    {
+      "kind": "check",
+      "line": 83,
+      "message": "the subagent's summary enters the orchestrator's transcript as the research call's result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 87,
+      "message": "the subagent's tool calls and the sources it read never enter the orchestrator's transcript",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 92,
+      "message": "the subagent read both sources in its own context",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 99,
+      "message": "both models are offered only the research and read_source tools",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 110,
+      "message": "each run's usage covers only its own model calls",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 114,
+      "message": "the orchestrator used 800 tokens and the subagent 2,400, so its result.usage leaves the subagent's out",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 118,
+      "message": "the code's total is 3,200 tokens, 4x the orchestrator's own",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 119,
+      "message": "the orchestrator ends done",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 120,
+      "message": "the orchestrator answers from the summary",
+      "pass": true
+    }
+  ]
+}
