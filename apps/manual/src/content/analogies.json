@@ -254,5 +254,29 @@
     "chapter": "side-effects-that-can-fail",
     "illustration": null,
     "breaks": "Some steps cannot be undone, and an email cannot be unsent, so the plan needs one pivot after which nothing is compensated."
+  },
+  {
+    "id": "adventure-book",
+    "concept": "session log tree",
+    "analogy": "a choose-your-own-adventure book that keeps every path taken",
+    "chapter": "the-session-log-and-context",
+    "illustration": null,
+    "breaks": "A reader chooses each path in the book, but in a session log the harness and the user make the forks, every path stays readable to them, and the model sees only the path being followed."
+  },
+  {
+    "id": "limited-desk",
+    "concept": "context window",
+    "analogy": "a desk with limited space",
+    "chapter": "the-session-log-and-context",
+    "illustration": "limited-desk",
+    "breaks": "A person can open the drawer and fetch a folder; the model cannot, so only the harness decides what goes on the desk."
+  },
+  {
+    "id": "previously-on-recap",
+    "concept": "compaction",
+    "analogy": "a TV show's \"previously on\" recap",
+    "chapter": "the-session-log-and-context",
+    "illustration": null,
+    "breaks": "A model writes the recap and can drop facts, so the original entries stay in the log and the harness can put any of them back in front of the model."
   }
 ]

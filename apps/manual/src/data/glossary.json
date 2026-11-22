@@ -200,5 +200,23 @@
     "term": "saga",
     "definition": "A sequence of separate steps that each commit on their own, with an undo step, called a compensation, for each one that can be undone. If a step fails before the point of no return, the compensations run for the steps already done; steps after it are retried until they finish.",
     "sources": ["azure-saga-pattern"]
+  },
+  {
+    "id": "context-window",
+    "term": "context window",
+    "definition": "The most text, counted in tokens, that a model can read in one request: the system prompt, the messages and the tool results together. Whatever the harness leaves out of the request, the model does not see.",
+    "sources": ["anthropic-effective-context-engineering"]
+  },
+  {
+    "id": "compaction",
+    "term": "compaction",
+    "definition": "Shortening a conversation that nears the context window by having a model summarize its older part and sending the summary in place of those messages. In a harness that keeps a session log, the summary is one more entry, and the older entries stay in the log.",
+    "sources": ["anthropic-effective-context-engineering", "pi-compaction"]
+  },
+  {
+    "id": "writer-lock",
+    "term": "writer lock",
+    "definition": "A lock that lets one process at a time append to a session log. A second writer is refused at once, and a lock whose holder has crashed becomes stale when its lease runs out, so the log is never extended by two writers.",
+    "sources": ["buildanagent-harness-readme"]
   }
 ]
