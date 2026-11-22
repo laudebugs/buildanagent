@@ -72,12 +72,16 @@ The claims log for [`evals-observability-and-release.md`](../src/content/chapter
 | 41 | Each incident becomes a suite task, so the next release must pass it on every attempt | § Four stages | ✅ | Agent guide §7, "Every incident ends with a new regression task"; pass^5 is the gate (row 5) |
 | 42 | Preview performances let a theatre learn what breaks before the critics arrive; real users are real from the first stage, so the first stage is shadow | § Four stages | ⚠️ | The analogy's own claim and its "where it breaks" entry, ours |
 | 43 | In exercise 1, `grade` is the example's grading function, and a malformed verdict throws and is not counted as a fail | Exercises | ✅ | Rows 13 and 15: `grade` is in the `judge` region and rejects malformed output with `JudgeOutputError` |
+| 44 | After the writing review: a session is pinned to one bundle version, the model, prompt, tools and skills versioned together, and the dashboard shows one row for each version | § Four stages | ✅ | Re-check of row 34 and [agent guide §4](../../../docs/guides/agent.md): "Prompts, tools and skills are versioned with the model as one bundle" |
+| 45 | After the rewording: the agent guide's gate blocks a regression task that used to pass all five attempts and now misses one, or a safety task that fails even one attempt | § pass^k | ✅ | Re-check of rows 5 and 31: same source, same thresholds, our proposals |
+| 46 | After the rewording: an incident becomes a task in the suite of the first section, and a call that started before the switch is recorded and settled as the side-effects chapter shows | § Four stages | ⚠️ | Re-check of rows 39 and 41; the settled-call link is the same reasoning as row 39 |
+
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 29 |
+| ✅ confirmed | 31 |
 | ✏️ corrected | 0 |
-| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 14 |
-| Total | 43 |
+| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 15 |
+| Total | 46 |
