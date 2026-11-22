@@ -294,8 +294,8 @@ const SOURCE_CONDITION_FAILURES = [
   "@buildanagent/harness/session",
   "@buildanagent/harness/tools",
   "@buildanagent/harness/permissions",
-  "@buildanagent/harness/server",
   "@buildanagent/harness/extensions",
+  "@buildanagent/harness/server",
 ];
 
 // The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the
