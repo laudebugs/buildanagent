@@ -13,12 +13,13 @@
 //   5. Else -> reply with plain text.
 // Every request is appended to $MOCK_LOG (JSONL) so tests can assert on what the CLI sent.
 //
+// With an `events` sink, the mock also reports each request and answer in the transcript format (see
+// scripts/transcripts/events.ts), which run-examples.mjs merges with the example's checks into a transcript.
+//
 // Usage: node scripts/mock-anthropic.mjs [port]   (or import { startMock })
 
 import { appendFileSync } from "node:fs";
 import { createServer } from "node:http";
-
-let seq = 0;
 
 function synth(schema = {}, depth = 0) {
   if (depth > 6) return null;
@@ -94,15 +95,83 @@ function plan(body) {
   return { text: "Mock model: hello from the offline mock." };
 }
 
+/** The text of a tool result's content, which the API takes as a string or as blocks. */
+const resultText = (content) =>
+  typeof content === "string"
+    ? content
+    : (content ?? []).map((block) => (block.type === "text" ? block.text : JSON.stringify(block))).join("");
+
+/**
+ * The request's conversation as transcript messages. The CLI wraps every request in context that varies by machine and
+ * by day (system reminders that carry its settings, and an environment note with the working directory, platform and
+ * OS version), so the transcript leaves those out and keeps what the example's own calls and the mock's answers made:
+ * the prompts, the model's answers, and each tool call with its result.
+ */
+export function messagesOf(messages) {
+  const names = toolNamesById(messages);
+  const out = [];
+  for (const message of messages) {
+    if (message.role !== "user" && message.role !== "assistant") continue;
+    const blocks = typeof message.content === "string" ? [{ type: "text", text: message.content }] : message.content;
+    const parts = [];
+    const results = [];
+    for (const block of blocks ?? []) {
+      if (block.type === "text") {
+        if (!block.text.startsWith("<system-reminder>")) parts.push({ type: "text", text: block.text });
+      } else if (block.type === "tool_use") {
+        parts.push({ type: "tool-call", id: block.id, name: block.name, input: block.input });
+      } else if (block.type === "tool_result") {
+        results.push({
+          type: "tool-result",
+          id: block.tool_use_id,
+          name: names[block.tool_use_id] ?? "",
+          output: resultText(block.content),
+          ...(block.is_error ? { error: true } : {}),
+        });
+      } else {
+        const { type, ...value } = block;
+        parts.push({ type: "other", kind: type, value });
+      }
+    }
+    if (results.length > 0) out.push({ role: "tool", parts: results });
+    if (parts.length > 0) out.push({ role: message.role, parts });
+  }
+  return out;
+}
+
+/** What the sink hears about one model call: the request, then the answer the mock chose for it. */
+function report(sink, body, p) {
+  const model = body.model ?? "mock";
+  sink({
+    kind: "request",
+    model,
+    messages: messagesOf(body.messages ?? []),
+    // Only the example's own MCP tools: the CLI's built-ins are its own list, which changes with its version.
+    tools: (body.tools ?? []).map((t) => t.name).filter((name) => name.startsWith("mcp__")),
+  });
+  const id = p.tool ? p.id : undefined;
+  sink({
+    kind: "response",
+    model,
+    message: {
+      role: "assistant",
+      parts: p.tool ? [{ type: "tool-call", id, name: p.tool.name, input: p.input }] : [{ type: "text", text: p.text }],
+    },
+    finish: p.tool ? "tool_use" : "end_turn",
+    // The mock chose this id, so the transcript keeps it as written.
+    ...(id === undefined ? {} : { scripted: [id] }),
+  });
+}
+
 function sse(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify({ type: event, ...data })}\n\n`);
 }
 
-function reply(res, body, p) {
-  const id = `msg_mock_${++seq}`;
+function reply(res, body, p, n) {
+  const id = `msg_mock_${n}`;
   const usage = { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 };
   const block = p.tool
-    ? { type: "tool_use", id: `toolu_mock_${seq}`, name: p.tool.name, input: p.input }
+    ? { type: "tool_use", id: p.id, name: p.tool.name, input: p.input }
     : { type: "text", text: p.text };
   const stop_reason = p.tool ? "tool_use" : "end_turn";
   const message = {
@@ -137,9 +206,12 @@ function reply(res, body, p) {
   res.end();
 }
 
-export function startMock(port = 0, log = process.env.MOCK_LOG) {
+export function startMock(port = 0, log = process.env.MOCK_LOG, sink = undefined) {
+  // One count per server, so an example's ids do not depend on what other examples run at the same time.
+  let seq = 0;
   const server = createServer((req, res) => {
     let raw = "";
+    req.setEncoding("utf8");
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       const path = req.url.split("?")[0];
@@ -152,7 +224,13 @@ export function startMock(port = 0, log = process.env.MOCK_LOG) {
           log,
           `${JSON.stringify({ method: req.method, path, tools: body.tools?.map((t) => t.name), body })}\n`,
         );
-      if (req.method === "POST" && path.endsWith("/v1/messages")) return reply(res, body, plan(body));
+      if (req.method === "POST" && path.endsWith("/v1/messages")) {
+        const n = ++seq;
+        const answer = plan(body);
+        if (answer.tool) answer.id = `toolu_mock_${n}`;
+        if (sink) report(sink, body, answer);
+        return reply(res, body, answer, n);
+      }
       if (path.endsWith("/v1/messages/count_tokens")) {
         res.writeHead(200, { "content-type": "application/json" });
         return res.end(JSON.stringify({ input_tokens: 10 }));

@@ -19,16 +19,19 @@ const lookupCustomer = tool({
     return JSON.stringify({ email, plan: "pro", openTickets: 2 });
   },
 });
+// #region gate
 const escalate = tool({
   name: "escalate",
   description: "Escalate a ticket to the on-call engineer",
   parameters: z.object({ reason: z.string() }),
-  needsApproval: async () => true, // every escalation waits for a human
+  // every escalation waits for a human
+  needsApproval: async () => true, // book:note gate
   execute: async () => {
     executed.push("escalate");
     return "escalated";
   },
 });
+// #endregion
 // #region injection-guardrail
 const noInjection: InputGuardrail = {
   name: "No prompt injection",

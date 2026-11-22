@@ -1,0 +1,77 @@
+{
+  "format": 1,
+  "example": "01-hello-session",
+  "file": "verify/copilot-sdk/examples/01-hello-session.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is 2+2?\nmock-reply: 4"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "4"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 14,
+      "message": "sendAndWait resolves with an assistant.message event",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "the reply carries the model's text (got \"4\")",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 26,
+      "message": "events arrive in order: user.message → assistant.turn_start → assistant.message → assistant.turn_end → session.idle",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 30,
+      "message": "the session has an id",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 33,
+      "message": "one model request reached the mock (got 1)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "by default the runtime offers its built-in tools, bash included",
+      "pass": true
+    }
+  ]
+}

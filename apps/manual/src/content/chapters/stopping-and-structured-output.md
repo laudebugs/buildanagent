@@ -2,7 +2,7 @@
 title: "Stopping: caps, stop conditions and structured output"
 summary: An agent stops when the model answers, when a condition you wrote holds, or when a cap runs out, and each SDK counts and reports that end in its own way. A schema then turns the answer into a typed object, which fixes its shape but never its truth.
 opening: question
-sources: [ai-sdk-loop-control, langgraph-graph-api, claude-agent-sdk-agent-loop, openai-agents-running-agents, ai-sdk-generating-structured-data, claude-agent-sdk-structured-outputs, anthropic-structured-outputs]
+sources: [ai-sdk-loop-control, langgraph-graph-api, claude-agent-sdk-agent-loop, claude-agent-sdk-tool-search, openai-agents-running-agents, ai-sdk-generating-structured-data, claude-agent-sdk-structured-outputs, anthropic-structured-outputs]
 glossary: [agent-loop, stop-condition, tool, stop-reason, structured-output]
 switchTo: [B11, B14]
 ---
@@ -23,8 +23,8 @@ In the AI SDK, the cap is a stop condition passed as `stopWhen`, the option [[ch
 ::note[`config` is the run's second argument, and `recursionLimit` sits at its top level. Call `attempt()` without it, and LangGraph uses its default of 25.]{#limit}
 ::note[At the limit LangGraph throws `GraphRecursionError`. `attempt` catches it and returns it with the number of model calls the run made.]{#thrown}
 :::
-:::listing[Claude Agent SDK]{#cap-claude file="verify/claude-agent-sdk/examples/04-max-turns.ts" region="max-turns"}
-::note[The task needs two turns: one to call the knowledge-base search, and one to answer with text.]{#task}
+:::listing[Claude Agent SDK]{#cap-claude file="verify/claude-agent-sdk/examples/04-max-turns.ts" region="max-turns" replay}
+::note[The task needs three turns: one for a `ToolSearch` call that loads the search tool's definition, one to call the search, and one to answer with text.]{#task}
 ::note[`maxTurns: 1` leaves no turn for the answer, so the run ends in an `"error_max_turns"` result with no final answer.]{#max-turns}
 :::
 ::::
@@ -32,7 +32,7 @@ In the AI SDK, the cap is a stop condition passed as `stopWhen`, the option [[ch
 The three listings cap the same kind of runaway loop, but their numbers count different things:
 
 - **An AI SDK step** is one model call and the tools it ran. In the recorded run of [[lst:cap-ai]], `isStepCount(3)` let exactly three requests reach the model.
-- **A Claude Agent SDK turn** is "one pass through the loop", and the final text-only answer counts as a turn of its own, so the docs ask you to count "each turn with tool calls, plus one for the final text-only response" [@claude-agent-sdk-agent-loop].
+- **A Claude Agent SDK turn** is "one pass through the loop", and the final text-only answer counts as a turn of its own, so the docs ask you to count "each turn with tool calls, plus one for the final text-only response" [@claude-agent-sdk-agent-loop]. The recorded run of [[lst:cap-claude]] shows one more turn to count: the single turn `maxTurns: 1` allowed went to a `ToolSearch` call, which loads the search tool's definition, because the SDK defers a custom tool's definition behind that call by default [@claude-agent-sdk-tool-search]. The search itself never ran.
 - **A LangGraph super-step** is one round in which the graph runs its active nodes [@langgraph-graph-api]. LangChain's agent runs the model and the tools as separate nodes, so one model call and its tool round take two super-steps. The default of 25 allowed 13 model calls in [[lst:cap-langchain]], and a limit of 5 allowed 3.
 - **An OpenAI Agents SDK turn** is one model call, and ADK counts model calls directly.
 

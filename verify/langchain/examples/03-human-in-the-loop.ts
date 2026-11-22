@@ -17,9 +17,11 @@ async function run(decision: "approve" | "reject", thread: string) {
     },
     { name: "execute_sql", description: "Run SQL", schema: z.object({ query: z.string() }) },
   );
+  // #region fake-model
   const model = fakeModel()
-    .respondWithTools([{ name: "execute_sql", args: { query: "DELETE FROM old" }, id: "call_sql" }])
-    .respond(new AIMessage("Done."));
+    .respondWithTools([{ name: "execute_sql", args: { query: "DELETE FROM old" }, id: "call_sql" }]) // book:note first-turn
+    .respond(new AIMessage("Done.")); // book:note second-turn
+  // #endregion
   // #region interrupt-on
   const agent = createAgent({
     model,

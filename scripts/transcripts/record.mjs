@@ -91,8 +91,12 @@ if (out) {
   const caller = new AsyncLocalStorage();
   const push = (event, line) => {
     const copy = plain(event);
+    // The time lets a harness whose mock runs in another process merge its events with these in the order they
+    // happened (write.mjs, mergeEvents); the writer drops it, so no transcript holds a clock reading. The same clock as
+    // write.mjs's eventTime(), spelled out here so the recorder imports nothing.
+    const at = performance.timeOrigin + performance.now();
     // The line follows the kind, so each event in the file reads as "what happened, and where".
-    events.push(line === undefined ? copy : { kind: copy.kind, line, ...copy });
+    events.push(line === undefined ? { ...copy, at } : { kind: copy.kind, line, ...copy, at });
   };
   globalThis[Symbol.for("buildanagent.transcript")] = {
     record(event) {

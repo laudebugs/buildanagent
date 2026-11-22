@@ -66,6 +66,11 @@ jobs:
             > "$RUNNER_TEMP/protected-branches.txt"
           node scripts/ci/live-run.mjs protected "$RUNNER_TEMP/environment.json" "$RUNNER_TEMP/protected-branches.txt" \
             "$OWNER"
+      # The Claude Agent SDK and Copilot SDK harnesses run each live example in `unshare -rn`, so only the proxy on the
+      # loopback can reach the network (the same step as ci.yml); Ubuntu 24.04 restricts unprivileged user namespaces
+      # through AppArmor unless this is lifted. It runs before the key reaches the runner.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       # The install runs before the key reaches the runner.
       - name: Install the pinned packages
         run: pnpm install --frozen-lockfile
@@ -126,6 +131,11 @@ jobs:
             > "$RUNNER_TEMP/protected-branches.txt"
           node scripts/ci/live-run.mjs protected "$RUNNER_TEMP/environment.json" "$RUNNER_TEMP/protected-branches.txt" \
             "$OWNER"
+      # The Claude Agent SDK and Copilot SDK harnesses run each live example in `unshare -rn`, so only the proxy on the
+      # loopback can reach the network (the same step as ci.yml); Ubuntu 24.04 restricts unprivileged user namespaces
+      # through AppArmor unless this is lifted. It runs before the key reaches the runner.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       # The install runs before the key reaches the runner.
       - name: Install the pinned packages
         run: pnpm install --frozen-lockfile

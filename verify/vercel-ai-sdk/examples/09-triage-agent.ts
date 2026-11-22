@@ -30,7 +30,7 @@ const Triage = z.object({
 });
 
 const { model, requests } = scripted([
-  { tools: [{ name: "lookupOrder", input: { orderId: "A-1" } }] },
+  { tools: [{ name: "lookupOrder", input: { orderId: "A-1" } }] }, // book:note script
   { tools: [{ name: "issueRefund", input: { orderId: "A-1", reason: "charged twice" } }] },
   JSON.stringify({ category: "billing", action: "refunded", summary: "Refunded A-1 after a double charge." }),
 ]);
@@ -39,9 +39,9 @@ const agent = new ToolLoopAgent({
   model,
   instructions: "You triage support tickets. Look up the order before acting. Never refund without approval.",
   tools: { lookupOrder, issueRefund },
-  toolApproval: { issueRefund: "user-approval" },
-  output: Output.object({ schema: Triage, name: "triage" }),
-  stopWhen: isStepCount(8),
+  toolApproval: { issueRefund: "user-approval" }, // book:note gate
+  output: Output.object({ schema: Triage, name: "triage" }), // book:note typed
+  stopWhen: isStepCount(8), // book:note cap
 });
 
 // Turn 1: the agent looks up the order, then asks to refund it.
@@ -53,7 +53,7 @@ const lookup = first.steps[0].staticToolResults.find((r) => r.toolName === "look
 check(lookup?.toolName === "lookupOrder" && lookup.output.status === "delivered", "step 1 looks up the order");
 const asks = first.content.filter((p) => p.type === "tool-approval-request");
 check(asks.length === 1 && asks[0].toolCall.toolName === "issueRefund", "the refund waits for approval");
-check(refunds.length === 0, "no refund before approval");
+check(refunds.length === 0, "no refund before approval"); // book:note side-effect
 
 // A human approves; turn 2 runs the refund and returns the structured triage record.
 messages.push(...first.responseMessages, {
@@ -66,6 +66,6 @@ check(
   second.output.category === "billing" && second.output.action === "refunded",
   "the agent returns a typed triage record",
 );
-check(requests.length === 3, "three model calls in all: lookup, refund request, final answer");
+check(requests.length === 3, "three model calls in all: lookup, refund request, final answer"); // book:note count
 check(requests[2].responseFormat?.type === "json", "the final call asks for JSON");
 console.log(second.output.summary);

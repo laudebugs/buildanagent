@@ -60,10 +60,14 @@ function anthropicAnswer(turn, body, n, tokens) {
         "content_block_start",
         { type: "content_block_start", index, content_block: { type: "text", text: "" } },
       ]);
-      events.push([
-        "content_block_delta",
-        { type: "content_block_delta", index, delta: { type: "text_delta", text: block.text } },
-      ]);
+      // Two deltas, as a real stream sends many, so a check that counts them passes against the stub too.
+      const cut = Math.ceil(block.text.length / 2);
+      for (const text of [block.text.slice(0, cut), block.text.slice(cut)]) {
+        events.push([
+          "content_block_delta",
+          { type: "content_block_delta", index, delta: { type: "text_delta", text } },
+        ]);
+      }
     } else {
       events.push([
         "content_block_start",
@@ -135,7 +139,40 @@ function openaiAnswer(turn, body, n, tokens) {
     ["response.created", { type: "response.created", response: { ...response, status: "in_progress", output: [] } }],
   ];
   output.forEach((item, output_index) => {
-    events.push(["response.output_item.added", { type: "response.output_item.added", output_index, item }]);
+    // A real stream adds a message with no content, adds each part empty, sends the text in deltas, and holds the whole
+    // item only in output_item.done.
+    const message = item.type === "message";
+    events.push([
+      "response.output_item.added",
+      { type: "response.output_item.added", output_index, item: message ? { ...item, content: [] } : item },
+    ]);
+    for (const [content_index, part] of (message ? item.content : []).entries()) {
+      events.push([
+        "response.content_part.added",
+        {
+          type: "response.content_part.added",
+          item_id: item.id,
+          output_index,
+          content_index,
+          part: { ...part, text: "" },
+        },
+      ]);
+      const cut = Math.ceil(part.text.length / 2);
+      for (const delta of [part.text.slice(0, cut), part.text.slice(cut)]) {
+        events.push([
+          "response.output_text.delta",
+          { type: "response.output_text.delta", item_id: item.id, output_index, content_index, delta },
+        ]);
+      }
+      events.push([
+        "response.output_text.done",
+        { type: "response.output_text.done", item_id: item.id, output_index, content_index, text: part.text },
+      ]);
+      events.push([
+        "response.content_part.done",
+        { type: "response.content_part.done", item_id: item.id, output_index, content_index, part },
+      ]);
+    }
     events.push(["response.output_item.done", { type: "response.output_item.done", output_index, item }]);
   });
   events.push(["response.completed", { type: "response.completed", response }]);
