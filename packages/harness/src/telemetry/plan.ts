@@ -176,8 +176,9 @@ export class Planner {
   finish(): PlannedSpan | undefined {
     const root = this.#root;
     if (root === undefined) return undefined;
-    this.#closeTurn(this.#last, false);
+    // The open calls attach to the open turn, so they go in before it closes.
     for (const open of this.#open.values()) this.#unfinishedCall(open);
+    this.#closeTurn(this.#last, false);
     for (const tool of this.#tools.values()) this.#unfinished(tool.span);
     for (const approval of this.#approvals.values()) this.#unfinished(approval);
     root.end = this.#last;

@@ -96,6 +96,9 @@ describe("a log that ends mid-work", () => {
     const unfinished = (name: string) => spans.find((s) => s.name === name)?.attributes["buildanagent.span.unfinished"];
     assert.equal(unfinished("turn"), true);
     assert.equal(unfinished("chat"), true, "the interrupted model call is not lost");
+    const turn = spans.find((s) => s.name === "turn");
+    const chat = spans.find((s) => s.name === "chat");
+    assert.equal(chat?.parentSpanContext?.spanId, turn?.spanContext().spanId, "the call sits under its turn");
   });
 
   test("a turn that a new turn_start closes is marked unfinished, and one a turn_end closes is not", async () => {
