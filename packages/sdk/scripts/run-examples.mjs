@@ -7,8 +7,8 @@
 // The example runs as its own process on src/, as the offline test runs it, in a temporary directory with an
 // allowlisted environment: PATH, a temporary HOME, TMPDIR, LANG and the LIVE_* variables, never ...process.env. Its
 // examples/lib/live.mjs reads the key from the file and deletes it. The runner records the example's transcript to
-// results/live/<provider>/<example>.json through write.mjs, prints the outcome line run.mjs reads, and redacts what it
-// prints.
+// results/live/<provider>/<example>.json through write.mjs, or deletes that file when the example times out. It prints
+// the outcome line run.mjs reads, and redacts what it prints.
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -59,8 +59,11 @@ async function main(argv) {
     });
   });
   // A killed example never wrote its checks, so a transcript of only its requests and answers would read as a run
-  // that checked nothing; the timeout is the finding.
-  if (!result.timedOut) transcript.write({ harnessDir: PACKAGE_DIR, exampleFile: file, cwd, ...live.transcript });
+  // that checked nothing; the timeout is the finding. The earlier run's transcript is deleted too, so run.mjs reports
+  // no transcript rather than that run's.
+  const where = { harnessDir: PACKAGE_DIR, exampleFile: file, ...live.transcript };
+  if (result.timedOut) transcript.discard(where);
+  else transcript.write({ ...where, cwd });
   rmSync(cwd, { recursive: true, force: true });
   rmSync(home, { recursive: true, force: true });
   const outcome = result.timedOut ? "timeout" : result.exit === 0 ? "ran" : "error";

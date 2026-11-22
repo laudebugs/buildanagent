@@ -5,7 +5,16 @@
 // `node --test scripts/ci/*.test.mjs`. No test reaches a provider: every request goes to live-stub.mjs.
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -611,6 +620,46 @@ test("our SDK's runner runs only under run.mjs, with --live and one example", ()
   const unknown = run(["examples", "--only", "../../etc/passwd", "--live"], settings);
   assert.equal(unknown.code, 2);
   assert.match(unknown.text, /is not one of the book's examples/);
+});
+
+test("our SDK's runner deletes an earlier live transcript and its raw events when the example times out", () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-sdk-timeout-"));
+  const temp = join(dir, "tmp");
+  const outDir = join(dir, "out");
+  mkdirSync(temp);
+  mkdirSync(outDir);
+  const stale = join(outDir, "13-triage-agent.json");
+  writeFileSync(stale, "{}\n");
+  const keyFile = join(dir, "key");
+  writeFileSync(keyFile, FAKE_KEYS.ANTHROPIC_API_KEY, { mode: 0o600 });
+  // A 1 ms timeout kills the example before it can send anything.
+  const env = {
+    PATH: process.env.PATH,
+    TMPDIR: temp,
+    EXAMPLE_TIMEOUT_MS: "1",
+    LIVE: "1",
+    LIVE_PROVIDER: "anthropic",
+    LIVE_MODEL: "claude-haiku-5-5",
+    LIVE_API_KEY_FILE: keyFile,
+    LIVE_OUT_DIR: outDir,
+  };
+  let text = "";
+  let code = 0;
+  try {
+    text = execFileSync(
+      process.execPath,
+      [join(root, "packages/sdk/scripts/run-examples.mjs"), "examples", "--only", "13-triage-agent", "--live"],
+      { env, stdio: "pipe" },
+    ).toString();
+  } catch (error) {
+    code = error.status;
+    text = `${error.stdout}${error.stderr}`;
+  }
+  assert.equal(code, 1, text);
+  assert.match(text, /^timeout\s+13-triage-agent/m);
+  assert.ok(!existsSync(stale), "the earlier run's transcript is deleted, so run.mjs can't report it");
+  assert.deepEqual(readdirSync(temp), [], "the raw events and the runner's temporary folders are deleted");
+  rmSync(dir, { recursive: true, force: true });
 });
 
 /**
