@@ -5,10 +5,10 @@
 //   node scripts/run-examples.mjs examples --only <example> --live
 //
 // The example runs as its own process on src/, as the offline test runs it, in a temporary directory with an
-// allowlisted environment: PATH, a temporary HOME, TMPDIR, LANG and the LIVE_* variables, never ...process.env. Its
-// examples/lib/live.mjs reads the key from the file and deletes it. The runner records the example's transcript to
-// results/live/<provider>/<example>.json through write.mjs, or deletes that file when the example times out. It prints
-// the outcome line run.mjs reads, and redacts what it prints.
+// allowlisted environment: PATH, a temporary HOME, TMPDIR, LANG and the LIVE_* variables, never ...process.env. The
+// key's file is read and deleted by scripts/live/live.ts, which examples/lib/live.mjs imports. The runner records the
+// example's transcript to results/live/<provider>/<example>.json through write.mjs, or deletes that file when the
+// example times out. It prints the outcome line run.mjs reads, and redacts what it prints.
 import { spawn } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

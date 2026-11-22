@@ -1,7 +1,6 @@
-// Our SDK's live mode (scripts/live/). Only scripts/live/run.mjs turns it on, through this package's
-// scripts/run-examples.mjs; otherwise `live` is undefined and scripted() in check.ts plays its script. In a live run,
-// scripted() builds its model on our gateway's real adapter for the run's provider instead, so the example and the
-// transcript recorder work as they do against the script.
+// Our SDK's live mode (scripts/live/; scripts/run-examples.mjs says what turns it on). Without it `live` is undefined
+// and scripted() in check.ts plays its script. In a live run, scripted() builds its model on our gateway's real adapter
+// for the run's provider instead, so the example and the transcript recorder work as they do against the script.
 //
 // check.ts imports this file before the offline setup, so the file keeps the process's own fetch before the setup
 // replaces it with one that reaches only the loopback interface. Only the transport below uses that fetch, and only for
@@ -11,10 +10,11 @@
 //
 // The adapter receives the key explicitly, from the file scripts/live/live.ts read and deleted, and sends HTTP only
 // through `ProviderConfig.transport`, the gateway's own seam. Before each request leaves, the transport refuses a host
-// tool, a model other than the run's, a missing output allowance or any above the run's maxTokens, a body field outside the
-// adapter's known set and more than one answer, and checks the call against the cost guard. It settles the guard from the usage the answer streams once its final event arrives, which is where the
-// gateway stops reading and cancels the body, or at the call's projection when the answer fails, stops before its final
-// event or reports no usage. The answer reaches the adapter with only its status, content type and body, plus a failed
+// tool, a model other than the run's, a missing output allowance or any above the run's maxTokens, a body field outside
+// the adapter's known set and more than one answer. It then checks the call against the cost guard. The transport then
+// settles the guard from the usage the answer streams, once its final event arrives; the gateway stops reading and
+// cancels the body there. When the answer fails, stops before its final event or reports no usage, the guard settles at
+// the call's projection. The answer reaches the adapter with only its status, content type and body, plus a failed
 // answer's numeric retry delays, so the provider's other headers, which name the account and the request, go no
 // further.
 import { AsyncLocalStorage } from "node:async_hooks";
