@@ -41,6 +41,7 @@ export type HarnessErrorCode =
   | "entry_too_large"
   | "invalid_session_entry"
   | "invalid_session_key"
+  | "invalid_retention"
   | "session_corrupt"
   | "invalid_completion_config";
 
@@ -75,7 +76,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * with no `rotate()` or `prune()` was asked to rotate or prune. `session_conflict`: an append found the log in a state it did
  * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
- * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
+ * `invalid_session_key`: a user or session id the store can't use. `invalid_retention`: a retention period that is not a
+ * positive number, or an action other than `archive` and `purge`. `session_corrupt`: a log file has a bad line before
  * its last line. `invalid_completion_config`: `.agents/harness.json` is not JSON, or its `completionChecks` is not a list
  * of commands.
  */
