@@ -87,8 +87,10 @@ test("none passes the cases that don't need enforcement and skips the rest with 
   const report = await runSandboxConformance(noneFactory, { processTree });
   assert.deepEqual(report.failed, []);
   assert.deepEqual(report.skipped.map((skip) => skip.name).sort(), [
+    "a backend that claims a stop reads back the policy it applied, which equals the request, and delivers its stops",
     "a path that climbs out of the workspace with .. is denied for reads and writes",
     "a read outside the read roots is denied",
+    "a read-back that differs from the request throws sandbox_policy_mismatch, names the field and disposes the sandbox",
     "a symlink in the workspace that points outside it is denied for reads and writes",
     "a working directory outside the workspace is denied",
     "a write outside the write roots is denied",
@@ -123,11 +125,14 @@ test("the network case reaches an allowed loopback host and fails a backend that
     const report = await runSandboxConformance(() => ({ client: lying, root: tempRoot() }), {
       network: { allowed: String(allowedPort), blocked: String(blockedPort), command: probe },
     });
-    assert.deepEqual(
-      report.failed.map((failure) => failure.name),
-      ["the network is denied unless the host is on the allowlist"],
-    );
-    assert.match(report.failed[0]?.error ?? "", /not allowed must not be reached/);
+    // It also has no read-back, which the two read-back cases catch on their own.
+    assert.deepEqual(report.failed.map((failure) => failure.name).sort(), [
+      "a backend that claims a stop reads back the policy it applied, which equals the request, and delivers its stops",
+      "a read-back that differs from the request throws sandbox_policy_mismatch, names the field and disposes the sandbox",
+      "the network is denied unless the host is on the allowlist",
+    ]);
+    const network = report.failed.find((failure) => failure.name.startsWith("the network"));
+    assert.match(network?.error ?? "", /not allowed must not be reached/);
   } finally {
     for (const server of servers) server.close();
   }
@@ -156,6 +161,8 @@ test("a backend that breaks the rules fails the suite: one that leaks the parent
       readFile: (path) => sandbox.readFile(path),
       writeFile: (path, data) => sandbox.writeFile(path, data),
       dispose: () => sandbox.dispose(),
+      readBack: () => sandbox.readBack?.() ?? Promise.reject(new Error("the fake reads its policy back")),
+      ...(sandbox.stops === undefined ? {} : { stops: sandbox.stops }),
     };
   };
   const report = await runSandboxConformance(() => ({ client: leaky, root: "/workspace" }));

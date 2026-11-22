@@ -5,6 +5,7 @@
  */
 import { HarnessError } from "../errors.js";
 import { SandboxDeniedError, SandboxUnavailableError } from "../sandbox/errors.js";
+import { confirmPolicy } from "../sandbox/policy.js";
 import type {
   ExecOptions,
   ExecResult,
@@ -12,6 +13,7 @@ import type {
   SandboxClient,
   SandboxDenial,
   SandboxPolicy,
+  SandboxStop,
   WorkspaceManifest,
 } from "../sandbox/types.js";
 
@@ -19,6 +21,13 @@ import type {
 export interface FakeSandboxOptions {
   /** Makes `provision()` throw `SandboxUnavailableError` with this reason, as a backend that can't start does. */
   readonly unavailable?: string;
+  /**
+   * The policy the fake applies and reads back instead of the requested one, as a hosted provider's account-wide
+   * override would. `provision()` then throws `SandboxPolicyMismatchError` when the two differ.
+   */
+  readonly applied?: (requested: SandboxPolicy) => SandboxPolicy;
+  /** The stops the fake claims. Defaults to `mistakes` and `exfiltration`, which its in-memory checks deliver. */
+  readonly stops?: readonly SandboxStop[];
 }
 
 /** One command the fake received, with what the caller passed. */
@@ -120,6 +129,7 @@ const within = (path: string, root: string): boolean => {
 
 class FakeSandbox implements Sandbox {
   private disposed = false;
+  stops: readonly SandboxStop[] = [];
   // What ends each command still running, so `dispose()` can reject them as a real backend does.
   private readonly running = new Set<() => void>();
   readonly store = new Map<string, Uint8Array>();
@@ -136,6 +146,17 @@ class FakeSandbox implements Sandbox {
 
   private live(): void {
     if (this.disposed) throw new HarnessError("sandbox_disposed", "the sandbox was disposed");
+  }
+
+  /** The policy the fake enforces, as a copy. */
+  async readBack(): Promise<SandboxPolicy> {
+    this.live();
+    const { readRoots, writeRoots, network } = this.policy;
+    return {
+      readRoots: [...readRoots],
+      writeRoots: [...writeRoots],
+      network: { allow: [...network.allow], deny: [...network.deny] },
+    };
   }
 
   /** The absolute path a name stands for: joined to the root, tidied of `.` and `..`, then followed through links. */
@@ -369,14 +390,16 @@ class FakeSandbox implements Sandbox {
 
 /**
  * Builds a fake backend with the tier `os` and the stops `mistakes` and `exfiltration`, because it enforces the
- * policy's file roots and network allowlist in memory. That says nothing about a real process: it runs none.
+ * policy's file roots and network allowlist in memory. That says nothing about a real process: it runs none. It reads
+ * its policy back as a real backend does, so `provision()` throws `SandboxPolicyMismatchError` when `applied` changes
+ * the policy.
  */
 export function fakeSandbox(options: FakeSandboxOptions = {}): FakeSandboxClient {
   const execs: RecordedExec[] = [];
   let latest: FakeSandbox | undefined;
-  return {
+  const client: FakeSandboxClient = {
     tier: "os",
-    stops: ["mistakes", "exfiltration"],
+    stops: options.stops ?? ["mistakes", "exfiltration"],
     execs,
     files: () => latest?.store ?? new Map(),
     symlink(link: string, target: string) {
@@ -384,7 +407,8 @@ export function fakeSandbox(options: FakeSandboxOptions = {}): FakeSandboxClient
     },
     async provision(manifest: WorkspaceManifest, policy: SandboxPolicy) {
       if (options.unavailable !== undefined) throw new SandboxUnavailableError("fake", options.unavailable);
-      const sandbox = new FakeSandbox(manifest.root, policy, execs);
+      const sandbox = new FakeSandbox(manifest.root, options.applied?.(policy) ?? policy, execs);
+      sandbox.stops = await confirmPolicy(client, sandbox, policy);
       for (const [path, data] of Object.entries(manifest.files ?? {})) {
         sandbox.seed(path, typeof data === "string" ? ENCODER.encode(data) : data);
       }
@@ -392,4 +416,5 @@ export function fakeSandbox(options: FakeSandboxOptions = {}): FakeSandboxClient
       return sandbox;
     },
   };
+  return client;
 }

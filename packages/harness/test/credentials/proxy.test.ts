@@ -623,6 +623,12 @@ test("a bad allowlist entry or route is refused when the proxy starts", async ()
     header: "authorization",
     secret: async () => "x",
   };
+  const gitRoute = {
+    ...route,
+    route: "git",
+    methods: ["GET", "POST"],
+    git: { repositories: ["owner/repo"], pushRefs: ["refs/heads/agent/*"], fetch: false, username: "x-access-token" },
+  };
   const bad: [string, Parameters<typeof startEgressProxy>[0]][] = [
     ["an address in the allowlist", { allow: ["10.0.0.1"], log: () => {} }],
     ["a bare star", { allow: ["*"], log: () => {} }],
@@ -636,11 +642,25 @@ test("a bad allowlist entry or route is refused when the proxy starts", async ()
     ["a route that allows CONNECT", { allow: [], routes: [{ ...route, methods: ["CONNECT"] }], log: () => {} }],
     ["a route whose header is host", { allow: [], routes: [{ ...route, header: "Host" }], log: () => {} }],
     ["a route whose header has a space", { allow: [], routes: [{ ...route, header: "x y" }], log: () => {} }],
+    ["a git route whose host is allowed", { allow: ["api.example.com"], routes: [gitRoute], log: () => {} }],
+    [
+      "a git route whose host is allowed on another port",
+      { allow: ["API.example.com:8443"], routes: [gitRoute], log: () => {} },
+    ],
+    ["a git route under an allowed wildcard", { allow: ["*.example.com"], routes: [gitRoute], log: () => {} }],
+    ["a git route beside a header route to its host", { allow: [], routes: [route, gitRoute], log: () => {} }],
+    [
+      "a git route beside a header route to its host on a port",
+      { allow: [], routes: [gitRoute, { ...route, host: "api.example.com:8443" }], log: () => {} },
+    ],
+    ["two git routes to one host", { allow: [], routes: [gitRoute, { ...gitRoute, route: "git2" }], log: () => {} }],
   ];
   for (const [label, options] of bad) {
     const error = await startEgressProxy(options).catch((caught: unknown) => caught);
     assert.equal((error as { code?: string }).code, "invalid_egress_options", `${label} must be refused`);
   }
+  const alone = await startEgressProxy({ allow: ["other.example.com"], routes: [gitRoute], log: () => {} });
+  await alone.close();
 });
 
 test("a secret with a character Node refuses in a header is a 502, and the proxy carries on", async () => {
