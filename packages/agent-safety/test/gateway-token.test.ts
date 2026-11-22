@@ -136,6 +136,13 @@ test("a gateway token needs a Cloudflare AI Gateway base URL, so it can reach no
     "https://gateway.ai.cloudflare.com.evil.example/v1",
     "https://evil-gateway.ai.cloudflare.com.example/v1",
     "https://notgateway.ai.cloudflare.com.evil.example/v1",
+    // On the gateway host, but naming no one gateway, so the token could go to any account's gateway beneath it.
+    "https://gateway.ai.cloudflare.com",
+    "https://gateway.ai.cloudflare.com/",
+    "https://gateway.ai.cloudflare.com/v1",
+    "https://gateway.ai.cloudflare.com/v1/account-1",
+    "https://gateway.ai.cloudflare.com/v1/account-1/",
+    "https://gateway.ai.cloudflare.com/v2/account-1/gateway-1",
   ];
   for (const baseURL of notGateways) {
     assert.throws(
@@ -157,10 +164,27 @@ test("a gateway token needs a Cloudflare AI Gateway base URL, so it can reach no
 });
 
 test("an unusable gateway token is refused when the guard is built, and its text never appears", () => {
-  for (const gatewayToken of ["", " ", "a b", " abc", "abc ", "abc\n", "a\u0000b", "tök€n", 5, null, {}] as unknown[]) {
+  for (const gatewayToken of [
+    "",
+    " ",
+    "zq7 secret",
+    " zq7secret",
+    "zq7secret ",
+    "zq7\nsecret",
+    "zq7\u0000secret",
+    "zq7-tök€n",
+    5,
+    null,
+    {},
+  ] as unknown[]) {
     assert.throws(
       () => egressGuard({ baseURL: GATEWAY, credential, gatewayToken: gatewayToken as string }),
-      refusal("invalid_byok_config"),
+      (error: unknown) => {
+        refusal("invalid_byok_config")(error);
+        const text = typeof gatewayToken === "string" && gatewayToken.length > 1 ? gatewayToken : "";
+        assert.ok(text === "" || !(error as Error).message.includes(text), "the message holds the rejected token");
+        return true;
+      },
       JSON.stringify(gatewayToken),
     );
   }
@@ -232,4 +256,24 @@ test("an OpenAI WebSocket handshake carries the gateway token, and refuses any o
     refusal("egress_refused"),
   );
   assert.equal(opened.length, 1);
+});
+
+test("explicitProvider names itself, not the guard, when a gateway token is refused", () => {
+  const cases: [string, string][] = [
+    ["https://api.anthropic.com/v1", TOKEN],
+    ["https://gateway.ai.cloudflare.com", TOKEN],
+    [GATEWAY, "a b"],
+  ];
+  for (const [baseURL, gatewayToken] of cases) {
+    assert.throws(
+      () => explicitProvider({ provider: "anthropic", apiKey: KEY, baseURL, gatewayToken }),
+      (error: unknown) => {
+        refusal("invalid_byok_config")(error);
+        assert.match((error as Error).message, /^explicitProvider\(anthropic\)/);
+        assert.doesNotMatch((error as Error).message, /egressGuard/);
+        return true;
+      },
+      baseURL,
+    );
+  }
 });

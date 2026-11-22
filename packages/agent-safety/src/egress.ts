@@ -25,8 +25,9 @@ export interface EgressGuardOptions {
   /**
    * The token of a Cloudflare AI Gateway with authentication turned on, which the gateway reads from
    * `cf-aig-authorization`. The guard adds the header to each request, and it is the one other credential a request
-   * may carry. The base URL must be a Cloudflare AI Gateway host, so the token can reach no other. It must be a
-   * non-empty string of printable ASCII characters with no whitespace, and it is never read from the environment.
+   * may carry. The base URL must name one Cloudflare AI Gateway, `/v1/{account}/{gateway}`, so the token can reach no
+   * other host or account. The token must be a non-empty string of printable ASCII characters with no whitespace, and
+   * it is never read from the environment.
    */
   readonly gatewayToken?: string;
   /** The `fetch` that sends an allowed request. Defaults to `globalThis.fetch`, looked up on each request. */
@@ -79,20 +80,31 @@ function checkCredentials(headers: Headers, credential: EgressCredential, gatewa
 // whitespace in a token is a paste error.
 const USABLE_TOKEN = /^[\x21-\x7e]+$/;
 
-/** The `cf-aig-authorization` value for a gateway token, or `undefined` when none is configured. */
-function gatewayHeaderValue(token: unknown, baseURL: string): string | undefined {
+/**
+ * The `cf-aig-authorization` value for a gateway token, or `undefined` when none is configured. `who` names the caller
+ * in a refusal. A token needs a base URL that names one gateway, `/v1/{account}/{gateway}` on a Cloudflare AI Gateway
+ * host, because a base URL of the host alone would let the token go to any account's gateway beneath it.
+ */
+export function checkGatewayToken(token: unknown, baseURL: unknown, who = "egressGuard"): string | undefined {
   if (token === undefined) return undefined;
   if (typeof token !== "string" || !USABLE_TOKEN.test(token)) {
     throw new SafetyError(
       "invalid_byok_config",
-      "egressGuard needs a gatewayToken of printable ASCII characters, with no whitespace",
+      `${who} needs a gatewayToken of printable ASCII characters, with no whitespace`,
     );
   }
   const parsed = parseModelBaseUrl(baseURL);
   if (!parsed.ok || !isCloudflareAiGatewayHost(parsed.url.hostname)) {
     throw new SafetyError(
       "invalid_byok_config",
-      "egressGuard takes a gatewayToken only with a Cloudflare AI Gateway base URL, so the token can reach no other host",
+      `${who} takes a gatewayToken only with a Cloudflare AI Gateway base URL, so the token can reach no other host`,
+    );
+  }
+  const [, version, account, gateway] = parsed.url.path.split("/");
+  if (version !== "v1" || !account || !gateway) {
+    throw new SafetyError(
+      "invalid_byok_config",
+      `${who} takes a gatewayToken only with a base URL that names one gateway, /v1/{account}/{gateway}, so the token can reach no other account's gateway`,
     );
   }
   return `Bearer ${token}`;
@@ -126,7 +138,7 @@ function checkCredential(credential: EgressCredential | undefined): void {
  * resend the key's header to wherever the response points. Error messages name headers, never their values.
  *
  * Throws a `SafetyError`, code `invalid_byok_config`, when the base URL or the credential is unusable, or when a
- * `gatewayToken` is unusable or the base URL is not a Cloudflare AI Gateway host.
+ * `gatewayToken` is unusable or the base URL does not name one Cloudflare AI Gateway.
  */
 export function egressGuard(options: EgressGuardOptions): typeof fetch {
   const check = outgoingCheck(options.baseURL, options.credential, options.gatewayToken);
@@ -153,7 +165,7 @@ function outgoingCheck(
   const base = parsed.url;
   checkCredential(credentialOption);
   const credential = { header: credentialOption.header, value: credentialOption.value };
-  const gatewayValue = gatewayHeaderValue(gatewayToken, baseURL);
+  const gatewayValue = checkGatewayToken(gatewayToken, baseURL);
   return (url, sent) => {
     if (!isUnderBase(url, base)) throw refuse(`${url.host}${url.pathname} is outside the configured base URL`);
     const headers = new Headers(sent);
