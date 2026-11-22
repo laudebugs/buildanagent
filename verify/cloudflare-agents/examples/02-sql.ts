@@ -8,6 +8,7 @@ import { check, type Harness } from "./lib/check.ts";
 type Env = { NotesAgent: DurableObjectNamespace<NotesAgent> };
 type Note = { id: number; body: string };
 
+// #region notes-agent
 export class NotesAgent extends Agent<Env> {
   override async onStart() {
     this.sql`CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, body TEXT NOT NULL)`;
@@ -29,6 +30,7 @@ export class NotesAgent extends Agent<Env> {
     return this.ctx.storage.sql.exec("SELECT count(*) AS n FROM notes").one().n;
   }
 }
+// #endregion notes-agent
 
 export async function test(env: Env, _h: Harness) {
   const agent = await getAgentByName(env.NotesAgent, "notes");
