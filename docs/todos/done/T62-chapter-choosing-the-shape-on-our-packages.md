@@ -51,7 +51,7 @@ Chapter 8 has six listings. Each is read against `packages/sdk/README.md` and `p
 
 ## Outcome
 
-- **Tabs.** `#sequential-order-ours` (the existing `02-workflow.ts`), `#route-by-code-ours` (new `11-route-by-code.ts`) and `#subagent-ours`, `#orchestrator-ours` and `#usage-ours` (new `12-subagent-as-tool.ts`) each come first in a tabs block, beside the ADK and OpenAI Agents SDK listings, whose files, regions and notes are unchanged. The orchestrator tab replays its transcript. Transcripts for both new examples are in `packages/sdk/results/transcripts/`.
+- **Tabs.** `#sequential-order-ours` (the existing `02-workflow.ts`), `#route-by-code-ours` (new `11-route-by-code.ts`) and `#subagent-ours`, `#orchestrator-ours` and `#usage-ours` (new `12-subagent-as-tool.ts`) each come first in a tabs block, ahead of the unchanged ADK and OpenAI Agents SDK listings. The orchestrator tab replays its transcript. Transcripts for both new examples are in `packages/sdk/results/transcripts/`.
 - **Stays single.** `#handoff-tool`: our SDK has no handoff, and the prose says so (row 99).
 - **Difference from OpenAI's usage.** Our `result.usage` counts only the run's own calls, so the code adds the subagent's tokens to get the total, and the prose says so (row 101).
 - **Fact-check.** Rows 97 to 105 of `apps/manual/fact-checks/choosing-the-shape.md`; the tally is updated.
