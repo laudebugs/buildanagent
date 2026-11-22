@@ -2,6 +2,7 @@
 import { defineTool } from "@buildanagent/sdk";
 import { z } from "zod";
 
+// #region tool
 /** An order, as your order store returns it. */
 export interface Order {
   id: number;
@@ -24,3 +25,4 @@ export function lookupOrderTool(findOrder: FindOrder) {
     },
   });
 }
+// #endregion
