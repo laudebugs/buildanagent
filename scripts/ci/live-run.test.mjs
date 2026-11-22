@@ -352,7 +352,10 @@ test("every listed example runs live against a stub that answers as its mock did
   // Each key reached only its own provider, in that provider's header, and every call kept to its allowance.
   for (const request of stub.requests) {
     if (request.provider === "anthropic") {
-      assert.equal(request.headers["x-api-key"], FAKE_KEYS.ANTHROPIC_API_KEY);
+      // The Anthropic SDK 1.x that @langchain/anthropic 1.6.5 uses sends an API key as `Authorization: Bearer`
+      // (`apiKeyAuth` in its client.js); the 0.x SDKs send `x-api-key`. Either way the key is the Anthropic one.
+      const header = request.headers["x-api-key"] ?? request.headers.authorization?.replace(/^Bearer /, "");
+      assert.equal(header, FAKE_KEYS.ANTHROPIC_API_KEY);
       assert.ok(request.body.max_tokens <= 1024);
     } else {
       assert.equal(request.headers.authorization, `Bearer ${FAKE_KEYS.OPENAI_API_KEY}`);
