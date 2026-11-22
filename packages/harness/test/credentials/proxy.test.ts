@@ -814,3 +814,66 @@ test("a client that disconnects takes the upstream request with it", async () =>
   for (let tries = 0; tries < 30 && !slowClosed; tries += 1) await new Promise((done) => setTimeout(done, 50));
   assert.equal(slowClosed, true, "the upstream saw its connection close long before its 1.5 s delay");
 });
+
+test("a secret with dollar signs reaches the upstream unchanged", async () => {
+  fresh();
+  const tricky = "pa$$w$&rd$`x$'y$1";
+  const dollars = await startEgressProxy({
+    allow: [],
+    routes: [
+      {
+        route: "d",
+        host: `upstream.test:${upstreamPort}`,
+        methods: ["GET"],
+        header: "authorization",
+        secret: async () => tricky,
+      },
+    ],
+    log: (record) => logs.push(record),
+    resolve,
+    ca: certificate,
+    unsafeAllowAddresses: ["127.0.0.1"],
+  });
+  try {
+    const reply = await routeRequest(dollars, "/d/x", { headers: { authorization: `Bearer ${dollars.sentinels.d}` } });
+    assert.equal(reply.status, 200);
+    assert.equal(seen[0]?.headers.authorization, `Bearer ${tricky}`);
+  } finally {
+    await dollars.close();
+  }
+});
+
+test("a client that leaves before its tunnel is up doesn't leave the connection attempt running", async () => {
+  fresh();
+  let attempts = 0;
+  const slow = await startEgressProxy({
+    allow: ["slow.test"],
+    log: (record) => logs.push(record),
+    resolve: () => {
+      attempts += 1;
+      return new Promise(() => {});
+    },
+  });
+  try {
+    const { port } = new URL(slow.url);
+    const socket = net.connect(Number(port), "127.0.0.1", () =>
+      socket.write("CONNECT slow.test:443 HTTP/1.1\r\nHost: slow.test:443\r\n\r\n"),
+    );
+    await new Promise((done) => setTimeout(done, 150));
+    socket.destroy();
+    await new Promise((done) => setTimeout(done, 150));
+    assert.equal(attempts, 1);
+    assert.equal(logs.filter((record) => record.host === "slow.test").length <= 1, true);
+  } finally {
+    await slow.close();
+  }
+});
+
+test("a process that reaches the proxy but knows no sentinel can tunnel to an allowed name and can't use a route", async () => {
+  fresh();
+  const tunnel = await connect(proxy, `upstream.test:${upstreamPort}`);
+  tunnel.socket.destroy();
+  assert.equal(tunnel.status, 200);
+  const route = await routeRequest(proxy, "/svc/x", {});
+  assert.equal(route.status, 403);
+});

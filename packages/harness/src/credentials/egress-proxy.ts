@@ -3,7 +3,7 @@
  * through it, it refuses everything that isn't on its allowlist, and it logs each request without its headers. A tool
  * that needs a credential sends its request to a local route, such as `http://127.0.0.1:<port>/github/user`, with the
  * route's sentinel where the credential goes. The proxy checks the sentinel and the method, swaps in the real secret and
- * forwards the request over HTTPS (HD15). It never intercepts TLS: everything else leaves through `CONNECT` to an
+ * forwards the request over HTTPS. It never intercepts TLS: everything else leaves through `CONNECT` to an
  * allowlisted name, and a name is connected to only at an address the proxy checked. It is Node-only.
  */
 import { HarnessError } from "../errors.js";
@@ -258,6 +258,8 @@ class EgressGate {
     let established = false;
     const upstream = this.modules.net.connect({ host, port, lookup: this.checkedLookup as never });
     this.track(upstream);
+    // A client that leaves before the tunnel is up takes the connection attempt with it.
+    client.once("close", () => upstream.destroy());
     upstream.setTimeout(this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS, () =>
       upstream.destroy(Object.assign(new Error("idle"), { code: "ETIMEDOUT" })),
     );
@@ -386,7 +388,11 @@ class EgressGate {
     }
     const secret = await route.secret().catch(() => "");
     if (secret === "" || INVALID_HEADER_VALUE.test(secret)) return { reply: refusal(502, "secret_unavailable"), base };
-    const outgoing = this.outgoingHeaders(headers, route, presented.replaceAll(sentinel, secret));
+    const outgoing = this.outgoingHeaders(
+      headers,
+      route,
+      presented.replaceAll(sentinel, () => secret),
+    );
     const reply = await this.forward(route, method, `${match[2] ?? "/"}${match[3] ?? ""}`, outgoing, body, signal);
     return { reply, base };
   }

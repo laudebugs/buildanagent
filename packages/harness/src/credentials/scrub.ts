@@ -88,7 +88,7 @@ function scrubValue(value: unknown, patterns: readonly string[]): unknown {
  */
 export function scrubSecrets<T extends SessionEntry>(entry: T, secrets: readonly string[]): T {
   const patterns = forms(secrets);
-  if (patterns.length === 0) return entry;
+  if (patterns.length === 0) return { ...entry };
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(entry)) {
     out[STRUCTURAL.has(key) ? key : scrubText(key, patterns)] = STRUCTURAL.has(key)

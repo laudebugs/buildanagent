@@ -99,8 +99,9 @@ test("a secret that contains another is removed whole, longest first", () => {
 
 test("an empty list or an empty secret changes nothing", () => {
   const original = entry({ content: "nothing to hide" });
-  assert.equal(scrubSecrets(original, []), original);
-  assert.equal(scrubSecrets(original, [""]), original);
+  assert.deepEqual(scrubSecrets(original, []), original);
+  assert.deepEqual(scrubSecrets(original, [""]), original);
+  assert.notEqual(scrubSecrets(original, []), original, "it is a copy even when there is nothing to remove");
 });
 
 test("several secrets are all removed, and unrelated text stays", () => {

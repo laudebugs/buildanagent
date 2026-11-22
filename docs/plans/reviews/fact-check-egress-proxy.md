@@ -22,6 +22,6 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or
 | N20-10 | `scrubSecrets` removes a secret in strings and keys at any depth, and in percent-encoded, JSON-escaped and base64 forms, and keeps an entry's structural fields | ✅ | `scrub.test.ts` |
 | N20-11 | `proxy.fetch` rejects with `egress_denied` for a host, port, literal or plain-HTTP URL that is not allowed, and a route URL gets injection | ✅ | `proxy.test.ts`: five refused URLs, none reaches the server, and a fetch of a route URL sends the real header |
 | N20-12 | The proxy serves the same routes on a Unix socket | ✅ | `proxy.test.ts` sends a route request over `socketPath` and the upstream sees the real header |
-| N20-13 | Any local process can use the loopback proxy's tunnels, but only one that knows a sentinel can use a route | ✅ | By construction: sentinels are 18 random bytes for each proxy, and the listener has no other credential. No test tries a second process |
+| N20-13 | Any local process can use the loopback proxy's tunnels, but only one that knows a sentinel can use a route | ✅ | `proxy.test.ts`: a client that presents no sentinel gets a 200 tunnel to an allowed name and a 403 from a route. Sentinels are 18 random bytes for each proxy. No test runs a second operating-system process |
 
 **Totals:** 17 claims: 14 ✅, 0 ✏️, 3 ⚠️.
