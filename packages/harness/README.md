@@ -285,6 +285,24 @@ A turn that ended `awaiting_approval` or `clarification_requested` leaves its ca
 
 When a tool has a business key, a model that proposes the same write again reaches the same effect key, so the write goes out once. `effectScope(session, harness, toolCallId)` builds the scope that key takes: the harness's `tenant` (default `local`), the session id, the branch and the call id. The branch is the log's file plus its latest checkout.
 
+## Two cheap layers keep a long run small: a write cap that spills, and masking in steps
+
+`createContextPolicy()` from `@buildanagent/harness/context` builds the first two of the five context layers, and `createHarness({ ..., context })` applies it to every turn. Neither layer edits a stored entry. The write cap stores the cut text, so the model reads what the log holds, and masking changes only the request view.
+
+```ts
+const context = createContextPolicy({ spill: fileSpillStore({ dir: ".sessions/spill" }) });
+```
+
+**Layer 1, the write cap.** A tool result whose text is over the cap is cut before the model reads it, and the full text goes to the `spill` store. The model reads the first part and a line that names the file, and the `tool_result` entry stores the same cut text with `spill: { path, bytes }`. If the store cannot write, the text is still cut, and the notice says the rest was not kept.
+
+The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
+
+**Layer 2, stepped masking.** Before each model call, every tool result before a cutoff shrinks to its first 500 characters and a pointer line. The line names the spill file, or the log entry when the result was never spilled. A cut never leaves half of a surrogate pair. The cutoff is `floor((messages − 8) / 8) × 8`, so it moves once every eight messages. Between moves the view's prefix stays byte-identical, which keeps a provider's prompt cache hitting.
+
+Signed thinking limits where the cutoff may stand. A model that checks each signed block against the earlier request rejects a block that follows an edited message, and a model that thinks in a tool loop needs that loop's own blocks back. So while the tool loop in progress holds signed thinking, the cutoff is computed as though the transcript ended where the loop began, and nothing in the loop is masked. The view also drops the signed reasoning of messages before the loop that follow the first masked result, and keeps the signed reasoning before that result and the loop's own.
+
+Turn a layer off with `layers: { write_cap: false }` or `layers: { mask: false }`; `mask` takes `{ keepChars, stepMessages }`. After each view is built, the policy reports how full it estimates the view to be: `TurnOptions.onContextFill` receives `{ tokens, budget, window }`, and the dispatcher sends `tokens` and `budget` as a `context_fill` event. With a previous response, the estimate is that response's input and output tokens plus the view's growth since, counted as characters over four. Before any response, it is characters over four for the whole view. The summary, mid-turn and overflow layers arrive in their own todos.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.
