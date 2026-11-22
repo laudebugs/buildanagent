@@ -15,7 +15,7 @@ An approval is therefore more than a click. It is a pause saved as data, a decis
 
 A model never runs a tool; it asks, and the SDK decides whether the call runs now. With approval switched on for a tool, the SDK decides "not yet". It ends the run with the call still pending and hands you what you need to continue later. The SDK has not refused the call, and nothing has run. The run is paused, and the next run starts from wherever you saved it.
 
-Our SDK, `@buildanagent/sdk`, is an alpha release as of November 2026, so its names may still change. It signs and checks pauses with code copied byte for byte from `@buildanagent/agent-safety`{checked=row-83}, a separate package that no listing imports, so every tab on our SDK runs that code.
+Our SDK, `@buildanagent/sdk`, is an alpha release as of November 2026, so its names may still change. It signs and checks pauses with code copied byte for byte from `@buildanagent/agent-safety`{checked=row-83}, a separate package that none of this chapter's listings imports. Those listings import only the SDK, so every tab on our SDK runs that code.
 
 Each SDK below marks a tool in one line. Our SDK runs a `beforeToolCall` gate that returns `ask` for the tool. The AI SDK takes a `toolApproval` rule per tool, the OpenAI Agents SDK takes a `needsApproval` function on the tool, and LangChain takes an `interruptOn` entry in its human-in-the-loop middleware [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
 
