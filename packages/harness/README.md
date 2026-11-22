@@ -243,6 +243,20 @@ A case that needs enforcement runs only when the backend's `stops` claim it:
 
 Call `runTurn()` once at a time per `Session`: its writes stay in order within one call, but two concurrent calls on one `Session` can interleave their entries. A turn may set `system`, `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal`, `tools` and `hostContext`. `tools` is an allowlist of registered names, and an unknown name throws `invalid_turn_options`. `hostContext` reaches a tool as `ctx.app` and reaches no entry. `onRun` hands the caller the run, so it can `steer()` or `followUp()` it.
 
+## One dispatcher answers every client, and a client in the same process needs no framing
+
+`createDispatcher({ harness, store, index, lock, userId })` from `@buildanagent/harness/server` serves the protocol's commands over a harness. `inProcessTransport(dispatcher)` connects a client in the same process: `request(method, params)` resolves with the result, or rejects with an `RpcFailure` that holds the error code, and `onMessage()` hears the notifications. A stdio transport will carry the same messages later.
+
+```ts
+const client = inProcessTransport(createDispatcher({ harness, store, index, lock, userId: "ada" }));
+client.onMessage((message) => { /* "event" and "turn/settled" notifications */ });
+await client.request("initialize", { clientInfo: { name: "cli", version: "1" }, capabilities: [] });
+const { session } = await client.request("session/create", { cwd: "/work" });
+const disposition = await client.request("turn/start", { session, input: [{ type: "text", text: "Hi" }] });
+```
+
+`turn/start` answers with a disposition first: `{ accepted: true, turn }`, or `{ accepted: false, reason }` with `busy` when this dispatcher already runs a turn in the session, `locked` when another process holds the session's lock, and `invalid` for a session the connection never opened. The turn's events follow, each an `event` notification whose `seq` is the entry's sequence number when the event is an appended entry. Every turn ends with one `turn/settled`, sent after the turn's retries and after its last entry is written, and a turn that throws settles with the stop reason `error`. The dispatcher holds the session's lock only while a turn runs, so the log, not the dispatcher, is the state. `initialize` reports the requests still waiting for an answer in every session of the user, so a client that joins late can answer them. `session/checkout` and `session/fork` are experimental: a client lists them in the `capabilities` of `initialize`, or the server answers `NotOptedIn`.
+
 ## The log is the only state, so a turn rebuilds its context from it
 
 `session.toContext(headId?)` rebuilds the SDK's `Context` from the entries between the root and `headId` (default HEAD): the messages in order and the system prompt of the latest `turn_start`, byte for byte. It groups `message_block` entries by `messageId`, closes a message at its `message_end`, and takes its usage from the `usage` entry that follows. A `usage` entry anywhere else belongs to a call whose message a turn-layer retry superseded, and builds no message. The result deep-equals the `context` of the run that wrote the log, a paused run included, and `continueRun()` finishes a run from it after a JSON round trip. A turn that leaves out `history` takes it from `toContext()`, so a new process goes on from the log alone.

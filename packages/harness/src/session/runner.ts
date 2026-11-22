@@ -56,6 +56,8 @@ export interface TurnOptions<H = unknown> {
   readonly modelOptions?: CallOptions;
   /** Called with the run as soon as it starts, so a caller can `steer()`, `followUp()` or abort it. */
   readonly onRun?: (run: Run<unknown>) => void;
+  /** Observers for this turn alone. Unlike `Run.on()`, they also see `run_start`. They run after the harness's own. */
+  readonly observers?: readonly Observer[];
   /**
    * The conversation so far. Left out, it is rebuilt from the session's log, so a turn in any process goes on from
    * what the log holds. Pass it only to run on a conversation the log doesn't hold.
@@ -530,7 +532,7 @@ export async function runTurn<H = unknown>(
     tools,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
-    observers: [observer, ...afterWrites(harness.observers, writer)],
+    observers: [observer, ...afterWrites(harness.observers, writer), ...(options.observers ?? [])],
     ...optionalRunOptions(options, harness, history),
   });
   options.onRun?.(handle);
