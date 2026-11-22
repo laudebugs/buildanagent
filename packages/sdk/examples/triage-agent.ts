@@ -1,6 +1,5 @@
-// A support-triage agent. It looks a customer up, asks a person before it escalates a ticket, and ends with a typed
-// triage record. A run that waits for the person ends with a signed request you can store as JSON, and any process
-// that holds the same signing key can resume it.
+// A support-triage agent. It looks the signed-in customer up, asks a person before it escalates a ticket, and ends with
+// a typed record. A paused run ends with a signed request you can store as JSON; any process with the key resumes it.
 import type { Model } from "@buildanagent/gateway";
 import {
   type ApprovalSigner,
@@ -35,10 +34,12 @@ export type Triage = z.infer<typeof Triage>;
 export interface TriageDeps {
   model: Model;
   signer: ApprovalSigner;
+  customerEmail: string; // The signed-in customer, from the request's session: build `deps` for each request.
   findCustomer(email: string): Promise<{ plan: string; openTickets: number }>;
   escalate(reason: string): Promise<void>;
   audit(line: string): void;
 }
+export type TriageApp = Pick<TriageDeps, "customerEmail">; // What the tools read from `ctx.app`, never the model.
 
 /** Every call the model makes, and every pause for a person, goes to the audit trail. */
 function auditTo(audit: TriageDeps["audit"]): Observer {
@@ -55,13 +56,13 @@ const gate: Interceptors = {
 };
 
 /** The agent's options, shared by its first run and every resume. */
-export function triageOptions(deps: TriageDeps): RunOptions<Triage> {
-  const lookupCustomer = defineTool({
+export function triageOptions(deps: TriageDeps): RunOptions<Triage, TriageApp> & { app: TriageApp } {
+  const lookupCustomer = defineTool<object, unknown, TriageApp>({
     name: "lookup_customer",
-    description: "Look up a customer's plan and open tickets by email.",
-    inputSchema: z.object({ email: z.string() }),
-    execute: async ({ email }) => ({
-      content: [{ type: "text", text: JSON.stringify(await deps.findCustomer(email)) }],
+    description: "Look up the signed-in customer's plan and open tickets.",
+    inputSchema: z.object({}),
+    execute: async (_input, ctx) => ({
+      content: [{ type: "text", text: JSON.stringify(await deps.findCustomer(ctx.app.customerEmail)) }],
     }),
   });
   const escalate = defineTool({
@@ -84,6 +85,7 @@ export function triageOptions(deps: TriageDeps): RunOptions<Triage> {
     interceptors: gate,
     observers: [auditTo(deps.audit)],
     signer: deps.signer,
+    app: { customerEmail: deps.customerEmail },
   };
 }
 

@@ -38,15 +38,54 @@ const MAX_TIMER_MS = 2_147_483_647;
 const systemClock: Clock = { now: () => new Date().toISOString() };
 const randomIds = (): string => globalThis.crypto.randomUUID();
 
+type AnyTools = readonly ToolDefinition<unknown, unknown, unknown>[];
+
+/**
+ * The app type a tool declares, wrapped in a one-element tuple so that intersecting the tools' types cannot split a
+ * union that one tool declares, or `never` for a tool that declares none (its type is `unknown`).
+ */
+type DeclaredApp<T> = T extends ToolDefinition<unknown, unknown, infer A> ? (unknown extends A ? never : [A]) : never;
+
+type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void
+  ? I
+  : never;
+
+/** The value type of an intersection of one-element tuples, which is the intersection of their element types. */
+type Unwrapped<T> = T extends readonly [unknown] ? T[0] : never;
+
+/**
+ * What `run()` and `continueRun()` require of `app`, from the tools' declared types alone: nothing when no tool
+ * declares one, and otherwise an `app` that has every declared type at once, so a typed tool beside an untyped one
+ * still needs it, and `null` or another type is refused. When two tools declare types that cannot both hold, such as
+ * `string` and `number`, no `app` compiles, which tells you the tools cannot share a run. The requirement depends on the type of the `tools` list the
+ * call infers, so it does not apply when you give `run()` explicit type arguments.
+ */
+export type AppFor<T extends AnyTools> = [DeclaredApp<T[number]>] extends [never]
+  ? unknown
+  : { readonly app: Unwrapped<UnionToIntersection<DeclaredApp<T[number]>>> };
+
 /** The options `run()` and `continueRun()` share. */
-export interface RunOptions<S = unknown> {
+export interface RunOptions<S = unknown, A = unknown> {
   /** The model, from `createModel()`. */
   readonly model: Model;
   /**
    * The tools the model may call. Tools whose `exposure` is `deferred` or `hidden` are not sent unless a
    * `beforeModelCall` interceptor names them in `activeTools`.
    */
-  readonly tools?: readonly ToolDefinition<unknown, unknown>[];
+  readonly tools?: readonly ToolDefinition<unknown, unknown, A>[];
+  /**
+   * App data for the tools, which each reads as `ctx.app`: facts the caller knows and the model must not choose, such as
+   * the signed-in customer. Build it for each request from the authenticated session, never once at module level. It
+   * reaches no model request, event or saved `Context`, and a signed pending request does not bind it. Pass it again
+   * to every `continueRun()`, and take it from the original caller: store it, or a reference to it, beside the stored
+   * context, because an approved call runs with whatever `app` the resuming process passes, and the approver's own
+   * session would run it as the approver. A nested run a tool starts gets none unless the tool passes it on.
+   *
+   * Once a tool declares an app type, `app` is required and must have every declared type, which the compiler checks
+   * only while `run()` infers its type arguments. The SDK passes this object to every call without copying it, so pass
+   * an immutable value.
+   */
+  readonly app?: A;
   /**
    * A tool from `outputTool()` whose input is the final answer. It is sent with the other tools; once the model calls
    * it with input that passes its schema, the run ends `done`, and `result.output` holds the validated answer.
@@ -160,7 +199,7 @@ export interface RunOptions<S = unknown> {
 }
 
 /** What `continueRun()` takes besides the shared options: the answers to a paused context's requests. */
-export interface ContinueOptions<S = unknown> extends RunOptions<S> {
+export interface ContinueOptions<S = unknown, A = unknown> extends RunOptions<S, A> {
   /**
    * A person's answer to each pending request of the context: `{ requestId, decision: "allow" | "deny" }` for an
    * approval, `{ requestId, answer }` for a question. Each is checked against its request and the input
@@ -561,6 +600,7 @@ function setupOf(
     depth,
     maxDepth,
     ...parentRunOf(options),
+    app: options.app,
     modelOptions: options.modelOptions ?? {},
     includeRaw,
     interceptors: checkInterceptors(options.interceptors ?? {}),
@@ -594,7 +634,9 @@ function observersOf(options: RunOptions<unknown>): ObserverSetup {
  * unusable option: a model that isn't from `createModel()`, a `maxSteps` that isn't a positive integer, an output tool
  * that isn't sent to the model, or two tools with one name.
  */
-export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
+export function run<S = unknown, const T extends AnyTools = AnyTools>(
+  options: RunOptions<S> & { readonly tools?: T } & RunInput & AppFor<T>,
+): Run<S> {
   const content = typeof options.input === "string" ? [{ type: "text" as const, text: options.input }] : options.input;
   const input: Message = { role: "user", content: [...content] };
   const setup = setupOf(options, { system: options.system, messages: options.history ?? [] }, [input]);
@@ -628,7 +670,10 @@ export function run<S = unknown>(options: RunOptions<S> & RunInput): Run<S> {
  * assistant message has a call with no result and no pending request, for a pending request whose call doesn't wait
  * in the context, and for malformed `resolutions` or `recheck`, besides the options `run()` refuses.
  */
-export function continueRun<S = unknown>(context: Context, options: ContinueOptions<S>): Run<S> {
+export function continueRun<S = unknown, const T extends AnyTools = AnyTools>(
+  context: Context,
+  options: ContinueOptions<S> & { readonly tools?: T } & AppFor<T>,
+): Run<S> {
   const resume = resumeSetupOf(context, options?.resolutions, options?.recheck);
   const setup = setupOf(options, context, []);
   return new RunHandle<S>(resume === undefined ? setup : { ...setup, resume }, options.signal, observersOf(options));

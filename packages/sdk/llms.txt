@@ -39,6 +39,7 @@ The sections of README.md and every public export, generated from this package's
   - [The signers and the record belong to the safety package](README.md#the-signers-and-the-record-belong-to-the-safety-package)
 - [Export a run as OpenTelemetry spans with `otelObserver()`](README.md#export-a-run-as-opentelemetry-spans-with-otelobserver)
 - [Define a tool with `defineTool()`](README.md#define-a-tool-with-definetool)
+- [Tools read the signed-in user from `app`, never from an argument](README.md#tools-read-the-signed-in-user-from-app-never-from-an-argument)
 - [A failed call becomes an error the model can fix](README.md#a-failed-call-becomes-an-error-the-model-can-fix)
 - [Arguments are coerced by three rules](README.md#arguments-are-coerced-by-three-rules)
 - [Report what a write did with an outcome](README.md#report-what-a-write-did-with-an-outcome)
@@ -59,6 +60,7 @@ The sections of README.md and every public export, generated from this package's
 - `AGENT_EVENT_TYPES`: Every `AgentEvent` type.
 - `type AgentEvent`: One event of a run.
 - `type AgentEventBody`: The body of each event, without the fields of `EventBase`.
+- `type AppFor`: What `run()` and `continueRun()` require of `app`, from the tools' declared types alone: nothing when no tool declares one, and otherwise an `app` that has every declared type at once, so a typed tool beside an untyped one still needs it, and `null` or another type is refused.
 - `interface ApprovalDetails`: What a blocking approval handler receives besides the request: the input it signs, and the run's abort signal.
 - `type ApprovalHandler`: Answers one approval request while the run waits: return `{ requestId: request.id, decision }`.
 - `interface ApprovalSigner`: Signs and verifies the payload of a pending request.

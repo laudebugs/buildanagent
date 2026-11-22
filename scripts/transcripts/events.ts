@@ -45,6 +45,11 @@ interface Recorder {
   record(event: TranscriptEvent): void;
   /** Runs `run` so that events it causes later, outside its call stack, carry the line of the call to `run`. */
   atCaller<T>(run: () => T): T;
+  /**
+   * Gives the events that work started from here causes later, outside its call stack, the example line on the stack
+   * now, when there is one. It is for an SDK that starts its work inside a call the recorder cannot wrap.
+   */
+  enterCaller(): void;
 }
 
 const recorder = (globalThis as { [key: symbol]: Recorder | undefined })[Symbol.for("buildanagent.transcript")];
@@ -59,6 +64,16 @@ export function record(event: TranscriptEvent): void {
 /** Runs `run` so that events it causes later, outside its call stack, carry the example line of this call. */
 export function atCaller<T>(run: () => T): T {
   return recorder ? recorder.atCaller(run) : run();
+}
+
+/**
+ * Gives the events that work started from the current call causes later, outside its call stack, the example line
+ * that is on the stack now. A mock layer calls it from code the SDK runs synchronously inside the example's call,
+ * when that call is a plain function the recorder cannot wrap, such as a module's exported `run()`. The line stays
+ * until the example's next call that sets one.
+ */
+export function enterCaller(): void {
+  recorder?.enterCaller();
 }
 
 /**

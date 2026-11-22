@@ -12,10 +12,15 @@ export interface ListingSource {
   readonly path: string;
   readonly region: string | undefined;
   readonly lines: readonly SourceLine[];
-  /** The harness directory the file belongs to, such as `verify/vercel-ai-sdk`. */
+  /** The harness directory the file belongs to, such as `verify/vercel-ai-sdk` or `packages/sdk`. */
   readonly harness: string;
   /** The harness's main package at its pinned version, such as `ai@7.0.162`. */
   readonly pin: string;
+  /**
+   * The pin the harness's transcripts record: the same as `pin` for a `verify/` harness, and `name@workspace` for one
+   * of our own packages, such as `@buildanagent/sdk@workspace`.
+   */
+  readonly recordedPin: string;
   /** The Shiki language the file is highlighted as. */
   readonly lang: "typescript" | "tsx";
   /** For a listing with `replay`, the recorded run of its example and that file's path from the repository root. */
@@ -96,7 +101,11 @@ export function resolveListing(
   if (replay !== undefined && replay !== "" && replay !== null) {
     return { message: `replay takes no value; write {… replay}, not replay="${replay}"` };
   }
-  if (!file) return { message: '::listing needs the file it shows, written file="verify/<sdk>/examples/<name>.ts"' };
+  if (!file)
+    return {
+      message:
+        '::listing needs the file it shows, written file="verify/<sdk>/examples/<name>.ts" or file="packages/<package>/examples/<name>.ts"',
+    };
   const found = confined(file, context.repoRoot);
   if (typeof found === "string") return { message: found };
   const { absolute, path } = found;

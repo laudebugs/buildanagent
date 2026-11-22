@@ -65,6 +65,7 @@ export type {
   UnfinishedResult,
 } from "./result.js";
 export {
+  type AppFor,
   type ContinueOptions,
   continueRun,
   nestedRunDepth,

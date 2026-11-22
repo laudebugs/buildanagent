@@ -1,0 +1,76 @@
+{
+  "format": 1,
+  "example": "01-one-call",
+  "file": "packages/sdk/examples/01-one-call.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 7,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are terse."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Say hello."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 7,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Hello from the mock."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 12,
+      "message": "the answer is text",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 13,
+      "message": "stopReason is 'stop'",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 14,
+      "message": "one request went out",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 15,
+      "message": "the system prompt travels with the request",
+      "pass": true
+    }
+  ]
+}

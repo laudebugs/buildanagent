@@ -593,3 +593,31 @@ test("a nested run that names no parent starts its own trace, as before", async 
   assert.equal(agents.length, 2);
   for (const span of agents) assert.equal(span.parentSpanContext, undefined);
 });
+
+test("a run's app data reaches no span, even with content capture on", async () => {
+  const secret = "cust-secret-42";
+  const { exporter, observer } = setup({ captureContent: true });
+  const tool = defineTool<Record<string, never>, unknown, { customerId: string }>({
+    name: "whoami",
+    description: "Reports nothing about the caller.",
+    inputSchema: { type: "object", properties: {} },
+    async execute() {
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  });
+  const { model } = scripted([toolCall("whoami", {}), text("Done.")]);
+  await drive(
+    run({
+      model,
+      system: SYSTEM,
+      input: "Who am I?",
+      tools: [tool],
+      app: { customerId: secret },
+      observers: [observer],
+      ...determinism(),
+    }),
+  );
+  const spans = exporter.getFinishedSpans();
+  assert.ok(spans.length > 0, "the run produced spans");
+  assert.ok(!JSON.stringify(spans.map((span) => [span.name, span.attributes, span.events])).includes(secret));
+});

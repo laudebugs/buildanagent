@@ -1,6 +1,6 @@
 # Plan: build our agent SDK as two workspace packages, a gateway and a loop, in 27 todos tested offline against a scripted model
 
-- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner. Revised on 2026-11-20 by B11c: §3.2 and §3.3 record the `raw` event and `includeRaw`, which stay under `specificationVersion: "v1"` (owner decision 2026-11-19). Revised on 2026-11-19 from the book's Chapter 3: §4.6 adds B23, an app-data field on `ToolContext` for trusted data such as the signed-in user, which the owner accepted that day ("yes, i accept these").
+- **Status:** Draft (P1, 2026-11-18), revised on 2026-11-18 with the fixes from the [P4 review](reviews/plan-review.md), and on 2026-11-18 for three deployment targets: notes in D5 and D7, and tasks added to B10 and B17 ([ADR 0033](../decisions/0033-three-deployment-targets.md)). Revised on 2026-11-19 (plan review 2) to apply [ADR 0043](../decisions/0043-standalone-safety-core.md) and the [close-sdk-gaps plan](close-sdk-gaps.md): the signer, the input hash and the pending record now come from `@buildanagent/agent-safety`, the cost projection from the gateway, and Round E feeds B10, B14 and B15. Revised on 2026-11-19 from the voice (U20) and fine-tuning (U21) research, whose proposed changes the owner approved that day (owner decision 2026-11-19): §1 gains two non-goals, audio and realtime sessions and model training, and §4.5 adds B21 and B22 for the price catalog. Revised on 2026-11-19 after B11: §4.3 adds B11b (turn-level retries) and B11c (raw provider events), two follow-ups that B11's outcome left without an owner. Revised on 2026-11-20 by B11c: §3.2 and §3.3 record the `raw` event and `includeRaw`, which stay under `specificationVersion: "v1"` (owner decision 2026-11-19). Revised on 2026-11-19 from the book's Chapter 3: §4.6 adds B23, an app-data field on `ToolContext` for trusted data such as the signed-in user, which the owner accepted that day ("yes, i accept these"). Revised on 2026-11-22 by B23: §3.3 records `ToolContext<A>`, its `app` field and `ToolDefinition`'s third type parameter.
 - **Date:** 2026-11-18
 - **Asked for by:** the project owner (2026-11-18), through the [implementation plans](implementation-plans.md#2-what-each-plan-contains)
 - **Builds on:** the [agent-SDK guide][g] (G1b), its [reference architecture][g11] and its [twelve open decisions][g12], plus the six seams that the [harness guide §1][hg1] needs from the SDK
@@ -360,12 +360,13 @@ interface ToolDefinition<I, S> {
   formatError?(e: ToolFailure): ModelContent[];       // overrides the default "do not substitute a mock" text
   redactErrors?: boolean;                             // default false: replace a thrown error's message with a fixed line
   effect?: { kind: "write"; businessKey?(input: I): string };  // revision (ADR 0043, SG3; B10): absent means read-only for the crash rule
-  execute(input: I, ctx: ToolContext): Promise<ToolResult<S>>;
+  execute(input: I, ctx: ToolContext<A>): Promise<ToolResult<S>>;  // revision (B23): ToolDefinition<I, S, A = unknown>
 }
-interface ToolContext {
+interface ToolContext<A = unknown> {
   runId: string; callId: string; signal: AbortSignal;  // signal also fires when a sibling fails
   depth: number; maxDepth: number;                      // D11
   clock: Clock; update(details: unknown): void;         // emits tool_call_update
+  app: A;                                               // revision (B23): RunOptions.app, never in a request, event or saved Context
 }
 interface ToolResult<S> {
   content: ModelContent[]; details?: unknown; structured?: S;
@@ -373,15 +374,16 @@ interface ToolResult<S> {
   pause?: { kind: "clarification"; question: string }; // Revision: the clarification pause starts in a tool
   outcome?: WriteOutcome;                              // revision (ADR 0043, SG3; B10): typed by agent-safety (E1)
 }
-declare function defineTool<I, S>(definition: ToolDefinition<I, S>): ToolDefinition<I, S>;
+declare function defineTool<I, S, A = unknown>(definition: ToolDefinition<I, S, A>): ToolDefinition<I, S, A>;  // revision (B23): A
 declare function outputTool<S>(options: { name: string; schema: StandardSchemaV1<S> & StandardJSONSchemaV1 }): ToolDefinition<S, S>;
 // A run whose only tool is an outputTool ends "done" after one valid call; a schema failure costs one model call of maxSteps.
 declare function clarificationTool(options?: { name?: string }): ToolDefinition<{ question: string }, never>;
 
 // Loop (guide §3; SDK decisions 6–8; D9, D10)
-interface RunOptions<S = unknown> {
+interface RunOptions<S = unknown, A = unknown> {   // revision (B23): A is the tools' app type
   model: Model;                        // from createModel(); a string is a type error
-  tools?: ToolDefinition<any, any>[];
+  tools?: ToolDefinition<any, any, A>[];
+  app?: A;                             // revision (B23): the tools read it as ctx.app; never in a request, event or saved Context
   output?: ToolDefinition<S, S>;       // from outputTool(); its structured result becomes result.output
   interceptors?: Interceptors;
   observers?: Observer[];
@@ -396,10 +398,13 @@ interface RunOptions<S = unknown> {
   clock?: Clock; idGenerator?: () => string; random?: () => number;  // stable, public
   includeRaw?: boolean;                // raw provider events, opt-in; revision (B11c): the run's alone decides, so CallOptions omits it
 }
-declare function run<S>(options: RunOptions<S> & { system: string; input: string | ContentBlock[]; history?: Message[] }): Run<S>;
+// Revision (B23): AppFor<T> asks for an app that has every app type the tools in T declare, and nothing when none declares one.
+declare function run<S, const T extends readonly ToolDefinition<any, any, any>[]>(
+  options: RunOptions<S> & { tools?: T; system: string; input: string | ContentBlock[]; history?: Message[] } & AppFor<T>): Run<S>;
 // Revision (R1): Context moved here from the gateway. It is plain JSON, so a caller may build it from its own store.
 interface Context { system: string; messages: Message[]; pending?: SignedPendingRequest[] }
-declare function continueRun<S>(context: Context, options: RunOptions<S> & { resolutions?: Resolution[] }): Run<S>;
+declare function continueRun<S, const T extends readonly ToolDefinition<any, any, any>[]>(
+  context: Context, options: RunOptions<S> & { tools?: T; resolutions?: Resolution[] } & AppFor<T>): Run<S>;  // revision (B23): the same app rule
 // A call with a verified "allow" resolution runs without calling beforeToolCall; the host re-checks policy before resolving.
 // A context whose last message is an errored assistant message drops it and re-issues the call.
 declare function runOrThrow<S>(run: Run<S>): Promise<DoneResult<S>>;   // throws RunStoppedError (D10)
@@ -685,7 +690,7 @@ Chapter 3 of the book teaches that a tool reads the signed-in user from trusted 
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B23](../todos/ready/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
+| [B23](../todos/done/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
 
 ## 5. Test strategy
 

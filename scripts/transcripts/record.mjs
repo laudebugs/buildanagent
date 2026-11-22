@@ -101,6 +101,10 @@ if (out) {
     atCaller(run) {
       return caller.run(exampleLine() ?? caller.getStore(), run);
     },
+    enterCaller() {
+      const line = exampleLine();
+      if (line !== undefined) caller.enterWith(line);
+    },
   };
   const log = console.log;
   console.log = function (...args) {

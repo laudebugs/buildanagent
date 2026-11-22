@@ -1,5 +1,13 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.22
+
+No changes in this release.
+
+## 0.1.0-alpha.21
+
+No changes in this release.
+
 ## 0.1.0-alpha.20
 
 ### Minor Changes

@@ -3,12 +3,13 @@ import { basename, extname, join } from "node:path";
 import { z } from "astro/zod";
 import { TRANSCRIPT_FORMAT } from "../../../../scripts/transcripts/events.js";
 import type { ReplayEvent } from "../components/types.js";
+import { manifestVersion, WORKSPACE_VERSION } from "./harnesses.js";
 
-// A transcript is the recorded run of one `verify/` example against its mock model: each request the example's code
+// A transcript is the recorded run of one harness example against its mock model: each request the example's code
 // sent, each response, and each check() with its result. The harness's `pnpm test` writes it to
-// `verify/<sdk>/results/transcripts/<example>.json` through `scripts/transcripts/write.mjs`, which documents the
-// format, and CI's results-drift check fails when a committed one differs from a fresh run. A listing with `replay`
-// shows its example's transcript as a replay beside the code.
+// `<harness>/results/transcripts/<example>.json`, as in `verify/<sdk>/` or `packages/sdk/`, through
+// `scripts/transcripts/write.mjs`, which documents the format, and CI's results-drift check fails when a committed
+// one differs from a fresh run. A listing with `replay` shows its example's transcript as a replay beside the code.
 
 const part = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text"), text: z.string() }),
@@ -46,8 +47,11 @@ const transcriptSchema = z.object({
   file: z.string(),
   harness: z.string(),
   pin: z.string(),
-  /** The package the harness's recorder attaches to, at the version the run used. */
-  mock: z.string().regex(/^@?[^@]+@\d/),
+  /**
+   * The package the harness's recorder attaches to, at the version the run used, or at `workspace` for one of our
+   * own packages.
+   */
+  mock: z.string().regex(/^@?[^@]+@(?:\d|workspace$)/),
   events: z.array(event).min(1),
 });
 
@@ -66,7 +70,7 @@ export const transcriptPathOf = (harness: string, path: string): string =>
  */
 export function readTranscript(
   repoRoot: string,
-  listing: { readonly path: string; readonly harness: string; readonly pin: string },
+  listing: { readonly path: string; readonly harness: string; readonly recordedPin: string },
 ): { readonly transcript: Transcript; readonly transcriptPath: string } | { readonly message: string } {
   const transcriptPath = transcriptPathOf(listing.harness, listing.path);
   const file = join(repoRoot, transcriptPath);
@@ -93,16 +97,15 @@ export function readTranscript(
     return { message: `${transcriptPath} records ${transcript.file}, not ${listing.path}` };
   }
   const [, mockName = "", mockVersion] = /^(@?[^@]+)@(.+)$/.exec(transcript.mock) ?? [];
-  const manifest = JSON.parse(readFileSync(join(repoRoot, listing.harness, "package.json"), "utf8")) as {
-    dependencies?: Record<string, string>;
-    devDependencies?: Record<string, string>;
-  };
-  const pinned = manifest.dependencies?.[mockName] ?? manifest.devDependencies?.[mockName];
-  if (transcript.pin !== listing.pin || pinned !== mockVersion) {
+  const manifest: unknown = JSON.parse(readFileSync(join(repoRoot, listing.harness, "package.json"), "utf8"));
+  const found = manifestVersion(manifest as Parameters<typeof manifestVersion>[0], mockName);
+  const pinned = found.self ? WORKSPACE_VERSION : found.version;
+  if (transcript.pin !== listing.recordedPin || pinned !== mockVersion) {
     return {
       message:
         `${transcriptPath} was recorded with ${transcript.pin} and ${transcript.mock}, but the harness pins ` +
-        `${listing.pin} and ${mockName}@${pinned ?? "nothing"}; run ${listing.harness}'s pnpm test to record it again`,
+        `${listing.recordedPin} and ${mockName}@${pinned ?? "nothing"}; run ${listing.harness}'s pnpm test to ` +
+        "record it again",
     };
   }
   return { transcript, transcriptPath };

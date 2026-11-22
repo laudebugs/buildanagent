@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T50` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T10](../done/T10-chapter-call-workflow-loop.md), [B11](../done/B11-loop-core.md) |
@@ -46,31 +46,31 @@ Each listing in `apps/manual/src/content/chapters/call-workflow-loop.md` that ou
 
 **Out of scope** (and which todo covers it)
 
-- `#pi-hello` (`verify/pi/examples/01-hello-session.ts`): the chapter shows a harness keeping a session and bringing its own tools, which our harness does only once its session runner lands ([N6](N6-session-runner.md)). The listing stays a single Pi listing until then; a later todo adds our tab, and the chapter's `switchTo` gains N6 if the owner wants that tab.
+- `#pi-hello` (`verify/pi/examples/01-hello-session.ts`): the chapter shows a harness keeping a session and bringing its own tools, which our harness does only once its session runner lands ([N6](../ready/N6-session-runner.md)). The listing stays a single Pi listing until then; a later todo adds our tab, and the chapter's `switchTo` gains N6 if the owner wants that tab.
 - The exercises keep their AI SDK and ADK files; a later todo can add versions on our SDK.
 - The other chapters' listings: each gains our tabs in its own follow-up when its `switchTo` todos are done.
 
 ## Tasks
 
-- [ ] Widen the listing rule to accept `packages/`, with a test for a listing from `packages/sdk/examples/` and one for a file in no package, and update `apps/manual/README.md` and BK9's T4 result.
-- [ ] Add a transcript recorder for our packages' examples, writing transcripts in the existing format, and commit the transcripts.
-- [ ] Write the five examples for our tabs with their regions and notes, each run offline by the package's `test`.
-- [ ] Turn each listing in the table above into a tabs block with our tab first, keeping the third-party listing, its notes and its replay unchanged; widen the tabs block if it cannot hold them.
-- [ ] Update the prose and notes around each block so they describe both tabs.
-- [ ] Check `loop-bench`'s step order against our loop transcript; rebuild and audit the figure if it changes.
-- [ ] Fact-check every changed claim into `apps/manual/fact-checks/call-workflow-loop.md` as a new block, with corrections as their own rows, and update the tally.
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
+- [x] Widen the listing rule to accept `packages/`, with a test for a listing from `packages/sdk/examples/` and one for a file in no package, and update `apps/manual/README.md` and BK9's T4 result.
+- [x] Add a transcript recorder for our packages' examples, writing transcripts in the existing format, and commit the transcripts.
+- [x] Write the five examples for our tabs with their regions and notes, each run offline by the package's `test`.
+- [x] Turn each listing in the table above into a tabs block with our tab first, keeping the third-party listing, its notes and its replay unchanged; widen the tabs block if it cannot hold them.
+- [x] Update the prose and notes around each block so they describe both tabs.
+- [x] Check `loop-bench`'s step order against our loop transcript; rebuild and audit the figure if it changes.
+- [x] Fact-check every changed claim into `apps/manual/fact-checks/call-workflow-loop.md` as a new block, with corrections as their own rows, and update the tally.
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
-- [ ] Each listing in the table above is a tabs block whose first tab comes from `packages/` and whose other tab is the listing the chapter showed before, with the same file, region, notes and replay
-- [ ] `#pi-hello` is still a single `verify/` listing
-- [ ] Each of our tabs carries notes that describe its code, and our tabs for `#one-call`, `#workflow` and `#tool-loop` replay our packages' committed transcripts
-- [ ] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
-- [ ] The fact-check log has a block of rows for the tabs, and its tally matches its rows
-- [ ] The pull request records the writing review's 5C scores, before and after
-- [ ] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
+- [x] Each listing in the table above is a tabs block whose first tab comes from `packages/` and whose other tab is the listing the chapter showed before, with the same file, region, notes and replay
+- [x] `#pi-hello` is still a single `verify/` listing
+- [x] Each of our tabs carries notes that describe its code, and our tabs for `#one-call`, `#workflow` and `#tool-loop` replay our packages' committed transcripts
+- [x] Every API identifier in the chapter's inline code resolves to a listing, a transcript or a pinned `.d.ts`, or carries a hand-checked marker citing a ✅ or ✏️ row (BK17)
+- [x] The fact-check log has a block of rows for the tabs, and its tally matches its rows
+- [x] The pull request records the writing review's 5C scores, before and after
+- [x] `check:book`, the manual's `test` and `build`, `figures:build` with no stale figure, and `figures:audit` pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root, and the results-drift check reports no drift
 
 ## Tests
 
@@ -91,9 +91,19 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- **The listing rule.** `apps/manual/src/data/harnesses.json` now names `packages/sdk`, whose main package is `@buildanagent/sdk` itself. A listing from our package shows the version the package declares, `@buildanagent/sdk@0.1.0-alpha.19` as of November 2026, and its transcripts record `@buildanagent/sdk@workspace`, because the release job's version commit may change only the version (`scripts/ci/version-pr.mjs`) and a transcript naming the number would go stale at every release. A file in a package the table does not list still fails as "in no harness". The inline-code check reads `@buildanagent/*` exports through their `source` condition, because their `types` point at a `dist/` that exists only after a build. Tests: `apps/manual/test/listings.test.ts` (a listing from `packages/sdk/examples/`, a package file in no harness, a file in no package, and a replay recorded at the version number) and `apps/manual/test/interactive.test.ts` (a tab that holds a listing with notes and a replay, which the tabs block already supported, so it needed no widening).
+- **The recorder.** `packages/sdk/test/book-examples.test.ts` runs each numbered example in `packages/sdk/examples/` in its own Node process, offline, with an allowlisted environment, and writes its transcript to `packages/sdk/results/transcripts/` through the shared `scripts/transcripts/write.mjs`. `examples/lib/transcript.ts` attaches the recorder to `ScriptedModel`. `run()` is a plain function that starts the loop after it returns, so no method wrap can lend a run its line; the helper's model marks the line when `run()` reads `model.ref`, through a new `enterCaller()` in `scripts/transcripts/record.mjs` and `events.ts`. `test/source-condition.mjs` resolves only `@buildanagent/*` through `source`, because pi-schema 1.5.2 declares a `source` condition for files its tarball leaves out. `scripts/ci/results-drift.mjs` and `scripts/ci/transcripts.test.mjs` cover `packages/*/results/transcripts/`. The recorder stayed inside this todo's scope.
+- **The examples.** Four files hold the five regions: `01-one-call.ts` (`call`), `02-workflow.ts` (`sequential`), `03-tool-loop.ts` (`tool` and `loop`, plus a `maxSteps: 1` run) and `04-scripted-model.ts` (`scripted`). The todo's table said "five examples"; the tool and the loop share a file, as they do in the AI SDK harness.
+- **The chapter.** Five listings are tabs blocks with our tab first and the earlier listing, its notes and its replay unchanged; `#pi-hello` stays a single Pi listing. Our tabs for `#one-call`, `#workflow` and `#tool-loop` replay our committed transcripts. The descriptive captions moved into the sentences that introduce each block. The prose names both tabs where they differ: `complete()` against `generateText`, a workflow in plain code against `SequentialAgent`, `maxSteps` (20 by default) against `stopWhen`, and `ScriptedModel` against the AI SDK harness's helper. A new source, `buildanagent-sdk-readme`, joins the register.
+- **The bench.** Our loop's transcript records the six steps in the AI SDK loop's order, so `loop-bench` is unchanged; the chapter says both replays follow that order.
+- **Fact-check.** Rows 106–136 in `apps/manual/fact-checks/call-workflow-loop.md`: rows 106–133 and 136 ✅, and rows 134 and 135 ✏️ corrections from the first code review; the tally reads 136 rows.
+- **Writing review** (5Cs) of the chapter and the changed copy, before → after: coherence 4 → 5, continuity 4 → 5, clarity 4 → 5, concision 4 → 5, cadence 4 → 5.

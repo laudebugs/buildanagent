@@ -30,7 +30,7 @@ Give Chapter 3, "Tools: schemas, validation, errors the model can read, and iden
 | The tables `#tool-errors` and `#trusted-context` | Their four rows | A row for our SDK |
 
 - New examples under `packages/sdk/examples/` with `// #region` and `// book:note` markers, run offline by the package's `test`, with transcripts.
-- The identity section gains a listing of a tool that declares no identity field. As of B10, `ToolContext` (`packages/sdk/src/tools/types.ts`) holds the run and call ids, the abort signal, the nesting depth, a clock and `update()`, and no app-defined data, so the tool closes over the signed-in customer as the Pi and Claude rows of `#trusted-context` do. [B23](B23-tool-context-app-data.md), which the owner accepted on 2026-11-19, adds the trusted run context of [agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next) as an app-data field on `ToolContext`. Once B23 is done, the identity tab reads the customer from the field, and the example builds the value for each request from that request's signed-in session, the rule Chapter 3 states.
+- The identity section gains a listing of a tool that declares no identity field. B10's `ToolContext` held no app-defined data, so a tool could only close over the signed-in customer, as the Pi and Claude rows of `#trusted-context` do. [B23](../done/B23-tool-context-app-data.md), done, added the trusted run context of [agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next) as an app-data field on `ToolContext`, `ctx.app`. The identity tab reads the customer from it, and the example builds the value for each request from that request's signed-in session, the rule Chapter 3 states.
 - The prose, notes and fact-check rows the tabs change.
 
 **Out of scope**
@@ -65,7 +65,7 @@ The listing-rule tests in `apps/manual/test/`, the new examples in `packages/sdk
 
 - Tabs double the code a reader can open at each step, and the prose must still read as one argument. Keep each paragraph about the step, and name an SDK only where the tabs differ.
 - Listing numbers shift, because each tabs block numbers every listing in it and ours comes first. The build computes every number and reference, so only hand-written text that counts listings needs checking.
-- Our identity tab closes over the customer because `ToolContext` carries no app-defined data as of B10. The chapter warns that a server must build such a tool per request, so the example must do that rather than close over a module-level constant. The owner settled the open question on 2026-11-19 ("yes, i accept these"): [B23](B23-tool-context-app-data.md) adds the field, so if B23 is done first, the tab reads the customer from it instead of closing over it.
+- Our identity tab reads the customer from `ctx.app`, which [B23](../done/B23-tool-context-app-data.md) added after the owner settled the open question on 2026-11-19 ("yes, i accept these"). The chapter warns that a server must build the value per request, so the example must do that rather than hold a module-level constant.
 - Our packages are alpha (a `0.1.0-alpha` release as of November 2026), so their APIs may change under the chapter. The type-check and the results-drift check catch each change, but each one then needs a chapter update.
 
 ## Definition of done
