@@ -10,10 +10,12 @@ import { ScriptedModel, type ScriptStep } from "@buildanagent/sdk/testing";
 // Attaches the transcript recorder to ScriptedModel when the test preloads it (scripts/transcripts/).
 import { lendCallerLine, recordedSteps, SCRIPTED_MODEL_ID } from "./transcript.js";
 
+// #region check
 export function check(cond: unknown, msg: string): asserts cond {
-  if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
-  console.log(`ok - ${msg}`);
+  if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`); // book:note fail
+  console.log(`ok - ${msg}`); // book:note ok
 }
+// #endregion
 
 /** A `ScriptedModel` that plays back `steps`, one per model call, behind createModel() as a run receives it. */
 export function scripted(steps: ScriptStep[]): { adapter: ScriptedModel; model: Model } {
