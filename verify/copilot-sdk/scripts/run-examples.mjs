@@ -208,6 +208,8 @@ async function runOne(t) {
       harnessDir: root,
       exampleFile: resolve(t.file),
       cwd,
+      exit: result.exit,
+      out: result.out,
       ...(live ? { mockEvents: live.events } : {}),
       ...liveRun?.transcript,
     });
