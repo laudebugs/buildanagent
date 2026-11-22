@@ -6,6 +6,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
+- [Install the alpha with `pnpm add @buildanagent/harness@alpha`](README.md#install-the-alpha-with-pnpm-add-buildanagentharnessalpha)
 - [The session log holds twenty-one entry types](README.md#the-session-log-holds-twenty-one-entry-types)
 - [A sandbox says what it stops, and the host decides what it may touch](README.md#a-sandbox-says-what-it-stops-and-the-host-decides-what-it-may-touch)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)

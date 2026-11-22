@@ -3,9 +3,9 @@
 // entry to dist/ from a temp install, with and without `--conditions=source` (ADR 0050, as corrected by ADR 0051). The
 // pack tests skip unless the installed pnpm is the `packageManager` version. Offline: `pnpm pack` and the build it
 // runs read only the workspace. The test leaves the repo as it found it: it removes each package's dist/ and licence
-// copies unless they were there before it ran. It also holds the six packages that will publish (PUBLISHED) to the
-// rules they must meet once they do, though four are still private: each ships an llms.txt, none depends on a
-// workspace package outside the six, and the packed protocol's JavaScript imports neither the gateway nor the SDK.
+// copies unless they were there before it ran. It also holds the six packages that publish (PUBLISHED) to the rules
+// they must meet: each ships an llms.txt, none depends on a workspace package outside the six, and the packed
+// protocol's JavaScript imports neither the gateway nor the SDK.
 // It ends with two install checks: a fresh project installs the gateway's and SDK's tarballs with pnpm, offline, and
 // makes one model call through the Anthropic adapter against a mock server on the loopback interface, and another
 // installs the CLI's tarball and runs its `buildanagent --help`. Every install links each third-party runtime
@@ -60,8 +60,8 @@ function dependencyOrder(dirs) {
   for (const name of byName.keys()) visit(name);
   return ordered;
 }
-// The packages that will publish (ADR 0058). The gateway and the SDK already do; the other four are still `private`
-// until todo L11, so the checks that must hold once they publish go by this list, never by the `private` field.
+// The packages that publish (ADR 0058), in RELEASE_ORDER, which release.test.mjs checks against this list. The checks
+// go by this list, never by the `private` field, so a package can't leave them by setting it.
 const PUBLISHED = [
   "@buildanagent/gateway",
   "@buildanagent/sdk",
@@ -432,9 +432,9 @@ packTest("the packed protocol's JavaScript imports neither the gateway nor the S
   run(process.execPath, ["--input-type=module", "-e", 'await import("@buildanagent/protocol");'], { cwd: alone });
 });
 
-packTest("no package that will publish depends on a workspace package that won't", () => {
-  // The rule reads names, not `private`: four of the six are private until they publish, and the check must hold
-  // from now on, so that none of them ships a dependency npm will never hold, such as the private evals package.
+packTest("no package that publishes depends on a workspace package that doesn't", () => {
+  // The rule reads names, not `private`, so that none of the six ships a dependency npm will never hold, such as the
+  // private evals package.
   for (const name of PUBLISHED) {
     const { manifest } = packed.get(name) ?? {};
     assert.ok(manifest, `${name} was not packed`);
