@@ -246,7 +246,7 @@ T51 turned two of the chapter's listings into tabs blocks, with a listing on our
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 131 |
+| ✅ confirmed | 132 |
 | ✏️ corrected | 12 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108, 116, 140 and 146) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 4 (rows 16, 31, 57 and 75) |
 | Total | 148 |
