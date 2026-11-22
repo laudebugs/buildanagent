@@ -78,10 +78,14 @@ const errorTo = (seen: readonly ServerMessage[], id: number) => {
 };
 
 describe("the params check", () => {
-  test("the harness's copy of the protocol schema is the protocol package's schema", () => {
-    const copy = readFileSync(new URL("../../src/server/protocol.schema.json", import.meta.url), "utf8");
-    const source = readFileSync(new URL("../../../protocol/schema/protocol.schema.json", import.meta.url), "utf8");
-    assert.equal(copy, source, "copy packages/protocol/schema/protocol.schema.json to packages/harness/src/server/");
+  test("the harness's copy of the protocol schema holds the protocol package's schema", () => {
+    // Compared as values, because Biome formats the copy and leaves the protocol's generated file as it is.
+    const read = (path: string): unknown => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
+    assert.deepEqual(
+      read("../../src/server/protocol.schema.json"),
+      read("../../../protocol/schema/protocol.schema.json"),
+      "copy packages/protocol/schema/protocol.schema.json to packages/harness/src/server/ and run `pnpm check --write`",
+    );
   });
 
   test("every command method in the protocol has exactly one schema branch, and the cases cover each", () => {
