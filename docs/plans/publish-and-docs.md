@@ -126,24 +126,24 @@ The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, s
 
 ### DS5. The docs redesign (L12, proposed 2026-11-22)
 
-**Proposed on 2026-11-22; the owner has not answered the questions below.** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design. Nobody on our side read the Lamina repository for it, so each Lamina practice below comes from the manager session's digest of it.
+**Proposed on 2026-11-22; the owner has not answered the questions in [L12](../todos/ongoing/L12-docs-redesign.md).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
 
 **Decision summary.** L12 is an umbrella todo with fourteen sub-todos (L12a to L12n). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The logo is out of scope: the header keeps a slot, and the owner chose logo 3, "the prompt", whose files the manager hands over.
 
-**Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes about 18 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to about 350 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
+**Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes about 18 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. The 258 links are 253 export pages, the reference index and four exports linked twice. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to roughly 350 to 390 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
 
 #### The theme reuse design
 
-`docs/design/book-tokens.json` is the one source of the book's colours (a cream and a brown page, each with a text and an accent colour, and a light and a dark code panel), its fonts (Instrument Serif for display, Literata for body, and Manual Code, which is Google Sans Code renamed, all under the OFL) and its fluid sizes. The book writes them as CSS custom properties, and its dark values sit under `prefers-color-scheme` and `[data-theme="dark"]`. Starlight's theme script sets the same `data-theme` attribute on `<html>`, so those selectors work in the docs unchanged. The design has six parts:
+`docs/design/book-tokens.json` is the one source of the book's colours: a cream and a brown page, each with a text and an accent colour, and a light and a dark code panel. It also holds the fonts, Instrument Serif for display, Literata for body and Manual Code (Google Sans Code renamed), all under the OFL. The fluid sizes are there too. The book writes them as CSS custom properties, and its dark values sit under `prefers-color-scheme` and `[data-theme="dark"]`. Starlight's theme script sets the same `data-theme` attribute on `<html>`, so those selectors work in the docs unchanged. The design has six parts:
 
-1. **Share code by package name.** `apps/manual/package.json` gains `exports` for its token, contrast and font-subset modules, its `svgkit` and a `figures.css` split out of `components.css`, and the docs app takes `@buildanagent/manual` as a `workspace:*` devDependency. The maintainability checks cover only `packages/`, so they allow it. A private `packages/design` waits for a third consumer, the website, because it would move an Apache-2.0-only file and touch every book figure.
-2. **Generate the tokens.** `tokensCss()` takes the header comment and the font base path as options. `apps/docs/scripts/generate-tokens.ts` writes `src/styles/tokens.css`, and `test/tokens.test.ts` fails when that file is stale, as the book's test does.
-3. **Map the tokens in one file.** `src/styles/starlight.css` holds only `var()` references, never a hex value, and a port of the book's style test enforces it. It maps Starlight's `--sl-color-*` roles to the tokens, sets headings in the display font at weight 400 (Instrument Serif has no bold, so a forced weight would fake one) and sets `--sl-content-width` to the book's measure. It is listed in `customCss`, unlayered, so it beats Starlight's `@layer starlight.base`. Asides take the book's four highlight colours and their edges.
+1. **Share code by package name.** `apps/manual/package.json` gains `exports` for its token, contrast and font-subset modules, its `svgkit` and a `figures.css` split out of `components.css`, and the docs app takes `@buildanagent/manual` as a `workspace:*` devDependency. The maintainability checks cover only `packages/`, so they allow it. A private `packages/design` waits for a third consumer, the website.
+2. **Generate the tokens.** `tokensCss()` takes the header comment and the font base path as options, `apps/docs/scripts/generate-tokens.ts` writes `src/styles/tokens.css`, and a test fails when that file is stale.
+3. **Map the tokens in one file.** `src/styles/starlight.css` holds only `var()` references, and a port of the book's style test rejects a hex value. It maps Starlight's `--sl-color-*` roles to the tokens, sets headings in the display font at weight 400 (Instrument Serif has no bold) and sets `--sl-content-width` to the book's measure. It sits in `customCss`, unlayered, so it beats Starlight's `@layer starlight.base`.
 4. **Colour the code.** Starlight's `expressiveCode.themes` take two themes generated from the light and dark code panels, and its style overrides read the panel tokens.
-5. **Copy the fonts.** The generator copies the six WOFF2 subsets with their `OFL.txt` and `TRADEMARKS.md` into `apps/docs/public/fonts/`, a test fails on a byte difference, and a `Head` override preloads Literata roman and Instrument Serif regular (168 KB, as the book does).
-6. **Test the extra contrast.** Starlight's roles create pairs the book never measured, such as the current sidebar item and an aside's title. `src/design/pairs.ts` names them, and `test/contrast.test.ts` recomputes each from the shipped `tokens.css` with the book's `contrastRatio`. They stay out of `book-tokens.json`, whose contrast test asserts exactly 38 pairs.
+5. **Copy the fonts.** The generator copies the six WOFF2 subsets with their `OFL.txt` and `TRADEMARKS.md` into `apps/docs/public/fonts/`, a test fails on a byte difference, and a `Head` override preloads Literata roman and Instrument Serif regular (168 KB).
+6. **Test the extra contrast.** Starlight's roles create pairs the book never measured, such as the current sidebar item. `src/design/pairs.ts` names them and `test/contrast.test.ts` recomputes each from the shipped `tokens.css`. They stay out of `book-tokens.json`, whose test asserts exactly 38 pairs.
 
-The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. It follows the system until a reader chooses, and the choice cannot carry between the book and the docs, which are different origins.
+The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader's choice cannot carry between the book and the docs, which are different origins.
 
 #### The feature table
 
@@ -151,56 +151,25 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. It follow
 | --- | --- | --- | --- |
 | Navigation | An explicit sidebar, previous and next links, a mobile menu and a table of contents | `starlight-sidebar-topics` with "SDK & gateway", "Harness", "Agent safety" and "API reference", so a page carries only its topic's links; the sidebar tests rewritten | Adopt topics |
 | Page anatomy | Title, description, table of contents | A `PageTitle` override with a package badge, "Copy as Markdown" and a version tag | Override `PageTitle` only |
-| Code tabs | `<Tabs syncKey>` in MDX only | MDX pages that the content tests read correctly (`pages.ts` already lists `.mdx` files); pnpm, npm and yarn tabs | MDX only where needed; no tabs plugin, because `syncKey` is native |
-| Callouts | `:::note`, `:::tip`, `:::caution` and `:::danger` | Token styling and a rule of at most two per page | Adopt |
-| API reference | Pages from `starlight-typedoc` | A topic per package, a module index that leads with the README's summary, no edit link on generated pages | Topics plus a style pass; defer `@since` per export until the first stable release |
-| Search | Pagefind, built in | Token styling; lower `data-pagefind-weight` on generated pages | Keep Pagefind |
-| Copy buttons | Expressive Code adds them to every block | Restyling | Adopt |
+| Code tabs | `<Tabs syncKey>` in MDX only | MDX where needed, with install tabs | No tabs plugin; `syncKey` is native |
+| Callouts | `:::note`, `:::tip`, `:::caution` and `:::danger` | Token styling, at most two per page | Adopt |
+| API reference | Pages from `starlight-typedoc` | A topic per package and a module index that leads with the README's summary | Topics plus a style pass; defer `@since` until the first stable release |
+| Search | Pagefind | Token styling; lower `data-pagefind-weight` on generated pages | Keep Pagefind |
+| Copy buttons | Expressive Code | Restyling | Adopt |
 | Versioning | None | A header tag, the "unreleased" banner and an `@alpha` install-line test (next section) | Adopt all three |
-| Header logo slot | The `logo` option or a `SiteTitle` override | A `SiteTitle` override that holds an inline SVG in a 64-unit box (the frame and chevron in `currentColor`, the caret in the accent) and a `favicon.svg` that sets its own colours with `prefers-color-scheme` | Logo 3, from the manager's files; check the favicon at 16 px |
-| Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails the build without alt text | Nine figures, in order of the sub-todos |
-| Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test that fails on a page without a twin | Adopt |
+| Header logo slot | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with an inline SVG and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
+| Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails without alt text | Nine figures |
+| Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test | Adopt |
 | Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopt in an Opus todo, once the owner agrees |
 | In-browser edit and run | None | A large bundle, a worker and CSP exceptions | Reject for now |
 
 #### The versioning design
 
-DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first stable release, and from then on `main` deploys `next.docs.buildanagent.fyi`. `docs-deploy.yml` builds `main` once and deploys that one build to either host, so the build cannot know which host it will serve. The "Unreleased docs for `main`" banner is therefore a small script that shows it when `location.hostname` begins with `next.`, not a build flag. Without JavaScript the `next.` site shows no banner, but it already sends `X-Robots-Tag: noindex` from `site-stage-dist.mjs`. The header's version tag is read at build time from the shared package version. A test fails when an install line omits `@alpha`. A "Docs for main" link stands in for a switcher, which waits until old releases are archived.
+DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first stable release, and from then on `main` deploys `next.docs.buildanagent.fyi`. `docs-deploy.yml` builds `main` once and deploys that one build to either host, so the build cannot know which host it will serve. The "Unreleased docs for `main`" banner is therefore a small script that shows it when `location.hostname` begins with `next.`, not a build flag. Without JavaScript the `next.` site shows no banner, so human readers get no warning; search engines are still kept out, because `site-stage-dist.mjs` already sends `X-Robots-Tag: noindex`. The header's version tag is read at build time from the shared package version. A test fails when an install line omits `@alpha`. A "Docs for main" link stands in for a switcher, which waits until old releases are archived.
 
-#### The sub-todos
+#### The sub-todos and the owner's questions
 
-Each row becomes a todo file, made from the template when someone starts it. Order: L12n and L12a first, then L12b, L12c and L12d in parallel, then L12e and L12f, then L12g to L12i in sequence with L12j and L12k beside them, and L12l and L12m last.
-
-| Todo | What it delivers | Depends on | Size |
-| --- | --- | --- | --- |
-| L12a | The manual's `exports`, the docs' generated tokens, fonts, Starlight mapping, code themes and the contrast, stale, font and no-hex tests | This plan | M |
-| L12b | The logo slot and favicon, theme select, footer and asides, MDX handling in the content tests and install tabs, the README's overrides table | L12a | M |
-| L12c | The sidebar topics plugin and the rewritten sidebar tests, with page size measured | L12a | S to M |
-| L12d | The figure pipeline and figures 1 and 2 | L12a | M |
-| L12e | The version tag, the `next.` banner, the `@alpha` test and the "Docs for main" link | L12b | S |
-| L12f | The API reference for the protocol, harness, CLI and agent-safety, measured for build time, size and search | L12c | S to M |
-| L12g | The protocol and CLI pages, their examples and figure 9 | L12d, L12f | M |
-| L12h | Harness pages, part 1, and figure 7 | L12g | M |
-| L12i | Harness pages, part 2, and figure 8 | L12h | M |
-| L12j | The agent-safety pages and examples | L12f | M |
-| L12k | `file=` fences on the existing pages, a gateway page and figures 3 to 6 | L12d | M |
-| L12l | Markdown twins, `llms.txt`, `llms-full.txt` and "Copy as Markdown" | L12b | M |
-| L12m | The CSP `_headers` file and its test | L12b, L12l | S to M |
-| L12n | The docs-writing.md rules for diagrams, callouts and tabs | None | S |
-
-[L12](../todos/ongoing/L12-docs-redesign.md) holds the models, the acceptance criteria and the risks.
-
-#### Questions for the owner
-
-1. Does the logo slot show the mark and the wordmark "buildanagent docs", or the mark alone, and is the favicon the same mark?
-2. Keep Pagefind, and index the generated API pages?
-3. Redesign the home page (a hero with the package map and three entry paths) in L12, or later?
-4. A "Docs for main" link and banner now, and a version switcher only once old releases are archived?
-5. Add Book, Docs and Site links to the header of all three sites, which touches the book and the website?
-6. Draw diagrams in the book's flat panel on grid paper, or on plain backgrounds?
-7. Follow the system's light or dark setting, as the book does?
-8. Set body text in Literata, as the book does, or in a sans-serif for reference density?
-9. Publish a `context7.json`, and is the strict CSP (L12m) wanted now?
+The fourteen sub-todos, with their dependencies, sizes and models, are in the table in [L12](../todos/ongoing/L12-docs-redesign.md). The nine owner questions, with the defaults the sub-todos assume, are in [L12](../todos/ongoing/L12-docs-redesign.md#owner-questions).
 
 ## 3. What the owner sets up
 

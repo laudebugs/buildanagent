@@ -13,10 +13,12 @@
 
 Redesign the docs site at `docs.buildanagent.fyi` so it looks like the book at `manual.buildanagent.fyi` and works like a modern reference site: navigation, page anatomy, code tabs, callouts, an API reference layout, search, copy buttons and versioning. Add flat SVG diagrams drawn by scripts, tested code examples where they help, and pages for the protocol, harness and CLI packages. The owner asked for it on 2026-11-22.
 
+The owner's part: answer the nine questions under Owner questions. The sub-todos start on the bracketed defaults for questions 1 to 8 and 9a; only question 9b holds anything back (L12m).
+
 ## Context
 
-- The owner's request, relayed by the manager session on 2026-11-22: study the Lamina PDF docs site's features, match the book's theme from `docs/design/book-tokens.json` through a generated tokens file, include diagrams and tested examples, keep the docs checks passing, add harness-package pages, and leave a header slot for a logo the owner has not chosen.
-- The study's report (2026-11-22, a read-only pass over this repository at `6a6a690c`), whose findings this todo and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) record. Its measurements come from the worktree; its Lamina PDF comparison rests on the manager session's digest, not on a read of that repository.
+- The owner's request, relayed by the manager session on 2026-11-22: study the Lamina PDF docs site's features, match the book's theme from `docs/design/book-tokens.json` through a generated tokens file, include diagrams and tested examples, keep the docs checks passing, add harness-package pages, and leave a header slot for the logo files the manager will hand over (the owner has since chosen logo 3; see Out of scope).
+- The study (2026-11-22) was a read-only pass over this repository at `6a6a690c`; this todo and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) record its findings. Its measurements come from the worktree.
 - [`apps/docs/README.md`](../../../apps/docs/README.md) and [ADR 0048](../../decisions/0048-docs-on-astro-starlight.md): the docs app today.
 - [`apps/manual/README.md`](../../../apps/manual/README.md): how the book generates its tokens, self-hosts its fonts and draws its figures.
 - [docs-writing.md](../../guidelines/docs-writing.md) and [examples.md](../../guidelines/examples.md): the rules the pages and examples follow.
@@ -25,20 +27,20 @@ Redesign the docs site at `docs.buildanagent.fyi` so it looks like the book at `
 
 L12 is the umbrella for the redesign. It stays `ongoing`, no pull request closes it, and it moves to `done/` when L12a to L12n are done. Each sub-todo gets its own file, made from [TEMPLATE.md](../TEMPLATE.md) when someone starts it, so this change creates none.
 
-**In scope**
+**In scope** (the sub-todo table under Tasks says who delivers each part)
 
-- **Theme.** `apps/docs` reuses the book's tokens: a generated `tokens.css`, a mapping onto Starlight's `--sl-*` properties, two Expressive Code themes made from the code panels' colours, the book's self-hosted fonts and a contrast test for the pairs Starlight adds (L12a).
-- **Chrome and navigation.** A logo slot and favicon, restyled theme select, footer and asides, MDX support for tabs, install tabs, and a sidebar split into topics so a page carries only its topic's links (L12b, L12c).
-- **Diagrams.** A figure pipeline built on the book's `svgkit`, and nine figures: `package-map`, `run-loop`, `stream-and-transcript`, `stop-reasons`, `approval-pause`, `gateway-adapters`, `session-log`, `sandbox-egress` and `protocol-clients` (L12d, and figures 3 to 9 inside L12g, L12h, L12i and L12k).
-- **Versioning.** A version tag in the header, an "Unreleased docs for `main`" banner on `next.docs.buildanagent.fyi`, an `@alpha` install-line test and a "Docs for main" link (L12e). [DS4](../../plans/publish-and-docs.md#ds4-the-docs-follow-main-until-010-then-releases-accepted) is unchanged.
-- **Content.** A generated API reference for the protocol, harness, CLI and agent-safety packages, pages for each of the four, `file=` fences on the existing pages, a gateway page and new tested examples (L12f to L12k).
-- **Machine readers.** Markdown twins of every page, `llms.txt` and `llms-full.txt`, "Copy as Markdown" (L12l) and a strict Content Security Policy (L12m).
+- **Theme.** The book's tokens, fonts and code colours, reused in `apps/docs` (L12a; the design is in DS5).
+- **Chrome and navigation.** A logo slot, favicon, restyled theme select, footer and asides, MDX support for tabs, and a sidebar split into topics (L12b, L12c).
+- **Diagrams.** A figure pipeline on the book's `svgkit` and nine figures: `package-map`, `run-loop`, `stream-and-transcript`, `stop-reasons`, `approval-pause`, `gateway-adapters`, `session-log`, `sandbox-egress` and `protocol-clients` (L12d, then figures 3 to 9 inside L12g, L12h, L12i and L12k).
+- **Versioning.** A version tag, an "Unreleased docs for `main`" banner on `next.docs.buildanagent.fyi`, an `@alpha` install-line test and a "Docs for main" link (L12e). [DS4](../../plans/publish-and-docs.md#ds4-the-docs-follow-main-until-010-then-releases-accepted) is unchanged.
+- **Content.** A generated API reference and pages for the protocol, harness, CLI and agent-safety packages, `file=` fences on the existing pages, a gateway page and new tested examples (L12f to L12k).
+- **Machine readers.** Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if the owner answers yes to question 9a, a `context7.json` (L12l, which owns it), and a strict Content Security Policy (L12m).
 - **Rules.** A diagrams, callouts and tabs section in [docs-writing.md](../../guidelines/docs-writing.md) (L12n).
 
 **Out of scope**
 
 - **The logo files.** The owner chose logo 3, "the prompt": a rounded-square outline (50 by 50 in a 64-unit box, stroke 5, corner radius 11) that holds a chevron `>` in the text colour and a short caret in the accent. The accent is `#B04E29` on the light theme and `#E8A27C` on the dark one, and the text colour is `#2A1E16` and `#F4EADC`. The manager hands over the final SVG files. L12b builds the slot: the header takes an inline SVG, and the same mark is the favicon, which a test or a headless render checks at 16 px.
-- **The `apps/site` landing page.** A separate todo redesigns it, and it is the third consumer that would justify a shared `packages/design`.
+- **The `apps/site` landing page.** A separate todo.
 - **`.github/workflows/`.** Sessions never edit it. L12m's `_headers` file is not a workflow: `site-stage-dist.mjs` already deploys main's `apps/docs/public/_headers`.
 
 ## Tasks
@@ -47,7 +49,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 
 - [x] Study the current app, the book's design pipeline and the Lamina PDF practices, and record the plan in [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22).
 - [x] Split this todo into the sub-todos below.
-- [ ] Get the owner's answers to the nine questions (below), then start the sub-todos in the order given.
+- [ ] Get the owner's answers to the nine questions under Owner questions.
 
 | Todo | Delivers | Depends on | Size | Model |
 | --- | --- | --- | --- | --- |
@@ -62,11 +64,11 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12i | Harness pages, part 2 (permissions, sandbox, server, extensions) and figure 8 | L12h | M | Sonnet (Opus for any run of the sandbox and credentials example) |
 | L12j | The agent-safety pages and examples | L12f | M | Sonnet |
 | L12k | `file=` fences on the existing pages, the gateway page and figures 3 to 6 | L12d | M | Sonnet |
-| L12l | Markdown twins, `llms.txt`, `llms-full.txt` and "Copy as Markdown" | L12b | M | Sonnet |
+| L12l | Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if question 9a is yes, `context7.json` | L12b | M | Sonnet |
 | L12m | The CSP `_headers` file with script hashes, and its test | L12b, L12l | S to M | Opus (security) |
 | L12n | The docs-writing.md rules for diagrams, callouts and tabs, in a pull request of its own | None | S | Sonnet |
 
-**Order.** L12n and L12a first. Then L12b, L12c and L12d in parallel. Then L12e and L12f. Then L12g, L12h and L12i in sequence, with L12j and L12k beside them. L12l and L12m last.
+**Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e and L12f. L12g, L12h and L12i run in sequence, with L12j and L12k beside them. L12l and L12m go last.
 
 ## Acceptance criteria
 
@@ -75,9 +77,9 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 - [ ] `pnpm --filter @buildanagent/docs test` and `pnpm check:api-docs` pass, with the tests covering all six packages.
 - [ ] `apps/docs/src/styles/tokens.css` is generated from `docs/design/book-tokens.json`, and a test fails when it is stale.
 - [ ] `apps/docs/src/styles/starlight.css` holds no hex colour, and a test fails on one.
-- [ ] A contrast test recomputes every extra pair Starlight's roles create, from the shipped `tokens.css`, at 4.5:1 for text and 3:1 for other parts. The manual's test still asserts exactly 38 pairs, so these pairs stay out of `book-tokens.json`.
+- [ ] A contrast test recomputes every extra pair Starlight's roles create, from the shipped `tokens.css`, at 4.5:1 for text and 3:1 for other parts. These pairs stay out of `book-tokens.json`, whose manual test asserts exactly 38.
 - [ ] The font files in `apps/docs/public/fonts/` are byte-identical with the book's, and a test fails when one differs.
-- [ ] After L12c, no built page exceeds 200 KB of HTML (today `start/install/` is 103 KB with 258 reference links). L12c may revise the budget with its measurement, and L12f re-measures it with all six packages.
+- [ ] After L12c, no built page exceeds 200 KB of HTML (today `start/install/` is 103 KB). L12c may revise the budget with its measurement, and L12f re-measures it.
 - [ ] Every page has a Markdown twin at `/<page>.md`, and a test fails on a page without one.
 - [ ] Every install line names `@alpha`, a test checks it, and the header shows the shared version.
 - [ ] The header holds the logo slot, and the favicon reads at 16 px.
@@ -86,10 +88,10 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 
 ## Tests
 
-- **Docs app.** New files under `apps/docs/test/`: `tokens.test.ts` (stale file), `fonts.test.ts` (byte identity), `contrast.test.ts` (extra pairs), a port of the manual's `styles.test.ts` (no hex), `figures.test.ts` (stale SVGs and allowed elements), a version and install-line test, a Markdown-twin test and, in L12m, a hash test. The existing four files change for MDX, topics and the new packages.
-- **Packages.** New examples carry their own tests and, where a package's `knip` config needs it, an `entry`. A changed example commits its transcript.
+- **Docs app.** New files under `apps/docs/test/`: tokens (stale file), fonts (byte identity), contrast (extra pairs), no-hex, figures (stale SVGs), version and install line, Markdown twins and, in L12m, hashes. The four existing files change for MDX, topics and the new packages.
+- **Packages.** New examples carry their own tests, and a changed example commits its transcript.
 - **Checks.** `pnpm check`, `pnpm typecheck`, `pnpm test` and the four maintainability checks pass in every sub-todo's pull request.
-- **Browser checks.** The favicon at 16 px and the banner on a `next.` hostname are checked in a headless Chrome render, which CI does not run today.
+- **Browser checks.** A headless Chrome render checks the favicon at 16 px and the banner on a `next.` hostname; CI does not run one today.
 
 ## Docs to update
 
@@ -103,13 +105,13 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 
 **Risks**
 
-- **Page weight is the main risk.** Each page embeds the whole sidebar. At 103 KB for `start/install/` and 258 reference links, a link costs about 0.4 KB. With the four packages the reference holds 968 exports (253 today), so a page would carry about 980 links, roughly 350 to 390 KB, and `dist/` would grow from 32 MB to roughly 300 MB across about 1,000 pages. L12c (topics) therefore lands before L12f (the new reference).
-- **Build and test time** is about 18 s and 44 s today (measured 2026-11-22); the study estimates 1 minute and 2 minutes with six packages.
+- **Page weight is the main risk.** Each page embeds the whole sidebar, so L12c (topics) must land before L12f (the new reference). [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) gives the measurements.
+- **Build and test time.** Today the build takes about 18 s and the tests 44 s (measured 2026-11-22). The study estimates 1 minute and 2 minutes with six packages.
 - **Search.** The Pagefind index grows from 1.9 MB to an estimated 6 to 7 MB, loaded in chunks.
-- **Starlight internals.** The `SiteTitle`, `PageTitle`, `Head`, `Footer` and `ThemeSelect` overrides and the `--sl-*` mapping depend on Starlight's internals. Pin exactly, move one minor version per pull request and keep the overrides table.
+- **Starlight internals.** The component overrides and the `--sl-*` mapping depend on them. Pin exactly, move one minor version per pull request and keep the overrides table.
 - **TypeScript 6.0.3** is pinned for TypeDoc, so every manual module the docs import must compile under TypeScript 6 and 7.
-- **The docs checks** count paragraphs and next links, so MDX, asides and figure directives need small changes to the content tests and `pages.ts`, which already lists `.mdx` files but whose paragraph rules read only Markdown.
-- **Coupling.** A change to a book token or a `fig-*` rule makes the docs stale and their tests fail. That is intended, and both READMEs say so.
+- **The docs checks.** They count paragraphs and next links. `pages.ts` already lists `.mdx` files, but its paragraph rules read only Markdown, so MDX, asides and figure directives need small changes to the content tests.
+- **Coupling.** A change to a book token or a `fig-*` rule fails the docs' tests. That is intended, and both READMEs say so.
 - **CSP hashes** change with each Starlight upgrade, and L12m's test catches it.
 
 **Unverified items from the study**
@@ -117,22 +119,23 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 - Whether Astro 7 has its own CSP option; L12m checks it first.
 - The page size, build time and search index with six packages: all are estimates until L12c and L12f measure them.
 - Whether the favicon is legible at 16 px (the stroke is about 1.25 px there).
-- How the digest's practices work in Lamina itself: see below.
 
-**The Lamina PDF comparison.** Nobody on our side read the Lamina PDF repository for this todo: access was not granted in this session. Every Lamina practice below comes from the manager session's digest ("digest from the manager's read"), which lists ten items, and the study judged each against our repository. The earlier plan work read the repository at `7b4b37b` (see the fact-check log) but not its docs site for these practices.
+**The Lamina PDF comparison.** Every practice below comes from the manager session's digest ("digest from the manager's read"), which lists ten items, and the study judged each against our repository. No one on our side read that repository's docs site. The earlier plan work read the repository at `7b4b37b` (see the fact-check log) but not its docs site.
 
 | Digest item | Decision | Reason |
 | --- | --- | --- |
-| An explicit sidebar list, and `redirects` for moved pages | Adopt | We already keep the explicit list; `redirects` cover pages L12 moves. |
-| A Code and Output `<Example>` component | Adapt later | Take the output from `results/transcripts` once pages need it. |
+| An explicit sidebar list, and `redirects` for moved pages | Adopt | We keep the explicit list; `redirects` cover pages L12 moves. |
+| A Code and Output `<Example>` component | Adapt later | Use `results/transcripts` once pages need it. |
 | In-browser edit and run | Reject for now | It needs a large bundle, a worker and CSP exceptions. |
-| A build-time flag for unreleased docs | Adapt to runtime | `docs-deploy.yml` builds `main` once and deploys that build to both hosts, so a script that checks the hostname shows the banner. |
+| A build-time flag for unreleased docs | Adapt to runtime | `docs-deploy.yml` deploys one build to both hosts, so a script that checks the hostname shows the banner. |
 | Markdown twins, `llms.txt` and "Copy as Markdown" | Adopt | Agents and readers get the text without HTML; a test fails on a page without a twin. |
 | `@since` per export | Defer | Every export is 0.1.0-alpha until the first stable release. |
-| Two figure layouts, wide and narrow, and forced-colour rules | Adapt | Take the forced-colour rules; the book scrolls one stage sideways instead of keeping two layouts. |
-| A strict CSP | Adapt | An Opus todo (L12m) with hashes, a rebuild-and-compare test and a check of Astro's own option. |
+| Two figure layouts and forced-colour rules | Adapt | Take the forced-colour rules; the book scrolls one stage sideways. |
+| A strict CSP | Adapt | L12m: hashes, a rebuild-and-compare test and a check of Astro's own option. |
 | An overrides table and an upgrade policy | Adopt | They go in `apps/docs/README.md` (L12b). |
-| Late features: one-page view, PDF, og:image, JSON-LD, sitemap `lastmod`, three-browser end-to-end tests with axe, "Pagefind disabled until loaded", and a diagram line in the guideline | Defer the first six; reject "Pagefind disabled until loaded"; adopt the guideline line | CI needs a browser step and `.github/` is out of scope; Starlight already handles Pagefind loading; L12n adds the guideline line. |
+| One-page view, PDF, og:image, JSON-LD, sitemap `lastmod`, three-browser end-to-end tests with axe | Defer | CI needs a browser step, and `.github/` is out of scope. |
+| "Pagefind disabled until loaded" | Reject | Starlight already handles Pagefind loading. |
+| A diagram line in the guideline | Adopt | L12n adds it. |
 
 ## Owner questions
 
@@ -146,7 +149,8 @@ The sub-todos assume the answers in brackets until the owner replies.
 6. **Diagram style.** The book's flat panel on grid paper, or plain backgrounds? [The book's panel.]
 7. **Dark mode.** Follow the system, as the book does? [Yes.]
 8. **Body font.** Literata, matching the book, or a sans-serif for reference density? [Literata.]
-9. **Machine readers.** Publish a `context7.json`, and is the strict CSP (L12m) wanted now? [Neither until answered; L12m waits.]
+9a. **Context7.** Publish a `context7.json`? [No. If yes, L12l adds it.]
+9b. **Strict CSP.** Is the strict CSP wanted now? [No; L12m waits for the answer.]
 
 ## Definition of done
 
