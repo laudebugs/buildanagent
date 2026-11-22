@@ -1,10 +1,7 @@
 /**
- * Splits a byte stream into JSON messages, one per line, on `
-` only. It never uses Node's `readline`, which also ends
- * a line at a lone `
-`. Some line readers also end one at U+2028 or U+2029, characters that may sit inside a JSON
- * string, so only `
-` is safe.
+ * Splits a byte stream into JSON messages, one per line, on `\n` only. It never uses Node's `readline`, which also ends
+ * a line at a lone `\r`. Some line readers also end one at U+2028 or U+2029, characters that may sit inside a JSON
+ * string, so only `\n` is safe.
  */
 import { ProtocolError } from "./errors.js";
 import { ErrorCodes } from "./jsonrpc.js";
