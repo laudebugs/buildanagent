@@ -124,6 +124,61 @@ The switch needs no manual step. A tag that `release.yml` pushes with `GITHUB_TO
 
 The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, such as `v0.1.0-alpha.0`, starts no production docs deploy: `release.yml`'s `docs` job skips prereleases. L8 treats only a stable tag, `v<x.y.z>`, as "a release tag exists", so `main` keeps deploying `docs.buildanagent.fyi` until the first stable release. `docs-deploy.yml`'s `tag` input must match that pattern, exist and be reachable from `main`, and the release build checks out the tag's commit SHA, not its name. L8 adds no visible "unreleased" banner to `next.docs.buildanagent.fyi`, which needs a change to the docs app, so that site is only marked `noindex`.
 
+### DS5. The docs redesign (L12, proposed 2026-11-22)
+
+**Proposed on 2026-11-22; the owner answered questions 1, 3 and 5 the same day, and only question 9b is open ([L12](../todos/ongoing/L12-docs-redesign.md#owner-questions)).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
+
+**Decision summary.** L12 is an umbrella todo with sixteen sub-todos (L12a to L12p). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The owner chose logo 3, "the prompt", whose files the manager hands over: the header shows the mark plus the wordmark "Build An Agent docs". L12o redesigns the docs home, and L12p adds one shared header source that keeps the links and marks of the book, the docs and the site in step.
+
+**Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes about 18 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. The 258 links are 253 export pages, the reference index and four exports linked twice. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to roughly 350 to 390 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
+
+#### The theme reuse design
+
+`docs/design/book-tokens.json` is the one source of the book's colours: a cream and a brown page, each with a text and an accent colour, and a light and a dark code panel. It also holds the fonts, Instrument Serif for display, Literata for body and Manual Code (Google Sans Code renamed), all under the OFL. The fluid sizes are there too. The book writes them as CSS custom properties, and its dark values sit under `prefers-color-scheme` and `[data-theme="dark"]`. Starlight's theme script sets the same `data-theme` attribute on `<html>`, so those selectors work in the docs unchanged. The design has six parts:
+
+1. **Share code by package name.** `apps/manual/package.json` gains `exports` for its token, contrast and font-subset modules, its `svgkit` and a `figures.css` split out of `components.css`, and the docs app takes `@buildanagent/manual` as a `workspace:*` devDependency. The maintainability checks cover only `packages/`, so they allow it. A private `packages/design` waits for a third consumer, the website.
+2. **Generate the tokens.** `tokensCss()` takes the header comment and the font base path as options, `apps/docs/scripts/generate-tokens.ts` writes `src/styles/tokens.css`, and a test fails when that file is stale.
+3. **Map the tokens in one file.** `src/styles/starlight.css` holds only `var()` references, and a port of the book's style test rejects a hex value. It maps Starlight's `--sl-color-*` roles to the tokens, sets headings in the display font at weight 400 (Instrument Serif has no bold) and sets `--sl-content-width` to the book's measure. It sits in `customCss`, unlayered, so it beats Starlight's `@layer starlight.base`.
+4. **Colour the code.** Starlight's `expressiveCode.themes` take two themes generated from the light and dark code panels, and its style overrides read the panel tokens.
+5. **Copy the fonts.** The generator copies the six WOFF2 subsets with their `OFL.txt` and `TRADEMARKS.md` into `apps/docs/public/fonts/`, a test fails on a byte difference, and a `Head` override preloads Literata roman and Instrument Serif regular (168 KB).
+6. **Test the extra contrast.** Starlight's roles create pairs the book never measured, such as the current sidebar item. `src/design/pairs.ts` names them and `test/contrast.test.ts` recomputes each from the shipped `tokens.css`. They stay out of `book-tokens.json`, whose test asserts exactly 38 pairs.
+
+The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader's choice cannot carry between the book and the docs, which are different origins.
+
+#### The feature table
+
+| Feature | What Starlight gives | What we build | Recommendation |
+| --- | --- | --- | --- |
+| Navigation | An explicit sidebar, previous and next links, a mobile menu and a table of contents | `starlight-sidebar-topics` with "SDK & gateway", "Harness", "Agent safety" and "API reference", so a page carries only its topic's links; the sidebar tests rewritten | Adopt topics |
+| Page anatomy | Title, description, table of contents | A `PageTitle` override with a package badge, "Copy as Markdown" and a version tag | Override `PageTitle` only |
+| Code tabs | `<Tabs syncKey>` in MDX only | MDX where needed, with install tabs | No tabs plugin; `syncKey` is native |
+| Callouts | `:::note`, `:::tip`, `:::caution` and `:::danger` | Token styling, at most two per page | Adopt |
+| API reference | Pages from `starlight-typedoc` | A topic per package and a module index that leads with the README's summary | Topics plus a style pass; defer `@since` until the first stable release |
+| Search | Pagefind | Token styling; lower `data-pagefind-weight` on generated pages | Keep Pagefind |
+| Copy buttons | Expressive Code | Restyling | Adopt |
+| Versioning | None | A header tag, the "unreleased" banner and an `@alpha` install-line test (next section) | Adopt all three |
+| Header logo and wordmark | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with the inline mark, the wordmark "Build An Agent docs" and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
+| Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails without alt text | Nine figures |
+| Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test | Adopt |
+| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopt in an Opus todo, once the owner agrees |
+| In-browser edit and run | None | A large bundle, a worker and CSP exceptions | Reject for now |
+
+#### The versioning design
+
+DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first stable release, and from then on `main` deploys `next.docs.buildanagent.fyi`. `docs-deploy.yml` builds `main` once and deploys that one build to either host, so the build cannot know which host it will serve. The "Unreleased docs for `main`" banner is therefore a small script that shows it when `location.hostname` begins with `next.`, not a build flag. Without JavaScript the `next.` site shows no banner, so human readers get no warning; search engines are still kept out, because `site-stage-dist.mjs` already sends `X-Robots-Tag: noindex`. The header's version tag is read at build time from the shared package version. A test fails when an install line omits `@alpha`. A "Docs for main" link stands in for a switcher, which waits until old releases are archived.
+
+#### The sub-todos and the owner's questions
+
+The sixteen sub-todos, with their dependencies, sizes and models, are in the table in [L12](../todos/ongoing/L12-docs-redesign.md). The nine owner questions, with the answers and the defaults the sub-todos assume, are in [L12](../todos/ongoing/L12-docs-redesign.md#owner-questions).
+
+#### One shared header source (L12p)
+
+The owner asked for one header with links across the book, the docs and the site (Docs, Manual, Site, GitHub) and a consistent mark and wordmark per site. The three apps use different markup (Starlight overrides in the docs, Astro layouts in the book and the site), so they share data, not components: the links, each site's wordmark text and the mark's SVG.
+
+**Recommendation: a data file exported from `apps/manual`, through the same `exports` pattern as the tokens.** L12a already gives the manual `exports` and makes the docs depend on `@buildanagent/manual` with `workspace:*`. L12p adds a `./site-chrome` export (a JSON file with a shape test) and gives `apps/site` the same dependency. Each app keeps its own header markup and a test that the rendered header holds every link. Three repository facts make this the smallest option. The dependency-cruiser check runs on `packages/` only, so an app that imports another app by name breaks no rule. knip ignores `apps/*`. Nothing reaches npm, because the manual is private. A new `packages/site-chrome` would join the cruiser, knip, the TSDoc check and the changeset config to carry a file of about fifteen lines. Choose it only if a fourth consumer appears or the data needs code that the book's build should not carry. Either way the dependency points one way, from the docs and the site to the manual, so no cycle forms.
+
+Tell the owner of `apps/manual` (its `exports` and header change) and the session that builds the `apps/site` landing page (it takes the dependency and reads the links) before L12p starts. L12p runs on Sonnet, and moves to Opus only if the work touches a shared package's build.
+
 ## 3. What the owner sets up
 
 1. **npm.** Both packages exist, because the owner published their placeholders on 2026-11-19 ([PB2](#pb2-changesets-in-one-fixed-group-published-only-from-ci-accepted)). The owner added the trusted publishers on 2026-11-19, L4b's release day. The setup, for the record: a trusted publisher on each package on npmjs.com, with user `laudebugs`, repository `buildanagent`, workflow `release.yml`, environment `release`, and `npm publish` ticked under **Allowed actions**, because a configuration created after 2026-09-03 allows only `npm stage publish` unless you choose more. A new trusted publisher must complete its first publish within 2 days, or it expires ([npm docs](https://docs.npmjs.com/trusted-publishers)).
@@ -140,7 +195,7 @@ The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, s
 
 ## 4. Round L and its todos
 
-Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the protocol, harness, CLI and agent-safety. L1 to L10 are done; L8's six workflows wait for the owner to commit them ([CI plan §3g](ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22)), and L11 waits for L10, N29 and N30. The release takes two todos, so each fits one pull request: L4a makes the packages public after B4, B8 and L3, and L4b publishes 0.1.0-alpha.0 within the 2 days after the owner adds the trusted publishers.
+Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the protocol, harness, CLI and agent-safety, and L12 (proposed the same day, [DS5](#ds5-the-docs-redesign-l12-proposed-2026-11-22)) redesigns the docs. L1 to L10 are done; L8's six workflows wait for the owner to commit them ([CI plan §3g](ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22)), and L11 waits for L10, N29 and N30. The release takes two todos, so each fits one pull request: L4a makes the packages public after B4, B8 and L3, and L4b publishes 0.1.0-alpha.0 within the 2 days after the owner adds the trusted publishers.
 
 | Todo | What it delivers | Depends on | Size |
 | --- | --- | --- | --- |
@@ -156,6 +211,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L9](../todos/done/L9-publish-protocol-harness-cli-decision.md) | The decision to publish the protocol, harness, CLI and agent-safety: ADR 0058, PB4, and todos L10 and L11 | None | S |
 | [L10](../todos/done/L10-make-protocol-harness-cli-publishable.md) | Make the four packages publishable while they stay private: built `dist/`, docs checks, pack tests, the fixed group | L9 | L |
 | [L11](../todos/done/L11-bootstrap-and-release-protocol-harness-cli.md) | Drop `private`, hand the owner the new `release.yml`, and publish the four together through trusted publishing | L9, L10, N29, N30 | M |
+| [L12](../todos/ongoing/L12-docs-redesign.md) | Redesign `apps/docs` to match the book's theme, with diagrams, tested examples and the harness packages' pages | L5, L6, L8 | L |
 | [L12n](../todos/done/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
 
 B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff stay in B20; its revision moves the docs site and the first export diff here.
