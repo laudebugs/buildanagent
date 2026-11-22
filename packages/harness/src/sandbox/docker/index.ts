@@ -215,7 +215,7 @@ class DockerSandbox extends BackendSandbox {
     const created = this.client(this.runArguments(name, located.cwd, command, options.env), CREATE_TIMEOUT_MS);
     this.track(created);
     const made = await this.untilStopped(name, created, options);
-    if ("timedOut" in made) return made.timedOut;
+    if ("expired" in made) return made.expired;
     if (made.exitCode !== 0) {
       await this.removeContainer(name);
       return { exitCode: made.exitCode, stdout: "", stderr: made.stderr };
@@ -263,7 +263,7 @@ class DockerSandbox extends BackendSandbox {
     name: string,
     created: Promise<ProcessResult>,
     options: ExecOptions,
-  ): Promise<ProcessResult | { readonly timedOut: ExecResult }> {
+  ): Promise<ProcessResult | { readonly expired: ExecResult }> {
     return new Promise((resolve, reject) => {
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -283,7 +283,7 @@ class DockerSandbox extends BackendSandbox {
       if (options.timeoutMs !== undefined) {
         const note = `timed out after ${options.timeoutMs} ms\n`;
         timer = setTimeout(
-          () => finish(() => resolve({ timedOut: { exitCode: 124, stdout: "", stderr: note } }), true),
+          () => finish(() => resolve({ expired: { exitCode: 124, stdout: "", stderr: note, timedOut: true } }), true),
           options.timeoutMs,
         );
       }
