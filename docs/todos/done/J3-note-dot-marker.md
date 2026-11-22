@@ -1,6 +1,6 @@
-# J3: Replace the note marker with a numbered footnote dot after the passage
+# J3: Replace the note marker with a margin bubble and a numbered footnote dot
 
-> **History:** the owner asked for this on 2026-11-22, after seeing [J2](../done/J2-notes-colours-popover.md)'s bubble marker, which draws over the letters after a noted passage and hides them. The owner chose option 2 of the marker mockups.
+> **History:** the owner asked for this on 2026-11-22, after seeing [J2](../done/J2-notes-colours-popover.md)'s bubble marker, which draws over the letters after a noted passage and hides them. The owner first chose option 2 of the marker mockups everywhere, then changed it the same day to option 1 (a margin bubble) on a wide window and option 2 (the dot) on a narrow one.
 
 | Field | Value |
 | --- | --- |
@@ -13,7 +13,7 @@
 
 ## Goal
 
-Replace J2's bubble marker with a small numbered dot, raised like a footnote mark and placed right after the last word of a noted passage in space the line reserves, so it never covers a following character. It shows the note's number, takes the highlight's colour and opens the same popover as a click on the highlight.
+Replace J2's bubble marker, which covers the letters after a noted passage. Where the window leaves room beside the text column, a note gets a speech-bubble marker in the margin; where it does not, it gets a small numbered dot after the passage's last word, raised like a footnote mark, in space the line reserves. Both take the highlight's colour and open the same popover as a click on the highlight.
 
 ## Context
 
@@ -29,14 +29,15 @@ Replace J2's bubble marker with a small numbered dot, raised like a footnote mar
 - The dot shows the note's number in the panel's order, takes the highlight's colour, has a 44 px target (an invisible `::after` inset of -14 px), opens the popover, is keyboard-focusable and carries an `aria-label` such as "Note 1".
 - A passage that ends at a line end wraps its dot with the last word. The dot never causes sideways scroll at a 393 px width and never sits on a following character.
 - A plain highlight stays unmarked, and the dotted underline on noted passages stays.
-- Desktop and phone use the same dot; there is no margin marker.
+- A margin speech-bubble marker, about 28 px, in the highlight's colour, level with the passage's first line, where 44 px or more is free beside the text column; nothing is added to the article there. Hovering or focusing it brightens its passage, and markers that begin close together are stacked.
+- The dot is used only where no such room exists, and a resize or rotation across that width swaps one for the other with the article's markup restored.
 - Vitest tests in a DOM environment, a Playwright check at 1280 and 393 px that the dot overlaps no text and is not cut off at the right edge, and a desktop and a phone screenshot at `deviceScaleFactor` 2 in the pull request.
 - The README text, the J1 report and fact-check correction, and BK24 where the design differs.
 
 **Out of scope**
 
 - Edits to `.github/workflows`.
-- Any margin marker.
+- A sidenote layout, deferred until readers ask.
 
 ## Tasks
 
@@ -78,11 +79,10 @@ The manual's README section "A reader's notes stay in their own browser", the J1
 
 ## Outcome
 
-The bubble marker and its container are gone. `placeDots()` in `apps/manual/public/scripts/notes.js` inserts one inline `span` after the last word of each noted passage; `clearDots()` removes every dot and joins the split text nodes before each redraw.
+J2's bubble marker is replaced by a pair that depends on the room beside the text column. `hasGutter()` measures it from the first paragraph's right edge (the article's box is wider than its text), and `refit()` swaps the two when a resize or rotation crosses the width.
 
-- **Where the dot lives.** Inside the article, as an inline element, so the line reserves its room. It splits the text node at the passage's end, which leaves the joined text, the text model and the stored anchors unchanged. A dot never goes inside a link or code: it moves out past inline ancestors the passage ends in.
-- **No searchable text.** The number is generated content (`::before` with `attr(data-n)`), and the element carries `data-pagefind-ignore`, so Pagefind, selection and copy and paste skip it. A word joiner at the start of the content keeps the dot on the line of the word before it.
-- **Look.** About 16 pixels, raised `-0.5em`, the highlight's colour with a 1.5 pixel accent border (3:1 at the edge), an invisible `::after` inset of -14 pixels for a 44 pixel target, and no dot for a plain highlight.
-- **Numbering and keyboard.** The number is the note's place among the notes in the panel's order, and the panel labels each note "Note N". Tab reaches a dot, Enter or Space opens the popover, and focus comes back when it closes.
-- **Mutation observer.** The script drops its own mutation records after it changes the article, so its dots never trigger a redraw.
-- **Checks.** The Playwright run at 1280 and 393 pixels checks the dot's size, raise, target, right edge, position after the last word, no overlap with the next character, no sideways scroll and the keyboard path.
+- **Wide (44 pixels or more beside the column): a margin marker.** `layoutMarkers()` draws a 28 pixel speech-bubble button level with the passage's first line, in the highlight's colour, in a container outside the article, so nothing is added to the article. Markers that begin close together are stacked. Hovering or focusing one brightens its passage with a stronger shade (`manual-hover-*`), and Enter, Space or a click opens the popover. A redraw moves a marker instead of replacing it, so focus and hover survive.
+- **Narrow: a numbered inline dot.** `placeDots()` inserts an inline `span` after the passage's last word, in space the line reserves. It holds no text (generated content), carries `data-pagefind-ignore`, and the text model, Pagefind, copy and the stored anchors are unchanged. It goes after every inline element the passage ends in. `clearDots()` removes every dot and joins the split text nodes before each redraw. Enter opens on keydown and Space on keyup, and focus returns after the popover closes or a redraw.
+- **Colour.** `book-tokens.json` gains `highlightEdge*` (3:1 on the page, the marker and dot outline) and `highlightHover*` (4.5:1 under the text), both checked in `test/contrast.test.ts`.
+- **Mutation observer.** The script drops its own mutation records after it changes the article, and reads the chapter again when another script's records were dropped with them.
+- **Checks.** The Playwright run at 1280 and 393 pixels checks the marker's size, position and hover, the dot's size, raise, target, position and no overlap, the swap across a resize, the article's markup restored, no sideways scroll, and the keyboard path.

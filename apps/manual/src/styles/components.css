@@ -1214,7 +1214,7 @@
    Highlight API, so no element wraps the chapter's text. Each of the four colours has a plain name and a noted name,
    because the specification advises one name per highlight. A highlight's pale background stays decorative; the accent
    underline marks it, at 3:1 or more on the highlight in both modes, and a dashed underline marks one with a note.
-   Firefox 140 to 145 draws no underline, so a note also has its own dot element (.notes-dot). Highlighted text
+   Firefox 140 to 145 draws no underline, so a note also has its own marker (.notes-marker, or .notes-dot when it is narrow). Highlighted text
    takes the text colour, which keeps 4.5:1 on every highlight colour (book-tokens.json). */
 ::highlight(manual-hl-amber),
 ::highlight(manual-note-amber) {
@@ -1257,19 +1257,143 @@
   text-decoration-style: dashed;
 }
 
-/* A note's dot sits right after the last word of its passage, inline, so the line reserves its room and it never covers
-   a character. It is raised like a footnote mark and takes the highlight's colour; its number is generated content, so
-   it is not text anyone can select, copy or search. The word joiner at the start of that content keeps the dot on the
-   line of the word before it. A pale fill is only decoration, so a 1.5px accent border gives the dot its 3:1 edge
-   against the page, and the 44px target is an invisible ::after around it. */
+/* While a margin marker is hovered or focused, its passage takes a stronger shade of its own colour. Text keeps 4.5:1 on
+   every shade (book-tokens.json), and the underline turns to the text colour, which the accent would not match on it. */
+::highlight(manual-hover-amber),
+::highlight(manual-hover-green),
+::highlight(manual-hover-blue),
+::highlight(manual-hover-pink) {
+  color: var(--color-text);
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-color: var(--color-text);
+  text-decoration-thickness: 2px;
+}
+
+::highlight(manual-hover-amber) {
+  background-color: var(--color-highlight-hover);
+}
+
+::highlight(manual-hover-green) {
+  background-color: var(--color-highlight-hover-green);
+}
+
+::highlight(manual-hover-blue) {
+  background-color: var(--color-highlight-hover-blue);
+}
+
+::highlight(manual-hover-pink) {
+  background-color: var(--color-highlight-hover-pink);
+}
+
+/* A note's marker takes its highlight's colour: the edge shade (3:1 on the page, book-tokens.json) as the outline and
+   the icon, on a page-coloured fill. Where the window leaves room beside the article the marker is a speech bubble in
+   the margin; where it does not, the marker is a small numbered dot after the passage (below). */
+.notes-marker,
+.notes-dot {
+  --notes-edge: var(--color-highlight-edge);
+}
+
+.notes-dot {
+  background-color: var(--color-highlight);
+}
+
+.notes-marker:hover,
+.notes-marker:focus-visible {
+  background-color: var(--color-highlight);
+}
+
+.notes-marker[data-color="green"],
+.notes-dot[data-color="green"] {
+  --notes-edge: var(--color-highlight-edge-green);
+}
+
+.notes-dot[data-color="green"],
+.notes-marker[data-color="green"]:hover,
+.notes-marker[data-color="green"]:focus-visible {
+  background-color: var(--color-highlight-green);
+}
+
+.notes-marker[data-color="blue"],
+.notes-dot[data-color="blue"] {
+  --notes-edge: var(--color-highlight-edge-blue);
+}
+
+.notes-dot[data-color="blue"],
+.notes-marker[data-color="blue"]:hover,
+.notes-marker[data-color="blue"]:focus-visible {
+  background-color: var(--color-highlight-blue);
+}
+
+.notes-marker[data-color="pink"],
+.notes-dot[data-color="pink"] {
+  --notes-edge: var(--color-highlight-edge-pink);
+}
+
+.notes-dot[data-color="pink"],
+.notes-marker[data-color="pink"]:hover,
+.notes-marker[data-color="pink"]:focus-visible {
+  background-color: var(--color-highlight-pink);
+}
+
+/* The margin markers live in one container outside the article. It sits at the page's origin, as wide as the page,
+   with its horizontal overflow clipped and no pointer events, so a marker can never widen the page; each marker takes
+   pointer events back. Nothing is drawn over the text and nothing is added to the article. */
+.notes-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: 100%;
+  height: 0;
+  overflow-x: clip;
+  pointer-events: none;
+}
+
+.notes-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--notes-edge);
+  border-radius: 50%;
+  background-color: var(--color-background);
+  color: var(--notes-edge);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.notes-marker svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.notes-marker:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+/* Where the window leaves no room beside the article, a note's dot sits right after the last word of its passage,
+   inline, so the line reserves its room and it never covers a character. It is raised like a footnote mark; its number
+   is generated content, so it is not text anyone can select, copy or search. The word joiner at the start of that
+   content keeps the dot on the line of the word before it. A pale fill is only decoration, so the edge shade gives the
+   dot its 3:1 border against the page. Its target reaches 14px around it for a finger, and 4px for a pointer, so a drag
+   that starts beside the dot still selects text. */
 .notes-dot {
   position: relative;
   top: -0.5em;
   margin-inline: 0.15em;
   padding: 0.05em 0.4em;
-  border: 1.5px solid var(--color-accent);
+  border: 1.5px solid var(--notes-edge);
   border-radius: 999px;
-  background-color: var(--color-highlight);
   color: var(--color-text);
   font-family: system-ui, sans-serif;
   font-size: 0.65rem;
@@ -1290,19 +1414,13 @@
 .notes-dot::after {
   content: "";
   position: absolute;
-  inset: -14px;
+  inset: -4px;
 }
 
-.notes-dot[data-color="green"] {
-  background-color: var(--color-highlight-green);
-}
-
-.notes-dot[data-color="blue"] {
-  background-color: var(--color-highlight-blue);
-}
-
-.notes-dot[data-color="pink"] {
-  background-color: var(--color-highlight-pink);
+@media (pointer: coarse) {
+  .notes-dot::after {
+    inset: -14px;
+  }
 }
 
 .notes-dot:focus-visible {
@@ -1548,7 +1666,8 @@
 /* Printed, the chapter carries no notes: no highlight, marker, popover, toolbar, button or panel. */
 @media print {
   .notes-ui,
-  .notes-dot {
+  .notes-dot,
+  .notes-marker {
     display: none;
   }
 
