@@ -1104,5 +1104,42 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "anthropic-demystifying-evals",
+    "title": "Demystifying evals for AI agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent/fact-check.md"
+  },
+  {
+    "id": "anthropic-multi-agent-research-system",
+    "title": "How we built our multi-agent research system",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/multi-agent-research-system",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/evals-observability-and-release.md"
+  },
+  {
+    "id": "tau-bench",
+    "title": "τ-bench: A Benchmark for Tool-Agent-User Interaction in Real-World Domains",
+    "publisher": "Yao et al. (arXiv:2406.12045)",
+    "url": "https://arxiv.org/abs/2406.12045",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent/fact-check.md"
+  },
+  {
+    "id": "sre-workbook-canarying",
+    "title": "Canarying releases",
+    "publisher": "Google, Site Reliability Engineering Workbook",
+    "url": "https://sre.google/workbook/canarying-releases/",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent/fact-check.md"
   }
 ]
