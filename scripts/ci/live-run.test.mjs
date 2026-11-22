@@ -49,6 +49,7 @@ import {
   dateAfter,
   fenced,
   mergeReports,
+  patchProblems,
   protectionProblems,
 } from "./live-run.mjs";
 import { STUB_IDS, startStub, turnsFromTranscript } from "./live-stub.mjs";
@@ -1434,7 +1435,8 @@ test("the results commit may change only listed live transcripts and the date fi
     changeProblems({ status: "M", path: "scripts/ci/live-run.mjs" }, read({}), config, day)[0],
     /not a listed/,
   );
-  // A transcript in one provider's folder must name that provider, so one job can't pass off a run as the other's.
+  // A transcript in one provider's folder must name that provider, so it can't pass for the other provider's run.
+  // Which job wrote it is checked on that job's own patch, before any patch applies (patchProblems below).
   const other = first.provider === "anthropic" ? "openai" : "anthropic";
   const misplaced = liveText.replace(`"provider":"${first.provider}"`, `"provider":"${other}"`);
   assert.match(
@@ -1452,6 +1454,72 @@ test("the results commit may change only listed live transcripts and the date fi
   );
   const extra = read({ [DATE_FILE]: '{"lastCompared":"2026-12-01","x":1}' });
   assert.equal(changeProblems({ status: "M", path: DATE_FILE }, extra, config, day).length, 1);
+});
+
+/** A patch that adds `path` with the text `{}`, as a provider job's `git diff --cached --binary` writes one. */
+const addPatch = (path) =>
+  [
+    `diff --git a/${path} b/${path}`,
+    "new file mode 100644",
+    "index 0000000..0967ef4",
+    "--- /dev/null",
+    `+++ b/${path}`,
+    "@@ -0,0 +1 @@",
+    "+{}",
+    "",
+  ].join("\n");
+
+test("a provider job's patch may touch only that provider's listed live transcripts", () => {
+  const anthropicLive = exampleOf(SDK_TRIAGE, "anthropic").live;
+  const openaiLive = exampleOf(SDK_TRIAGE, "openai").live;
+  assert.deepEqual(patchProblems("anthropic", addPatch(anthropicLive), config), []);
+  assert.deepEqual(patchProblems("openai", addPatch(openaiLive), config), []);
+  // The OpenAI job writes a transcript into Anthropic's folder; the transcript may name anthropic, but the job can't.
+  assert.match(patchProblems("openai", addPatch(anthropicLive), config)[0], /openai job's patch touches .*anthropic/);
+  assert.match(patchProblems("anthropic", addPatch("scripts/ci/live-run.mjs"), config)[0], /not one of its live/);
+  assert.match(patchProblems(undefined, addPatch(anthropicLive), config)[0], /names no provider/);
+  // A rename's source, a quoted path and a path only git apply reports count too.
+  const rename = `diff --git a/${openaiLive} b/${openaiLive}\nrename from ${anthropicLive}\nrename to ${openaiLive}\n`;
+  assert.equal(patchProblems("openai", rename, config).length, 1);
+  assert.match(patchProblems("openai", `diff --git "a/x y" "b/x y"\n`, config)[0], /header it can't read/);
+  assert.equal(patchProblems("openai", addPatch(openaiLive), config, [anthropicLive]).length, 1);
+});
+
+test("merge refuses every artifact's patch that touches another provider's files, before any patch applies", () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-merge-"));
+  const artifact = (provider, patch, report = true) => {
+    const path = join(dir, "live", `live-${provider}`);
+    mkdirSync(path, { recursive: true });
+    if (report) writeFileSync(join(path, "live-report.json"), JSON.stringify(reportOf([provider], true)));
+    writeFileSync(join(path, "live.patch"), patch);
+    return path;
+  };
+  const merge = (...dirs) => {
+    try {
+      execFileSync(process.execPath, [join(root, "scripts/ci/live-run.mjs"), "merge", join(dir, "r.json"), ...dirs], {
+        env: { PATH: process.env.PATH },
+        stdio: "pipe",
+      });
+      return { code: 0, text: "" };
+    } catch (error) {
+      return { code: error.status, text: `${error.stdout}${error.stderr}` };
+    }
+  };
+  const anthropic = artifact("anthropic", addPatch(exampleOf(SDK_TRIAGE, "anthropic").live));
+  const openai = artifact("openai", addPatch(exampleOf(SDK_TRIAGE, "openai").live));
+  assert.deepEqual(merge(anthropic, openai), { code: 0, text: "" });
+  assert.ok(existsSync(join(dir, "r.json")));
+  // The OpenAI job left out its report, so the workflow passes only Anthropic's directory; its patch is still read.
+  rmSync(join(dir, "r.json"));
+  artifact("openai", addPatch(exampleOf(SDK_TRIAGE, "anthropic").live), false);
+  rmSync(join(openai, "live-report.json"));
+  const refused = merge(anthropic);
+  assert.equal(refused.code, 1);
+  assert.match(refused.text, /live-openai: the openai job's patch touches packages\/sdk\/results\/live\/anthropic\//);
+  assert.ok(!existsSync(join(dir, "r.json")), "no merged report, so the job stops before it applies a patch");
+  writeFileSync(join(openai, "live.patch"), "not a patch\n");
+  assert.match(merge(anthropic).text, /live-openai's live.patch is not a patch git can read/);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test("text a live job wrote goes into an issue only inside a code block it can't close, with mentions broken", () => {
