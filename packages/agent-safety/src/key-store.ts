@@ -17,8 +17,8 @@ export interface KeyRing {
 
 /**
  * A host's key ring store. `load()` returns the ring. `rotate()` adds a new current key and returns its id, and
- * `prune()` removes the keys no unresolved pause names and returns their ids; a store backed by a read-only secret
- * leaves both out.
+ * `prune()` removes the keys no unresolved pause names, other than the current one, and returns their ids; a store
+ * backed by a read-only secret leaves both out.
  */
 export interface KeyStore {
   /** Returns the current ring. */
@@ -26,8 +26,9 @@ export interface KeyStore {
   /** Adds a new key, makes it `current` and returns its id. Leave it out for a read-only store. */
   rotate?(): Promise<string>;
   /**
-   * Removes every key whose id is not in `inUse`, the ids that unresolved pauses still name, and returns the removed
-   * ids. A pause whose key is gone fails closed, so pass every id a stored pending request names.
+   * Removes every key whose id is not in `inUse`, the ids that unresolved pauses still name, except the current key,
+   * which it always keeps, and returns the removed ids. A pause whose key is gone fails closed, so pass every id a
+   * stored pending request names.
    */
   prune?(inUse: Set<string>): Promise<string[]>;
 }
@@ -51,7 +52,8 @@ function parseJson(text: string): unknown {
  * `openssl rand -base64 32 | tr '+/' '-_' | tr -d '='`.
  *
  * Throws a `SafetyError`, code `invalid_key_ring`, when the text isn't such an object or a key isn't base64url. The
- * error names key ids only, never key material. `hmacSigner()` checks the rest: key lengths, ids and `current`.
+ * error never holds a key's value, but it repeats key ids as the text spells them, so don't show it where the text
+ * itself must stay secret. `hmacSigner()` checks the rest: key lengths, ids and `current`.
  */
 export function parseKeyRing(text: string): KeyRing {
   const value = parseJson(text);
