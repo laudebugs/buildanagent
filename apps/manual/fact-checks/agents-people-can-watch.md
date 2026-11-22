@@ -99,6 +99,7 @@ The claims log for [`agents-people-can-watch.md`](../src/content/chapters/agents
 | 68 | After the writing review: the closing read-back sentence and the Pay-click link restate row 59's recommendation, still marked ours | § A voice agent | ✅ | Re-check of row 59: wording only; the text still says no source states the rule |
 | 69 | After the writing review: the card-number and refund-policy scenarios illustrate rows 49 and 52 and assert no new fact | § A voice agent | ✅ | Re-check of rows 49 and 52: the scenarios are illustrations, not measurements |
 | 70 | After the writing review: the Full-Duplex-Bench, τ-Voice and Gemini sentences keep the same figures, model id and attribution | § A voice agent | ✅ | Re-check of rows 55, 56 and 58: 0.23 s, 93%, 85% and 31 to 51% unchanged; the model id and year unchanged |
+| 71 | After the second writing review: the section counts five differences, the opening adds the read-back, and the Full-Duplex-Bench sentence says "responded to" background speech | § A voice agent | ✅ | Re-check of rows 56 and 59: wording only; 0.23 s and 93% unchanged |
 
 ## Tally
 
