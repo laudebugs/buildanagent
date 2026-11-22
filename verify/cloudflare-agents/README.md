@@ -31,6 +31,10 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 
 Only Cloudflare's runtime runs here, and the example imports Cloudflare's `agents`, so it cannot run on AWS or Vercel. AWS and Vercel wakes are not runnable in `verify/`. Our own packages get them in N47a and N48a. The example makes no model call, so it records no transcript.
 
+## One example drops a repeated trigger by its id
+
+`11-trigger-dedup.ts` has an agent write each delivery id to its own SQLite table with `INSERT OR IGNORE` before it starts a task. The same id sent twice starts one task and drops the second. After the harness evicts the Durable Object, a redelivery of the same id is still dropped, because the id is in storage. Alarms and webhooks arrive at least once, so this is the ingress rule that makes a repeat harmless. The example is ours and checks our own pattern: the SDK has no ingress feature, and this one uses only `this.sql`.
+
 ## Region markers feed the book's listings
 
 Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
