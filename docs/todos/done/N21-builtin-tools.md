@@ -77,4 +77,10 @@ Tool descriptions affect model behaviour; version them and let N39 compare.
 - `builtinTools(sandbox, proxy, options)` from `@buildanagent/harness/tools` returns `read`, `write`, `edit`, `bash`, `grep`, `glob` and, when a proxy is given, `fetch`. It takes a third argument the plan lacked, `{ root, policy, env?, spills? }`, because the `Sandbox` interface reports neither the workspace root nor the policy.
 - Every path is checked as text against the policy's roots before any sandbox call; the backends' real-path check is the second line against symlinks. On `noneSandbox()` there is no second line.
 - `grep` and `glob` run inside the sandbox through `find` and `grep`, so the model's regular expression never runs in the host loop. `fetch` is https only, goes only through the egress proxy and scrubs every known secret from its output.
-- Open for the owner: whether tools may bind to a `none` sandbox; whether `bash` output is also scrubbed of known secrets; whether `BUILTIN_TOOLS_HASH` goes into a session entry (N39 or N34); whether the shared `workspace` resource key, which makes writes to different files wait for each other, is acceptable. Also open: whether `read`, `bash`, `grep` and `glob` should mark their output `untrusted` like `fetch`, since a workspace file or a command's output can carry instructions as a web page can; today only `fetch`'s is `untrusted`.
+- Open for the owner, each with what happens today:
+  1. Whether `read`, `bash`, `grep` and `glob` should mark their output `untrusted` like `fetch`, since a workspace file or a command's output can carry instructions as a web page can. Today only `fetch`'s is `untrusted`.
+  2. Whether tools may bind to a `none` sandbox. Today nothing prevents it, and a symlink is followed there (row N21-13).
+  3. Whether `bash` output is also scrubbed of known secrets. Today only `fetch`'s is.
+  4. Whether the shared `workspace` resource key, which makes writes to different files wait for each other, is acceptable. Today every file and search tool returns it.
+  5. Whether `BUILTIN_TOOLS_HASH` goes into a session entry (N39 or N34). Today no entry records it.
+- Next: N39 compares description versions; N34 decides whether to record the hash.

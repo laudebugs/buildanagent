@@ -23,8 +23,8 @@ export interface SearchDeps extends FileDeps {
 }
 
 /**
- * The files under `base`, with a warning when `find` could not read part of the tree, or the result that ends the call:
- * a refusal, a denial or a listing that produced nothing.
+ * Either the files under `base` (with a warning when `find` could not read part of the tree) or the result that ends
+ * the call: a refusal, a denial or a listing that produced nothing.
  */
 type Listing =
   | { readonly files: readonly string[]; readonly cut: boolean; readonly warning: string }

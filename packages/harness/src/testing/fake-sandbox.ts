@@ -44,8 +44,8 @@ export interface FakeSandboxClient extends SandboxClient {
  * environment it was given as `NAME=value` lines, `cat <path>` prints a file, `write <path> <text>` writes one,
  * `true` and `false` exit with 0 and 1, `sleep <seconds>` waits and honours the timeout and the signal, and
  * `net-probe <host>` reaches a host only if the policy allows it. `find <dir>` lists the files under a folder, one per
- * line or ending in NUL with `-print0`, and leaves out every folder named by a `-name` when the command has `-prune`,
- * the starting folder included unless `! -path <start>` exempts it. It exits with 0 and prints nothing for a folder
+ * line or ending in NUL with `-print0`. When the command has `-prune`, it leaves out every folder named by a `-name`,
+ * the starting folder included. A `! -path <start>` exempts the starting folder. It exits with 0 and prints nothing for a folder
  * with no files, and with 1 for a path that does not exist. `grep [-i] -e <pattern> -- <file>...` prints each
  * matching line as `file:line:text`, reading the pattern as a JavaScript regular expression and skipping a file that
  * holds a NUL byte. It exits with 1 when nothing matches, and with 2 after a missing file or a pattern it can't read,

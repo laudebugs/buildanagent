@@ -1,9 +1,10 @@
 /**
  * The path check every file tool makes before it calls the sandbox. It works on the path's text: it joins a relative
- * path to the workspace root, removes `.` and `..`, and refuses a path outside the roots. It can't see a symlink,
- * because the sandbox interface has no call that resolves one, so the sandbox's own check of the real path stays the
- * second line, and its denial becomes the tool's error result. The tool hands the sandbox the path it checked, never the
- * model's text, so the two checks see the same path.
+ * path to the workspace root, removes `.` and `..`, and refuses a path outside the roots.
+ *
+ * It can't see a symlink, because the sandbox interface has no call that resolves one, so the sandbox's own check of
+ * the real path stays the second line, and its denial becomes the tool's error result. The tool hands the sandbox the
+ * path it checked, never the model's text, so the two checks see the same path.
  */
 import { HarnessError } from "../../errors.js";
 import { normalizePath } from "../../permissions/match.js";
