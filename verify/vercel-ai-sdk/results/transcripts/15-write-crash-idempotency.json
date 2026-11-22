@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "example": "15-write-crash-idempotency",
   "file": "verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts",
   "harness": "verify/vercel-ai-sdk",
