@@ -101,7 +101,8 @@
         "!packages/harness/src/credentials/egress-proxy.ts",
         "!packages/harness/src/sandbox/host-files.ts",
         "!packages/harness/src/sandbox/spawn-env.ts",
-        "!packages/harness/src/mcp/stdio.ts"
+        "!packages/harness/src/mcp/stdio.ts",
+        "!packages/harness/src/mcp/http-node.ts"
       ],
       "linter": {
         "rules": {

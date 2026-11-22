@@ -53,6 +53,14 @@
             "id": "<id-1>",
             "name": "lookup_customer",
             "input": {}
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-2>",
+            "name": "escalate",
+            "input": {
+              "reason": "Pro customers are consistently receiving HTTP 500 errors at checkout. This appears to be a platform-side checkout bug affecting a paid tier and needs engineer investigation."
+            }
           }
         ]
       },
@@ -61,57 +69,7 @@
         "uncachedInput": 243,
         "cacheRead": 0,
         "cacheWrite": 0,
-        "output": 13,
-        "reasoning": 0
-      }
-    },
-    {
-      "kind": "request",
-      "line": 57,
-      "model": "model-1",
-      "repeated": 3,
-      "messages": [
-        {
-          "role": "tool",
-          "parts": [
-            {
-              "type": "tool-result",
-              "id": "<id-1>",
-              "name": "lookup_customer",
-              "output": "{\"plan\":\"pro\",\"openTickets\":2}"
-            }
-          ]
-        }
-      ],
-      "tools": [
-        "lookup_customer",
-        "escalate",
-        "submit_triage"
-      ]
-    },
-    {
-      "kind": "response",
-      "line": 57,
-      "model": "model-1",
-      "message": {
-        "role": "assistant",
-        "parts": [
-          {
-            "type": "tool-call",
-            "id": "<id-2>",
-            "name": "escalate",
-            "input": {
-              "reason": "Pro customer reports a 500 error at checkout. Customer is on the pro plan and has 2 open tickets. This appears to be an application bug affecting checkout for a paid tier and needs engineer investigation."
-            }
-          }
-        ]
-      },
-      "finish": "tool_calls",
-      "usage": {
-        "uncachedInput": 277,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "output": 58,
+        "output": 74,
         "reasoning": 0
       }
     },
@@ -131,8 +89,19 @@
       "kind": "request",
       "line": 62,
       "model": "model-1",
-      "repeated": 5,
+      "repeated": 3,
       "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "lookup_customer",
+              "output": "{\"plan\":\"pro\",\"openTickets\":2}"
+            }
+          ]
+        },
         {
           "role": "tool",
           "parts": [
@@ -171,7 +140,7 @@
       },
       "finish": "tool_calls",
       "usage": {
-        "uncachedInput": 350,
+        "uncachedInput": 349,
         "cacheRead": 0,
         "cacheWrite": 0,
         "output": 22,
@@ -200,7 +169,7 @@
       "kind": "check",
       "line": 66,
       "message": "the run made exactly the three model calls the script holds",
-      "pass": true
+      "pass": false
     }
   ]
 }

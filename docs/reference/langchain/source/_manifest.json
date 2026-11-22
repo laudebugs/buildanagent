@@ -2,7 +2,7 @@
   "repo": "https://github.com/langchain-ai/docs",
   "commit": "9d9747d0cf241e086c616a16d5ce230ad8f8f31d",
   "committedAt": "2026-11-17T16:50:36-08:00",
-  "fetchedAt": "2026-11-18T11:30:48.308Z",
+  "fetchedAt": "2026-11-22T21:38:31.168Z",
   "note": "No docs tag matches the pinned npm versions; pages may describe newer releases.",
   "pages": [
     "src/oss/langchain/overview.mdx",

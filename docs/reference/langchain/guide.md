@@ -1,8 +1,8 @@
 # Building agents with LangChain.js: a middleware-driven loop on a LangGraph graph
 
-*Version `langchain@1.6.1` with `@langchain/core@1.3.4` and `@langchain/langgraph@1.6.0`, TypeScript, November 2026. **[verified: NN]** marks a claim asserted by example `NN` in [`verify/langchain/examples/`](../../../verify/langchain/examples/), run offline on LangChain's own `fakeModel()`. Other claims cite their upstream page in [`source/src/oss/`](source/src/oss/), mirrored from `langchain-ai/docs` at commit `9d9747d` (2026-11-17); [fact-check.md](fact-check.md) rates those pages.*
+*Version `langchain@1.6.6` with `@langchain/core@1.4.1` and `@langchain/langgraph@1.7.4`, TypeScript, November 2026. **[verified: NN]** marks a claim asserted by example `NN` in [`verify/langchain/examples/`](../../../verify/langchain/examples/), run offline on LangChain's own `fakeModel()`. Other claims cite their upstream page in [`source/src/oss/`](source/src/oss/), mirrored from `langchain-ai/docs` at commit `9d9747d` (2026-11-17); [fact-check.md](fact-check.md) rates those pages.*
 
-LangChain 1.x rebuilt its agent around one function, `createAgent`, which compiles a small LangGraph graph: a model node, a tools node and the edges between them. Every customisation is middleware that hooks into that graph, and every durable feature, such as threads, interrupts and long-term memory, comes from LangGraph's checkpointer and store. The design gives LangChain the widest built-in feature set of the five SDKs in this repo, including summarisation, call limits, PII handling and human approval. Its docs serve Python and JavaScript from the same pages, and the JavaScript pages run ahead of the npm release in several places. In this guide, I explain how `createAgent`, middleware and the LangGraph runtime fit together, and I build a gated support-triage agent on them. That agent pins its model with a provider prefix, gates its risky tool with `humanInTheLoopMiddleware` and sets its own recursion limit.
+LangChain 1.x rebuilt its agent around one function, `createAgent`, which compiles a small LangGraph graph: a model node, a tools node and the edges between them. Every customisation is middleware that hooks into that graph, and every durable feature, such as threads, interrupts and long-term memory, comes from LangGraph's checkpointer and store. The design gives LangChain the widest built-in feature set of the five SDKs in this repo, including summarisation, call limits, PII handling and human approval. Its docs serve Python and JavaScript from the same pages, and the JavaScript pages ran ahead of the npm release in several places before 1.6.6 caught up. In this guide, I explain how `createAgent`, middleware and the LangGraph runtime fit together, and I build a gated support-triage agent on them. That agent pins its model with a provider prefix, gates its risky tool with `humanInTheLoopMiddleware` and sets its own recursion limit.
 
 ## 1. `createAgent` compiles a two-node graph that middleware extends
 
@@ -21,7 +21,7 @@ npm install langchain @langchain/core @langchain/langgraph @langchain/anthropic 
 
 All five packages are MIT-licensed. A model can be an instance, such as `new ChatAnthropic({ model: "claude-sonnet-4-5" })`, or a string that `initChatModel` resolves, such as `"anthropic:claude-sonnet-4-5"` (`langchain/models.mdx`).
 
-> **Gotcha.** Without a `provider:` prefix, `initChatModel` infers the provider from the name, and in 1.6.1 it knows only names starting with `gpt-3`, `gpt-4`, `gpt-5`, `o1`, `o3`, `o4`, `claude`, `gemini` and a few others (`chat_models/universal.js`). The docs' default model, `"gpt-6.1-sol"`, matches none of them, so the overview page's first example throws "Unable to infer model provider". The same rule holds in the newest release, 1.6.6. Thirteen of our doc runs failed this way, and 12 of them passed once prefixed (fact-check F1). Always write `"openai:gpt-…"` or `"anthropic:claude-…"`.
+> **Gotcha.** Without a `provider:` prefix, `initChatModel` infers the provider from the name, and in 1.6.6 it knows only names starting with `gpt-3`, `gpt-4`, `gpt-5`, `o1`, `o3`, `o4`, `claude`, `gemini` and a few others (`chat_models/universal.js`). The docs' default model, `"gpt-6.1-sol"`, matches none of them, so the overview page's first example throws "Unable to infer model provider". 1.6.1 had the same rule. Thirteen of our doc runs failed this way, and 12 of them passed once prefixed (fact-check F1). Always write `"openai:gpt-…"` or `"anthropic:claude-…"`.
 
 LangSmith tracing is opt-in: it starts only when you set `LANGSMITH_TRACING=true` and an API key (`langchain/overview.mdx`).
 
@@ -61,7 +61,7 @@ Custom middleware comes from `createMiddleware` with up to six hooks, and the do
 
 In example 07, the hooks ran in loop order: `beforeModel`, `wrapToolCall`, `beforeModel` again, then `afterAgent`. **[verified: 07]** A `wrapToolCall` that returns its own `ToolMessage` instead of calling the handler blocks the tool, and the model receives that message. **[verified: 07]** This is LangChain's closest equivalent of Pi's `tool_call` gate.
 
-The package also exports 21 built-in middleware factories, from `summarizationMiddleware` and `modelCallLimitMiddleware` to `piiMiddleware` and `toolRetryMiddleware`. The built-in page documents 14 of them, plus `createFilesystemMiddleware` from the separate `deepagents` package. One it documents, `modelRefusalMiddleware`, arrived after 1.6.1 (fact-check F3).
+The package also exports 24 built-in middleware factories, from `summarizationMiddleware` and `modelCallLimitMiddleware` to `piiMiddleware` and `toolRetryMiddleware`. The built-in page documents 14 of them, plus `createFilesystemMiddleware` from the separate `deepagents` package. One of the 14, `modelRefusalMiddleware`, is new since 1.6.1 (it first shipped in 1.6.4): it throws `ModelRefusalError` when a provider reports a refusal as a successful response, so list it after `modelFallbackMiddleware` and the fallback catches it (fact-check F3 and F9).
 
 ## 6. Human approval interrupts the graph and resumes with a `Command`
 
@@ -155,7 +155,7 @@ The capstone [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage
 pnpm install && pnpm --filter @buildanagent/verify-langchain test
 ```
 
-## 15. Ten runnable examples back every [verified] claim
+## 15. Eleven runnable examples back every [verified] claim
 
 | File | Demonstrates |
 |---|---|
@@ -169,7 +169,8 @@ pnpm install && pnpm --filter @buildanagent/verify-langchain test
 | `08-streaming.ts` | `streamMode` `"updates"` and `"values"` |
 | `09-long-term-store.ts` | `runtime.store` as LangGraph's store, and the type mismatch |
 | `10-triage-agent.ts` | The capstone, combining all of the above |
+| `11-store-recall-expire.ts` | A memory with an expiry on LangGraph's store: recall on another thread, an injected clock, deletion after expiry, and the checkpoint keeping the fact |
 
 ## Conclusion: pin the model, the thread and the limit, and the middleware does the rest
 
-LangChain suits teams that want the most features ready-made: approvals, summarisation, limits and guardrails as middleware, and threads and interrupts from LangGraph. Its JavaScript docs are its weak point. They share pages with Python, they run ahead of the npm release, and 78 of 713 blocks disagree with the 1.6.1 types, most often over the long-term store and message content. Behavior matched the docs in every test we ran, though. To build on it, give every model id a provider prefix, pass a `thread_id` with a durable checkpointer, and set the recursion limit yourself. Then copy [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage-agent.ts), swap in your tools, and run `pnpm --filter @buildanagent/verify-langchain test` to confirm the gate still holds.
+LangChain suits teams that want the most features ready-made: approvals, summarisation, limits and guardrails as middleware, and threads and interrupts from LangGraph. Its JavaScript docs are its weak point. They share pages with Python, they ran ahead of the npm release before 1.6.6 caught up, and 78 of 713 blocks disagree with the 1.6.6 types, most often over the long-term store and message content. Behavior matched the docs in every test we ran, though. To build on it, give every model id a provider prefix, pass a `thread_id` with a durable checkpointer, and set the recursion limit yourself. Then copy [`10-triage-agent.ts`](../../../verify/langchain/examples/10-triage-agent.ts), swap in your tools, and run `pnpm --filter @buildanagent/verify-langchain test` to confirm the gate still holds.
