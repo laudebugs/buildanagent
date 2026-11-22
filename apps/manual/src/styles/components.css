@@ -431,9 +431,11 @@
   outline-offset: -2px;
 }
 
-/* The table's own lines: a heavy rule under the header in the muted text colour, which reaches 3:1 on the page in both
-   themes where a divider colour does not, and a light rule under each body row in the divider colour, which is
-   decorative only. The header's weight and the rules tell the two apart without colour. */
+/* The table's own lines: a heavy rule under the header row in the muted text colour, which reaches 3:1 on the page in
+   both themes where a divider colour does not, and a light rule under each body row in the divider colour, which is
+   decorative only: the cell padding and the lines together separate rows, as dividers may. A header cell takes the
+   left edge only when its column has no alignment of its own, because a column written `---:` or `:---:` reaches the
+   page as an align attribute, which any rule here would override. */
 .table__scroll table {
   width: 100%;
   border-collapse: collapse;
@@ -442,12 +444,15 @@
 .table__scroll th,
 .table__scroll td {
   padding: 0.5rem 0.75rem;
-  text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--color-rule);
 }
 
-.table__scroll th {
+.table__scroll th:not([align]) {
+  text-align: left;
+}
+
+.table__scroll thead th {
   font-weight: 600;
   border-bottom: 2px solid var(--color-text-muted);
 }

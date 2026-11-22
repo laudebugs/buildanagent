@@ -126,22 +126,25 @@ test("a box's left rule uses a colour recorded at 3:1 or more on the page in bot
 });
 
 // A table's header rule separates the header from the body, so it takes a colour recorded at 3:1 or more on the page in
-// both modes (WCAG 1.4.11), while the row lines use the divider colour, which the JSON records as decorative only.
+// both modes (WCAG 1.4.11), while the row lines use the divider colour, which the JSON records as decorative only. The
+// patterns tolerate whitespace, so a reformat of the stylesheet does not fail the test.
 test("a table's header rule uses a colour recorded at 3:1 or more, and its row lines the decorative divider", () => {
   const components = readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
-  const header = /\n\.table__scroll th \{([^}]*)\}/.exec(components)?.[1] ?? "";
-  const token = /border-bottom: 2px solid var\(--color-([a-z-]+)\)/.exec(header)?.[1];
-  assert.ok(token, "the .table__scroll th rule sets a border-bottom colour from a --color- token");
-  const key = token.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+  const header = /\.table__scroll\s+thead\s+th\s*\{([^}]*)\}/.exec(components)?.[1];
+  assert.ok(header, "components.css has a `.table__scroll thead th` rule");
+  const headerBorder = /border-bottom:\s*(\d+)px\s+solid\s+var\(--color-([a-z-]+)\)/.exec(header);
+  assert.ok(headerBorder, "the header rule sets a border-bottom width and a --color- token");
+  const rows = /\.table__scroll\s+th,\s*\.table__scroll\s+td\s*\{([^}]*)\}/.exec(components)?.[1];
+  assert.ok(rows, "components.css has a `.table__scroll th, .table__scroll td` rule");
+  const rowBorder = /border-bottom:\s*(\d+)px\s+solid\s+var\(--color-rule\)/.exec(rows);
+  assert.ok(rowBorder, "the row lines use the divider colour, --color-rule");
+  assert.ok(Number(headerBorder[1]) > Number(rowBorder[1]), "the header rule is heavier than a row line");
+  const key = (headerBorder[2] ?? "").replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
   for (const mode of ["light", "dark"]) {
     const pair = tokens.color.nonText.contrast.find((found) => found.color === `${mode}.${key}`);
     assert.ok(pair, `nonText records ${mode}.${key}, the header rule`);
     assert.equal(pair.on, `${mode}.background`);
     assert.ok(contrastRatio(qualified(pair.color), qualified(pair.on)) >= NON_TEXT_MINIMUM);
-  }
-  const rows = /\n\.table__scroll th,\n\.table__scroll td \{([^}]*)\}/.exec(components)?.[1] ?? "";
-  assert.match(rows, /border-bottom: 1px solid var\(--color-rule\)/);
-  for (const mode of ["light", "dark"]) {
     assert.ok(tokens.color.decorativeOnly.contrast.some((found) => found.color === `${mode}.rule`));
   }
 });
