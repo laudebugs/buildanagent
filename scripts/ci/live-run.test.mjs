@@ -459,7 +459,7 @@ test("the run reads an example's ledger as a claim, and stops when it can't", ()
   rmSync(dir, { recursive: true, force: true });
 });
 
-test("a streamed answer settles its guard once: at the finish part, or on an error or a cancel", async () => {
+test("a streamed answer settles its guard once: at the finish part, or at the projection on any other ending", async () => {
   const settled = [];
   // A guard settles once, as beginCall()'s does; later calls are ignored.
   const once = () => {
@@ -507,7 +507,15 @@ test("a streamed answer settles its guard once: at the finish part, or on an err
   });
   const stopped = guardStream(afterFinish, once(), usageOf, isFinish).getReader();
   assert.equal((await stopped.read()).value.type, "finish");
-  assert.deepEqual(settled, [finishUsage, "projection", "projection", finishUsage]);
+  // End cleanly without a finish part, after a part that reported partial usage, as an Anthropic body that stops after
+  // message_start does: the partial usage is not what the call is billed, so the call counts at its projection.
+  const partialUsage = { uncachedInput: 1, output: 1 };
+  const anyUsage = (part) => part.usage;
+  assert.equal(
+    (await read(guardStream(parts([{ type: "start", usage: partialUsage }]), once(), anyUsage, isFinish))).length,
+    1,
+  );
+  assert.deepEqual(settled, [finishUsage, "projection", "projection", finishUsage, "projection"]);
 });
 
 // --- Our SDK's live mode ----------------------------------------------------------------------------------------
@@ -794,6 +802,24 @@ answer = () => new Response("rate limited", { status: 429, headers: {
   "retry-after": "Wed, 21 Oct 2026 07:28:00 GMT", "retry-after-ms": "soon",
 } });
 results.limited = await post(ok);
+// A body that ends cleanly after message_start, with no message_delta or message_stop, reported only partial usage.
+answer = () => new Response(started, { headers: { "content-type": "text/event-stream" } });
+results.endedEarly = await post(ok);
+// The same endings on OpenAI: a finished answer is priced from its usage chunk; one that ends before it, or ends with
+// [DONE] but no usage, at its projection.
+const openai = liveTransport({ ...config, provider: "openai", model: "gpt-5.4-mini", maxTokens: 2048 }, send);
+const chat = { model: "gpt-5.4-mini", max_completion_tokens: 2048, messages: [], stream: true };
+const postOpenAI = () =>
+  openai(new Request("https://api.openai.com/v1/chat/completions", { method: "POST", body: JSON.stringify(chat) })).then(
+    async (response) => ({ status: response.status, text: await response.text() }),
+  );
+const data = (lines) => lines.map((line) => "data: " + line + "\\n\\n").join("");
+const text = JSON.stringify({ choices: [{ delta: { content: "hi" } }] });
+const usageChunk = JSON.stringify({ choices: [], usage: { prompt_tokens: 50, completion_tokens: 7 } });
+for (const [name, lines] of [["openaiDone", [text, usageChunk, "[DONE]"]], ["openaiEarly", [text]], ["openaiNoUsage", [text, "[DONE]"]]]) {
+  answer = () => new Response(data(lines), { headers: { "content-type": "text/event-stream" } });
+  results[name] = await postOpenAI();
+}
 const now = readLedger(ledger);
 writeLedger(ledger, { ...now, cap: now.spent + 0.0001 });
 results.overCap = await post(ok);
@@ -830,7 +856,9 @@ console.log(JSON.stringify(results));
   assert.equal(r.limited.status, 429);
   assert.deepEqual(r.limited.headers, ["content-type"], "a delay that is not a plain number stays behind");
   assert.match(r.overCap, /would pass the \$\d\.\d{4} cap/);
-  assert.equal(r.sent, 5, "the call past the cap was refused before it was sent");
+  assert.equal(r.endedEarly.status, 200);
+  assert.equal(r.openaiDone.status, 200);
+  assert.equal(r.sent, 9, "the call past the cap was refused before it was sent");
   // JSON writes the first, unfinished event's missing usage as null.
   assert.deepEqual(r.split, [null, { uncachedInput: 30, cacheRead: 20, output: 7 }]);
   assert.equal(r.finishedEarly, false);
@@ -838,17 +866,21 @@ console.log(JSON.stringify(results));
   assert.equal(r.finishedAtText, false);
   assert.equal(r.finishedAtDone, true);
   // An answer read to its end, or cancelled after its final event as the gateway's adapters cancel it, is priced from
-  // its streamed usage. One cancelled before its final event, and the failed ones, at the projection, as they may be
-  // billed.
+  // its streamed usage. One cancelled before its final event, one that ends without it and the failed ones, at the
+  // projection, as they may be billed. On OpenAI only the answer whose usage chunk arrived is priced from its usage.
   assert.deepEqual(
     ledger.calls.map((call) => call.basis),
-    ["usage", "usage", "projection", "projection", "projection"],
+    ["usage", "usage", "projection", "projection", "projection", "projection", "usage", "projection", "projection"],
   );
   const haiku = catalog.models.find((m) => m.provider === "anthropic" && m.id === "claude-haiku-5-5");
   for (const call of ledger.calls.slice(0, 2)) {
     assert.ok(close(call.cost, priceUsage({ uncachedInput: 40, cacheRead: 10, output: 20 }, haiku)));
   }
   assert.ok(close(ledger.calls[2].cost, ledger.calls[2].projected));
+  assert.ok(
+    close(ledger.calls[5].cost, ledger.calls[5].projected),
+    "a body that ends after message_start costs its projection",
+  );
   assert.ok(ledger.aborted !== null);
 });
 

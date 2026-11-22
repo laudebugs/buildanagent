@@ -92,7 +92,8 @@ function events(text) {
  * sent its final event. Anthropic counts cache reads and writes apart from `input_tokens`; OpenAI's `prompt_tokens`
  * includes its cached tokens. The gateway's adapters stop reading at the final event, `message_stop` or `[DONE]`, and
  * cancel the body, so the guard settles there with the usage seen so far: by then the answer has streamed all of it.
- * A body cancelled before its final event still settles at the call's projection.
+ * A body that ends or is cancelled before its final event settles at the call's projection, whatever usage it has
+ * streamed so far: Anthropic's `message_start` reports one output token, not what the call is billed.
  */
 export function usageReader(provider) {
   const decoder = new TextDecoder();
