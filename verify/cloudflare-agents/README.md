@@ -31,6 +31,10 @@ Offline verification harness for the Cloudflare Agents docs and our examples, pi
 
 Only Cloudflare's runtime runs here, and the example imports Cloudflare's `agents`, so it cannot run on AWS or Vercel. AWS and Vercel wakes are not runnable in `verify/`. Our own packages get them in N47a and N48a. The example makes no model call, so it records no transcript.
 
+## One example drops a repeated trigger by its id
+
+`12-trigger-dedup.ts` has an agent write each delivery id to its own SQLite table with `INSERT OR IGNORE` before it starts a task. The same id sent twice starts one task and drops the second. After the harness evicts the Durable Object, a redelivery of the same id is still dropped, because the id is in storage. Alarms and webhooks arrive at least once, so this is the ingress rule that makes a repeat harmless. The example is ours and checks our own pattern: the SDK has no ingress feature, and this one uses only `this.sql`.
+
 ## One example keeps long-term memory in an agent's own SQLite
 
 `11-context-memory.ts` declares two blocks from `agents/context`: a writable `memory` block (`AgentContextProvider`) and a searchable `notes` block (`AgentSearchProvider`, an FTS5 table). A scripted model writes one fact to each through `set_context`, the harness evicts the Durable Object, and on the new instance a second scripted model finds the note through `search_context`. The new instance's frozen system prompt holds the fact and the note count, which the first instance's prompt lacked. A second agent name sees neither block's content, because both blocks render there with their headers and no text, and its search finds nothing, because each agent keeps its blocks in its own database.
