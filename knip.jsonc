@@ -37,8 +37,8 @@
       // types and the schemas drift apart.
       "entry": ["schema-check/*.ts", "scripts/readme-globals.ts"]
     },
-    // Scaffolds that name the packages they will import once their todos land.
-    "packages/cli": { "entry": ["scripts/readme-globals.ts"], "ignoreDependencies": ["@buildanagent/harness"] },
+    // The example is imported by its test, and the README shows it.
+    "packages/cli": { "entry": ["scripts/readme-globals.ts", "examples/*.ts"] },
     // `mkfifo` makes the pipe an opt-in srt test needs, and `openssl` makes the self-signed certificate the egress proxy test
     // trusts. Node can make neither.
     // The book examples are run by path (`tsx examples/01-session-two-runs.ts`) from the shared runner, so nothing

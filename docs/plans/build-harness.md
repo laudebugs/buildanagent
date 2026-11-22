@@ -775,6 +775,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
 | [N52](../todos/ready/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
+| [N53](../todos/ready/N53-stdio-identity-binding.md) | Bind a stdio client to a user so `Resolution.by` is checked, not trusted | N29, N30 | M |
 
 ### 4.6 Stage 6 puts the protocol, its transports and the CLI over the harness
 
@@ -784,7 +785,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N27](../todos/done/N27-dispatcher-core.md) | Dispatcher and in-process transport: `initialize`, turns, events, `turn/settled` | N26, N7, B16 | M |
 | [N28](../todos/done/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/done/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
-| [N30](../todos/ready/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay | N28 | M |
+| [N30](../todos/done/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, `sessions` list, show, search and replay, and `rpc` over stdio | N28 | M |
 
 ### 4.7 Stage 7 adds telemetry, completion checks, evals and ablation
 
