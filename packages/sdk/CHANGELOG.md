@@ -1,5 +1,12 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.27
+
+### Patch Changes
+
+- Updated dependencies [a3db5d1]
+  - @buildanagent/gateway@0.1.0-alpha.27
+
 ## 0.1.0-alpha.26
 
 ### Minor Changes
