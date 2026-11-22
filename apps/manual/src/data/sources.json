@@ -326,6 +326,15 @@
     "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
   },
   {
+    "id": "claude-agent-sdk-tool-search",
+    "title": "Scale to many tools with tool search",
+    "publisher": "Claude Agent SDK documentation",
+    "url": "https://code.claude.com/docs/en/agent-sdk/tool-search",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/stopping-and-structured-output.md"
+  },
+  {
     "id": "openai-agents-running-agents",
     "title": "Running Agents",
     "publisher": "OpenAI Agents SDK documentation",

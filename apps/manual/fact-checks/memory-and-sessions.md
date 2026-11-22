@@ -189,11 +189,20 @@ The high review of PR #119 found four problems. The Claude Agent SDK's cross-pro
 | 103 | [[tbl:state-table]], ADK row, last column: `getSession` is scoped by app, user and session id together; `listSessions` needs the user passed | [[tbl:state-table]] | ✅ | Row 39 for `getSession`; `@google/adk@2.5.0` `dist/types/sessions/base_session_service.d.ts:43`, `ListSessionsRequest.userId?: string`: "The ID of the user. Sessions of every user are listed if omitted."; `dist/esm/sessions/in_memory_session_service.js:121`: `userId === void 0 ? Object.values(appSessions) : …`. Row 61 called the whole service scoped |
 | 104 | Only ADK scopes a session lookup by user: `getSession` asks for the user id, though `listSessions` returns every user's sessions unless your code passes one; every other SDK leaves the check to you | § State lives in eight places | ✅ | Rows 103 and 58–65 (last column). Row 72 said ADK checks the user "on every lookup" |
 
+## T49: the Claude Agent SDK listing gains a replay (2026-11-22)
+
+The harness `verify/claude-agent-sdk` now records each example's model exchange, so `#resume-claude` carries `replay`. The rows below check what the replay shows against the committed transcript `verify/claude-agent-sdk/results/transcripts/06-resume-session.json` at `@anthropic-ai/claude-agent-sdk@0.3.327`, read on 2026-11-22.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 105 | The harness now has a recorded transcript of this example, and the example's last check still reads the mock server's request log for PELICAN | § Saving and resuming | ✏️ | Row 25 said the harness had no recorded transcript and that the checks read the request log. The transcript exists now, and the example still reads `process.env.MOCK_LOG` (`06-resume-session.ts`, lines 16–20, the check "resumed model request contains the earlier turn") |
+| 106 | In the recorded run, the second request opens with the first prompt and the model's first answer, then adds "What was the codeword?" | § Saving and resuming, [[lst:resume-claude]] replay | ✅ | `06-resume-session.json`: the second `request` event has `repeated: 2`, so its first two messages are the first request's user message "Remember the codeword PELICAN." and the answer that followed, and its one new message is the user text "What was the codeword?"; the four `check` events follow the two answers in order |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 90 |
-| ✏️ corrected | 10 (rows 3, 16, 37, 42, 59, 61, 72, 87, 88 and 89) |
+| ✅ confirmed | 91 |
+| ✏️ corrected | 11 (rows 3, 16, 37, 42, 59, 61, 72, 87, 88, 89 and 105) |
 | ⚠️ unverified, our recommendation or reading, marked as ours in the text | 4 (rows 45, 74, 98 and 101) |
-| Total | 104 |
+| Total | 106 |
