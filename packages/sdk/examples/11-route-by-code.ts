@@ -12,6 +12,7 @@ const digits = (): string => "digits branch";
 /** The other branch is one run, so it makes one model call. */
 const words = async (input: string): Promise<string> => {
   const result = await run({ model, system: "Reply.", input }).result;
+  if (result.stopReason !== "done") throw new Error(`The model branch ended ${result.stopReason}.`);
   const last = result.messages.at(-1);
   return last?.role === "assistant" ? last.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("") : "";
 };

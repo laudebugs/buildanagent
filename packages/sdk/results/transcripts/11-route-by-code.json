@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "check",
-      "line": 23,
+      "line": 24,
       "message": "a digit sends the input to the plain function and asks no model",
       "pass": true
     },
@@ -56,13 +56,13 @@
     },
     {
       "kind": "check",
-      "line": 27,
+      "line": 28,
       "message": "any other input takes the model branch, one call",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 31,
+      "line": 32,
       "message": "the same input takes the same branch every time",
       "pass": true
     }
