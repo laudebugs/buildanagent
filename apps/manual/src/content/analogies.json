@@ -350,5 +350,29 @@
     "chapter": "tools-at-scale",
     "illustration": null,
     "breaks": "A purchase order is filed and forgotten, while an A2A task can stream updates and ask for more input; and a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that the calling model reads as prose."
+  },
+  {
+    "id": "election-results-board",
+    "concept": "UI as a view of the event log",
+    "analogy": "an election-results board driven by the official count",
+    "chapter": "agents-people-can-watch",
+    "illustration": null,
+    "breaks": "A results board only shows the count; an agent UI can also send events back, such as an approval, which the log then records."
+  },
+  {
+    "id": "dual-controls",
+    "concept": "browser takeover",
+    "analogy": "a driving instructor's dual controls",
+    "chapter": "agents-people-can-watch",
+    "illustration": "dual-controls",
+    "breaks": "The instructor's pedals work whenever pressed; an agent must pause and record that a person took over, or it keeps sending its own input and fights the person for the wheel."
+  },
+  {
+    "id": "labelled-room",
+    "concept": "accessibility snapshot",
+    "analogy": "describing a room by its labelled objects instead of sending a photo",
+    "chapter": "agents-people-can-watch",
+    "illustration": null,
+    "breaks": "Labels can be missing or wrong, so some pages, such as a canvas or a video, still need a screenshot."
   }
 ]

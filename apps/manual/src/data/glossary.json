@@ -256,5 +256,17 @@
     "term": "LLM judge",
     "definition": "A model that grades another model's output against a written rubric, returning a score and a verdict. It scales to free-form answers that code cannot check, and its grades have to be checked against a person's.",
     "sources": ["anthropic-multi-agent-research-system"]
+  },
+  {
+    "id": "accessibility-snapshot",
+    "term": "accessibility snapshot",
+    "definition": "A text description of a web page built from its accessibility tree, listing each labelled element with a reference the model can act on. It is smaller than a screenshot and names what a page offers.",
+    "sources": ["playwright-mcp-snapshots"]
+  },
+  {
+    "id": "event-log",
+    "term": "event log",
+    "definition": "An ordered, append-only record of what a run did, in which each entry has a sequence number. A chat view, a plan view and a review view can all be drawn from the same log, and a client that rejoins can resume from a number.",
+    "sources": ["acp-readme"]
   }
 ]

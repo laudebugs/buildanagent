@@ -1218,5 +1218,41 @@
     "kind": "docs",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "acp-readme",
+    "title": "Agent Client Protocol, README at v1.19.0",
+    "publisher": "Agent Client Protocol",
+    "url": "https://github.com/agentclientprotocol/agent-client-protocol/blob/v1.19.0/README.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/agent-ui/fact-check.md"
+  },
+  {
+    "id": "playwright-mcp-snapshots",
+    "title": "Snapshots",
+    "publisher": "Playwright MCP",
+    "url": "https://playwright.dev/mcp/snapshots",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/browser-use/fact-check-browser-use.md"
+  },
+  {
+    "id": "cdp-browser-protocol",
+    "title": "browser_protocol.json",
+    "publisher": "Chrome DevTools Protocol",
+    "url": "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/json/browser_protocol.json",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/browser-use/fact-check-browser-use.md"
+  },
+  {
+    "id": "meta-rule-of-two",
+    "title": "Practical AI agent security",
+    "publisher": "Meta AI",
+    "url": "https://ai.meta.com/blog/practical-ai-agent-security/",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/browser-use/fact-check-browser-use.md"
   }
 ]
