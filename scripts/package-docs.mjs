@@ -27,7 +27,14 @@ export function codeBlocks(markdown) {
     if (!open) continue;
     const end = lines.findIndex((line, j) => j > i && line.startsWith(open[1]) && line.trim() === open[1]);
     const close = end === -1 ? lines.length : end;
-    if (TS_FENCES.has(open[2].toLowerCase())) blocks.push({ line: i + 1, code: lines.slice(i + 1, close).join("\n") });
+    if (TS_FENCES.has(open[2].toLowerCase()))
+      blocks.push({
+        line: i + 1,
+        code: lines
+          .slice(i + 1, close)
+          .join("\n")
+          .replaceAll("\r", ""),
+      });
     i = close;
   }
   return blocks;
@@ -354,7 +361,7 @@ export function blocksNotFromExamples(packageDir, blocks) {
   const files = existsSync(dir)
     ? readdirSync(dir, { recursive: true })
         .filter((file) => String(file).endsWith(".ts"))
-        .map((file) => `\n${readFileSync(path.join(dir, String(file)), "utf8")}\n`)
+        .map((file) => `\n${readFileSync(path.join(dir, String(file)), "utf8").replaceAll("\r\n", "\n")}\n`)
     : [];
   return blocks
     .filter((block) => block.code.split("\n").length > MAX_INLINE_LINES)

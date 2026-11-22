@@ -54,6 +54,7 @@ declare global {
   const APPROVAL_TTL_MS: number;
   const CAP_USD: number;
   const CENTS_PER_DOLLAR: number;
+  const CENT_DIGITS: number;
   const MAX_STEPS: number;
   const agent: { readonly messages: UIMessage[] };
   const approval: safety.PlanApproval;

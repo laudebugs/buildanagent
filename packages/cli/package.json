@@ -11,7 +11,9 @@
   },
   "homepage": "https://github.com/laudebugs/buildanagent/tree/main/packages/cli#readme",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/bin.js"
+  ],
   "engines": {
     "node": ">=22.19.0"
   },

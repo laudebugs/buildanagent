@@ -417,6 +417,7 @@ packTest("no package that will publish depends on a workspace package that won't
     const unpublished = [
       ...Object.keys(manifest.dependencies ?? {}),
       ...Object.keys(manifest.peerDependencies ?? {}),
+      ...Object.keys(manifest.optionalDependencies ?? {}),
     ].filter((dep) => WORKSPACE_PACKAGES.includes(dep) && !PUBLISHED.includes(dep));
     assert.deepEqual(unpublished, [], `${name} depends on workspace packages that won't publish`);
   }

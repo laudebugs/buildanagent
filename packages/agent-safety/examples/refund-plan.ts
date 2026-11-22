@@ -5,8 +5,9 @@ import type { PlanFields } from "@buildanagent/agent-safety";
 
 const APPROVAL_TTL_MS = 15 * 60 * 1000;
 const CENTS_PER_DOLLAR = 100;
+const CENT_DIGITS = 2;
 
-/** An order as the plan reads it: what may still be refunded and what already was, in cents. */
+/** An order as the plan reads it: the most that could ever be refunded and what already was, in cents. */
 export interface Order {
   readonly id: string;
   readonly customerEmail: string;
@@ -19,7 +20,7 @@ export interface Order {
 export function refundPlan(order: Order): PlanFields {
   const { id: orderId, customerEmail: to, refundableCents, refundedCents } = order;
   const amountCents = refundableCents - refundedCents;
-  const amount = `$${(amountCents / CENTS_PER_DOLLAR).toFixed(2)}`;
+  const amount = `$${(amountCents / CENTS_PER_DOLLAR).toFixed(CENT_DIGITS)}`;
   const subject = "Your refund";
   const body = `We have refunded ${amount} to your card.`;
   return {

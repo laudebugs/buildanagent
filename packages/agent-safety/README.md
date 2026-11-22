@@ -292,7 +292,7 @@ The refund-then-email plan from the sagas report has four steps. The email must 
 export function refundPlan(order: Order): PlanFields {
   const { id: orderId, customerEmail: to, refundableCents, refundedCents } = order;
   const amountCents = refundableCents - refundedCents;
-  const amount = `$${(amountCents / CENTS_PER_DOLLAR).toFixed(2)}`;
+  const amount = `$${(amountCents / CENTS_PER_DOLLAR).toFixed(CENT_DIGITS)}`;
   const subject = "Your refund";
   const body = `We have refunded ${amount} to your card.`;
   return {
