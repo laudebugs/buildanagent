@@ -1415,7 +1415,7 @@
     "SessionEntry": {
       "oneOf": [
         {
-          "$ref": "#/$defs/shape-8755e442b7"
+          "$ref": "#/$defs/shape-2ca31167ed"
         },
         {
           "$ref": "#/$defs/shape-22fcb79a8f"
@@ -1470,7 +1470,7 @@
         }
       ]
     },
-    "shape-8755e442b7": {
+    "shape-2ca31167ed": {
       "type": "object",
       "properties": {
         "id": {
@@ -1529,6 +1529,34 @@
             "entryId"
           ],
           "additionalProperties": false
+        },
+        "spawn": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "spawningCallId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "spawningCallId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "stepId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "stepId"
+              ],
+              "additionalProperties": false
+            }
+          ]
         },
         "product": {
           "type": "object",

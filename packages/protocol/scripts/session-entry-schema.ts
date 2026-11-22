@@ -67,6 +67,7 @@ export const SessionEntry = z.discriminatedUnion("type", [
     capabilities: z.array(z.string()),
     ablationHash: z.string(),
     parent: z.strictObject({ session: z.string(), entryId: z.string() }).optional(),
+    spawn: z.union([z.strictObject({ spawningCallId: z.string() }), z.strictObject({ stepId: z.string() })]).optional(),
     product: z.strictObject({ name: z.string(), version: z.string(), bundleHash: z.string() }).optional(),
   }),
   entry("turn_start", { runId: z.string(), mode: z.enum(["run", "continue"]), system: z.string() }),

@@ -108,7 +108,9 @@ async function migrateLocked(options: MigrateOptions): Promise<MigrationResult> 
       `the log is format ${version}, newer than this harness reads (${FORMAT_VERSION})`,
     );
   }
-  if ((raw[0] as { parent?: unknown }).parent !== undefined) {
+  const first = raw[0] as { parent?: unknown; spawn?: unknown };
+  // A spawned child has a parent link but no shared path, so nothing of the parent stays in the old format.
+  if (first.parent !== undefined && first.spawn === undefined) {
     throw new HarnessError(
       "unsupported_format",
       "this file continues a parent file, which would stay in the old format and make the session unreadable, so migrate the parent's session first and fork again",

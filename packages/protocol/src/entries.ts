@@ -51,8 +51,13 @@ export interface SessionHeaderEntry {
   capabilities: string[];
   /** A hash of the ablation switches this session ran with. */
   ablationHash: string;
-  /** The session and entry this one was forked from. */
+  /**
+   * The session and entry this one was forked from, or, when `spawn` is present, the session and `subagent_link` entry
+   * that started it. A forked session continues its parent's log up to that entry, and a spawned one does not.
+   */
   parent?: { session: string; entryId: string };
+  /** Set on the log of a subagent or a workflow step: the tool call or the step that started it, never both. */
+  spawn?: { spawningCallId: string; stepId?: never } | { stepId: string; spawningCallId?: never };
   /** The product that owns the session, when one does. Outside the stable surface. */
   product?: { name: string; version: string; bundleHash: string };
 }

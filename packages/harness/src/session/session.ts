@@ -176,7 +176,7 @@ export class Session {
     const entries = await entriesOf(this.#options.store, this.#physical(file));
     const byId = new Map(entries.map((entry) => [entry.id, entry]));
     const header = entries[0];
-    const above = header?.type === "session_header" ? header.parent : undefined;
+    const above = header?.type === "session_header" && header.spawn === undefined ? header.parent : undefined;
     const path: SessionEntry[] = [];
     const seen = new Set<string>();
     let at: string | null = entryId;
@@ -206,7 +206,7 @@ export class Session {
   async #inherited(): Promise<Map<string, SessionEntry>> {
     if (this.#prefix !== undefined) return this.#prefix;
     const header = this.#entries[0];
-    const above = header?.type === "session_header" ? header.parent : undefined;
+    const above = header?.type === "session_header" && header.spawn === undefined ? header.parent : undefined;
     const prefix = new Map<string, SessionEntry>();
     if (above !== undefined) {
       for (const entry of await this.#ancestry(above.session, above.entryId)) prefix.set(entry.id, entry);
@@ -274,8 +274,16 @@ export class Session {
     return header;
   }
 
-  /** Writes a new file that holds a header and, for a branch, a `checkout` of the entry it starts from. */
-  async #writeFile(file: string, parent: { session: string; entryId: string } | undefined): Promise<void> {
+  /**
+   * Writes a new file that holds a header and, for a branch, a `checkout` of the entry it starts from. A child's header
+   * names the session and link entry that started it, and `spawn`, and has no `checkout`, because a child is its own
+   * log and not a continuation.
+   */
+  async #writeFile(
+    file: string,
+    parent: { session: string; entryId: string } | undefined,
+    spawn?: SessionHeaderEntry["spawn"],
+  ): Promise<void> {
     const header = this.#header();
     const headerId = this.#newId();
     const entries: EntryInput[] = [
@@ -285,9 +293,10 @@ export class Session {
         parentId: null,
         ...inheritedFrom(header),
         ...(parent === undefined ? {} : { parent }),
+        ...(spawn === undefined ? {} : { spawn }),
       },
     ];
-    if (parent !== undefined) {
+    if (parent !== undefined && spawn === undefined) {
       entries.push({ ...this.#base(), parentId: headerId, type: "checkout", headId: parent.entryId });
     }
     await this.#options.store.append(this.#physical(file), entries, { expectedLastId: null });
@@ -340,10 +349,13 @@ export class Session {
       throw new HarnessError("invalid_session_entry", "a child link needs exactly one of spawningCallId and stepId");
     }
     const sessionId = this.#newId();
-    await this.#writeFile(sessionId, undefined);
+    const linkId = this.#newId();
+    const spawn = spawningCallId === undefined ? { stepId: stepId as string } : { spawningCallId };
+    await this.#writeFile(sessionId, { session: this.#file, entryId: linkId }, spawn);
     await this.append([
       {
         ...this.#base(),
+        id: linkId,
         parentId: this.#head,
         type: "subagent_link",
         childSession: sessionId,

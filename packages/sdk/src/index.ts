@@ -120,6 +120,7 @@ export {
   type HmacSignerOptions,
   hmacSigner,
 } from "./vendor/agent-safety/signer.js";
+export { SDK_VERSION } from "./version.js";
 
 /** The package's name, `@buildanagent/sdk`. */
 export const SDK_PACKAGE = "@buildanagent/sdk";

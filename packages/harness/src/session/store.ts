@@ -33,6 +33,8 @@ export interface SessionSummary {
   readonly harnessVersion: string;
   readonly sdkVersion: string;
   readonly parent?: SessionHeaderEntry["parent"];
+  /** Set on a spawned subagent or workflow step, whose `parent` is the session that started it and not a fork point. */
+  readonly spawn?: SessionHeaderEntry["spawn"];
   readonly product?: SessionHeaderEntry["product"];
 }
 
@@ -254,6 +256,7 @@ export function summaryOf(sessionId: string, entries: readonly SessionEntry[]): 
     harnessVersion: header.harnessVersion,
     sdkVersion: header.sdkVersion,
     ...(header.parent === undefined ? {} : { parent: header.parent }),
+    ...(header.spawn === undefined ? {} : { spawn: header.spawn }),
     ...(header.product === undefined ? {} : { product: header.product }),
   };
 }
