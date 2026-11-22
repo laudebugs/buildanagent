@@ -151,6 +151,7 @@ interface Parts {
   readonly timers: McpTimers;
   readonly log: (line: string) => void;
   readonly refusal: () => Error | undefined;
+  readonly plannedListenCut: () => boolean;
 }
 
 class Connection implements McpConnection {
@@ -163,6 +164,7 @@ class Connection implements McpConnection {
   readonly #timers: McpTimers;
   readonly #log: (line: string) => void;
   readonly #refusal: () => Error | undefined;
+  readonly #plannedListenCut: () => boolean;
   readonly #watchers = new Set<() => void>();
   #closed = false;
   #closing: Promise<void> | undefined;
@@ -178,6 +180,7 @@ class Connection implements McpConnection {
     this.#timers = parts.timers;
     this.#log = parts.log;
     this.#refusal = parts.refusal;
+    this.#plannedListenCut = parts.plannedListenCut;
     this.era = parts.era;
     this.protocolVersion = parts.version;
     parts.hub.fire = () => this.#changed();
@@ -232,7 +235,9 @@ class Connection implements McpConnection {
     if (reopened) this.#changed();
     const cause = await subscription.closed;
     if (cause === "local" || this.#closed) return;
-    this.#dropped(opened, cause === "graceful" ? "the server ended it" : "it dropped");
+    // A stream the harness cut itself, for going quiet or for its total bytes, is opened again at once and is not a drop.
+    if (this.#plannedListenCut()) this.#reopenListen(LISTEN_BASE_MS, "the harness cut it");
+    else this.#dropped(opened, cause === "graceful" ? "the server ended it" : "it dropped");
   }
 
   #dropped(opened: number, why: string): void {
@@ -245,7 +250,10 @@ class Connection implements McpConnection {
       );
       return;
     }
-    const delay = Math.min(LISTEN_MAX_MS, LISTEN_BASE_MS * 2 ** (this.#listenDrops - 1));
+    this.#reopenListen(Math.min(LISTEN_MAX_MS, LISTEN_BASE_MS * 2 ** (this.#listenDrops - 1)), why);
+  }
+
+  #reopenListen(delay: number, why: string): void {
     this.#log(`the change stream of "${this.server}" closed (${why}); it is opened again in ${delay} ms`);
     this.#listenTimer = this.#timers.setTimeout(() => {
       this.#listenTimer = undefined;
@@ -345,6 +353,7 @@ class Connection implements McpConnection {
 interface Opened {
   readonly channel: McpChannel;
   readonly refusal: () => Error | undefined;
+  readonly plannedListenCut?: () => boolean;
 }
 
 function channelOf(config: McpServerConfig, log: (line: string) => void, timers: McpTimers): Opened {
@@ -425,6 +434,7 @@ async function handshake(
       timers: context.timers,
       log,
       refusal: opened.refusal,
+      plannedListenCut: opened.plannedListenCut ?? (() => false),
     });
   } catch (error) {
     await client.close().catch(() => {});

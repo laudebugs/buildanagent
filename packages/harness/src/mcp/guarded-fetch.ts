@@ -28,7 +28,11 @@ const NEWLINE = new Uint8Array([LF]);
 
 /** An error from the guard, with a code the connection maps to a clear message. */
 export class RemoteRefusal extends Error {
-  readonly code: "unauthorized" | "redirect" | "refused" | "too_large" | "timeout";
+  /**
+   * `too_large` for a body, an event or a line past its bound; `full` for a stream past `maxStreamBytes` in all;
+   * `timeout` for a time bound.
+   */
+  readonly code: "unauthorized" | "redirect" | "refused" | "too_large" | "full" | "timeout";
   constructor(code: RemoteRefusal["code"], message: string) {
     super(message);
     this.code = code;
@@ -151,11 +155,12 @@ function later(run: () => void, ms: number): ReturnType<typeof setTimeout> {
   return timer;
 }
 
-/** One read, or `idle` when nothing came for `ms`. */
+/** One read, or `idle` when nothing came for `ms`; with no `ms`, the read alone. */
 async function readWithin(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-  ms: number,
+  ms: number | undefined,
 ): Promise<Awaited<ReturnType<ReadableStreamDefaultReader<Uint8Array>["read"]>> | "idle"> {
+  if (ms === undefined) return reader.read();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const quiet = new Promise<"idle">((resolve) => {
     timer = later(() => resolve("idle"), ms);
@@ -170,17 +175,29 @@ async function readWithin(
 /**
  * A body that ends with an error once it passes a bound: `maxMessageBytes` for a JSON body, `maxStreamBytes` in all,
  * no byte for `streamIdleMs`, or open longer than `maxStreamMs`. An event stream is filtered as `EventFilter` says.
- * `done` runs once, however the body ends.
+ * An `endless` stream, a legacy SSE server's one stream, has only the per-event and per-line bounds. `done` runs once,
+ * however the body ends.
  */
 function boundedBody(
   source: ReadableStream<Uint8Array>,
   settings: RemoteSettings,
-  body: { readonly events: boolean; readonly done: () => void; readonly broken: (error: RemoteRefusal) => void },
+  body: {
+    readonly events: boolean;
+    readonly endless: boolean;
+    readonly done: () => void;
+    readonly broken: (error: RemoteRefusal) => void;
+  },
 ): ReadableStream<Uint8Array> {
-  const { events, done } = body;
+  const { events, endless, done } = body;
   const reader = source.getReader();
   const filter = events ? new EventFilter(settings.maxMessageBytes) : undefined;
-  const cap = events ? settings.maxStreamBytes : Math.min(settings.maxMessageBytes, settings.maxStreamBytes);
+  const cap = endless
+    ? Number.POSITIVE_INFINITY
+    : events
+      ? settings.maxStreamBytes
+      : Math.min(settings.maxMessageBytes, settings.maxStreamBytes);
+  const code = events ? "full" : "too_large";
+  const idleMs = endless ? undefined : settings.streamIdleMs;
   let total = 0;
   let finished = false;
   let lifetime: ReturnType<typeof setTimeout> | undefined;
@@ -200,13 +217,14 @@ function boundedBody(
   /** The bytes to pass on for one chunk; it throws when the chunk breaks a bound. */
   const pass = (chunk: Uint8Array): Uint8Array => {
     total += chunk.length;
-    if (total > cap) throw new RemoteRefusal("too_large", `a response passed ${cap} bytes`);
+    if (total > cap) throw new RemoteRefusal(code, `a response passed ${cap} bytes`);
     const passed = filter === undefined ? chunk : filter.push(chunk);
     if (typeof passed === "string") throw new RemoteRefusal("too_large", `the server sent ${passed}`);
     return passed;
   };
   return new ReadableStream<Uint8Array>({
     start(controller) {
+      if (endless) return;
       lifetime = later(
         () => fail(controller, new RemoteRefusal("timeout", `a response stayed open past ${settings.maxStreamMs} ms`)),
         settings.maxStreamMs,
@@ -217,7 +235,7 @@ function boundedBody(
         // A pull that enqueues nothing is not called again, so it reads on until a chunk has bytes to pass.
         let passed: Uint8Array | undefined;
         while (passed === undefined || passed.length === 0) {
-          const read = await readWithin(reader, settings.streamIdleMs);
+          const read = await readWithin(reader, idleMs);
           if (finished) return;
           if (read === "idle")
             throw new RemoteRefusal("timeout", `a response sent nothing for ${settings.streamIdleMs} ms`);
@@ -249,24 +267,34 @@ const discard = (response: Response): void => {
 };
 
 /**
- * The checks a remote server's fetch adds. `onGet` decides whether a `GET` may go out; false refuses it. `onBroken`
- * hears of a body cut for a bound: `fatal` for a size bound, or a time bound on a response to one request, since the
- * server is then broken or hostile; not fatal for a time bound on a long-lived stream, a `GET` or a listen.
+ * What a response is for: `request` answers one request; `get` is a streamable HTTP server's `GET` stream and
+ * `listen` a `subscriptions/listen` stream, both meant to stay open and both opened again when they end; `events` is
+ * a legacy SSE server's one stream, which nothing can open again.
+ */
+export type StreamKind = "request" | "get" | "listen" | "events";
+
+/**
+ * The checks a remote server's fetch adds. `onGet` decides whether a `GET` may go out; false refuses it. `endless`
+ * marks a `GET` as a legacy SSE server's one stream, which has no time or total-byte bound. `onBroken` hears of a body
+ * cut for a bound: `fatal` for an event, a line or a body past its size, or any bound on the answer to one request,
+ * since the server is then broken or hostile. A time or total-byte cut of a `get` or `listen` stream is planned, not
+ * fatal: the stream ends and is opened again.
  */
 export interface GuardHooks {
   readonly onGet?: () => boolean;
-  readonly onBroken?: (error: RemoteRefusal, fatal: boolean) => void;
+  readonly endless?: boolean;
+  readonly onBroken?: (error: RemoteRefusal, fatal: boolean, kind: StreamKind) => void;
   readonly log: (line: string) => void;
 }
 
-/** Whether a request opens a stream meant to stay open: a `GET`, or a `subscriptions/listen` request. */
-function longLived(method: string, body: RequestInit["body"]): boolean {
-  if (method === "GET") return true;
-  if (typeof body !== "string") return false;
+/** The kind of stream a request opens. */
+function kindOf(method: string, body: RequestInit["body"], endless: boolean): StreamKind {
+  if (method === "GET") return endless ? "events" : "get";
+  if (typeof body !== "string") return "request";
   try {
-    return (JSON.parse(body) as { method?: unknown }).method === "subscriptions/listen";
+    return (JSON.parse(body) as { method?: unknown }).method === "subscriptions/listen" ? "listen" : "request";
   } catch {
-    return false;
+    return "request";
   }
 }
 
@@ -337,7 +365,7 @@ export function guardedFetch(base: FetchLike, settings: RemoteSettings, hooks: G
       throw error;
     }
     try {
-      return checked(response, settings, hooks, { release, longLived: longLived(method, init.body) });
+      return checked(response, settings, hooks, { release, kind: kindOf(method, init.body, hooks.endless === true) });
     } catch (error) {
       release();
       discard(response);
@@ -368,7 +396,7 @@ function checked(
   response: Response,
   settings: RemoteSettings,
   hooks: GuardHooks,
-  stream: { readonly release: () => void; readonly longLived: boolean },
+  stream: { readonly release: () => void; readonly kind: StreamKind },
 ): Response {
   const { release } = stream;
   refuseResponse(response);
@@ -379,10 +407,13 @@ function checked(
     return new Response(null, { status, statusText, headers });
   }
   if (status >= 400) hooks.log(`the server answered HTTP ${status} ${shortText(statusText, 64)}`);
+  const { kind } = stream;
+  const reopens = kind === "get" || kind === "listen";
   const body = boundedBody(response.body, settings, {
     events: isEventStream(response),
+    endless: kind === "events",
     done: release,
-    broken: (error) => hooks.onBroken?.(error, error.code === "too_large" || !stream.longLived),
+    broken: (error) => hooks.onBroken?.(error, error.code === "too_large" || !reopens, kind),
   });
   return new Response(body, { status, statusText, headers });
 }

@@ -8,8 +8,10 @@
  * { "version": 1, "extensions": { "audit": "sha256:…" }, "mcp": { "docs": { "tools": { "search": "sha256:…" } } } }
  * ```
  *
- * Each writer keeps the other's member. A file with no `extensions` member pins no extension, so writing MCP pins
- * alone leaves a project's extensions unpinned rather than refused. Node-only: it reads and writes files.
+ * Each writer keeps the other's member, and every write to one path in this process runs after the one before it. A
+ * file with no `extensions` member pins no extension, so writing MCP pins alone leaves a project's extensions unpinned
+ * rather than refused. `writeLock()` replaces a file it can't read; `writeMcpPins()` refuses one. Node-only: it reads
+ * and writes files.
  */
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";

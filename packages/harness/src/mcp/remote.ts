@@ -9,7 +9,7 @@
  */
 import { SSEClientTransport, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { isAddressLiteral, isLoopbackAddress } from "../credentials/addresses.js";
-import { type FetchLike, guardedFetch, RemoteRefusal } from "./guarded-fetch.js";
+import { type FetchLike, guardedFetch, RemoteRefusal, type StreamKind } from "./guarded-fetch.js";
 import { hasNodeNetwork, nodeFetch } from "./http-node.js";
 import { checkRemoteTransport, type RemoteSettings, redact } from "./remote-config.js";
 import type { McpChannel, McpHttpTransport, McpSseTransport, McpTimers } from "./types.js";
@@ -48,12 +48,31 @@ function networkOf(transport: McpHttpTransport | McpSseTransport, settings: Remo
 }
 
 /**
- * The reconnect schedule the library's streamable HTTP transport uses: a delay of its own choosing within one to
- * thirty seconds, and a budget of reopens per window. Past the budget it closes the channel instead.
+ * The harness's own cuts of long-lived streams, which end a stream on purpose: each is spent once, by the reopen it
+ * causes, so a planned cut never counts against a budget that stops a looping server. A cut needs a real idle period,
+ * a full stream or an hour, so the credits can't make a hot loop.
  */
-function reopenSchedule(timers: McpTimers, onExhausted: () => void) {
+interface PlannedCuts {
+  get: number;
+  listen: number;
+}
+
+/**
+ * The reconnect schedule the library's streamable HTTP transport uses: a delay of its own choosing within one to
+ * thirty seconds, and a budget of reopens per window. A reopen after a planned cut waits the shortest delay and is not
+ * counted. Past the budget it closes the channel instead.
+ */
+function reopenSchedule(timers: McpTimers, planned: PlannedCuts, onExhausted: () => void) {
   const recent: number[] = [];
   return (reconnect: () => void, _delay: number, attempt: number): (() => void) => {
+    const later = (ms: number) => {
+      const handle = timers.setTimeout(reconnect, ms);
+      return () => timers.clearTimeout(handle);
+    };
+    if (planned.get > 0) {
+      planned.get -= 1;
+      return later(MIN_REOPEN_MS);
+    }
     const now = timers.now();
     while (recent.length > 0 && now - (recent[0] as number) > REOPEN_WINDOW_MS) recent.shift();
     if (recent.length >= MAX_REOPENS) {
@@ -61,9 +80,7 @@ function reopenSchedule(timers: McpTimers, onExhausted: () => void) {
       return () => {};
     }
     recent.push(now);
-    const delay = Math.min(MAX_REOPEN_MS, MIN_REOPEN_MS * 2 ** Math.max(attempt, recent.length - 1));
-    const handle = timers.setTimeout(reconnect, delay);
-    return () => timers.clearTimeout(handle);
+    return later(Math.min(MAX_REOPEN_MS, MIN_REOPEN_MS * 2 ** Math.max(attempt, recent.length - 1)));
   };
 }
 
@@ -73,6 +90,8 @@ export interface RemoteChannel {
   readonly settings: RemoteSettings;
   /** The bound a response broke that closed the connection, if one did. */
   readonly refusal: () => RemoteRefusal | undefined;
+  /** Whether the listen stream that just ended was the harness's own cut; true spends that cut. */
+  readonly plannedListenCut: () => boolean;
 }
 
 /** Builds the channel for a remote server. Nothing is sent until the client starts it. */
@@ -99,9 +118,12 @@ export function remoteChannel(
         }
       : undefined;
   let refusal: RemoteRefusal | undefined;
-  const onBroken = (error: RemoteRefusal, fatal: boolean) => {
+  const planned: PlannedCuts = { get: 0, listen: 0 };
+  const onBroken = (error: RemoteRefusal, fatal: boolean, kind: StreamKind) => {
     if (!fatal) {
-      say(`a stream of the server was cut and may be opened again: ${error.message}`);
+      if (kind === "get") planned.get += 1;
+      if (kind === "listen") planned.listen += 1;
+      say(`a stream of the server was cut and is opened again: ${error.message}`);
       return;
     }
     refusal ??= error;
@@ -109,14 +131,14 @@ export function remoteChannel(
     closeChannel();
   };
   const fetch = guardedFetch(networkOf(transport, settings), settings, {
-    ...(onGet === undefined ? {} : { onGet }),
+    ...(onGet === undefined ? {} : { onGet, endless: true }),
     onBroken,
     log: say,
   });
   if (transport.kind === "sse") {
     channel = new SSEClientTransport(settings.url, { fetch, eventSourceInit: { fetch } }) as unknown as McpChannel;
   } else {
-    const schedule = reopenSchedule(timers, () => {
+    const schedule = reopenSchedule(timers, planned, () => {
       say(`the server's stream dropped ${MAX_REOPENS} times in ten minutes, so the connection was closed`);
       closeChannel();
     });
@@ -127,9 +149,16 @@ export function remoteChannel(
         initialReconnectionDelay: MIN_REOPEN_MS,
         maxReconnectionDelay: MAX_REOPEN_MS,
         reconnectionDelayGrowFactor: 2,
-        maxRetries: 2,
+        // The library gives up after maxRetries failed reopens and leaves the connection open with no stream, so its
+        // limit sits past the schedule's budget, which closes the connection instead.
+        maxRetries: MAX_REOPENS * 4,
       },
     }) as unknown as McpChannel;
   }
-  return { channel, settings, refusal: () => refusal };
+  const plannedListenCut = () => {
+    if (planned.listen === 0) return false;
+    planned.listen -= 1;
+    return true;
+  };
+  return { channel, settings, refusal: () => refusal, plannedListenCut };
 }

@@ -119,13 +119,19 @@ export interface McpRemoteSettings {
   readonly ca?: string | readonly string[];
   /** The largest JSON body, and the largest server-sent event or line, in bytes. Default 8 MiB. */
   readonly maxMessageBytes?: number;
-  /** The most bytes one response stream may carry in all. Default 64 MiB. */
+  /**
+   * The most bytes one response stream may carry in all. Default 64 MiB. A long-lived stream past it is cut and opened
+   * again; a legacy SSE server's one stream has no such bound.
+   */
   readonly maxStreamBytes?: number;
   /** How long a response may take to start: its status line and headers. Default 30,000 ms. */
   readonly headersTimeoutMs?: number;
-  /** How long a response stream may go without a byte before it is cut. Default 120,000 ms. */
+  /**
+   * How long a response stream may go without a byte before it is cut. Default 120,000 ms. A streamable HTTP GET or
+   * listen stream that is cut is opened again; a legacy SSE server's one stream is never cut for time.
+   */
   readonly streamIdleMs?: number;
-  /** How long one response stream may stay open in all before it is cut. Default 3,600,000 ms, an hour. */
+  /** How long one response stream may stay open in all before it is cut. Default 3,600,000 ms, an hour; as above. */
   readonly maxStreamMs?: number;
   /** How many responses may be open at once on one connection. A request past it fails. Default 8. */
   readonly maxStreams?: number;
@@ -141,8 +147,9 @@ export interface McpHttpTransport extends McpRemoteSettings {
 
 /**
  * A server reached over the HTTP+SSE transport of the 2024-11-05 revision, which MCP has deprecated since 2025-03-26.
- * It is for legacy servers only: the harness connects in the legacy era without a probe. When its event stream ends,
- * the connection closes, and nothing reconnects it.
+ * It is for legacy servers only: the harness connects in the legacy era without a probe. Its event stream carries every
+ * answer and has only the event and line bounds, never a time or total-byte one. When it ends, the connection closes,
+ * and nothing reconnects it.
  */
 export interface McpSseTransport extends McpRemoteSettings {
   readonly kind: "sse";
