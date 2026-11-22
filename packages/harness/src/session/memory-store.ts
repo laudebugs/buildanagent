@@ -37,9 +37,9 @@ export function memoryStore(options: MemoryStoreOptions = {}): SessionStore {
   const sessionsOf = (userId: string) => users.get(userId);
   async function* entriesOf(key: SessionKey, loadOptions: LoadOptions | undefined) {
     const from = loadOptions?.fromSeq ?? 0;
-    for (const entry of sessionsOf(key.userId)?.get(key.sessionId)?.entries ?? []) {
-      if (entry.seq >= from) yield structuredClone(entry);
-    }
+    // A snapshot, as the JSONL store's load is, so an append made while a caller iterates doesn't extend the loop.
+    const snapshot = (sessionsOf(key.userId)?.get(key.sessionId)?.entries ?? []).filter((entry) => entry.seq >= from);
+    for (const entry of structuredClone(snapshot)) yield entry;
   }
   async function* summaries(userId: string) {
     const found: SessionSummary[] = [];

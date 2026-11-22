@@ -176,6 +176,19 @@ function conflictCases(open: (body: Body) => Promise<{ skipped: string } | undef
       },
     ],
     [
+      "a load yields the entries present when it began, even if the caller appends while it iterates",
+      async ({ store }) => {
+        await store.append(ADA, [header(), record("r1", "h1")]);
+        const seen: string[] = [];
+        for await (const entry of store.load(ADA)) {
+          seen.push(entry.id);
+          if (seen.length < 5) await store.append(ADA, [record(`n${seen.length}`, entry.id)]);
+        }
+        check(seen.join() === "h1,r1", "the loop saw the two entries that existed, and ended");
+        check((await collect(store.load(ADA))).length === 4, "the two appends made during it were stored");
+      },
+    ],
+    [
       "load from a sequence skips the earlier entries",
       async ({ store }) => {
         await store.append(ADA, [header(), record("r1", "h1"), record("r2", "r1")]);
