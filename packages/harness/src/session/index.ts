@@ -40,6 +40,31 @@ export {
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
 export {
+  ABORTED_EXIT_CODE,
+  type CheckConfig,
+  type CompletionOutcome,
+  type CompletionSettings,
+  type CompletionStart,
+  DEFAULT_CHECK_TIMEOUT_MS,
+  DENIED_EXIT_CODE,
+  DISCOVERED_SCRIPTS,
+  flagChanges,
+  gitSnapshotter,
+  HARNESS_CONFIG_PATH,
+  isTestFile,
+  MAX_FLAGS,
+  MAX_SNAPSHOT_FILE_BYTES,
+  MAX_SNAPSHOT_FILES,
+  type ResolvedChecks,
+  resolveChecks,
+  runCompletionCheck,
+  SNAPSHOT_TIMEOUT_MS,
+  type SnapshotOptions,
+  type Snapshotter,
+  snapshotStart,
+  type WorkspaceSnapshot,
+} from "../completion/index.js";
+export {
   type Approvals,
   type ApprovalsOptions,
   createApprovals,
@@ -57,6 +82,13 @@ export { type MigrateOptions, type Migration, type MigrationResult, migrateSessi
 export { memoryIndex, type SessionIndex } from "./pointer.js";
 export type { PendingApproval } from "./rebuild.js";
 export { rerunFrom, runTurn, type TurnOptions, type TurnResult } from "./runner.js";
+export {
+  type ProcessScheduler,
+  type ProcessSchedulerOptions,
+  processScheduler,
+  type Scheduler,
+  type WakeHandler,
+} from "./scheduler.js";
 export {
   type ChildLink,
   DERIVED,
