@@ -129,11 +129,20 @@ The specification pages were fetched on 2026-11-22 in their Markdown form (`.md`
 | 91 | The permissions chapter holds the credential boundary and connector OAuth, and it is not written yet | § Sign-in | ✅ | [Book plan](../../../docs/plans/build-book.md) §4 row 13 ("Connector OAuth and token custody moved to the permissions chapter, after the credential boundary") and `apps/manual/src/outline.ts`, slug `permissions-sandboxes-and-credentials` |
 | 92 | One rule carries over: an MCP server's tools and output stay untrusted whatever token signed the client in | § Sign-in | ✅ | Rows 14 and 59: the registry marks MCP output untrusted, and the specification tells clients to treat tool annotations as untrusted unless they come from trusted servers |
 
+## "Exercises"
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 93 | Exercise 1 runs offline: with three tools added to the example's server (six in all), the first request's tool list measured 1,646 characters of JSON with all six deferred, 2,361 with three eager and three deferred, and 1,386 with all six eager, so a wrong prediction fails a `check` and the example exits as an error | § Exercises | ✅ | A scratch edit of `verify/claude-agent-sdk/examples/08-deferred-tools.ts` run with `node scripts/run-examples.mjs examples --only 08-deferred-tools` on 2026-11-22 (`@anthropic-ai/claude-agent-sdk@0.3.327`); the sizes were written to a file from the example and the file was restored with `git checkout`. Two scratch checks that asserted the order "all deferred < half < all eager" failed, and the runner reported `error`. The measure is `JSON.stringify` length of the mock's recorded request tools, as in the example's own size check |
+| 94 | The SDK's documentation advises loading everything upfront for fewer than about ten tools whose definitions fit comfortably | § Exercises | ✅ | Row 27 |
+| 95 | The registry's three exposures are `direct`, `deferred` and `hidden`, MCP output is marked untrusted, and an approval is a separate gate | § Exercises | ✅ | Rows 13, 14 and 16 |
+| 96 | The mapping between the MCP specification's `requestState` rules and the approvals chapter's four things is left to the reader, and the chapter claims no answer | § Exercises | ⚠️ | Rows 50 to 52 give the specification's rules; the comparison with the approvals chapter's list is the exercise, so it is our framing and not a sourced claim |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 23 |
+| ✅ confirmed | 91 |
 | ✏️ corrected | 0 |
-| ⚠️ unverified | 0 |
-| Total | 23 |
+| ⚠️ unverified, an analogy, one comparison or an exercise's framing, marked as ours in the text | 5 (rows 39, 70, 87, 88, 96) |
+| Total | 96 |
