@@ -222,8 +222,9 @@ export interface EscalationMachine<H = unknown> {
 
 const POLICIES: readonly string[] = ["on-request", "granular", "never"];
 const KINDS: readonly string[] = ["filesystem_read", "filesystem_write", "network"];
-// Each stream the log keeps of a rerun's output, so the entry stays under the store's bound.
-const STORED_BYTES = 16 * 1024;
+// The characters of each output stream the log keeps of a rerun. Even at six bytes a character, as JSON escapes a
+// control character, two streams stay under the store's 64 KiB entry bound.
+const STORED_CHARS = 4 * 1024;
 
 const invalid = (message: string, cause?: unknown) =>
   new HarnessError("invalid_escalation", message, cause === undefined ? {} : { cause });
@@ -289,8 +290,8 @@ function walker(start: EscalationState): Walker {
 const what = (denial: SandboxDenial): string =>
   `The sandbox refused a ${denial.kind.replace("_", " ")} of ${denial.target}: ${denial.reason}.`;
 
-function clip(value: string): string {
-  return value.length <= STORED_BYTES ? value : `${value.slice(0, STORED_BYTES)}\n[output cut]`;
+function clip(value: string, most = STORED_CHARS): string {
+  return value.length <= most ? value : `${value.slice(0, most)}\n[output cut]`;
 }
 
 function execText(exec: Extract<ExecResult, { exitCode: number }>, keep: (value: string) => string): string {
@@ -307,7 +308,8 @@ const ranResult = (exec: Extract<ExecResult, { exitCode: number }>, keep = (valu
 /** Writes the escalation's result, which ends it: the model never reads it, and the host gets it back. */
 async function writeResult(io: Io, id: string, result: ToolResult<unknown>, fromCommand: boolean): Promise<void> {
   const first = result.content[0];
-  const body = first?.type === "text" ? clip(first.text) : "";
+  // The streams were clipped one by one already; this bounds the whole text, the exit line included.
+  const body = first?.type === "text" ? clip(first.text, 2 * STORED_CHARS + 256) : "";
   await io.write(fromCommand ? "tool" : "harness", {
     type: "tool_result",
     callId: id,
@@ -598,7 +600,12 @@ async function rerun<H>(
     await writeResult(io, id, ended.result, false);
     return { status: "denied", reason, denial: exec.denied, rerun: true, escalationId: id, ...ended };
   }
-  await writeResult(io, id, ranResult(exec, clip), true);
+  await writeResult(
+    io,
+    id,
+    ranResult(exec, (value) => clip(value)),
+    true,
+  );
   return { status: "ran", exec, rerun: true, escalationId: id, states: walk.states, result: ranResult(exec) };
 }
 

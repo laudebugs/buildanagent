@@ -34,7 +34,7 @@ import {
 } from "@buildanagent/harness/session";
 import type { FakeSandboxClient } from "@buildanagent/harness/testing";
 import { createToolRegistry, toolSearchTool } from "@buildanagent/harness/tools";
-import { createPendingRequest, hmacSigner, type Resolution, verifyResolution } from "@buildanagent/sdk";
+import { createPendingRequest, defineTool, hmacSigner, type Resolution, verifyResolution } from "@buildanagent/sdk";
 import { describe, test } from "vitest";
 import { codeCallHarness } from "../permissions/code-call-fixture.js";
 import { type Backend, KEY, memoryBackend } from "../session/session-helpers.js";
@@ -462,6 +462,21 @@ describe("under on-request", () => {
     assert.deepEqual(spy.policies.at(-1), { ...BASE_POLICY, writeRoots: [ROOT, "/data/out.txt"] });
     await session.close();
   });
+  test("a rerun's long output comes back whole, and the log keeps a clipped copy that fits one entry", async () => {
+    const backend = memoryBackend();
+    const big = "x".repeat(100_000);
+    const extra = { command: ["cat", "/data/big.txt"], manifest: { root: ROOT, files: { "/data/big.txt": big } } };
+    const { asked, session, machine, spy } = await paused(backend, {}, extra);
+    const ran = expectStatus(
+      await machine.resolve(session, allow(asked.pending.id), resolveWith(spy.client, { manifest: extra.manifest })),
+      "ran",
+    );
+    assert.equal(ran.exec.stdout, big);
+    const stored = (await entriesOf(backend)).at(-1);
+    assert.ok(stored?.type === "tool_result" && stored.content[0]?.type === "text");
+    assert.ok(stored.content[0].text.length < 9_000 && stored.content[0].text.includes("[output cut]"));
+    await session.close();
+  });
 });
 
 describe("granular", () => {
@@ -796,6 +811,25 @@ describe("no tool or model output can widen the sandbox", () => {
       const widening = fields.filter((field) => WIDENING.test(field));
       assert.deepEqual(widening, [], `${tool.canonicalName} has a field that could widen the sandbox`);
     }
+  });
+
+  test("no registered tool can be named sandbox.escalation, so no model call's result is taken for an escalation's", () => {
+    const definition = defineTool({
+      name: "x",
+      description: "A tool.",
+      inputSchema: { type: "object" },
+      async execute() {
+        return { content: [] };
+      },
+    }) as never;
+    for (const source of ["builtin", "extension", "client"] as const) {
+      assert.throws(
+        () => createToolRegistry().register({ name: ESCALATION_TOOL, source, definition }),
+        (error: unknown) => isHarnessError(error) && error.code === "invalid_tool_registration",
+      );
+    }
+    const mcp = createToolRegistry().register({ name: ESCALATION_TOOL, source: "mcp:sandbox", definition });
+    assert.notEqual(mcp.canonicalName, ESCALATION_TOOL);
   });
 
   test("the scan catches a field that would widen the sandbox", () => {
