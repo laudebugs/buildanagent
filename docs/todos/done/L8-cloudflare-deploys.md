@@ -26,11 +26,13 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - A `wrangler.toml` per app: `[assets] directory = "./dist"`, `not_found_handling = "404-page"`, a custom domain with `custom_domain = true`, `workers_dev = false`, `preview_urls = true` (Previews are served on `workers.dev`, and a new Worker's `preview_urls` starts from `workers_dev`); the docs app also has `[env.next]` for `next.docs.buildanagent.fyi`
 - Wrangler pinned (4.160.1 on 2026-11-19, or newer and at least a week old; Previews need 4.135.0 or later)
 - `docs-build.yml` and `site-build.yml` on `pull_request` and pushes to `main`: build the site with no secrets and upload only `dist/` as an artifact
-- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build workflow, which GitHub always runs from `main`:
+- `docs-pr-closed.yml` and `site-pr-closed.yml` on `pull_request: [closed]`, copying the book's `book-pr-closed.yml`: no secret, no checkout and no action, only a run that starts the deploy workflow
+- `docs-deploy.yml` and `site-deploy.yml` on `workflow_run` after their build or pr-closed workflow, which GitHub always runs from `main`:
   - Run in `environment: cloudflare`, whose deployment branches are limited to `main` and which holds `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` ([plan §3](../../plans/publish-and-docs.md#3-what-the-owner-sets-up)).
   - Download the artifact, take `wrangler.toml` from `main`, and never check out or run the pull request's code.
   - Deploy production only when `github.event.workflow_run.event == 'push'`, `github.event.workflow_run.head_repository.full_name == github.repository` and the head branch is `main`.
-  - Otherwise run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact.
+  - For a pull request from a branch of this repository, run `wrangler preview`, and find the pull request for the comment from `GET /repos/{repo}/commits/{head_sha}/pulls`, never from the artifact. A fork's pull request gets no preview.
+  - After a pull request closes, delete its preview with `wrangler preview delete` and update its comment.
 - Confirming the deploy token's permissions against Cloudflare's docs, and recording them in the CI plan
 - The docs' version policy, DS4, in `docs-deploy.yml`:
   - The `workflow_run` path deploys `main` to `docs.buildanagent.fyi` while no release tag exists, and to `next.docs.buildanagent.fyi` (marked unreleased and `noindex`) once one does.
@@ -45,7 +47,7 @@ Deploy `apps/site` to `buildanagent.fyi` and `apps/docs` to `docs.buildanagent.f
 - [ ] A pull request that changes `apps/docs` gets a Preview URL in a comment, from a `workflow_run` deploy that never ran the pull request's code with secrets
 - [ ] Editing a deploy workflow on a pull request's branch changes nothing that runs with the secrets
 - [ ] A push to `main` updates `buildanagent.fyi`, and `docs.buildanagent.fyi` serves the docs over HTTPS
-- [ ] A fork's pull request builds both sites and gets previews, and a fork pull request from a branch named `main` gets a preview, not a production deploy
+- [ ] A fork's pull request builds both sites and gets no preview, and a fork pull request from a branch named `main` gets no production deploy (changed from "gets previews", pending the owner's confirmation; see the Outcome)
 - [ ] A `workflow_dispatch` of `docs-deploy.yml` with a tag deploys that tag's docs to production; with no tag present, a push to `main` deploys production, and with one present it deploys `next.docs.buildanagent.fyi`
 - [ ] Every new workflow and action is in `.github/workflows/actions.lock`: run `gh actions-lock`, or copy verified entries and check each tag's commit with `git ls-remote` ([CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19)); `ci.yml`'s `lockfile` job passes
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
@@ -73,33 +75,39 @@ The owner's Cloudflare setup (§3) must exist first; without the secrets the dep
 
 ## Outcome
 
-Done 2026-11-22. The wrangler configs, the stage and guard scripts, their tests and the four workflow drafts are built, and the docs are written ([CI plan §3g](../../plans/ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22)). Nothing is deployed, because a session may not edit `.github/`: the owner commits the four workflow files, so every acceptance box that needs a deploy stays unticked.
+Done 2026-11-22. The wrangler configs, the stage and guard scripts, their tests and the six workflow drafts are built, and the docs are written ([CI plan §3g](../../plans/ci.md#3g-both-sites-deploy-to-cloudflare-with-a-preview-per-pull-request-l8-added-2026-11-22)). Nothing is deployed, because a session may not edit `.github/`: the owner commits the six workflow files, so every acceptance box that needs a deploy stays unticked.
 
 **What shipped.**
 - `apps/site/wrangler.toml` and `apps/docs/wrangler.toml`: assets-only Workers (`buildanagent-site`, `buildanagent-docs`, and `buildanagent-docs-next` as the docs' `[env.next]`), with `workers_dev = false`, `preview_urls = true` and a custom domain each.
 - `scripts/ci/site-stage-dist.mjs` and `scripts/ci/site-guard-deploy.mjs`, with `scripts/ci/site-deploy.test.mjs`. A `required` option on `readEntries` in `apps/manual/scripts/stage-dist.mjs` lets each site name its required pages.
-- `scripts/ci/sites-workflows.test.mjs`, which skips until the workflows are committed or `SITES_WORKFLOWS_DIR` names a directory that holds them. Against the four drafts it passes with the stage and guard tests (63 tests).
+- `scripts/ci/sites-workflows.test.mjs`, which skips until the workflows are committed or `SITES_WORKFLOWS_DIR` names a directory that holds them. Against the four drafts it passes with the stage and guard tests (174 tests).
 - Wrangler 4.160.1, the book's pin, as a devDependency of `apps/docs` and `apps/site`; the lockfile gained only importer links.
-- Four workflows, `docs-build.yml`, `site-build.yml`, `docs-deploy.yml` and `site-deploy.yml`, handed to the owner to commit into `.github/workflows/`.
+- Six workflows, handed to the owner to commit into `.github/workflows/`: `docs-build.yml`, `site-build.yml`, `docs-deploy.yml`, `site-deploy.yml`, `docs-pr-closed.yml` and `site-pr-closed.yml`. Each deploy workflow has a `delete-preview` job and a `comment-deleted` job, and the production job checks for a stable tag again just before and just after it deploys.
 
 **Decisions.**
 - *One environment, `cloudflare`, not the book's two.* Rejected: a preview environment with its own token. Cloudflare's roles page lists no role for previews alone, so that token would likely deploy production too, and a second environment would add a setup step for no isolation.
-- *`workers.dev` previews for every pull request, forks included, as DS3 says.* Rejected: previews only for pull requests from this repository. The cost is that a fork's static content is publicly served on our `workers.dev` subdomain, marked `noindex`.
+- *Previews only for pull requests from this repository's branches, which departs from DS3 and from this todo's first acceptance line (pending the owner's confirmation).* Rejected: previews for forks too. An Opus security review of the first drafts found that a fork's build runs the fork's own workflow file, so its artifact could hold any HTML or script, and a preview would serve it publicly from our `workers.dev` subdomain under the owner's Cloudflare account. A fork's pull request still builds and passes its checks, and a maintainer can push its change to a branch for a preview. The book chose the same on 2026-11-19. DS3 and CI plan §3g record the change.
+- *Delete a preview when its pull request closes, through a pr-closed workflow like the book's.* Rejected: leaving it for Cloudflare's 100 and 500 limit. A `pull_request: closed` job holding the token would run the pull request's own copy of the file, so the pr-closed files hold nothing and only start `main`'s deploy workflow.
 - *The guard compares the config's significant lines with an expected list.* Rejected: parsing the TOML, which could read the file differently from Wrangler.
 - *Production sits behind `SITE_DEPLOY_ENABLED` and `DOCS_DEPLOY_ENABLED`; previews do not.* Rejected: one switch for both sites, so the owner can turn them on one at a time.
 - *A separate `secrets` job leaves a notice when a secret is missing.* Rejected: letting the deploy jobs fail, which would turn every pull request red until the owner finishes setup.
 - *DS4 reads the tag list, counts only `^v\d+\.\d+\.\d+$`, and builds a release from its resolved SHA.* Rejected: trusting the tag input or its name, which could move.
 
-**Not done.** A visible "unreleased" banner on `next.docs.buildanagent.fyi` (it needs a docs-app change), deleting a preview when its pull request closes (Cloudflare keeps 100 on the Free plan and 500 on a paid one, and deletes the oldest), path filters, and a `404.html` for `apps/site`.
+**Not done.** A visible "unreleased" banner on `next.docs.buildanagent.fyi` (it needs a docs-app change), path filters, and a `404.html` for `apps/site`.
+
+**Documented limits.** One `cloudflare` environment and token serve previews and production alike, mitigated by the artifact check and by `wrangler.toml` and the scripts coming from `main`; Cloudflare's roles page lists no role for previews alone, and that a preview token could deploy production anyway is the book's inference. Only `next.docs.buildanagent.fyi` is `noindex`. A fork's pull request can name `main`'s build concurrency group and cancel a running build of `main`, because GitHub gives the fork's copy of the file control of the group; the repository's fork-approval setting is the control (checklist step 8), and the book has the same exposure.
+
+**Changed after the security review.** The tests now compare every job's `if:` exactly and run both `resolve` steps and the record, delete and comment scripts against a stand-in `gh` and crafted files. 21 of 22 deliberate mutations of the drafts failed the tests; the survivor is equivalent (the fixer's own count, not independently checked). The head repository's name is validated before it enters `jq`, and values reach `jq` through `--arg`. The production concurrency group is `docs-production-${{ github.event_name }}`, so a waiting push cannot replace a waiting release.
 
 **Not verified** (nothing has been deployed). A preview with `workers_dev = false` and `preview_urls = true` getting a `workers.dev` address; `wrangler preview --env ""` and `--ignore-base-config`; `commits/{sha}/pulls` returning a fork's pull request; that `404-page` serves the nearest `404.html` with status 404, which the Cloudflare pages L8 read do not state; and whether the first deploy needs a DNS permission.
 
 **Owner checklist.** The `cloudflare` environment and its two secrets already exist.
-1. Commit the four workflow files into `.github/workflows/`, and add four entries under `workflows:` in `.github/workflows/actions.lock` (`docs-build.yml` and `docs-deploy.yml` after `ci.yml`, `site-build.yml` and `site-deploy.yml` after `sdk-updates.yml`). Every action they use is already locked at the same tag, so no `dependencies:` entry is needed; `gh actions-lock` writes the entries.
+1. Commit the six workflow files into `.github/workflows/`: `docs-build.yml`, `docs-deploy.yml`, `docs-pr-closed.yml`, `site-build.yml`, `site-deploy.yml` and `site-pr-closed.yml`. Add six entries under `workflows:` in `.github/workflows/actions.lock`, which lists paths alphabetically: `docs-build.yml`, `docs-deploy.yml` and `docs-pr-closed.yml` after `ci.yml`, and `site-build.yml`, `site-deploy.yml` and `site-pr-closed.yml` after `sdk-updates.yml`. The two pr-closed files use no action, so each gets `[]`. Every other action is already locked at the same tag, so nothing is added under `dependencies:`; `gh actions-lock` writes the entries.
 2. Confirm `buildanagent.fyi` is an active zone in account `a63390b6aa6bd02439170924d65df57f`.
 3. Check that the apex, `docs.` and `next.docs.` have no CNAME record, because Cloudflare refuses a custom domain on a hostname that has one. Its docs say nothing about A or AAAA records.
 4. Create the three Workers once by hand (`buildanagent-site`, `buildanagent-docs`, `buildanagent-docs-next`), because Workers Scripts Write maps to Editor, which cannot create Workers.
 5. Leave DNS Write off the token. Cloudflare's docs list only Zone > Workers Routes > Write for a custom domain and say Cloudflare creates the DNS record itself. If the first deploy fails at the domain step, a CNAME conflict is the likelier cause, and an error that names DNS would point to DNS Write.
 6. Keep Workers Routes Write until `next.docs.buildanagent.fyi` is attached, which happens on the first deploy after the first stable release; then it can come off.
 7. Set the repository variables `SITE_DEPLOY_ENABLED` and `DOCS_DEPLOY_ENABLED` to `true`.
-8. Once `docs-deploy.yml` is on `main`, `release.yml` starts dispatching it for each stable release ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).
+8. Under the repository's Actions settings, set fork pull request workflows to "Require approval for all outside collaborators", if not already set.
+9. Once `docs-deploy.yml` is on `main`, `release.yml` starts dispatching it for each stable release ([CI plan §3f](../../plans/ci.md#3f-releases-through-npm-trusted-publishing-added-2026-11-19)).
