@@ -479,5 +479,14 @@
     "asOf": "November 2026",
     "version": "v0.21.0",
     "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
+  },
+  {
+    "id": "owasp-llm01-prompt-injection",
+    "title": "LLM01:2025 Prompt Injection",
+    "publisher": "OWASP Top 10 for LLM Applications",
+    "url": "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM01_PromptInjection.md",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
   }
 ]

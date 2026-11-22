@@ -126,5 +126,13 @@
     "chapter": "approvals-guardrails-and-injection",
     "illustration": null,
     "breaks": "A detector only sounds an alarm and leaves the response to a person, while a tripped guardrail can halt the run itself; and no number of detectors makes a building fireproof, as no set of guardrails makes an agent safe."
+  },
+  {
+    "id": "forged-memo",
+    "concept": "prompt injection",
+    "analogy": "a forged memo slipped into the in-tray",
+    "chapter": "approvals-guardrails-and-injection",
+    "illustration": null,
+    "breaks": "An assistant can phone the director to check a memo, but a model has no way to check who wrote any text in its context, so every input can act as an instruction."
   }
 ]
