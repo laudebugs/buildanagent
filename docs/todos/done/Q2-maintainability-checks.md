@@ -36,7 +36,7 @@ Make CI enforce the [maintainability guideline](../../guidelines/maintainability
 ## Acceptance criteria
 
 - [x] Each check fails on a seeded violation (a cycle, a copied block, an unused export, a `B4` comment) and passes on `main`'s code
-- [ ] `ci.yml` runs all four, and the PR's CI shows them. Open: the session that built Q2 had no `workflow` scope, so the four steps are in the pull request description and need a push from someone who has it
+- [x] `ci.yml` runs all four, and the PR's CI shows them. The owner pushed the four steps, because the session that built Q2 had no `workflow` scope
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
 
 ## Tests
@@ -62,7 +62,7 @@ knip may report the `testing` exports as unused until their first consumer lands
 
 ## Outcome
 
-Four root scripts now check for an import cycle, a relative import between packages, a repeated block, an unused file, export or dependency, and a todo id in a comment, and all four pass on `main`. CI runs them once `ci.yml` gets its four steps, which a push with the `workflow` scope must add (see below). The scripts are `check:deps` (dependency-cruiser), `check:duplicates` (jscpd), `check:unused` (knip) and `check:ids` (`scripts/ci/todo-ids.mjs`). [maintainability.md](../../guidelines/maintainability.md#how-its-checked) says what each fails on, and the tool claims are rows Q2-1 to Q2-6 of [the fact-check log](../../plans/reviews/fact-check-maintainability-checks.md).
+Four root scripts now check for an import cycle, a relative import between packages, a repeated block, an unused file, export or dependency, and a todo id in a comment, and all four pass on `main`. CI runs them in the `checks` job, through four steps that the owner added. The scripts are `check:deps` (dependency-cruiser), `check:duplicates` (jscpd), `check:unused` (knip) and `check:ids` (`scripts/ci/todo-ids.mjs`). [maintainability.md](../../guidelines/maintainability.md#how-its-checked) says what each fails on, and the tool claims are rows Q2-1 to Q2-6 of [the fact-check log](../../plans/reviews/fact-check-maintainability-checks.md).
 
 What the build found:
 
@@ -71,5 +71,5 @@ What the build found:
 - **`main` held three real clones, which the build removed.** The Anthropic and OpenAI adapters each had a copy of `failureFromResponse()` and of `toolNames()`; both now live in `wire.ts`. The two import lists that remained are skipped by an `ignorePattern`, because two files that need the same names must list them. The gateway change needs only an empty changeset, since no behaviour moved.
 - **knip passes with `ignoreExportsUsedInFile`.** Without it, it listed 21 exports and types that only their own files use. Those stay a reviewer's call; an export that nothing uses fails.
 - **knip's config names what it cannot see.** It lists the Workers that the Cloudflare tests bundle by path, the SDK's globals file that its README checks load by path, and the scaffold packages' declared dependencies on packages they will import. The `testing` exports needed no entry, because each package's tests use them.
-- **`ci.yml` still needs its four steps.** GitHub refused every change to the workflow file from the build's session, by `git push` and by the API, because its token lacks the `workflow` scope. The pull request description holds the six lines, and the guideline and AGENTS.md already describe CI as running the checks, which holds once they land.
+- **The owner added `ci.yml`'s four steps.** GitHub refused every change to the workflow file from the build's session, by `git push` and by the API, because its token lacks the `workflow` scope, so the owner pushed them. Once they ran on the merged tree, `check:unused` failed on code that had landed on `main` since the build: the SDK's examples and the protocol's schema-check file are run by path, so knip now lists them as entry points, and two scaffold ignores that the harness and protocol had outgrown are gone.
 - **The id check reads comments only, against the real todo ids.** It takes the ids from the file names in `docs/todos/`, so `T00:00:00Z` and `D3` never count, and it skips strings and regular expressions. A Node test seeds its violations; the other three were seeded by hand, and the pull request description records the runs.

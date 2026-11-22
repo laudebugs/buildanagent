@@ -24,12 +24,17 @@
       "entry": ["test/workerd/*-agent.ts"]
     },
     "packages/sdk": {
-      // The README checks load this globals file by the path their config names.
-      "entry": ["scripts/readme-globals.ts"]
+      // The README checks load this globals file by the path their config names, and the examples are run by path
+      // (`pnpm exec tsx examples/01-one-call.ts`), so nothing imports them.
+      "entry": ["scripts/readme-globals.ts", "examples/*.ts"]
+    },
+    "packages/protocol": {
+      // The schema-check file is type-checked by `tsc` and never imported: it fails the build when the hand-written
+      // types and the schemas drift apart.
+      "entry": ["schema-check/*.ts"]
     },
     // Scaffolds that name the packages they will import once their todos land.
     "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] },
-    "packages/harness": { "ignoreDependencies": ["@buildanagent/protocol", "@buildanagent/sdk"] },
-    "packages/protocol": { "ignoreDependencies": ["@buildanagent/sdk"] }
+    "packages/harness": { "ignoreDependencies": ["@buildanagent/sdk"] }
   }
 }
