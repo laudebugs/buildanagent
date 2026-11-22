@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { isHarnessError } from "@buildanagent/harness";
 import { projectSpans } from "@buildanagent/harness/telemetry";
 import type { SessionEntry } from "@buildanagent/protocol";
+import { GEN_AI_CONTENT_ATTRIBUTES } from "@buildanagent/sdk/otel";
 import { beforeAll, describe, test } from "vitest";
 import { capstoneEntries, SECRETS } from "./capstone.js";
 import { exportSpans, type SpanTree, treeOf } from "./spans.js";
@@ -211,6 +212,9 @@ describe("options", () => {
     const key = new Uint8Array(32).fill(7);
     await bad({ content: "attributes", hashAttributes: { key, names: ["gen_ai.tool.call.arguments"] } });
     await bad({ content: "attributes", hashAttributes: { key, names: ["gen_ai.tool.name"] } });
+    for (const name of GEN_AI_CONTENT_ATTRIBUTES) {
+      await bad({ content: "attributes", hashAttributes: { key, names: [name] } });
+    }
     await exportSpans(entries, { content: "attributes", hashAttributes: { key, names: ["gen_ai.request.model"] } });
     await exportSpans(entries, { content: "refs", hashAttributes: { key, names: ["gen_ai.tool.name"] } });
   });

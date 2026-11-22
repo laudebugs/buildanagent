@@ -4,7 +4,12 @@
  * never needs a change to what is stored.
  */
 import type { SessionEntry } from "@buildanagent/protocol";
-import { GEN_AI_ATTRIBUTES as G, type SpanLike, type TracerLike } from "@buildanagent/sdk/otel";
+import {
+  GEN_AI_ATTRIBUTES as G,
+  GEN_AI_CONTENT_ATTRIBUTES,
+  type SpanLike,
+  type TracerLike,
+} from "@buildanagent/sdk/otel";
 import { HarnessError } from "../errors.js";
 import { type ContentLevel, type PlannedSpan, Planner, type Value } from "./plan.js";
 
@@ -13,15 +18,12 @@ const STATUS_ERROR = 2;
 
 const LEVELS: readonly ContentLevel[] = ["none", "attributes", "refs"];
 
-/** The attributes whose values the messages of a call or a later call repeat. */
-const IN_MESSAGES: ReadonlySet<string> = new Set([
-  G.toolName,
-  G.toolCallId,
-  G.toolCallArguments,
-  G.toolCallResult,
-  G.inputMessages,
-  G.outputMessages,
-]);
+/**
+ * The attributes whose values the messages of a call or a later call repeat: every content attribute the SDK lists,
+ * and the tool's name and call id, which a message's tool-call part holds. A content attribute added upstream is
+ * covered without a change here.
+ */
+const IN_MESSAGES: ReadonlySet<string> = new Set([...GEN_AI_CONTENT_ATTRIBUTES, G.toolName, G.toolCallId]);
 
 /** Options for `projectSpans()`. */
 export interface ProjectSpansOptions {
@@ -51,7 +53,7 @@ export interface ProjectSpansOptions {
    * Replaces the value of each named attribute with its HMAC-SHA-256 under `key`, as lower-case hex, before the span
    * is exported, so two spans with the same value still match while the value never leaves the process. With
    * `content: "attributes"`, it may not name an attribute whose value the messages repeat (the tool's name, call id,
-   * arguments and result, and the messages themselves), and `projectSpans()` throws instead of exporting the value. A string is
+   * arguments and result, and the messages and system instructions), and `projectSpans()` throws instead of exporting the value. A string is
    * hashed as it is, a number or boolean as its text and a list as its JSON. A span's name leaves out a hashed
    * tool name or request model attribute, which it would otherwise repeat.
    */
