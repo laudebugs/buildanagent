@@ -397,6 +397,42 @@ Four limits and interactions follow from this design:
 - The context policy's interceptors run before the harness's own `interceptors` and the permission gate. A mid-turn compaction therefore indexes the run's own transcript, a harness `transformContext` or `beforeModelCall` hook sees the masked and compacted view, and a harness `afterToolCall` hook sees the capped result.
 - A steer or follow-up accepted while the retry's summary call runs is delivered only if the retry goes ahead. When the summary is skipped or the turn is aborted, the message is dropped.
 
+## A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal
+
+A model's "done" is a claim, so a turn can check it in code. Pass `completion: { sandbox, env }` to `runTurn()`, where `sandbox` is the session's sandbox and `env` is the checks' whole environment, built with `spawnEnv()`. Before the model runs, the turn resolves the project's checks, reads the check config and takes a snapshot of the workspace. It does this for every turn, because whether a turn ends `done` is known only after the model has run, so expect up to 5,000 file reads before each turn. When the run ends `done`, the harness runs the checks it resolved at the start, takes a second snapshot, and writes one `completion_check` entry after `turn_end`. It also calls `onCompletionCheck` with that entry. The turn's stop reason is unchanged: a failed check or a flag is recorded for the CLI and the eval reports to show, and a turn that ends any other way runs no check. `lastEntryId` on the result is the new entry. A `done` turn from the dispatcher runs a check only when `createDispatcher()` is given `completion`, a function that takes a session's id and returns that session's `{ sandbox, env }` (or `undefined` for none).
+
+**A turn resumed after an approval is never checked.** `resumeTurn()` runs no completion check, because the start state is not kept across the pause. So in an agent that uses approvals, a turn that pauses for one and then ends `done` writes no `completion_check` entry, and its "done" goes unchecked.
+
+**The checks are fixed before the model runs.** A turn can't change which commands run by editing `.agents/harness.json`, because they were resolved before it began. A package runner reads a script's body when it runs it, though, and `make` reads the `Makefile`, so a turn that rewrites the `test` script to `true` would still change what `npm run test` does. The harness therefore compares the check config at the end with the start and adds one flag for each part the turn changed:
+
+- `check config changed: .agents/harness.json` for any edit to that file.
+- `check config changed: package.json script <name>` for a changed body of `typecheck`, `test`, `check`, any script a check runs through `npm`, `pnpm`, `yarn` or `bun` (such as `npm run e2e`), or the `pre` and `post` hook of any of these, because npm and yarn run the hooks too.
+- `check config changed: Makefile test target` when the `test` rule's target line or recipe changed.
+
+A script no check runs is not tracked, and the Makefile comparison covers the `test` rule only, not the rules it depends on.
+
+**A check that can't do its work is recorded, never thrown.** When the checks can't be resolved before the turn (a `.agents/harness.json` that is not valid JSON, say), the turn still runs, and its entry has no checks, `passed: false` and a flag `completion check failed: <message>`. A start snapshot that throws is recorded the same way, and the checks still run. A check that throws, such as one run in a disposed sandbox, gives an entry with no checks, `passed: false` and the same kind of flag. `runTurn()` never throws for a `done` turn because of its completion check, and that includes the append of the entry: when the store refuses it (a lost lock, a conflict), the result comes back without that entry, `lastEntryId` stays the turn's own last entry and `onCompletionCheck` is not called.
+
+**Configure the checks in `.agents/harness.json`.** `completionChecks` is a list, and each item is a command string, split on spaces, or a list of an executable and its arguments. Neither goes through a shell, so write `["sh", "-c", "make lint && make test"]` for one that needs it. A configured list replaces discovery, and an empty list runs nothing:
+
+```json
+{ "completionChecks": ["pnpm run typecheck", "pnpm run test", ["make", "e2e"]] }
+```
+
+Without the key, the harness runs the `package.json` scripts `typecheck`, `test` and `check`, in that order, when they exist, with `pnpm` or `yarn` when the project has that lockfile and `npm` otherwise. When no script matches, it runs `make test` if the `Makefile` has a `test` target, alone or in a list such as `all test:`; a variable named `test` does not count. `resolveChecks()` shows what a sandbox would run. A file that is not JSON, or a `completionChecks` that is not a list of commands, makes `resolveChecks()` throw `HarnessError` with code `invalid_completion_config`; in a turn, that becomes the failed entry described above.
+
+**What the entry holds.** Every check runs, even after one fails, with `timeoutMs` (default 10 minutes) each. `checks` lists each command with its exit code: 124 for a timeout, 126 when the sandbox's policy refused it, and 130 when the turn's signal aborted it. The check running at the abort and each one after it gets 130 and a flag. A check the signal aborted counts as aborted even when the sandbox returned a result for it, such as exit 143. Once the signal has aborted, no further check is started and no diff is taken. `passed` is true when every exit code is 0, so it is also true for a project with no checks, where `checks` is empty. `flagged` holds, in order, any `completion check failed` flags, the refusals and aborts, the `check config changed` flags, and one sentence for each diff pattern:
+
+- an added skip marker: `.skip(`, `xit(` or `@pytest.mark.skip`
+- an added placeholder: `TODO` or `FIXME` in capitals (`todo` is not flagged), or "not implemented" in any case
+- a new file whose name has `mock`, `stub` or `fake` in it
+- a deleted test file
+- a test file with fewer assertion lines (`expect(`, `assert(`, `assert.x(`, `assertEqual(` and Python `assert` statements) than before
+
+A test file is a code file (such as `.ts`, `.js`, `.py`, `.go`, `.rs`, `.java` or `.rb`) in a `test`, `tests` or `__tests__` folder, or a file named `*.test.*`, `*.spec.*`, `*_test.*` or `test_*.py` anywhere. A fixture or snapshot in a test folder, such as `test/fixtures/sample.json`, is not one, so deleting it raises no flag. A line counts as added when the file has more copies of it than before, so moving a line flags nothing. These patterns have honest causes, which is why they never stop a run: expect false positives, and read a flag as a prompt to look.
+
+**The diff needs a way to snapshot the workspace.** The default, `gitSnapshotter`, lists `git ls-files --cached --others --exclude-standard` in the sandbox and reads each file up to 256 KiB as UTF-8 text, at most 5,000 files. The second snapshot reads the first one's paths again and adds the new ones. A file left out for its size, its encoding or the cap, or one it could not read for any reason but its absence (a policy refusal, a sandbox error), is ignored by the diff, so none is reported as deleted. The listing and each read stop after 60 seconds (`SNAPSHOT_TIMEOUT_MS`), and a read that times out is skipped. In a workspace that is no repository, or when the listing times out, it returns nothing, and the entry then has checks and no diff flags. Pass `snapshotter` in `completion` to diff another way.
+
 ## An extension adds hooks and tools in the harness's own process, and project trust only gates loading
 
 An `Extension` from `@buildanagent/harness/extensions` is a name, a version, and any of `interceptors`, `observers` and `tools`. It runs in the harness's process with the harness's permissions, so loading one is a trust decision and nothing more: **trust is not a sandbox.** The permission pipeline still decides every call an extension's tool makes, and an extension's own hooks can do anything the process can.

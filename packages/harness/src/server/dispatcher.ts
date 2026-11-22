@@ -33,6 +33,7 @@ import {
   SDK_VERSION,
   type SignedPendingRequest,
 } from "@buildanagent/sdk";
+import type { CompletionSettings } from "../completion/check.js";
 import { HarnessError, isHarnessError } from "../errors.js";
 import type { Harness } from "../harness.js";
 import { type Approvals, createApprovals } from "../session/approvals.js";
@@ -67,6 +68,12 @@ export interface DispatcherOptions<H = unknown> {
   readonly serverName?: string;
   /** Settings every turn takes besides its input, resumes included. */
   readonly turn?: Pick<TurnOptions<H>, "maxSteps" | "turnRetries" | "budgetUsd" | "modelOptions">;
+  /**
+   * The completion check for a session's turns, given the session's id. It returns the session's sandbox and
+   * environment, because one sandbox never serves every session, or `undefined` for a session with no check. Each
+   * `turn/start` calls it once. Default: no turn checks its completion.
+   */
+  readonly completion?: (session: string) => CompletionSettings | undefined;
   /** Makes session and turn ids. Default `crypto.randomUUID()`. */
   readonly newId?: () => string;
   /**
@@ -145,6 +152,9 @@ type EventMessage = Extract<ServerNotification, { method: "event" }>;
 const failure = (code: number, message: string): Failure => new Failure(code, message);
 
 const newOpened = (cwd: string): Opened => ({ cwd, answers: new Map() });
+
+const completionOf = (completion: CompletionSettings | undefined): { completion?: CompletionSettings } =>
+  completion === undefined ? {} : { completion };
 
 /** What `turn/settled` says about a finished turn, or about a turn that failed before it could finish. */
 function summaryOf(result: TurnResult | undefined, error?: unknown): TurnResultSummary {
@@ -559,12 +569,14 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
       await this.#seed(handle, session);
       const result = await runTurn(handle, this.#options.harness, {
         ...this.#turnHooks(session, running),
+        ...completionOf(this.#options.completion?.(session)),
         input,
         // The first run has ended and a retry may follow: a steer sent now waits in the queue for the retry's run.
         onOverflowRetry: () => {
           running.run = undefined;
         },
         onContextFill: (fill) => this.emit(session, { type: "context_fill", tokens: fill.tokens, budget: fill.budget }),
+        onCompletionCheck: (entry) => this.emit(session, { type: "completion_check", entry }, entry.seq),
       });
       summary = summaryOf(result);
     } catch (error) {

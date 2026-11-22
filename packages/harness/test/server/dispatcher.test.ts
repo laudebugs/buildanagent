@@ -11,6 +11,7 @@ import {
   inProcessTransport,
   RpcFailure,
 } from "@buildanagent/harness/server";
+import { fakeSandbox } from "@buildanagent/harness/testing";
 import { createToolRegistry } from "@buildanagent/harness/tools";
 import { ErrorCodes, type ServerMessage } from "@buildanagent/protocol";
 import { defineTool, hmacSigner } from "@buildanagent/sdk";
@@ -52,6 +53,37 @@ const init = (client: InProcessClient, capabilities: string[] = []) =>
 const text = (value: string) => [{ type: "text" as const, text: value }];
 
 describe("the dispatcher", () => {
+  test("a session's completion settings reach its turn, and the check arrives as a completion_check event", async () => {
+    const files = { ".agents/harness.json": JSON.stringify({ completionChecks: ["true"] }) };
+    const sandbox = await fakeSandbox().provision(
+      { root: "/work", files },
+      {
+        readRoots: ["/work"],
+        writeRoots: ["/work"],
+        network: { allow: [], deny: [] },
+      },
+    );
+    const asked: string[] = [];
+    const completion = (session: string) => {
+      asked.push(session);
+      return { sandbox, env: { PATH: "/usr/bin" } };
+    };
+    const { client, seen } = setup([reply("Done.")], memoryBackend(), { completion });
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("Hi") });
+    await settled(seen);
+    assert.deepEqual(asked, [session]);
+    const checks = seen.flatMap((message) =>
+      "method" in message && message.method === "event" && message.params.event.type === "completion_check"
+        ? [message.params.event.entry]
+        : [],
+    );
+    assert.equal(checks.length, 1);
+    assert.ok(checks[0]?.type === "completion_check");
+    assert.deepEqual(checks[0].checks, [{ command: "true", exitCode: 0 }]);
+  });
+
   test("turn/start replies with a disposition before the first event, and the turn settles once", async () => {
     const { dispatcher, client, seen } = setup([reply("Done.")]);
     await init(client);

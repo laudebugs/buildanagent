@@ -160,7 +160,7 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 
 | Todo | Delivers | Depends on | Size |
 | --- | --- | --- | --- |
-| [N41](../todos/ready/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
+| [N41](../todos/done/N41-scheduler-wake.md) | `Scheduler.wake` seam and its in-process implementation | N4 | S |
 | [N42](../todos/ready/N42-read-only-key-store.md) | Optional `rotate()` and `prune()`, and a secret-backed `KeyStore` | N13 | S |
 | [N43](../todos/ready/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
 | [N44](../todos/ready/N44-web-stream-websocket-transport.md) | stdio over Web streams and a WebSocket transport | N29 | M |
