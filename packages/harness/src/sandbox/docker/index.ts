@@ -64,7 +64,9 @@ const CREATE_TIMEOUT_MS = 120_000;
 const GRACE_MS = 3000;
 const KILL_ATTEMPTS = 5;
 const KILL_RETRY_MS = 100;
-const SWEEP_PASSES = 3;
+const SWEEP_QUIET_PASSES = 2;
+// The longest the sweep at the end waits for the last container to go.
+const SWEEP_MAX_MS = 20_000;
 const SWEEP_PAUSE_MS = 200;
 // A variable name that `env` can set, which is every name a process can be given.
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -102,6 +104,8 @@ const mountFlags = (mount: Mount): string[] => [
 
 class DockerSandbox extends BackendSandbox {
   private started = 0;
+  // Whether a creation was left to finish in the background, which a sweep at the end has to catch.
+  private abandoned = false;
   // The containers being created, which `dispose()` waits for before it sweeps.
   private readonly pending = new Set<Promise<unknown>>();
   private readonly runner: ProcessRunner;
@@ -248,7 +252,10 @@ class DockerSandbox extends BackendSandbox {
         settled = true;
         clearTimeout(timer);
         options.signal.removeEventListener("abort", onAbort);
-        if (discard) this.track(created.then(() => this.killContainer(name)));
+        if (discard) {
+          this.abandoned = true;
+          this.track(created.then(() => this.killContainer(name)));
+        }
         settle();
       };
       const onAbort = () => finish(() => reject(options.signal.reason), true);
@@ -267,20 +274,32 @@ class DockerSandbox extends BackendSandbox {
     });
   }
 
-  protected async shutDown(): Promise<void> {
-    await this.runner.stopAll();
-    await Promise.allSettled([...this.pending]);
-    // A client that was stopped while the daemon was creating its container can leave one behind, so sweep by label.
-    for (let pass = 0; pass < SWEEP_PASSES; pass += 1) {
+  /**
+   * Removes every container of this sandbox until none is left. A client stopped while the daemon was creating its
+   * container can leave one behind, and a removal can take a while on a slow storage driver, so it waits for the last to go.
+   * With no creation left in the background, an empty first pass ends it.
+   */
+  private async sweep(): Promise<void> {
+    const deadline = Date.now() + SWEEP_MAX_MS;
+    let quiet = 0;
+    for (;;) {
       const left = await this.client(
         ["ps", "--all", "--quiet", "--filter", `label=${this.state.label}`],
         DAEMON_TIMEOUT_MS,
       )
         .then((result) => result.stdout.split("\n").filter((id) => id !== ""))
         .catch(() => []);
+      quiet = left.length === 0 ? quiet + 1 : 0;
       if (left.length > 0) await this.client(["rm", "--force", ...left], DAEMON_TIMEOUT_MS).catch(() => undefined);
+      if ((left.length === 0 && (!this.abandoned || quiet >= SWEEP_QUIET_PASSES)) || Date.now() > deadline) return;
       await new Promise((resolve) => setTimeout(resolve, SWEEP_PAUSE_MS));
     }
+  }
+
+  protected async shutDown(): Promise<void> {
+    await this.runner.stopAll();
+    await Promise.allSettled([...this.pending]);
+    await this.sweep();
     await this.state.modules.fs.rm(this.state.folder, { recursive: true, force: true });
   }
 }
@@ -338,7 +357,7 @@ function onePerDestination(mounts: readonly Mount[]): Mount[] {
 
 /**
  * The real mounts for a policy: write roots writable, read roots and extras read-only, and read-only again on top the
- * `denyWrite` folders inside a write root (made when missing, so a later write can't find them writable) and the
+ * `denyWrite` folders inside a write root (made after the checks, so a later write can't find them writable) and the
  * protected files that exist. A `denyWrite` path outside every write root is not mounted: nothing there is writable.
  */
 async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: DockerSandboxOptions) {
@@ -356,7 +375,6 @@ async function planMounts(modules: NodeModules, policy: SandboxPolicy, options: 
   }
   const underWrite = (path: string) => writeRoots.some((root) => inside(modules, root, path));
   const denied = denyWrite.filter(underWrite);
-  for (const folder of denied) await modules.fs.mkdir(folder, { recursive: true });
   const protectedPaths = writeRoots.flatMap((root) => PROTECTED_TOP_LEVEL.map((name) => modules.path.join(root, name)));
   const readOnlyRoots = [...readRoots, ...extra].filter((path) => !underWrite(path));
   const base: Mount[] = [
@@ -516,6 +534,7 @@ async function startSandbox(input: StartInput): Promise<DockerSandbox> {
     label: `harness.sandbox=harness-${modules.path.basename(input.folder).slice("harness-docker-".length)}`,
   });
   await probe(sandbox, options.image);
+  for (const folder of plan.roots.denyWrite) await modules.fs.mkdir(folder, { recursive: true });
   const encoder = new TextEncoder();
   for (const [path, data] of Object.entries(input.manifest.files ?? {})) {
     await sandbox.writeFile(path, typeof data === "string" ? encoder.encode(data) : data);

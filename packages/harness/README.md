@@ -90,9 +90,9 @@ The container has no network, so a command reaches a host only through `proxySoc
 
 `provision()` starts the `docker` client with a clean environment: a `PATH`, a private empty `HOME`, and `DOCKER_HOST` when the option or the host sets one. It never copies the host's environment. A missing client, a daemon that doesn't answer or an image that isn't on the host throws `SandboxUnavailableError` and runs nothing.
 
-A command's environment is exactly the one it was given. `env -i` clears the image's own variables, so the image needs an `env` that takes `-i` and `--`, as BusyBox and GNU coreutils do. A command whose first word contains `=` resolves with exit code 127, as under `none`. Each command is created and then started, and a timeout, an abort or `dispose()` kills the container by name, so nothing outlives the call. `dispose()` also removes any container of this sandbox that a stopped client left behind.
+A command's environment is exactly the one it was given. `env -i` clears the image's own variables, so the image needs an `env` that takes `-i` and `--`, as BusyBox and GNU coreutils do. It also clears `PATH`, and a program name is then looked up on the C library's default path, which differs between images. Pass a `PATH`, as `spawnEnv()` does, for a program that lives elsewhere, such as `/usr/local/bin/node` in a Debian image. A command whose first word contains `=` resolves with exit code 127, as under `none`. Each command is created and then started, and a timeout, an abort or `dispose()` kills the container by name, so nothing outlives the call. `dispose()` also removes any container of this sandbox that a stopped client left behind.
 
-Four limits are worth knowing:
+Five limits are worth knowing:
 
 - **Shared kernel.** A container shares the host's kernel, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
 - **Protected files made later.** A protected file that is missing when `provision()` runs, or one in a subfolder, is not protected inside the container, because a mount needs a file to cover. An agent could write `.git/hooks/pre-commit` there, and the host's next `git commit` would run it. Keep `.git/hooks` and `.git/config` in place, or list them in `denyWrite`.

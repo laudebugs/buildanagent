@@ -41,6 +41,13 @@ function tempFolder(label: string): string {
 
 const TREE_MARKER = `32.${randomInt(1000, 9999)}`;
 const never = () => new AbortController().signal;
+/** The ids of every container a harness sandbox made, so a test can look at the ones it made itself. */
+const labelled = (): Set<string> =>
+  new Set(
+    execFileSync("docker", ["ps", "--all", "--quiet", "--filter", "label=harness.sandbox"], { encoding: "utf8" })
+      .split("\n")
+      .filter((id) => id !== ""),
+  );
 const settle = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** Whether a host process is running `sleep` with the marker: a container's processes show in the host's `/proc`. */
@@ -225,13 +232,12 @@ suite("docker: what a command can't do", () => {
 
   test("the daemon applies every lock-down setting to the container it runs", async () => {
     const { sandbox } = await provisioned({ cpus: 1.5, memoryMb: 192, pidsLimit: 33 });
+    const before = labelled();
     try {
       const running = sandbox.exec(["sleep", "30"], { env: {}, signal: never(), timeoutMs: 20_000 });
       let id = "";
       for (let tries = 0; tries < 100 && id === ""; tries += 1) {
-        id = execFileSync("docker", ["ps", "--quiet", "--filter", "label=harness.sandbox"], {
-          encoding: "utf8",
-        }).trim();
+        id = [...labelled()].find((candidate) => !before.has(candidate)) ?? "";
         if (id === "") await settle(100);
       }
       assert.notEqual(id, "", "the container was running");
@@ -265,6 +271,7 @@ suite("docker: what a command can't do", () => {
 
   test("a timeout that arrives while the container is still being created settles the call, and nothing is left", async () => {
     const { sandbox } = await provisioned();
+    const before = labelled();
     const started = Date.now();
     const result = outcome(await sandbox.exec(["sleep", "30"], { env: {}, signal: never(), timeoutMs: 1 }));
     assert.equal(result?.exitCode, 124);
@@ -276,10 +283,11 @@ suite("docker: what a command can't do", () => {
     controller.abort(new Error("stop"));
     assert.equal(((await aborted) as Error).message, "stop");
     await sandbox.dispose();
-    const left = execFileSync("docker", ["ps", "--all", "--quiet", "--filter", "label=harness.sandbox"], {
-      encoding: "utf8",
-    });
-    assert.equal(left.trim(), "", "the containers still being created are removed once they exist");
+    assert.deepEqual(
+      [...labelled()].filter((id) => !before.has(id)),
+      [],
+      "the containers still being created are removed",
+    );
   }, 120_000);
 
   test("a denyWrite folder that did not exist is made, mounted read-only and refused by writeFile", async () => {
@@ -358,6 +366,7 @@ suite("docker: what a command can't do", () => {
 
   test("an abort or a dispose removes the container as well as stopping the client", async () => {
     const { sandbox } = await provisioned();
+    const before = labelled();
     const controller = new AbortController();
     const running = sandbox
       .exec(["sh", "-c", `sleep ${TREE_MARKER} & wait`], { env: {}, signal: controller.signal })
@@ -372,10 +381,11 @@ suite("docker: what a command can't do", () => {
     await settle(1500);
     await sandbox.dispose();
     await second;
-    const left = execFileSync("docker", ["ps", "--all", "--quiet", "--filter", "label=harness.sandbox"], {
-      encoding: "utf8",
-    });
-    assert.equal(left.trim(), "", "no container is left behind");
+    assert.deepEqual(
+      [...labelled()].filter((id) => !before.has(id)),
+      [],
+      "no container is left behind",
+    );
   }, 180_000);
 });
 
