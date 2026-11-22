@@ -79,8 +79,10 @@ function joined(parts: readonly string[]): string {
 
 /**
  * Reads one `SKILL.md`. The frontmatter is a small subset of YAML: `key: value` lines, quoted or plain, with a value
- * that may continue on indented lines or be a `>` or `|` block, which is folded onto one line. A plain value's `#`
- * comment is dropped, and quotes are removed only from a value that is one quoted string. A file with no
+ * that may continue on indented lines or be a `>` or `|` block, which is folded onto one line; the indicator may carry
+ * an indentation digit and a chomping sign, such as `|2` or `>-`. A plain value's `#` comment is dropped, so
+ * `name: deploy  # prod only` names `deploy`, and quotes are removed only from a value that is one quoted string, so
+ * `'a' or 'b'` stays as written. A file with no
  * frontmatter, a missing or empty name or description, a name that is not lowercase letters, digits and single hyphens
  * or runs past 64 characters, or a description past 1,024 characters is not a skill, and `problem` says why. A skill's
  * name should match the name of its folder: one that differs still loads, with a notice.

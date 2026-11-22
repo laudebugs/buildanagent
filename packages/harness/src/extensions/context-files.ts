@@ -10,13 +10,13 @@ import type { ContentBlock, Message } from "@buildanagent/gateway";
 import { sha256HexSync } from "./digest.js";
 import type { Extension } from "./types.js";
 
-/** The most bytes of one context, plan or progress file the harness reads. A longer file is cut and says so. This is our own limit. */
+/** The most bytes of one context, plan or progress file the harness reads. A longer file is cut and says so. */
 export const CONTEXT_FILE_MAX_BYTES = 64 * 1024;
 
 /**
  * The most bytes of all the `AGENTS.md` and `CLAUDE.md` files together, as UTF-8. Past it the outermost files are left
  * out first, so the files nearest the work stay. The block is added after the context policy has counted the request,
- * so this limit is what keeps it from crowding out the conversation. This is our own limit.
+ * so this limit is what keeps it from crowding out the conversation.
  */
 export const CONTEXT_FILES_MAX_TOTAL_BYTES = 128 * 1024;
 
@@ -228,14 +228,15 @@ const RUNS_KEPT = 128;
  * An extension that puts the context files, and the plan and progress files, at the start of every request. The view
  * is built for each call and the transcript is not changed, so the text is in the first request after a compaction and
  * after a resume, whatever the summary kept. The context files together are held to `CONTEXT_FILES_MAX_TOTAL_BYTES`:
- * past it the outermost are left out, and the block says which. The context files are one text block, the same bytes on every call, and
- * the plan and progress files are a second block after it, the last thing before the first message's own content.
+ * past it the outermost are left out, and the block says which. The context files form one text block with the same
+ * bytes on every call. The plan and progress files form a second block after it, immediately before the first
+ * message's own content.
  *
  * The plan and progress files are read from the source at a run's first model call, which is what a resume or a new
  * turn is, and the same text is sent for the rest of the run, so the model's edits during a run show in the next one.
- * A plan edit still changes the first message, and a provider caches a prompt by its prefix, so the next run's first
- * call reads none of the conversation from the cache: everything after the system prompt and tools is sent uncached
- * once, and the run's later calls read it from the cache again.
+ * A plan edit still changes the first message. A provider caches a prompt by its prefix, so the next run's first call
+ * reads none of the conversation from the cache. Everything after the system prompt and tools is sent uncached once,
+ * and the run's later calls read it from the cache again.
  */
 export function projectContext(options: ProjectContextOptions = {}): Extension {
   // The files' block never changes, so it is built once.
