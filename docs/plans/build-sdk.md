@@ -752,7 +752,7 @@ Model quality and tool selection belong to evals with a real model, which the ha
 
 ### 6.3 Where Round B slots into the roadmap
 
-Round B starts after P4 closes, and it is the first round of the build phase, because the [roadmap](roadmap.md) stops the current phase at the reviewed plans. A new milestone, "M5 Our agent SDK", covers B1 to B20 with B15b and B19b. The harness round does not wait for the loop: it starts after B1 and B2, and each later harness stage waits for the SDK todos it consumes ([harness plan §6.4][har-63]). The roadmap gains one line for Round B, `P4 ─► B1 … B20 ─► M5`, and the harness plan owns the `B2 ─► N1` branch. **Revision (plan review 2, 2026-11-19):** Round B also depends on Round E (M5e), whose hold the owner lifted on 2026-11-19: E1 ─► B10 and B14, and E3 ─► B15. Round E starts after B1, so it runs beside B4–B9.
+Round B starts after P4 closes, and it is the first round of the build phase, because the [roadmap](roadmap.md) stops the current phase at the reviewed plans. A new milestone, "M5 Our agent SDK", covers B1 to B20 with B15b and B19b. The harness round does not wait for the loop: it starts after B1 and B2, and each later harness stage waits for the SDK todos it consumes ([harness plan §6.5][har-65]). The roadmap gains one line for Round B, `P4 ─► B1 … B20 ─► M5`, and the harness plan owns the `B2 ─► N1` branch. **Revision (plan review 2, 2026-11-19):** Round B also depends on Round E (M5e), whose hold the owner lifted on 2026-11-19: E1 ─► B10 and B14, and E3 ─► B15. Round E starts after B1, so it runs beside B4–B9.
 
 Round B closes when the triage capstone passes on our own SDK with the contract the eight references pass, and the harness can import every seam in §3.4 by the name this plan gives it. As of 2026-11-19, B1–B3 are done, and B4, B6, B7 and E1 have every dependency done.
 
@@ -763,7 +763,7 @@ Round B closes when the triage capstone passes on our own SDK with the contract 
 [p4-4]: reviews/plan-review.md#4-needs-reconciliation-24-change-upstream-3-drop-1-is-already-covered
 [har-32]: build-harness.md#32-session-log-api
 [har-36]: build-harness.md#36-needs-from-the-sdk-plan
-[har-63]: build-harness.md#64-where-round-n-slots-into-the-roadmap
+[har-65]: build-harness.md#65-where-round-n-slots-into-the-roadmap
 [har-hd5]: build-harness.md#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5
 [har-hd9]: build-harness.md#hd9-sdk-d9s-per-call-check-plus-a-session-cap-and-a-pre-checked-summary-call-with-sdk-d9
 [g1]: ../guides/agent-sdk.md#1-the-sdk-owns-the-loop-and-its-contracts-and-the-harness-owns-where-state-lives

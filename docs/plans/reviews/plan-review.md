@@ -49,7 +49,7 @@ Every finding below was checked against the text it cites. The graph checks ran 
 | R12 | SDK | B11 scope; [SDK §3.3][sdk33] `AgentEvent` | minor | B11 promises "a warning event when it fires" for `maxSteps`, and the guide §3 says the SDK warns. The closed `AgentEvent` union has no warning type, so B11's own closure check would fail it. | Add `{ type: "warning"; code: "max_steps"; detail: string }` to the union in §3.3 and to `AGENT_EVENT_TYPES`. |
 | R13 | Agent | [agent §3.4][agt34] `TriageAgentOptions`; A13 | minor | `Bundle.models` holds `ModelRef`s, but `ContextSettings.model` needs a `Model`, and `createModel()` needs an adapter and a `ProviderConfig` with an API key. No option supplies them. | Add `models: (ref: ModelRef, role: "reader" \| "planner" \| "drafter" \| "judge" \| "simulator") => Model` to `TriageAgentOptions`, and test it in A13 with `ScriptedModel`. |
 | R14 | SDK | [SDK §3.2][sdk32]–§3.3 | minor | The harness and agent plans use several types the SDK sketch never declares: `ModelContent`, `ModelCaps`, `Clock`, `TracerLike`, `DeliveryReceipt`, `ToolCallEvent` and `ContextEvent`. Needs 2, 3 and 12 cover three of them; the rest would be guessed. | Declare each in one line in §3.2 or §3.3. For example, `type ModelContent = Extract<ContentBlock, { type: "text" \| "image" }>` and `interface Clock { now(): string }`. |
-| R15 | SDK, harness | [SDK §6.3][sdk63]; [harness §6.4][har63] | minor | The SDK plan says the harness round starts "as soon as B11, B13 and B15 are done" and draws a branch "from B15 to the first harness todo". The harness plan and roadmap M6 start Round N after B1 and B2, with `B2 ─► N1`. | Replace the SDK §6.3 sentence with the harness plan's staged list, and keep one roadmap line. |
+| R15 | SDK, harness | [SDK §6.3][sdk63]; [harness §6.5][har65] | minor | The SDK plan says the harness round starts "as soon as B11, B13 and B15 are done" and draws a branch "from B15 to the first harness todo". The harness plan and roadmap M6 start Round N after B1 and B2, with `B2 ─► N1`. | Replace the SDK §6.3 sentence with the harness plan's staged list, and keep one roadmap line. |
 | R16 | Agent | [agent §3.7][agt37]; ADR 0022; A12 | minor | The agent's needs are labelled H1–H13 and S1–S2. H1–H3 are already todo IDs (`docs/todos/done/H1-hn-corpus.md`), which is why the harness plan chose the `HD` prefix. "H4" now means two things. | Rename the labels AH1–AH13 and AS1–AS2 in build-agent §3.7, §6, ADR 0022 and A12. This review keeps the current labels so it matches the plan as written. |
 
 ### 2.2 Coverage: the guides are almost fully planned, and five recommendations are silently missing
@@ -308,7 +308,7 @@ All twelve line-level fixes in §5.1–§5.3 were applied, as were the three cut
 [har34]: ../build-harness.md#34-permission-approval-and-sandbox-apis
 [har35]: ../build-harness.md#35-extension-protocol-telemetry-eval-and-ablation-apis
 [har36]: ../build-harness.md#36-needs-from-the-sdk-plan
-[har63]: ../build-harness.md#64-where-round-n-slots-into-the-roadmap
+[har65]: ../build-harness.md#65-where-round-n-slots-into-the-roadmap
 [har-hd9]: ../build-harness.md#hd9-sdk-d9s-per-call-check-plus-a-session-cap-and-a-pre-checked-summary-call-with-sdk-d9
 [har-hd12]: ../build-harness.md#hd12-three-middle-ground-modes-and-no-classifier-allow-outside-the-host-callback
 [agt]: ../build-agent.md
