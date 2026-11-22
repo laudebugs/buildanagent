@@ -71,18 +71,22 @@ export interface Decision {
 
 /** The pipeline's settings. */
 export interface PermissionConfig {
-  /** `default` adds nothing. `accept_edits` allows `editTools`. `read_only` allows `readOnlyTools` and denies the rest. `bypass` allows what no deny or ask rule stopped. `shadow` allows it too, for a wrapper that runs nothing. */
+  /**
+   * `default` adds nothing. `accept_edits` allows `editTools`. `read_only` allows `readOnlyTools` and denies every
+   * other tool. `bypass` allows what no hook, deny rule or ask rule stopped. `shadow` allows the same calls, because
+   * the shadow wrapper runs nothing.
+   */
   readonly mode: PermissionMode;
   /** Run first, in order. A hook may deny or ask, never allow. A hook that throws denies the call. */
   readonly hooks?: readonly PermissionHook[];
   readonly deny?: readonly Rule[];
   readonly ask?: readonly Rule[];
   readonly allow?: readonly Rule[];
-  /** Decides what no rule settled, last. With none, a call no rule settled asks when `interactive` and is denied otherwise. */
+  /** Decides, last, what no rule settled. */
   readonly hostCallback?: (call: ToolCall, ctx: PolicyContext) => Promise<Decision>;
-  /** Whether a person can answer: a call that no rule settles asks when true and is denied when false. */
+  /** Whether a person can answer. With no `hostCallback`, a call no rule settles asks when true and is denied when false. */
   readonly interactive: boolean;
-  /** Signed into every ask, so a later change of policy is visible when the approval is used. */
+  /** Carried on every ask, so a later change of policy shows when an approval is checked against it. */
   readonly policyVersion: string;
   /** The tools `accept_edits` allows, by name or alias. Default `write`, `edit`, `multi_edit` and `apply_patch`. */
   readonly editTools?: readonly string[];
