@@ -1,0 +1,13 @@
+# @buildanagent/cli
+
+> The buildanagent command line: runs the harness in a terminal.
+
+The sections of README.md and every public export, generated from this package's README and declaration files in the same commit as its code.
+
+## Docs
+
+- [The `buildanagent` command comes next](README.md#the-buildanagent-command-comes-next)
+
+## Exports from `@buildanagent/cli`
+
+- `PACKAGE_NAME`: `@buildanagent/cli`, the buildanagent command line, which runs the harness in a terminal.

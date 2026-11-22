@@ -1,0 +1,211 @@
+# @buildanagent/agent-safety
+
+> Safety core for buildanagent agents: typed write outcomes the model can read, a canonical input hash, signed approvals, model calls on the user's own key and a USD cap checked before each model call.
+
+The sections of README.md and every public export, generated from this package's README and declaration files in the same commit as its code.
+
+## Docs
+
+- [A failed write reports one of five outcomes](README.md#a-failed-write-reports-one-of-five-outcomes)
+- [Build an outcome with `writeOutcome()`](README.md#build-an-outcome-with-writeoutcome)
+- [The model reads a sentence and a payload](README.md#the-model-reads-a-sentence-and-a-payload)
+- [Use an outcome as an AI SDK tool result](README.md#use-an-outcome-as-an-ai-sdk-tool-result)
+- [Hash a tool input with `canonicalInputHash()`](README.md#hash-a-tool-input-with-canonicalinputhash)
+- [A write gets its identity before it runs, and a crash leaves it `unknown`](README.md#a-write-gets-its-identity-before-it-runs-and-a-crash-leaves-it-unknown)
+- [Declare a business key for every tool that sends, submits, pays or deletes](README.md#declare-a-business-key-for-every-tool-that-sends-submits-pays-or-deletes)
+- [Say how a retry finds the first attempt with `dedupe`](README.md#say-how-a-retry-finds-the-first-attempt-with-dedupe)
+- [Keep effect records in a store that outlives the process](README.md#keep-effect-records-in-a-store-that-outlives-the-process)
+- [Pick a durable store for the target: Durable Object SQLite, DynamoDB or Postgres](README.md#pick-a-durable-store-for-the-target-durable-object-sqlite-dynamodb-or-postgres)
+- [On Cloudflare, repair an interrupted write as `unknown`](README.md#on-cloudflare-repair-an-interrupted-write-as-unknown)
+- [An approved call runs only after its signed pause verifies](README.md#an-approved-call-runs-only-after-its-signed-pause-verifies)
+- [`recheck` lets current policy stop an approved call](README.md#recheck-lets-current-policy-stop-an-approved-call)
+- [Use a persistent key ring wherever a pause can resume in another process](README.md#use-a-persistent-key-ring-wherever-a-pause-can-resume-in-another-process)
+- [Keep pending requests where the resume can find them](README.md#keep-pending-requests-where-the-resume-can-find-them)
+- [On Cloudflare, settle denied approvals before the next turn](README.md#on-cloudflare-settle-denied-approvals-before-the-next-turn)
+- [Sign and verify a pause without an SDK](README.md#sign-and-verify-a-pause-without-an-sdk)
+- [One signed approval covers a whole plan whose pivot can't be undone](README.md#one-signed-approval-covers-a-whole-plan-whose-pivot-cant-be-undone)
+- [Classify every step as compensable, the pivot, or retryable](README.md#classify-every-step-as-compensable-the-pivot-or-retryable)
+- [List in `state` every value the plan's inputs were computed from](README.md#list-in-state-every-value-the-plans-inputs-were-computed-from)
+- [Show the card, then sign the plan the person approved](README.md#show-the-card-then-sign-the-plan-the-person-approved)
+- [Verify the approval before every step](README.md#verify-the-approval-before-every-step)
+- [The ledger lets each step pass once, in order](README.md#the-ledger-lets-each-step-pass-once-in-order)
+- [`runPlan()` runs the approved plan and says what is true afterwards](README.md#runplan-runs-the-approved-plan-and-says-what-is-true-afterwards)
+- [Every model call carries the user's own key, or it fails](README.md#every-model-call-carries-the-users-own-key-or-it-fails)
+- [`egressGuard()` checks each request on its way out](README.md#egressguard-checks-each-request-on-its-way-out)
+  - [An authenticated Cloudflare AI Gateway takes one more credential, set on purpose](README.md#an-authenticated-cloudflare-ai-gateway-takes-one-more-credential-set-on-purpose)
+- [Run model calls through Cloudflare AI Gateway with `byok_only`, never through Vercel AI Gateway](README.md#run-model-calls-through-cloudflare-ai-gateway-with-byok_only-never-through-vercel-ai-gateway)
+- [A model call that could pass the USD cap is never sent](README.md#a-model-call-that-could-pass-the-usd-cap-is-never-sent)
+- [Cap each run with a fresh `Spend`, and the session with a shared one](README.md#cap-each-run-with-a-fresh-spend-and-the-session-with-a-shared-one)
+- [The root entry loads without any third-party SDK](README.md#the-root-entry-loads-without-any-third-party-sdk)
+
+## Exports from `@buildanagent/agent-safety`
+
+- `ALLOWED_RETRIES`: The retry rules each kind allows, as `AllowedRetry` lists them.
+- `interface AllowedRetry`: The retry rules each outcome kind allows.
+- `interface ApprovalSigner`: Signs and verifies the payload of a pending request.
+- `canonicalInputHash()`: Hashes a tool input: the SHA-256 of its canonical JSON (RFC 8785), as 64 lowercase hex digits.
+- `checkModelRoutes()`: Checks the model routes a deploy configures and reports every problem, so a deploy gate can fail on any of them.
+- `CLOUDFLARE_AI_GATEWAY_HOST`: The host of Cloudflare AI Gateway's provider endpoints, as in `https://gateway.ai.cloudflare.com/v1/…`.
+- `CLOUDFLARE_GATEWAY_TOKEN_HEADER`: The header that carries the token of a Cloudflare AI Gateway with authentication turned on.
+- `CLOUDFLARE_NO_WHOLESALE_HEADER`: The header that tells Cloudflare AI Gateway never to bill a request to Cloudflare's own credentials.
+- `interface CloudflareAiGatewaySettings`: The Cloudflare AI Gateway settings a route through that gateway must record.
+- `CREDENTIAL_HEADERS`: Headers that carry a credential for some model provider or gateway.
+- `type CredentialHeader`: The header that carries a provider's key: `x-api-key` for Anthropic, `authorization` for OpenAI.
+- `DEFAULT_RETRY`: The retry rule each kind gets when the tool sets none: a rejected write may run again with the same key, an undone one only as a new operation, a partial one goes to a person, and an unknown one is checked first.
+- `type EffectClaim`: What `begin()` and `takeOver()` return: `"started"` if the caller now holds the record, or the record that won.
+- `effectKey()`: Returns the effect key of a write, as 64 lowercase hex digits.
+- `interface EffectRecord`: One write's entry in the effects ledger.
+- `interface EffectScope`: Where a write was asked for: the tenant, the session and branch of the conversation, and the model's tool call.
+- `interface EffectStore`: Stores effect records by key.
+- `interface EgressCredential`: The one credential a guarded request must carry.
+- `egressGuard()`: Wraps `fetch` so a model request leaves only for `baseURL` and only with `credential`.
+- `interface EgressGuardOptions`: The options of `egressGuard()`.
+- `ephemeralSigner()`: A signer whose key is random and lives only in this process: every call in one process returns the same signer, and no other process can verify what it signs.
+- `guardedWrite()`: Runs a write at most once per effect key.
+- `interface GuardedWriteOptions`: The options of `guardedWrite()`.
+- `hmacSigner()`: A signer over a key ring, for any host where a pause may resume in another process: it signs with the key named `current` and verifies with any key in `keys`.
+- `interface HmacSignerOptions`: The options of `hmacSigner()`: every key the signer may verify with, by id, and the id of the one it signs with.
+- `isSafetyError()`: True for a `SafetyError`, including one from another copy of the package.
+- `interface KeyRing`: A key ring: every key a signer may verify with, by id, and the id of the key that signs.
+- `interface KeyStore`: A host's key ring store.
+- `lintPlan()`: Checks the order of a plan's steps: every compensable step comes before the pivot, a plan has at most one pivot, and every retryable step comes after it, so a plan without a pivot holds compensable steps only.
+- `memoryEffectStore()`: An `EffectStore` in this process's memory, for tests and single-process hosts.
+- `memoryPendingStore()`: A `PendingStore` in this process's memory, for tests and single-process hosts.
+- `interface MemoryPendingStoreOptions`: The options of `memoryPendingStore()`.
+- `memoryPlanLedger()`: A `PlanLedger` that keeps each plan's progress in memory, for tests and single-process hosts.
+- `MIN_KEY_BYTES`: The shortest key `hmacSigner()` accepts: one SHA-256 output, the length RFC 2104 recommends as the minimum.
+- `MODEL_ROUTE_SETTINGS_AS_OF`: The date of the gateway documentation the checker's setting names come from: Cloudflare AI Gateway's Unified Billing page (`byok_only`, "Require provider credentials") and Vercel AI Gateway's BYOK page ("Fallback to Vercel Keys").
+- `interface ModelRoute`: One model route a deploy configures: which provider, at which base URL, and the gateway's settings if it has one.
+- `interface ModelRouteProblem`: One reason a configuration failed.
+- `type ModelRouteProblemCode`: Why a configuration failed.
+- `type ModelRouteProvider`: The providers a model route may name.
+- `interface ModelRoutesConfig`: The model routes a deploy step produces, which `checkModelRoutes()` reads.
+- `interface ModelRoutesReport`: What `checkModelRoutes()` found.
+- `OUTCOME_KINDS`: The five outcome kinds, in the order the docs list them.
+- `interface OutcomeFields`: The fields every write outcome carries, whatever its kind.
+- `type OutcomeKind`: What a write did.
+- `type OutcomePayload`: The structured half of a rendered outcome: the outcome's own fields, as plain JSON.
+- `parseKeyRing()`: Reads a key ring from JSON text such as a secret's value: `{"current":"2026-11","keys":{"2026-11":"<key>"}}`, where each key is base64url without padding.
+- `interface PendingCall`: The call a host is about to run, which a pending request must match before it runs.
+- `interface PendingFields`: The fields `signPending()` signs and stores, with the call's input in place of its hash.
+- `pendingPayload()`: The bytes a pending request's signature covers: a JSON array of a fixed tag, then the request id, kind, call id, tool name, input hash and policy version, in that order, with `null` for an absent policy version.
+- `interface PendingStore`: Holds signed pending requests by call id.
+- `interface PlanApproval`: A signed plan approval.
+- `planCard()`: Builds the approval card for a plan, from the same fields you will pass to `signPlan()` once the person approves.
+- `interface PlanCard`: The approval card's payload: the steps in the order they run, the pivot's id, and the state the plan read.
+- `interface PlanCardStep`: One step as the approval card shows it.
+- `type PlanFailureReason`: Why a plan that began could not finish.
+- `interface PlanFields`: The plan a person approved: its steps, the state it was computed from, and how long the approval lasts.
+- `interface PlanLedger`: Records which steps of each plan have passed verification.
+- `type PlanLint`: What `lintPlan()` returns: `ok`, or every problem it found with the order of the steps.
+- `type PlanOutcome`: What a plan did, computed by the harness and never by the model.
+- `type PlanScope`: Where a plan runs: the tenant, session and branch its writes are keyed under.
+- `interface PlanStep`: One signed step of a plan: its tool and the hash of its exact input, with a summary for the approval card.
+- `interface PlanStepCall`: The step a host is about to run, as it has the step now, not as the approval records it.
+- `type PlanStepCheck`: What `verifyPlanBeforeStep()` found.
+- `interface PlanStepImpl`: One signed step as the host runs it: the step, its exact input and the calls that perform and undo it.
+- `interface PlanStepInit`: A step as the host plans it, with its input in place of the input's hash.
+- `planWriteOutcome()`: The write outcome a plan outcome stands for, in the five kinds the model already reads: `completed` is `applied`, `failed_compensated` is `compensated`, `failed_needs_human` is `partial`, `pending` is `unknown`, and the three statuses that mean no step ran are `not_applied`.
+- `type Recheck`: Runs current policy for an approved call just before it runs, after its pending request has verified.
+- `type RejectionCause`: Why `verifyResolution()` refused.
+- `interface RenderedOutcome`: A write outcome as the model reads it.
+- `renderOutcome()`: Renders a write outcome for the model: sentences that name what happened, what to do next and what not to do, the outcome's fields as a JSON payload, and whether the provider's error flag should be set.
+- `renderPlanOutcome()`: Renders a plan outcome for the model: `planWriteOutcome()` through `renderOutcome()`.
+- `type Resolution`: A person's answer to a pending request: allow or deny for an approval, an answer for a clarification.
+- `type ResolutionCheck`: What `verifyResolution()` returns: the resolution, once every check passed, or why it refused.
+- `type Retry`: When the same write may run again.
+- `runPlan()`: Runs the approved plan, in order, and reports what is true afterwards.
+- `interface RunPlanOptions`: The options of `runPlan()`.
+- `class SafetyError`: Thrown for a mistake in how the safety package is called, and, as its subclass `BudgetExceeded`, for a model call refused under a USD cap.
+- `type SafetyErrorCode`: Why a `SafetyError` was thrown.
+- `interface SignedPendingRequest`: A pause waiting for a person: an approval of one tool call, or a question about it.
+- `signerFromKeyStore()`: Loads the ring from `store` and returns `hmacSigner()` over it.
+- `signPending()`: Signs a pending request for a tool call.
+- `interface SignPendingOptions`: Where `signPending()` takes its request id and time from.
+- `signPlan()`: Signs a plan approval.
+- `interface SignPlanOptions`: Where `signPlan()` takes its plan id and time from.
+- `stateHash()`: Hashes the values a plan was computed from: the SHA-256 of the canonical JSON (RFC 8785) of each value with its source and key, in order, under a fixed tag, as 64 lowercase hex digits.
+- `interface StateRead`: A value the plan was computed from: where to read it, and under which key.
+- `interface StateValue`: A value the plan read, with where it was read from.
+- `type StepClass`: How a step behaves if the plan fails.
+- `verifyPlanBeforeStep()`: Checks a plan approval before one of its steps runs, failing closed.
+- `interface VerifyPlanStepOptions`: The options of `verifyPlanBeforeStep()`.
+- `verifyResolution()`: Checks a resolution against its stored pending request before the call runs, failing closed.
+- `interface VerifyResolutionOptions`: The options of `verifyResolution()`.
+- `type WriteDedupe`: How a retry can find out what an earlier attempt of the write did.
+- `writeOutcome()`: Builds a write outcome, filling in the defaults and checking every field.
+- `type WriteOutcome`: What a write reports: one of the five kinds, with its retry rule and what the model should do next.
+- `type WriteOutcomeInit`: The input to `writeOutcome()`.
+- `type WriteOutcomeOf`: A write outcome of one kind, whose `retry` is one of the rules that kind allows.
+
+## Exports from `@buildanagent/agent-safety/ai`
+
+- `interface ApprovalRejection`: What `onRejected` receives when an approved call is denied.
+- `type ApprovalRejectionCause`: Why `signedToolApproval()` denied an approved call: one of `verifyResolution()`'s causes, `unknown_request` when the store holds no pending request for the call, `policy_denied` when current policy or `recheck` said no, or `error` when a step threw.
+- `repairInterruptedWrite()`: Returns `part` settled as `output-available` with an `unknown` write outcome as its output, if its tool is one of `writes` and `execute` may have started, or `undefined` for any other tool or a part still streaming its input or awaiting approval, so the caller keeps the default repair for those.
+- `settleDeniedApprovals()`: Returns `messages` with every tool part whose call id is in `denied`, and whose state is still `approval-responded`, moved to `output-denied` with its approval marked `approved: false`, as `ai`'s UI message types and validator require for that state.
+- `signedToolApproval()`: Wraps an approval policy so every approval is signed, fails closed on resume, and is checked against current policy before the approved call runs.
+- `interface SignedToolApprovalOptions`: The options of `signedToolApproval()`.
+- `toAiToolResult()`: Turns a write outcome into the result the model reads, for use as a tool's `toModelOutput`.
+
+## Exports from `@buildanagent/agent-safety/byok`
+
+- `assertNoDefaultProvider()`: Makes every string model id fail with a `SafetyError`, code `default_provider`, before any request.
+- `explicitProvider()`: Builds an Anthropic provider on the user's key and base URL alone.
+- `type ExplicitProviderName`: The providers `explicitProvider()` builds.
+- `interface ExplicitProviderOptions`: The options of `explicitProvider()`.
+
+## Exports from `@buildanagent/agent-safety/cost`
+
+- `class BudgetExceeded`: Thrown by a cost guard instead of sending a model call.
+- `budgetRefusal()`: The `BudgetExceeded` behind an error from `generateText`, `streamText` or an agent, or `undefined` when the error isn't a budget refusal.
+- `type BudgetRefusalCode`: Why a call was refused: its projection would pass the cap, or its price is unknown, so the cap can't be checked.
+- `interface BudgetRefusalInit`: What a refusal reports.
+- `costGuard()`: A language-model middleware that caps what calls through it may spend.
+- `interface CostGuardOptions`: Options for `costGuard()`.
+- `interface FileRef`: A file a request points at, by URL or by provider reference, so the request holds none of its bytes.
+- `type FileSize`: What the caller knows of a file's size: its bytes, or its pages.
+- `type FileSizer`: Looks up the size of a file a request points at, or returns `undefined` when it isn't known.
+- `type GuardableModel`: A language model the AI SDK accepts: a `LanguageModelV4`, `LanguageModelV3` or `LanguageModelV2`.
+- `type GuardableProvider`: A provider the AI SDK accepts: a `ProviderV4`, `ProviderV3` or `ProviderV2`.
+- `interface GuardedCall`: One call the guard let through, reported once its cost is known.
+- `guardedModel()`: One model with `guards` around it, through the AI SDK's `wrapLanguageModel()`.
+- `type GuardedModel`: A language model wrapped in guards: a `LanguageModelV4`.
+- `guardedProvider()`: The provider with `guards` around each language model it returns, through the AI SDK's `wrapProvider()`.
+- `type GuardedProvider`: A provider whose language models all run through the guards: a `ProviderV4`.
+- `memorySpend()`: A `Spend` held in memory, starting at `initialUsd`, which lasts as long as the object does.
+- `interface Spend`: The USD a run or session has spent on model calls so far.
+
+## Exports from `@buildanagent/agent-safety/agents`
+
+
+## Exports from `@buildanagent/agent-safety/stores/cloudflare`
+
+- `createCloudflareTables()`: Creates the two tables if they are not there, as every store of this module needs; call it once per object.
+- `durableObjectEffectStore()`: An `EffectStore` on Durable Object SQLite.
+- `durableObjectPlanLedger()`: A `PlanLedger` on Durable Object SQLite.
+- `interface SqlCursorLike`: What a query returns here: the rows, and `RETURNING` makes the written ones count.
+- `interface SqlStorageLike`: The part of `SqlStorage` (`ctx.storage.sql`) these stores use.
+
+## Exports from `@buildanagent/agent-safety/stores/postgres`
+
+- `createPostgresTables()`: Creates the two tables if they are not there.
+- `interface PgClientLike`: The part of a Postgres client these stores use.
+- `POSTGRES_SCHEMA`: The statements that create the two tables.
+- `postgresEffectStore()`: An `EffectStore` on Postgres.
+- `postgresPlanLedger()`: A `PlanLedger` on Postgres.
+
+## Exports from `@buildanagent/agent-safety/stores/dynamodb`
+
+- `dynamoEffectStore()`: An `EffectStore` on DynamoDB.
+- `dynamoPlanLedger()`: A `PlanLedger` on DynamoDB.
+- `interface DynamoStoreOptions`: The options of the DynamoDB stores.
+
+## Exports from `@buildanagent/agent-safety/testing`
+
+- `interface EffectStoreCase`: One conformance case: a name a test runner can show, and a check that rejects if the store breaks the rule.
+- `effectStoreConformance()`: The cases every `EffectStore` must pass.
+- `interface PlanLedgerCase`: One conformance case: a name a test runner can show, and a check that rejects if the ledger breaks the rule.
+- `planLedgerConformance()`: The cases every `PlanLedger` must pass.
+- `TEST_KEY_ID`: The key id of `testSigner()`.
+- `testSigner()`: A signer with a fixed, published key, for tests and fixtures: every process produces the same signatures, so a signed pause can be checked into a test.

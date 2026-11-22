@@ -7,6 +7,7 @@ import "../ai-approval.test.js";
 import "../ai-effects.test.js";
 import "../cost-guard.test.js";
 import "../effects.test.js";
+import "../examples.test.js";
 import "../gateway-token.test.js";
 import "../hash.test.js";
 import "../outcome-types.test.js";

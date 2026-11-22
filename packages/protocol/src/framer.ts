@@ -50,6 +50,7 @@ export class JsonlFramer {
     this.#maxLineBytes = options.maxLineBytes ?? DEFAULT_MAX_LINE_BYTES;
   }
 
+  /** Takes the next chunk of the stream and returns a result for each line it finished, in order. */
   push(chunk: Uint8Array): FramedMessage[] {
     const out: FramedMessage[] = [];
     let start = 0;

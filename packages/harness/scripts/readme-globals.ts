@@ -1,0 +1,37 @@
+// The names the README's TypeScript blocks use without defining them, for scripts/docs-check.mjs, which type-checks
+// each block as a module beside this file. A block's own imports and declarations shadow these.
+import type * as gateway from "@buildanagent/gateway";
+import type * as context from "@buildanagent/harness/context";
+import type * as file from "@buildanagent/harness/context/file";
+import type * as extensions from "@buildanagent/harness/extensions";
+import type * as sandbox from "@buildanagent/harness/sandbox";
+import type * as server from "@buildanagent/harness/server";
+import type * as session from "@buildanagent/harness/session";
+import type * as tools from "@buildanagent/harness/tools";
+import type * as sdk from "@buildanagent/sdk";
+
+declare global {
+  type AgentEvent = sdk.AgentEvent;
+  type Extension = extensions.Extension;
+  type Model = gateway.Model;
+  type ToolRegistry = tools.ToolRegistry;
+
+  const composeExtensions: typeof extensions.composeExtensions;
+  const createContextPolicy: typeof context.createContextPolicy;
+  const createDispatcher: typeof server.createDispatcher;
+  const createHarness: typeof server.createHarness;
+  const fileSpillStore: typeof file.fileSpillStore;
+  const inProcessTransport: typeof server.inProcessTransport;
+  const recordsOf: typeof extensions.recordsOf;
+  const registerExtensionTools: typeof extensions.registerExtensionTools;
+
+  const SYSTEM: string;
+  const audit: (entry: unknown) => void;
+  const controller: AbortController;
+  const harness: server.Harness;
+  const index: session.SessionIndex;
+  const lock: session.SessionLock;
+  const policy: sandbox.SandboxPolicy;
+  const spill: context.SpillStore;
+  const store: session.SessionStore;
+}
