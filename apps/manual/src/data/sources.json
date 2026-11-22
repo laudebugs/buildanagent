@@ -955,6 +955,51 @@
     "verifiedIn": "docs/research/reversible-actions/fact-check-sagas.md"
   },
   {
+    "id": "cloudflare-durable-object-alarms",
+    "title": "Durable Objects Alarms API",
+    "publisher": "Cloudflare documentation",
+    "url": "https://developers.cloudflare.com/durable-objects/api/alarms/",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/deployment/fact-check-portable-agents.md"
+  },
+  {
+    "id": "cloudflare-workflows-limits",
+    "title": "Workflows limits",
+    "publisher": "Cloudflare documentation",
+    "url": "https://developers.cloudflare.com/workflows/reference/limits/",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "docs/research/deployment/fact-check-storage-and-wake.md"
+  },
+  {
+    "id": "github-webhook-best-practices",
+    "title": "Best practices for using webhooks",
+    "publisher": "GitHub Docs",
+    "url": "https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/durable-and-portable-agents.md"
+  },
+  {
+    "id": "twelve-factor-trigger-from-anywhere",
+    "title": "Factor 11: Trigger from anywhere, meet users where they are",
+    "publisher": "HumanLayer, 12-factor agents",
+    "url": "https://github.com/humanlayer/12-factor-agents/blob/d20c728368bf9c189d6d7aab704744decb6ec0cc/content/factor-11-trigger-from-anywhere.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/durable-and-portable-agents.md"
+  },
+  {
+    "id": "adr-0033-deployment-targets",
+    "title": "0033. Run the SDK and harness on Cloudflare, AWS and Vercel, proved by one conformance suite, with Cloudflare first",
+    "publisher": "buildanagent, architecture decision records",
+    "url": "https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0033-three-deployment-targets.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/durable-and-portable-agents.md"
+  },
+  {
     "id": "pi-session-format",
     "title": "Session File Format",
     "publisher": "Pi documentation",

@@ -194,7 +194,7 @@ Every typings claim below was read in the installed package under `verify/<sdk>/
 | 129 | Teach ¶2 | The three analogy breaks, quoted | [T36](../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md), analogy table | ✅ All three verbatim |
 | 130 | Teach ¶3 | The exercise, quoted | [T36](../../todos/ready/T36-chapter-retrieval-and-long-term-memory.md), Scope | ✅ Verbatim |
 | 131 | Teach ¶4 | The Mem0 and Zep figures for the same system differ by 17 points | Rows 96–97: 75.14% against 58.44% | ✅ 16.7 points, rounded |
-| 132 | Examples ¶1 | T41 asks for "keyword search or a vector index with deterministic embeddings" and no new dependency without approval | [T41](../../todos/ready/T41-example-retrieval.md) | ✅ Both verbatim |
+| 132 | Examples ¶1 | T41 asks for "keyword search or a vector index with deterministic embeddings" and no new dependency without approval | [T41](../../todos/done/T41-example-retrieval.md) | ✅ Both verbatim |
 | 133 | Examples ¶1 | BM25 fits in a few dozen lines of TypeScript | Our estimate from the formula in Robertson and Zaragoza ([DOI 10.1561/1500000019](https://doi.org/10.1561/1500000019)) and SQLite's statement of it | ⚠️ (inferred) An estimate, to be confirmed when T41 is written |
 | 134 | Examples ¶2 | `09-long-term-store.ts` writes and reads a fact inside one run | [09-long-term-store.ts](../../../verify/langchain/examples/09-long-term-store.ts) | ✅ One `createAgent(...).invoke(...)` |
 | 135 | Examples ¶3 | No example has tested FTS5 in local workerd | `verify/cloudflare-agents/examples/*.ts` | ✅ `02-sql.ts` searches with `LIKE`; no example creates an FTS5 table |
