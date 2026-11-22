@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L6` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-19) |
 | Depends on | [L1](../done/L1-build-dist-packages.md), [L5](../done/L5-docs-app.md) |
