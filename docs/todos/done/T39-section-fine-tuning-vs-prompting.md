@@ -55,7 +55,7 @@ U21's report settled the scope, and the owner approved its proposed changes on 2
 ## Acceptance criteria
 
 - [x] The chapter still builds with every check passing, the analogy check included
-- [ ] `apps/manual/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
+- [x] `apps/manual/fact-checks/talking-to-a-model.md` has the section's rows and the re-check rows, with an updated tally
 - [ ] The pull request records the 5C and voice scores, before and after
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
@@ -74,7 +74,7 @@ The book's build and `check:book` in the CI `book` job.
 
 ## Outcome
 
-Chapter T11 gained one section after its model-choice section, "Tune a model only for a behaviour gap that prompting could not close, and treat the tuned model as a new model", with four subsections in the todo's order: tuning changes behaviour more than knowledge, prompt and measure first, a tuned model is a new model with a short life, and deployed agents mostly prompt. It opens with the course-versus-brief analogy (registered in `analogies.json`, both break notes in the text), shows T28's tuned-versus-cached listing with its replay, and keeps the provider status of November 2026 in one dated box, `tuning-offers-november-2026`. It adds 21 sources and one glossary term, `fine-tuning`. Rows 130 to 176 of the chapter's fact-check log hold the section's claims: 37 confirmed, 10 ours, none corrected. Every paper was read in full, and every provider claim has its own row with its URL and the date read. The writing review and the code reviews are left to the pull request.
+Chapter T11 gained one section after its model-choice section, "Tune a model only for a behaviour gap that prompting could not close, and treat the tuned model as a new model", with four subsections in the todo's order: tuning changes behaviour more than knowledge, prompt and measure first, a tuned model is a new model with a short life, and deployed agents mostly prompt. It opens with the course-versus-brief analogy (registered in `analogies.json`, both break notes in the text), shows T28's tuned-versus-cached listing with its replay, and keeps the provider status of November 2026 in one dated box, `tuning-offers-november-2026`. It adds 21 sources and one glossary term, `fine-tuning`. Rows 130 to 181 of the chapter's fact-check log hold the section's claims and the first code review's re-checks: 42 confirmed, 10 ours, none corrected. Every paper was read in full, and every provider claim has its own row with its URL and the date read. The writing review and the code reviews are left to the pull request.
 
 ## Definition of done
 

@@ -203,7 +203,7 @@ OpenAI is closing its tuning platform. Organisations that had never tuned lost a
 
 Anthropic lists no tuning page in its documentation index, so we take it that its own API offers no tuning. Claude 3 Haiku was tunable in Amazon Bedrock from 1 November 2024 [@anthropic-fine-tune-haiku]. The Claude API retired that model on 20 April 2026 [@anthropic-model-deprecations], and Bedrock's lifecycle page gives it an end-of-life date of 10 September 2026 in us-west-2 [@bedrock-model-lifecycle].
 
-Google alone still tunes models, on its enterprise platform: supervised fine-tuning, preference tuning and reinforcement learning fine-tuning on the Gemini models its tuning page lists, from 3.8 Flash down to the 2.5 models that retire in 2026, and none in the Gemini API [@google-tuning-intro; @gemini-api-model-tuning].
+Of these three providers, only Google still tunes models, on its enterprise platform: supervised fine-tuning, preference tuning and reinforcement learning fine-tuning on the Gemini models its tuning page lists, from 3.8 Flash down to the 2.5 models that retire in 2026, and none in the Gemini API [@google-tuning-intro; @gemini-api-model-tuning].
 
 When a later edition updates this book, this box is the one place that changes.
 :::
