@@ -132,12 +132,18 @@ The planned opening type is `analogy` (the outline's previous chapter, events an
 | 73 | The Pi replay's third request carries neither "Refine it." nor "Refined plan A."; both remain in the session's entries (example lines 28 to 31) and the model's own path leaves them out (line 32) | § One append-only tree | ✅ | Split of one sentence into three with the same line citations as before; rechecked against `verify/pi/examples/05-session-tree.ts`, whose checks sit at lines 28 to 31 and 32, as row 7 records. |
 | 74 | In Pi, going back to an earlier entry writes nothing, and the next entry written there starts a second path beside the first; our harness's `checkout` instead appends a `checkout` entry (the intro had said it of every harness) | Chapter intro; section 2 table | ✏️ | Pi: row 73 and the example's `branch()` checks (`verify/pi/examples/05-session-tree.ts` lines 28 to 32). Ours: `packages/harness/README.md`, "HEAD is in the log" bullet (`checkout(id)` appends a `checkout` entry). The sentence is now scoped to Pi, and the table row already says what our harness writes. |
 | 75 | Compaction shortens one window, and a task too big for one window cannot fit into one summary; the source's number is 200 features, not 200 windows | Section 4 | ✏️ | The Anthropic long-running-harness post gives over 200 features as the example job (row 69); it says nothing about 200 context windows, so that figure was ours and is cut |
+| 76 | Our harness builds the first two context layers, the write cap and masking, and none of the other three; the chapter said as of the plan that the context component was an empty stub | Chapter intro; § Context policy | ✏️ | [`packages/harness/src/context/`](https://github.com/laudebugs/buildanagent/tree/e4c394665349d76b4d6ada7a50d40f09b0cffd22/packages/harness/src/context) at commit e4c3946 holds `policy.ts` (`createContextPolicy`), `cap.ts`, `mask.ts`, `spill.ts` and `file-spill.ts`, and nothing for summarize, mid-turn or overflow retry. Corrects row 68's "empty stub". |
+| 77 | The cap counts the bytes the entry takes in the log, with JSON escaping, plus 1 KiB for the entry's own fields, so a capped result is a little under 64 KiB of plain text | § Context policy | ✅ | `cap.ts` line 45 (`const room = cap - Math.min(ENTRY_RESERVE_BYTES, cap >> 2)`) and `write-cap.ts` line 32 (`ENTRY_RESERVE_BYTES = 1024`); `policy.ts` line 15 (`DEFAULT_CAP_BYTES = 64 * 1024`); the escaped size comes from `escapedBytes()` in `write-cap.ts`. |
+| 78 | The model reads the first part of a capped result and a line that names the spill file, and the stored entry holds the same cut text and the file's path | § Context policy | ✅ | `cap.ts` returns the cut text with a notice that names the path, and `spill: { path, bytes }`; `runner.ts` writes `spill` into the `tool_result` entry from `spillOf()`. README, "Layer 1, the write cap". |
+| 79 | The store refuses an entry over 64 KiB | § Context policy | ✅ | `packages/harness/src/session/errors.ts` line 27: "is ${bytes} bytes, over the store's bound of ${maxBytes}"; `session/store.ts` line 11 (`DEFAULT_MAX_ENTRY_BYTES = 64 * 1024`); README line 197. Kept from the earlier wording of the same sentence. |
+| 80 | Layer 2 shows older tool results as their first 500 characters and a pointer line, and moves its cutoff only every eight messages | § Context policy | ✅ | `policy.ts` line 16 (`keepChars: 500, stepMessages: 8`); `mask.ts` line 16 (`cutoffFor`) and the pointer line in `maskedResult()`. |
+| 81 | While a tool loop holds signed thinking, the cutoff stays where the loop began and nothing in the loop is masked, so the loop's own thinking blocks stay valid | § Context policy | ✅ | `mask.ts` lines 72 to 74: `inLoop` is true when a message after the last user message holds signed reasoning, and the cutoff is then `cutoffFor(loopStart + 1)`; the TSDoc above `maskMessages()` gives the reason. The claim is about what our code does; the provider rule it protects against is in the harness plan's HD3 revision. |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 70 |
-| ✏️ corrected | 3 (rows 46, 74 and 75) |
+| ✅ confirmed | 75 |
+| ✏️ corrected | 4 (rows 46, 74, 75 and 76) |
 | ⚠️ unverified, our recommendation or reading, marked as ours in the text | 2 (rows 17 and 59) |
-| Total | 75 |
+| Total | 81 |
