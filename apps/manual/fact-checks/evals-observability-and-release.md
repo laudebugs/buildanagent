@@ -53,3 +53,31 @@ The claims log for [`evals-observability-and-release.md`](../src/content/chapter
 | 27 | Without an approval-wait span, a tool's latency mixes human think-time with machine time | § A run's spans | ✅ | Harness guide §9: "elsewhere tool latency mixes human think-time with machine time" |
 | 28 | The figure's mapping (`turn_start` to `turn_end` to `invoke_agent`, `message_end` with `usage` to `chat`, `tool_result` to `execute_tool`, `approval_requested` to `approval_resolved` to approval wait) is the planned projection | Figure `spans-from-log` | ⚠️ | The entry names are `packages/harness/README.md`'s ("The session log holds eighteen entry types"); the span names are the guide §9's and the SDK observer's. The exact pairing is our reading of the plan, since the projection is a stub |
 | 29 | A courier's tracking page is a flat list of stops and does not carry token counts or cost | § A run's spans | ⚠️ | The analogy's own "where it breaks" claim, ours |
+
+## "Four stages behind a graded kill switch carry an agent from the suite to real users"
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 30 | The guide's four stages are the offline gate, two weeks of shadow, a canary on one low-risk queue and general release behind the kill switch, and the durations are our proposals | § Four stages | ✅ | [Agent guide §7](../../../docs/guides/agent.md#7-ship-in-four-stages-behind-a-graded-kill-switch-hand-off-to-people-by-design-and-turn-each-incident-into-a-regression-task): "The durations are our proposals" |
+| 31 | The gate blocks a release on a regression, a safety failure or a cost rise of more than 15% | § Four stages | ✅ | Agent guide §6: "Three conditions block a release … mean cost per task or p95 latency rises by more than 15%"; the thresholds are the guide's proposals, as row 5 notes |
+| 32 | In shadow the agent classifies every ticket and proposes escalations, a gate records each proposal and denies it, and the human decisions become labels; the canary applies labels for one low-risk queue while higher-risk actions still wait for a person | § Four stages | ✅ | Agent guide §7, stages 2 and 3 |
+| 33 | The record-and-deny pattern has no primary source we read, so it is our inference | § Four stages | ⚠️ | Agent guide §7: "no primary source we read describes that record-and-deny pattern, so it is our inference" |
+| 34 | Each session is pinned to one bundle version, the dashboard has one row for each version, the regression suite runs daily against the live provider's endpoint, and every incident ends with a new regression task | § Four stages | ✅ | Agent guide §7, "Recommended design" |
+| 35 | Anthropic describes "rainbow deployments to avoid disrupting running agents, by gradually shifting traffic from old to new versions while keeping both running simultaneously" | § Four stages | ✅ | [How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system), fetched 2026-11-22, verbatim ("we use rainbow deployments to avoid disrupting running agents, by gradually shifting traffic from old to new versions while keeping both running simultaneously") |
+| 36 | Google's SRE Workbook defines canarying as "a partial and time-limited deployment of a change in a service and its evaluation" | § Four stages | ✅ | [Canarying releases](https://sre.google/workbook/canarying-releases/), fetched 2026-11-22, verbatim ("We define canarying as a partial and time-limited deployment of a change in a service and its evaluation") |
+| 37 | The two practitioner blogs the guide read agree on no thresholds, so the durations are ours and a first run should measure the variance they depend on | § Four stages | ✅ | Agent guide §7: "two practitioner blogs, read directly, that agree on no thresholds" and "decision 7 still sizes the stage from measured variance" |
+| 38 | The kill switch can stop one tool, tier or tenant or everything, the pipeline reads it on every call, so it acts mid-run without a deploy; the agent falls back to human-only triage and approval-gated tools fail safe | § Four stages | ✅ | Agent guide §5 (graded kill switch, "reads it on every call, so it acts mid-run without a deploy") and §7 ("The kill switch falls back to human-only triage, and approval-gated tools fail safe"); our design, not a vendor feature |
+| 39 | The switch must stop new side effects without losing the log of those already begun, and a call that started before the switch is recorded and settled | § Four stages | ⚠️ | The analogy's "where it breaks" entry, our design requirement; the settled-outcome link follows the previous chapter's rows on the effect log |
+| 40 | A handoff to a person is a designed outcome, routed by code to a human workflow, needing its own dashboard row and counting as neither a pass nor a fail of the agent | § Four stages | ⚠️ | Agent guide §7: "Handoff to a person is a designed outcome, not a failure path" and its handoff-metrics row; "neither a pass nor a fail" is our wording of how the suite should score it |
+| 41 | Each incident becomes a suite task, so the next release must pass it on every attempt | § Four stages | ✅ | Agent guide §7, "Every incident ends with a new regression task"; pass^5 is the gate (row 5) |
+| 42 | Preview performances let a theatre learn what breaks before the critics arrive; real users are real from the first stage, so the first stage is shadow | § Four stages | ⚠️ | The analogy's own claim and its "where it breaks" entry, ours |
+| 43 | In exercise 1, `grade` is the example's grading function, and a malformed verdict throws and is not counted as a fail | Exercises | ✅ | Rows 13 and 15: `grade` is in the `judge` region and rejects malformed output with `JudgeOutputError` |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 31 |
+| ✏️ corrected | 0 |
+| ⚠️ unverified, our design or an abstract-only paper claim, marked as ours in the text | 12 |
+| Total | 43 |
