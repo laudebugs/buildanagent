@@ -7,6 +7,12 @@
 import { SandboxPolicyMismatchError, SandboxUnsupportedError } from "./errors.js";
 import type { Sandbox, SandboxCapability, SandboxClient, SandboxPolicy, SandboxStop, SandboxTier } from "./types.js";
 
+/**
+ * The method by which `resumeSandbox()` sets the stops of a sandbox whose `stops` is a getter, such as a backend
+ * sandbox's, so that a later `confirm()` still updates what the getter reads. It is internal to the package.
+ */
+export const APPLY_STOPS: unique symbol = Symbol("applyStops");
+
 // Allowlist entries a hosted provider reads as "every host", so a policy holding one leaves egress open.
 const OPEN_EGRESS = new Set(["*", "0.0.0.0/0", "::/0"]);
 
@@ -129,6 +135,12 @@ export async function resumeSandbox(client: SandboxClient, id: string, policy: S
   }
   const sandbox = await client.resume(id, policy);
   const stops = await confirmPolicy(client, sandbox, policy, { dispose: false });
+  const apply = (sandbox as { [APPLY_STOPS]?: (stops: readonly SandboxStop[]) => void })[APPLY_STOPS];
+  if (typeof apply === "function") {
+    // An own `stops` would shadow the getter, so a later confirm() could no longer change what the sandbox reports.
+    apply.call(sandbox, stops);
+    return sandbox;
+  }
   const set = Reflect.defineProperty(sandbox, "stops", { value: stops, enumerable: true, configurable: true });
   if (!set && !sameEntries(sandbox.stops ?? [], stops)) {
     throw new SandboxPolicyMismatchError("stops", { reason: "the resumed sandbox's stops can't be set" });

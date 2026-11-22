@@ -17,6 +17,7 @@ import {
 import { srtSandbox } from "@buildanagent/harness/sandbox/srt";
 import { fakeSandbox, runSandboxConformance, sandboxConformanceCases } from "@buildanagent/harness/testing";
 import { afterAll, test } from "vitest";
+import { BackendSandbox } from "../../src/sandbox/base.js";
 import { fakeRemoteSandbox } from "./fake-remote.js";
 
 // The capabilities and the read-back that hosted backends need, proved on an in-memory stand-in for one. The local
@@ -336,4 +337,39 @@ test("a read-back that throws a mismatch keeps its precise field, with the error
     ((await reject(() => confirmPolicy(fakeRemoteSandbox(), failing, policy))) as SandboxPolicyMismatchError).field,
     "readBack",
   );
+});
+
+test("a resumed backend sandbox's stops follow a later confirm, because resumeSandbox doesn't shadow its getter", async () => {
+  class Resumable extends BackendSandbox {
+    applies: SandboxPolicy;
+    constructor(applies: SandboxPolicy) {
+      super({} as never);
+      this.applies = applies;
+    }
+    exec(): never {
+      throw new Error("not used");
+    }
+    readBack(): Promise<SandboxPolicy> {
+      return Promise.resolve(this.applies);
+    }
+    protected shutDown(): Promise<void> {
+      return Promise.resolve();
+    }
+  }
+  const open: SandboxPolicy = { ...policy, network: { allow: ["*"], deny: [] } };
+  const sandbox = new Resumable(open);
+  const client = {
+    tier: "microvm" as const,
+    stops: ["mistakes" as const],
+    capabilities: ["resume" as const],
+    provision: () => Promise.reject(new Error("not used")),
+    resume: async () => sandbox,
+  };
+  const resumed = await resumeSandbox(client, "sbx-1", open);
+  assert.equal(resumed, sandbox);
+  assert.deepEqual(sandbox.stops, ["mistakes", "hostile_process"], "the resume's stops");
+  assert.equal(Object.hasOwn(sandbox, "stops"), false, "no own property shadows the getter");
+  sandbox.applies = policy;
+  await sandbox.confirm(client, policy);
+  assert.deepEqual(sandbox.stops, ["mistakes", "exfiltration", "hostile_process"], "a later confirm's stops");
 });

@@ -4,7 +4,7 @@
  */
 import { HarnessError } from "../errors.js";
 import { type HostFiles, workingDirectory } from "./host-files.js";
-import { confirmPolicy } from "./policy.js";
+import { APPLY_STOPS, confirmPolicy } from "./policy.js";
 import { checkCommand, checkOptions, type NodeModules } from "./process.js";
 import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, SandboxStop } from "./types.js";
 
@@ -70,6 +70,11 @@ export abstract class BackendSandbox implements Sandbox {
   /** Reads the policy back and checks it against `requested`, or disposes the sandbox and throws on a difference. */
   async confirm(client: SandboxClient, requested: SandboxPolicy): Promise<void> {
     this.applied = await confirmPolicy(client, this, requested);
+  }
+
+  /** Sets the stops a resumed sandbox's confirmed policy delivers, for `resumeSandbox()`. */
+  [APPLY_STOPS](stops: readonly SandboxStop[]): void {
+    this.applied = stops;
   }
 
   async readFile(path: string): Promise<Uint8Array> {
