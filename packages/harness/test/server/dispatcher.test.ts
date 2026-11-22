@@ -206,4 +206,49 @@ describe("the dispatcher", () => {
       joined.pending.map((item) => item.request),
     );
   });
+
+  test("a client callback that throws does not fail the write, the turn or the lock", async () => {
+    const { dispatcher, client, seen } = setup([reply("One."), reply("Two.")]);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    const raw = dispatcher.connect(() => {
+      throw new Error("client gone");
+    });
+    await raw.receive({ jsonrpc: "2.0", id: 1, method: "session/open", params: { session, cwd: "/work" } });
+    await client.request("turn/start", { session, input: text("a") });
+    await settled(seen, 1);
+    assert.equal((await client.request("turn/start", { session, input: text("b") })).accepted, true);
+    await settled(seen, 2);
+  });
+
+  test("an interrupt sent as soon as a turn is accepted stops it, and an early steer is kept", async () => {
+    const { client, seen } = setup([reply("One."), reply("Two.")]);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    await client.request("turn/start", { session, input: text("a") });
+    const steered = await client.request("turn/steer", { session, input: text("b") });
+    assert.equal(steered.accepted, true);
+    assert.deepEqual(await client.request("turn/interrupt", { session }), { interrupted: true });
+    await settled(seen);
+    const settledMessage = seen.find((m) => "method" in m && m.method === "turn/settled");
+    assert.ok(settledMessage !== undefined);
+  });
+
+  test("a client that did not open a session cannot drive it, and a closed dispatcher refuses new turns", async () => {
+    const { dispatcher, client, seen } = setup([reply("One.")]);
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    const other = inProcessTransport(dispatcher);
+    assert.deepEqual(await other.request("turn/start", { session, input: text("a") }), {
+      accepted: false,
+      reason: "invalid",
+    });
+    assert.deepEqual(await other.request("turn/interrupt", { session }), { interrupted: false });
+    await dispatcher.close();
+    assert.deepEqual(await client.request("turn/start", { session, input: text("a") }), {
+      accepted: false,
+      reason: "busy",
+    });
+    assert.equal(seen.length, 0);
+  });
 });

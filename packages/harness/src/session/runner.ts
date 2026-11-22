@@ -532,7 +532,7 @@ export async function runTurn<H = unknown>(
     tools,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model),
-    observers: [observer, ...afterWrites(harness.observers, writer), ...(options.observers ?? [])],
+    observers: [observer, ...afterWrites(harness.observers, writer), ...afterWrites(options.observers, writer)],
     ...optionalRunOptions(options, harness, history),
   });
   options.onRun?.(handle);
