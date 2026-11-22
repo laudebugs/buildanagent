@@ -6,6 +6,7 @@ An example is code a reader will paste into their own agent, so it must be code 
 
 - **MUST:** a page shows a file from `examples/`, never from `test/`. A test may import an example; an example never imports a test.
 - **MUST:** an example does one thing and reads top to bottom. A reader could paste it into an app and run it after changing only the provider config.
+- **MUST:** a page that shows an example in code tabs takes every tab from its own example file ([docs-writing.md](docs-writing.md#use-code-tabs-only-for-one-task-in-two-forms)).
 - **MUST:** a test runs every example offline, on `ScriptedModel` or a mock transport ([testing.md](testing.md)), and fails when the example stops working.
 
 ## An example is written like product code

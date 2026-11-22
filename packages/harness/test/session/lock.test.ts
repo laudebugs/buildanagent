@@ -1,7 +1,7 @@
 // The writer lock: fail fast, a lease that lapses, and staleness that needs both a lapsed lease and a dead process on
 // the same host. The clock, the process check and the host are injected, so no case waits for a real lease.
 import assert from "node:assert/strict";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
@@ -27,6 +27,28 @@ const KEY = { userId: "ada", sessionId: "s1" };
 const lockFile = (dir: string) => join(dir, "ada", "s1.lock");
 const readRecord = (dir: string) =>
   JSON.parse(readFileSync(lockFile(dir), "utf8")) as { pid: number; host: string; token: string; leaseUntil: number };
+
+/**
+ * Polls every 10 ms until `check` holds, and fails with `message` once `deadlineMs` has passed. A renewal runs on a real
+ * timer that a loaded worker can run late, so a fixed sleep would turn scheduling delay into a failure.
+ */
+async function eventually(check: () => boolean, message: string, deadlineMs = 10_000): Promise<void> {
+  const end = Date.now() + deadlineMs;
+  while (!check()) {
+    if (Date.now() > end) assert.fail(message);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+}
+
+/**
+ * Replaces the lock with another holder's record: it writes a new file and renames it over the lock. A renewal that
+ * already has the old file open then writes into the replaced file, so it can't overwrite the takeover.
+ */
+function takeOver(dir: string): void {
+  const next = `${lockFile(dir)}.takeover`;
+  writeFileSync(next, JSON.stringify({ pid: 9, host: "x", token: "someone-else", leaseUntil: Date.now() + 60_000 }));
+  renameSync(next, lockFile(dir));
+}
 
 /** A clock a test moves by hand. */
 function clock(start = 1_000_000) {
@@ -125,19 +147,15 @@ test("a lock from another host is reclaimed only by the force path", async () =>
   );
 });
 
-test("the holder renews the lease, and a renewal that finds another token gives up", async () => {
+test("the holder renews the lease, and a renewal that finds another token gives up", { timeout: 30_000 }, async () => {
   const dir = tempDir();
   const handle = await held(fileLock({ dir, leaseMs: 400, renewMs: 50 }));
   const before = readRecord(dir).leaseUntil;
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  assert.ok(readRecord(dir).leaseUntil > before, "the lease moved on");
+  await eventually(() => readRecord(dir).leaseUntil > before, "the lease moved on");
   assert.equal(handle.held(), true);
-  writeFileSync(
-    lockFile(dir),
-    JSON.stringify({ pid: 9, host: "x", token: "someone-else", leaseUntil: Date.now() + 60_000 }),
-  );
-  await new Promise((resolve) => setTimeout(resolve, 200));
-  assert.equal(handle.held(), false, "the holder noticed the takeover");
+  takeOver(dir);
+  await eventually(() => !handle.held(), "the holder noticed the takeover");
+  await new Promise((resolve) => setTimeout(resolve, 200)); // four renewal periods, in which a stray renewal would write
   assert.equal(readRecord(dir).token, "someone-else", "and left the other lock alone");
 });
 
@@ -200,15 +218,13 @@ test("a renewal can't bring a released lock back, and a release leaves no lock b
   if (again !== "would_block") handles.push(again);
 });
 
-test("a handle that lost its lock can still release without freeing the next holder's lock", async () => {
+test("a handle that lost its lock can still release without freeing the next holder's lock", {
+  timeout: 30_000,
+}, async () => {
   const dir = tempDir();
   const handle = await held(fileLock({ dir, leaseMs: 400, renewMs: 20 }));
-  writeFileSync(
-    lockFile(dir),
-    JSON.stringify({ pid: 9, host: "x", token: "someone-else", leaseUntil: Date.now() + 60_000 }),
-  );
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  assert.equal(handle.held(), false);
+  takeOver(dir);
+  await eventually(() => !handle.held(), "the holder noticed the takeover");
   await handle.release();
   assert.equal(readRecord(dir).token, "someone-else");
 });
