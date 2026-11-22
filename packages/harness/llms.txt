@@ -420,7 +420,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/memory`
 
-- `clearPurgeMarks()`: Removes `marks` from the purge list, once the purges have removed their entries from every session that held them.
+- `clearPurgeMarks()`: Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session that held them.
 - `MEMORY_DIR`: The memory folder, relative to the project root.
 - `MEMORY_EXPIRY_DAYS`: How long a record holds after its last validation, by type and trust, in days.
 - `MEMORY_INDEX_MAX_BYTES`: The most bytes of the index as UTF-8, the heading and the left-out note included.

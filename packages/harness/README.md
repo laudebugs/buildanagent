@@ -824,12 +824,32 @@ A `view` never moves `validated`. A `create` or a `str_replace` sets it to now, 
 **A delete marks the calls that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call, such as a `read` of the record's file, whose input or result names `.agents/memory/` and whose result holds the fact verbatim. A `delete` adds those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id and a tool name. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes marks once every session that held them is purged:
 
 ```ts
-/** Purges every deleted record from each of the user's sessions, then clears the marks the purges applied. */
+/**
+ * Purges every deleted record from each of the user's sessions, then clears only the marks those purges applied. A
+ * session that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter.
+ */
 export async function purgeDeleted(root: string, log: Log, userId: string, sessionIds: readonly string[]) {
   const files = fileMemoryFiles(root);
   const marks = await readPurgeMarks(files);
-  for (const sessionId of sessionIds) await purgeSession({ ...log, key: { userId, sessionId }, marks });
-  await clearPurgeMarks(files, marks);
+  const applied: PurgeMark[] = [];
+  for (let pending = [...sessionIds]; pending.length > 0; ) {
+    const waiting: string[] = [];
+    let conflict: unknown;
+    for (const sessionId of pending) {
+      try {
+        const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
+        if (result.purged) applied.push(...result.marks);
+      } catch (error) {
+        if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
+        waiting.push(sessionId);
+        conflict = error;
+      }
+    }
+    // No session was purged this round, so the forks they wait for are not among `sessionIds`.
+    if (waiting.length === pending.length) throw conflict;
+    pending = waiting;
+  }
+  await clearPurgeMarks(files, applied);
 }
 ```
 
