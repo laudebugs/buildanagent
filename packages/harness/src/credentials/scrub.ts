@@ -69,6 +69,11 @@ function scrubText(text: string, patterns: readonly string[]): string {
   return result;
 }
 
+/** `text` with every form of each secret replaced, for a host-side tool that returns text it fetched. */
+export function scrubString(text: string, secrets: readonly string[]): string {
+  return scrubText(text, forms(secrets));
+}
+
 function scrubValue(value: unknown, patterns: readonly string[]): unknown {
   if (typeof value === "string") return scrubText(value, patterns);
   if (Array.isArray(value)) return value.map((item) => scrubValue(item, patterns));

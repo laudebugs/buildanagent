@@ -200,12 +200,18 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/context/file`
 
 - `fileSpillStore()`: A spill store that writes `<dir>/<user>/<session>/<callId>.txt` and returns that path.
+- `interface FileSpillStore`: A spill store in files, which can also read back the spills of one session.
 
 ## Exports from `@buildanagent/harness/tools`
 
 - `type ApprovalReuse`: Which approvals may cover later calls: a sticky one, a grouped one, both, or none, so each call asks.
+- `BUILTIN_TOOL_DEFAULTS`: The built-in tools' descriptions, limits and defaults, frozen.
+- `BUILTIN_TOOLS_HASH`: The SHA-256 of the canonical JSON of `BUILTIN_TOOL_DEFAULTS`.
+- `builtinTools()`: The built-in tools for one sandbox: `read`, `write`, `edit`, `bash`, `grep`, `glob` and, when `proxy` is given, `fetch`.
+- `interface BuiltinToolsOptions`: The options of `builtinTools()`.
 - `createToolRegistry()`: Creates an empty registry.
 - `class DuplicateToolError`: Thrown by `register()` when a registry already holds a tool, or an alias, by that name.
+- `type FetchProxy`: What the `fetch` tool needs of an egress proxy.
 - `type HostPattern`: How a tool's code is reached: in this process, or by asking the client through a `tool/call` server request.
 - `type OutputTrust`: Whether a tool's output may carry instructions an attacker wrote.
 - `interface PreambleOptions`: The options of `preambleTokens()`.

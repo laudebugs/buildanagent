@@ -43,9 +43,27 @@ export interface FakeSandboxClient extends SandboxClient {
  * The commands the fake runs, in the form `[name, ...arguments]`: `echo` prints its arguments, `env` prints the
  * environment it was given as `NAME=value` lines, `cat <path>` prints a file, `write <path> <text>` writes one,
  * `true` and `false` exit with 0 and 1, `sleep <seconds>` waits and honours the timeout and the signal, and
- * `net-probe <host>` reaches a host only if the policy allows it. Any other command exits with 127.
+ * `net-probe <host>` reaches a host only if the policy allows it. `find <dir>` lists the files under a folder, one per
+ * line or ending in NUL with `-print0`, and leaves out every folder named by a `-name` when the command has `-prune`.
+ * `grep [-i] -e <pattern> -- <file>...` prints each matching line as `file:line:text`, reading the pattern as a
+ * JavaScript regular expression and skipping a file that holds a NUL byte, and exits with 1 when nothing matches.
+ * `bash -c <script>` and `sh -c <script>` split the script on whitespace and run its words as one of these commands,
+ * with no shell syntax. Any other command exits with 127.
  */
-export const FAKE_COMMANDS: readonly string[] = ["echo", "env", "cat", "write", "true", "false", "sleep", "net-probe"];
+export const FAKE_COMMANDS: readonly string[] = [
+  "echo",
+  "env",
+  "cat",
+  "write",
+  "true",
+  "false",
+  "sleep",
+  "net-probe",
+  "find",
+  "grep",
+  "bash",
+  "sh",
+];
 
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
@@ -58,6 +76,12 @@ function normalize(path: string): string {
     else parts.push(part);
   }
   return `/${parts.join("/")}`;
+}
+
+/** The lines of `text` that match, as `grep -n -H` prints them. */
+function matchingLines(file: string, text: string, pattern: RegExp): string {
+  const lines = text.endsWith("\n") ? text.slice(0, -1).split("\n") : text.split("\n");
+  return lines.map((line, index) => (pattern.test(line) ? `${file}:${index + 1}:${line}\n` : "")).join("");
 }
 
 const within = (path: string, root: string): boolean => {
@@ -174,6 +198,13 @@ class FakeSandbox implements Sandbox {
       }
       case "sleep":
         return this.sleep(Number(args[0] ?? 0) * 1000, options);
+      case "find":
+        return this.find(args);
+      case "grep":
+        return this.grep(args);
+      case "bash":
+      case "sh":
+        return this.shell(args, options);
       default:
         return { exitCode: 127, stdout: "", stderr: `command not found: ${name}\n` };
     }
@@ -187,6 +218,53 @@ class FakeSandbox implements Sandbox {
     return data === undefined
       ? { exitCode: 1, stdout: "", stderr: `no such file: ${target}\n` }
       : { exitCode: 0, stdout: DECODER.decode(data), stderr: "" };
+  }
+
+  /** The script's words as one command, so a test can drive a shell tool without a shell. */
+  private shell(args: string[], options: ExecOptions): Promise<ExecResult> {
+    if (args[0] !== "-c") return Promise.resolve({ exitCode: 2, stdout: "", stderr: "the fake shell runs only -c\n" });
+    const [name = "", ...rest] = (args[1] ?? "").trim().split(/\s+/);
+    return this.run(name, rest, options);
+  }
+
+  private find(args: string[]): ExecResult {
+    const start = this.resolve(args[0] ?? ".");
+    const denial = this.readDenial(start);
+    if (denial) return { denied: denial };
+    const named = args.flatMap((arg, index) => (arg === "-name" ? [args[index + 1] ?? ""] : []));
+    const pruned = new Set(args.includes("-prune") ? named : []);
+    const files = [...this.store.keys()]
+      .filter((path) => path === start || path.startsWith(`${start === "/" ? "" : start}/`))
+      .filter(
+        (path) =>
+          !path
+            .slice(start.length)
+            .split("/")
+            .some((part) => pruned.has(part)),
+      )
+      .sort();
+    if (files.length === 0) return { exitCode: 1, stdout: "", stderr: `find: ${start}: No such file or directory\n` };
+    const end = args.includes("-print0") ? "\0" : "\n";
+    return { exitCode: 0, stdout: files.map((path) => `${path}${end}`).join(""), stderr: "" };
+  }
+
+  private grep(args: string[]): ExecResult {
+    const split = args.indexOf("--");
+    const flags = split < 0 ? args : args.slice(0, split);
+    const files = split < 0 ? [] : args.slice(split + 1);
+    const at = flags.indexOf("-e");
+    const pattern = new RegExp(at < 0 ? "" : (flags[at + 1] ?? ""), flags.includes("-i") ? "i" : "");
+    let stdout = "";
+    let stderr = "";
+    for (const file of files) {
+      const target = this.resolve(file);
+      const denial = this.readDenial(target);
+      if (denial) return { denied: denial };
+      const data = this.store.get(target);
+      if (data === undefined) stderr += `grep: ${file}: No such file or directory\n`;
+      else if (!data.includes(0)) stdout += matchingLines(file, DECODER.decode(data), pattern);
+    }
+    return { exitCode: stdout === "" ? (stderr === "" ? 1 : 2) : 0, stdout, stderr };
   }
 
   private writeCommand(path: string, text: string): ExecResult {
