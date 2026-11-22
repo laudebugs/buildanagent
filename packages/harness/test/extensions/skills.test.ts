@@ -270,6 +270,12 @@ describe("parseSkill", () => {
     const parsed = parse("---\nname: other\ndescription: x\n---\n");
     assert.ok("skill" in parsed && parsed.notice?.includes('"demo"'));
   });
+
+  test("the folder is found in a Windows path too", () => {
+    const parsed = parseSkill("---\nname: other\ndescription: x\n---\n", "C:\\p\\.agents\\skills\\demo\\SKILL.md");
+    assert.ok("skill" in parsed && parsed.notice?.includes('folder "demo"'));
+    assert.ok(!("notice" in parseSkill("---\nname: demo\ndescription: x\n---\n", "C:\\p\\skills\\demo\\SKILL.md")));
+  });
 });
 
 describe("skillOfRead", () => {
@@ -281,6 +287,15 @@ describe("skillOfRead", () => {
     assert.equal(skillOfRead(skills, "/work", { path: ".agents/skills/demo/reference.md" }), undefined);
     assert.equal(skillOfRead(skills, "/work", { path: 3 }), undefined);
     assert.equal(skillOfRead(skills, "/work", undefined), undefined);
+  });
+
+  test("matches Windows paths, which discoverSkills() joins with backslashes there", () => {
+    const windows = [{ name: "demo", description: "d", path: "C:\\work\\.agents\\skills\\demo\\SKILL.md" }];
+    assert.equal(skillOfRead(windows, "C:\\work", { path: ".agents\\skills\\demo\\SKILL.md" })?.name, "demo");
+    assert.equal(skillOfRead(windows, "C:\\work\\src", { path: "..\\.agents/skills/demo/SKILL.md" })?.name, "demo");
+    assert.equal(skillOfRead(windows, "D:\\", { file_path: "c:/work/.agents/skills/demo/SKILL.md" })?.name, "demo");
+    assert.equal(skillOfRead(windows, "C:\\work", { path: "D:\\work\\.agents\\skills\\demo\\SKILL.md" }), undefined);
+    assert.equal(skillOfRead(windows, "C:\\", { path: "..\\..\\work\\.agents\\skills\\demo\\SKILL.md" })?.name, "demo");
   });
 });
 

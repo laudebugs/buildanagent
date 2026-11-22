@@ -86,7 +86,8 @@ export function parseSkill(text: string, path: string): ParsedSkill {
       problem: `${path} has a description of ${description.length} characters, past the limit of ${SKILL_DESCRIPTION_MAX}`,
     };
   }
-  const folder = path.split("/").slice(-2, -1)[0];
+  // `discoverSkills()` joins paths with the platform's separator, which is `\` on Windows.
+  const folder = path.split(/[\\/]/).slice(-2, -1)[0];
   const skill: Skill = { name, description, path };
   return folder !== undefined && folder !== name
     ? { skill, notice: `${path} is named "${name}", not after its folder "${folder}"` }
@@ -112,21 +113,35 @@ export function withSkills(system: string, skills: readonly Skill[]): string {
   return section === "" ? system : `${system}\n\n${section}`;
 }
 
-/** `path` made absolute against `cwd` and cleaned of `.` and `..` segments, with `/` separators. */
+/** A Windows drive root such as `C:/`, once `\` is `/`. */
+const DRIVE = /^([A-Za-z]):(?=\/|$)/;
+
+/**
+ * `path` made absolute against `cwd` and cleaned of `.` and `..` segments, with `/` separators. Both `/` and `\` separate
+ * segments, so a Windows path and a POSIX one resolve alike, and a drive root such as `C:\` is kept, with its letter
+ * upper-cased, as Windows ignores its case.
+ */
 function resolvePath(cwd: string, path: string): string {
-  const segments = (path.startsWith("/") ? path : `${cwd}/${path}`).split("/").filter((s) => s !== "" && s !== ".");
+  const slashed = path.replaceAll("\\", "/");
+  const absolute = slashed.startsWith("/") || DRIVE.test(slashed);
+  const full = absolute ? slashed : `${cwd.replaceAll("\\", "/")}/${slashed}`;
+  const drive = DRIVE.exec(full)?.[1];
+  const rest = drive === undefined ? full : full.slice(2);
   const kept: string[] = [];
-  for (const segment of segments) {
+  for (const segment of rest.split("/")) {
+    if (segment === "" || segment === ".") continue;
     if (segment === "..") kept.pop();
     else kept.push(segment);
   }
-  return `/${kept.join("/")}`;
+  return `${drive === undefined ? "" : `${drive.toUpperCase()}:`}/${kept.join("/")}`;
 }
 
 /**
  * The skill whose `SKILL.md` a `read` call opens, or `undefined`. The input names the file in its `path` or
  * `file_path` string, which is taken relative to `cwd` when it is not absolute. Only the skill's own `SKILL.md` counts:
- * reading another file in its folder loads no skill.
+ * reading another file in its folder loads no skill. Windows paths match too: `\` separates segments as `/` does, and
+ * a drive letter's case is ignored. On POSIX a file whose name holds a `\` therefore matches the path with a `/` in its
+ * place, which changes only which reads are recorded.
  */
 export function skillOfRead(skills: readonly Skill[], cwd: string, input: unknown): Skill | undefined {
   if (typeof input !== "object" || input === null) return undefined;
