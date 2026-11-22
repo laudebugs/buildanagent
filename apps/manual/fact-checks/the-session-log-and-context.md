@@ -142,12 +142,21 @@ The planned opening type is `analogy` (the outline's previous chapter, events an
 | 83 | With the default cap and the store's default bound, a capped entry never exceeds the store's bound | § Context policy | ✅ | `writeCapBytes` defaults to 65,536 and `room` is at most cap − 1 KiB (`cap.ts` line 45), and `DEFAULT_MAX_ENTRY_BYTES` is 65,536 (`store.ts` line 11), so the capped content plus the entry's own fields fits. Both settings can be changed, so the sentence says "default"; `packages/harness/test/context/write-cap.test.ts` runs a result of newlines and one of 200 KiB through the real in-memory store. |
 | 84 | The figure's header comment no longer says the layers are all design: layers 1 and 2 are built in `packages/harness` and layers 3 to 5 are still plan | Figure `context-layers.ts` | ✅ | Same evidence as row 76; only a comment changed, so the generated SVG is unchanged. |
 | 85 | When the cutoff is held in a loop, the view still leaves out the signed thinking of earlier turns that follows the first masked result | § Context policy | ✅ | `mask.ts` lines 87 to 91 at e4c3946: assistant messages after the first edited result and before the loop lose their signed reasoning blocks; README, "Layer 2". |
+| 86 | Our harness builds all five context layers; the intro and § Context policy said at row 76 that it built only the first two | Chapter intro; § Context policy | ✏️ | [`packages/harness/src/context/`](https://github.com/laudebugs/buildanagent/tree/0468c21c87ba74e4d0ed1c9aae236ec238b40a40/packages/harness/src/context) at commit 0468c21 holds `summarize.ts` (layers 3 and 5's compaction), `mid-turn.ts` (layer 4) and `policy.ts` (`createContextPolicy`); `session/runner.ts` `retryAfterOverflow()` runs layer 5. Supersedes row 76's "none of the other three". |
+| 87 | A host switches the layers on by handing the harness a context policy | § Context policy | ✅ | `packages/harness/src/harness.ts` at 0468c21: `HarnessOptions.context?: ContextPolicy`; without one a turn sends its whole transcript. |
+| 88 | Layer 3 runs at the start of a turn, before the new input is written, when the context is over a budget | § Context policy | ✅ | `packages/harness/src/session/runner.ts` at 0468c21: `compact()` is called in `runTurnOnce()` after the waiting-calls check and before `writeInput()`. |
+| 89 | The budget defaults to the smaller of the window minus 16,384 tokens and 200,000, and the verbatim tail is about 20,000 tokens | § Context policy | ✅ | `packages/harness/src/context/policy.ts` line 118 (`Math.min(window - RESERVE_TOKENS, MAX_BUDGET_TOKENS)`), with `RESERVE_TOKENS = 16_384` and `MAX_BUDGET_TOKENS = 200_000`; `DEFAULT_TAIL_TOKENS = 20_000` (line 19). Same numbers as the plan's HD3 the chapter cited before. |
+| 90 | The tail starts with an assistant message, so a call is never split from its result | § Context policy | ✅ | `packages/harness/src/context/summarize.ts` line 84: `while (start > 0 && messages[start]?.role !== "assistant") start--`, and its TSDoc above. |
+| 91 | Layer 3 asks a model for a summary through a fixed template with the cache turned off, writes a `usage` entry for the call and then a `compaction` entry | § Context policy | ✅ | `summarize.ts` line 193 (`cacheRetention: "none"`), line 131 (`source: "summary"`) and line 241 (`type: "compaction"`), written in that order by `compact()`; the template is `summary-template.ts` (`SUMMARY_PROMPT_VERSION = "recall-v1"`). |
+| 92 | Layer 4 compacts once, at the first model call whose context would pass 90% of the window, and by default only for windows under 128,000 tokens | § Context policy | ✅ | `policy.ts` lines 75 to 77 (`MID_TURN_RATIO = 0.9`, `MID_TURN_WINDOW = 128_000`), line 126 (`options.layers?.mid_turn ?? window < MID_TURN_WINDOW`) and `mid-turn.ts` lines 96 to 98 (`#tried`: at most once per turn). |
+| 93 | Layer 5 compacts once, whatever the size, and asks the model again; a second overflow ends the turn with that error | § Context policy | ✅ | `policy.ts` line 156 (`layer: "overflow_retry", force: true`); `session/runner.ts` `retryAfterOverflow()` (line 752) runs once after `runTurnOnce()` and uses `continueRun()` (line 793), whose result is returned as it is, so a second overflow is the turn's result. |
+| 94 | The figure script's header comment no longer says layers 3 to 5 are still plan | Figure `context-layers.ts` | ✅ | Same evidence as row 86; only a comment changed, so the generated SVG is unchanged. |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 77 |
-| ✏️ corrected | 6 (rows 46, 74, 75, 76, 81 and 82) |
+| ✅ confirmed | 85 |
+| ✏️ corrected | 7 (rows 46, 74, 75, 76, 81, 82 and 86) |
 | ⚠️ unverified, our recommendation or reading, marked as ours in the text | 2 (rows 17 and 59) |
-| Total | 85 |
+| Total | 94 |
