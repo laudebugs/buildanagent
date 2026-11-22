@@ -72,16 +72,29 @@ export function compareFlows(mock, live) {
   return differences;
 }
 
-/** Compares every listed example; an example without a live transcript counts as one difference. */
-export function compareAll(config, { root = REPO_ROOT, liveDir } = {}) {
+/**
+ * Compares every listed example; an example without a live transcript counts as one difference. When the run's
+ * `report` gives the example an outcome, the difference says the run reached it but its transcript is not here, as
+ * when the workflow's commit stages none of its harness's live transcripts, rather than that it never ran.
+ */
+export function compareAll(config, { root = REPO_ROOT, liveDir, report } = {}) {
+  const outcomes = new Map((report?.examples ?? []).map((e) => [entryName(e), e.outcome]));
   return config.examples.map((example) => {
     const { harness, id, mock, live } = exampleOf(example.file, example.provider);
     const liveFile = liveDir === undefined ? join(root, live) : join(liveDir, harness, example.provider, `${id}.json`);
     const mockFile = join(root, mock);
     const base = { file: example.file, provider: example.provider, model: example.model };
     if (!existsSync(mockFile)) return { ...base, differences: [`No mock transcript at \`${mock}\`.`] };
-    if (!existsSync(liveFile))
-      return { ...base, differences: ["No live transcript: the example recorded no live run."] };
+    if (!existsSync(liveFile)) {
+      const outcome = outcomes.get(entryName(example));
+      const missing =
+        outcome === undefined
+          ? "No live transcript: the example recorded no live run."
+          : `No live transcript is committed: the run reports this example's outcome as ${outcome}, but no ` +
+            `transcript of it is at \`${live}\`, so the book still shows its listing as verified against mock ` +
+            "models only.";
+      return { ...base, differences: [missing] };
+    }
     const read = (file) => flowOf(JSON.parse(readFileSync(file, "utf8")));
     return { ...base, differences: compareFlows(read(mockFile), read(liveFile)) };
   });
@@ -123,9 +136,9 @@ function main() {
       json: { type: "string" },
     },
   });
-  const results = compareAll(readLiveConfig(values.config), { liveDir: values["live-dir"] });
   const report =
     values.report && existsSync(values.report) ? JSON.parse(readFileSync(values.report, "utf8")) : undefined;
+  const results = compareAll(readLiveConfig(values.config), { liveDir: values["live-dir"], report });
   if (values.json) {
     const differences = results.reduce((sum, r) => sum + r.differences.length, 0);
     writeFileSync(values.json, `${JSON.stringify({ differences, examples: results }, null, 2)}\n`);

@@ -48,6 +48,7 @@ import {
   DATE_FILE,
   dateAfter,
   fenced,
+  inIndex,
   mergeReports,
   patchProblems,
   protectionProblems,
@@ -1426,6 +1427,14 @@ test("live-diff counts a missing live transcript as a difference and writes Mark
   assert.match(split, /anthropic `claude-haiku-5-5`, outcome: anthropic outcome/);
   assert.match(split, /openai `gpt-5\.4-mini`, outcome: openai outcome/);
   assert.match(diffMarkdown([{ ...results[0], differences: [] }]), /^All 1 live examples kept the mock's flow/);
+  // An entry the run reached whose transcript is not here says so, rather than that it never ran.
+  const ran = { examples: [{ file: SDK_TRIAGE, provider: "openai", outcome: "ran" }] };
+  const reached = compareAll(config, { liveDir: mkdtempSync(join(tmpdir(), "live-none-")), report: ran });
+  const sdk = reached.find((r) => r.file === SDK_TRIAGE && r.provider === "openai");
+  assert.match(sdk.differences[0], /^No live transcript is committed: the run reports this example's outcome as ran/);
+  assert.match(sdk.differences[0], /verified against mock models only/);
+  const unreached = reached.find((r) => r.file === SDK_TRIAGE && r.provider === "anthropic");
+  assert.equal(unreached.differences[0], "No live transcript: the example recorded no live run.");
 });
 
 test("live-diff exits 0 when the flows differ", () => {
@@ -1472,6 +1481,9 @@ test("the pre-run check passes the environment as set up and stops when its prot
 const reportOf = (providers, complete) => ({ providers, runCap: 1, target: 0.5, spent: 0.1, complete, examples: [] });
 const entry = (dir, report) => ({ provider: artifactProvider(dir), report });
 
+/** A results commit that holds every listed live transcript. */
+const everything = () => true;
+
 test("the date moves to the report job's own date only after every provider's own job completed", () => {
   const before = { lastCompared: "2026-11-30" };
   const both = mergeReports([
@@ -1480,15 +1492,39 @@ test("the date moves to the report job's own date only after every provider's ow
   ]);
   assert.ok(close(both.spent, 0.2));
   assert.deepEqual(both.completed, ["anthropic", "openai"]);
-  assert.deepEqual(dateAfter(both, "2026-12-01", before, config), { lastCompared: "2026-12-01" });
+  assert.deepEqual(dateAfter(both, "2026-12-01", before, config, everything), { lastCompared: "2026-12-01" });
   const one = mergeReports([entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true))]);
-  assert.equal(dateAfter(one, "2026-12-01", before, config), before, "the OpenAI job left no artifact");
+  assert.equal(dateAfter(one, "2026-12-01", before, config, everything), before, "the OpenAI job left no artifact");
   const partial = mergeReports([
     entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true)),
     entry("/tmp/live/live-openai", reportOf(["openai"], false)),
   ]);
-  assert.equal(dateAfter(partial, "2026-12-01", before, config), before);
-  assert.throws(() => dateAfter(both, "yesterday", before, config));
+  assert.equal(dateAfter(partial, "2026-12-01", before, config, everything), before);
+  assert.throws(() => dateAfter(both, "yesterday", before, config, everything));
+});
+
+test("only an entry whose live transcript the results commit holds can move the date", () => {
+  const before = { lastCompared: "2026-11-30" };
+  const both = mergeReports([
+    entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true)),
+    entry("/tmp/live/live-openai", reportOf(["openai"], true)),
+  ]);
+  // Both jobs completed, but the commit holds no transcript, as when the workflow stages none: the date stays.
+  assert.equal(
+    dateAfter(both, "2026-12-01", before, config, () => false),
+    before,
+  );
+  // The commit holds verify/'s transcripts but not our SDK's: those entries count, and move the date.
+  const verifyOnly = (path) => path.startsWith("verify/");
+  assert.deepEqual(dateAfter(both, "2026-12-01", before, config, verifyOnly), { lastCompared: "2026-12-01" });
+  // Only Anthropic's transcripts are held, and only its job completed: the entries that count all completed.
+  const one = mergeReports([entry("/tmp/live/live-anthropic", reportOf(["anthropic"], true))]);
+  const anthropicOnly = (path) => path.includes("/results/live/anthropic/");
+  assert.deepEqual(dateAfter(one, "2026-12-01", before, config, anthropicOnly), { lastCompared: "2026-12-01" });
+  assert.equal(dateAfter(one, "2026-12-01", before, config, everything), before);
+  // The date step asks git's index, where the patches applied: a committed file is there, and a missing one is not.
+  assert.equal(inIndex("apps/manual/src/data/live-examples.json"), true);
+  assert.equal(inIndex("packages/sdk/results/live/no-such-provider/13-triage-agent.json"), false);
 });
 
 test("a provider's job can't claim another provider's completion or examples", () => {
@@ -1503,11 +1539,11 @@ test("a provider's job can't claim another provider's completion or examples", (
   assert.deepEqual(merged.providers, ["openai", "anthropic"]);
   assert.deepEqual(merged.completed, ["openai"]);
   assert.deepEqual(merged.examples, [], "the OpenAI job's report may list only OpenAI examples");
-  assert.equal(dateAfter(merged, "2026-12-01", before, config), before);
+  assert.equal(dateAfter(merged, "2026-12-01", before, config, everything), before);
   // An artifact without the Anthropic job's own directory counts for nothing, whatever it claims.
   const alone = mergeReports([entry("/tmp/live/live-openai", forged), entry("/tmp/live/live-other", forged)]);
   assert.deepEqual(alone.providers, ["openai"]);
-  assert.equal(dateAfter(alone, "2026-12-01", before, config), before);
+  assert.equal(dateAfter(alone, "2026-12-01", before, config, everything), before);
   assert.equal(artifactProvider("/tmp/live/live-anthropic-extra"), undefined, "the directory name must be exact");
 });
 
