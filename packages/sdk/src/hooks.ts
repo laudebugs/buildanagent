@@ -116,7 +116,9 @@ export interface ModelCallPatch {
   /**
    * Ends the run before this call: nothing is sent to the model, and the run ends `stopped` with this text as
    * `stoppedBy`. It works for the first call too, so a hook can refuse a conversation it does not trust, such as a
-   * user message that carries a prompt injection, before any model sees it. Return it alone: with another field it
+   * user message that matches a pattern you screen for, before any model sees it. A hook decides what it checks and
+   * how well, so a screen for prompt injection is one defence and not a complete one. A stop on a turn retry ends the
+   * run `stopped` after the `retry` event, and the failed response stays out of the transcript. Return it alone: with another field it
    * throws an `SdkError` with code `invalid_hook_result`, as does text that is blank. `composeInterceptors()` ends the
    * run on the first hook that returns one and does not call the hooks after it.
    */

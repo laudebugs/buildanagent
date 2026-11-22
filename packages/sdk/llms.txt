@@ -137,7 +137,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface SignPendingOptions`: Where `signPending()` takes its request id and time from.
 - `interface StepEvent`: What `shouldStop` receives, after a step's tool calls have their results.
 - `type StopDecision`: What `shouldStop` decides.
-- `interface StoppedResult`: A run that stopped before it finished, because a `shouldStop` hook ended it.
+- `interface StoppedResult`: A run that stopped before it finished, because a `shouldStop` hook ended it after a step or a `beforeModelCall` hook ended it before a call with `{ stop }`.
 - `interface ToolAnnotations`: What a tool says about itself, using the names of the Model Context Protocol's tool annotations.
 - `interface ToolCallEvent`: What `beforeToolCall` receives: a call whose input has passed the tool's schema.
 - `interface ToolContext`: What a tool's `execute` receives besides its input.

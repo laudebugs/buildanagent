@@ -221,6 +221,8 @@ function trustedIdentity(loop: Loop, backend: Backend) {
   });
 }
 
+// A stand-in for a real screen: it checks one pattern in the last user message, which is enough to show the stop
+// without being a defence against injection. A real hook decides what to read and how well.
 /** A `beforeModelCall` that refuses a conversation whose last user message tries to override the agent's instructions. */
 const INJECTION = /ignore (all )?(previous|prior) instructions/i;
 const blockInjection: Interceptors = {

@@ -89,3 +89,20 @@ test("a hook that returns nothing, or a patch without stop, still lets the call 
   assert.equal(result.stopReason, "done");
   assert.equal(adapter.calls.length, 1);
 });
+
+test("a stop on a turn retry ends the run stopped after the retry event, with the failed response left out", async () => {
+  let calls = 0;
+  const { adapter, events, result } = await drivenRun(
+    [{ content: [], error: { kind: "retryable", message: "overloaded", status: 529 } }],
+    { beforeModelCall: () => ((calls += 1) === 2 ? { stop: "no second attempt" } : undefined) },
+    { turnRetries: 2, turnRetryDelayMs: 1, sleep: async () => undefined },
+  );
+  assert.equal(result.stopReason, "stopped");
+  assert.equal(result.stopReason === "stopped" ? result.stoppedBy : undefined, "no second attempt");
+  assert.equal(adapter.calls.length, 1, "only the first attempt reached the model");
+  assert.ok(typesOf(events).includes("retry"), "the retry was announced before the hook stopped the run");
+  assert.ok(
+    result.context.messages.every((message) => message.role !== "assistant"),
+    "the failed response is not kept",
+  );
+});
