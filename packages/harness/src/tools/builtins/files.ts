@@ -47,8 +47,9 @@ function page(text: string, path: string, input: ReadInput): ToolResult {
   const lines = text.split("\n");
   if (text.endsWith("\n")) lines.pop();
   const total = lines.length;
+  if (text === "") return textResult(`(${path} is empty)`, { path, lines: 0 });
   const whole = input.offset === undefined && input.limit === undefined && total <= defaultLimit;
-  if (whole) return textResult(text === "" ? `(${path} is empty)` : text, { path, lines: total });
+  if (whole) return textResult(text, { path, lines: total });
   const start = (input.offset ?? 1) - 1;
   if (start >= total)
     return errorResult(`The offset ${start + 1} is past the end of ${path}, which has ${total} lines.`);

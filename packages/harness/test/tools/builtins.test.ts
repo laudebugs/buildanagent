@@ -265,13 +265,15 @@ describe("read", () => {
   });
 
   test("offset and limit return a page and say where to read on", async () => {
-    const { tool } = await setup();
+    const { sandbox, tool } = await setup();
     const result = await call(tool("read"), { path: "notes.md", offset: 2, limit: 1 });
     assert.equal(textOf(result), "beta\n[lines 2 to 2 of 3; read on with offset 3]");
     const last = await call(tool("read"), { path: "notes.md", offset: 3 });
     assert.equal(textOf(last), "alpha beta\n");
     const past = await call(tool("read"), { path: "notes.md", offset: 9 });
     assert.equal(past.isError, true);
+    await sandbox.writeFile("/work/empty.txt", new Uint8Array());
+    assert.equal(textOf(await call(tool("read"), { path: "empty.txt", offset: 1 })), "(/work/empty.txt is empty)");
   });
 
   test("a file longer than the default limit is returned in parts", async () => {
