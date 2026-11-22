@@ -562,7 +562,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T51](../todos/ready/T51-chapter-talking-to-a-model-on-our-sdk.md) | Add our own SDK to Chapter 2's listings as tabs (BK8) | T11, T50, B4, B5 | M |
 | [T52](../todos/ready/T52-chapter-tools-on-our-sdk.md) | Add our own SDK to Chapter 3's tool listings as tabs (BK8) | T12, B10, T50 | M |
 | [T54](../todos/ready/T54-chapter-stopping-on-our-sdk.md) | Add our own SDK to Chapter 4's stopping and structured-output listings as tabs (BK8) | T13, B11, B14, T50 | M |
-| [T55](../todos/ready/T55-book-transcript-usage-and-model-id.md) | Record token usage and the model id in the book's transcripts, at the mock layer and deterministically | T5 | M |
+| [T55](../todos/ongoing/T55-book-transcript-usage-and-model-id.md) | Record token usage and the model id in the book's transcripts, at the mock layer and deterministically | T5 | M |
 | [T56](../todos/ready/T56-example-langchain-thread-owner.md) | Example: a LangChain server that refuses another user's thread with the same "not found" as a missing one | T5, T15 | S |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
@@ -597,7 +597,7 @@ Chapters are listed in reading order. The longest chain runs T1 → T3 → T4 �
 1. Chapter 3's identity section lists the ADK capstone's `lookup_customer`, which reads the customer from session state and takes no identity argument, with notes and a replay (T12's first open question).
 2. Chapter 4's caps table keeps its Cloudflare Think row and adds one for Cloudflare's `AIChatAgent`, which sets no cap of its own and runs the `stopWhen` your code passes to the AI SDK's `streamText`, one step by default.
 3. [B23](../todos/done/B23-tool-context-app-data.md), in the [SDK plan](build-sdk.md), gives our SDK's `ToolContext` typed app data for trusted facts such as the signed-in user, and T52's identity tab reads it (T12's second open question).
-4. [T55](../todos/ready/T55-book-transcript-usage-and-model-id.md) records token usage and the model id in the transcripts before T18, the model gateway chapter, is written.
+4. [T55](../todos/ongoing/T55-book-transcript-usage-and-model-id.md) records token usage and the model id in the transcripts before T18, the model gateway chapter, is written.
 5. [T49](../todos/done/T49-book-http-mock-transcripts.md) gains replays for Chapter 4's `#cap-claude` and Chapter 5's `#resume-claude` once the Claude Agent SDK's transcripts exist.
 6. [N3](../todos/ready/N3-session-store.md), in the [harness plan](build-harness.md), keys every session lookup by user and session id, as ADK's `getSession` does, so no caller can forget the owner check; and [T56](../todos/ready/T56-example-langchain-thread-owner.md) adds a LangChain example that refuses another user's thread, for Chapter 5's ownership section.
 
