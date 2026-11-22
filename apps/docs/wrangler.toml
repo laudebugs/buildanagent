@@ -1,0 +1,46 @@
+# The docs' Workers: static assets only, with no Worker code (publish-and-docs DS3 and DS4, ADR 0049). docs-deploy.yml
+# reads this file from main, and scripts/ci/site-guard-deploy.mjs refuses a deploy unless its settings are exactly
+# the ones below, so change the guard's copy in the same commit.
+#
+# The top level is production, docs.buildanagent.fyi, and every pull request's preview. [env.next] is a second Worker
+# for main's docs once a stable release exists. The owner creates both Workers once by hand: the stored token's
+# Workers Scripts permission is Workers Editor, which cannot create a Worker.
+name = "buildanagent-docs"
+# The newest date the pinned Wrangler's local runtime accepts, as in apps/manual/wrangler.jsonc. An assets-only Worker
+# runs no code, so the date changes nothing it serves.
+compatibility_date = "2026-11-17"
+# One production address, the custom domain, and not <name>.<subdomain>.workers.dev.
+workers_dev = false
+# Previews are served on workers.dev, and a Worker with no setting starts from workers_dev's value, so this is set
+# explicitly. It also turns on Version URLs on workers.dev.
+preview_urls = true
+
+# No `main`: nothing runs but Cloudflare's asset server. A path the build did not write gets the nearest 404.html with
+# status 404.
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"
+
+# Cloudflare creates the DNS record and the certificate for a custom domain.
+[[routes]]
+pattern = "docs.buildanagent.fyi"
+custom_domain = true
+
+# `wrangler preview` needs this block. An assets-only Worker has no bindings, so it stays empty.
+[previews]
+
+# main's docs once a stable release tag exists, served with X-Robots-Tag: noindex from the _headers file that
+# site-stage-dist.mjs writes. Every key is set here rather than inherited, so the guard reads one plain list. It has
+# no previews of its own and no workers.dev address at all.
+[env.next]
+name = "buildanagent-docs-next"
+workers_dev = false
+preview_urls = false
+
+[env.next.assets]
+directory = "./dist"
+not_found_handling = "404-page"
+
+[[env.next.routes]]
+pattern = "next.docs.buildanagent.fyi"
+custom_domain = true

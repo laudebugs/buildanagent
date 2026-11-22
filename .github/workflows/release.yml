@@ -10,7 +10,7 @@
 #   with the RELEASE_PR_TOKEN secret, makes it again through GitHub's API so that GitHub signs it
 #   (scripts/ci/version-commit.mjs), force-updates `changeset-release/main` to it, opens or updates the pull request
 #   and turns on auto-merge. Every changeset merged before the pull request merges joins it.
-# - When the pull request merges, its squash commit reaches main with nothing pending and a version npm lacks, so
+# - When the pull request merges, its squash commit reaches main with nothing pending and a version with no GitHub release, so
 #   `pack` builds the tarballs from that commit, and `publish` uploads them under the pre-mode dist-tag (`alpha`) or
 #   `latest`, tags the release, marking a prerelease as one, and `docs` starts the docs deploy for a stable release.
 # - A workflow_dispatch is a dry run: `plan` and `pack` run, and nothing else, because `version`, `version-pr` and
