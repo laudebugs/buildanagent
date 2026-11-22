@@ -2,7 +2,7 @@
 title: "The session log and context policy"
 summary: A session log that keeps every entry in one append-only tree lets a harness fork, resume and shorten what the model sees without losing anything. This chapter shows why one tree of typed entries suits that job, how HEAD, a fork and a writer lock keep it safe, how five context layers shorten the context cheapest first while compaction stays visible and reversible, and how a progress file carries long work across windows.
 opening: analogy
-sources: [pi-session-format, pi-sessions, pi-session-manager, hou-messy-middle, wong-governed-ml, buildanagent-harness-readme, buildanagent-harness-plan, cloudflare-agents-websockets, pi-compaction, anthropic-effective-context-engineering, swe-agent-observation-masking, buildanagent-protocol-entries]
+sources: [pi-session-format, pi-sessions, pi-session-manager, hou-messy-middle, wong-governed-ml, buildanagent-harness-readme, buildanagent-harness-plan, cloudflare-agents-websockets, pi-compaction, anthropic-effective-context-engineering, swe-agent-observation-masking, buildanagent-protocol-entries, anthropic-effective-harnesses]
 glossary: [session-log, session]
 switchTo: [N2, N3, N4, N5, N6, N7, N8, N9, N10]
 ---
@@ -104,6 +104,25 @@ The recap can drop facts, so the original entries stay, and the harness can put 
 :::
 
 The desk holds what the policy chose, and the drawer still holds everything. A harness that keeps both can compact as hard as it likes, because an undo costs one move of HEAD.
+
+## A progress file and a feature list carry long work across windows
+
+Compaction shortens one window, and a task that needs two hundred windows cannot fit into one summary. Anthropic met the limit while running a frontier coding model such as Opus 4.5 on the Claude Agent SDK, in a loop across multiple context windows, with a clone of claude.ai as the example job: over 200 features. Its engineers wrote that "compaction isn't sufficient", because each new session "begins with no memory of what came before", like engineers working in shifts [@anthropic-effective-harnesses] (published 26 November 2025). Left alone, the agent failed in four ways, and the post pairs each with a fix in a file. [[tbl:long-running-failures]] lists them.
+
+:::table[Four failures of a long run, and the file or routine that answers each, from Anthropic's long-running harness]{#long-running-failures}
+| What goes wrong | The first session sets up | Each later session does |
+| --- | --- | --- |
+| It declares victory on the whole project too early | A structured JSON feature list, written from the spec | Reads the feature list first and chooses a single feature |
+| It leaves bugs, or progress nobody wrote down | An initial git repository and a progress notes file | Reads the progress notes and the git log first |
+| It marks features done too early | The same feature list, with every feature "failing" | Tests the feature itself, and marks it "passing" only after careful testing |
+| It spends time working out how to run the app | An `init.sh`{checked=row-56} script that starts the development server | Reads `init.sh`{checked=row-56} first |
+:::
+
+The first session is a different job from the rest. An initializer agent writes the `init.sh`{checked=row-56} script, a progress log named `claude-progress.txt`{checked=row-56}, an initial commit and the feature list, in which every feature starts as failing. Each later session, the post says, handles "only one feature at a time", then commits its progress to git with a descriptive message, so a bad change can be reverted and the next session starts from a clean state [@anthropic-effective-harnesses]. The feature list is JSON on purpose, because "the model is less likely to inappropriately change or overwrite JSON files". The coding agents may edit it only by changing a `passes`{checked=row-57} field, and the prompt calls it "unacceptable to remove or edit tests".
+
+Files beat summaries for this job because a file is exact. A summary is a model's memory of the work, and it can lose the one feature that still fails. A feature list says "failing" or "passing" for each entry, the git log says what changed, and the next session reads both at the start instead of trusting a recap. Notice the difference from the log: the harness writes the session log, and the model keeps these files itself, in the working directory, where its own tools can open them. The two complement each other. Compaction keeps one window usable, the log keeps every entry, and the progress file tells the next window what is left to do.
+
+Our plan carries the idea into the harness. It adds a plan and progress file convention for long tasks, with a hook that reads the files again when a session resumes [@buildanagent-harness-plan]. As of November 2026 that is a design, not shipped code, like the context layers. The evidence is thin, too. Anthropic's post reports no success rates or measured comparisons, calls its result "one possible set of solutions", and says it is "still unclear whether a single, general-purpose coding agent performs best across contexts" [@anthropic-effective-harnesses]. Use the pattern for the failures it names, and measure it on your own tasks.
 
 ## Exercises
 

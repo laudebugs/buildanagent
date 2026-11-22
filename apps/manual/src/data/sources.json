@@ -653,5 +653,14 @@
     "asOf": "November 2026",
     "version": "commit 2174e4c",
     "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "anthropic-effective-harnesses",
+    "title": "Effective harnesses for long-running agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
   }
 ]
