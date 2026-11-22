@@ -12,7 +12,8 @@
 // transport's `interrupt()` only records the call. The real WebSocket transport also emits `audio_interrupted` itself
 // and sends a `conversation.item.truncate` event that cuts the reply to the audio the caller heard, so this example
 // cannot show truncation, and it says nothing about what a real model chooses to say.
-// Docs: guides/testing.mdx "Test a Voice agent tool workflow" and "Test interruption", guides/voice-agents/build.mdx "Approval before tool execution"
+// Docs: guides/testing.mdx "Test a Voice agent tool workflow" and "Test interruption";
+// guides/voice-agents/build.mdx "Approval before tool execution"
 import type { RunToolApprovalItem } from "@openai/agents-core";
 import { RealtimeAgent, type RealtimeItem, RealtimeSession, tool } from "@openai/agents-realtime";
 import { ScriptedRealtimeTransport } from "@openai/agents-realtime/testing";
@@ -38,7 +39,7 @@ async function within<T>(promise: Promise<T>): Promise<T> {
 // The tools read and write an in-memory list: nothing on the host, and no shell or file tool is offered.
 const looked: string[] = [];
 const cancelled: string[] = [];
-// Counts are read through a function, so a later check sees the value as it is then, not as an earlier check narrowed it.
+// A count is read through a function, so a check sees the list as it is then, not as an earlier check narrowed it.
 const count = (list: readonly unknown[]) => () => list.length;
 const cancelledCount = count(cancelled);
 

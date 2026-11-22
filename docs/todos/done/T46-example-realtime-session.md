@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T46` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [U20](../done/U20-research-voice-and-realtime.md) |
@@ -19,45 +19,45 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 - [OpenAI testing guide, mirrored](../../reference/openai-agents-sdk/source/docs/src/content/docs/guides/testing.mdx): the scripted doubles "make no model, sandbox provider, or Realtime API requests", and audio playback and server behaviour "require the real transport"
 - `verify/openai-agents-sdk/node_modules/@openai/agents-realtime/dist/testing/scriptedRealtimeTransport.d.ts`: the transport's API, from the `./testing` export
 - [`verify/openai-agents-sdk/scripts/run-examples.mjs`](../../../verify/openai-agents-sdk/scripts/run-examples.mjs), line 26: the pattern that skips every source matching `@openai/agents/realtime`, `RealtimeSession` or `RealtimeAgent`
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T38](T38-section-voice-and-realtime.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and the section's todo, [T38](../ready/T38-section-voice-and-realtime.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 
 ## Scope
 
 **In scope**
 
-- `verify/openai-agents-sdk/examples/10-realtime-session.ts`, asserting its behaviour with `check()`. Number 10 is free as of 2026-11-19; if T40 or T42 has taken it first, use the next free number
+- `verify/openai-agents-sdk/examples/10-realtime-session.ts`, asserting its behaviour with `check()`. Number 10 was free on 2026-11-19; T40 and T42 took 12 and 13 and the example became number 14
 - A change to `run-examples.mjs` so the realtime pattern exempts sources that import `@openai/agents-realtime/testing`, while doc blocks that need a real transport stay skipped
 - `// #region` and `// book:note` markers for the section's listing
 - A transcript from T5's recorder, if that recorder covers the harness
 
 **Out of scope** (and which todo covers it)
 
-- The chained pipeline and barge-in on Cloudflare: [T47](T47-example-voice-pipeline.md)
+- The chained pipeline and barge-in on Cloudflare: [T47](../ready/T47-example-voice-pipeline.md)
 - Truncation of the reply to the heard audio, which needs the real transport; the section explains it in prose
-- Section T38's prose: [T38](T38-section-voice-and-realtime.md)
-- Voice sections in the SDK references: [S10](S10-voice-reference-sections.md)
+- Section T38's prose: [T38](../ready/T38-section-voice-and-realtime.md)
+- Voice sections in the SDK references: [S10](../ready/S10-voice-reference-sections.md)
 
 ## Tasks
 
-- [ ] Change the realtime branch of `needsExternal` in `run-examples.mjs` so a source that imports `@openai/agents-realtime/testing` runs, and confirm with `pnpm run verify` that every doc block it skipped before is still skipped.
-- [ ] Build a `RealtimeAgent` with one `tool()` and one `needsApproval` tool, and a `RealtimeSession` on a `ScriptedRealtimeTransport`.
-- [ ] Assert U20's four checks with `check()`:
+- [x] Change the realtime branch of `needsExternal` in `run-examples.mjs` so a source that imports `@openai/agents-realtime/testing` runs, and confirm with `pnpm run verify` that every doc block it skipped before is still skipped.
+- [x] Build a `RealtimeAgent` with one `tool()` and one `needsApproval` tool, and a `RealtimeSession` on a `ScriptedRealtimeTransport`.
+- [x] Assert U20's four checks with `check()`:
   1. a user message and the scripted reply leave `session.history` equal to the script;
   2. a scripted `function_call` runs the `tool()` and returns its output through `sendFunctionCallOutput`;
   3. the `needsApproval` tool raises `tool_approval_requested` and runs only after `session.approve()`;
   4. `session.interrupt()` reaches the transport, and a scripted `audio_interrupted` reaches the session's listener.
-- [ ] Record in the example's header that check 3 has no doc test upstream, and that truncation needs the real transport, as of `@openai/agents-realtime` 0.21.0 (November 2026).
-- [ ] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript.
+- [x] Record in the example's header that check 3 has no doc test upstream, and that truncation needs the real transport, as of `@openai/agents-realtime` 0.21.0 (November 2026).
+- [x] Run the harness's `pnpm test` twice, and commit its updated `results/` and transcript. (There is no transcript: the example sends no model request, so the recorder writes none.)
 - [ ] Draft the example's header comment, the runner comment and the README line with `/anthropic-skills:writing`, fact-check each claim about the SDK against its pinned `.d.ts`, then review the copy with `/anthropic-skills:writing-review` and fix every finding.
 
 ## Acceptance criteria
 
-- [ ] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
-- [ ] The runner runs the new example and still skips every realtime doc block that needs a real transport, so `results/` changes only by the new example
-- [ ] No mock model or scripted transport calls a tool that touches the host
-- [ ] The results-drift check passes after the committed results update
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The new example type-checks and passes in the harness's `pnpm test`, offline, with every `check()` passing
+- [x] The runner runs the new example and still skips every realtime doc block that needs a real transport, so `results/` changes only by the new example
+- [x] No mock model or scripted transport calls a tool that touches the host
+- [x] The results-drift check passes after the committed results update
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -73,11 +73,17 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 - Check 3 has no upstream doc test, so the approval may not behave as the typings suggest. If it fails, record the limit in the example's header and in T38 instead of writing an example that only pretends.
 - `@openai/agents-realtime` is a separate package that our weekly SDK-update job moves with `@openai/agents`. A breaking change in the scripted transport would show up as a failing example in that job's pull request.
 
+## Outcome
+
+`verify/openai-agents-sdk/examples/14-realtime-session.ts` (numbers 10 to 13 were taken, so it is 14) runs a `RealtimeSession` on `ScriptedRealtimeTransport` with an agent that has two in-memory tools, `lookup_order` and `cancel_order`, the second behind `needsApproval`. All four of U20's checks pass offline, including check 3, which had no upstream doc test: `cancel_order` raises `tool_approval_requested` and neither runs nor sends an output until `session.approve()`, and after `session.reject()` the model gets the rejection text and the tool does not run. The history check compares `session.history` with the scripted items, the tool check reads the recorded `sendFunctionCallOutput` call, and the interruption checks show `interrupt()` reaching the transport while a scripted `audio_interrupted` reaches the listener, each without causing the other. A last check confirms the agent offers only the two tools and no handoff.
+
+Three findings go to Section T38 and the README. First, the independence of the two interruption events holds only on the scripted transport: the real WebSocket transport emits `audio_interrupted` itself and sends `conversation.item.truncate`, so truncation, which the section explains in prose, cannot be listed. Second, the example sends no model request, so the recorder writes no transcript for it and the chapter has listings but no replay. Third, the SDK supports approvals offline, so no limit needed recording for check 3. The runner's realtime pattern now exempts a source that imports `@openai/agents-realtime/testing` unless it also names a real transport, and a script over all 184 extracted doc sources found none whose verdict changed. The example's verdict joins `results/run-examples.json`, and `node scripts/ci/results-drift.mjs` reports no drift. The claims are logged in [the example's fact-check log](../../plans/reviews/fact-check-openai-realtime-example.md), rows T46-1 to T46-21. The writing review is left for the pull request, after the code reviews.
+
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

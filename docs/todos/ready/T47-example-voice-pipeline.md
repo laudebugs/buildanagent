@@ -34,7 +34,7 @@ Write a new type-checked, mock-run example in `verify/cloudflare-agents/examples
 
 **Out of scope** (and which todo covers it)
 
-- The speech-to-speech session: [T46](T46-example-realtime-session.md)
+- The speech-to-speech session: [T46](../done/T46-example-realtime-session.md)
 - Workers AI's built-in speech models, which have no local simulation
 - Section T38's prose: [T38](T38-section-voice-and-realtime.md)
 - Voice sections in the SDK references: [S10](S10-voice-reference-sections.md)
