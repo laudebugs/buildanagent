@@ -264,15 +264,21 @@ The package sets no default period, and `days` must be a positive number or the 
 | `steer_applied` | `message_block` with `delivery: "steer"` or `"followUp"` |
 | `run_end` | `turn_end` |
 
-Call `runTurn()` once at a time per `Session`: its writes stay in order within one call, but two concurrent calls on one `Session` can interleave their entries. A turn may set `system`, `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal`, `tools` and `hostContext`. `tools` is an allowlist of registered names, and an unknown name throws `invalid_turn_options`. `hostContext` reaches a tool as `ctx.app` and reaches no entry. `onRun` hands the caller the run, so it can `steer()` or `followUp()` it.
+Call `runTurn()` once at a time per `Session`: its writes stay in order within one call, but two concurrent calls on one `Session` can interleave their entries. A turn may set `system`, `output`, `model`, `maxSteps`, `turnRetries`, `modelOptions`, `budgetUsd`, `signal`, `tools` and `hostContext`. `tools` is an allowlist of registered names, and an unknown name throws `invalid_turn_options`. `hostContext` reaches a tool as `ctx.app` and reaches no entry. `onRun` hands the caller the run, so it can `steer()` or `followUp()` it. `clientTool` runs every call to a tool registered with the `client_request` pattern in place of its own `execute`; the dispatcher sets it to send `tool/call`, and without it the tool's own `execute` runs.
 
 ## One dispatcher answers every client, and a client in the same process needs no framing
 
-`createDispatcher({ harness, store, index, lock, userId })` from `@buildanagent/harness/server` serves the protocol's commands over a harness. `inProcessTransport(dispatcher)` connects a client in the same process. Its `request(method, params)` resolves with the result, or rejects with an `RpcFailure` whose `rpc` field holds the error code and message, and `onMessage()` listens for the server's notifications. A stdio transport will carry the same messages later.
+`createDispatcher({ harness, store, index, lock, userId })` from `@buildanagent/harness/server` serves the protocol's commands over a harness. `inProcessTransport(dispatcher)` connects a client in the same process. Its `request(method, params)` resolves with the result, or rejects with an `RpcFailure` whose `rpc` field holds the error code and message. `onMessage()` listens for the server's notifications and requests. `respond(request, result)` and `fail(request, error)` answer a request, and `respond()` takes only the result type of that request's method, so an approval can't be answered with a tool result. A stdio transport will carry the same messages later.
 
 ```ts
 const client = inProcessTransport(createDispatcher({ harness, store, index, lock, userId: "ada" }));
-client.onMessage((message) => { /* "event" and "turn/settled" notifications */ });
+client.onMessage((message) => {
+  // "event" and "turn/settled" notifications, and the server's requests, which carry an id.
+  if ("id" in message && "method" in message && message.method === "approval/request") {
+    const { id: requestId } = message.params.request;
+    client.respond(message, { resolutions: [{ requestId, decision: "allow" }] });
+  }
+});
 await client.request("initialize", { clientInfo: { name: "cli", version: "1" }, capabilities: [] });
 const { session } = await client.request("session/create", { cwd: "/work" });
 const disposition = await client.request("turn/start", { session, input: [{ type: "text", text: "Hi" }] });
@@ -280,7 +286,51 @@ const disposition = await client.request("turn/start", { session, input: [{ type
 
 `turn/start` answers with a disposition before anything else: `{ accepted: true, turn }`, or `{ accepted: false, reason }`. The reason is `busy` when this dispatcher already runs a turn (or a checkout or fork) in the session, `locked` when another process holds the session's lock, and `invalid` for a session the connection never created or opened. The turn's events follow as `event` notifications. When an event is an appended entry, its `seq` is that entry's sequence number; any other event carries the sequence of the latest entry written. Every turn ends with one `turn/settled`, sent after the turn's retries and after its last entry is written. A turn that throws settles with the stop reason `error`.
 
-The log, not the dispatcher, holds the state. The dispatcher takes the session's lock only while a turn, checkout or fork runs, and a client can drive only the sessions it created or opened. `session/create` takes a `cwd`, which the dispatcher records for the session and does not yet pass to a turn. A closed dispatcher refuses new connections and answers `turn/start` on an open session with an error. `initialize` reports the requests still waiting for an answer in every readable session of the user, so a client that joins late can answer them. `session/checkout` and `session/fork` are experimental: a client lists them in the `capabilities` of `initialize`, or the server answers `NotOptedIn`.
+A steer or follow-up belongs to the turn its disposition names. One that arrives before the run exists waits for it, and if the turn fails before its run starts, the steer ends with the turn: `turn/settled` reports the failure, and the log holds no message for the steer.
+
+The log, not the dispatcher, holds the state. The dispatcher takes the session's lock only while a turn, checkout, fork or resume runs, and a client can drive only the sessions it created or opened. It announces only the entries written to the session's current file, so a child session's header never appears in its parent's stream. `session/create` takes a `cwd`, which the dispatcher records for the session and does not yet pass to a turn. A closed dispatcher refuses new connections and answers `turn/start` on an open session with an error. `session/checkout` and `session/fork` are experimental: a client lists them in the `capabilities` of `initialize`, or the server answers `NotOptedIn`.
+
+### A request for a person goes to every watching client once its entry is durable, and the first answer wins
+
+When a call needs a person, its turn ends `awaiting_approval` or `clarification_requested`, as [the approvals section](#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume) describes. The dispatcher sends `approval/request` or `clarification/request` to every connection that watches the session, and only after the `approval_requested` entry's append has resolved. A client that hears of a request can therefore always find it in the log. Each request has a server id of the form `sr-<n>` and carries the signed request.
+
+- **The answer.** A client answers with `{ resolutions: [resolution] }`: exactly one resolution, naming the signed request it was asked about. An approval takes `decision` `allow` or `deny` with an optional `reason`; a clarification takes `answer`. Either may carry `by`, which the dispatcher passes on unchecked, so the transport is where a host authenticates its clients.
+- **The first answer wins.** The dispatcher withdraws the same question from every other connection with `$/cancelRequest`, and ignores a later answer, a second answer to the same id and an answer to an id it never sent or already withdrew.
+- **A malformed answer** is asked again on the same connection under a new id. An error response leaves the request waiting in the log, and the client is asked again the next time it opens the session.
+- **The resume.** The answer goes through `Approvals.resolve()`, by default `createApprovals(harness)` or the dispatcher's `approvals` option, as a turn of its own with a new turn id. It runs once the session is free, so an answer that arrives while the paused turn is still finishing waits for that turn's `turn/settled`. The resume streams its events and ends with its own `turn/settled`. Before it resolves, the dispatcher reads the log under the lock and drops an answer whose request no longer waits, because another process resolved it first. A resume with no answer left runs nothing and settles nothing.
+- **An answer the resume could not apply.** When another process holds the lock, the lock can't be taken, or an interrupt stops the resume before it writes, the resume writes no answer. Its `turn/settled` then carries the error kind `answer_not_applied`, with the stop reason `error`, or `aborted` after an interrupt. The request still waits in the log, and the dispatcher asks every watching client again, at most three times per request, so a lock held elsewhere can't make a loop. After that, the client is asked again the next time it opens the session. A closed dispatcher asks nobody.
+- **After the resume.** A request the resume left waiting, such as one a quorum still needs, is asked again. A resume that failed after it wrote its answers asks nothing. An answer that arrives while a `turn/start` holds the session waits for it, and still resumes when that turn fails to start.
+- **Asking again on open.** The dispatcher reads the waiting requests from the log, and reads again if an answer was taken or applied during the read, so a client is never asked about a request someone else has just resolved.
+
+Nothing holds a session open while a client thinks. The paused turn has already settled and released the lock, and the request lives in the log, so a client that never answers costs one entry in each connection's table of open requests until that connection closes.
+
+### A client tool's call goes to the client that started the turn
+
+A tool registered with `pattern: "client_request"` runs on the client. The dispatcher sends `tool/call` with the session, the call id, the tool's canonical name and the validated input, to the connection that started the turn; for a resume, to the connection whose answer started it. The client answers with `{ content, isError }`, which becomes the call's result. The call never waits on a client that is gone. With no such connection, when the connection closes before answering, and for an error response or an answer that is not a tool result, the model gets an error result and the turn goes on. An abort of the turn withdraws the call with `$/cancelRequest`, and an answer that arrives after that is ignored.
+
+### Either side cancels its own request with `$/cancelRequest`
+
+A client cancels a `turn/start` by sending `$/cancelRequest` with that request's id, at any time until the turn settles. A client that reuses the id for a later `turn/start` cancels the later turn. The dispatcher aborts the run, and the turn still ends with one `turn/settled`, with the stop reason `aborted`. In the in-process transport, pass `{ signal }` as the third argument of `request()`; aborting the signal after the disposition still cancels the turn. A cancel for any other request, or for an id the server does not know, does nothing, and that request is answered as usual. The server sends `$/cancelRequest` for its own requests: an approval someone else answered, and a tool call whose turn was aborted.
+
+### Each connection's queues are bounded at 128, and only events are dropped
+
+`queueSize`, 128 by default, bounds two queues of each connection.
+
+- **Commands.** A connection holds at most 128 unanswered commands. A command keeps its place until its response has gone out, not just until it is computed, so a client that sends faster than it reads is refused as soon as 128 commands wait. The 129th gets the error `QueueFull` (-32001), and a refused command takes no place. A refusal waits to go out like any response, so the refusals are bounded too: once 128 of them wait undelivered, the client is neither reading nor waiting, and the server closes the connection.
+- **Events.** `connect(send)` takes a `send` that may return a promise, and the next message waits until that promise settles. While a slow client keeps messages waiting, at most 128 live events wait with them, and the server drops each event past that. An `events_dropped` event takes the place of a session's dropped events: its `count` says how many, and its `seq` is the last dropped event's. It goes out before the session's next message, or once the queue empties.
+- **Never dropped.** Responses, server requests, `turn/settled`, `$/cancelRequest`, the `events_dropped` marker and replayed events always go out. What produces each of them bounds it: the command queue bounds the responses, the refusal bound bounds the `QueueFull` errors, the waiting requests bound the server requests, and each turn sends one `turn/settled`.
+
+A client that takes each message at once, as the in-process transport does, never loses an event. A client told of a gap gets every dropped entry back from `session/open`. Live events go on after the marker, so the client sends a `fromSeq` one past the last `seq` it received before the marker, and drops by `seq` any entry it then gets twice.
+
+### `session/open` with `fromSeq` replays the entries a client missed
+
+`fromSeq` is the first sequence number to replay, so a client that last saw `seq` N sends N + 1. The dispatcher reads the session's current file from that entry on and sends each entry as an `entry_appended` event, then the live stream. It holds the session's live events from the start of the open, so the response comes first, then the replay, then what happened meanwhile, and no entry is sent twice or lost. The log is the replay window. A `fromSeq` is therefore never too old, and a second process, or the same one after a restart, replays what the first wrote. Only entries are replayed. Streamed events such as text deltas are transient, and the entries that follow them hold the same content.
+
+`fromSeq` must be a whole number of at least 0. A `fromSeq` one past the last entry replays nothing, and one further, which no client could have seen, is refused with `InvalidParams`. Replay follows the open's rules: only a connection that opens the session gets it, a failed open replays nothing, and a dispatcher serves only its own user's sessions. When a second open fails on a connection that already watched the session, that connection keeps its live stream. What the failed open held goes out, and a marker stands where the hold dropped anything. The marker counts only what the replay lacks, and its `seq` is never below the replay's last entry.
+
+### A client that reconnects finds its pending requests in `initialize` and is asked again on open
+
+A request survives its client. `initialize` lists in `pending` every request still waiting in every readable session of the user, so a client that joins can re-arm them. `initialize` alone grants no access to a session, so the server sends the requests again, under new ids, only once the client opens the session with `session/open`. The id a closed connection held is stale, and an answer to it is ignored. A connection that dropped without closing still holds its old request. When someone else answers the question, the server withdraws it from that connection with `$/cancelRequest`.
 
 ## The log is the only state, so a turn rebuilds its context from it
 

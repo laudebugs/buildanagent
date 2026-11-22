@@ -38,6 +38,7 @@ export const COMMANDS = [
   },
   { jsonrpc: "2.0", id: 2, method: "session/create", params: { cwd: "/work" } },
   { jsonrpc: "2.0", id: "open-1", method: "session/open", params: { session: "s1", cwd: "/work" } },
+  { jsonrpc: "2.0", id: "open-2", method: "session/open", params: { session: "s1", cwd: "/work", fromSeq: 12 } },
   { jsonrpc: "2.0", id: 3, method: "session/list", params: {} },
   { jsonrpc: "2.0", id: 4, method: "session/list", params: { cursor: "c2" } },
   {
@@ -139,6 +140,7 @@ export const HARNESS_EVENTS = [
   { type: "entry_appended", entry: ENTRIES[1] },
   { type: "budget_warning", spentUsd: 0.8, capUsd: 1 },
   { type: "context_fill", tokens: 90_000, budget: 150_000 },
+  { type: "events_dropped", count: 40 },
   { type: "completion_check", entry: ENTRIES.find((entry) => entry.type === "completion_check") ?? ENTRIES[0] },
 ] as const satisfies readonly HarnessEvent[];
 
@@ -183,6 +185,7 @@ export const NOTIFICATIONS = [
       },
     },
   },
+  { jsonrpc: "2.0", method: "$/cancelRequest", params: { id: "sr-4" } },
 ] as const satisfies readonly ServerNotification[];
 
 /** Responses of every shape: a result for each method, an error, and an error whose request could not be read. */

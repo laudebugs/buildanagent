@@ -77,7 +77,12 @@ const ClientCommand = z.union([
     clientInfo: z.strictObject({ name: z.string(), version: z.string() }),
     capabilities: z.array(z.string()),
   }),
-  command(["session/create", "session/open"], { session: z.string().optional(), cwd: z.string() }),
+  command("session/create", { session: z.string().optional(), cwd: z.string() }),
+  command("session/open", {
+    session: z.string().optional(),
+    cwd: z.string(),
+    fromSeq: z.number().int().min(0).optional(),
+  }),
   command("session/list", { cursor: z.string().optional() }),
   command("turn/start", { session: z.string(), input: Input }, { trace: z.string().optional() }),
   command(["turn/steer", "turn/followUp"], { session: z.string(), input: Input }),
@@ -175,6 +180,7 @@ const HarnessEvent = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("budget_warning"), spentUsd: z.number(), capUsd: z.number() }),
   z.strictObject({ type: z.literal("context_fill"), tokens: z.number(), budget: z.number() }),
   z.strictObject({ type: z.literal("completion_check"), entry: SessionEntry }),
+  z.strictObject({ type: z.literal("events_dropped"), count: z.number().int().min(1) }),
 ]);
 
 const AgentEvent = z.looseObject({
@@ -217,6 +223,7 @@ const ServerNotification = z.union([
     method: z.literal("turn/settled"),
     params: z.strictObject({ session: z.string(), turn: z.string(), result: TurnResultSummary }),
   }),
+  z.strictObject({ jsonrpc: rpc, method: z.literal("$/cancelRequest"), params: z.strictObject({ id: Id }) }),
 ]);
 
 const ProtocolMessage = z.union([
