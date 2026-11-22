@@ -15,10 +15,13 @@
 // are left alone. An abbreviation is also wrapped in <abbr>, without a title, because the browser's own tooltip would
 // cover the card.
 //
-// Each link sits in a .glossary-term span with its card, the same markup as GlossaryTerm.astro, so hover and keyboard
-// focus open the card through CSS and scripts/glossary.ts closes it on Escape. The card is hidden from screen readers;
-// they get the definition through aria-describedby instead, which points into one hidden list appended to the chapter
-// with one entry per term, however many times the term links.
+// Each link sits in a .glossary-term span beside its card. The span and the card take GlossaryTerm.astro's classes,
+// so the same styles open the card on hover and keyboard focus, and scripts/glossary.ts closes it on Escape and keeps
+// it inside the viewport. Unlike GlossaryTerm's card, a chapter's card has no id, no role and no <dfn>, and is
+// aria-hidden: a term can link many times on a page, so screen readers get the definition through aria-describedby,
+// which points into one hidden list appended to the chapter with one entry per term. The card's text therefore repeats
+// in the page's HTML after every link; aria-hidden keeps it from screen readers and from reader views that drop
+// hidden elements, data-pagefind-ignore keeps it out of search, and the print stylesheet never shows it.
 
 import type { Nodes, Parent, PhrasingContent, Root, RootContent, Text } from "mdast";
 import type { VFile } from "vfile";

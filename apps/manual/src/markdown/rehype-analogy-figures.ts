@@ -11,9 +11,14 @@ import { figureAnalogies } from "./remark-figures.js";
 const hasClass = (node: ElementContent, name: string): boolean =>
   node.type === "element" && Array.isArray(node.properties.className) && node.properties.className.includes(name);
 
+/** The text a reader sees in a caption, without the hover cards of its glossary terms. */
 function textOf(nodes: readonly ElementContent[]): string {
   return nodes
-    .map((node) => (node.type === "text" ? node.value : node.type === "element" ? textOf(node.children) : ""))
+    .map((node) => {
+      if (node.type === "text") return node.value;
+      if (node.type !== "element" || hasClass(node, "glossary-term__card")) return "";
+      return textOf(node.children);
+    })
     .join("");
 }
 

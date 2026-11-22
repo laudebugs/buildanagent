@@ -6,6 +6,7 @@ import { isFactCheckLog, normalizeUrl, urlsIn } from "../src/book/sources.js";
 import { REF_LIKE } from "../src/markdown/rehype-numbering.js";
 import {
   edit,
+  editJson,
   FIXTURE_OUTLINE,
   fixtureInputs,
   mutatedFixture,
@@ -213,6 +214,52 @@ test("a term linked many times keeps one hidden definition, so every aria-descri
     assert.equal(ids.filter((id) => id === "termdef-agent-loop").length, 1);
     for (const [, target] of html.matchAll(/aria-describedby="([^"]+)"/g)) assert.equal(target, "termdef-agent-loop");
     assert.doesNotMatch(html, /class="glossary-card[^"]*" id=/);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
+test("a term inside a listing caption's generated line leaves the line whole", async () => {
+  // The listing in the second chapter is left out of the live run, so its caption ends "Verified against mock models
+  // only", a generated span whose text holds the tagged "mock model".
+  const dir = mutatedFixture((copy) => {
+    editJson(copy, "glossary.json", (entries) => [
+      ...entries,
+      { id: "mock-model", term: "mock model", definition: "A stand-in for a model.", sources: ["alpha-docs"] },
+    ]);
+    edit(copy, "live-examples.json", () => JSON.stringify({ examples: [] }));
+    edit(copy, "chapters/second.md", (text) => text.replace("glossary: []", "glossary: [mock-model]"));
+    prose(copy, "A mock model answers here.");
+  });
+  try {
+    const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
+    assert.match(html, /<span class="listing__verified">Verified against mock models only<\/span><\/figcaption>/);
+    assert.match(html, /A <span class="glossary-term"><a href="\/glossary\/#mock-model"/);
+    assert.equal(html.match(/href="\/glossary\/#mock-model"/g)?.length, 1);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
+test("an analogy caption that names a tagged term passes the analogy check, which reads past the term's card", async () => {
+  const dir = mutatedFixture((copy) => {
+    editJson(copy, "analogies.json", (entries) =>
+      entries.map((entry) =>
+        entry.id === "tally-counter" ? { ...entry, analogy: "an agent loop tally counter" } : entry,
+      ),
+    );
+    edit(copy, "chapters/first.md", (text) =>
+      text
+        .replace(":analogy[a tally counter]{#tally-counter}", ":analogy[an agent loop tally counter]{#tally-counter}")
+        .replace("A tally counter: one click", "An agent loop tally counter: one click"),
+    );
+  });
+  try {
+    const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "first");
+    assert.match(
+      html,
+      /<figcaption[^>]*><span class="number figure__number label">Figure 1\.2<\/span> An <span class="glossary-term"><a href="\/glossary\/#agent-loop"[^>]*>agent loop<\/a>.*? tally counter: one click/,
+    );
   } finally {
     removeFixture(dir);
   }

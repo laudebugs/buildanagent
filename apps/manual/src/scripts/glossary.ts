@@ -17,14 +17,27 @@ const MARGIN = 8;
 /** The gap between a term and its card, the 0.4rem the stylesheet gives the card without this script. */
 const gap = (): number => 0.4 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
 
+/** Returns a card to the stylesheet's own place above its term, so no stale coordinates outlive the card's opening. */
+function unplace(term: HTMLElement): void {
+  const card = term.querySelector<HTMLElement>(".glossary-term__card");
+  card?.style.removeProperty("--card-x");
+  card?.style.removeProperty("--card-y");
+  delete term.dataset.placed;
+  delete term.dataset.below;
+}
+
 /** Places an open card from its term's first line box, the line the reader points at. */
 function place(term: HTMLElement): void {
   const card = term.querySelector<HTMLElement>(".glossary-term__card");
   const link = term.querySelector<HTMLElement>(".glossary-term__link");
-  if (!card || !link) return;
-  const { width, height } = card.getBoundingClientRect();
-  const line = link.getClientRects()[0];
-  if (width === 0 || !line) return;
+  const size = card?.getBoundingClientRect();
+  const line = link?.getClientRects()[0];
+  // A closed or dismissed card has no size to place it by.
+  if (!card || !size || size.width === 0 || !line) {
+    unplace(term);
+    return;
+  }
+  const { width, height } = size;
   const right = document.documentElement.clientWidth - MARGIN;
   const x = Math.max(MARGIN, Math.min(line.left, right - width));
   const above = line.top - gap() - height;
@@ -60,8 +73,13 @@ if (terms.length > 0) {
 for (const term of terms) {
   term.addEventListener("pointerenter", () => place(term));
   term.addEventListener("focusin", () => place(term));
-  term.addEventListener("pointerleave", () => delete term.dataset.dismissed);
-  term.addEventListener("focusout", () => delete term.dataset.dismissed);
+  // A card that focus still holds open keeps its place when the pointer leaves, and the other way round.
+  const close = (): void => {
+    delete term.dataset.dismissed;
+    if (!term.matches(":hover, :focus-within")) unplace(term);
+  };
+  term.addEventListener("pointerleave", close);
+  term.addEventListener("focusout", close);
 }
 
 // A module, so its names stay out of the global scope the other page scripts share.

@@ -1139,6 +1139,14 @@
   display: none;
 }
 
+/* A printed page has no pointer to open a card, so a card that focus held open never prints over the text. */
+@media print {
+  .glossary-term:hover .glossary-term__card,
+  .glossary-term:focus-within .glossary-term__card {
+    display: none;
+  }
+}
+
 /* Citation */
 
 .citation {
