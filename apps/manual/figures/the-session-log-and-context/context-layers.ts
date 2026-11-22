@@ -1,6 +1,6 @@
 // The session-log chapter's figure of the five context layers, cheapest first, as the harness plan describes them
-// (HD3): what each one does and what it leaves in the log. The layers are a design, not shipped code, as of November
-// 2026, and the chapter says so beside the figure.
+// (HD3): what each one does and what it leaves in the log. Layers 1 and 2 are built in packages/harness; layers 3 to 5
+// are still plan, as of November 2026, and the chapter says so beside the figure.
 import { Figure } from "../lib/svgkit.js";
 
 const LAYERS = [
