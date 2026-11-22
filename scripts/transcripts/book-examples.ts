@@ -1,9 +1,9 @@
-// The test that every package with book examples shares: it runs each numbered file in the package's examples/ as its
-// own Node process, offline, and records its model exchange and checks as a transcript in results/transcripts/, which a
-// chapter's replay shows. scripts/ci/results-drift.mjs fails when a run writes a transcript that differs from the
-// committed one, so commit a changed transcript with the change that caused it. A package's
-// test/book-examples.test.ts calls defineBookExamples() and nothing else; what differs between packages is the
-// directory and the prefix of the temporary directories.
+// The test that every package with book examples shares. It runs each numbered file in the package's examples/ as its
+// own Node process, offline. It records the model exchange and the checks as a transcript in results/transcripts/,
+// which a chapter's replay shows. scripts/ci/results-drift.mjs fails when a run writes a transcript that differs from
+// the committed one, so commit a changed transcript with the change that caused it. A package's
+// test/book-examples.test.ts only calls defineBookExamples(); the packages differ in the directory and the prefix of
+// the temporary directories.
 //
 // Each process gets an allowlisted environment, so no inherited credential reaches it, and the package's
 // examples/lib/check.ts installs the gateway's offline setup before anything else runs.
