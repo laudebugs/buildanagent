@@ -49,6 +49,7 @@ The sections of README.md and every public export, generated from this package's
 - [A tool runs only while its definition matches its pin, and a change waits for the next turn](README.md#a-tool-runs-only-while-its-definition-matches-its-pin-and-a-change-waits-for-the-next-turn)
 - [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
+- [Long-term memory is an extension of sourced records that expire, and a delete reaches the log](README.md#long-term-memory-is-an-extension-of-sourced-records-that-expire-and-a-delete-reaches-the-log)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
   - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
   - [Code runs a side effect through the same pipeline and pause as the model, with no model call](README.md#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)
@@ -106,6 +107,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface LoadOptions`: The options of `load()`.
 - `LoadoutEntry`: re-exported from `@buildanagent/protocol`.
 - `interface LockHandle`: What `acquire()` returns to the writer that got the lock.
+- `marksIn()`: The marks whose call has an entry among `entries`, one file read whole.
 - `MAX_FLAGS`: The most flags one check records.
 - `MAX_SNAPSHOT_FILE_BYTES`: The largest file a snapshot keeps, in bytes.
 - `MAX_SNAPSHOT_FILES`: The most files a snapshot keeps.
@@ -133,6 +135,12 @@ The sections of README.md and every public export, generated from this package's
 - `ProtocolError`: re-exported from `@buildanagent/protocol`.
 - `ProtocolErrorCode`: re-exported from `@buildanagent/protocol`.
 - `pruneKeys()`: Calls `store.prune(inUse)` and returns the ids it removed.
+- `PURGED_TEXT`: The text that replaces the content of a purged entry.
+- `interface PurgeMark`: One tool call whose entries must leave the log: the `message_block` that holds the call, its `tool_result`, and, for a call the host's code made, its `code_call` and `approval_requested` entries.
+- `interface PurgeResidual`: The entries of a purged session, after its first marked call, that may restate what the call held: a purge clears only the marked calls, so the fact can still be in a summary or in the model's own words.
+- `purgeSession()`: Rewrites the session so that no entry matching `marks` keeps its content.
+- `interface PurgeSessionOptions`: The options of `purgeSession()`.
+- `type PurgeSessionResult`: What `purgeSession()` did.
 - `quorumOf()`: A policy that needs `needed` allows from distinct approvers, named by `Resolution.by`.
 - `interface QuorumPolicy`: Decides when a request has enough answers.
 - `type QuorumVerdict`: What a quorum policy says about one request: its answers are enough, not yet, a refusal, or too old.
@@ -430,6 +438,27 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/memory`
 
+- `clearPurgeMarks()`: Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session that held them, and drops the `unmatched` marks that have waited 30 days.
+- `interface ClearPurgeMarksOptions`: The options of `clearPurgeMarks()`.
+- `MEMORY_DIR`: The memory folder, relative to the project root.
+- `MEMORY_EXPIRY_DAYS`: How long a record holds after its last validation, by type and trust, in days.
+- `MEMORY_INDEX_MAX_BYTES`: The most bytes of the index as UTF-8, the heading and the left-out note included.
+- `MEMORY_INDEX_MAX_LINES`: The most lines of the index, the heading and the left-out note included.
+- `MEMORY_RECORD_MAX_BYTES`: The most bytes of one record's file.
+- `MEMORY_TOOL`: The tool's name.
+- `memoryExtension()`: Long-term memory over `.agents/memory/` under `root`: the `memory` tool and the index.
+- `interface MemoryExtension`: The memory extension: an `Extension`, and the call that ends its session.
+- `interface MemoryExtensionOptions`: The options of `memoryExtension()`.
+- `interface MemoryFiles`: The files of one memory folder, by name relative to it, such as `project/build.md`.
+- `interface MemoryRecord`: One durable fact, with where it came from and how long it holds.
+- `type MemoryTrust`: `low` for a record written in a session that had received output from a tool whose output is untrusted.
+- `type MemoryType`: What a record is about: a fact about the project, a note for the task at hand, or something the user prefers.
+- `parseRecord()`: A record from its file, or `undefined` when the file is not one: a missing field, a bad value or no front matter.
+- `readPurgeMarks()`: The purge list: the marks of every call that wrote or returned a record deleted since the list was last cleared.
+
+## Exports from `@buildanagent/harness/memory/node`
+
+- `fileMemoryFiles()`: The memory folder on disk under `root`, `.agents/memory/`.
 
 ## Exports from `@buildanagent/harness/telemetry`
 

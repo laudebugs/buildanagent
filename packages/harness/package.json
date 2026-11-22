@@ -97,6 +97,11 @@
       "types": "./dist/memory/index.d.ts",
       "default": "./dist/memory/index.js"
     },
+    "./memory/node": {
+      "source": "./src/memory/node.ts",
+      "types": "./dist/memory/node.d.ts",
+      "default": "./dist/memory/node.js"
+    },
     "./telemetry": {
       "source": "./src/telemetry/index.ts",
       "types": "./dist/telemetry/index.d.ts",
@@ -179,6 +184,10 @@
       "./memory": {
         "types": "./dist/memory/index.d.ts",
         "default": "./dist/memory/index.js"
+      },
+      "./memory/node": {
+        "types": "./dist/memory/node.d.ts",
+        "default": "./dist/memory/node.js"
       },
       "./telemetry": {
         "types": "./dist/telemetry/index.d.ts",

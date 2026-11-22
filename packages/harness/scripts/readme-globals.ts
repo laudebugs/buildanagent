@@ -1,11 +1,14 @@
 // The names the README's TypeScript blocks use without defining them, for scripts/docs-check.mjs, which type-checks
 // each block as a module beside this file. A block's own imports and declarations shadow these.
 import type * as gateway from "@buildanagent/gateway";
+import type * as harnessRoot from "@buildanagent/harness";
 import type * as context from "@buildanagent/harness/context";
 import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
 import type * as extensionsNode from "@buildanagent/harness/extensions/node";
 import type * as mcp from "@buildanagent/harness/mcp";
+import type * as memory from "@buildanagent/harness/memory";
+import type * as memoryNode from "@buildanagent/harness/memory/node";
 import type * as permissions from "@buildanagent/harness/permissions";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
@@ -20,14 +23,22 @@ declare global {
   type AgentEvent = sdk.AgentEvent;
   type McpEgressFetch = mcp.McpEgressFetch;
   type Extension = extensions.Extension;
+  type Log = { store: sessions.SessionStore; index: sessions.SessionIndex; lock: sessions.SessionLock };
   type Model = gateway.Model;
+  type PurgeMark = sessions.PurgeMark;
   type ToolRegistry = tools.ToolRegistry;
 
+  const clearPurgeMarks: typeof memory.clearPurgeMarks;
   const composeExtensions: typeof extensions.composeExtensions;
   const createApprovals: typeof sessions.createApprovals;
   const contextFiles: typeof extensionsNode.contextFiles;
   const discoverSkills: typeof extensionsNode.discoverSkills;
+  const fileMemoryFiles: typeof memoryNode.fileMemoryFiles;
   const fileTrustStore: typeof extensionsNode.fileTrustStore;
+  const isHarnessError: typeof harnessRoot.isHarnessError;
+  const memoryExtension: typeof memory.memoryExtension;
+  const purgeSession: typeof sessions.purgeSession;
+  const readPurgeMarks: typeof memory.readPurgeMarks;
   const planFileSource: typeof extensionsNode.planFileSource;
   const projectContext: typeof extensions.projectContext;
   const withPlanConvention: typeof extensions.withPlanConvention;

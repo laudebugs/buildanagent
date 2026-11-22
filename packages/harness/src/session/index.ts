@@ -81,6 +81,15 @@ export type { LockHandle, SessionLock } from "./lock.js";
 export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
 export { type MigrateOptions, type Migration, type MigrationResult, migrateSession } from "./migrate.js";
 export { memoryIndex, type SessionIndex } from "./pointer.js";
+export {
+  marksIn,
+  PURGED_TEXT,
+  type PurgeMark,
+  type PurgeResidual,
+  type PurgeSessionOptions,
+  type PurgeSessionResult,
+  purgeSession,
+} from "./purge.js";
 export type { PendingApproval } from "./rebuild.js";
 export {
   type ClientToolCall,

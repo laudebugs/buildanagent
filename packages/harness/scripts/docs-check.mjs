@@ -24,6 +24,7 @@ export const CONFIG = {
     Writable: "a Node stream class",
     connect: "a Dispatcher method",
     exec: "a Sandbox method",
+    endSession: "a MemoryExtension method",
     readFile: "a Sandbox method",
     writeFile: "a Sandbox method",
     invokeTool: "a Harness method",

@@ -55,6 +55,9 @@ export type HarnessErrorCode =
   | "mcp_connect_failed"
   | "mcp_tool_list_refused"
   | "mcp_call_failed"
+  | "invalid_memory_options"
+  | "memory_path_refused"
+  | "memory_corrupt"
   | "invalid_telemetry_options"
   | "budget_unknown";
 
