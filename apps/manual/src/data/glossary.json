@@ -181,6 +181,6 @@
     "id": "seam",
     "term": "seam",
     "definition": "An interface in a design where one implementation can be swapped for another, such as the store that holds a session log. Each deployment target supplies its own implementation behind the same seam.",
-    "sources": ["cloudflare-workflows-limits"]
+    "sources": ["adr-0033-deployment-targets"]
   }
 ]

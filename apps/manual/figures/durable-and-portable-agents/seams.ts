@@ -1,6 +1,6 @@
 // Chapter 24's flat figure of the seven portable seams plus the effect store, and what each target puts behind them.
-// The cells are our inference from platform documentation and are untested, except the effect store, whose three
-// stores exist in the agent-safety package. Cloudflare is the only target `verify/` runs.
+// The cells are our inference from platform documentation and are untested, except the sandbox row, which ADR 0033 decides, and
+// the effect store, whose three stores exist in the agent-safety package. Cloudflare is the only target `verify/` runs.
 import { Figure } from "../lib/svgkit.js";
 
 const COLUMNS = [

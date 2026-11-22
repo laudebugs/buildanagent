@@ -673,5 +673,14 @@
     "kind": "repo",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/durable-and-portable-agents.md"
+  },
+  {
+    "id": "adr-0033-deployment-targets",
+    "title": "0033. Run the SDK and harness on Cloudflare, AWS and Vercel, proved by one conformance suite, with Cloudflare first",
+    "publisher": "buildanagent, architecture decision records",
+    "url": "https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0033-three-deployment-targets.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/durable-and-portable-agents.md"
   }
 ]

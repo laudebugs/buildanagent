@@ -13,9 +13,9 @@ export default function draw(): Figure {
 
   figure.group("ports", () => {
     const ports = [
-      { x: 10, name: "ship" },
-      { x: 180, name: "crane" },
-      { x: 350, name: "truck" },
+      { x: 10, name: "Cloudflare" },
+      { x: 180, name: "AWS" },
+      { x: 350, name: "Vercel" },
     ] as const;
     for (const port of ports) {
       const holder = figure.box({ x: port.x, y: 110, width: 160, height: 44 }, { label: port.name });
@@ -24,9 +24,9 @@ export default function draw(): Figure {
   });
 
   figure.group("adapters", () => {
-    figure.text({ x: 90, y: 188 }, "its own fittings", { tone: "muted" });
-    figure.text({ x: 260, y: 188 }, "its own fittings", { tone: "muted" });
-    figure.text({ x: 430, y: 188 }, "its own fittings", { tone: "muted" });
+    figure.text({ x: 90, y: 188 }, "its own crane", { tone: "muted" });
+    figure.text({ x: 260, y: 188 }, "its own crane", { tone: "muted" });
+    figure.text({ x: 430, y: 188 }, "its own crane", { tone: "muted" });
   });
 
   figure.text({ x: 260, y: 230 }, "the box is standard, and each port needs its own crane", { tone: "accent" });
