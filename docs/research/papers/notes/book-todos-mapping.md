@@ -132,7 +132,7 @@ All four of T25's sections meet U22's findings.
 
 The halo-effect, VFM, Gandalf and Masoero rows (91–94, 103–104, 107–110) are ⚠️ (secondary summary), so they need fresh reads before citing.
 
-**Proposed addition to `docs/todos/ready/T25-chapter-evals-observability-and-release.md`, `## Context`:**
+**Proposed addition to `docs/todos/done/T25-chapter-evals-observability-and-release.md`, `## Context`:**
 
 > - [Agent research papers](../../research/papers/agent-research-papers.md) (U22): its [evals section](../../research/papers/agent-research-papers.md#a-trustworthy-eval-suite-needs-its-own-fresh-tasks-and-a-baseline-agent-because-the-published-benchmarks-grade-too-loosely-to-gate-a-release) shows that published scores can reflect memorization (arXiv 2506.12286) or a weak grader (2507.02825: τ-bench counted an empty response as a pass), and that cost should be reported beside pass rate (2611.24324). Its [provenance section](../../research/papers/agent-research-papers.md#trustworthy-agent-provenance-needs-a-replayable-transaction-log-per-criterion-verifiers-the-generator-cannot-see-and-a-staged-gate-before-any-demo-based-score-counts) and closing paragraph bear on the LLM-judge and release sections: the halo effect in holistic scoring (2611.24039), many-criterion verifiers (VFM, 2611.23074; Gandalf, 2611.22841), a deterministic log check that catches cheats a judge misses and the reverse (Truthgate, 2611.23335), and a 43-day shadow-mode deployment (2611.23142). The provenance papers' rows are ⚠️ (secondary summary), so re-read each abstract and log a ✅ row before citing it.
 
