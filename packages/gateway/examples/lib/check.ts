@@ -1,9 +1,9 @@
 // Shared helpers for the book's examples on our gateway: an assertion helper and a scripted model. The book lists
-// these examples beside the third-party ones (apps/manual), and test/book-examples.test.ts runs each one offline and
-// records its transcript.
+// these examples beside the third-party ones (apps/manual), and scripts/transcripts/book-examples.ts runs each one
+// offline and records its transcript.
 //
-// The offline setup comes first, as in every test under packages/: a set provider key stops the example, and no
-// request can leave this machine.
+// The offline setup comes first, as in every test under packages/: a set provider key
+// stops the example, and no request can leave this machine.
 import "@buildanagent/gateway/testing/setup";
 import { createModel, type Model } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";

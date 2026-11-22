@@ -1,13 +1,14 @@
 // Turns the raw events that record.mjs saved for one example into its committed transcript,
 // <harness>/results/transcripts/<example>.json, and checks a transcript's shape. A harness is a verify/<sdk> directory
-// or one of our own packages, such as packages/sdk. Each verify harness's scripts/run-examples.mjs, and
-// packages/*/test/book-examples.test.ts, call transcriptRun() before an example runs and its write() after the
-// process exits. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed transcript
-// differs from the one a run writes. The shapes themselves live in events.ts.
+// or one of our own packages, such as packages/sdk. Each verify harness's scripts/run-examples.mjs, and the shared
+// book-examples.ts that our packages' tests call, call transcriptRun() before an example runs and its write() after
+// the process exits. The book's replay reads the file, and scripts/ci/results-drift.mjs fails when a committed
+// transcript differs from the one a run writes. The shapes themselves live in events.ts.
 //
 // Two runs on two machines must write the same bytes, so the file holds no absolute path, temporary directory or
 // environment value, and every id, timestamp and duration that the SDK generates is replaced by a placeholder. What an
-// example scripts itself, such as a tool's input, a model's text or an answer's usage and model id, is kept as written.
+// example scripts itself, such as a tool's input, a model's text or an answer's usage and model id, is kept as
+// written.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, extname, join, relative, sep } from "node:path";

@@ -10,6 +10,7 @@ const calculate = tool({ inputSchema: z.object({ expr: z.string() }), execute: a
 const { model, requests } = scripted([{ tools: [{ name: "search", input: { q: "pi" } }] }, "Pi is about 3.14."]);
 const seen: number[] = [];
 
+// #region prepare-step
 const result = await generateText({
   model,
   tools: { search, calculate },
@@ -18,11 +19,12 @@ const result = await generateText({
     seen.push(stepNumber);
     check(steps.length === stepNumber, `prepareStep(${stepNumber}) sees the ${stepNumber} earlier step(s)`);
     return stepNumber === 0
-      ? { activeTools: ["search"], toolChoice: { type: "tool", toolName: "search" } }
-      : { activeTools: [] };
+      ? { activeTools: ["search"], toolChoice: { type: "tool", toolName: "search" } } // book:note first-step
+      : { activeTools: [] }; // book:note second-step
   },
   prompt: "What is pi?",
 });
+// #endregion
 
 check(JSON.stringify(seen) === "[0,1]", "prepareStep runs before each step");
 check(JSON.stringify(toolNames(requests[0])) === '["search"]', "step 0: only the active tool is offered");

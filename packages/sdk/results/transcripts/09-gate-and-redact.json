@@ -1,0 +1,155 @@
+{
+  "format": 2,
+  "example": "09-gate-and-redact",
+  "file": "packages/sdk/examples/09-gate-and-redact.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 40,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle support tickets."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Use close_ticket, then read_ticket."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "close_ticket",
+        "read_ticket"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 40,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "close_ticket",
+            "input": {}
+          },
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "read_ticket",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 40,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "close_ticket",
+              "output": "Tool call \"close_ticket\" was denied: Closing needs a supervisor.",
+              "error": true
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "read_ticket",
+              "output": "ticket body (redacted)"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "close_ticket",
+        "read_ticket"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 40,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "the denied tool's function never ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "the allowed tool ran",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 71,
+      "message": "the model read the deny reason",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "the model read the replacement, and the raw ticket body never reached it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 76,
+      "message": "beforeToolCall ran for both calls, and afterToolCall ran only for the call that executed",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 80,
+      "message": "tool_call_end still reports the denied call, as an error result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 84,
+      "message": "the run goes on to its answer after a denial",
+      "pass": true
+    }
+  ]
+}
