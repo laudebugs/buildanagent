@@ -412,6 +412,10 @@ class HarnessDispatcher<H> implements Dispatcher {
         input,
         observers: [observer],
         signal: running.controller.signal,
+        // The first run has ended and a retry may follow: a steer sent now waits in the queue for the retry's run.
+        onOverflowRetry: () => {
+          running.run = undefined;
+        },
         onContextFill: (fill) => this.emit(session, { type: "context_fill", tokens: fill.tokens, budget: fill.budget }),
         onRun: (run) => {
           running.run = run;

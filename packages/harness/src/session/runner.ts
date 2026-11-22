@@ -5,7 +5,7 @@
  * turn's end. Every write goes through one queue, so the permission pipeline's entries and the observer's never race for
  * the same parent.
  */
-import type { ContentBlock, Message, Model, ModelRef } from "@buildanagent/gateway";
+import { addCost, addUsage, type ContentBlock, type Message, type Model, type ModelRef } from "@buildanagent/gateway";
 import { FORMAT_VERSION, type Origin, type SessionEntry } from "@buildanagent/protocol";
 import {
   type AgentEvent,
@@ -59,6 +59,8 @@ export interface TurnOptions<H = unknown> {
   readonly onRun?: (run: Run<unknown>) => void;
   /** Called with how full the request view is after each model call's view is built, when the harness has a context policy. */
   readonly onContextFill?: (fill: ContextFill) => void;
+  /** Called when the first run has ended because the request was too large and a retry may follow. */
+  readonly onOverflowRetry?: () => void;
   /** Observers for this turn alone. Unlike `Run.on()`, they also see `run_start`. They run after the harness's own. */
   readonly observers?: readonly Observer[];
   /**
@@ -350,16 +352,30 @@ class EventRecorder {
   }
 }
 
+/** What the layers that write inside a run are given: the turn's writer, and a way to wait for the run's entries. */
+function attachment(writer: EntryWriter, recorder: EventRecorder) {
+  return {
+    append: (origin: Origin, body: Body) => writer.write(origin, body),
+    settle: async () => {
+      recorder.flush();
+      await writer.settled();
+    },
+  };
+}
+
 /** The turn's context layers, when the harness has a policy. */
 function contextFor<H>(
   harness: Harness<H>,
   session: Session,
   model: Model,
-  options: { readonly onContextFill?: (fill: ContextFill) => void },
+  options: { readonly onContextFill?: (fill: ContextFill) => void; readonly history?: readonly Message[] },
+  retry = false,
 ): TurnContext | undefined {
   return harness.context?.forTurn({
     session,
     model,
+    ownHistory: options.history !== undefined,
+    ...(retry ? { midTurn: false } : {}),
     ...(options.onContextFill === undefined ? {} : { onFill: options.onContextFill }),
   });
 }
@@ -383,7 +399,8 @@ function interceptorsOf<H>(
   });
   const gate =
     pipelineGate === undefined ? undefined : withStickyAllowances(pipelineGate, harness, session, writer, recorder);
-  const composed = composeInterceptors(harness.interceptors ?? {}, turnContext?.interceptors ?? {}, gate ?? {});
+  // The context policy runs first, so it reads and indexes the run's own transcript, and the harness's hooks see its view.
+  const composed = composeInterceptors(turnContext?.interceptors ?? {}, harness.interceptors ?? {}, gate ?? {});
   const inner = composed.beforeModelCall;
   return {
     ...composed,
@@ -524,9 +541,19 @@ function turnPlumbing(session: Session, options: { signal?: AbortSignal; clock?:
  * Runs one turn on a session and writes it to the log. The session must be open with a lock. The first turn of a new
  * session writes its header and `env_stamp`; a turn whose model or tools differ from the last recorded ones writes a
  * `loadout` first; the input blocks follow, and the run's events after them. The returned result is the SDK's, with the
- * session id and the id of the last entry the turn wrote.
+ * session id and the id of the last entry the turn wrote. When the harness has a context policy and the run ends because
+ * the provider said the request was too large, the policy compacts once and the turn goes on from the rebuilt context;
+ * a second overflow ends the turn with that error.
  */
 export async function runTurn<H = unknown>(
+  session: Session,
+  harness: Harness<H>,
+  options: TurnOptions<H>,
+): Promise<TurnResult> {
+  return retryAfterOverflow(session, harness, options, await runTurnOnce(session, harness, options));
+}
+
+async function runTurnOnce<H = unknown>(
   session: Session,
   harness: Harness<H>,
   options: TurnOptions<H>,
@@ -564,6 +591,7 @@ export async function runTurn<H = unknown>(
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId, "run", turnContext?.spillOf);
+  turnContext?.attach(attachment(writer, recorder));
   const observer: Observer = (event) => recorder.handle(event);
   const handle = run({
     model,
@@ -700,6 +728,7 @@ export async function resumeTurn<H = unknown>(
     "continue",
     turnContext?.spillOf,
   );
+  turnContext?.attach(attachment(writer, recorder));
   const handle = continueRun(context, {
     model,
     tools,
@@ -713,4 +742,80 @@ export async function resumeTurn<H = unknown>(
   });
   options.onRun?.(handle);
   return settleTurn(handle, writer, session);
+}
+
+/**
+ * Layer 5: after a run that ended because the request was too large, asks the context policy to compact once and
+ * goes on from the rebuilt context with `continueRun()`, which asks the model again because the gateway leaves the
+ * failed response out of the request. Only one retry is made, so a second overflow is the turn's result.
+ */
+async function retryAfterOverflow<H>(
+  session: Session,
+  harness: Harness<H>,
+  options: TurnOptions<H>,
+  first: TurnResult,
+): Promise<TurnResult> {
+  if (first.stopReason !== "error" || first.error.kind !== "overflow" || options.history !== undefined) return first;
+  const model = options.model ?? harness.model;
+  const turnContext = contextFor(harness, session, model, options, true);
+  if (turnContext === undefined) return first;
+  // The retry has what the first attempt left of `maxSteps`; with none left there is nothing to retry into.
+  const stepsLeft = options.maxSteps === undefined ? undefined : options.maxSteps - first.steps;
+  if (stepsLeft !== undefined && stepsLeft < 1) return first;
+  const { signal, newId, writer } = turnPlumbing(session, options);
+  // The first run has ended: a steer sent now waits for the retry's run.
+  options.onOverflowRetry?.();
+  let compacted: boolean;
+  try {
+    compacted = await turnContext.onOverflow({
+      path: await session.path(),
+      signal,
+      append: (origin, body) => writer.write(origin, body),
+    });
+  } catch (error) {
+    // An abort during the summary call ends the turn as aborted, not as the overflow it was trying to cure.
+    if (signal.aborted) return { ...withoutError(first), stopReason: "aborted", lastEntryId: session.head() as string };
+    throw error;
+  }
+  await writer.settled();
+  // A summary call that was made and rejected wrote its usage entry, so the log ends later than the first result says.
+  if (!compacted) return { ...first, lastEntryId: session.head() as string };
+  const context = contextOf(await session.path());
+  const recorder = new EventRecorder(
+    writer,
+    harness as Harness<unknown>,
+    context.system,
+    newId,
+    "continue",
+    turnContext.spillOf,
+  );
+  turnContext.attach(attachment(writer, recorder));
+  const handle = continueRun(context, {
+    model,
+    tools: toolsOf(harness, options),
+    resolutions: [],
+    signal,
+    interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
+    observers: [
+      (event: AgentEvent) => recorder.handle(event),
+      ...afterWrites(harness.observers, writer),
+      ...afterWrites(options.observers, writer),
+    ],
+    ...optionalRunOptions(stepsLeft === undefined ? options : { ...options, maxSteps: stepsLeft }, harness, []),
+  });
+  options.onRun?.(handle);
+  const retried = await settleTurn(handle, writer, session);
+  // The turn's result counts both attempts: what the first one spent and the steps it took.
+  return {
+    ...retried,
+    steps: first.steps + retried.steps,
+    usage: addUsage(first.usage, retried.usage),
+    cost: addCost(first.cost, retried.cost),
+  };
+}
+
+/** A result without its `error`, for a turn that was cut short before the error mattered. */
+function withoutError(result: TurnResult): TurnResult {
+  const { error: _error, ...rest } = result as TurnResult & { error?: unknown };
+  return rest as TurnResult;
 }
