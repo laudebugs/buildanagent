@@ -5,11 +5,9 @@
  */
 import type { ContentBlock, Message, ModelContent } from "@buildanagent/gateway";
 
-/** One typed part of a message, as the conventions' content attributes hold it. */
-export type ContentPart = Readonly<Record<string, unknown>>;
+type Part = Readonly<Record<string, unknown>>;
 
-/** One content block as a part. An image keeps its type and drops its bytes, which would swamp a span. */
-export function blockPart(block: ContentBlock): ContentPart {
+function blockPart(block: ContentBlock): Part {
   switch (block.type) {
     case "text":
       return { type: "text", content: block.text };
@@ -24,11 +22,11 @@ export function blockPart(block: ContentBlock): ContentPart {
 }
 
 /** The parts of a result's content, as the conventions' `gen_ai.tool.call.result` or a tool message holds them. */
-export function resultParts(content: readonly ModelContent[]): readonly ContentPart[] {
+export function resultParts(content: readonly ModelContent[]): readonly Part[] {
   return content.map(blockPart);
 }
 
-function messageOf(message: Message): { readonly role: string; readonly parts: readonly ContentPart[] } {
+function messageOf(message: Message): { readonly role: string; readonly parts: readonly Part[] } {
   if (message.role === "tool") {
     return {
       role: "tool",

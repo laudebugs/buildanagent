@@ -13,6 +13,16 @@ const STATUS_ERROR = 2;
 
 const LEVELS: readonly ContentLevel[] = ["none", "attributes", "refs"];
 
+/** The attributes whose values the messages of a call or a later call repeat. */
+const IN_MESSAGES: ReadonlySet<string> = new Set([
+  G.toolName,
+  G.toolCallId,
+  G.toolCallArguments,
+  G.toolCallResult,
+  G.inputMessages,
+  G.outputMessages,
+]);
+
 /** Options for `projectSpans()`. */
 export interface ProjectSpansOptions {
   /** The tracer that receives the spans. The projection exports nowhere else. */
@@ -39,7 +49,9 @@ export interface ProjectSpansOptions {
   readonly toolArguments?: boolean;
   /**
    * Replaces the value of each named attribute with its HMAC-SHA-256 under `key`, as lower-case hex, before the span
-   * is exported, so two spans with the same value still match while the value never leaves the process. A string is
+   * is exported, so two spans with the same value still match while the value never leaves the process. With
+   * `content: "attributes"`, it may not name an attribute whose value the messages repeat (the tool's name, call id,
+   * arguments and result, and the messages themselves), and `projectSpans()` throws instead of exporting the value. A string is
    * hashed as it is, a number or boolean as its text and a list as its JSON. A span's name leaves out a hashed
    * tool name or request model attribute, which it would otherwise repeat.
    */
@@ -59,6 +71,13 @@ function check(options: ProjectSpansOptions): void {
   if (hash.key.byteLength === 0) throw invalid("hashAttributes.key must not be empty");
   if (hash.names.some((name) => typeof name !== "string" || name === "")) {
     throw invalid("hashAttributes.names must be non-empty strings");
+  }
+  // At level `attributes` the messages repeat these values in plain text, so hashing the attribute alone hides nothing.
+  const repeated = hash.names.filter((name) => IN_MESSAGES.has(name));
+  if (options.content === "attributes" && repeated.length > 0) {
+    throw invalid(
+      `hashAttributes cannot name ${repeated.join(", ")} with content "attributes", because the messages repeat the value; use content "refs" or "none"`,
+    );
   }
 }
 

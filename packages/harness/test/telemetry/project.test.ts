@@ -140,12 +140,12 @@ describe("price", () => {
     }
   });
 
-  test("input tokens count the cached tokens, as the conventions say, and the split is kept apart", async () => {
+  test("input tokens count the cached tokens, as the conventions say, and the split uses the conventions' cache names", async () => {
     const chat = (await exportSpans(entries)).find((span) => span.name === "chat priced");
     assert.equal(chat?.attributes["gen_ai.usage.input_tokens"], 1500);
     assert.equal(chat?.attributes["gen_ai.usage.output_tokens"], 200);
-    assert.equal(chat?.attributes["buildanagent.usage.cache_read_tokens"], 400);
-    assert.equal(chat?.attributes["buildanagent.usage.cache_write_tokens"], 100);
+    assert.equal(chat?.attributes["gen_ai.usage.cache_read.input_tokens"], 400);
+    assert.equal(chat?.attributes["gen_ai.usage.cache_write.input_tokens"], 100);
   });
 
   test("the root span carries the commit of the conventions the names follow", async () => {
@@ -205,6 +205,14 @@ describe("options", () => {
     await bad({ hashAttributes: { key: new Uint8Array(0), names: ["gen_ai.tool.name"] } });
     await bad({ hashAttributes: { key: new Uint8Array(1), names: [""] } });
     await bad({ content: "everything" as never });
+  });
+
+  test("hashing an attribute that the messages repeat is refused at content level attributes, and allowed otherwise", async () => {
+    const key = new Uint8Array(32).fill(7);
+    await bad({ content: "attributes", hashAttributes: { key, names: ["gen_ai.tool.call.arguments"] } });
+    await bad({ content: "attributes", hashAttributes: { key, names: ["gen_ai.tool.name"] } });
+    await exportSpans(entries, { content: "attributes", hashAttributes: { key, names: ["gen_ai.request.model"] } });
+    await exportSpans(entries, { content: "refs", hashAttributes: { key, names: ["gen_ai.tool.name"] } });
   });
 
   test("a tracer that throws rejects the projection with its error", async () => {

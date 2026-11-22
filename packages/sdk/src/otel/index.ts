@@ -10,13 +10,7 @@ export {
   GEN_AI_OPERATIONS,
   SEMCONV_GENAI_COMMIT,
 } from "./attributes.js";
-export {
-  blockPart,
-  type ContentPart,
-  jsonValue,
-  resultParts,
-  systemInstructionsJson,
-} from "./content.js";
+export { inputMessagesJson, jsonValue, outputMessagesJson, resultParts, systemInstructionsJson } from "./content.js";
 export {
   type AttributeValueLike,
   type OtelObserver,

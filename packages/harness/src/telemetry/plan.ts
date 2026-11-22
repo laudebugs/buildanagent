@@ -2,21 +2,33 @@
  * Turns a session's entries into a tree of planned spans: names, times, attributes and parents, with nothing sent to a
  * tracer yet. The projection emits the plan afterwards, so every span's attributes are final before it starts, and a
  * log that ends mid-call still gives spans that end.
+ *
+ * What a model call was sent comes from `contextWithStarts()`, the function a resume rebuilds its context with, applied
+ * to the entries before the call. A span's input therefore holds what the model saw: the latest compaction's summary
+ * and the messages after it, and no result of a code call, which the model never reads.
  */
-import { addCost, addUsage, type ContentBlock, type Cost, totalInput, type Usage } from "@buildanagent/gateway";
+import {
+  addCost,
+  addUsage,
+  type ContentBlock,
+  type Cost,
+  type Message,
+  totalInput,
+  type Usage,
+} from "@buildanagent/gateway";
 import type { SessionEntry } from "@buildanagent/protocol";
 import {
-  blockPart,
-  type ContentPart,
   GEN_AI_ATTRIBUTES as G,
   GEN_AI_OPERATIONS,
+  inputMessagesJson,
   jsonValue,
+  outputMessagesJson,
   resultParts,
   SEMCONV_GENAI_COMMIT,
   systemInstructionsJson,
 } from "@buildanagent/sdk/otel";
+import { contextWithStarts } from "../session/rebuild.js";
 import { BUILDANAGENT_ATTRIBUTES as B } from "./attributes.js";
-import { type MessageJson, toolMessage } from "./content.js";
 
 /** An attribute value a span takes. */
 export type Value = string | number | boolean | string[];
@@ -79,8 +91,8 @@ function usageAttributes(usage: Usage): Record<string, Value> {
   return {
     [G.usageInputTokens]: totalInput(usage),
     [G.usageOutputTokens]: usage.output,
-    ...(usage.cacheRead > 0 ? { [B.usageCacheReadTokens]: usage.cacheRead } : {}),
-    ...(cacheWrite > 0 ? { [B.usageCacheWriteTokens]: cacheWrite } : {}),
+    ...(usage.cacheRead > 0 ? { [G.usageCacheReadInputTokens]: usage.cacheRead } : {}),
+    ...(cacheWrite > 0 ? { [G.usageCacheWriteInputTokens]: cacheWrite } : {}),
     ...(usage.reasoning > 0 ? { [G.usageReasoningOutputTokens]: usage.reasoning } : {}),
   };
 }
@@ -94,34 +106,48 @@ const fold = (running: Running | undefined, usage: Usage, cost: Cost): Running =
     ? { usage, cost }
     : { usage: addUsage(running.usage, usage), cost: addCost(running.cost, cost) };
 
+/** The finish reason each stop reason of a model call reports; an aborted call is `interrupted`. */
+const FINISH_REASONS = {
+  stop: "stop",
+  length: "length",
+  tool_calls: "tool_calls",
+  error: "error",
+  aborted: "interrupted",
+} as const;
+
 interface Tool {
   readonly span: PlannedSpan;
-  /** The id of the entry that holds the call's block or its code call, and later the result's id. */
+  /** The ids of the entries that hold the call, and later its result. */
   readonly refs: string[];
 }
 
 interface Turn {
   readonly span: PlannedSpan;
-  readonly system: string;
   running: Running | undefined;
 }
 
-interface Chat {
-  readonly span: PlannedSpan;
-  priced: boolean;
+/** An assistant message whose blocks have arrived and whose `message_end` has not. */
+interface OpenMessage {
+  readonly blocks: ContentBlock[];
+  readonly ids: string[];
+  /** When the entry before the message's first block was written: the call began once its input was complete. */
+  readonly start: number;
+  /** The position of the message's first block, so the call's input is the entries before it. */
+  readonly index: number;
 }
 
 /** Reads entries one at a time and keeps the spans they imply. */
 export class Planner {
   readonly #options: PlanOptions;
+  readonly #entries: SessionEntry[] = [];
   #root: PlannedSpan | undefined;
   #turn: Turn | undefined;
-  #chat: Chat | undefined;
+  /** The model-call span a `usage` entry written right now belongs to: the one the previous entry closed. */
+  #chat: PlannedSpan | undefined;
   #running: Running | undefined;
   #last = 0;
   #previous = 0;
-  readonly #messages: MessageJson[] = [];
-  readonly #open = new Map<string, { message: MessageJson; ids: string[]; start: number }>();
+  readonly #open = new Map<string, OpenMessage>();
   readonly #tools = new Map<string, Tool>();
   readonly #approvals = new Map<string, PlannedSpan>();
 
@@ -139,6 +165,10 @@ export class Planner {
       [G.operationName]: GEN_AI_OPERATIONS.invokeAgent,
       [B.semconvGenaiCommit]: SEMCONV_GENAI_COMMIT,
     });
+    // Only an entry written right after its message's end can hold that call's usage; any other usage entry is a
+    // call whose message was superseded, as a resume reads it.
+    if (entry.type !== "usage") this.#chat = undefined;
+    this.#entries.push(entry);
     this.#handle(entry, at);
   }
 
@@ -146,7 +176,8 @@ export class Planner {
   finish(): PlannedSpan | undefined {
     const root = this.#root;
     if (root === undefined) return undefined;
-    this.#closeTurn(this.#last);
+    this.#closeTurn(this.#last, false);
+    for (const open of this.#open.values()) this.#unfinishedCall(open);
     for (const tool of this.#tools.values()) this.#unfinished(tool.span);
     for (const approval of this.#approvals.values()) this.#unfinished(approval);
     root.end = this.#last;
@@ -161,6 +192,13 @@ export class Planner {
     open.attributes[B.unfinished] = true;
   }
 
+  /** A model call that streamed blocks and never ended: its span closes at the log's end. Its tools never started. */
+  #unfinishedCall(open: OpenMessage): void {
+    const chat = span(GEN_AI_OPERATIONS.chat, CLIENT, open.start, { [G.operationName]: GEN_AI_OPERATIONS.chat });
+    this.#unfinished(chat);
+    this.#parent.children.push(chat);
+  }
+
   get #parent(): PlannedSpan {
     return (this.#turn?.span ?? this.#root) as PlannedSpan;
   }
@@ -168,10 +206,9 @@ export class Planner {
   #handle(entry: SessionEntry, at: number): void {
     switch (entry.type) {
       case "turn_start":
-        this.#closeTurn(this.#previous);
+        this.#closeTurn(this.#previous, false);
         this.#turn = {
           span: span("turn", INTERNAL, at, { [B.runId]: entry.runId, [B.turnMode]: entry.mode }),
-          system: entry.system,
           running: undefined,
         };
         (this.#root as PlannedSpan).children.push(this.#turn.span);
@@ -203,7 +240,7 @@ export class Planner {
             [B.turnStopReason]: entry.stopReason,
             [B.turnSteps]: entry.steps,
           });
-          this.#closeTurn(at);
+          this.#closeTurn(at, true);
         }
         break;
       default:
@@ -212,69 +249,96 @@ export class Planner {
   }
 
   #block(entry: Extract<SessionEntry, { type: "message_block" }>): void {
+    // A user message is complete as it arrives, and its content reaches a span only through a later call's input.
+    if (entry.role !== "assistant") return;
     let open = this.#open.get(entry.messageId);
     if (open === undefined) {
-      // The call began once its input was complete, which is when the entry before the answer's first block was written.
-      open = { message: { role: entry.role, parts: [] }, ids: [], start: this.#previous };
+      open = { blocks: [], ids: [], start: this.#previous, index: this.#entries.length - 1 };
       this.#open.set(entry.messageId, open);
-      // A user message is complete as it arrives; the model sees it before the next call.
-      if (entry.role === "user") this.#messages.push(open.message);
     }
-    open.message.parts.push(this.#part(entry.block));
+    open.blocks.push(entry.block);
     open.ids.push(entry.id);
   }
 
-  /** A block as a part. Arguments have their own switch, so a message's content never carries them in without it. */
-  #part(block: ContentBlock): ContentPart {
-    const part = blockPart(block);
-    if (block.type !== "tool_call" || this.#options.toolArguments) return part;
-    const { arguments: _arguments, ...rest } = part;
-    return rest;
+  /** The blocks as the span shows them: a tool call keeps its arguments only when `toolArguments` is on. */
+  #shown(blocks: readonly ContentBlock[]): ContentBlock[] {
+    if (this.#options.toolArguments) return [...blocks];
+    return blocks.map((block) => (block.type === "tool_call" ? { ...block, input: undefined } : block));
   }
 
   #endMessage(entry: Extract<SessionEntry, { type: "message_end" }>, at: number): void {
     const open = this.#open.get(entry.messageId);
     this.#open.delete(entry.messageId);
-    const subject = { attribute: G.requestModel, value: entry.model.id };
     const attributes: Record<string, Value> = {
       [G.operationName]: GEN_AI_OPERATIONS.chat,
       [G.providerName]: entry.model.provider,
       [G.requestModel]: entry.model.id,
       [G.responseFinishReasons]: [FINISH_REASONS[entry.stopReason]],
     };
-    const chat = span(GEN_AI_OPERATIONS.chat, CLIENT, open?.start ?? this.#previous, attributes, subject);
+    const chat = span(GEN_AI_OPERATIONS.chat, CLIENT, open?.start ?? this.#previous, attributes, {
+      attribute: G.requestModel,
+      value: entry.model.id,
+    });
     chat.end = at;
     if (entry.error !== undefined) {
       chat.errorType = entry.error.status === undefined ? entry.error.kind : String(entry.error.status);
     }
-    const ids = [...(open?.ids ?? []), entry.id];
-    this.#content(attributes, ids, () => ({
-      [G.systemInstructions]: systemInstructionsJson(this.#turn?.system ?? ""),
-      [G.inputMessages]: JSON.stringify(this.#messages),
-      [G.outputMessages]: JSON.stringify([{ role: "assistant", parts: open?.message.parts ?? [] }]),
-    }));
+    this.#callContent(attributes, entry, open);
     this.#parent.children.push(chat);
-    this.#chat = { span: chat, priced: false };
+    this.#chat = chat;
     if (open === undefined) return;
-    this.#messages.push(open.message);
-    for (const block of open.message.parts) {
+    for (const block of open.blocks) {
       if (block.type === "tool_call") this.#startTool(block, at, open.ids);
     }
   }
 
-  #startTool(part: Readonly<Record<string, unknown>>, at: number, ids: readonly string[]): void {
-    const callId = String(part.id);
-    const name = String(part.name);
+  /** The call's content: what it was sent and what it answered, or the ids of the entries that hold them. */
+  #callContent(
+    attributes: Record<string, Value>,
+    end: Extract<SessionEntry, { type: "message_end" }>,
+    open: OpenMessage | undefined,
+  ): void {
+    if (this.#options.content === "none") return;
+    const before = this.#entries.slice(0, open?.index ?? this.#entries.length - 1);
+    const { context, starts } = contextWithStarts(before);
+    if (this.#options.content === "attributes") {
+      const messages: readonly Message[] = this.#options.toolArguments
+        ? context.messages
+        : context.messages.map(this.#redact);
+      attributes[G.systemInstructions] = systemInstructionsJson(context.system);
+      attributes[G.inputMessages] = inputMessagesJson(messages);
+      attributes[G.outputMessages] = outputMessagesJson(this.#shown(open?.blocks ?? []));
+      return;
+    }
+    const system = before.findLast((entry) => entry.type === "turn_start");
+    const compaction = before.findLast((entry) => entry.type === "compaction");
+    attributes[B.contentRef] = [
+      ...(system === undefined ? [] : [system.id]),
+      ...(compaction === undefined ? [] : [compaction.id]),
+      ...starts.filter((id): id is string => id !== null),
+      ...(open?.ids ?? []),
+      end.id,
+    ];
+  }
+
+  /** A message without the arguments of the tool calls it holds. */
+  readonly #redact = (message: Message): Message =>
+    message.role === "assistant" ? { ...message, content: this.#shown(message.content) } : message;
+
+  #startTool(block: Extract<ContentBlock, { type: "tool_call" }>, at: number, ids: readonly string[]): void {
     const attributes: Record<string, Value> = {
       [G.operationName]: GEN_AI_OPERATIONS.executeTool,
-      [G.toolName]: name,
-      [G.toolCallId]: callId,
+      [G.toolName]: block.name,
+      [G.toolCallId]: block.callId,
       [G.toolType]: "function",
     };
-    if (this.#options.toolArguments) attributes[G.toolCallArguments] = jsonValue(part.arguments);
-    const tool = span(GEN_AI_OPERATIONS.executeTool, INTERNAL, at, attributes, { attribute: G.toolName, value: name });
+    if (this.#options.toolArguments) attributes[G.toolCallArguments] = jsonValue(block.input);
+    const tool = span(GEN_AI_OPERATIONS.executeTool, INTERNAL, at, attributes, {
+      attribute: G.toolName,
+      value: block.name,
+    });
     this.#parent.children.push(tool);
-    this.#tools.set(callId, { span: tool, refs: [...ids] });
+    this.#tools.set(block.callId, { span: tool, refs: [...ids] });
   }
 
   #codeCall(entry: Extract<SessionEntry, { type: "code_call" }>, at: number): void {
@@ -295,15 +359,16 @@ export class Planner {
   }
 
   #result(entry: Extract<SessionEntry, { type: "tool_result" }>, at: number): void {
-    this.#messages.push(toolMessage(entry.callId, entry.content));
     const tool = this.#tools.get(entry.callId);
     if (tool === undefined) return;
     this.#tools.delete(entry.callId);
     tool.span.end = at;
     if (entry.isError) tool.span.errorType = "tool_error";
-    this.#content(tool.span.attributes, [...tool.refs, entry.id], () => ({
-      [G.toolCallResult]: jsonValue(resultParts(entry.content)),
-    }));
+    if (this.#options.content === "attributes") {
+      tool.span.attributes[G.toolCallResult] = jsonValue(resultParts(entry.content));
+    } else if (this.#options.content === "refs") {
+      tool.span.attributes[B.contentRef] = [...tool.refs, entry.id];
+    }
   }
 
   #usage(entry: Extract<SessionEntry, { type: "usage" }>, at: number): void {
@@ -313,11 +378,12 @@ export class Planner {
       ...costAttributes(entry.cost),
     };
     const chat = this.#chat;
-    if (entry.source === "model_call" && chat !== undefined && !chat.priced) {
-      chat.priced = true;
-      Object.assign(chat.span.attributes, attributes);
+    if (entry.source === "model_call" && chat !== undefined) {
+      this.#chat = undefined;
+      Object.assign(chat.attributes, attributes);
     } else {
-      // A summary or judge call has no message of its own; its span records the call and what it cost.
+      // A summary or judge call has no message of its own, and a call whose message was superseded has none either;
+      // its span records the call and what it cost.
       const other = span(GEN_AI_OPERATIONS.chat, CLIENT, this.#previous, {
         [G.operationName]: GEN_AI_OPERATIONS.chat,
         ...attributes,
@@ -347,28 +413,15 @@ export class Planner {
     wait.attributes[B.approvalDecision] = "decision" in resolution ? resolution.decision : "answer";
   }
 
-  #closeTurn(end: number): void {
+  /** Ends the open turn at `end`. A turn that no `turn_end` closed, as after a crash, is marked unfinished. */
+  #closeTurn(end: number, finished: boolean): void {
     const turn = this.#turn;
     if (turn === undefined) return;
     this.#turn = undefined;
     turn.span.end = end;
+    if (!finished) turn.span.attributes[B.unfinished] = true;
     if (turn.running !== undefined) {
       Object.assign(turn.span.attributes, usageAttributes(turn.running.usage), costAttributes(turn.running.cost));
     }
   }
-
-  /** Writes what the level allows: the content itself, the ids of its entries, or nothing. */
-  #content(attributes: Record<string, Value>, ids: string[], text: () => Record<string, Value>): void {
-    if (this.#options.content === "attributes") Object.assign(attributes, text());
-    else if (this.#options.content === "refs") attributes[B.contentRef] = ids;
-  }
 }
-
-/** The finish reason each stop reason of a model call reports; an aborted call is `interrupted`. */
-const FINISH_REASONS = {
-  stop: "stop",
-  length: "length",
-  tool_calls: "tool_calls",
-  error: "error",
-  aborted: "interrupted",
-} as const;

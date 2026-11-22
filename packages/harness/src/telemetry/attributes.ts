@@ -12,10 +12,6 @@ export const BUILDANAGENT_ATTRIBUTES = Object.freeze({
   costUsd: "buildanagent.cost.usd",
   /** Where the price comes from: `provider`, `catalog` or `unknown`. */
   costBasis: "buildanagent.cost.basis",
-  /** Input tokens read from a cache. `input_tokens` already counts them; this keeps the split. */
-  usageCacheReadTokens: "buildanagent.usage.cache_read_tokens",
-  /** Input tokens written to a cache, at either lifetime. */
-  usageCacheWriteTokens: "buildanagent.usage.cache_write_tokens",
   /** What made the call: `model_call`, `summary` or `judge`. */
   usageSource: "buildanagent.usage.source",
   /** The SDK run a turn belongs to. */

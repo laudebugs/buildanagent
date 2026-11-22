@@ -60,6 +60,13 @@ function meterFrom(options: BudgetMeterOptions, start: number | null): BudgetMet
   const { capUsd, warnAt } = validated(options);
   let spent = start;
   let warned = spent !== null && spent >= capUsd * warnAt;
+  // A function, not a method that reads `this`, so a caller may pass `meter.record` as a callback.
+  const record = (cost: Cost): void => {
+    spent = spent === null || cost.total === null ? null : spent + cost.total;
+    if (spent === null || warned || spent < capUsd * warnAt) return;
+    warned = true;
+    options.onWarning?.({ type: "budget_warning", spentUsd: spent, capUsd });
+  };
   return {
     capUsd,
     get spentUsd() {
@@ -68,14 +75,9 @@ function meterFrom(options: BudgetMeterOptions, start: number | null): BudgetMet
     get warned() {
       return warned;
     },
-    record(cost) {
-      spent = spent === null || cost.total === null ? null : spent + cost.total;
-      if (spent === null || warned || spent < capUsd * warnAt) return;
-      warned = true;
-      options.onWarning?.({ type: "budget_warning", spentUsd: spent, capUsd });
-    },
+    record,
     observe(entry) {
-      if (entry.type === "usage") this.record(entry.cost);
+      if (entry.type === "usage") record(entry.cost);
     },
     remainingUsd() {
       if (spent === null) {

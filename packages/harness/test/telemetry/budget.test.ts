@@ -117,6 +117,13 @@ describe("a meter rebuilt from the log", () => {
     assert.equal(meter.spentUsd, null);
   });
 
+  test("record and observe work as detached callbacks", () => {
+    const { record, observe } = createBudgetMeter({ capUsd: 1 });
+    record(dollars(0.25));
+    for (const entry of entries) observe(entry);
+    assert.ok(true, "neither threw for want of `this`");
+  });
+
   test("observe() adds a usage entry's cost and ignores every other entry", () => {
     const meter = createBudgetMeter({ capUsd: 1 });
     for (const entry of entries) meter.observe(entry);
