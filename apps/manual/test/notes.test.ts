@@ -868,6 +868,20 @@ test("a note on a highlight another tab deleted keeps the typed text, says so, a
   assert.equal(form.open(), false);
 });
 
+test("a note saved while the stored value is one this script cannot read says so, not that the highlight was deleted", () => {
+  const win = page({ items: ITEMS });
+  start(win as unknown as globalThis.Window);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  rowButton(win, "two", "edit").click();
+  noteForm(win).field.value = "Mine.";
+  const newer = '{"v":2,"chapters":{"tools":{"new":"shape"}}}';
+  win.localStorage.setItem(KEY, newer);
+  noteForm(win).save();
+  assert.match(panelStatus(win), /Nothing was changed/);
+  assert.doesNotMatch(panelStatus(win), /deleted/);
+  assert.equal(win.localStorage.getItem(KEY), newer);
+});
+
 test("a note on a highlight deleted without a storage event is caught at save, and deleting the edited row closes the form", () => {
   const win = page({ items: ITEMS });
   start(win as unknown as globalThis.Window);

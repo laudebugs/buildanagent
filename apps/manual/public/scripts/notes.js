@@ -1155,6 +1155,11 @@ class Notes {
     const note = cleanNote(this.noteField.value);
     // Another tab may have changed this chapter's highlights since the form opened.
     this.reload();
+    if (this.foreign) {
+      // The stored value is one this script cannot read, so every highlight reads as missing; say why instead.
+      this.say(MESSAGES.foreign);
+      return;
+    }
     if ("id" in target && !this.items.some((item) => item.id === target.id)) {
       this.keepFormText();
       this.say(MESSAGES.gone);
