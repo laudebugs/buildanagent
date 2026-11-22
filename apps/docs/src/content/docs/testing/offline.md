@@ -21,6 +21,6 @@ To test how an adapter talks to a provider, pass a mock transport to it. The moc
 
 ## Tests give the same result every run
 
-Nothing in the testing export reads the system clock or `Math.random()`. Pass `fixedClock()` and `sequentialIds()` to `run()` as `clock` and `idGenerator`, and the same script streams the same events every time, timestamps and run id included.
+Nothing in `@buildanagent/sdk/testing` reads the system clock or `Math.random()`. Import `fixedClock()` and `sequentialIds()` from it and pass them to `run()` as `clock` and `idGenerator`, and the same script streams the same events every time, timestamps and run id included.
 
 Next, see the [packages and their entry points](/reference/packages/).

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { exampleSource, exampleTitle, parseExampleRef } from "../src/plugins/example-code.js";
+import { codeOf, exampleSource, exampleTitle, parseExampleRef } from "../src/plugins/example-code.js";
 
 test("a fence's meta names the file and the region", () => {
   assert.deepEqual(parseExampleRef('file="packages/sdk/examples/a.ts" region="run"'), {
@@ -31,4 +31,11 @@ test("a file outside an examples folder, a path that climbs out and a missing re
     () => exampleSource({ file: "packages/sdk/examples/order-agent.ts", region: "nope" }),
     /no region named nope/,
   );
+});
+
+test("a region that holds another region is refused, because the first end marker would cut it short", () => {
+  const text =
+    "// #region outer\nconst a = 1;\n// #region inner\nconst b = 2;\n// #endregion\nconst c = 3;\n// #endregion\n";
+  assert.throws(() => codeOf(text, { file: "a.ts", region: "outer" }), /holds another region/);
+  assert.equal(codeOf(text, { file: "a.ts", region: "inner" }), "const b = 2;");
 });

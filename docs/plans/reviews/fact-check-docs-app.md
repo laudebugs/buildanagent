@@ -64,5 +64,6 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or
 | L5-33 | The gateway has the entry points `.`, `./anthropic`, `./openai-chat`, `./testing` and `./testing/setup`, and the SDK has `.`, `./otel` and `./testing` | ✅ | The `exports` maps of both `package.json` files |
 | L5-34 | The gateway root exports `createModel()` and the helpers that price and replay a conversation, and the SDK root exports `run()`, `continueRun()` and `defineTool()` | ✅ | `packages/gateway/src/index.ts` (`createModel`, `projectCallCost`, `transformMessages`); `packages/sdk/src/index.ts` |
 | L5-35 | `@buildanagent/sdk/otel` exports an observer that projects a run onto OpenTelemetry spans | ✅ | `packages/sdk/src/otel/index.ts`: `otelObserver()` projects a run's events onto `gen_ai.*` spans |
+| L5-37 | The default signer holds a random key that lives only in its own process, so another process rejects its signatures, and `hmacSigner()` over a stored key ring lets any process that holds the key verify | ✅ | SDK README, "The run signs with its `signer` option": "The default, `ephemeralSigner()`, holds a random key that lives only in this process … Pass `hmacSigner({ keys, current })` over a key ring you keep there" |
 
-**Totals:** 36 claims: 36 ✅, 0 ✏️, 0 ⚠️.
+**Totals:** 37 claims: 37 ✅, 0 ✏️, 0 ⚠️.

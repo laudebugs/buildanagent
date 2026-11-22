@@ -1,9 +1,5 @@
 {
   "extends": "../../tsconfig.packages.json",
-  "compilerOptions": {
-    // The config and its plugin are JavaScript that imports the plugin's TypeScript, and the tests read both.
-    "allowJs": true
-  },
   // content.config.ts imports astro:content, which only Astro itself resolves.
   "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
   "exclude": ["src/content.config.ts"]
