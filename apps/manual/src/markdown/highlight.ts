@@ -1,5 +1,6 @@
-import { createCssVariablesTheme, createHighlighter } from "shiki";
+import { type BundledLanguage, bundledLanguages, createCssVariablesTheme, createHighlighter } from "shiki";
 import type { ListingSource } from "../book/listings.js";
+import type { SourceLine } from "../book/regions.js";
 import type { CodeToken, ListingLine } from "../components/types.js";
 
 // Shiki's CSS-variables theme colours each token with a variable named for its syntax kind, such as
@@ -19,12 +20,27 @@ let highlighter: ReturnType<typeof createHighlighter> | undefined;
 
 /** The listing's lines as the book's components take them: each with its file line number and its tokens. */
 export async function highlightListing(source: ListingSource): Promise<ListingLine[]> {
+  return highlightLines(source.lines, source.lang);
+}
+
+/**
+ * The lines of a listing written in the chapter, numbered from 1. A language Shiki does not bundle, or none, shows as
+ * plain text, so a listing's lines are built the same way whatever its language.
+ */
+export async function highlightInline(code: string, lang: string | null | undefined): Promise<ListingLine[]> {
+  const lines = code.split("\n").map((text, index) => ({ number: index + 1, text }));
+  return highlightLines(
+    lines,
+    lang !== null && lang !== undefined && Object.hasOwn(bundledLanguages, lang) ? (lang as BundledLanguage) : "text",
+  );
+}
+
+async function highlightLines(lines: readonly SourceLine[], lang: BundledLanguage | "text"): Promise<ListingLine[]> {
   highlighter ??= createHighlighter({ themes: [theme], langs: ["typescript", "tsx"] });
-  const { tokens } = (await highlighter).codeToTokens(source.lines.map((line) => line.text).join("\n"), {
-    lang: source.lang,
-    theme,
-  });
-  return source.lines.map((line, index) => ({
+  const ready = await highlighter;
+  if (lang !== "text" && !ready.getLoadedLanguages().includes(lang)) await ready.loadLanguage(lang);
+  const { tokens } = ready.codeToTokens(lines.map((line) => line.text).join("\n"), { lang, theme });
+  return lines.map((line, index) => ({
     number: line.number,
     tokens: merge((tokens[index] ?? []).map((token) => ({ text: token.content, kind: KINDS[token.color ?? ""] }))),
     ...(line.note === undefined ? {} : { note: line.note }),
