@@ -291,6 +291,7 @@ The sections of README.md and every public export, generated from this package's
 
 - `composeExtensions()`: Joins the extensions' interceptors, in the order given, by the SDK's composition rules, and their observers.
 - `CONTEXT_FILE_MAX_BYTES`: The most bytes of one context, plan or progress file the harness reads.
+- `CONTEXT_FILES_MAX_TOTAL_BYTES`: The most bytes of all the `AGENTS.md` and `CLAUDE.md` files together, as UTF-8.
 - `interface ContextFile`: One `AGENTS.md` or `CLAUDE.md` the project holds.
 - `contextText()`: The text of the leading block: a note saying what it is, then each file in its own labelled section.
 - `interface Extension`: An in-process extension: hooks and tools that run in the harness's own process with its permissions.
@@ -310,8 +311,8 @@ The sections of README.md and every public export, generated from this package's
 - `registerExtensionTools()`: Registers every extension's tools in `registry` with source `extension`.
 - `sha256()`: The digest of `data`, as `sha256:` and hex.
 - `interface Skill`: A skill as the system prompt lists it: the body stays in the file.
-- `SKILL_DESCRIPTION_MAX`: The longest skill description, from Pi's skills documentation.
-- `SKILL_NAME_MAX`: The longest skill name, from Pi's skills documentation.
+- `SKILL_DESCRIPTION_MAX`: The longest skill description, in characters.
+- `SKILL_NAME_MAX`: The longest skill name, in characters.
 - `skillOfRead()`: The skill whose `SKILL.md` a `read` call opens, or `undefined`.
 - `skillsPrompt()`: The `## Skills` section a system prompt carries: each skill's name, description and path, and never its body.
 - `interface TrustStore`: Which project folders may load their own extensions.

@@ -5,9 +5,10 @@
  * `discoverSkills()` in `@buildanagent/harness/extensions/node` finds the files.
  */
 
-/** The longest skill name, from Pi's skills documentation. The Agent Skills specification was not read. */
+// Both limits are taken from Pi's skills documentation; the Agent Skills specification was unreachable when they were set.
+/** The longest skill name, in characters. */
 export const SKILL_NAME_MAX = 64;
-/** The longest skill description, from Pi's skills documentation. The Agent Skills specification was not read. */
+/** The longest skill description, in characters. */
 export const SKILL_DESCRIPTION_MAX = 1024;
 
 /** A skill as the system prompt lists it: the body stays in the file. */
@@ -81,8 +82,8 @@ function joined(parts: readonly string[]): string {
  * that may continue on indented lines or be a `>` or `|` block, which is folded onto one line. A plain value's `#`
  * comment is dropped, and quotes are removed only from a value that is one quoted string. A file with no
  * frontmatter, a missing or empty name or description, a name that is not lowercase letters, digits and single hyphens
- * or runs past 64 characters, or a description past 1,024 characters is not a skill, and `problem` says why. A name
- * that differs from its folder's loads with a notice, because this repository's skills README requires them to match.
+ * or runs past 64 characters, or a description past 1,024 characters is not a skill, and `problem` says why. A skill's
+ * name should match the name of its folder: one that differs still loads, with a notice.
  */
 export function parseSkill(text: string, path: string): ParsedSkill {
   const fields = frontmatter(text);
@@ -101,7 +102,8 @@ export function parseSkill(text: string, path: string): ParsedSkill {
       problem: `${path} has a description of ${description.length} characters, past the limit of ${SKILL_DESCRIPTION_MAX}`,
     };
   }
-  // `discoverSkills()` joins paths with the platform's separator, which is `\` on Windows.
+  // The folder rule comes from this repository's .agents/skills/README.md. `discoverSkills()` joins paths with the
+  // platform's separator, which is `\` on Windows.
   const folder = path.split(/[\\/]/).slice(-2, -1)[0];
   const skill: Skill = { name, description, path };
   return folder !== undefined && folder !== name
@@ -156,11 +158,14 @@ function resolvePath(cwd: string, path: string): string {
  * `file_path` string, which is taken relative to `cwd` when it is not absolute. Only the skill's own `SKILL.md` counts:
  * reading another file in its folder loads no skill. Windows paths match too: `\` separates segments as `/` does, and
  * a drive letter's case is ignored. On POSIX a file whose name holds a `\` therefore matches the path with a `/` in its
- * place, which changes only which reads are recorded.
+ * place, which changes only which reads are recorded. A read that asks for part of the file, by an `offset` or a
+ * `limit` that is not `undefined` or `null`, loads no skill, because it may have shown only a few lines of it.
  */
 export function skillOfRead(skills: readonly Skill[], cwd: string, input: unknown): Skill | undefined {
   if (typeof input !== "object" || input === null) return undefined;
-  const { path, file_path: filePath } = input as { path?: unknown; file_path?: unknown };
+  // `offset` and `limit` are the range names of Pi's and Claude Code's read tools; the built-in `read` must keep them.
+  const { path, file_path: filePath, offset, limit } = input as Record<string, unknown>;
+  if ((offset !== undefined && offset !== null) || (limit !== undefined && limit !== null)) return undefined;
   const named = typeof path === "string" ? path : filePath;
   if (typeof named !== "string" || named === "") return undefined;
   const resolved = resolvePath(cwd, named);

@@ -348,6 +348,14 @@ describe("skillOfRead", () => {
     assert.equal(skillOfRead(skills, "/work", undefined), undefined);
   });
 
+  test("a read of part of the file, by offset or limit, loads no skill; null or absent ones read it all", () => {
+    const path = "/work/.agents/skills/demo/SKILL.md";
+    assert.equal(skillOfRead(skills, "/work", { path, offset: 10 }), undefined);
+    assert.equal(skillOfRead(skills, "/work", { path, limit: 5 }), undefined);
+    assert.equal(skillOfRead(skills, "/work", { file_path: path, offset: 0, limit: 5 }), undefined);
+    assert.equal(skillOfRead(skills, "/work", { path, offset: null, limit: undefined })?.name, "demo");
+  });
+
   test("matches Windows paths, which discoverSkills() joins with backslashes there", () => {
     const windows = [{ name: "demo", description: "d", path: "C:\\work\\.agents\\skills\\demo\\SKILL.md" }];
     assert.equal(skillOfRead(windows, "C:\\work", { path: ".agents\\skills\\demo\\SKILL.md" })?.name, "demo");
@@ -436,6 +444,12 @@ describe("the skill_loaded entry", () => {
       ).length,
       0,
     );
+  });
+
+  test("a five-line peek at a SKILL.md writes no skill_loaded entry", async () => {
+    const { entries } = await run([{ path: ".agents/skills/demo/SKILL.md", offset: 1, limit: 5 }], files);
+    assert.equal(entries.filter((entry) => entry.type === "skill_loaded").length, 0);
+    assert.ok(entries.some((entry) => entry.type === "tool_result" && entry.tool === "read"), "the read itself ran");
   });
 
   test("each read is a load: two reads write two entries", async () => {

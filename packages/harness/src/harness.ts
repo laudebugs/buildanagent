@@ -50,8 +50,9 @@ export interface HarnessOptions<H = unknown> {
    */
   readonly extensionRecords?: readonly ExtensionLoadedRecord[];
   /**
-   * The skills the system prompt lists, as `discoverSkills()` gives them. When a successful `read` call opens one's
-   * `SKILL.md`, the turn writes a `skill_loaded` entry. Relative paths in the call resolve against `env.cwd`.
+   * The skills the system prompt lists, as `discoverSkills()` gives them. When a successful `read` call opens the whole
+   * of one's `SKILL.md`, with no `offset` or `limit`, the turn writes a `skill_loaded` entry. Relative paths in the call
+   * resolve against `env.cwd`.
    */
   readonly skills?: readonly Skill[];
   /** Observers that see every event of every turn, after the runner's own. */
