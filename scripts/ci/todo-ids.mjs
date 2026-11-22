@@ -35,46 +35,163 @@ function safeList(dir) {
   }
 }
 
+// A `/` after one of these characters, or after one of these keywords, starts a regular expression and not a division.
+const REGEX_AFTER = new Set([
+  "",
+  "(",
+  ",",
+  "=",
+  ":",
+  "[",
+  "!",
+  "&",
+  "|",
+  "?",
+  "{",
+  "}",
+  ";",
+  "+",
+  "-",
+  "*",
+  "%",
+  "<",
+  ">",
+  "~",
+  "^",
+]);
+const KEYWORDS_BEFORE_REGEX = new Set([
+  "return",
+  "typeof",
+  "case",
+  "do",
+  "else",
+  "in",
+  "of",
+  "yield",
+  "await",
+  "void",
+  "delete",
+  "instanceof",
+  "new",
+  "throw",
+]);
+const WORD = /[A-Za-z0-9_$]/;
+
 /**
- * The comments of a TypeScript source as `{ line, text }`, one for each line a comment covers. It tracks quotes and
- * template text so a `//` inside a string does not start a comment; a regular expression that holds a quote can fool
- * it, which can only hide a comment, never invent one.
+ * The comments of a TypeScript source as `{ line, text }`, one for each line a comment covers. It skips string, template
+ * (with any `${}` nested in it) and regular-expression text, so a `//` or a quote inside one starts nothing. A `/` after
+ * `)`, a name or a number counts as a division; a regular expression there, which real code almost never has, can
+ * misplace a comment.
  */
 export function commentsOf(source) {
   const found = [];
+  const length = source.length;
   let line = 1;
   let i = 0;
-  let quote = "";
-  while (i < source.length) {
-    const ch = source[i];
-    const next = source[i + 1];
-    if (ch === "\n") line++;
-    if (quote !== "") {
-      if (ch === "\\") i++;
-      else if (ch === quote) quote = "";
-      else if (ch === "\n" && quote !== "`") quote = "";
+  let prev = ""; // the last significant character outside comments
+  let word = ""; // the name that ends at `prev`, or ""
+
+  function skipString(quote) {
+    i++;
+    while (i < length && source[i] !== quote && source[i] !== "\n") {
+      if (source[i] === "\\") {
+        if (source[i + 1] === "\n") line++;
+        i++;
+      }
       i++;
-      continue;
     }
-    if (ch === '"' || ch === "'" || ch === "`") {
-      quote = ch;
+    i++;
+  }
+
+  function skipRegex() {
+    i++;
+    let inClass = false;
+    while (i < length && source[i] !== "\n") {
+      const ch = source[i];
+      if (ch === "\\") i++;
+      else if (ch === "[") inClass = true;
+      else if (ch === "]") inClass = false;
+      else if (ch === "/" && !inClass) break;
       i++;
-    } else if (ch === "/" && next === "/") {
-      const end = source.indexOf("\n", i);
-      const stop = end === -1 ? source.length : end;
-      found.push({ line, text: source.slice(i, stop) });
-      i = stop;
-    } else if (ch === "/" && next === "*") {
-      const end = source.indexOf("*/", i + 2);
-      const stop = end === -1 ? source.length : end + 2;
-      const lines = source.slice(i, stop).split("\n");
-      for (const [offset, text] of lines.entries()) found.push({ line: line + offset, text });
-      line += lines.length - 1;
-      i = stop;
-    } else {
+    }
+    i++;
+    while (i < length && /[a-z]/i.test(source[i] ?? "")) i++;
+  }
+
+  function scanTemplate() {
+    while (i < length) {
+      const ch = source[i];
+      if (ch === "\\") {
+        if (source[i + 1] === "\n") line++;
+        i += 2;
+        continue;
+      }
+      if (ch === "\n") line++;
       i++;
+      if (ch === "`") return;
+      if (ch === "$" && source[i] === "{") {
+        i++;
+        scanCode(true);
+      }
     }
   }
+
+  function comment(stop) {
+    const lines = source.slice(i, stop).split("\n");
+    for (const [offset, text] of lines.entries()) found.push({ line: line + offset, text });
+    line += lines.length - 1;
+    i = stop;
+  }
+
+  /** Scans code; inside a `${}` it returns at the matching `}`. */
+  function scanCode(inExpression) {
+    let depth = 0;
+    while (i < length) {
+      const ch = source[i];
+      const next = source[i + 1];
+      if (ch === "\n") {
+        line++;
+        i++;
+      } else if (/\s/.test(ch)) {
+        i++;
+      } else if (ch === "/" && next === "/") {
+        const end = source.indexOf("\n", i);
+        comment(end === -1 ? length : end);
+      } else if (ch === "/" && next === "*") {
+        const end = source.indexOf("*/", i + 2);
+        comment(end === -1 ? length : end + 2);
+      } else if (ch === '"' || ch === "'") {
+        skipString(ch);
+        [prev, word] = ["a", ""];
+      } else if (ch === "`") {
+        i++;
+        scanTemplate();
+        [prev, word] = ["a", ""];
+      } else if (ch === "/" && (REGEX_AFTER.has(prev) || KEYWORDS_BEFORE_REGEX.has(word))) {
+        skipRegex();
+        [prev, word] = ["a", ""];
+      } else if (WORD.test(ch)) {
+        let end = i;
+        while (end < length && WORD.test(source[end] ?? "")) end++;
+        word = source.slice(i, end);
+        prev = source[end - 1] ?? "";
+        i = end;
+      } else {
+        if (ch === "{") depth++;
+        if (ch === "}") {
+          if (inExpression && depth === 0) {
+            i++;
+            return;
+          }
+          depth--;
+        }
+        [prev, word] = [ch, ""];
+        i++;
+      }
+    }
+  }
+
+  scanCode(false);
   return found;
 }
 

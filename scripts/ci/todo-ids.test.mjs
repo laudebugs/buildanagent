@@ -68,3 +68,18 @@ test("commentsOf reads comments only, across lines, and a // inside a string sta
     ],
   );
 });
+
+test("commentsOf survives a regular expression that holds a backtick or slashes, so a later comment is still found", () => {
+  const found = commentsOf("const a = /`/;\nconst b = /\\/\\//;\n// real B4\nconst c = `// not B4`;\n");
+  assert.deepEqual(found, [{ line: 3, text: "// real B4" }]);
+});
+
+test("commentsOf skips a template nested in another's placeholder, and counts the line a string continuation ends", () => {
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: the source under test holds nested template literals
+  const found = commentsOf("const a = `x ${`y ${1}`} z // no`;\nconst b = 'one \\\ntwo';\n// B4\n");
+  assert.deepEqual(found, [{ line: 4, text: "// B4" }]);
+});
+
+test("commentsOf reads a division as a division, so a comment after it is found", () => {
+  assert.deepEqual(commentsOf("const r = (a + b) / 2; // B4\n"), [{ line: 1, text: "// B4" }]);
+});

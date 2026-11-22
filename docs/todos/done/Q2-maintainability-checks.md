@@ -36,7 +36,7 @@ Make CI enforce the [maintainability guideline](../../guidelines/maintainability
 ## Acceptance criteria
 
 - [x] Each check fails on a seeded violation (a cycle, a copied block, an unused export, a `B4` comment) and passes on `main`'s code
-- [x] `ci.yml` runs all four, and the PR's CI shows them
+- [ ] `ci.yml` runs all four, and the PR's CI shows them. Open: the session that built Q2 had no `workflow` scope, so the four steps are in the pull request description and need a push from someone who has it
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline
 
 ## Tests
@@ -70,4 +70,5 @@ What the build found:
 - **The cross-package rule must match the dependency type `local`.** An import by package name resolves into the other package's `src/` through the `source` condition, so matching on the resolved path alone flagged 79 legitimate imports.
 - **`main` held three real clones, which the build removed.** The Anthropic and OpenAI adapters each had a copy of `failureFromResponse()` and of `toolNames()`; both now live in `wire.ts`. The two import lists that remained are skipped by an `ignorePattern`, because two files that need the same names must list them. The gateway change needs only an empty changeset, since no behaviour moved.
 - **knip passes with `ignoreExportsUsedInFile`.** Without it, it listed 21 exports and types that only their own files use. Those stay a reviewer's call; an export that nothing uses fails. The `testing` exports needed no entry, because each package's tests use them. The config names the Workers that the Cloudflare tests bundle by path, the SDK's globals file that its README checks load by path, and the scaffold packages' declared dependencies on packages they will import.
+- **`ci.yml` still needs its four steps.** GitHub refused every change to the workflow file from the build's session, by `git push` and by the API, because its token lacks the `workflow` scope. The pull request description holds the six lines, and the guideline and AGENTS.md already describe CI as running the checks, which holds once they land.
 - **The id check reads comments only, against the real todo ids.** It takes the ids from the file names in `docs/todos/`, so `T00:00:00Z` and `D3` never count, and it skips strings and regular expressions. A Node test seeds its violations; the other three were seeded by hand, and the pull request description records the runs.

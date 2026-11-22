@@ -180,7 +180,7 @@ export function retryAfterMs(headers: Headers): number | undefined {
  * Reads a failed HTTP response's error body and its retry-after hint into a failure; a body that is not JSON keeps its
  * text as the message. `readFailure` is the adapter's reader of the provider's error object.
  */
-export async function failureFromResponse(
+export async function readFailureResponse(
   response: Response,
   readFailure: (body: unknown, status: number | undefined, fallback: string) => WireFailure,
 ): Promise<WireFailure> {
