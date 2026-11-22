@@ -88,10 +88,12 @@ afterAll(() => {
   for (const folder of folders) rmSync(folder, { recursive: true, force: true });
 });
 
-const policyFor = (root: string): SandboxPolicy => ({
+// Without a proxy socket the container reaches no host, and its read-back says so, so a policy that allows one would
+// be refused as a mismatch. A sandbox with no socket therefore asks for no host.
+const policyFor = (root: string, allow: readonly string[] = []): SandboxPolicy => ({
   readRoots: [root],
   writeRoots: [root],
-  network: { allow: ["allowed.test"], deny: [] },
+  network: { allow, deny: [] },
 });
 const client = (extra: Partial<DockerSandboxOptions> = {}) =>
   dockerSandbox({ image: IMAGE, cpus: 1, memoryMb: 256, ...extra });
@@ -203,7 +205,7 @@ suite("docker: what a command can't do", () => {
       undefined,
       await (async () => {
         const root = tempFolder("ws");
-        return withProxy().provision({ root }, policyFor(root));
+        return withProxy().provision({ root }, policyFor(root, ["allowed.test"]));
       })(),
     ];
     const before = seen.length;

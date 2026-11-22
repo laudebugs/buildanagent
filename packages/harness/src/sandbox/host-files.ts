@@ -291,3 +291,16 @@ export class HostFiles {
     }
   }
 }
+
+/** For each real path, the spellings in the request that resolved to it, so a read-back can answer in them. */
+export function spellings(
+  real: readonly string[],
+  requested: readonly string[],
+): ReadonlyMap<string, readonly string[]> {
+  const names = new Map<string, string[]>();
+  real.forEach((path, index) => {
+    const spelling = requested[index];
+    if (spelling !== undefined) names.set(path, [...(names.get(path) ?? []), spelling]);
+  });
+  return names;
+}

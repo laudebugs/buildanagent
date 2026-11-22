@@ -59,7 +59,7 @@ The harness plan has a thorough design for an MCP client, but only for consuming
   - `scrubSecrets()` runs before every append.
 
   — `docs/plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls`; `docs/todos/done/N20-credential-proxy.md#scope`
-- **N43: `EgressPolicy { allow, routes }` compiled per backend.** It adds "a `routes` entry kind for git over HTTPS with a ref filter". — `docs/todos/ready/N43-remote-sandbox-egress-policy.md#tasks`
+- **N43: `EgressPolicy { allow, routes }` compiled per backend.** It adds "a `routes` entry kind for git over HTTPS with a ref filter". — `docs/todos/done/N43-remote-sandbox-egress-policy.md#tasks`
 - **Guide §6 rule:** "the harness takes API keys or proxy-injected credentials, never consumer-subscription OAuth". — `docs/guides/agent-harness.md#6-the-sandbox-and-the-credential-boundary-are-separate-components-and-the-host-not-the-model-owns-both`
 - **Extensions and trust (guide §7, N22).**
   - There are three tiers (in-process, MCP and skills) "behind one project-trust gate". Headless runs skip project extensions by default, and "trust is not a sandbox".

@@ -16,6 +16,8 @@ import { afterAll, test } from "vitest";
 // runs real programs in a temp folder. A case that needs enforcement skips for `none`, with its reason, because `none`
 // stops nothing and says so.
 const roots: string[] = [];
+// A policy over the whole disk: the fakes here claim no stops, so none of them has to enforce it.
+const POLICY_ALL = { readRoots: ["/"], writeRoots: ["/"], network: { allow: [], deny: [] } };
 
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "harness-sandbox-"));
@@ -86,8 +88,10 @@ test("none passes the cases that don't need enforcement and skips the rest with 
   const report = await runSandboxConformance(noneFactory, { processTree });
   assert.deepEqual(report.failed, []);
   assert.deepEqual(report.skipped.map((skip) => skip.name).sort(), [
+    "a backend that claims a stop reads back the policy it applied, which equals the request, and delivers its stops",
     "a path that climbs out of the workspace with .. is denied for reads and writes",
     "a read outside the read roots is denied",
+    "a read-back that differs from the request throws sandbox_policy_mismatch, names the field and disposes the sandbox",
     "a symlink in the workspace that points outside it is denied for reads and writes",
     "a working directory outside the workspace is denied",
     "a write outside the write roots is denied",
@@ -122,11 +126,14 @@ test("the network case reaches an allowed loopback host and fails a backend that
     const report = await runSandboxConformance(() => ({ client: lying, root: tempRoot() }), {
       network: { allowed: String(allowedPort), blocked: String(blockedPort), command: probe },
     });
-    assert.deepEqual(
-      report.failed.map((failure) => failure.name),
-      ["the network is denied unless the host is on the allowlist"],
-    );
-    assert.match(report.failed[0]?.error ?? "", /not allowed must not be reached/);
+    // It also has no read-back, which the two read-back cases catch on their own.
+    assert.deepEqual(report.failed.map((failure) => failure.name).sort(), [
+      "a backend that claims a stop reads back the policy it applied, which equals the request, and delivers its stops",
+      "a read-back that differs from the request throws sandbox_policy_mismatch, names the field and disposes the sandbox",
+      "the network is denied unless the host is on the allowlist",
+    ]);
+    const network = report.failed.find((failure) => failure.name.startsWith("the network"));
+    assert.match(network?.error ?? "", /not allowed must not be reached/);
   } finally {
     for (const server of servers) server.close();
   }
@@ -155,6 +162,8 @@ test("a backend that breaks the rules fails the suite: one that leaks the parent
       readFile: (path) => sandbox.readFile(path),
       writeFile: (path, data) => sandbox.writeFile(path, data),
       dispose: () => sandbox.dispose(),
+      readBack: () => sandbox.readBack?.() ?? Promise.reject(new Error("the fake reads its policy back")),
+      ...(sandbox.stops === undefined ? {} : { stops: sandbox.stops }),
     };
   };
   const report = await runSandboxConformance(() => ({ client: leaky, root: "/workspace" }));
@@ -162,4 +171,50 @@ test("a backend that breaks the rules fails the suite: one that leaks the parent
     report.failed.map((failure) => failure.name),
     ["exec's environment holds only the variables it was given, and no credential"],
   );
+});
+
+test("the fake's find and grep exit and print as the real programs do, for the cases the search tools meet", async () => {
+  // The same commands run on the real find and grep, through `none` in a temp folder, and on the fake, and must agree
+  // on the exit code and on what reaches standard output, with each root written as <root>.
+  const files = { "node_modules/dep/index.ts": "answer\n", "src/app.ts": "answer\n" };
+  const realRoot = tempRoot();
+  mkdirSync(join(realRoot, "empty"));
+  const real = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: realRoot, files }, POLICY_ALL);
+  const fake = await fakeSandbox({ stops: [] }).provision({ root: "/work", files }, POLICY_ALL);
+  const emptyFake = await fakeSandbox({ stops: [] }).provision({ root: "/empty" }, POLICY_ALL);
+  const env = { PATH: "/usr/bin:/bin", LANG: "C.UTF-8" };
+  const run = async (sandbox: typeof real, root: string, command: (root: string) => string[]) => {
+    const result = await sandbox.exec(command(root), { env, signal: new AbortController().signal });
+    assert.ok(!("denied" in result));
+    return [result.exitCode, result.stdout.replaceAll(root, "<root>")];
+  };
+  const prune = ["(", "-name", "node_modules", ")", "-prune", "-o", "-type", "f", "-print"];
+  const cases: ((root: string) => string[])[] = [
+    (root) => ["find", `${root}/missing`, "-type", "f", "-print"],
+    (root) => ["find", `${root}/node_modules`, ...prune],
+    (root) => [
+      "find",
+      `${root}/node_modules`,
+      "(",
+      "!",
+      "-path",
+      `${root}/node_modules`,
+      ...prune.slice(0, 5),
+      ")",
+      ...prune.slice(5),
+    ],
+    (root) => ["grep", "-n", "-H", "-E", "-e", "(", "--", `${root}/src/app.ts`],
+    (root) => ["grep", "-n", "-H", "-E", "-e", "answer", "--", `${root}/src/app.ts`, `${root}/src/gone.ts`],
+  ];
+  for (const command of cases) {
+    assert.deepEqual(
+      await run(fake, "/work", command),
+      await run(real, realRoot, command),
+      command("<root>").join(" "),
+    );
+  }
+  // A folder with no files: the real one is a made folder, and the fake's is its workspace root, which always exists.
+  const emptyReal = await run(real, `${realRoot}/empty`, (root) => ["find", root, "-type", "f", "-print"]);
+  assert.deepEqual(await run(emptyFake, "/empty", (root) => ["find", root, "-type", "f", "-print"]), emptyReal);
+  assert.deepEqual(emptyReal, [0, ""]);
 });

@@ -24,6 +24,7 @@ import {
   unreadableStamps,
   versionedPackageDirs,
 } from "./changeset-gate.mjs";
+import { isPendingChangeset, RELEASE_ORDER, versionedPackageNames } from "./release-plan.mjs";
 
 const root = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const config = JSON.parse(readFileSync(path.join(root, ".changeset", "config.json"), "utf8"));
@@ -75,8 +76,25 @@ describe("changeset-gate.mjs", () => {
     ]);
   });
 
-  test("this checkout versions both packages", () => {
-    assert.deepEqual(versionedPackageDirs(root), ["packages/gateway", "packages/sdk"]);
+  test("this checkout versions the six packages RELEASE_ORDER lists", () => {
+    // packages/ also holds private packages, such as evals, which the gate never counts.
+    assert.deepEqual(versionedPackageDirs(root), RELEASE_ORDER.map((dir) => `packages/${dir}`).sort());
+  });
+
+  test("a changeset naming only a formerly private package is pending once RELEASE_ORDER lists it", () => {
+    const text = '---\n"@buildanagent/protocol": minor\n---\n\nThe first protocol alpha.\n';
+    // Before L11, Changesets versioned only the gateway and the SDK, and never consumed such a changeset.
+    assert.equal(isPendingChangeset("first.md", text, ["@buildanagent/gateway", "@buildanagent/sdk"]), false);
+    const versioned = versionedPackageNames(root);
+    for (const dir of ["agent-safety", "protocol", "harness", "cli"]) {
+      assert.ok(versioned.includes(`@buildanagent/${dir}`), `${dir} isn't versioned`);
+      const named = text.replace("protocol", dir);
+      assert.equal(isPendingChangeset("first.md", named, versioned), true, dir);
+      assert.deepEqual(
+        newChangesets([".changeset/first.md"], () => named, versioned),
+        [".changeset/first.md"],
+      );
+    }
   });
 
   test("a version-only change differs in version and nowhere else", () => {
@@ -396,6 +414,39 @@ describe("changeset-gate.mjs", () => {
       write(".changeset/quiet-dogs.md", "---\n---\n");
       commit();
       assert.deepEqual(gate(dir, stamps), { code: 1, calls: ["main"] });
+    });
+
+    // agent-safety, the protocol, the harness and the CLI were private until L11. Once `private` is gone, a change to
+    // any shipped file of theirs needs a changeset, as the gateway's and the SDK's always have.
+    test("a formerly private package's src/, package.json and tsconfig.build.json need a changeset once it is public", () => {
+      // Each shipped file's text before and after the change; `hidden` keeps the package private on both sides.
+      const p = (hidden, extra = {}) =>
+        `${JSON.stringify({ name: "@x/p", version: "0.0.0", ...(hidden ? { private: true } : {}), ...extra })}\n`;
+      const files = {
+        "packages/p/src/index.ts": () => ["export const p = 1;\n", "export const p = 2;\n"],
+        "packages/p/package.json": (hidden) => [p(hidden), p(hidden, { description: "now with one" })],
+        "packages/p/tsconfig.build.json": () => [
+          '{ "compilerOptions": {} }\n',
+          '{ "compilerOptions": { "strict": true } }\n',
+        ],
+      };
+      for (const [file, sides] of Object.entries(files)) {
+        // While it is private, the gate doesn't count it, and the change goes straight to changeset status.
+        const [hiddenBefore, hiddenAfter] = sides(true);
+        const hidden = repo({ "packages/p/package.json": p(true), [file]: hiddenBefore });
+        hidden.write(file, hiddenAfter);
+        hidden.commit();
+        assert.deepEqual(gate(hidden.dir), { code: 1, calls: ["main"] }, `${file} while private`);
+
+        const [before, after] = sides(false);
+        const shown = repo({ "packages/p/package.json": p(false), [file]: before });
+        shown.write(file, after);
+        shown.commit();
+        assert.deepEqual(gate(shown.dir), { code: 1, calls: [] }, `${file} without a changeset`);
+        shown.write(".changeset/first-p.md", '---\n"@x/p": minor\n---\n\nThe first release of p.\n');
+        shown.commit();
+        assert.deepEqual(gate(shown.dir), { code: 1, calls: ["main"] }, `${file} with a changeset`);
+      }
     });
 
     test("an uncommitted bump in the working tree doesn't count", () => {

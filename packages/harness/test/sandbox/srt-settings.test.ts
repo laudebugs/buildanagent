@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { SandboxPolicy } from "@buildanagent/harness/sandbox";
-import { srtSettings } from "@buildanagent/harness/sandbox/srt";
+import { type SrtPolicyNames, srtPolicyFromSettings, srtSettings } from "@buildanagent/harness/sandbox/srt";
 import { test } from "vitest";
 
 const policy: SandboxPolicy = {
@@ -70,4 +70,38 @@ test("a root listed twice appears once", () => {
     settings.filesystem.allowRead.map((entry) => entry.path),
     ["/work/write"],
   );
+});
+
+const names: SrtPolicyNames = {
+  read: new Map([["/real/read", ["/work/read"]]]),
+  write: new Map([["/real/write", ["/work/write"]]]),
+  implicitReads: ["/usr", "/srt/vendor"],
+};
+const written = () =>
+  srtSettings({
+    policy: { ...policy, readRoots: ["/real/read"], writeRoots: ["/real/write"] },
+    systemReadRoots: ["/usr"],
+    helperReadRoots: ["/srt/vendor"],
+    denyWrite: [],
+  });
+
+test("the read-back maps the settings back to the request's spelling, leaving out the folders the backend adds", () => {
+  assert.deepEqual(srtPolicyFromSettings(written(), names), policy);
+});
+
+test("a folder, a host or a pattern the request didn't ask for shows up in the read-back", () => {
+  const settings = structuredClone(written()) as unknown as {
+    network: { allowedDomains: string[] };
+    filesystem: { allowRead: { path: string; literal: boolean }[]; denyRead: { path: string; literal: boolean }[] };
+  };
+  settings.network.allowedDomains.push("evil.test");
+  settings.filesystem.allowRead.push({ path: "/home", literal: true });
+  const read = srtPolicyFromSettings(settings, names);
+  assert.deepEqual(read.network.allow, ["api.example.com", "evil.test"]);
+  assert.deepEqual(read.readRoots, ["/work/read", "/home"]);
+  settings.filesystem.denyRead = [];
+  assert.deepEqual(srtPolicyFromSettings(settings, names).readRoots, ["/"], "no deny-all means every read is open");
+  settings.filesystem.allowRead.push({ path: "/home/*", literal: false });
+  assert.throws(() => srtPolicyFromSettings(settings, names), { code: "sandbox_policy_mismatch" });
+  assert.throws(() => srtPolicyFromSettings({ network: {} }, names), { code: "sandbox_policy_mismatch" });
 });

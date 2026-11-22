@@ -22,6 +22,7 @@ import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
 import { type Backend, fileBackend, KEY, memoryBackend } from "../session/session-helpers.js";
 import { codeCallHarness, FIXTURE_KEYS } from "./code-call-fixture.js";
+import { tamper } from "./helpers.js";
 
 const open = (backend: Backend, store: SessionStore = backend.store) =>
   openSession({ store, index: backend.index, lock: backend.lock, key: KEY });
@@ -504,7 +505,7 @@ describe("a code call fails closed", () => {
   test("a forged signature is refused, and the error holds neither the signature nor the key", async () => {
     const backend = memoryBackend();
     const fixture = await paused(backend);
-    const signature = `${fixture.asked.pending.signature.slice(0, -2)}AA`;
+    const signature = tamper(fixture.asked.pending.signature);
     await forge(fixture.session, { ...fixture.asked.pending, signature });
     const error = await refused(backend, fixture, fixture.asked.pending.id);
     assert.match(error.message, /signature_invalid/);

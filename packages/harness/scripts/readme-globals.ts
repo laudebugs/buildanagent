@@ -28,10 +28,12 @@ declare global {
   const projectContext: typeof extensions.projectContext;
   const withPlanConvention: typeof extensions.withPlanConvention;
   const withSkills: typeof extensions.withSkills;
+  const builtinTools: typeof tools.builtinTools;
   const createContextPolicy: typeof context.createContextPolicy;
   const createMcpManager: typeof mcp.createMcpManager;
   const createDispatcher: typeof server.createDispatcher;
   const createHarness: typeof server.createHarness;
+  const createToolRegistry: typeof tools.createToolRegistry;
   const fileSpillStore: typeof file.fileSpillStore;
   const inProcessTransport: typeof server.inProcessTransport;
   const jsonlStore: typeof jsonl.jsonlStore;
@@ -47,15 +49,19 @@ declare global {
   const dir: string;
   const harness: server.Harness;
   const index: sessions.SessionIndex;
+  const key: sessions.SessionKey;
   const lock: sessions.SessionLock;
   const machine: sandbox.EscalationMachine;
   const model: Model;
   const policy: sandbox.SandboxPolicy;
+  const proxy: tools.FetchProxy;
   const registry: ToolRegistry;
   const requestId: string;
   const session: sessions.Session;
   const spill: context.SpillStore;
+  const spillDir: string;
   const store: sessions.SessionStore;
   const system: string;
   const trustFile: string;
+  const workspace: string;
 }
