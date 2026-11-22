@@ -50,9 +50,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@buildanagent/harness": "workspace:*"
-  },
-  "devDependencies": {
-    "@buildanagent/gateway": "workspace:*"
+    "@buildanagent/gateway": "workspace:*",
+    "@buildanagent/harness": "workspace:*",
+    "@buildanagent/protocol": "workspace:*",
+    "@buildanagent/sdk": "workspace:*"
   }
 }

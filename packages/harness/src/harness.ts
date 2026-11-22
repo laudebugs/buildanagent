@@ -10,6 +10,7 @@ import type { ApprovalPolicy, PermissionMode, SandboxTier } from "@buildanagent/
 import type { ApprovalSigner, Interceptors, Observer, SignedPendingRequest, ToolResult } from "@buildanagent/sdk";
 import type { Clock } from "@buildanagent/sdk/testing";
 import type { ContextPolicy } from "./context/types.js";
+import type { Skill } from "./extensions/skills.js";
 import type { ExtensionLoadedRecord } from "./extensions/types.js";
 import type { PermissionPipeline } from "./permissions/types.js";
 import type { Session } from "./session/session.js";
@@ -52,6 +53,12 @@ export interface HarnessOptions<H = unknown> {
    * `extension_loaded` entry for each the session's log does not hold yet, so a session shows which code ran.
    */
   readonly extensionRecords?: readonly ExtensionLoadedRecord[];
+  /**
+   * The skills the system prompt lists, as `discoverSkills()` gives them. When a successful `read` call opens the whole
+   * of one's `SKILL.md`, with no `offset` or `limit`, the turn writes a `skill_loaded` entry. Relative paths in the call
+   * resolve against `env.cwd`.
+   */
+  readonly skills?: readonly Skill[];
   /** Observers that see every event of every turn, after the runner's own. */
   readonly observers?: readonly Observer[];
   /** Binds a tool to the turn's host context, such as a write cap. A tool can also read it as `ctx.app`. */

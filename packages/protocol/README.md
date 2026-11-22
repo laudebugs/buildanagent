@@ -59,7 +59,7 @@ One part is loose on purpose. An SDK `AgentEvent` in an `event` notification is 
 
 ## Over stdio, each message is one line, and stdout carries nothing else
 
-`stdioTransport(dispatcher, io)` from `@buildanagent/harness/server` serves the protocol over a pair of byte streams, and the CLI's `buildanagent rpc` command will run it on its own stdin and stdout. The client writes commands and answers to the server's stdin and reads everything the server sends from its stdout. Each message is one line of UTF-8 JSON ending in `\n`. The server writes it with `encode()` and reads with `JsonlFramer` and `decode()`, so the rules above hold on the wire unchanged. The [harness README](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/README.md#stdiotransport-serves-one-client-over-a-pair-of-byte-streams) says how a host calls it.
+`stdioTransport(dispatcher, io)` from `@buildanagent/harness/server` serves the protocol over a pair of byte streams, and the CLI's `buildanagent rpc` command runs it on its own stdin and stdout. The client writes commands and answers to the server's stdin and reads everything the server sends from its stdout. Each message is one line of UTF-8 JSON ending in `\n`. The server writes it with `encode()` and reads with `JsonlFramer` and `decode()`, so the rules above hold on the wire unchanged. The [harness README](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/README.md#stdiotransport-serves-one-client-over-a-pair-of-byte-streams) says how a host calls it.
 
 Five rules govern the stream:
 

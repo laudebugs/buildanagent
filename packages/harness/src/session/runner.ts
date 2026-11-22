@@ -36,6 +36,7 @@ import {
 } from "../completion/check.js";
 import type { ContextFill, TurnContext } from "../context/types.js";
 import { HarnessError } from "../errors.js";
+import { skillOfRead } from "../extensions/skills.js";
 import type { Harness } from "../harness.js";
 import type { PolicySession } from "../permissions/types.js";
 import type { ToolWrapper } from "../tools/types.js";
@@ -295,6 +296,7 @@ class EventRecorder {
   readonly #system: string;
   readonly #newId: () => string;
   readonly #tools = new Map<string, string>();
+  readonly #inputs = new Map<string, unknown>();
   #pending: ModelMessage | undefined;
 
   readonly #mode: "run" | "continue";
@@ -389,6 +391,7 @@ class EventRecorder {
         return;
       case "tool_call_start":
         this.#tools.set(event.callId, event.tool);
+        this.#inputs.set(event.callId, event.input);
         return;
       case "tool_call_end":
         this.#toolResult(event);
@@ -432,6 +435,16 @@ class EventRecorder {
       ...(spill === undefined ? {} : { spill }),
       trust,
     });
+    this.#skillLoaded(tool, event);
+  }
+
+  /** A `read` that opened a listed skill's `SKILL.md` and succeeded put the skill's instructions in the context. */
+  #skillLoaded(tool: string, event: Extract<AgentEvent, { type: "tool_call_end" }>): void {
+    const skills = this.#harness.skills;
+    if (skills === undefined || tool !== "read" || event.result.isError === true) return;
+    const input = event.input ?? this.#inputs.get(event.callId);
+    const skill = skillOfRead(skills, this.#harness.env.cwd, input);
+    if (skill !== undefined) this.#queue("harness", { type: "skill_loaded", name: skill.name, path: skill.path });
   }
 }
 

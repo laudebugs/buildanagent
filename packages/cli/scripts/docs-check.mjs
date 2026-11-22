@@ -14,6 +14,12 @@ export const PACKAGE_DIR = fileURLToPath(new URL("../", import.meta.url));
 export const CONFIG = {
   globals: "scripts/readme-globals.ts",
   blocksFromExamples: true,
+  // The gateway's `Model` type, which the example takes.
+  alsoNames: ["../gateway"],
+  notExports: {
+    ANTHROPIC_API_KEY: "the environment variable `anthropic:` models read their key from",
+    OPENAI_API_KEY: "the environment variable `openai:` models read their key from",
+  },
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) process.exit(main(PACKAGE_DIR, CONFIG));

@@ -4,12 +4,12 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
-import { memoryTrustStore } from "@buildanagent/harness/extensions";
 import {
   hashExtensionDir,
   loadProjectExtensions,
   pinProjectExtensions,
   readLock,
+  realPathTrustStore,
 } from "@buildanagent/harness/extensions/node";
 import { afterAll, describe, test } from "vitest";
 
@@ -31,7 +31,7 @@ function project(): string {
   return root;
 }
 const folderOf = (root: string) => join(root, ".agents", "extensions", "audit");
-const load = (root: string) => loadProjectExtensions(root, { trust: memoryTrustStore([root]), headless: false });
+const load = (root: string) => loadProjectExtensions(root, { trust: realPathTrustStore([root]), headless: false });
 const mismatch = (error: unknown) => isHarnessError(error) && error.code === "extension_hash_mismatch";
 
 describe("hashExtensionDir", () => {
