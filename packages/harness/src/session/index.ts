@@ -40,6 +40,7 @@ export {
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
 export { ConflictError, EntryTooLargeError } from "./errors.js";
+export type { LockHandle, SessionLock } from "./lock.js";
 export { type MemoryStoreOptions, memoryStore } from "./memory-store.js";
 export {
   type AppendOptions,

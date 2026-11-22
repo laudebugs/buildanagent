@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 1](../../plans/build-harness.md#41-stage-1-builds-the-session-log-from-its-entry-union-to-rebuild-and-replay) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N4](N4-writer-lock.md) |
+| Depends on | [N4](../done/N4-writer-lock.md) |
 | Size | M |
 
 ## Goal

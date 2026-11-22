@@ -339,8 +339,9 @@ interface SessionStore {                                      // revision (N3): 
 declare function memoryStore(options?: { maxEntryBytes?: number }): SessionStore;      // @buildanagent/harness/session
 declare function jsonlStore(options: { dir: string; maxEntryBytes?: number }): SessionStore; // @buildanagent/harness/session/jsonl, Node only; default 64 KiB, larger is an EntryTooLargeError
 interface SessionLock { acquire(key: SessionKey): Promise<LockHandle | "would_block"> }    // HD2; keyed like the store (N3)
-interface LockHandle { readonly token: string; release(): Promise<void> }
-declare function fileLock(options: { dir: string; leaseMs?: number; renewMs?: number }): SessionLock;
+interface LockHandle { readonly token: string; held(): boolean; release(): Promise<void> } // revision (N4): held() turns false when a renewal finds another token
+declare function fileLock(options: { dir: string; leaseMs?: number; renewMs?: number }): SessionLock; // @buildanagent/harness/session/jsonl, Node and local disk only
+declare function unlockSession(options: { dir: string }, key: SessionKey): Promise<LockRecord | "unreadable" | undefined>; // revision (N4): the library behind `session unlock --force`
 
 interface Session {
   readonly key: SessionKey;
@@ -690,7 +691,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N1](../todos/done/N1-harness-workspace-scaffold.md) | Scaffold `protocol`, `harness`, `cli` and `evals` packages | B1 | S |
 | [N2](../todos/done/N2-session-entries-schema.md) | Session entry union in `@buildanagent/protocol`, its JSON Schema and the stable fields | N1, B2 | M |
 | [N3](../todos/done/N3-session-store.md) | `SessionStore`: memory and JSONL backends, the conformance suite and the write-time bound | N2 | M |
-| [N4](../todos/ready/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
+| [N4](../todos/done/N4-writer-lock.md) | Writer lock with a lease, and the crash test (HD2) | N3 | M |
 | [N5](../todos/ready/N5-head-fork-revert.md) | HEAD, checkout, fork, revert and migration by pointer | N4 | M |
 | [N6](../todos/ready/N6-session-runner.md) | Session runner: SDK events to entries, user entry first | N5, B13 | M |
 | [N7](../todos/ready/N7-rebuild-resume-replay.md) | Context rebuild, resume, playback and re-run from an entry | N6, B15b, E2 | M |

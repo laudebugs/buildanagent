@@ -16,6 +16,7 @@ export type HarnessErrorCode =
   | "duplicate_tool"
   | "invalid_tool_registration"
   | "invalid_permission_config"
+  | "invalid_lock_options"
   | "session_conflict"
   | "entry_too_large"
   | "invalid_session_entry"
@@ -34,7 +35,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * can't be part of a clean environment. `duplicate_tool`: a tool registry already holds a tool or alias by that name
  * (`DuplicateToolError`). `invalid_tool_registration`: a tool registration or a registry option is unusable, such as a
  * name that breaks the canonical rule or an unknown source. `invalid_permission_config`: an allow rule makes the host
- * callback unreachable (`PermissionConfigError`). `session_conflict`: an append found the log in a state it did not
+ * callback unreachable (`PermissionConfigError`). `invalid_lock_options`: a file lock was given a lease, renewal interval or host
+ * name it can't use. `session_conflict`: an append found the log in a state it did not
  * expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
  * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
