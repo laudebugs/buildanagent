@@ -819,11 +819,39 @@ Run pnpm build from the repository root; the SDK needs the gateway's dist first.
 
 A `view` never moves `validated`. A `create` or a `str_replace` sets it to now, and a `str_replace` whose `old_str` equals its `new_str` renews a record without changing it: the tool's description tells the model to do that only after it has re-read the record's source and found the fact still true. The extension does not read the source itself, so the check is the model's. An expired record stays on disk until a `create` replaces it or a `delete` removes it.
 
-**Writes after untrusted input are low trust.** Once a result from a tool whose `outputTrust` is `untrusted` is in the session, or the model has viewed a low-trust record, every write the session makes is stored with `trust: "low"`. A call to such a tool in the same step as the write counts too, because the two may run together. The `memory` tool's own results are logged as `untrusted`, because a record may have been planted, but a view of a trusted record does not make later writes low trust. The session's earlier tool results are read from the conversation, so after a compaction removes them in a new process, only a fresh untrusted result marks the session again.
+**Writes after untrusted input are low trust, and no write raises a record's trust.** Once a result from a tool whose `outputTrust` is `untrusted` is in the session, or the model has viewed a low-trust record, every write the session makes is stored with `trust: "low"`. A `str_replace` keeps the lower of the record's trust and the session's, so a renewal or a change in a trusted session leaves a low-trust record low trust, with the low-trust period; only a `create` over an expired or deleted record starts from the session's trust. A call to such a tool in the same step as the write counts too, because the two may run together. The `memory` tool's own results are logged as `untrusted`, because a record may have been planted, but a view of a trusted record does not make later writes low trust. The session's earlier tool results are read from the conversation, so after a compaction removes them in a new process, only a fresh untrusted result marks the session again.
 
-**A delete marks the calls that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call, such as a `read` of the record's file, whose input or result names `.agents/memory/` and whose result holds the fact verbatim. A `delete` adds those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id and a tool name. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes marks once every session that held them is purged:
+**The built-in `write` and `edit` tools can't write the memory folder.** The extension's `beforeToolCall` gate denies a `write` or an `edit` whose path, resolved against the root and compared without case, is in `.agents/memory/`, so a record can't skip the memory tool's trust and secret checks, and the bookkeeping files can't be written over. The gate reads only those two tools' paths. `bash`, and any tool whose writes it can't read, can still write the folder, and a link to the folder from elsewhere in the project is not seen. A record carries no mark of the tool that wrote it, so a record planted that way reads like any other, though its expiry is still capped by its type and trust.
+
+**A delete marks the calls that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call, such as a `read` of the record's file, whose input or result names `.agents/memory/` and whose result holds the fact verbatim. An expired record counts too, because its file stays readable until a `create` or a `delete` replaces it. Tracking never fails the other tool's call: when the folder is refused or the bookkeeping can't be read, the call stays unmarked and its result reaches the model unchanged. A record keeps its newest 100 calls, and the calls file stays under 2 MiB. Older calls, and the calls of a record whose file another tool removed, go to the purge list early rather than being dropped. A calls file the extension can't read is moved to `.calls-unread.json`, and memory keeps working without the calls it held. A `delete` adds those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id and a tool name. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes the marks it is given once every session that held them is purged. The clear waits for the memory calls of any extension in the process over the same `MemoryFiles` object, and `fileMemoryFiles()` returns one object per root, so a delete that runs meanwhile keeps its marks. Nothing coordinates two processes, so clear where no session over the folder runs in another. The pass below purges each session, a fork before the session it continues, and clears only the marks the purges applied:
 
 ```ts
+/**
+ * Purges each session once, adding the marks each purge applied to `applied`, and returns the sessions that a fork
+ * still continues, with the conflict that names one of them.
+ */
+async function purgeRound(
+  log: Log,
+  userId: string,
+  sessionIds: readonly string[],
+  marks: readonly PurgeMark[],
+  applied: PurgeMark[],
+) {
+  const waiting: string[] = [];
+  let conflict: unknown;
+  for (const sessionId of sessionIds) {
+    try {
+      const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
+      if (result.purged) applied.push(...result.marks);
+    } catch (error) {
+      if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
+      waiting.push(sessionId);
+      conflict = error;
+    }
+  }
+  return { waiting, conflict };
+}
+
 /**
  * Purges every deleted record from each of the user's sessions, then clears only the marks those purges applied. A
  * session that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter.
@@ -833,18 +861,7 @@ export async function purgeDeleted(root: string, log: Log, userId: string, sessi
   const marks = await readPurgeMarks(files);
   const applied: PurgeMark[] = [];
   for (let pending = [...sessionIds]; pending.length > 0; ) {
-    const waiting: string[] = [];
-    let conflict: unknown;
-    for (const sessionId of pending) {
-      try {
-        const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
-        if (result.purged) applied.push(...result.marks);
-      } catch (error) {
-        if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
-        waiting.push(sessionId);
-        conflict = error;
-      }
-    }
+    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied);
     // No session was purged this round, so the forks they wait for are not among `sessionIds`.
     if (waiting.length === pending.length) throw conflict;
     pending = waiting;
@@ -853,7 +870,7 @@ export async function purgeDeleted(root: string, log: Log, userId: string, sessi
 }
 ```
 
-The purge writes the session's files again under new names, from the furthest file that holds a marked entry down to the current one. A marked call's input becomes `{}`, and its result's content becomes `PURGED_TEXT`, without its `details` or `spill`. Every entry keeps its base fields, so the session still rebuilds and each call still pairs with its result. Each new file is read back before the pointer moves, and only then are the session's old files deleted. A rewritten first file is written again under the session's id, so the session stays in the listing. A fork that continues one of those files must be purged first, or the purge throws `session_conflict` before it writes anything. A fork's purge copies the part it shares with its parent and leaves the parent's file for the parent's own purge. The [session format page](docs/session-format.md#a-memory-delete-marks-entries-and-a-targeted-purge-removes-their-content) says what a purge leaves behind. Two copies stay: a summary that compaction wrote before the delete, and the model's own text where it repeated the fact. The retention purge removes both with the whole session.
+The purge writes the session's files again under new names, from the furthest file that holds a marked entry down to the current one. A marked call's input becomes `{}`, and its result's content becomes `PURGED_TEXT`, without its `details` or `spill`. Every entry keeps its base fields, so the session still rebuilds and each call still pairs with its result. Each new file is read back before the pointer moves, and only then are the session's old files deleted. A rewritten first file is written again under the session's id, replacing an earlier purge's copy there, so the session stays in the listing and no file under its id keeps the fact. A fork that continues one of those files must be purged first, or the purge throws `session_conflict` before it writes anything. A fork's purge copies the part it shares with its parent and leaves the parent's file for the parent's own purge. A later purge of the fork deletes only the fork's own copies, never the parent's files, and the retention purge reads the same ownership. The [session format page](docs/session-format.md#a-memory-delete-marks-entries-and-a-targeted-purge-removes-their-content) says what a purge leaves behind. Two copies stay: a summary that compaction wrote before the delete, and the model's own text where it repeated the fact. The retention purge removes both with the whole session.
 
 ## A call that needs a person is a signed pause that any process with the key file can resume
 

@@ -190,12 +190,15 @@ function endTasks(store: RecordStore, now: () => Date, sessionId: string): Promi
  * at the latest 7 days after it was last validated. A `view` never renews a record, and a `create` or `str_replace`
  * does. Once a result from a tool whose output is untrusted has entered the session, or the model has viewed a
  * low-trust record, every write is stored as low trust, which expires sooner: 30 days for a project fact or a
- * preference and 1 day for a task record. The tool's own results are logged as untrusted, because a record can have
- * been planted; a view of a trusted record does not make later writes low trust.
+ * preference and 1 day for a task record. A `str_replace` never raises a record's trust, so a low-trust record stays
+ * low trust when a trusted session renews or changes it. The tool's own results are logged as untrusted, because a
+ * record can have been planted; a view of a trusted record does not make later writes low trust. A built-in `write` or
+ * `edit` into the memory folder is denied, so records go through the tool; `bash` is not checked.
  *
  * A `delete` removes the record and adds the calls that wrote or returned it to the purge list, which
  * `readPurgeMarks()` reads for `purgeSession()` and `pruneSessions()`. The calls of other tools whose result holds a
- * record's fact verbatim, such as a `read` of the record's file, are marked too. Throws a `HarnessError` with code
+ * record's fact verbatim, such as a `read` of the record's file, are marked too, an expired record's included, and a
+ * failure to mark one never fails that call. Throws a `HarnessError` with code
  * `invalid_memory_options` for a `root` that is not absolute.
  */
 export function memoryExtension(options: MemoryExtensionOptions): MemoryExtension {

@@ -35,6 +35,32 @@ export interface Log {
 }
 
 /**
+ * Purges each session once, adding the marks each purge applied to `applied`, and returns the sessions that a fork
+ * still continues, with the conflict that names one of them.
+ */
+async function purgeRound(
+  log: Log,
+  userId: string,
+  sessionIds: readonly string[],
+  marks: readonly PurgeMark[],
+  applied: PurgeMark[],
+) {
+  const waiting: string[] = [];
+  let conflict: unknown;
+  for (const sessionId of sessionIds) {
+    try {
+      const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
+      if (result.purged) applied.push(...result.marks);
+    } catch (error) {
+      if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
+      waiting.push(sessionId);
+      conflict = error;
+    }
+  }
+  return { waiting, conflict };
+}
+
+/**
  * Purges every deleted record from each of the user's sessions, then clears only the marks those purges applied. A
  * session that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter.
  */
@@ -43,18 +69,7 @@ export async function purgeDeleted(root: string, log: Log, userId: string, sessi
   const marks = await readPurgeMarks(files);
   const applied: PurgeMark[] = [];
   for (let pending = [...sessionIds]; pending.length > 0; ) {
-    const waiting: string[] = [];
-    let conflict: unknown;
-    for (const sessionId of pending) {
-      try {
-        const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
-        if (result.purged) applied.push(...result.marks);
-      } catch (error) {
-        if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
-        waiting.push(sessionId);
-        conflict = error;
-      }
-    }
+    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied);
     // No session was purged this round, so the forks they wait for are not among `sessionIds`.
     if (waiting.length === pending.length) throw conflict;
     pending = waiting;
