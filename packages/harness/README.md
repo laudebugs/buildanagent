@@ -31,7 +31,7 @@ As of November 2026 the package is private and not on npm. Each removable compon
 | Tier | Backend | Stops | What it is |
 | --- | --- | --- | --- |
 | `none` | `noneSandbox({ unsafe: true })` | nothing | A command runs as the user, with the machine's files and network. For a machine that is already disposable, and for tests of the rest of the harness |
-| `os` | `srt`, coming | mistakes, and exfiltration with the proxy | An operating-system sandbox that shares the host's kernel |
+| `os` | `srtSandbox()` | mistakes and exfiltration | An operating-system sandbox that shares the host's kernel, on Linux only |
 | `container` | Docker, coming | mistakes and exfiltration, as far as its setup allows | A container with its capabilities dropped and no network by default |
 
 `mistakes` are the agent's own errors, such as a write outside the workspace. `exfiltration` is sending data to a host that is not allowed. No backend claims to stop a `hostile_process`, because a sandbox that shares the host's kernel can't promise it. A backend that can't start throws `SandboxUnavailableError`, and the host must not run unconfined, so no backend falls back to `none`.
@@ -53,6 +53,31 @@ The `none` backend starts each command in its own process group. A timeout, an a
 
 Bad input is an error, not a result. A working directory that isn't an existing folder, a bad `timeoutMs` or a bad `maxOutputBytes` throws a `HarnessError`. An already aborted signal rejects before the command runs, and reading a missing file rejects with the code `sandbox_not_found`.
 
+## The srt backend confines each command with Anthropic's OS sandbox
+
+`srtSandbox()` from `./sandbox/srt` runs each command under `srt`, Anthropic's sandbox runtime. It pins `@anthropic-ai/sandbox-runtime` 0.0.83 under the Apache-2.0 license. The package calls itself a "Beta Research Preview", and says its APIs and configuration formats may evolve (as of November 2026). `provision()` writes the settings file, so `./sandbox/srt` is the one place that knows that format.
+
+The backend claims `mistakes` and `exfiltration` on Linux and nowhere else, because Linux is the only platform it is tested on. It needs `bwrap` (bubblewrap) and `socat` on the `PATH`. `provision()` starts `srt` once with a command that does nothing. A missing program, an unsupported platform or a host where `srt` can't start a command therefore throws `SandboxUnavailableError`, and nothing runs.
+
+The policy maps to `srt`'s settings like this:
+
+- **Reads.** `srt` denies every read, then allows the read roots, the write roots, the system folders a program needs to start (`/usr`, `/bin`, `/lib`, `/etc` and a few more) and `srt`'s own helper folders. Anything else, such as `/home`, is out of reach. `extraReadRoots` adds folders, such as a toolchain's.
+- **Writes.** Only the write roots are writable. `denyWrite` keeps a folder read-only inside a write root, which is how the session's own log folder stays out of the agent's reach. `writeFile` refuses the same folders, and the files `srt` protects, such as `.bashrc`, `.claude` and `.git/hooks`.
+- **Network.** The command has no network of its own. Its traffic goes through a proxy that allows only the policy's hosts. `parentProxy` sends allowed traffic through an upstream proxy for a host that sits behind one.
+
+Every path is passed as a literal, so a folder named like a pattern is never read as one. The settings file and a run folder for `srt`'s proxy sockets live in a private folder that `dispose()` removes. A command can read the run folder and nothing else in it, so it can't read the settings file, which may hold a proxy address.
+
+A command's environment holds the variables it was given, plus the proxy variables `srt` adds, which `SRT_ADDED_ENVIRONMENT` lists. `srt` itself starts with only a `PATH` and its own `TMPDIR`. The given variables pass through `env` inside the sandbox, so a variable such as `NODE_OPTIONS` can't make `srt`'s own Node load code outside it. The backend never copies the host's `process.env`. A command whose first word contains `=` resolves with exit code 127, as under `none`.
+
+Four limits are worth knowing:
+
+- **Shared kernel.** The sandbox is a set of Linux namespaces, so a process that is trying to escape is out of scope, and no `hostile_process` stop is claimed.
+- **No TLS inspection.** The proxy allows or refuses a host by name and does not read what a command sends it.
+- **File calls run in the host.** `readFile` and `writeFile` check each path by its real path, so a symlink that leads out is refused. They check the opened file again through `/proc`, though a hostile process could still win that race. They don't run under `srt`, because two `srt` processes in one workspace can disturb each other: each makes and removes empty protected files there. Commands that run at the same time in one workspace share that risk.
+- **Cleanup depends on `srt`.** A stopped command gets a `SIGTERM` and two seconds before the `SIGKILL`, so `srt` removes its protected files. A `SIGKILL` from outside leaves them.
+
+`pnpm --filter @buildanagent/harness test:sandbox` runs the conformance suite and the escape cases against the real `srt`. It is opt-in because it starts bubblewrap, and it fails on a skipped case instead of skipping. Without `srt`, the rest of `pnpm test` checks the settings and the unavailable paths.
+
 ## Every spawned process gets a cleared environment
 
 `spawnEnv(allow, extra)` builds the whole environment for a spawned process. It returns `PATH`, a fresh temp `HOME`, `TMPDIR` and `LANG`, the parent variables that `allow` names and the parent has, and `extra`. Nothing else is copied, so a key set in the parent never reaches a child. The caller removes the temp `HOME` when the process is done; an `extra.HOME` replaces it and no folder is made. `PATH` is the parent's with every entry that isn't absolute removed, so a `.` can't run a program from the working directory, and `TMPDIR` is the shared system temp directory, not a private one.
@@ -69,7 +94,7 @@ The check goes by name and can't catch a credential under an unremarkable one, s
 
 `./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
 
-`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree.
+`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
 
 A case that needs enforcement runs only when the backend's `stops` claim it:
 
