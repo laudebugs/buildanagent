@@ -1,6 +1,6 @@
 # Building agents with the OpenAI Agents SDK: a provider-neutral loop whose defaults report to OpenAI
 
-*Version `@openai/agents@0.21.0`, TypeScript, November 2026. **[verified: NN]** marks a claim asserted by example `NN` in [`verify/openai-agents-sdk/examples/`](../../../verify/openai-agents-sdk/examples/), run offline on the SDK's own `ScriptedModel`. Other claims cite their upstream page in [`source/`](source/), mirrored from git tag `v0.21.0`; [fact-check.md](fact-check.md) rates those pages.*
+*Version `@openai/agents@0.22.0`, TypeScript, November 2026. **[verified: NN]** marks a claim asserted by example `NN` in [`verify/openai-agents-sdk/examples/`](../../../verify/openai-agents-sdk/examples/), run offline on the SDK's own `ScriptedModel`. Other claims cite their upstream page in [`source/`](source/), mirrored from git tag `v0.22.0`; [fact-check.md](fact-check.md) rates those pages.*
 
 The OpenAI Agents SDK runs a small agent loop inside your Node.js process. The SDK ships the most complete set of control primitives of the SDKs in this repo: handoffs, three kinds of guardrails, human approval that survives a restart, and first-party test doubles. Any model provider can drive it, yet several defaults assume OpenAI's platform. Tracing exports every run to OpenAI unless you turn it off, and hosted tools, server-side sessions and tool search work only with OpenAI's Responses API. In this guide, I show how the SDK's loop and primitives fit together, and how to build a production agent on them. That agent gates risky tools with `needsApproval`, guards input before the model runs, and decides up front where its traces and sessions live.
 
@@ -78,11 +78,13 @@ const weather = tool({
 
 **[verified: 02]** Function tools also take their own `inputGuardrails` and `outputGuardrails`, and a `needsApproval` predicate (sections 7 and 8). Hosted tools, tool search and namespaced or deferred tools need OpenAI's Responses API, so they stop working when you move to another provider (`tools.mdx`, `models.mdx`).
 
+> **Gotcha.** `toolChoice: 'required'` forces the model to call one of the agent's tools, even for a request that needs none. For a read-only request, expose only read-only tools: if a user asks for a ticket's status and the only tools add a comment or close the ticket, a forced call can change the ticket. With the default `resetToolChoice`, the SDK clears the forced choice only after the agent has used a tool, so use `'auto'` when the model may also answer without one (`guides/agents.mdx`, "Forcing tool use", added in v0.22.0; not run by our examples).
+
 ## 6. Handoffs transfer the conversation to another agent
 
 An agent lists specialists in `handoffs`, and the SDK offers each one to the model as a tool. When the model calls it, the specialist takes over with the full history, answers, and becomes `lastAgent`. **[verified: 03]**
 
-> **Gotcha.** The handoff tool is named `transfer_to_` plus the agent's name with spaces replaced. `handoffs.mdx` says an agent called `Refund Agent` gets `transfer_to_refund_agent`, but 0.21.0 produces `transfer_to_Refund_Agent`, keeping the capitals. **[verified: 03]** Set `toolNameOverride` if you match on tool names in logs or guardrails (fact-check, F1).
+> **Gotcha.** The handoff tool is named `transfer_to_` plus the agent's name with spaces replaced. `handoffs.mdx` says an agent called `Refund Agent` gets `transfer_to_refund_agent`, but 0.22.0 produces `transfer_to_Refund_Agent`, keeping the capitals. **[verified: 03]** Set `toolNameOverride` if you match on tool names in logs or guardrails (fact-check, F1).
 
 ## 7. Three kinds of guardrails cover input, output and each tool call
 

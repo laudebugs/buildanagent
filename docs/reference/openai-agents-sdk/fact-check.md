@@ -1,13 +1,13 @@
-# The OpenAI Agents SDK docs match 0.21.0, apart from two small errors
+# The OpenAI Agents SDK docs match 0.22.0, apart from two small errors
 
-A developer who copies an example from the OpenAI Agents SDK docs needs it to compile and run against the release npm installed. To test that promise, I checked the docs at git tag `v0.21.0` against `@openai/agents@0.21.0`, the newest release at least two weeks old. The docs are 32 English pages, plus the 178 example files they embed through `?raw` imports. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/openai-agents-sdk/`](../../../verify/openai-agents-sdk/), with raw output in `verify/openai-agents-sdk/results/`. The docs passed: no source has an API error, all 16 agent options and the `maxTurns` default match the package, and every behavior we tested works as written except one: the handoff tool's name. That naming error and one wrong "required" mark are the only inaccuracies I found; the rest are omissions.
+A developer who copies an example from the OpenAI Agents SDK docs needs it to compile and run against the release npm installed. To test that promise, I checked the docs at git tag `v0.22.0` against `@openai/agents@0.22.0`, the newest release at least one week old on 2026-11-22. The docs are 32 English pages, plus the 178 example files they embed through `?raw` imports. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/openai-agents-sdk/`](../../../verify/openai-agents-sdk/), with raw output in `verify/openai-agents-sdk/results/`. The docs passed: no source has an API error, all 16 agent options and the `maxTurns` default match the package, and every behavior we tested works as written except one: the handoff tool's name. That naming error and one wrong "required" mark are the only inaccuracies I found; the rest are omissions.
 
 ## Reproduce the checks in three commands
 
 ```bash
 pnpm install              # at the repo root: installs every harness
 cd verify/openai-agents-sdk
-pnpm run fetch-docs       # mirror the docs from tag v0.21.0 (committed; MIT)
+pnpm run fetch-docs       # mirror the docs from tag v0.22.0 (committed; MIT)
 pnpm run verify           # extract -> type-check -> run docs examples -> API diff -> our tests
 ```
 
@@ -70,7 +70,7 @@ Nine programs in `verify/openai-agents-sdk/examples/` assert documented behavior
 
 ## Five findings: two doc errors, three gaps
 
-**F1. Handoff tool names keep the agent name's case.** `handoffs.mdx:15` gives an example. "If you hand off to an agent called `Refund Agent`," it says, "the tool name would be `transfer_to_refund_agent`." In 0.21.0, `handoff(new Agent({ name: "Refund Agent" })).toolName` is `transfer_to_Refund_Agent`: the SDK replaces spaces but keeps the capitals. Code or guardrails that match on the documented name will miss. Set `toolNameOverride` when the name matters.
+**F1. Handoff tool names keep the agent name's case.** `handoffs.mdx:15` gives an example. "If you hand off to an agent called `Refund Agent`," it says, "the tool name would be `transfer_to_refund_agent`." In 0.22.0, `handoff(new Agent({ name: "Refund Agent" })).toolName` is `transfer_to_Refund_Agent`: the SDK replaces spaces but keeps the capitals. Code or guardrails that match on the documented name will miss. Set `toolNameOverride` when the name matters.
 
 **F2. `instructions` is optional, though the docs mark it required.** The table in `agents.mdx` marks both `name` and `instructions` as required. `AgentOptions` requires only `name`, examples 02, 03 and 06 construct agents without `instructions`, and the SDK's JSDoc says only that it "strongly recommends" them.
 
@@ -82,7 +82,7 @@ Nine programs in `verify/openai-agents-sdk/examples/` assert documented behavior
 
 ## U18 memory findings: a sandbox `memory()` capability the guide never covered (2026-11-19)
 
-The retrieval and memory research (U18) read the memory typings of `@openai/agents-core` 0.21.0 on 2026-11-19, and the owner approved recording what it found ([U18 report](../../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process); [SDK notes](../../research/memory/notes/sdks-claude-openai-vercel-langchain.md)). Both findings are gaps in our reference, not doc errors.
+The retrieval and memory research (U18) read the memory typings of `@openai/agents-core` 0.21.0 (checked again on 0.22.0 in the update below) on 2026-11-19, and the owner approved recording what it found ([U18 report](../../research/memory/retrieval-and-memory.md#all-eight-sdks-retrieve-through-tools-six-ship-long-term-memory-and-none-expires-it-in-the-process); [SDK notes](../../research/memory/notes/sdks-claude-openai-vercel-langchain.md)). Both findings are gaps in our reference, not doc errors.
 
 **M1. Sandbox agents have a long-term memory capability, separate from sessions.** `memory(args?: MemoryArgs)` (`agents-core/dist/sandbox/capabilities/memory.d.ts:58`) takes `read`, `generate`, `layout` and `store` options, and `MemoryStore` declares `read`, `write` and optional `delete` and `list` (`dist/sandbox/memory/storage.d.ts:16`). The docs say this memory "is separate from the SDK's conversational Session memory" and forgets by recency: "If recent raw memories exceed `maxRawMemoriesForConsolidation`, Phase 2 keeps only memories from the newest conversations and removes older ones" (`source/docs/src/content/docs/guides/sandbox-agents/memory.mdx:13`, `:80`). Until this finding, our guide covered sessions only.
 
@@ -90,8 +90,20 @@ The retrieval and memory research (U18) read the memory typings of `@openai/agen
 
 ## TypeScript parity
 
-Python `openai-agents` is the SDK's primary implementation, so the [TypeScript gap report](../../comparison/typescript-gaps.md#openai-agents-sdk-typescript-lacks-storage-backends-the-voice-pipeline-and-developer-utilities) compares 0.21.0 with Python 0.24.0 at tag `v0.24.0`. The core loop is at parity: tools, guardrails, handoffs, approvals, MCP, tracing, realtime and sandbox agents all exist in both. The JavaScript package lacks nine Python features, among them the SQLite, Redis, SQLAlchemy and other database sessions, `EncryptedSession`, nested handoff history, the `VoicePipeline`, `run_demo_loop` and `draw_graph`. Two more are weaker: no run-level history limit, and five listed tracing integrations against Python's 31. In the other direction, only JavaScript has the browser WebRTC transport, the Twilio and Cloudflare realtime transports and the `aisdk()` bridge. Plan to write your own durable `Session`, because only memory and OpenAI-hosted sessions ship.
+Python `openai-agents` is the SDK's primary implementation, so the [TypeScript gap report](../../comparison/typescript-gaps.md#openai-agents-sdk-typescript-lacks-storage-backends-the-voice-pipeline-and-developer-utilities) compares 0.21.0 (checked on 0.21.0; not redone for 0.22.0) with Python 0.24.0 at tag `v0.24.0`. The core loop is at parity: tools, guardrails, handoffs, approvals, MCP, tracing, realtime and sandbox agents all exist in both. The JavaScript package lacks nine Python features, among them the SQLite, Redis, SQLAlchemy and other database sessions, `EncryptedSession`, nested handoff history, the `VoicePipeline`, `run_demo_loop` and `draw_graph`. Two more are weaker: no run-level history limit, and five listed tracing integrations against Python's 31. In the other direction, only JavaScript has the browser WebRTC transport, the Twilio and Cloudflare realtime transports and the `aisdk()` bridge. Plan to write your own durable `Session`, because only memory and OpenAI-hosted sessions ship.
+
+## Update to 0.22.0 (2026-11-22)
+
+The weekly update moved the pin from 0.21.0 to 0.22.0 (docs tag `v0.22.0`, commit `8aeac0e`). Every tier reran, and none changed its result:
+
+- **Tier 1:** the same 182 sources, 178 pass and 4 fragments, with no API error. One example file changed: `extensions/ai-sdk-ui-message-stream.ts` gained an explicit return type.
+- **Tier 2:** the same 66 runs, 41 with a model answer, 9 without, 14 skipped and 2 errors.
+- **Tier 3:** the same counts in every row of the table (`results/factcheck-api.json`).
+- **Tier 4:** examples 01 to 09 pass. Example 03 still shows the handoff tool keeping the agent name's case (F1), so F1 holds on 0.22.0. F2 and F3 were not rerun.
+- **Docs text:** the only changed page is `guides/agents.mdx`, which gains a paragraph about `toolChoice: 'required'`: expose only read-only tools for a read-only request, because a forced call can change state, and the SDK clears the forced choice only after the agent has used a tool. The guide records it as a gotcha. No example runs it, so it rests on the docs alone.
+- **Memory typings (M1):** `memory()` is still at `memory.d.ts:58` and `MemoryStore` at `storage.d.ts:16`, and both quoted docs lines are unchanged.
+- **Not redone:** the TypeScript parity comparison, which stays at 0.21.0.
 
 ## Verdict: build from the examples, and check names before you match on them
 
-The OpenAI Agents SDK docs are the most accurate of the three references so far. Every one of their 182 sources compiles against 0.21.0 without an API error, every documented option exists, and the loop, guardrails, approvals, sessions and structured output behave as written. Two small errors remain: handoff tool names keep their case (F1), and `instructions` is optional (F2). A team can build from the docs' examples as written, provided it treats tracing as an explicit decision (F3) and reruns `pnpm run verify` at each upgrade.
+The OpenAI Agents SDK docs are the most accurate of the three references so far. Every one of their 182 sources compiles against 0.22.0 without an API error, every documented option exists, and the loop, guardrails, approvals, sessions and structured output behave as written. Two small errors remain: handoff tool names keep their case (F1), and `instructions` is optional (F2). A team can build from the docs' examples as written, provided it treats tracing as an explicit decision (F3) and reruns `pnpm run verify` at each upgrade.
