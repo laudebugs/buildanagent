@@ -1,0 +1,131 @@
+{
+  "format": 2,
+  "example": "02-stream-usage",
+  "file": "packages/gateway/examples/02-stream-usage.ts",
+  "harness": "packages/gateway",
+  "pin": "@buildanagent/gateway@workspace",
+  "mock": "@buildanagent/gateway@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 26,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are terse."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What does a cache read cost?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 26,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Prompt caching bills a cache read at 0.05x the input rate."
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 1000,
+        "cacheRead": 1500,
+        "cacheWrite": 500,
+        "output": 200
+      },
+      "modelId": "claude-sonnet-5-5"
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "the text arrives in several deltas (11)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 36,
+      "message": "the deltas join to the whole answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "total input is the three input classes together (3,000)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "usage reports the uncached input tokens (1,000)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 39,
+      "message": "usage reports the cache-read tokens (1,500)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "usage reports the cache-write tokens, by lifetime (500, 0)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "usage reports the output tokens (200)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "the price comes from the catalog, since the provider billed no total",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 44,
+      "message": "the shipped catalog lists Claude Sonnet 5.5",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 52,
+      "message": "each class times its own catalog rate is 5,400,000 nano-dollars (5400000)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "the message's cost is the same $0.0054 (0.0054)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 57,
+      "message": "billing every input token at the uncached rate would cost more",
+      "pass": true
+    }
+  ]
+}

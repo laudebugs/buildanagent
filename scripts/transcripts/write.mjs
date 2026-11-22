@@ -24,6 +24,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
  * to the mock layer's package shows as a change to the transcript.
  */
 export const MOCK_PACKAGES = {
+  "packages/gateway": "@buildanagent/gateway",
   "packages/sdk": "@buildanagent/sdk",
   "verify/claude-agent-sdk": "@anthropic-ai/claude-agent-sdk",
   "verify/cloudflare-agents": "ai",
