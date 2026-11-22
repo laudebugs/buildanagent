@@ -146,7 +146,7 @@ T36's third section asks "what to store, when to recall, when to forget". U22 no
 - **Voyager** (2305.16291, rows 9–10) stores skills as retrievable code, and its skill library transferred to a new world.
 - **GUARD** (2611.23476, rows 113–116) accepts a memory or skill edit only when its gains outweigh its regressions, which avoids memory bloat and forgetting. That bears on the long-term-memory analogy's break note: "a model may write a wrong card and later trust it, so writes need rules".
 
-**Proposed addition to `docs/todos/ongoing/T36-chapter-retrieval-and-long-term-memory.md`, `## Context`:**
+**Proposed addition to `docs/todos/done/T36-chapter-retrieval-and-long-term-memory.md`, `## Context`:**
 
 > - [Agent research papers](../../research/papers/agent-research-papers.md) (U22), which U18 does not cover: Reflexion (arXiv 2303.11366) stores a verbal lesson from each failed attempt rather than its transcript, and Voyager (2305.16291) stores skills as reusable code, two primary answers to "what to store" ([architectures section](../../research/papers/agent-research-papers.md#our-loop-already-is-a-react-loop-later-papers-add-layers-around-it-not-a-rival-architecture)). GUARD (2611.23476, [self-improvement section](../../research/papers/agent-research-papers.md#a-regression-gate-not-a-grader-is-what-makes-recursive-self-improvement-safe-to-try-and-the-values-in-the-harness-decide-what-the-agent-becomes)) accepts a memory edit only when its gains outweigh its regressions, which bears on "writes need rules". Cite them through U22's fact-check, rows 4–5, 9–10 and 113–116.
 

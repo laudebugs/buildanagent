@@ -612,7 +612,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T18](../todos/ready/T18-chapter-the-model-gateway.md) | Chapter: The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost | T5, T6, T26, T29, T55 | M |
 | [T19](../todos/done/T19-chapter-events-and-hooks.md) | Chapter: Events and hooks: one event union, interceptors and observers | T5, T6, T26 | M |
 | [T20](../todos/done/T20-chapter-the-session-log-and-context.md) | Chapter: The session log and context policy | T5, T7, T26 | M |
-| [T36](../todos/ongoing/T36-chapter-retrieval-and-long-term-memory.md) | Chapter: Retrieval and long-term memory | U18, T5, T6, T26, T41, T43, T44 | M |
+| [T36](../todos/done/T36-chapter-retrieval-and-long-term-memory.md) | Chapter: Retrieval and long-term memory | U18, T5, T6, T26, T41, T43, T44 | M |
 | [T21](../todos/done/T21-chapter-tools-at-scale.md) | Chapter: Tools at scale: the registry, deferred tools, MCP and skills | T5, T6, T26, T30 | M |
 | [T22](../todos/done/T22-chapter-permissions-sandboxes-and-credentials.md) | Chapter: Permissions, sandboxes and credentials, and the lethal trifecta | T5, T7, T26, T31 | M |
 | [T35](../todos/ready/T35-chapter-agents-people-can-watch.md) | Chapter: Agents people can watch: UIs, browsers and taking over | T5, T6, T26, T40 | M |
