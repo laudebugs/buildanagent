@@ -15,7 +15,7 @@ Chapter 13 ("Tools at scale") shows third-party listings only. This todo adds ou
 
 ## Scope
 
-Chapter 13 has eleven listings. Our harness, `@buildanagent/harness`, can show nine of them, which makes seven tabs blocks because the three MCP listings are one block, and the two A2A listings stay single. The harness is already a book harness (T59), so no wiring changes. The new files are four examples, two `lib/` helpers, four transcripts and their registration by the existing book-example runner. No package source changes.
+Chapter 13 has eleven listings. Our harness, `@buildanagent/harness`, can show nine of them, in seven tabs blocks, because the three MCP listings share one block. The two A2A listings stay single. The harness is already a book harness (T59), so no wiring changes. The new files are four examples, two `lib/` helpers, four transcripts and their registration by the existing book-example runner. No package source changes.
 
 | Listing | Decision | Our tab, first |
 | --- | --- | --- |
