@@ -118,5 +118,13 @@
     "chapter": "approvals-guardrails-and-injection",
     "illustration": "second-signature",
     "breaks": "A teller checks the signature against the paper order in front of them. A saved run is text that your storage can change, so the SDK has to compute the signature over the tool name, call id and input, and only the AI SDK among the three here does, and only when you set a secret."
+  },
+  {
+    "id": "smoke-detectors",
+    "concept": "guardrails",
+    "analogy": "smoke detectors in several rooms",
+    "chapter": "approvals-guardrails-and-injection",
+    "illustration": null,
+    "breaks": "A detector only sounds an alarm and leaves the response to a person, while a tripped guardrail can halt the run itself; and no number of detectors makes a building fireproof, as no set of guardrails makes an agent safe."
   }
 ]

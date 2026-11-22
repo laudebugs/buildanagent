@@ -469,5 +469,15 @@
     "asOf": "November 2026",
     "version": "langchain@1.6.1",
     "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
+  },
+  {
+    "id": "openai-agents-guardrails",
+    "title": "Guardrails",
+    "publisher": "OpenAI Agents SDK documentation",
+    "url": "https://github.com/openai/openai-agents-js/blob/v0.21.0/docs/src/content/docs/guides/guardrails.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v0.21.0",
+    "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
   }
 ]

@@ -2,8 +2,8 @@
 title: "Asking before acting: approvals, guardrails and prompt injection"
 summary: An approval pauses an agent before a risky tool call and resumes it from a saved copy of the run. This chapter shows how three SDKs save and resume that pause, what happens when someone edits the saved call, why an approval is only one gate beside guardrails, and why prompt injection can be contained but not prevented.
 opening: fact
-sources: [openai-agents-human-in-the-loop, ai-sdk-tool-approvals, langchain-human-in-the-loop]
-glossary: [approval]
+sources: [openai-agents-human-in-the-loop, ai-sdk-tool-approvals, langchain-human-in-the-loop, openai-practical-guide-to-building-agents, openai-agents-guardrails]
+glossary: [approval, guardrail]
 switchTo: [B15, E3]
 ---
 
@@ -94,6 +94,44 @@ A safe SDK, or a safe server around an unsafe one, therefore does four things:
 4. **It lets a decision count once.** OpenAI's guide tells the server to consume the pending request atomically, so a replayed submission cannot resume the same snapshot twice [@openai-agents-human-in-the-loop].
 
 A reviewer may still change a call on purpose. LangChain's `edit`{checked=row-24} decision lets a person modify the arguments before the tool runs, and its documentation advises small changes, because a large one may make the model rethink its approach [@langchain-human-in-the-loop]. An edit like that is a decision the system records and the reviewer sees. The edit in [[lst:tamper-ai]] is a change nobody decided. Your code should be able to tell the two apart, and the signature is what lets it.
+
+## An approval is one gate of several: guardrails check what goes in, what comes out and what a tool is about to do
+
+Smoke detectors go in every room of a building, not one in the lobby, because a fire starts where it starts and a detector sees only its own room. :analogy[Guardrails]{#smoke-detectors} work the same way. A guardrail is a check that runs beside the agent and looks at one place: the user's input, the model's final answer, or a tool call about to run. OpenAI's guide for building agents calls them "a layered defense mechanism" and says "a single one is unlikely to provide sufficient protection", so the guide recommends several specialised ones together [@openai-practical-guide-to-building-agents]. An approval is one of those checks, the one that asks a person.
+
+The guide lists seven kinds. [[tbl:guardrail-types]] gives each in the guide's words and adds the one place we think it looks.
+
+:::table[The OpenAI guide's seven guardrail types, and where each one looks]{#guardrail-types}
+| Type | What the guide says it does | Looks at |
+| --- | --- | --- |
+| Relevance classifier | Flags off-topic queries so the agent stays in scope | Input |
+| Moderation | Flags harmful or inappropriate inputs, such as hate speech | Input |
+| Safety classifier | Detects jailbreaks and prompt injections in inputs | Input |
+| PII filter | Vets model output for personal data | Output |
+| Output validation | Keeps responses aligned with brand values through prompt engineering and content checks | Output |
+| Rules-based protections | Blocklists, length limits and regex filters for known threats | Input or output |
+| Tool safeguards | Rates each tool low, medium or high, and uses the rating to pause for checks or escalate to a human | Tool call |
+:::
+
+The last row connects guardrails to approvals. The guide rates a tool by whether it only reads or also writes, whether the call can be undone, which account permissions it needs and what it costs, and it says to use the rating "to trigger automated actions, such as pausing for guardrail checks before executing high-risk functions or escalating to a human" [@openai-practical-guide-to-building-agents]. Its examples of calls that should reach a person are cancelling orders, authorising large refunds and making payments. The refund tool in this chapter is a high-risk tool by that rule, which is why it carries an approval.
+
+The OpenAI Agents SDK turns the first rows of the table into three families that attach to an agent: input guardrails, output guardrails and tool guardrails [@openai-agents-guardrails]. The families run in different places. An input guardrail runs only for the first agent in a chain, an output guardrail only for the agent that gives the final answer, and a tool guardrail around every function-tool call, so a workflow with handoffs needs tool guardrails to check each tool [@openai-agents-guardrails]. [[lst:guardrails-input]] shows a blocking input guardrail and [[lst:guardrails-output]] an output guardrail.
+
+::::tabs
+:::listing[Input guardrail]{#guardrails-input file="verify/openai-agents-sdk/examples/04-guardrails.ts" region="input-guardrail"}
+::note[`runInParallel: false` makes the guardrail finish before the model is called. The default, `true`, starts it beside the model.]{#blocking}
+::note[A guardrail returns `tripwireTriggered`. Here a plain string check stands in for a classifier.]{#input-trip}
+:::
+:::listing[Output guardrail]{#guardrails-output file="verify/openai-agents-sdk/examples/04-guardrails.ts" region="output-guardrail"}
+::note[The output guardrail reads the model's final answer, after the model has produced it.]{#output-trip}
+:::
+::::
+
+A tripped guardrail halts the run. The runner throws `InputGuardrailTripwireTriggered` or `OutputGuardrailTripwireTriggered`, and the example's checks confirm both. The blocking input guardrail stopped the run before the model was called at all, so the request cost nothing. With the parallel default the model may already have used tokens or run tools when the guardrail trips [@openai-agents-guardrails]. The choice between the two is a trade of latency against safety and cost.
+
+Guardrails and approvals meet at the tool call. By default a function tool's input guardrails run after the approval, just before the tool executes. To check the call before a person is asked, pass `toolExecution: { preApprovalInputGuardrails: true }`{checked=row-40}; the guardrails then run again after the approval too, in case the call became unsafe while it waited [@openai-agents-guardrails]. A reviewer's time is the scarce part of an approval, so a cheap check ahead of the question saves it for the calls that need a person.
+
+No guardrail makes the agent safe. OpenAI's guide says guardrails should be "coupled with robust authentication and authorization protocols, strict access controls, and standard software security measures" [@openai-practical-guide-to-building-agents]. A guardrail also sees only what its author thought of: the string check in [[lst:guardrails-input]] catches one phrase and misses every rewording. That limit sets up the last section, because the attack the checks are aimed at is the one that rewords itself.
 
 ## Exercises
 
