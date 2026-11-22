@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { contrastRatio, NON_TEXT_MINIMUM, TEXT_MINIMUM } from "@buildanagent/manual/design/contrast";
 import { type ColorSet, colorProperty } from "@buildanagent/manual/design/tokens";
 import { test } from "vitest";
@@ -91,13 +93,14 @@ test("printed, the page and the panel take the light colours, after every dark b
   assert.ok(print > css.lastIndexOf('[data-theme="dark"] {'), "the print block comes after the dark blocks");
 });
 
+function printed(name: TokenName): string {
+  const [where, key = ""] = name.split(".") as ["page" | "panel", string];
+  const value = shipped.print.get(colorProperty(where === "page" ? "light" : "panelLight", key));
+  assert.ok(value, `the print block sets ${name}`);
+  return value;
+}
+
 test("printed text reaches 4.5:1 on its background and on bare paper", () => {
-  const printed = (name: TokenName): string => {
-    const [where, key = ""] = name.split(".") as ["page" | "panel", string];
-    const value = shipped.print.get(colorProperty(where === "page" ? "light" : "panelLight", key));
-    assert.ok(value, `the print block sets ${name}`);
-    return value;
-  };
   const [, light] = codeThemes();
   const syntax = light.tokenColors.map((entry) => entry.settings.foreground ?? "");
   const pairs = STARLIGHT_PAIRS.filter((pair) => pair.kind === "text");
@@ -114,11 +117,67 @@ test("printed text reaches 4.5:1 on its background and on bare paper", () => {
   }
 });
 
+// Starlight's print stylesheet and page frame, and the docs' own mapping. Starlight exports only markdown.css, which
+// sits in dist/style/ beside print.css.
+const starlightStyle = dirname(createRequire(import.meta.url).resolve("@astrojs/starlight/style/markdown.css"));
+const starlightPrint = readFileSync(join(starlightStyle, "print.css"), "utf8");
+const pageFrame = readFileSync(join(starlightStyle, "..", "components", "PageFrame.astro"), "utf8");
+const mapping = readFileSync(new URL("../src/styles/starlight.css", import.meta.url), "utf8");
+
+/**
+ * How each piece of text drawn in a background colour prints. It sits on a fill that bare paper drops, so a print rule
+ * must hide it or repaint it: `color` is the colour it then prints in, `"on"` meaning the fill's own colour, on no fill.
+ * A rule without `color` hides it.
+ */
+const PRINTED_FILLS: Readonly<
+  Record<string, { css: string; rule: RegExp; color?: TokenName | "on" } | { notPrinted: string }>
+> = {
+  "the sidebar's current page": { css: pageFrame, rule: /class="sidebar print:hidden"/ },
+  "a primary link button": {
+    css: starlightPrint,
+    rule: /\.sl-link-button\.primary \{\s*background: transparent;\s*border-color: var\(--sl-color-white\);\s*color: var\(--sl-color-white\);/,
+    color: "page.text",
+  },
+  "a banner on the accent": {
+    css: starlightPrint,
+    rule: /\.sl-banner \{\s*--sl-color-banner-text: var\(--sl-color-white\);\s*background-color: transparent;/,
+    color: "page.text",
+  },
+  "selected text": { notPrinted: "browsers do not print a selection" },
+  "the copy button's tooltip": { css: starlightPrint, rule: /\.expressive-code \.copy \{[^}]*display: none;/ },
+  ...Object.fromEntries(
+    ["marked", "inserted", "deleted"].map((marker) => [
+      `a ${marker} line marker's label`,
+      {
+        css: mapping,
+        rule: /@media print \{[^@]*\.expressive-code \.ec-line\.tm-label \.code::before \{\s*background: transparent;\s*color: var\(--ecLineBrdCol\);/,
+        color: "on" as const,
+      },
+    ]),
+  ),
+};
+
+test("printed, text drawn in a background colour is hidden or repainted, and reaches 4.5:1 on bare paper", () => {
+  const fills = STARLIGHT_PAIRS.filter(
+    (pair) => pair.kind === "text" && (pair.color === "page.background" || pair.color === "panel.background"),
+  );
+  assert.deepEqual(fills.map((pair) => pair.role).sort(), Object.keys(PRINTED_FILLS).sort());
+  for (const pair of fills) {
+    const fill = PRINTED_FILLS[pair.role];
+    assert.ok(fill);
+    if ("notPrinted" in fill) continue;
+    assert.match(fill.css, fill.rule, `${pair.role}: a print rule hides or repaints it`);
+    if (fill.color === undefined) continue;
+    const foreground = printed(fill.color === "on" ? pair.on : fill.color);
+    const ratio = contrastRatio(foreground, PAPER);
+    assert.ok(ratio >= TEXT_MINIMUM, `${pair.role} printed: ${foreground} on paper is ${ratio.toFixed(2)}:1`);
+  }
+});
+
 test("printed code takes the light theme's syntax colours, which Expressive Code numbers second", () => {
   const [dark, light] = codeThemes();
   assert.equal(dark.type, "dark");
   assert.equal(light.type, "light");
-  const mapping = readFileSync(new URL("../src/styles/starlight.css", import.meta.url), "utf8");
   assert.match(
     mapping,
     /@media print \{[^@]*\.expressive-code \.ec-line :where\(span\[style\^="--"\]:not\(\[class\]\)\) \{\s*color: var\(--1, inherit\);/,

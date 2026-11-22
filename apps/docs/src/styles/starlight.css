@@ -168,4 +168,11 @@ h6,
     font-weight: var(--1fw, inherit);
     text-decoration: var(--1td, inherit);
   }
+
+  /* A line marker's label is drawn in the panel's background colour on its line's edge colour, and bare paper drops
+     the fill, so printed, the label takes the edge colour on no fill (test/contrast.test.ts). */
+  .expressive-code .ec-line.tm-label .code::before {
+    background: transparent;
+    color: var(--ecLineBrdCol);
+  }
 }

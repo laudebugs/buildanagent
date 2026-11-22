@@ -25,31 +25,35 @@ function declarations(text: string): { property: string; value: string }[] {
 
 // Starlight's own stylesheets and components, which use the --sl-* variables the mapping sets.
 // Its exported markdown.css sits in dist/style/, so dist/ is two folders up.
-const starlightRoot = join(
-  dirname(createRequire(import.meta.url).resolve("@astrojs/starlight/style/markdown.css")),
-  "..",
-);
+const starlightMarkdown = createRequire(import.meta.url).resolve("@astrojs/starlight/style/markdown.css");
+const starlightRoot = join(dirname(starlightMarkdown), "..");
 const starlight = readdirSync(starlightRoot, { recursive: true, encoding: "utf8" })
   .filter((path) => /\.(css|astro)$/.test(path))
   .map((path) => readFileSync(join(starlightRoot, path), "utf8"))
   .join("\n");
+// Starlight's search sets --pagefind-ui-* from its own variables, and only Pagefind's stylesheet paints them. It is
+// resolved from Starlight's folder, the way Starlight's Search component imports it.
+const pagefind = readFileSync(createRequire(starlightMarkdown).resolve("@pagefind/default-ui/css/ui.css"), "utf8");
 
 /**
  * Whether a stylesheet paints a variable only as a border, a background or a box shadow. A use as another custom
- * property's value is followed to that property's own uses, so a chain counts by where it ends; a cycle, or any other
- * use, makes the variable more than decorative.
+ * property's value is followed to that property's own uses, so a chain counts by where it ends; a cycle, any other
+ * use, or no use at all, which means the painting happens in a stylesheet the test does not read, makes the variable
+ * more than decorative.
  */
 function onlyDecorative(variable: string, css: string, path: readonly string[] = []): boolean {
   if (path.includes(variable)) return false;
   // Custom property names hold only letters, digits and hyphens, none of which a regular expression treats specially.
   const used = new RegExp(`var\\(\\s*${variable}\\s*[,)]`);
-  return declarations(css)
-    .filter(({ value }) => used.test(value))
-    .every(({ property }) =>
+  const uses = declarations(css).filter(({ value }) => used.test(value));
+  return (
+    uses.length > 0 &&
+    uses.every(({ property }) =>
       property.startsWith("--")
         ? onlyDecorative(property, css, [...path, variable])
         : DECORATIVE_PROPERTIES.test(property) || property === "box-shadow",
-    );
+    )
+  );
 }
 
 test("no docs stylesheet or component writes a hex colour; every colour comes from tokens.css", () => {
@@ -85,7 +89,7 @@ test("the rule, highlight, grid and border tokens appear only where nothing is r
     assert.match(mapping, rule, `starlight.css repaints Starlight's meaningful use of ${variable}`);
   }
   // A custom property that names a decorative token is judged by where Starlight and the docs' own styles paint it.
-  const everything = [starlight, ...files.map(({ text }) => text)].join("\n");
+  const everything = [starlight, pagefind, ...files.map(({ text }) => text)].join("\n");
   for (const { path, text } of files) {
     for (const { property, value } of declarations(text)) {
       if (!DECORATIVE.test(value)) continue;
@@ -113,7 +117,11 @@ test("a decorative variable is followed through the custom properties that name 
   assert.ok(!onlyDecorative("--sl-color-gray-5", cycle), "a cycle is not decorative");
   assert.ok(!onlyDecorative("--sl-color-gray-5", "a { outline-color: var(--sl-color-gray-5); }"));
   assert.ok(!onlyDecorative("--sl-color-gray-5", "a { fill: var( --sl-color-gray-5 ); }"), "spacing inside var()");
-  assert.ok(onlyDecorative("--sl-color-gray-5", "a { color: var(--sl-color-gray-50); }"), "a longer name is another");
+  const longer = "a { border-color: var(--sl-color-gray-5); color: var(--sl-color-gray-50); }";
+  assert.ok(onlyDecorative("--sl-color-gray-5", longer), "a longer name is another");
+  assert.ok(!onlyDecorative("--sl-color-gray-5", "a { color: red; }"), "a variable nothing reads is not known");
+  const unread = ":root { --pagefind-ui-tag: var(--sl-color-gray-5); }";
+  assert.ok(!onlyDecorative("--sl-color-gray-5", unread), "a chain that ends where nothing reads it is not known");
 });
 
 test("headings use the display face at its one weight", () => {
