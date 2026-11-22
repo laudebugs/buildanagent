@@ -142,7 +142,7 @@ export function crashedResumes(path: readonly SessionEntry[]): Set<string> {
   const since = path.slice(0, start).findLastIndex((entry) => entry.type === "turn_end");
   return new Set(
     path.slice(since + 1, start).flatMap((entry) => {
-      const answer = entry.type === "approval_resolved" ? entry.resolution : undefined;
+      const answer = entry.type === "approval_resolved" && entry.quorum === undefined ? entry.resolution : undefined;
       return answer !== undefined && "decision" in answer && answer.decision === "allow" ? [answer.requestId] : [];
     }),
   );
