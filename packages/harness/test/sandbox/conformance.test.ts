@@ -16,6 +16,7 @@ import { afterAll, test } from "vitest";
 // runs real programs in a temp folder. A case that needs enforcement skips for `none`, with its reason, because `none`
 // stops nothing and says so.
 const roots: string[] = [];
+// A policy over the whole disk: the fakes here claim no stops, so none of them has to enforce it.
 const POLICY_ALL = { readRoots: ["/"], writeRoots: ["/"], network: { allow: [], deny: [] } };
 
 function tempRoot(): string {
@@ -179,8 +180,8 @@ test("the fake's find and grep exit and print as the real programs do, for the c
   const realRoot = tempRoot();
   mkdirSync(join(realRoot, "empty"));
   const real = await noneSandbox({ unsafe: true, warn: () => {} }).provision({ root: realRoot, files }, POLICY_ALL);
-  const fake = await fakeSandbox().provision({ root: "/work", files }, POLICY_ALL);
-  const emptyFake = await fakeSandbox().provision({ root: "/empty" }, POLICY_ALL);
+  const fake = await fakeSandbox({ stops: [] }).provision({ root: "/work", files }, POLICY_ALL);
+  const emptyFake = await fakeSandbox({ stops: [] }).provision({ root: "/empty" }, POLICY_ALL);
   const env = { PATH: "/usr/bin:/bin", LANG: "C.UTF-8" };
   const run = async (sandbox: typeof real, root: string, command: (root: string) => string[]) => {
     const result = await sandbox.exec(command(root), { env, signal: new AbortController().signal });

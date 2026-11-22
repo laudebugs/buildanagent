@@ -570,7 +570,8 @@ describe("grep and glob", () => {
 
   test("a relative glob below a search base of / keeps the first path segment", async () => {
     const policy: SandboxPolicy = { readRoots: ["/"], writeRoots: [ROOT], network: { allow: [], deny: [] } };
-    const client = fakeSandbox();
+    // A policy that reads the whole disk is only accepted from a sandbox that claims no stops.
+    const client = fakeSandbox({ stops: [] });
     const sandbox = await client.provision({ root: ROOT, files: { "../etc/x": "needle\n" } }, policy);
     const tools = builtinTools(sandbox, undefined, { root: ROOT, policy });
     const glob = tools.find((entry) => entry.name === "glob")?.definition;
