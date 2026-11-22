@@ -20,8 +20,11 @@
 // - the version matches the pre mode: while .changeset/pre.json says `"mode": "pre"`, only a prerelease whose
 //   identifier is pre.json's `tag` (0.1.0-alpha.0 for `alpha`), published under that dist-tag; otherwise only a
 //   plain x.y.z, published under `latest`. A mismatch throws, because publishing it would move the wrong dist-tag;
-// - npm doesn't already hold every package at that version, or it does but the GitHub release v<version> is missing,
-//   so a run that failed after the uploads can still tag the release.
+// - the GitHub release v<version> doesn't exist yet. The plan asks GitHub before npm, because the publish job creates
+//   that release only after its last upload returns, while npm makes an accepted upload public 1 to 3 minutes later.
+//   A run queued behind the one that released, as run 45067734004 was, would otherwise read npm's 404s as "not
+//   published" and upload again into an E409. Without the release, the plan asks npm which packages it lacks; it
+//   still publishes when npm holds all six, so a run that failed after the uploads can still tag the release.
 // release.yml adds the last condition itself: only a push to main publishes.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -233,15 +236,15 @@ export async function planRelease({ root, repo, token, fetchImpl = fetch }) {
   const mismatch = preModeMismatch(version, pre);
   if (mismatch) throw new Error(mismatch);
 
+  // The release first: once it exists, every upload of this version has returned, and npm's version index refuses
+  // another, whatever the registry answers in the minutes before it makes the uploads public.
+  if (!repo) throw new Error("set GITHUB_REPOSITORY to owner/name, so the plan can check the GitHub release");
+  if (await hasGitHubRelease(repo, base.tag, { token, fetchImpl })) return skip(`${base.tag} is already released`);
   const toPublish = [];
   for (const pkg of packages) {
     if (!(await isPublished(pkg.name, version, fetchImpl))) toPublish.push(pkg.name);
   }
   if (toPublish.length === 0) {
-    if (!repo) throw new Error("set GITHUB_REPOSITORY to owner/name, so the plan can check the GitHub release");
-    if (await hasGitHubRelease(repo, base.tag, { token, fetchImpl })) {
-      return skip(`npm already holds every package at ${version}, and the release ${base.tag} exists`);
-    }
     // An earlier run uploaded every package but stopped before the release; the publish job skips what npm holds.
     return {
       ...base,
