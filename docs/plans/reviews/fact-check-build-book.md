@@ -1230,7 +1230,7 @@ Checked on 2026-11-22 against `scripts/live/config.mjs` and the committed folder
 
 ## docs/transcript-recorder-nonzero-exit: the recorder writes a transcript only for a finished run
 
-Checked on 2026-11-22 against the branch and `node --test scripts/ci/transcripts.test.mjs`, which ran 139 tests, all passing; breaking `finishedRun()` to always return true fails the new guard test.
+Checked on 2026-11-22 against the branch and `node --test scripts/ci/transcripts.test.mjs`, which ran 136 tests, all passing; breaking `finishedRun()` to always return true fails the new guard test.
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
