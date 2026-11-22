@@ -76,7 +76,6 @@ export function withSentHeaders(inner: MockTransport): MockTransport & { readonl
     sent.push(Object.fromEntries(request.headers.entries()));
     return inner(request);
   };
-  return markMockTransport(
-    Object.defineProperties(transport, { requests: { get: () => inner.requests }, sent: { value: sent } }),
-  ) as MockTransport & { readonly sent: Record<string, string>[] };
+  // `requests` is one array for the transport's whole life, so the wrapper can share it.
+  return markMockTransport(Object.assign(transport, { requests: inner.requests, sent }));
 }

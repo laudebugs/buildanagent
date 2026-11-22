@@ -34,9 +34,16 @@ test("mockTransport() redacts credential headers in the requests it records", as
 test("mockTransport() redacts a key in the query string and still records a request it refuses", async () => {
   const transport = mockTransport("openai-chat", []);
   await assert.rejects(
-    transport(new Request(`https://api.example.com/chat/completions?key=${KEY}`, { headers: { authorization: KEY } })),
+    transport(
+      new Request(`https://api.example.com/chat/completions?key=${KEY}&alt=sse`, { headers: { authorization: KEY } }),
+    ),
     { code: "unexpected_request" },
   );
-  assert.ok(!JSON.stringify(transport.requests).includes(KEY), "no recorded request holds the key");
   assert.equal(transport.requests.length, 1);
+  assert.equal(
+    transport.requests[0]?.url,
+    `https://api.example.com/chat/completions?key=${encodeURIComponent(REDACTED)}&alt=sse`,
+  );
+  assert.equal(transport.requests[0]?.headers.authorization, REDACTED);
+  assert.ok(!JSON.stringify(transport.requests).includes(KEY), "no recorded request holds the key");
 });

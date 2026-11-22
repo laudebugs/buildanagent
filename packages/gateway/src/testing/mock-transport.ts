@@ -32,7 +32,7 @@ export type WireScript = readonly WireResponse[];
 
 /**
  * A request as the mock transport received it, with credentials redacted: a credential header's value and a key in the
- * URL are `"[redacted]"`. A JSON body is parsed; any other body stays text.
+ * URL are `"[redacted]"`, which a URL spells `%5Bredacted%5D`. A JSON body is parsed; any other body stays text.
  */
 export interface RecordedRequest {
   readonly url: string;
