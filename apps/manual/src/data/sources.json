@@ -1114,5 +1114,81 @@
     "version": "v3",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "sqlite-fts5",
+    "title": "SQLite FTS5 Extension",
+    "publisher": "SQLite",
+    "url": "https://www.sqlite.org/fts5.html",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "thakur-beir",
+    "title": "BEIR: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models",
+    "publisher": "Nandan Thakur et al., Technische Universität Darmstadt (arXiv:2104.08663)",
+    "url": "https://arxiv.org/abs/2104.08663",
+    "kind": "paper",
+    "version": "v4",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "weller-limit",
+    "title": "On the Theoretical Limitations of Embedding-Based Retrieval",
+    "publisher": "Orion Weller et al., Google DeepMind (arXiv:2508.21038)",
+    "url": "https://arxiv.org/abs/2508.21038",
+    "kind": "paper",
+    "version": "v2",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "cormack-rrf",
+    "title": "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods",
+    "publisher": "Gordon V. Cormack, Charles L. A. Clarke and Stefan Büttcher, SIGIR 2009",
+    "url": "https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "owasp-llm08-vector-embedding-weaknesses",
+    "title": "LLM08:2025 Vector and Embedding Weaknesses",
+    "publisher": "OWASP Top 10 for LLM Applications",
+    "url": "https://raw.githubusercontent.com/OWASP/www-project-top-10-for-large-language-model-applications/main/2_0_vulns/LLM08_VectorAndEmbeddingWeaknesses.md",
+    "kind": "spec",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "zou-poisonedrag",
+    "title": "PoisonedRAG: Knowledge Corruption Attacks to Retrieval-Augmented Generation of Large Language Models",
+    "publisher": "Wei Zou, Runpeng Geng, Binghui Wang and Jinyuan Jia (arXiv:2402.07867)",
+    "url": "https://arxiv.org/abs/2402.07867",
+    "kind": "paper",
+    "version": "v3",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "xue-badrag",
+    "title": "BadRAG: Identifying Vulnerabilities in Retrieval Augmented Generation of Large Language Models",
+    "publisher": "Jiaqi Xue et al. (arXiv:2406.00083)",
+    "url": "https://arxiv.org/abs/2406.00083",
+    "kind": "paper",
+    "version": "v3",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
+  },
+  {
+    "id": "anthropic-demystifying-evals",
+    "title": "Demystifying evals for AI agents",
+    "publisher": "Anthropic",
+    "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/retrieval-and-long-term-memory.md"
   }
 ]

@@ -40,6 +40,7 @@ test("the book's figures hold its chapters' figures, and the fixtures hold their
     "permissions-sandboxes-and-credentials/credential-added",
     "permissions-sandboxes-and-credentials/glovebox",
     "permissions-sandboxes-and-credentials/permission-pipeline",
+    "retrieval-and-long-term-memory/filter-before-rank",
     "retrieval-and-long-term-memory/reference-librarian",
     "side-effects-that-can-fail/ledger",
     "side-effects-that-can-fail/outcomes",

@@ -236,5 +236,17 @@
     "term": "retrieval",
     "definition": "Fetching text into a model request only when a step needs it, through a tool call or a search the harness runs, instead of carrying the text in every request. A search ranks the candidates, and only the top results reach the model.",
     "sources": ["anthropic-effective-context-engineering"]
+  },
+  {
+    "id": "keyword-search",
+    "term": "keyword search",
+    "definition": "Search that ranks text by the words it shares with the query, as grep and BM25 do. BM25 weighs each shared word by how rare it is across the documents, so an exact identifier ranks its document high, but a paraphrase that shares no word finds nothing.",
+    "sources": ["thakur-beir", "sqlite-fts5"]
+  },
+  {
+    "id": "vector-search",
+    "term": "vector search",
+    "definition": "Search that turns the query and each document into an embedding, a list of numbers, and ranks documents by the distance between the vectors. A paraphrase can land near its document, but an exact identifier or a combination of terms can be missed.",
+    "sources": ["weller-limit"]
   }
 ]

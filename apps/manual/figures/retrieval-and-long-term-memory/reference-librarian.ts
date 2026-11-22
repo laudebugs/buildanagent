@@ -4,7 +4,7 @@
 import { Figure } from "../lib/svgkit.js";
 
 export default function draw(): Figure {
-  const figure = new Figure({ id: "reference-librarian", width: 520, height: 250 });
+  const figure = new Figure({ id: "reference-librarian", width: 520, height: 224 });
 
   figure.group("stacks", () => {
     figure.text({ x: 90, y: 16 }, "the stacks", { tone: "muted" });
