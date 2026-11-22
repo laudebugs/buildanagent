@@ -230,6 +230,16 @@ function named(s: State, names: readonly string[] | undefined): Tool[] {
 
 type Called = { message: AssistantMessage; active: readonly Tool[] } | { outcome: Outcome };
 
+/** A `beforeModelCall` stop: text alone, not blank and not one `shouldStop` uses; an abort outranks it. */
+function stopOutcome(s: State, returned: object): Outcome {
+  const { stop, ...rest } = returned as Record<string, unknown>;
+  const ok = typeof stop === "string" && stop.trim() !== "" && !["hook", "no_progress"].includes(stop);
+  if (!ok || Object.values(rest).some((v) => v !== undefined)) {
+    throw new SdkError("invalid_hook_result", "beforeModelCall returned a stop that is not text alone");
+  }
+  return s.signal.aborted ? { stopReason: "aborted" } : { stopReason: "stopped", stoppedBy: stop };
+}
+
 async function callModel(s: State): Promise<Called> {
   const { model, modelOptions = {}, interceptors: hooks = {} } = s.options;
   const base = hookBase(s);
@@ -240,7 +250,7 @@ async function callModel(s: State): Promise<Called> {
   // before: the interceptor may change this call's system prompt, messages, tools, model or options
   const before = { ...base, context, options: modelOptions };
   const returned = (await guarded("beforeModelCall", hooks.beforeModelCall, before)) ?? {};
-  if (typeof returned.stop === "string") return { outcome: { stopReason: "stopped", stoppedBy: returned.stop } };
+  if (returned.stop !== undefined) return { outcome: stopOutcome(s, returned) };
   const patch = returned as ModelCallPatch;
   const { system = s.system, messages = context.messages, model: used = model, options = modelOptions } = patch;
   const active = named(s, patch.activeTools);
