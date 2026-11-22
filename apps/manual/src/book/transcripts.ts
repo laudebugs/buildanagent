@@ -189,7 +189,10 @@ export function usageText(usage: TranscriptUsage): string {
 }
 
 /** What an answer reported about itself, for the last event the replay shows of it. */
-function answerFacts(item: { usage?: TranscriptUsage; modelId?: string }): Pick<ReplayEvent, "modelId" | "usage"> {
+function answerFacts(item: {
+  usage?: TranscriptUsage | undefined;
+  modelId?: string | undefined;
+}): Pick<ReplayEvent, "modelId" | "usage"> {
   return {
     ...(item.modelId === undefined ? {} : { modelId: item.modelId }),
     ...(item.usage === undefined ? {} : { usage: usageText(item.usage) }),
