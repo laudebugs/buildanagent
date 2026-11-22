@@ -150,6 +150,15 @@ describe("hostile HTTP answers", () => {
     }
   });
 
+  test("a 304 is refused for what it is, not as a redirect", async () => {
+    const server = await startHttp((_request, response) => {
+      response.writeHead(304).end();
+    });
+    const error = await refusedConnect(remoteServer("cached", server.url));
+    assert.match(error.message, /304 Not Modified/);
+    assert.doesNotMatch(error.message, /redirect/);
+  });
+
   test("a 401 fails the connect with a clear error and starts no authorization flow", async () => {
     const server = await startHttp((_request, response) => {
       response.writeHead(401, { "www-authenticate": 'Bearer resource_metadata="https://evil.test/.well-known"' }).end();

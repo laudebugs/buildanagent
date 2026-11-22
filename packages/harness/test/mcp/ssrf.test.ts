@@ -108,6 +108,19 @@ describe("the config", () => {
     assert.equal(allows("8.8.8.8"), true);
   });
 
+  test("a range that admits far more than it seems is refused", () => {
+    for (const range of ["::ffff:10.0.0.0/8", "::/8", "0.0.0.0/0", "::/0"]) {
+      refusedConfig({ url: "https://mcp.example.com/mcp", allowAddresses: [range] });
+    }
+    const { allows } = checkRemoteTransport({
+      kind: "http",
+      url: "https://mcp.example.com/mcp",
+      allowAddresses: ["::ffff:10.0.0.0/104"],
+    });
+    assert.equal(allows("10.1.2.3"), true);
+    assert.equal(allows("172.16.0.1"), false);
+  });
+
   test("by default refuses every address that is not public, in every IPv4 and IPv6 form", () => {
     const { allows } = checkRemoteTransport({ kind: "http", url: "https://mcp.example.com/mcp" });
     for (const address of [
@@ -257,6 +270,15 @@ describe("a runtime without Node's network", () => {
       await loopback("http://mcp.localhost:8080/mcp")("http://mcp.localhost:8080/mcp");
       await loopback("http://127.0.0.1:8080/mcp")("http://127.0.0.1:8080/mcp");
       await assert.rejects(loopback("http://mcp.example.test/mcp")("http://mcp.example.test/mcp"), /loopback/);
+      // A trailing dot names the same host.
+      await assert.rejects(
+        platformFetch(checkRemoteTransport({ kind: "http", url: "https://localhost./mcp" }))("https://localhost./mcp"),
+        /may not reach/,
+      );
+      await assert.rejects(
+        platformFetch(checkRemoteTransport({ kind: "http", url: "https://LOCALHOST./mcp" }))("https://LOCALHOST./mcp"),
+        /may not reach/,
+      );
       const strict = platformFetch(checkRemoteTransport({ kind: "http", url: "https://localhost/mcp" }));
       await assert.rejects(strict("https://localhost/mcp"), /may not reach/);
       assert.deepEqual(reached, [

@@ -751,7 +751,12 @@ class EgressGate {
         reply.once("close", () =>
           this.record({ kind: "fetch", host, port, method: request.method, status: reply.statusCode ?? 0, bytes }),
         );
-        resolve(this.toResponse(reply.statusCode ?? 502, reply.headers as Record<string, string | string[]>, reply));
+        // A throw here would escape the event handler and end the process, so a status `Response` refuses rejects.
+        try {
+          resolve(this.toResponse(reply.statusCode ?? 0, reply.headers as Record<string, string | string[]>, reply));
+        } catch (error) {
+          reject(error);
+        }
       });
       upstream.once("error", (error) => {
         if (request.signal.aborted) {
@@ -775,11 +780,20 @@ class EgressGate {
     headers: Record<string, string | string[]>,
     stream: import("node:stream").Readable | undefined,
   ): Response {
+    // Node parses any three-digit status, and `Response` takes only 200 to 599, so any other is refused here and its
+    // upstream reply is destroyed, so its socket closes.
+    if (status < 200 || status > 599) {
+      stream?.destroy();
+      throw new HarnessError(
+        "egress_denied",
+        `the upstream answered with status ${status}, which HTTP does not define`,
+      );
+    }
     const out = new Headers();
     for (const [name, value] of Object.entries(headers)) {
       for (const one of Array.isArray(value) ? value : [value]) out.append(name, one);
     }
-    const bodiless = stream === undefined || [101, 204, 205, 304].includes(status);
+    const bodiless = stream === undefined || [204, 205, 304].includes(status);
     // A response with no body is drained, so its socket and its log record don't wait for a reader that never comes.
     if (bodiless) stream?.resume();
     const web = bodiless ? null : (this.modules.stream.Readable.toWeb(stream) as ReadableStream);

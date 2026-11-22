@@ -2,6 +2,9 @@
 // (the server's `retry` field, an event id the client could not send back, a byte order mark), where it lets a request
 // go, and which headers it sends.
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { describe, test } from "vitest";
 import { guardedFetch } from "../../src/mcp/guarded-fetch.js";
 import { checkRemoteTransport } from "../../src/mcp/remote-config.js";
@@ -94,4 +97,20 @@ describe("the request", () => {
     assert.equal(response.status, 202);
     assert.equal(response.body, null);
   });
+});
+
+describe("an open line sent a byte at a time", () => {
+  test("costs about its own bytes, not a piece per chunk", () => {
+    const script = fileURLToPath(new URL("./filter-memory.ts", import.meta.url));
+    const run = spawnSync(process.execPath, ["--expose-gc", "--import", "tsx", script, String(2_000_000)], {
+      cwd: fileURLToPath(new URL("../..", import.meta.url)),
+      env: { PATH: process.env.PATH ?? "", HOME: tmpdir(), TMPDIR: tmpdir(), LANG: "C" },
+      encoding: "utf8",
+      timeout: 60_000,
+    });
+    assert.equal(run.status, 0, run.stderr);
+    const retained = Number(run.stdout.trim());
+    // The line is 2 MB; a buffer that doubles holds at most twice that, and a piece per byte held hundreds of MB.
+    assert.ok(retained < 16 * 1024 * 1024, `${(retained / 1048576).toFixed(1)} MiB retained for a 2 MB line`);
+  }, 70_000);
 });

@@ -747,6 +747,9 @@ async function runTurnOnce<H = unknown>(
   }
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId, notices);
+  // A notice counts as told only once it is in the log; a turn that failed before here tells it again next time.
+  await writer.settled();
+  if (writer.failure() === undefined) for (const boundary of harness.turnBoundaries ?? []) boundary.commitNotices?.();
   const input = withNotices(options.input, notices);
   const recorder = new EventRecorder(writer, harness as Harness<unknown>, system, newId, "run", turnContext?.spillOf);
   turnContext?.attach(attachment(writer, recorder));

@@ -14,11 +14,12 @@
  * and writes files.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors.js";
 
 const LOCK_VERSION = 1;
+const MAX_LOCK_BYTES = 1024 * 1024;
 
 /** Every file under `dir`, as paths relative to it with `/` separators, in sorted order. */
 async function filesUnder(dir: string, prefix = ""): Promise<string[]> {
@@ -73,8 +74,13 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 async function readBody(file: string): Promise<LockBody | undefined> {
   let text: string;
   try {
-    // A pipe or a device would hang or never end, so only a regular file is read.
-    if (!(await stat(file)).isFile()) throw new HarnessError("invalid_extension", `${file} is not a regular file`);
+    // A pipe or a device would hang or never end, so only a regular file is read. A link is refused rather than
+    // followed, since it could point anywhere, and a size cap keeps a planted file from filling memory.
+    const found = await lstat(file);
+    if (!found.isFile()) throw new HarnessError("invalid_extension", `${file} is not a regular file`);
+    if (found.size > MAX_LOCK_BYTES) {
+      throw new HarnessError("invalid_extension", `${file} is over ${MAX_LOCK_BYTES} bytes, which no lock file needs`);
+    }
     text = await readFile(file, "utf8");
   } catch (error) {
     if ((error as { code?: string }).code === "ENOENT") return undefined;

@@ -99,7 +99,8 @@ export interface McpRemoteSettings {
    * Address ranges this server may resolve to although they are not public, such as `10.20.0.0/16` for a server on the
    * host's own network. Every other loopback, private, carrier-grade NAT, link-local (with the cloud metadata address
    * `169.254.169.254`), unspecified, multicast or reserved address is refused, and so is an IPv6 address that wraps one.
-   * A loopback address is never allowed here; see `unsafeAllowLoopback`. Default none.
+   * A loopback address is never allowed here; see `unsafeAllowLoopback`. A `/0` range is refused, and so is an IPv6
+   * range wider than `/96` that holds the IPv4-mapped addresses, such as `::ffff:10.0.0.0/8`. Default none.
    */
   readonly allowAddresses?: readonly string[];
   /**
@@ -340,12 +341,19 @@ export interface McpManager extends TurnBoundary {
    * stay as they were built: a tool a server adds mid-session is announced by count and joins a later session.
    */
   beginTurn(signal?: AbortSignal): Promise<readonly string[]>;
+  /**
+   * Marks the last `beginTurn()`'s notice as told. The runner calls it once the turn has written the notice; until
+   * then, the next `beginTurn()` announces the same changes again, so a turn that fails before its input is written
+   * loses no notice.
+   */
+  commitNotices(): void;
   /** The tools that wait for a person: those whose current definition has no matching pin. */
   pending(): readonly McpPendingTool[];
   /**
    * Records a person's approval of one tool's definition, by the hash `pending()` gave, and writes it to the pin store.
    * The tool may run from the next turn on. Throws a `HarnessError`, code `invalid_mcp_config`, when the server's
-   * current definition has another hash, so an approval never covers a definition the person did not see.
+   * current definition has another hash, so an approval never covers a definition the person did not see. A store
+   * write that fails rejects, and the approval is not held.
    */
   approve(server: string, tool: string, hash: string): Promise<void>;
   /**

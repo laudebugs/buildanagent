@@ -138,6 +138,23 @@ function checkHeaders(headers: unknown): Record<string, string> {
   return checked;
 }
 
+/**
+ * Refuses a range that allows far more than it seems to: `/0`, and an IPv6 range wider than `/96` that holds the
+ * IPv4-mapped addresses, such as `::ffff:10.0.0.0/8`, which is `::/8` and so admits every IPv4 address in mapped form.
+ */
+function checkBreadth(range: string): void {
+  const [address = "", prefix] = range.split("/");
+  if (prefix === undefined) return;
+  if (Number(prefix) === 0)
+    invalid(`has the allowAddresses entry ${JSON.stringify(range)}, which allows every address`);
+  const mapped = inAddressRange("::ffff:0.0.0.0", range) || inAddressRange("::ffff:255.255.255.255", range);
+  if (address.includes(":") && Number(prefix) < 96 && mapped) {
+    invalid(
+      `has the allowAddresses entry ${JSON.stringify(range)}, an IPv6 range wider than /96 that admits every IPv4 address in mapped form; write the IPv4 range itself`,
+    );
+  }
+}
+
 function checkRanges(ranges: unknown): readonly string[] {
   if (ranges === undefined) return [];
   if (!Array.isArray(ranges)) invalid("needs allowAddresses to be a list of address ranges");
@@ -145,6 +162,7 @@ function checkRanges(ranges: unknown): readonly string[] {
     if (typeof range !== "string" || !isAddressRange(range)) {
       invalid(`has an allowAddresses entry that is not an address or CIDR range: ${JSON.stringify(range)}`);
     }
+    checkBreadth(range as string);
   }
   return ranges as string[];
 }

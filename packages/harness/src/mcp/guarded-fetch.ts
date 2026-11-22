@@ -22,7 +22,7 @@ const SPACE = 0x20;
 const encoder = new TextEncoder();
 const RETRY = encoder.encode("retry");
 const ID = encoder.encode("id");
-const BODILESS = [204, 205, 304];
+const BODILESS = [204, 205];
 const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
 const NEWLINE = new Uint8Array([LF]);
 
@@ -83,7 +83,9 @@ function nextBreak(chunk: Uint8Array, from: number): number {
  */
 class EventFilter {
   readonly #max: number;
-  #pending: Uint8Array[] = [];
+  // The start of a line that has no end yet, in one buffer that grows by doubling, so a line sent a byte at a time
+  // costs its bytes and not an array of one-byte pieces.
+  #pending = new Uint8Array(0);
   #pendingBytes = 0;
   #eventBytes = 0;
   // A chunk that ended in CR may have its LF at the start of the next one, which is part of the same line end.
@@ -125,8 +127,8 @@ class EventFilter {
 
   /** Ends one line: checks its size and its event's, and passes it on with an LF unless it is dropped. */
   #line(piece: Uint8Array, out: Uint8Array[]): string | undefined {
-    const line = this.#pending.length === 0 ? piece : concat([...this.#pending, piece]);
-    this.#pending = [];
+    const line = this.#pendingBytes === 0 ? piece : concat([this.#pending.subarray(0, this.#pendingBytes), piece]);
+    this.#pending = new Uint8Array(0);
     this.#pendingBytes = 0;
     // An event holds its lines, so the event's bound is also each line's; `#keepRest()` bounds a line still open.
     this.#eventBytes = line.length === 0 ? 0 : this.#eventBytes + line.length;
@@ -138,8 +140,14 @@ class EventFilter {
   #keepRest(rest: Uint8Array): string | undefined {
     if (rest.length === 0) return undefined;
     if (this.#pendingBytes + rest.length > this.#max) return `an event-stream line over ${this.#max} bytes`;
-    this.#pending.push(rest.slice());
-    this.#pendingBytes += rest.length;
+    const needed = this.#pendingBytes + rest.length;
+    if (needed > this.#pending.length) {
+      const grown = new Uint8Array(Math.min(this.#max, Math.max(needed, this.#pending.length * 2, 1024)));
+      grown.set(this.#pending.subarray(0, this.#pendingBytes));
+      this.#pending = grown;
+    }
+    this.#pending.set(rest, this.#pendingBytes);
+    this.#pendingBytes = needed;
     return undefined;
   }
 }
@@ -377,6 +385,9 @@ export function guardedFetch(base: FetchLike, settings: RemoteSettings, hooks: G
 /** Throws for a response the client must not read: a redirect, a 401 or a session id of the wrong form. */
 function refuseResponse(response: Response): void {
   const status = response.status;
+  // No MCP request is conditional, so a 304 answers nothing the client asked; it is refused for what it is.
+  if (status === 304)
+    throw new RemoteRefusal("refused", "the server answered 304 Not Modified to a request that asked for no cache");
   if ((status >= 300 && status < 400) || response.type === "opaqueredirect") {
     throw new RemoteRefusal("redirect", `the server answered with a redirect (HTTP ${status}), which is not followed`);
   }
@@ -411,7 +422,9 @@ function checked(
   const reopens = kind === "get" || kind === "listen";
   const body = boundedBody(response.body, settings, {
     events: isEventStream(response),
-    endless: kind === "events",
+    // Only an event stream is the one channel of a legacy SSE server; any other body on that GET, such as an error
+    // page, is bounded like any answer.
+    endless: kind === "events" && isEventStream(response),
     done: release,
     broken: (error) => hooks.onBroken?.(error, error.code === "too_large" || !reopens, kind),
   });

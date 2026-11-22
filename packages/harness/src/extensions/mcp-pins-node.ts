@@ -10,6 +10,10 @@ import { readMcpPins, writeMcpPins } from "./lock.js";
  * this process, through any store or `writeLock()`, runs after the ones before it, and each replaces the file in one
  * step, keeping its extension pins. A missing file holds no pins, and a file that can't be read is refused, not
  * replaced. Two paths that name one file through a link, or a write from another process, can still lose a change.
+ *
+ * The lock file sits in the project, so whoever can commit to the project can approve definitions for any server the
+ * host configures: give a project's pins to the manager only for a project the person trusts, as project extensions
+ * load only then. A lock file that is a link, or over 1 MiB, is refused.
  */
 export function fileMcpPinStore(lockFile: string): McpPinStore {
   return {

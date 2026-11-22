@@ -53,6 +53,44 @@ describe("the legacy SSE stream", () => {
   });
 });
 
+describe("a legacy SSE GET that is not an event stream", () => {
+  for (const [type, status] of [
+    ["text/plain", 200],
+    ["text/html", 500],
+  ] as const) {
+    test(`a ${status} ${type} body that drips forever is bounded like any answer`, async () => {
+      let ended = false;
+      const server = await legacySse({
+        tools: [],
+        hook: (request, response) => {
+          if (request.method !== "GET") return false;
+          response.writeHead(status, { "content-type": type });
+          const timer = setInterval(() => response.write("."), 20);
+          response.once("close", () => {
+            clearInterval(timer);
+            ended = true;
+          });
+          return true;
+        },
+      });
+      const started = Date.now();
+      const error = await connectMcpServer(
+        remoteServer("drip", server.url, { transport: { kind: "sse", maxStreamMs: 300 }, connectTimeoutMs: 20_000 }),
+      ).then(
+        async (connection) => {
+          await connection.close();
+          return undefined;
+        },
+        (failure: unknown) => failure as Error,
+      );
+      assert.ok(error !== undefined);
+      assert.ok(Date.now() - started < 5000, `the connect took ${Date.now() - started} ms`);
+      // The body is cut, so the server's socket closes and its drip holds nothing open.
+      assert.ok(await eventually(() => ended, 3000), "the dripping body was never cut");
+    }, 25_000);
+  }
+});
+
 describe("the streamable HTTP GET stream", () => {
   test("a quiet stream cut at streamIdleMs is opened again, and the cuts never use up the reopen budget", async () => {
     let gets = 0;

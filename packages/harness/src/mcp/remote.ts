@@ -1,7 +1,7 @@
 /**
  * A remote server as a channel: the client library's streamable HTTP or SSE transport, with every request sent through
  * `guardedFetch()`. The network under it is the egress proxy when one is configured, the pinned Node fetch on Node,
- * and the platform's own `fetch` elsewhere, such as on Cloudflare, where the harness can't resolve a name itself.
+ * and the platform's own `fetch` elsewhere, Cloudflare's workerd included, where the harness can't resolve a name itself.
  *
  * The library's reconnects are bounded here too. A streamable HTTP stream that drops is reopened by the library after
  * a delay this module sets: one second, doubling to thirty, whatever the server says, and at most `MAX_REOPENS` times
@@ -27,7 +27,11 @@ const REOPEN_WINDOW_MS = 10 * 60 * 1000;
 export function platformFetch(settings: RemoteSettings): FetchLike {
   return (input, init) => {
     const url = new URL(typeof input === "string" ? input : input.href);
-    const host = url.hostname.replace(/^\[|\]$/g, "");
+    // A name may end in a dot, which names the same host: `localhost.` is `localhost`.
+    const host = url.hostname
+      .replace(/^\[|\]$/g, "")
+      .replace(/\.$/, "")
+      .toLowerCase();
     const local = host === "localhost" || host.endsWith(".localhost");
     if ((isAddressLiteral(host) && !settings.allows(host)) || (local && !settings.allows("127.0.0.1"))) {
       return Promise.reject(new RemoteRefusal("refused", "the server's address is one it may not reach"));

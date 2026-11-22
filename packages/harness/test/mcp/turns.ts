@@ -79,7 +79,8 @@ export async function mcpSession(
   const session = await openSession({ store: backend.store, index: backend.index, lock: backend.lock, key: KEY });
   return {
     adapter,
-    turn: (input: string) => runTurn(session, harness, { input }),
+    turn: (input: string, options: { readonly tools?: readonly string[] } = {}) =>
+      runTurn(session, harness, { input, ...options }),
     async entries(): Promise<SessionEntry[]> {
       const all: SessionEntry[] = [];
       for await (const entry of backend.store.load(KEY)) all.push(entry);

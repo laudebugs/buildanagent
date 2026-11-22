@@ -16,9 +16,15 @@ type IncomingMessage = import("node:http").IncomingMessage;
 const bare = (host: string): string => (host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host);
 const familyOf = (address: string): 4 | 6 => (address.includes(":") ? 6 : 4);
 
-/** Whether this runtime has Node's network modules. */
+/**
+ * Whether this is Node, whose `node:https` takes the custom `lookup` the pinned connection needs. Cloudflare's workerd
+ * also has `process.getBuiltinModule()` and `node:https` under `nodejs_compat`, but refuses a `lookup` option, so it
+ * is told apart by its user agent and gets the platform's `fetch` instead.
+ */
 export function hasNodeNetwork(): boolean {
-  return typeof process !== "undefined" && typeof process.getBuiltinModule === "function";
+  if (typeof process === "undefined" || typeof process.getBuiltinModule !== "function") return false;
+  const agent = (globalThis as { navigator?: { userAgent?: unknown } }).navigator?.userAgent;
+  return agent !== "Cloudflare-Workers" && typeof process.versions?.node === "string";
 }
 
 /** The body a request sends: the client library sends JSON text, or nothing. */

@@ -66,7 +66,14 @@ interface ServerState {
   /** True while the newest re-read of the list failed, so no current definition is known. */
   unreadable: boolean;
   /** The registrations built at connect, registered at the next turn boundary. */
-  staged?: { readonly registrations: readonly ToolRegistration[]; readonly record: ExtensionLoadedRecord } | undefined;
+  staged?:
+    | {
+        readonly registrations: readonly ToolRegistration[];
+        readonly record: ExtensionLoadedRecord;
+        /** Each staged tool's definition hash, taken from the same list the registrations were built from. */
+        readonly hashes: ReadonlyMap<string, string>;
+      }
+    | undefined;
   /** Each registered tool's canonical name, by its name on the server, in registration order. */
   registered: Map<string, string>;
   /** The hash of each registered tool's definition as registered: the one the model reads for the whole session. */
@@ -189,17 +196,19 @@ const SENTENCES: Record<Label, string> = {
 };
 
 /** The notice lines of one server: each tool whose label changed, and the count of tools it added mid-session. */
-function noticeLinesOf(state: ServerState): string[] {
+function noticeLinesOf(state: ServerState, commits: (() => void)[]): string[] {
   const lines: string[] = [];
   for (const [name, canonical] of state.registered) {
     const label = labelOf(state, name);
     if (label === (state.announced.get(name) ?? "enabled")) continue;
-    state.announced.set(name, label);
+    commits.push(() => state.announced.set(name, label));
     lines.push(`- ${canonical} ${SENTENCES[label]}.`);
   }
   const added = state.unreadable ? 0 : [...state.latest.keys()].filter((name) => !state.registered.has(name)).length;
   if (added === state.announcedAdded) return lines;
-  state.announcedAdded = added;
+  commits.push(() => {
+    state.announcedAdded = added;
+  });
   // The server's name comes from the host's config; the new tools' names are the server's text, so only their number
   // is given.
   if (added > 0) {
@@ -240,6 +249,8 @@ class Manager implements McpManager {
   readonly #abort = new AbortController();
   #started = false;
   #firstTurnDone = false;
+  // What the last notice told, kept back until the turn has written it, so a turn that fails first loses no notice.
+  #uncommitted: (() => void)[] = [];
   #connecting: Promise<readonly McpServerStatus[]> | undefined;
   #closing: Promise<void> | undefined;
 
@@ -323,7 +334,16 @@ class Manager implements McpManager {
       }
       const pinned = await this.#pinsOf(config.name, latest);
       if (this.#closing !== undefined) throw new McpError("mcp_connect_failed", config.name, "the manager was closed");
-      Object.assign(state, { connection, latest, pinned, staged: { registrations, record }, status: "connected" });
+      // The hashes come from the list the registrations were built from, never from a later re-read, so a server that
+      // lists another definition before the turn boundary can't make the registered one look approved.
+      const hashes = new Map([...latest].map(([name, listed]) => [name, listed.hash]));
+      Object.assign(state, {
+        connection,
+        latest,
+        pinned,
+        staged: { registrations, record, hashes },
+        status: "connected",
+      });
       if (state.relist.dirty) this.#scheduleRelist(state);
     } catch (error) {
       if (connection !== undefined) this.#open.delete(connection);
@@ -388,7 +408,7 @@ class Manager implements McpManager {
       throw refused(config.name, error);
     }
     state.registered = new Map(registrations.map((registration, index) => [registration.name, tools[index] as string]));
-    state.registeredHash = new Map(registrations.map(({ name }) => [name, state.latest.get(name)?.hash ?? ""]));
+    state.registeredHash = new Map(registrations.map(({ name }) => [name, staged.hashes.get(name) ?? ""]));
     state.status = "registered";
     this.#records.set(config.name, staged.record);
     this.#settle(state);
@@ -420,7 +440,8 @@ class Manager implements McpManager {
       this.#registerReady(true);
     }
     for (const state of this.#states) if (state.status === "registered") this.#settle(state);
-    const lines = this.#noticeLines();
+    this.#uncommitted = [];
+    const lines = this.#noticeLines(this.#uncommitted);
     if (lines.length === 0) return [];
     const shown = lines.slice(0, MAX_NOTICE_LINES);
     if (lines.length > shown.length) shown.push(`- and ${lines.length - shown.length} more changes.`);
@@ -450,8 +471,14 @@ class Manager implements McpManager {
   }
 
   /** One line per tool whose label changed since the last notice, naming it by canonical name only. */
-  #noticeLines(): string[] {
-    return this.#states.filter((state) => state.status === "registered").flatMap((state) => noticeLinesOf(state));
+  #noticeLines(commits: (() => void)[]): string[] {
+    return this.#states
+      .filter((state) => state.status === "registered")
+      .flatMap((state) => noticeLinesOf(state, commits));
+  }
+
+  commitNotices(): void {
+    for (const commit of this.#uncommitted.splice(0)) commit();
   }
 
   /** Reads a server's list again after it said the list changed, at most once per `relistIntervalMs`. */
@@ -521,14 +548,18 @@ class Manager implements McpManager {
         "that tool's current definition does not have this hash, so it was not approved; read pending() again",
       );
     }
-    state.pinned.set(tool, hash);
     const store = this.#options.pins;
-    if (store === undefined) return;
-    const pins = Object.fromEntries(state.pinned);
-    // Writes of one server run one after another, so a later approval never lands under an earlier one.
+    if (store === undefined) {
+      state.pinned.set(tool, hash);
+      return;
+    }
+    const pins = Object.fromEntries([...state.pinned, [tool, hash]]);
+    // Writes of one server run one after another, so a later approval never lands under an earlier one. The pin is
+    // held in memory only once the store has it, so a failed write enables nothing.
     const write = state.pinWrites.then(() => store.write(server, pins));
     state.pinWrites = write.catch(() => {});
     await write;
+    state.pinned.set(tool, hash);
   }
 
   permissionHook(): PermissionHook {
