@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T50` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T10](../done/T10-chapter-call-workflow-loop.md), [B11](../done/B11-loop-core.md) |
