@@ -11,13 +11,13 @@ const OpaqueToken = z.strictObject({ api: z.string(), provider: z.string(), mode
 
 const TextBlock = z.strictObject({ type: z.literal("text"), text: z.string() });
 const ImageBlock = z.strictObject({ type: z.literal("image"), mediaType: z.string(), data: z.string() });
-const ContentBlock = z.discriminatedUnion("type", [
+export const ContentBlock = z.discriminatedUnion("type", [
   TextBlock,
   z.strictObject({ type: z.literal("reasoning"), text: z.string(), signature: OpaqueToken.optional() }),
   ImageBlock,
   z.strictObject({ type: z.literal("tool_call"), callId: z.string(), name: z.string(), input: z.unknown() }),
 ]);
-const ModelContent = z.discriminatedUnion("type", [TextBlock, ImageBlock]);
+export const ModelContent = z.discriminatedUnion("type", [TextBlock, ImageBlock]);
 
 const ModelRef = z.strictObject({ api: z.string(), provider: z.string(), id: z.string() });
 
@@ -58,7 +58,7 @@ const base = {
 const entry = <T extends string, S extends z.ZodRawShape>(type: T, shape: S) =>
   z.strictObject({ ...base, type: z.literal(type), ...shape });
 
-const SessionEntry = z.discriminatedUnion("type", [
+export const SessionEntry = z.discriminatedUnion("type", [
   entry("session_header", {
     formatVersion: z.literal(1),
     harnessVersion: z.string(),

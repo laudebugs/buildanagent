@@ -72,6 +72,10 @@ export function memoryStore(options: MemoryStoreOptions = {}): SessionStore {
       checkKey({ userId, sessionId: "-" });
       return summaries(userId);
     },
+    loadRaw(key) {
+      checkKey(key);
+      return entriesOf(key, undefined);
+    },
     async delete(key) {
       checkKey(key);
       sessionsOf(key.userId)?.delete(key.sessionId);
