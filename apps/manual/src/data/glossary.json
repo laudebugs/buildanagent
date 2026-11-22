@@ -152,5 +152,17 @@
     "term": "checkpointer",
     "definition": "LangGraph's store for a thread's state. It saves a snapshot of the graph's state under the run's thread_id at each step, so a later call with the same thread_id carries on from the last snapshot.",
     "sources": ["langgraph-checkpointers"]
+  },
+  {
+    "id": "interceptor",
+    "term": "interceptor",
+    "definition": "A function an SDK calls at a fixed moment of a run, such as before a tool call, that can change what happens: it can block the call, replace its input or result, or end the run.",
+    "sources": ["buildanagent-sdk-hooks", "langchain-middleware-custom"]
+  },
+  {
+    "id": "observer",
+    "term": "observer",
+    "definition": "A function an SDK calls with each event of a run so that it can record or display what happened. It receives the event and returns nothing the run reads, so it cannot change the run.",
+    "sources": ["buildanagent-sdk-hooks"]
   }
 ]

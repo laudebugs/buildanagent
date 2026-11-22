@@ -150,5 +150,13 @@
     "chapter": "events-and-hooks",
     "illustration": null,
     "breaks": "A stenographer's record is final as typed. A run's stream also carries partial deltas that the end event supersedes, so a log that kept every delta would hold text the finished message replaces."
+  },
+  {
+    "id": "toll-booths",
+    "concept": "interceptors",
+    "analogy": "toll booths that can stop, charge or turn back a car",
+    "chapter": "events-and-hooks",
+    "illustration": "toll-booths",
+    "breaks": "A toll booth leaves the car as it is. An interceptor can rewrite the request itself, as if the attendant swapped the driver's destination, so the run records which replacement it used."
   }
 ]

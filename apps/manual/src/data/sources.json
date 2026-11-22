@@ -576,5 +576,85 @@
     "asOf": "November 2026",
     "version": "@github/copilot-sdk@1.0.31",
     "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "langchain-middleware-custom",
+    "title": "Custom middleware",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langchain/middleware/custom.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "langchain@1.6.1",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-callback-types",
+    "title": "Types of Callbacks",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/callbacks/types-of-callbacks.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "copilot-hooks-overview",
+    "title": "Session hooks",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/hooks/hooks-overview.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "pi-extensions",
+    "title": "Extensions",
+    "publisher": "Pi documentation",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/docs/extensions.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "copilot-pre-tool-use-hook",
+    "title": "Pre-tool use hook",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/hooks/pre-tool-use.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "copilot-post-tool-use-hook",
+    "title": "Post-tool use hook",
+    "publisher": "GitHub Copilot SDK documentation",
+    "url": "https://github.com/github/copilot-sdk/blob/v1.0.31/docs/hooks/post-tool-use.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "v1.0.31",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "adk-plugins",
+    "title": "Plugins",
+    "publisher": "Agent Development Kit documentation",
+    "url": "https://github.com/google/adk-docs/blob/ff7a5f56469a81f3e43a8fc54668d8dc84300192/docs/plugins/index.md",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "ff7a5f5",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
+  },
+  {
+    "id": "pi-agent-core-readme",
+    "title": "Agent core README: steering and follow-up",
+    "publisher": "Pi (earendil-works/pi)",
+    "url": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/agent/README.md",
+    "kind": "repo",
+    "asOf": "November 2026",
+    "version": "v1.5.2",
+    "verifiedIn": "apps/manual/fact-checks/events-and-hooks.md"
   }
 ]
