@@ -65,12 +65,15 @@ The claims log for [`durable-and-portable-agents.md`](../src/content/chapters/du
 | 39 | A mailroom stamps each letter's number and bins duplicates, and invents no numbers, so a repeat would slip through if the mailroom numbered letters itself | § Every trigger | ⚠️ | The analogy's own claim and its "where it breaks" entry |
 | 40 | The example's `accept` runs both statements with no `await` between them, so the stamp and the task are written in one turn of the Durable Object | § Every trigger | ✅ | `verify/cloudflare-agents/examples/11-trigger-dedup.ts`, the `accept` region is a synchronous method; `packages/agent-safety/README.md` says of its Durable Object stores that they "run their statements with no `await` between them, so no other event in the object runs between two of them" |
 | 41 | Without one atomic step, a crash between the stamp and the task leaves a stamped id whose task never began, and a redelivery of that id is dropped | § Every trigger | ⚠️ | Our reasoning about a stamp-then-task design, found in the first code review; not tested on DynamoDB or Postgres |
+| 42 | After the writing review: the summary says only the effect store is built on all three targets, and the chapter says only the local parts of the seams are built as of November 2026 | Summary; § Seven seams | ✅ | Re-check of rows 18, 21 and 22: the three effect stores in `agent-safety`; the local `memoryStore`, `jsonlStore`, `fileLock` and `fileKeyStore` in `packages/harness/src/session/`; N41 to N48b in `docs/todos/ready/` |
+| 43 | After the rewording: the 12-factor report found no "webhook", "cron" or "idempot" in the agent plan on 2026-11-18, and a receiver that reads the sender's id sees a repeat | § Every trigger | ✅ | Re-check of rows 32 and 29: same sources; the sentence dropped its todos clause and the search terms stay |
+| 44 | The figure caption now says the effect store row is built and the sandbox row is decided and not built | Figure `seams` | ✅ | Re-check of rows 15, 17 and 18 |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 34 |
+| ✅ confirmed | 37 |
 | ✏️ corrected | 0 |
 | ⚠️ unverified, our inference or an absence, marked as ours in the text | 7 |
-| Total | 41 |
+| Total | 44 |
