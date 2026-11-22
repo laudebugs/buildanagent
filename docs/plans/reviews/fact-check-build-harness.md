@@ -405,4 +405,14 @@ Checked on 2026-11-22 against the branch at `66588c9` after merging `main`.
 | N44-11 | The frame bound leaves out one trailing `\n` or `\r\n` and a lone trailing `\r`, as the protocol's `JsonlFramer` does. | Todo Outcome | ✅ | A new test in `websocket-transport.test.ts` compares each of seven line endings with `JsonlFramer` itself. |
 | N44-12 | A frame with blank lines around one message, or any line ending left after one trailing `\n` or `\r\n`, is refused with `InvalidRequest`, and an `error` event closes a still-open socket with 1011. | README | ✅ | `#receive()` in `websocket.ts` refuses a frame that still holds `\n` after the strip; `websocket-transport.test.ts` has five blank-line frames refused with no dispatch, one message with a trailing `\n` or `\r\n` dispatched, and an error event at readyState 1 closed with `close(1011)` and at readyState 3 not closed; the fixer undid each fix and its test failed. |
 
-**Totals:** 299 claims: 211 ✅, 63 ✏️, 25 ⚠️.
+## docs/n44-websocket-decisions: plan §6.4 records two N44 choices
+
+Checked on 2026-11-22 against `packages/harness/src/server/websocket.ts` on `main` and a Node 22 run.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| docs/n44-websocket-decisions-1 | The WebSocket transport closes the socket with 1009 after a frame over the size bound, and stdio keeps its stream open after an oversize line. | Plan §6.4 | ✅ | `MESSAGE_TOO_BIG` in `websocket.ts`; N29's Outcome says a line over `maxLineBytes` gets `InvalidRequest` and the stream goes on. |
+| docs/n44-websocket-decisions-2 | The global `WebSocket` refuses 1008, 1009 and 1011 in `close()`, and the transport retries them as 4008, 4009 and 4011 with the same reason. | Plan §6.4 | ✅ | Run in Node 22 on 2026-11-22: those three codes threw `InvalidAccessError`, and `closeSocket` in `websocket.ts` retries with `4000 + (code - 1000)`. |
+| docs/n44-websocket-decisions-3 | The manager session confirmed both choices on 2026-11-22. | Plan §6.4 | ✅ | The manager's message in this session, which is not an owner decision; the plan says so. |
+
+**Totals:** 302 claims: 214 ✅, 63 ✏️, 25 ⚠️.
