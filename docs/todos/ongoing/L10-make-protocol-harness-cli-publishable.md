@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L10` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §2, PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L9](../done/L9-publish-protocol-harness-cli-decision.md), which records the owner's choice to publish `agent-safety` ([ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md), decision 9) |
