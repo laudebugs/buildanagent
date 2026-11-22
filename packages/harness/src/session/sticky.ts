@@ -69,6 +69,20 @@ const RUNS_OTHER_CODE = new Set([
   "stdbuf",
   "ionice",
   "watch",
+  "eval",
+  "source",
+  ".",
+  "find",
+  "awk",
+  "gawk",
+  "make",
+  "busybox",
+  "setsid",
+  "su",
+  "ssh",
+  "script",
+  "unshare",
+  "chroot",
 ]);
 
 const wordsOf = (command: string): string[] =>
@@ -82,7 +96,7 @@ const programOf = (word: string | undefined): string => (word ?? "").split("/").
 
 // The text that starts a second command or hides one: a list or pipe operator, a redirection, a substitution, a
 // subshell, an expansion or a line break. A prefix allowance covers a command with none of them.
-const SHELL_SYNTAX = /[;&|<>`$()\n\r]/;
+const SHELL_SYNTAX = /[;&|<>`$()\n\r"'\\*?[\]{}!#]/;
 
 /** Whether the command is a single simple command, so a prefix says what it runs. */
 export const isSimpleCommand = (command: string): boolean => !SHELL_SYNTAX.test(command);
@@ -102,6 +116,11 @@ const startsWith = (words: readonly string[], prefix: readonly string[]): boolea
 /** The listed prefix `words` begin with or are the start of, or the program that runs other code that `words` start with. */
 function runsOtherCode(words: readonly string[]): string | undefined {
   if (words.length === 0) return undefined;
+  const first = words[0] as string;
+  // A leading assignment, quote, escape or glob can hide the program, so it is refused instead of read.
+  if (/[="'\\*?[\]{}$`!~]/.test(first)) return first;
+  if (programOf(first) === "git" && words.some((word) => word === "-c" || word.startsWith("--config-env")))
+    return "git -c";
   const listed = INTERPRETER_PREFIXES.find((prefix) => startsWith(words, prefix) || startsWith(prefix, words));
   if (listed !== undefined) return listed.join(" ");
   const program = programOf(words[0]);
@@ -202,8 +221,8 @@ function covers(
   command: string | undefined,
   version?: string,
 ): boolean {
-  if (entry.type !== "approval_resolved" || entry.allowance === undefined || entry.allowance.tool !== name)
-    return false;
+  if (entry.type !== "approval_resolved" || entry.quorum !== undefined) return false;
+  if (entry.allowance === undefined || entry.allowance.tool !== name) return false;
   if (entry.allowance.policyVersion !== undefined && entry.allowance.policyVersion !== version) return false;
   return matchesInput(entry.allowance, hash, command);
 }

@@ -162,6 +162,12 @@ function denial(requestId: string, verdict: "rejected" | "expired"): ResolutionR
   return { resolution: { requestId, decision: "deny", reason, by: "policy" } };
 }
 
+/** An answer without what it would cover: a sticky allowance only takes effect once the quorum is met and the call runs. */
+const plain = ({ resolution, groupId }: ResolutionRecord): ResolutionRecord => ({
+  resolution,
+  ...(groupId === undefined ? {} : { groupId }),
+});
+
 /** What the SDK is given for one request, and the entries to write for it, once the quorum policy has decided. */
 function outcomeOf(
   verdict: QuorumVerdict,
@@ -171,16 +177,18 @@ function outcomeOf(
 ): { forRun?: Resolution; records: ResolutionRecord[] } {
   const latest = answers.at(-1);
   if (verdict === "met" && latest !== undefined) {
-    return { forRun: answers.findLast((answer) => !isDeny(answer)) ?? latest, records: [...fresh] };
+    const given = answers.findLast((answer) => !isDeny(answer)) ?? latest;
+    // A verdict that flips with no new answer (a clock, a policy) still writes the answer the run is given, unmarked.
+    return { forRun: given, records: fresh.length > 0 ? [...fresh] : [{ resolution: given }] };
   }
   if (verdict === "rejected" || verdict === "expired") {
     // A person's own deny is already in the log; a refusal or an expiry by the policy gets an entry of its own.
     if (verdict === "rejected" && latest !== undefined && isDeny(latest))
-      return { forRun: latest, records: [...fresh] };
+      return { forRun: latest, records: fresh.map(plain) };
     const refusal = denial(requestId, verdict);
-    return { forRun: refusal.resolution, records: [...fresh, refusal] };
+    return { forRun: refusal.resolution, records: [...fresh.map(plain), refusal] };
   }
-  return { records: fresh.map((record) => ({ ...record, quorum: "pending" as const })) };
+  return { records: fresh.map((record) => ({ ...plain(record), quorum: "pending" as const })) };
 }
 
 /**

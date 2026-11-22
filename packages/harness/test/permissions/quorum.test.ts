@@ -112,4 +112,23 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     assert.match(JSON.stringify(written.resolution), /expired/);
     await session.close();
   });
+
+  test("a sticky allowance given while the quorum is not met does not take effect", async () => {
+    const backend = make();
+    const { session, id } = await paused(backend);
+    const approvals = createApprovals(reuseSetup([done()]).harness, { quorum: quorumOf(2) });
+    await approvals.resolve(session, [{ requestId: id, decision: "allow", by: "ada" }], { sticky: "session" });
+    const entry = (await entriesOf(backend)).find((item) => item.type === "approval_resolved");
+    assert.ok(entry?.type === "approval_resolved" && entry.sticky === undefined && entry.allowance === undefined);
+    // A second approver, with no sticky option, completes the quorum and the call runs.
+    const second = reuseSetup([done()]);
+    await createApprovals(second.harness, { quorum: quorumOf(2) }).resolve(session, [
+      { requestId: id, decision: "allow", by: "grace" },
+    ]);
+    assert.deepEqual(second.runs, ["refund:o1"]);
+    const next = reuseSetup([calls("refund", [{ orderId: "o1" }], 7), done()]);
+    assert.equal((await runTurn(session, next.harness, { input: "again" })).stopReason, "awaiting_approval");
+    assert.deepEqual(next.runs, [], "the first approver's sticky option never took effect");
+    await session.close();
+  });
 });

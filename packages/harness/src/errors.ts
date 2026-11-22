@@ -57,9 +57,11 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * read or migrated, its header names none, or the store can't read it as written. `invalid_turn_options`: a turn's
  * options can't be used, such as a tool allowlist that names a tool the registry lacks, or a hook that changed the
  * model inside a turn. `approval_not_pending`: a resolution names a request that is not waiting.
- * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `invalid_key_store`: a key file is
- * unreadable, malformed or readable by others. `session_conflict`: an append found the log in a state it did not expect
- * (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
+ * `approval_unavailable`: the harness has no signer, so no approval can be checked. `sticky_refused`: a sticky
+ * allowance would cover an interpreter prefix or a secret. `approval_reuse_refused`: the tool's `approvalReuse` forbids
+ * a sticky or grouped answer. `approver_is_requester`: the approver is the one who asked. `invalid_key_store`: a key
+ * file is unreadable, malformed or readable by others. `session_conflict`: an append found the log in a state it did
+ * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
  * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
  * its last line.

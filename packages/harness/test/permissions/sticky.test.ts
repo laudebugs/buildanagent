@@ -283,4 +283,33 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     );
     await session.close();
   });
+
+  test("a command that starts with an assignment, a quote or a program that runs other code is refused, with or without a prefix", async () => {
+    const cases: [string, string[] | undefined][] = [
+      ["FOO=1 sh -c ls", ["FOO=1"]],
+      ["'sh' -c ls", undefined],
+      ["\\sh -c ls", undefined],
+      ["find . -name x -exec rm {} +", undefined],
+      ["eval ls", undefined],
+      ["git -c alias.x=!sh x", ["git"]],
+      ['git commit -m "msg"', ["git", "commit"]],
+    ];
+    for (const [n, [command, commandPrefix]] of cases.entries()) {
+      const backend = make();
+      const first = reuseSetup([calls("bash", [{ command }], 30 + n)]);
+      const session = await open(backend);
+      await runTurn(session, first.harness, { input: "run it" });
+      const [waiting] = await createApprovals(first.harness).pending(session);
+      await assert.rejects(
+        () =>
+          createApprovals(first.harness).resolve(session, [allow(waiting?.request.id as string)], {
+            sticky: "session",
+            ...(commandPrefix === undefined ? {} : { commandPrefix }),
+          }),
+        code("sticky_refused"),
+        command,
+      );
+      await session.close();
+    }
+  });
 });
