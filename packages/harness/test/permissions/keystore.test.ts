@@ -10,6 +10,7 @@ import { defaultKeyPath, fileKeyStore } from "@buildanagent/harness/session/json
 import { afterAll, test } from "vitest";
 import { memoryLock } from "../session/session-helpers.js";
 import { refundHarness } from "./approvals-fixture.js";
+import { asTurn } from "./helpers.js";
 
 const dir = mkdtempSync(join(tmpdir(), "harness-keys-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -83,7 +84,7 @@ test("rotation adds a current key, an old key still verifies a pause, and prune 
   const resumed = await createApprovals(second).resolve(session, [
     { requestId: waiting?.request.id as string, decision: "allow", by: "ada" },
   ]);
-  assert.equal(resumed.stopReason, "done", "a pause signed with key a resolves under key b");
+  assert.equal(asTurn(resumed).stopReason, "done", "a pause signed with key a resolves under key b");
   const stillNamed = new Set((await createApprovals(second).pending(session)).map((entry) => entry.request.keyId));
   assert.deepEqual(await store.prune?.(stillNamed), [before.current], "prune removes a once nothing names it");
   const after = JSON.parse(readFileSync(keysPath, "utf8")) as { current: string; keys: Record<string, string> };

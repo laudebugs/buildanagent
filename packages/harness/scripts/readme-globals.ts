@@ -6,7 +6,7 @@ import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
 import type * as sandbox from "@buildanagent/harness/sandbox";
 import type * as server from "@buildanagent/harness/server";
-import type * as session from "@buildanagent/harness/session";
+import type * as sessions from "@buildanagent/harness/session";
 import type * as jsonl from "@buildanagent/harness/session/jsonl";
 import type * as tools from "@buildanagent/harness/tools";
 import type * as sdk from "@buildanagent/sdk";
@@ -18,6 +18,7 @@ declare global {
   type ToolRegistry = tools.ToolRegistry;
 
   const composeExtensions: typeof extensions.composeExtensions;
+  const createApprovals: typeof sessions.createApprovals;
   const createContextPolicy: typeof context.createContextPolicy;
   const createDispatcher: typeof server.createDispatcher;
   const createHarness: typeof server.createHarness;
@@ -33,9 +34,10 @@ declare global {
   const controller: AbortController;
   const dir: string;
   const harness: server.Harness;
-  const index: session.SessionIndex;
-  const lock: session.SessionLock;
+  const index: sessions.SessionIndex;
+  const lock: sessions.SessionLock;
   const policy: sandbox.SandboxPolicy;
+  const session: sessions.Session;
   const spill: context.SpillStore;
-  const store: session.SessionStore;
+  const store: sessions.SessionStore;
 }

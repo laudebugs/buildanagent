@@ -4,6 +4,7 @@ import process from "node:process";
 import { createApprovals, openSession } from "@buildanagent/harness/session";
 import { fileIndex, fileLock, jsonlStore } from "@buildanagent/harness/session/jsonl";
 import { refundHarness } from "./approvals-fixture.js";
+import { asTurn } from "./helpers.js";
 
 const [dir, keysPath, runsFile, requestId] = process.argv.slice(2) as [string, string, string, string];
 const harness = await refundHarness({
@@ -19,4 +20,4 @@ const session = await openSession({
 });
 const result = await createApprovals(harness).resolve(session, [{ requestId, decision: "allow", by: "ada" }]);
 await session.close();
-console.log(JSON.stringify({ stopReason: result.stopReason }));
+console.log(JSON.stringify({ stopReason: asTurn(result).stopReason }));

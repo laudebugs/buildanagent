@@ -35,7 +35,7 @@ import {
 } from "@buildanagent/sdk";
 import type { CompletionSettings } from "../completion/check.js";
 import { HarnessError, isHarnessError } from "../errors.js";
-import type { Harness } from "../harness.js";
+import type { CodeCallResult, Harness } from "../harness.js";
 import { type Approvals, createApprovals } from "../session/approvals.js";
 import type { SessionLock } from "../session/lock.js";
 import type { SessionIndex } from "../session/pointer.js";
@@ -208,6 +208,13 @@ function summaryOf(result: TurnResult | undefined, error?: unknown): TurnResultS
     costUsd: result.cost.total,
     ...(failed === undefined ? {} : { error: { kind: failed.kind, message: failed.message } }),
   };
+}
+
+/** The summary of a resume. Only a turn's requests reach a resume, so a code call's result, which settles no turn, is an error. */
+function resumedSummary(result: TurnResult | CodeCallResult): TurnResultSummary {
+  return "status" in result
+    ? summaryOf(undefined, new Error("an answer resolved a code call, which settles no turn"))
+    : summaryOf(result);
 }
 
 /**
@@ -692,8 +699,8 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
       index: this.#options.index,
       key: this.key(session),
     });
-    const waiting = await this.#approvals.pending(reader);
-    return { pending: waiting.map((entry) => entry.request) };
+    // A turn's requests only: the protocol does not yet carry a code call's request, so a client is never shown one.
+    return { pending: pendingApprovals(await reader.path()).map((entry) => entry.request) };
   }
 
   /** A fresh id for a server request, unique within this dispatcher. */
@@ -810,7 +817,9 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
             summary = notApplied("aborted", "the resume was stopped before it wrote its answers");
           } else {
             written = true;
-            summary = summaryOf(await this.#approvals.resolve(handle, resolutions, this.#turnHooks(session, running)));
+            summary = resumedSummary(
+              await this.#approvals.resolve(handle, resolutions, this.#turnHooks(session, running)),
+            );
           }
         }
       } finally {

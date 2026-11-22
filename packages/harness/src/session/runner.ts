@@ -11,7 +11,6 @@ import {
   type AgentEvent,
   CAPABILITIES,
   type CallOptions,
-  canonicalInputHash,
   composeInterceptors,
   continueRun,
   DEFAULTS_HASH,
@@ -43,7 +42,7 @@ import type { ToolWrapper } from "../tools/types.js";
 import { contextOf } from "./rebuild.js";
 import { settleOpenCalls, unansweredCalls } from "./resume.js";
 import type { Session } from "./session.js";
-import { findSticky } from "./sticky.js";
+import { findSticky, stickyDecision } from "./sticky.js";
 import type { EntryInput } from "./store.js";
 
 /** One call to a `client_request` tool, as `TurnOptions.clientTool` receives it. */
@@ -209,16 +208,18 @@ function toolsOf<H>(
   return all.filter((definition) => allowed.has(definition.name));
 }
 
-/** Writes what a new session starts with, and a `loadout` when the tools or the model differ from the last one recorded. */
-async function recordLoadout<H>(
+/**
+ * Writes what a new session starts with: its header when the path is empty, and its `env_stamp` when the path has
+ * none. `write` appends one entry after the ones before it.
+ */
+export async function recordSessionStart<H>(
   harness: Harness<H>,
-  writer: EntryWriter,
+  write: (origin: "harness", body: Body) => Promise<unknown>,
   model: Model,
-  tools: readonly ToolDefinition<unknown, unknown, unknown>[],
   started: readonly SessionEntry[],
 ): Promise<void> {
   if (started.length === 0) {
-    await writer.write("harness", {
+    await write("harness", {
       type: "session_header",
       formatVersion: FORMAT_VERSION,
       harnessVersion: harness.harnessVersion,
@@ -229,8 +230,19 @@ async function recordLoadout<H>(
     });
   }
   if (!started.some((entry) => entry.type === "env_stamp")) {
-    await writer.write("harness", { type: "env_stamp", ...harness.env, model: model.ref });
+    await write("harness", { type: "env_stamp", ...harness.env, model: model.ref });
   }
+}
+
+/** Writes what a new session starts with, and a `loadout` when the tools or the model differ from the last one recorded. */
+async function recordLoadout<H>(
+  harness: Harness<H>,
+  writer: EntryWriter,
+  model: Model,
+  tools: readonly ToolDefinition<unknown, unknown, unknown>[],
+  started: readonly SessionEntry[],
+): Promise<void> {
+  await recordSessionStart(harness, (origin, body) => writer.write(origin, body), model, started);
   const names = tools.map((tool) => tool.name);
   const last = started.findLast((entry) => entry.type === "loadout");
   const same =
@@ -518,16 +530,11 @@ function withStickyAllowances<H>(
         harness.registry,
       );
       if (covered === undefined) return decision;
-      await writer.write("harness", {
-        type: "permission_decision",
-        callId: event.callId,
-        tool: harness.registry.get(event.tool)?.canonicalName ?? event.tool,
-        decision: "allow",
-        rule: `sticky:${covered}`,
-        by: "sticky",
-        policyVersion: decision.policyVersion ?? "",
-        inputHash: await canonicalInputHash(event.input),
-      });
+      const tool = harness.registry.get(event.tool)?.canonicalName ?? event.tool;
+      await writer.write(
+        "harness",
+        await stickyDecision({ callId: event.callId, tool, input: event.input }, covered, decision.policyVersion),
+      );
       return { decision: "allow", reason: "a sticky allowance a person gave earlier covers this call" };
     },
   };
