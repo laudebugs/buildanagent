@@ -29,6 +29,8 @@ import { expect, test } from "vitest";
 // it, and reports an outcome the harness computes. Every system here is a fake that counts the requests it receives by
 // key, so "no step repeated" means no key was sent twice.
 const APPROVED_AT = new Date("2026-11-20T12:00:00.000Z");
+/** The tool call id a step's write is keyed under in the plan `plan_1`: a JSON tuple of the part, plan and step. */
+const callId = (part: "run" | "compensate", step: string) => JSON.stringify([part, "plan_1", step]);
 const SCOPE = { tenant: "user-1", session: "session-1", branch: "main" };
 const STATE = [{ source: "orders", key: "order:4417:refundable_cents", value: 2500 }] as const;
 
@@ -278,7 +280,10 @@ test("a crash after step 2 of 3, resumed in a new process, repeats no step and f
   const durable = memoryEffectStore();
   const first = await setup({ store: durable });
   // The process dies as it records step c's write, after steps a and b settled.
-  const dying = crashingStore(durable, (call, record) => call === "begin" && record.scope.toolCallId === "plan_1:c");
+  const dying = crashingStore(
+    durable,
+    (call, record) => call === "begin" && record.scope.toolCallId === callId("run", "c"),
+  );
   await assert.rejects(first.run({ store: dying }), /process crashed/);
   assert.deepEqual(first.system.ops(), ["a", "b"]);
 
@@ -295,7 +300,7 @@ test("a crash while undoing resumes the unwind without undoing any step twice or
   first.system.answer("c", async () => notApplied("do_c"));
   const dying = crashingStore(
     durable,
-    (call, record) => call === "begin" && record.scope.toolCallId === "plan_1:a:compensate",
+    (call, record) => call === "begin" && record.scope.toolCallId === callId("compensate", "a"),
   );
   await assert.rejects(first.run({ store: dying }), /process crashed/);
   assert.deepEqual(first.system.ops(), ["a", "b", "c", "undo_b"]);
@@ -314,7 +319,7 @@ test("a compensation that crashed before it settled is checked by its reconcile 
   first.system.reconcile("undo_b", async () => applied("undo_b"));
   const dying = crashingStore(
     durable,
-    (call, record) => call === "settle" && record.scope.toolCallId === "plan_1:b:compensate",
+    (call, record) => call === "settle" && record.scope.toolCallId === callId("compensate", "b"),
   );
   await assert.rejects(first.run({ store: dying }), /process crashed/);
   // The undo of b was sent, and its record is still started. Its lease must lapse before another process takes over.
@@ -461,6 +466,72 @@ test("a plan undoes only the steps it ran: one that another plan applied under t
   assert.equal(outcome.failedStep, "b");
   assert.deepEqual(outcome.undone, [], "a was applied by the first plan, so the second does not undo it");
   assert.ok(!first.system.ops().includes("undo_a"));
+});
+
+/** A small plan of compensable steps with the given ids, then a pivot, each a fake that records its calls. */
+async function smallPlan(ids: string[], businessKeys: Record<string, string> = {}) {
+  const signer = testSigner();
+  const fields: PlanFields = {
+    steps: [
+      ...ids.map((id) => ({
+        id,
+        tool: `do_${id}`,
+        class: "compensable" as const,
+        input: { id },
+        summary: `Do ${id}`,
+        ...(businessKeys[id] === undefined ? {} : { businessKey: businessKeys[id] }),
+      })),
+      { id: "pivot", tool: "do_pivot", class: "pivot" as const, input: { id: "pivot" }, summary: "Do pivot" },
+    ],
+    state: [...STATE],
+    expiresInMs: 60_000,
+  };
+  const approval = await signPlan(fields, signer, { generateId: () => "plan_1", now: () => APPROVED_AT });
+  const calls: string[] = [];
+  const steps: PlanStepImpl[] = approval.steps.map((step, index) => ({
+    step,
+    input: (fields.steps[index] as { input: unknown }).input,
+    dedupe: "idempotency_key",
+    run: async () => {
+      calls.push(`run:${step.id}`);
+      return step.id === ids.at(-1) ? notApplied(step.tool) : applied(step.tool);
+    },
+    ...(step.class === "compensable"
+      ? { compensate: async () => (calls.push(`undo:${step.id}`), applied(`undo_${step.id}`)) }
+      : {}),
+  }));
+  const run = () =>
+    runPlan({
+      approval,
+      steps,
+      store: memoryEffectStore(),
+      scope: SCOPE,
+      signer,
+      ledger: memoryPlanLedger(),
+      readState: async (reads) => reads.map((_, index) => STATE[index]?.value),
+      now: () => new Date(APPROVED_AT.getTime() + 1000),
+    });
+  return { calls, run };
+}
+
+test("step ids that hold colons or the word plan never share a key with a compensation or the plan's decision", async () => {
+  const { calls, run } = await smallPlan(["refund", "refund:compensate", "plan:failed"]);
+  const outcome = status(await run(), "failed_compensated");
+  assert.equal(outcome.failedStep, "plan:failed");
+  assert.deepEqual(outcome.undone, ["refund:compensate: Do refund:compensate", "refund: Do refund"]);
+  assert.deepEqual(calls, [
+    "run:refund",
+    "run:refund:compensate",
+    "run:plan:failed",
+    "undo:refund:compensate",
+    "undo:refund",
+  ]);
+});
+
+test("a business key that starts with the compensation marker is refused, so no step's write can share a compensation's key", async () => {
+  const { calls, run } = await smallPlan(["a", "b"], { a: "buildanagent.plan-compensation:x" });
+  await assert.rejects(run(), assertSafetyError("invalid_plan"));
+  assert.deepEqual(calls, []);
 });
 
 test("a forged approval, or a step whose input differs from the signed one, runs nothing", async () => {

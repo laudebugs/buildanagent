@@ -7,8 +7,9 @@
  * The compensation log is the step records themselves. A step's key is fixed by the plan id and the step id, or by its
  * business key alone when it has one, and each record names the plan and step of the call that wrote it. So the
  * records of an interrupted plan, read in plan order, say which steps this plan ran, and a resumed plan compensates
- * exactly those, in reverse, once each. A step that another plan applied under the same business key is not undone. The one extra record is the plan's decision to compensate, which a resume reads first,
- * so a step that failed is never retried while its plan is half undone.
+ * exactly those, in reverse, once each. A step that another plan applied under the same business key is not undone.
+ * The one extra record is the plan's decision to compensate, which a resume reads first, so a step that failed is
+ * never retried while its plan is half undone.
  *
  * The rules are our synthesis of the sagas report in docs/research/reversible-actions, not a vendor design.
  */
@@ -38,7 +39,7 @@ export interface PlanStepImpl {
   readonly input: unknown;
   /** How a retry of `run` finds out what an earlier attempt did, as for `guardedWrite()`. */
   readonly dedupe: WriteDedupe;
-  /** Performs the step. Send `key` to the external API's idempotency header, or set it where `reconcile` can find it. */
+  /** Performs the step. Send `key` to the external API's idempotency header, or where `reconcile` can find it. */
   run(key: string): Promise<WriteOutcome>;
   /** Reads the external system's state for `run`'s key, as for `guardedWrite()`. */
   reconcile?(key: string): Promise<WriteOutcome | "not_found">;
@@ -135,6 +136,9 @@ export type PlanOutcome =
     };
 
 const FAILED_OPERATION = "plan_failed";
+// Marks a compensation's business key, so it can't equal the business key of any step's own write. `checkSteps()`
+// refuses a business key that starts with it.
+const COMPENSATION_KEY = "buildanagent.plan-compensation:";
 
 interface Run {
   readonly options: RunPlanOptions;
@@ -161,6 +165,11 @@ function checkSteps(approval: PlanApproval, steps: readonly PlanStepImpl[]): voi
     }
     if (step.businessKey !== signed.businessKey)
       throw invalid(`step ${signed.id} has another business key than signed`);
+    if (step.businessKey?.startsWith(COMPENSATION_KEY)) {
+      throw invalid(
+        `step ${signed.id} has a business key that starts with ${COMPENSATION_KEY}, which compensations use`,
+      );
+    }
     if (step.class === "compensable" && impl.compensate === undefined) {
       throw invalid(`step ${step.id} is compensable and needs a compensate function`);
     }
@@ -171,8 +180,9 @@ function checkSteps(approval: PlanApproval, steps: readonly PlanStepImpl[]): voi
 }
 
 function stepScope(run: Run, id: string, part: "run" | "compensate" | "failed"): EffectScope {
-  const planId = run.approval.planId;
-  const toolCallId = part === "run" ? `${planId}:${id}` : `${planId}:${id}:${part}`;
+  const { planId } = run.approval;
+  // A JSON tuple, so no plan id or step id can make one call's id equal another's, whatever characters it holds.
+  const toolCallId = JSON.stringify(part === "failed" ? ["decision", planId] : [part, planId, id]);
   return { ...run.options.scope, toolCallId };
 }
 
@@ -190,7 +200,7 @@ function write(run: Run, impl: PlanStepImpl, part: "run" | "compensate"): Promis
     scope: stepScope(run, step.id, part),
     ...(step.businessKey === undefined
       ? {}
-      : { businessKey: forward ? step.businessKey : `${step.businessKey}:compensate` }),
+      : { businessKey: forward ? step.businessKey : `${COMPENSATION_KEY}${step.businessKey}` }),
     operation: forward ? step.tool : `${step.tool}:compensate`,
     input: impl.input,
     dedupe: forward ? impl.dedupe : "idempotency_key",
@@ -264,9 +274,12 @@ async function writeDecision(run: Run, stop: Stop): Promise<Stop> {
 
 function decisionOf(run: Run, record: EffectRecord): Stop {
   const index = run.options.steps.findIndex((impl) => impl.step.id === record.businessKey);
+  // A decision for a step this call doesn't have means the host passed other steps than the plan that decided.
+  if (index < 0)
+    throw invalid(`the plan's stored decision names step ${String(record.businessKey)}, which is not a step`);
   const outcome = record.outcome as WriteOutcome;
   return {
-    index: Math.max(index, 0),
+    index,
     reason: outcome.reason as PlanFailureReason,
     leftEffects: outcome.kind === "partial",
   };
@@ -331,7 +344,8 @@ async function unwind(run: Run, stop: Stop, undo: boolean): Promise<PlanOutcome>
     held: left,
     outstanding,
     avoid:
-      "Do not say that the plan completed or failed cleanly, do not run any of its steps again, and do not undo anything yourself.",
+      "Do not say that the plan completed or failed cleanly, do not run any of its steps again, " +
+      "and do not undo anything yourself.",
   };
 }
 
@@ -348,7 +362,7 @@ async function verify(
   const { signer, ledger, readState, approval } = run.options;
   const call = { stepId: impl.step.id, tool: impl.step.tool, input: impl.input };
   const check = await verifyPlanBeforeStep(approval, call, { signer, ledger, readState, now: run.now });
-  // A replay means this plan's earlier attempt passed every other check just now and claimed the step before it stopped.
+  // A replay means this plan's earlier attempt claimed the step before it stopped, and every other check passed now.
   if (check === "ok" || check === "replayed") return { check };
   return { check, stop: VERDICT[check] ?? "NOT_VERIFIED" };
 }
@@ -388,7 +402,8 @@ function handedOver(run: Run, index: number, reason: PlanFailureReason, maybeApp
     held: steps.slice(0, index).map(label),
     outstanding,
     avoid:
-      "Do not say that the plan completed, do not undo the steps that ran, and do not run these steps again as a new request.",
+      "Do not say that the plan completed, do not undo the steps that ran, " +
+      "and do not run these steps again as a new request.",
   };
 }
 
@@ -547,7 +562,8 @@ export function planWriteOutcome(outcome: PlanOutcome): WriteOutcome {
         currentState: `The plan stopped at step ${outcome.failedStep}, and every step that had run was undone.`,
         next: outcome.next,
       });
-    case "failed_needs_human":
+    case "failed_needs_human": {
+      const handle = outcome.outstanding.join("; ");
       return writeOutcome({
         kind: "partial",
         operation,
@@ -555,10 +571,11 @@ export function planWriteOutcome(outcome: PlanOutcome): WriteOutcome {
         reverted: outcome.undone,
         reason: outcome.reason,
         retry: "never",
-        currentState: `The plan stopped at step ${outcome.failedStep}. A person must handle: ${outcome.outstanding.join("; ")}.`,
+        currentState: `The plan stopped at step ${outcome.failedStep}. A person must handle: ${handle}.`,
         next: "Tell the user a person must finish or undo the plan, and say which steps are still in effect.",
         avoid: outcome.avoid,
       });
+    }
     case "pending":
       return writeOutcome({
         kind: "unknown",
