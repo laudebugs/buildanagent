@@ -108,6 +108,26 @@ export interface ToolResultEntry {
   trust: "trusted" | "untrusted";
 }
 
+/**
+ * A tool call that the host's own code chose to make, with no model step. It is written before the permission pipeline
+ * decides the call, and its id is the call's id, so the call's effect key can be derived from it before the tool runs.
+ * The model never reads a code call or its result.
+ */
+export interface CodeCallEntry {
+  /** The entry type name. @stable */
+  type: "code_call";
+  /** The call's id, which the call's `permission_decision`, `approval_requested` and `tool_result` entries name. */
+  callId: string;
+  /** The tool's canonical name. */
+  tool: string;
+  /** The input the call runs with. */
+  input: unknown;
+  /** `canonicalInputHash()` of `input`, which a resume checks before the call runs. */
+  inputHash: string;
+  /** The id of the earlier code call this one compensates, when it undoes one. */
+  compensates?: string;
+}
+
 /** The permission pipeline's decision on one tool call, written for every decision. */
 export interface PermissionDecisionEntry {
   /** The entry type name. @stable */
@@ -300,6 +320,7 @@ export type SessionEntry = EntryBase &
     | MessageBlockEntry
     | MessageEndEntry
     | ToolResultEntry
+    | CodeCallEntry
     | PermissionDecisionEntry
     | UsageEntry
     | TurnEndEntry
@@ -324,6 +345,7 @@ export const SESSION_ENTRY_TYPES = [
   "message_block",
   "message_end",
   "tool_result",
+  "code_call",
   "permission_decision",
   "usage",
   "turn_end",

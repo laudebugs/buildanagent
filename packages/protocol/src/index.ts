@@ -2,6 +2,7 @@
 export type {
   ApprovalPolicy,
   CheckoutEntry,
+  CodeCallEntry,
   CompactionEntry,
   CompletionCheckEntry,
   EntryBase,

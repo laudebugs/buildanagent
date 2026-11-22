@@ -23,6 +23,7 @@ export const CONFIG = {
     Readable: "a Node stream class",
     Writable: "a Node stream class",
     connect: "a Dispatcher method",
+    invokeTool: "a Harness method",
     delete: "a SessionStore method",
     read: "the secret reader callback `secretKeyStore()` takes",
     request: "an InProcessClient method",

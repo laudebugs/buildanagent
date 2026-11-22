@@ -120,6 +120,13 @@ export const SessionEntry = z.discriminatedUnion("type", [
     spill: z.strictObject({ path: z.string(), bytes: z.number().int().min(0) }).optional(),
     trust: z.enum(["trusted", "untrusted"]),
   }),
+  entry("code_call", {
+    callId: z.string(),
+    tool: z.string(),
+    input: z.unknown(),
+    inputHash: z.string(),
+    compensates: z.string().optional(),
+  }),
   entry("permission_decision", {
     callId: z.string(),
     tool: z.string(),
