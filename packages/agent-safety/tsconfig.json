@@ -13,6 +13,7 @@
     "test/workerd/cost-agent.ts",
     "test/workerd/cost-model.ts",
     "test/workerd/interrupted-agent.ts",
+    "test/workerd/stores-agent.ts",
     "test/workerd/think-agent.ts"
   ]
 }

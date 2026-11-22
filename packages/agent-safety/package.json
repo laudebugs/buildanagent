@@ -47,6 +47,21 @@
       "types": "./dist/agents/index.d.ts",
       "default": "./dist/agents/index.js"
     },
+    "./stores/cloudflare": {
+      "source": "./src/stores/cloudflare.ts",
+      "types": "./dist/stores/cloudflare.d.ts",
+      "default": "./dist/stores/cloudflare.js"
+    },
+    "./stores/postgres": {
+      "source": "./src/stores/postgres.ts",
+      "types": "./dist/stores/postgres.d.ts",
+      "default": "./dist/stores/postgres.js"
+    },
+    "./stores/dynamodb": {
+      "source": "./src/stores/dynamodb.ts",
+      "types": "./dist/stores/dynamodb.d.ts",
+      "default": "./dist/stores/dynamodb.js"
+    },
     "./testing": {
       "source": "./src/testing.ts",
       "types": "./dist/testing.d.ts",
@@ -75,6 +90,18 @@
         "types": "./dist/agents/index.d.ts",
         "default": "./dist/agents/index.js"
       },
+      "./stores/cloudflare": {
+        "types": "./dist/stores/cloudflare.d.ts",
+        "default": "./dist/stores/cloudflare.js"
+      },
+      "./stores/postgres": {
+        "types": "./dist/stores/postgres.d.ts",
+        "default": "./dist/stores/postgres.js"
+      },
+      "./stores/dynamodb": {
+        "types": "./dist/stores/dynamodb.d.ts",
+        "default": "./dist/stores/dynamodb.js"
+      },
       "./testing": {
         "types": "./dist/testing.d.ts",
         "default": "./dist/testing.js"
@@ -95,7 +122,8 @@
     "@ai-sdk/anthropic": "4.0.96",
     "@ai-sdk/openai": "4.0.108",
     "@ai-sdk/provider-utils": "5.0.74",
-    "ai": "7.0.162"
+    "ai": "7.0.162",
+    "@aws-sdk/client-dynamodb": "3.1169.0"
   },
   "peerDependenciesMeta": {
     "@ai-sdk/anthropic": {
@@ -109,6 +137,9 @@
     },
     "ai": {
       "optional": true
+    },
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -116,9 +147,11 @@
     "@ai-sdk/openai": "4.0.108",
     "@ai-sdk/provider": "4.0.35",
     "@ai-sdk/provider-utils": "5.0.74",
+    "@aws-sdk/client-dynamodb": "3.1169.0",
     "@cloudflare/ai-chat": "0.12.2",
     "@cloudflare/think": "0.23.0",
     "@cloudflare/workers-types": "5.20261103.1",
+    "@electric-sql/pglite": "0.5.16",
     "agents": "0.33.0",
     "ai": "7.0.162",
     "esbuild": "0.28.2",

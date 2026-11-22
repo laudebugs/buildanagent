@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
-| Depends on | [N41](N41-scheduler-wake.md), [N42](N42-read-only-key-store.md), [N43](N43-remote-sandbox-egress-policy.md), [N44](N44-web-stream-websocket-transport.md), [E7](E7-safety-portability.md) |
+| Depends on | [N41](N41-scheduler-wake.md), [N42](N42-read-only-key-store.md), [N43](N43-remote-sandbox-egress-policy.md), [N44](N44-web-stream-websocket-transport.md), [E7](../done/E7-safety-portability.md) |
 | Size | M |
 
 ## Goal
@@ -61,7 +61,7 @@ Some cloud behaviour (alarm timing) cannot be emulated exactly; those cases run 
 
 Gap 6 of the [close-sdk-gaps plan](../../plans/close-sdk-gaps.md#3-each-gap-the-todos-that-cover-it-and-what-changes) puts the safety package's stores under the same rule as the harness seams. Add:
 
-- [ ] The suite imports the `EffectStore` conformance cases from [E2](../done/E2-effect-identity-crash-rule.md) and runs them against every target's effect store ([E7](E7-safety-portability.md)).
+- [ ] The suite imports the `EffectStore` conformance cases from [E2](../done/E2-effect-identity-crash-rule.md) and runs them against every target's effect store ([E7](../done/E7-safety-portability.md)).
 - [ ] Two concurrent `begin` calls for one key on any target leave exactly one winner.
 
 This revision makes `EffectStore` an eighth seam beside ADR 0033's seven, which [ADR 0043](../../decisions/0043-standalone-safety-core.md) records; the owner accepted it on 2026-11-18, so E7 is in **Depends on**. It also covers this todo's former "persisted idempotency-key rule" task, so the suite uses E2's cases instead of new ones.

@@ -13,8 +13,15 @@ const manifest = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf
 
 // The third-party SDKs only the subpaths may import.
 const THIRD_PARTY = /^(ai|agents|@ai-sdk\/[^/]+)(\/|$)/;
-// `agents` joins them with the first adapter in ./agents; listed before then, pnpm would install it as a peer.
-const OPTIONAL_PEERS = ["@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/provider-utils", "ai"];
+// `agents` joins them with the first adapter in ./agents; listed before then, pnpm would install it as a peer. The
+// AWS SDK is the peer of the DynamoDB stores only.
+const OPTIONAL_PEERS = [
+  "@ai-sdk/anthropic",
+  "@ai-sdk/openai",
+  "@ai-sdk/provider-utils",
+  "@aws-sdk/client-dynamodb",
+  "ai",
+];
 
 function specifiers(file: string): string[] {
   const code = readFileSync(file, "utf8");
@@ -126,6 +133,20 @@ test("only the cost subpath imports the gateway; the root entry stays free of ev
     .filter((file) => specifiers(file).some((spec) => /^@buildanagent\/gateway(\/|$)/.test(spec)))
     .map((file) => relative(join(packageRoot, "src"), file));
   assert.deepEqual(importers.sort(), ["cost/cost-guard.ts", "cost/estimate.ts"]);
+});
+
+test("the stores import no client library but the one their database needs, and the root entry reaches none of them", () => {
+  const bareOf = (name: string) => [...reachable(join(packageRoot, "src", "stores", `${name}.ts`)).values()].flat();
+  assert.deepEqual(bareOf("cloudflare"), [], "the Durable Object store takes its SQL storage as an argument");
+  assert.deepEqual(bareOf("postgres"), [], "the Postgres store takes its client as an argument");
+  assert.deepEqual([...new Set(bareOf("dynamodb"))], ["@aws-sdk/client-dynamodb"]);
+  const rootFiles = [...reachable(join(packageRoot, "src", "index.ts")).keys()].map((file) =>
+    relative(packageRoot, file),
+  );
+  assert.deepEqual(
+    rootFiles.filter((file) => file.includes("stores")),
+    [],
+  );
 });
 
 test("the third-party SDKs are optional peers, never dependencies, and the gateway is the only dependency", () => {

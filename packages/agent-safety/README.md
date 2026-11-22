@@ -138,6 +138,33 @@ An `EffectStore` holds the records and needs four methods: `begin()`, `takeOver(
 
 Set `leaseMs` longer than the slowest write, plus the clock skew between the hosts that share the store, because the host that resumes reads the lease on its own clock. A call that meets a live lease reports `IN_PROGRESS`, and once the lease lapses, the attempt counts as crashed. The default is five minutes.
 
+## Pick a durable store for the target: Durable Object SQLite, DynamoDB or Postgres
+
+Each target has an `EffectStore` and a `PlanLedger` that keep their records across restarts. Each lives in its own subpath, takes its database client as an argument, and imports no client library the others don't need, so a Worker that uses one loads none of the rest.
+
+| Target | Subpath | Effect store and ledger | What you provide |
+| --- | --- | --- | --- |
+| Cloudflare | `./stores/cloudflare` | `durableObjectEffectStore()`, `durableObjectPlanLedger()` | The object's `ctx.storage.sql`, with `createCloudflareTables()` run once |
+| AWS | `./stores/dynamodb` | `dynamoEffectStore()`, `dynamoPlanLedger()` | A `DynamoDBClient` from `@aws-sdk/client-dynamodb`, and a table with a string partition key `pk` |
+| Vercel, or any Postgres | `./stores/postgres` | `postgresEffectStore()`, `postgresPlanLedger()` | A client with `query(text, values)`, such as `pg`'s `Pool`, and `POSTGRES_SCHEMA` run once |
+| Local Node | the root entry | `memoryEffectStore()`, `memoryPlanLedger()` | Nothing; the records vanish with the process |
+
+```ts
+import { createCloudflareTables, durableObjectEffectStore } from "@buildanagent/agent-safety/stores/cloudflare";
+
+// In a Durable Object's constructor:
+createCloudflareTables(this.ctx.storage.sql);
+const store = durableObjectEffectStore(this.ctx.storage.sql); // pass it to guardedWrite() as `store`
+```
+
+Every change is one conditional write that the database decides, so two processes that race for one record can't both win. The Durable Object stores run their statements with no `await` between them, so no other event in the object runs between two of them, and each statement is conditional as well. The Postgres stores use `INSERT … ON CONFLICT` and `UPDATE … WHERE attempt = …` with `RETURNING`. The DynamoDB effect store puts items under a condition expression, and its ledger claims a step in one transaction that checks the step before and puts this one. A Durable Object store belongs to one object, so give each tenant or session its own object, or rely on the keys that `effectKey()` makes unique across tenants.
+
+A ledger's records follow the same rule as an effect store's: keep them as long as an approval can still be replayed. A plan's ledger rows are tiny, one per step, so keeping them costs little.
+
+Each store runs the cases `effectStoreConformance()` and `planLedgerConformance()` return from `./testing`, and a third-party store should too. The ledger cases check that concurrent claims of one step pass once, that a step claimed out of order is refused, and that a refused or replayed claim uses nothing up. This package's own tests run them on every store: the Durable Object stores inside workerd, on real Durable Object storage; the Postgres stores on PGlite, which is Postgres compiled to WebAssembly and run in the test's process; and the DynamoDB stores through the AWS SDK against a fake that speaks DynamoDB's wire protocol, applies the condition expressions and records each request. A DynamoDB test proves the request shapes and the store's reading of DynamoDB's answers, not DynamoDB's own atomicity, and PGlite and the fake run one request at a time, so their concurrent cases are serialized. A live check of the DynamoDB conditions belongs with the first deploy.
+
+The package's portable tests also run inside workerd, in a Worker that loads each test file with a small runner in place of Vitest, so the same files that pass on Node 22 pass on the Workers runtime. `test/workerd-suite.test.ts` lists the files that stay in Node and why, and fails when a new test file is in neither list.
+
 ## On Cloudflare, repair an interrupted write as `unknown`
 
 `AIChatAgent` (`@cloudflare/ai-chat` 0.12.2) repairs a tool call left without a result before each turn, such as one whose `execute()` died with an evicted isolate. Its default repair stores an error, "The tool call was interrupted before a result was recorded.", which the model reads as a failure it may retry. For a write, override `repairInterruptedToolPart` with `repairInterruptedWrite()` from `./ai`:
@@ -305,7 +332,7 @@ A changed, added, removed or reordered step, a changed state read and an extende
 
 The last check claims the step in a `PlanLedger`, after every other check has passed, so a failed check claims nothing. `claim(planId, stepIndex)` records the step only when every earlier step is recorded and this one isn't, so a replayed approval can't run a step twice and no step can skip ahead. A step that passed once returns `replayed` on a second check when every earlier check passes again. A step up to the pivot meets the clock and the state first, so once the pivot has changed the state or the approval has lapsed, a second check of that step returns `stale_approval` or `expired` instead. So retry a step that already passed under its effect key, without checking it again.
 
-The ledger records that a step passed its check, not that the step ran. A step after the pivot returns `ok` once the pivot has passed, even if the refund then failed or the process crashed before it. So the host tracks which steps ran and runs each step only after the one before it succeeded. It compensates the steps that ran only when the pivot never ran, and once the pivot has run, it runs forward, whatever a later check returns. `claim()` must be atomic, because two checks of one step that arrive together must pass once between them. `memoryPlanLedger()` keeps the claims in memory, for tests and single-process hosts. A host whose plan can resume in another process needs a durable ledger, such as a compare-and-set on a row per plan.
+The ledger records that a step passed its check, not that the step ran. A step after the pivot returns `ok` once the pivot has passed, even if the refund then failed or the process crashed before it. So the host tracks which steps ran and runs each step only after the one before it succeeded. It compensates the steps that ran only when the pivot never ran, and once the pivot has run, it runs forward, whatever a later check returns. `claim()` must be atomic, because two checks of one step that arrive together must pass once between them. `memoryPlanLedger()` keeps the claims in memory, for tests and single-process hosts. A host whose plan can resume in another process needs a durable ledger, such as the ones in [the stores section](#pick-a-durable-store-for-the-target-durable-object-sqlite-dynamodb-or-postgres), and a ledger of your own should pass `planLedgerConformance()`.
 
 ## `runPlan()` runs the approved plan and says what is true afterwards
 
