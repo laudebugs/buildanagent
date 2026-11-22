@@ -1,0 +1,466 @@
+{
+  "format": 2,
+  "example": "09-a2a-delegation",
+  "file": "verify/google-adk/examples/09-a2a-delegation.ts",
+  "harness": "verify/google-adk",
+  "pin": "@google/adk@2.5.0",
+  "mock": "@google/adk@2.5.0",
+  "events": [
+    {
+      "kind": "check",
+      "line": 101,
+      "message": "the card says protocol 0.3.0, not 1.0",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 102,
+      "message": "the card offers JSON-RPC and HTTP+JSON on the loopback origin",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 137,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"support\".\n\nHand billing questions to billing.\n\n\nYou have a list of other agents to transfer to:\n\n\nAgent name: billing\nAgent description: Answers questions about invoices.\n\n\nIf you are the best to answer the question according to your description, you\ncan answer it.\n\nIf another agent is better for answering the question according to its\ndescription, call `transfer_to_agent` function to transfer the\nquestion to that agent. When transferring, do not generate any text other than\nthe function call.\n"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Is invoice inv-7 paid?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "transfer_to_agent"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 137,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "transfer_to_agent",
+            "input": {
+              "agent_name": "billing"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"billing\".\n\nThe description about you is \"Answers questions about invoices.\"\n\nAnswer billing questions."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Is invoice inv-7 paid?"
+            },
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[support] called tool transfer_to_agent with parameters: {\"agent_name\":\"billing\"}"
+            },
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[support] transfer_to_agent tool returned result: {\"result\":\"Transfer queued\"}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "lookup_invoice",
+            "input": {
+              "invoiceId": "inv-7"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-2",
+              "name": "lookup_invoice",
+              "output": {
+                "invoiceId": "inv-7",
+                "amount": 120,
+                "status": "overdue"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Invoice inv-7 is overdue."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 138,
+      "message": "the parent transfers to the remote agent by name, as it would to a local subagent",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 142,
+      "message": "the remote agent's reply is an event of the parent's run, authored by it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 146,
+      "message": "the remote agent ran its own tool and model on the other end of the socket",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 151,
+      "message": "an ordinary remote turn ends in the A2A state completed",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 152,
+      "message": "the parent's model was asked once, to choose the transfer",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 156,
+      "model": "model-1",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Please refund inv-7."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "transfer_to_agent"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 156,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-3",
+            "name": "transfer_to_agent",
+            "input": {
+              "agent_name": "billing"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Please refund inv-7."
+            },
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[support] called tool transfer_to_agent with parameters: {\"agent_name\":\"billing\"}"
+            },
+            {
+              "type": "text",
+              "text": "For context:"
+            },
+            {
+              "type": "text",
+              "text": "[support] transfer_to_agent tool returned result: {\"result\":\"Transfer queued\"}"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-4",
+            "name": "request_refund",
+            "input": {
+              "invoiceId": "inv-7"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-4",
+              "name": "request_refund",
+              "output": {
+                "status": "pending approval"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Refund requested."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 157,
+      "message": "the remote agent called its long-running tool",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 159,
+      "message": "the parent's run carries the pending call, marked long-running, for the caller to answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 163,
+      "message": "the A2A task ends in input-required (saw task:submitted, status-update:working, artifact-update:, artifact-update:, artifact-update:, status-update:input-required)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 187,
+      "message": "a request without the token fails as HTTP 500, not 401 (got 500)",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 188,
+      "message": "a wrong token fails the same way",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 189,
+      "message": "the server logged both rejections",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 190,
+      "message": "neither refused request reached the agent's model",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 1,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "hi"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-5",
+            "name": "lookup_invoice",
+            "input": {
+              "invoiceId": "inv-7"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
+      "kind": "request",
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-5",
+              "name": "lookup_invoice",
+              "output": {
+                "invoiceId": "inv-7",
+                "amount": 120,
+                "status": "overdue"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_invoice",
+        "request_refund"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Invoice inv-7 is overdue."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 192,
+      "message": "the same request with the token does reach it",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 199,
+      "message": "toA2a refuses to mount without authentication unless allowUnauthenticated is true",
+      "pass": true
+    }
+  ]
+}
