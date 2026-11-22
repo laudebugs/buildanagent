@@ -118,8 +118,8 @@ function readPopover(page) {
     probe.style.color = "var(--color-danger)";
     document.body.append(probe);
     const danger = getComputedStyle(probe).color;
-    probe.style.color = "var(--color-highlight-edge-green)";
-    const edgeGreen = getComputedStyle(probe).color;
+    probe.style.color = "var(--color-highlight-edge-blue)";
+    const edgeBlue = getComputedStyle(probe).color;
     probe.remove();
     const pr = pop.getBoundingClientRect();
     return {
@@ -135,7 +135,7 @@ function readPopover(page) {
       save: box("[data-action='save']"),
       remove: box("[data-action='delete']"),
       removeColor: danger,
-      edgeGreen,
+      edgeBlue,
       grab: box(".notes-pop__grab"),
       focusReturn: null,
     };
@@ -167,7 +167,7 @@ async function checkPopoverLayout(page, name, mobile, plain, label) {
   );
   check(p.quote.borderLeft === "3px", `${name}: the quotation has a 3px bar (${p.quote.borderLeft})`);
   check(p.actions.borderTop === "1px", `${name}: the actions sit below a hairline`);
-  check(p.removeColor !== p.actions.color, `${name}: Remove has its own destructive colour (${p.removeColor})`);
+  check(p.removeColor === p.remove.color, `${name}: Remove has the destructive colour (${p.removeColor})`);
   if (mobile) {
     check(p.sheet, `${name}: a narrow window gets a bottom sheet`);
     check(
@@ -222,11 +222,7 @@ async function checkClamp(page, name, mobile) {
     p.quote.title === long.trim() || p.quote.title.startsWith(long.trim().slice(0, 40)),
     `${name}: the full passage is the tooltip`,
   );
-  check(
-    (await page.evaluate(() => getComputedStyle(document.querySelector(".notes-pop__quote")).borderLeftColor)) ===
-      p.edgeGreen || true,
-    `${name}: the bar takes the highlight's edge colour`,
-  );
+  check(p.quote.borderLeftColor === p.edgeBlue, `${name}: the bar takes the blue highlight's edge colour`);
   await page.keyboard.press("Escape");
 }
 

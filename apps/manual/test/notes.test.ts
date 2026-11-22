@@ -1276,7 +1276,7 @@ test("Edit turns the note into a field, Cancel drops the change, and Save keeps 
   assert.equal(q(win, ".notes-pop__note")?.textContent, "Changed my mind");
 });
 
-test("Save works from the stored list, so another tab's change is kept, and says when the highlight is gone", () => {
+test("Save works from the stored list, so another tab's change is kept, and adds a deleted highlight back", () => {
   const { win } = stage([CONTRACT, FAILED]);
   click(win, q(win, "article p:last-of-type"), 50, 310);
   popAction(win, "edit").click();
@@ -1292,8 +1292,13 @@ test("Save works from the stored list, so another tab's change is kept, and says
   );
   popAction(win, "edit").click();
   win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, other] }));
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Typed after the delete";
   popAction(win, "save").click();
-  assert.match(q(win, ".notes-pop__message")?.textContent ?? "", /deleted in another tab/);
+  assert.equal(
+    storedItems(win).find((found) => found.quote === "A failed call comes back again")?.note,
+    "Typed after the delete",
+    "the highlight another tab deleted is added back with the note",
+  );
 });
 
 test("on a narrow window the popover is a bottom sheet that a swipe down on its handle closes", () => {
@@ -1322,6 +1327,110 @@ test("on a narrow window the popover is a bottom sheet that a swipe down on its 
   move("pointerup", 220);
   assert.equal(calls.includes("hide"), true, "a long swipe closes the sheet");
   assert.equal(pop.style.transform, "");
+});
+
+test("focus goes back to the marker after Escape or a keyboard open, not after a click outside", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const closed = () => {
+    const toggle = new win.Event("toggle") as unknown as Event & { newState: string };
+    toggle.newState = "closed";
+    (q(win, ".notes-pop") as Element).dispatchEvent(toggle);
+  };
+  // A pointer open closed by a click elsewhere leaves focus alone.
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  (win.document.activeElement as unknown as HTMLElement | null)?.blur();
+  closed();
+  assert.notEqual(win.document.activeElement, markers(win)[0], "a click outside keeps focus where the reader put it");
+  // Escape inside the popover brings focus back.
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  (q(win, ".notes-pop") as Element).dispatchEvent(
+    new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true }) as unknown as Event,
+  );
+  (win.document.activeElement as unknown as HTMLElement | null)?.blur();
+  closed();
+  assert.equal(win.document.activeElement, markers(win)[0]);
+});
+
+test("Save after another tab deleted the highlight adds it back with the note, and an unchanged Save writes nothing", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popAction(win, "edit").click();
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT] }));
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Typed after the other tab deleted it";
+  popAction(win, "save").click();
+  const saved = storedItems(win).find((found) => found.quote === "A failed call comes back again");
+  assert.equal(saved?.note, "Typed after the other tab deleted it", "the highlight is back with its note");
+  assert.equal(storedItems(win).length, 2);
+  // An unchanged Save does not write, and does not announce a removal.
+  const plain = stage([CONTRACT]);
+  click(plain.win, q(plain.win, "article p:nth-of-type(2)"), 50, 110);
+  const before = plain.win.localStorage.getItem(KEY);
+  popAction(plain.win, "save").click();
+  assert.equal(plain.win.localStorage.getItem(KEY), before, "nothing was written");
+  assert.doesNotMatch(q(plain.win, "[role='status'].visually-hidden")?.textContent ?? "", /removed/);
+});
+
+test("Save writes a fresh time, so the panel orders the highlight as it would after a panel edit", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popAction(win, "edit").click();
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Newer";
+  const before = storedItems(win).find((found) => found.id === "two")?.at ?? 0;
+  popAction(win, "save").click();
+  assert.ok((storedItems(win).find((found) => found.id === "two")?.at ?? 0) >= before);
+  assert.equal(storedItems(win).find((found) => found.id === "two")?.note, "Newer");
+});
+
+test("a change in another tab updates an open popover, and closes it when the highlight is gone", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  const storage = () => {
+    const event = new win.Event("storage");
+    Object.defineProperty(event, "key", { value: KEY });
+    win.dispatchEvent(event);
+  };
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Remember the retry.");
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, { ...FAILED, note: "Changed in tab B" }] }));
+  storage();
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Changed in tab B");
+  const hide = vi.fn();
+  Object.defineProperty(win.HTMLElement.prototype, "hidePopover", { configurable: true, value: hide });
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT] }));
+  storage();
+  assert.equal(hide.mock.calls.length > 0, true, "the popover closes on a highlight another tab deleted");
+});
+
+test("only the pointer that grabbed the sheet's handle moves it, and a layout change while open closes it", () => {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  const calls = withPopover(win);
+  const listeners: ((event: unknown) => void)[] = [];
+  const query = {
+    matches: true,
+    media: "(max-width: 40rem)",
+    addEventListener: (_type: string, listener: (event: unknown) => void) => listeners.push(listener),
+  };
+  Object.defineProperty(win, "matchMedia", { configurable: true, value: () => query });
+  start(win as unknown as globalThis.Window);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  const pointer = (type: string, id: number, y: number) => {
+    const event = new win.MouseEvent(type, { clientY: y, bubbles: true }) as unknown as Event;
+    Object.defineProperty(event, "pointerId", { value: id });
+    return event;
+  };
+  (q(win, ".notes-pop__grab") as Element).dispatchEvent(pointer("pointerdown", 1, 100));
+  win.dispatchEvent(pointer("pointermove", 2, 400) as never);
+  assert.equal(pop.style.transform, "", "a second finger does not move the sheet");
+  win.dispatchEvent(pointer("pointerup", 2, 400) as never);
+  assert.equal(calls.includes("hide"), false, "nor does its release close it");
+  win.dispatchEvent(pointer("pointermove", 1, 130) as never);
+  assert.equal(pop.style.transform, "translateY(30px)");
+  win.dispatchEvent(pointer("pointerup", 1, 130) as never);
+  // Rotating to a wide window while the sheet is open closes it.
+  query.matches = false;
+  for (const listener of listeners) listener({});
+  assert.equal(calls.includes("hide"), true);
 });
 
 test("a wide window places the popover beside the passage, with no sheet attribute", () => {

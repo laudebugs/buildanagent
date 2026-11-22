@@ -1081,6 +1081,15 @@ class Notes {
     this.noteButton.addEventListener("click", () => this.addPending(true));
     this.popShare.addEventListener("click", () => this.sharePopped());
     this.popRemove.addEventListener("click", () => this.removePopped());
+    this.pop.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") this.popEscaped = true;
+    });
+    // A rotation or a resize across the sheet's width while the popover is open closes it, since a popover placed
+    // beside a passage and a full-width sheet are laid out differently; opening it again lays it out afresh.
+    const sheetQuery = typeof win.matchMedia === "function" ? win.matchMedia(SHEET_QUERY) : undefined;
+    sheetQuery?.addEventListener?.("change", () => {
+      if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches) this.closePop();
+    });
     this.popEdit.addEventListener("click", () => this.editPopped());
     this.popSave.addEventListener("click", () => this.savePopped());
     this.popCancel.addEventListener("click", () => this.cancelPopped());
@@ -1119,6 +1128,7 @@ class Notes {
       this.paint();
       this.keepFormText();
       if (this.dialog.open) this.rerender();
+      this.refreshPop();
     });
   }
 
@@ -1632,12 +1642,17 @@ class Notes {
     this.openPop(entry, box.left + box.width / 2, box.top + box.height / 2);
   }
 
-  /** After the popover closes on a keyboard path, focus goes back to the note dot it was opened from. */
+  /**
+   * After the popover closes on a keyboard path, opened from the keyboard or closed with Escape, focus goes back to the
+   * marker it was opened from. A click outside leaves focus where the reader put it.
+   */
   restoreDotFocus() {
     const id = this.popReturnId;
+    const byKeyboard = this.popFromKey || this.popEscaped;
     this.popReturnId = undefined;
     this.popFromKey = false;
-    if (id === undefined) return;
+    this.popEscaped = false;
+    if (id === undefined || !byKeyboard) return;
     const active = this.doc.activeElement;
     if (active && active !== this.doc.body && active !== this.doc.documentElement) return;
     this.noteControl(id)?.focus({ preventScroll: true });
@@ -1657,6 +1672,9 @@ class Notes {
     const item = entry.item;
     this.popId = item.id;
     this.popReturnId = item.id;
+    this.popEscaped = false;
+    // A copy of the highlight as it was when the popover opened, so a Save after another tab deleted it can add it back.
+    this.popItem = { ...item };
     this.popMessage.textContent = "";
     this.popCopy.hidden = true;
     this.popEditing = false;
@@ -1733,7 +1751,10 @@ class Notes {
     this.popEdit.focus({ preventScroll: true });
   }
 
-  /** Save writes the field's text as the highlight's note, from the stored list, so another tab's changes are kept. */
+  /**
+   * Save writes the field's text as the highlight's note, from the stored list, so another tab's changes are kept. If
+   * the highlight was deleted in another tab, Save adds it back with the note, as the panel's form does.
+   */
   savePopped() {
     this.reload();
     if (this.foreign) {
@@ -1741,25 +1762,59 @@ class Notes {
       this.popMessage.textContent = MESSAGES.foreign;
       return;
     }
-    const item = this.items.find((other) => other.id === this.popId);
-    if (!item) {
+    const note = cleanNote(this.popField.value);
+    let item = this.items.find((other) => other.id === this.popId);
+    let items;
+    if (item) {
+      // Nothing changes when the text is the same, so nothing is written or announced.
+      if (note === item.note) {
+        this.popEditing = false;
+        this.renderPop();
+        return;
+      }
+      const current = item;
+      items = this.items.map((other) => (other.id === current.id ? { ...other, note, at: Date.now() } : other));
+    } else if (this.popItem) {
+      item = this.makeItem(anchorOf(this.popItem), note, this.popItem.color);
+      items = [...this.items, item];
+    } else {
       this.say(MESSAGES.gone);
       this.popMessage.textContent = MESSAGES.gone;
       return;
     }
-    const note = cleanNote(this.popField.value);
-    const problem = this.commit(this.items.map((other) => (other.id === item.id ? { ...other, note } : other)));
+    const before = this.items.find((other) => other.id === this.popId)?.note ?? "";
+    const problem = this.commit(items);
     if (problem) {
       this.say(problem);
       this.popMessage.textContent = problem;
       return;
     }
+    this.popId = item.id;
+    this.popItem = { ...item };
     this.popEditing = false;
     this.popMessage.textContent = "";
-    this.say(note === "" ? "Note removed." : "Note saved.");
+    this.say(note === "" && before !== "" ? "Note removed." : "Note saved.");
     this.popField.value = note;
     this.renderPop();
     (note === "" ? this.popField : this.popEdit).focus({ preventScroll: true });
+  }
+
+  /**
+   * Brings an open popover up to date after another tab changed the stored notes: the highlight, its colour and its
+   * note are read again, a highlight that is gone closes the popover, and text the reader is typing is kept.
+   */
+  refreshPop() {
+    if (!this.popOpen) return;
+    const item = this.items.find((other) => other.id === this.popId);
+    if (!item) {
+      // A reader who is writing a note keeps the popover, and Save adds the highlight back.
+      if (this.popField.value !== (this.popItem?.note ?? "")) return;
+      this.closePop();
+      return;
+    }
+    if (!this.popEditing) this.popField.value = item.note;
+    this.popItem = { ...item };
+    this.renderPop();
   }
 
   /**
@@ -1770,12 +1825,16 @@ class Notes {
     const { win } = this;
     if (!this.pop.hasAttribute("data-sheet")) return;
     const start = event.clientY;
+    const pointer = event.pointerId;
     let distance = 0;
+    // Only the pointer that grabbed the handle drives the sheet; another finger's moves and release are ignored.
     const move = (next) => {
+      if (next.pointerId !== pointer) return;
       distance = Math.max(0, next.clientY - start);
       this.pop.style.transform = `translateY(${Math.round(distance)}px)`;
     };
-    const end = () => {
+    const end = (last) => {
+      if (last?.pointerId !== pointer) return;
       win.removeEventListener("pointermove", move);
       win.removeEventListener("pointerup", end);
       win.removeEventListener("pointercancel", end);
