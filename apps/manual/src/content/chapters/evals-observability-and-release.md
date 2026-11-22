@@ -46,3 +46,24 @@ The rubric is a short instruction that names the scale and the pass mark. The ve
 An answer that cannot be parsed should be unscored and never a fail, because a broken judge says nothing about the agent. The example throws and leaves the decision to its caller. Our agent guide makes the choice explicit: an unparsable verdict becomes unscored, and a judge's scores do not gate a release until it agrees with a set of human-labelled answers.
 
 A grader can also fail the other way. The Agentic Benchmark Checklist reports in its abstract that τ-bench counts empty responses as successful [@abc-agentic-benchmark-checklist]. An agent that does nothing can then pass, which is why the suite runs a do-nothing agent over its tasks and treats any task it passes as a grader bug, except where doing nothing is the correct outcome. That countermeasure is our inference and not the paper's.
+
+## A run's spans record what it did and cost, and the session log can be their only source
+
+A courier's :analogy[tracking history]{#parcel-tracking} lists each stop a parcel made, with the time, so when it goes missing you can read where. A trace does that for a run. Each step is a span, spans nest under the step that started them, and the whole run becomes a tree you can read after the fact. A span also carries token counts and cost, which a parcel's page does not, and a tree nests steps inside steps where a tracking page is a flat list.
+
+[[lst:tracing]] turns on the OpenTelemetry integration for one AI SDK run and keeps the spans in memory, so the example needs no collector. The agent looks up an order and then answers.
+
+:::listing[One tool-calling run becomes a tree of spans, kept in memory]{#tracing file="verify/vercel-ai-sdk/examples/16-tracing-and-judge.ts" region="tracing" replay}
+::note[The integration turns the run into OpenTelemetry spans and sends them to the tracer given here.]{#integration}
+::note[An in-memory exporter holds the finished spans, so the example reads the tree back and nothing leaves the process.]{#in-memory}
+:::
+
+The checks that follow read the tree. There is one agent span, the root, named for what it did, and two steps under it, `step 1` and `step 2`. Each model call is a child of a step, and the tool call is a child of the step that asked for it. Each model call carries its own token counts, 100 in and 20 out, and the agent span carries the total over both calls, 200 in and 40 out. The first model call ended asking for a tool and the second ended with an answer. From those spans you can say what the run did, where its tokens went and which call asked for the tool.
+
+Our own SDK builds the same tree. Its `otelObserver()` turns a run's events into one `invoke_agent` span, one `chat` span for each model call and one `execute_tool` span for each tool call, and it follows the OpenTelemetry GenAI conventions. It records token counts on each model call and the sums on the run's span, and it records no content unless you ask: with content off, a span has its structure, timing, tokens and status and nothing the user typed.
+
+The harness plans to go one step further, and that step is decided but not built, as of November 2026. Telemetry there is a projection of the session log: each span is computed from log entries, which already hold each call's usage and cost, so the log stays the only record and a span is a view of it. [[fig:spans-from-log]] shows the planned mapping. The plan adds a span for time spent waiting for a person, because without it a tool's latency mixes human think-time with machine time. It pins the conventions to one commit, because they are at Development status and carry no release tags, and it records cost under its own attribute names, because no convention names cost.
+
+:::figure[A run's spans projected from its session log: the log is the record, and a span is a view of it]{#spans-from-log}
+::svg{alt="Two columns of four rows joined by arrows. On the left, session log entries: turn_start to turn_end, message_end plus usage, tool_result, and approval_requested to resolved. On the right, in the accent, the spans projected from them: invoke_agent, chat, execute_tool and approval wait. A line below says the log is the record and a span is a view of it."}
+:::
