@@ -126,9 +126,9 @@ The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, s
 
 ### DS5. The docs redesign (L12, proposed 2026-11-22)
 
-**Proposed on 2026-11-22; the owner has not answered the questions in [L12](../todos/ongoing/L12-docs-redesign.md).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
+**Proposed on 2026-11-22; the owner answered questions 1, 3 and 5 the same day, and only question 9b is open ([L12](../todos/ongoing/L12-docs-redesign.md#owner-questions)).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
 
-**Decision summary.** L12 is an umbrella todo with fourteen sub-todos (L12a to L12n). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The logo is out of scope: the header keeps a slot, and the owner chose logo 3, "the prompt", whose files the manager hands over.
+**Decision summary.** L12 is an umbrella todo with sixteen sub-todos (L12a to L12p). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The owner chose logo 3, "the prompt", whose files the manager hands over: the header shows the mark plus the wordmark "Build An Agent docs". L12o redesigns the docs home, and L12p adds one shared header source that keeps the links and marks of the book, the docs and the site in step.
 
 **Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes about 18 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. The 258 links are 253 export pages, the reference index and four exports linked twice. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to roughly 350 to 390 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
 
@@ -157,7 +157,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader'
 | Search | Pagefind | Token styling; lower `data-pagefind-weight` on generated pages | Keep Pagefind |
 | Copy buttons | Expressive Code | Restyling | Adopt |
 | Versioning | None | A header tag, the "unreleased" banner and an `@alpha` install-line test (next section) | Adopt all three |
-| Header logo slot | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with an inline SVG and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
+| Header logo and wordmark | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with the inline mark, the wordmark "Build An Agent docs" and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
 | Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails without alt text | Nine figures |
 | Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test | Adopt |
 | Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopt in an Opus todo, once the owner agrees |
@@ -169,7 +169,15 @@ DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first st
 
 #### The sub-todos and the owner's questions
 
-The fourteen sub-todos, with their dependencies, sizes and models, are in the table in [L12](../todos/ongoing/L12-docs-redesign.md). The nine owner questions, with the defaults the sub-todos assume, are in [L12](../todos/ongoing/L12-docs-redesign.md#owner-questions).
+The sixteen sub-todos, with their dependencies, sizes and models, are in the table in [L12](../todos/ongoing/L12-docs-redesign.md). The nine owner questions, with the answers and the defaults the sub-todos assume, are in [L12](../todos/ongoing/L12-docs-redesign.md#owner-questions).
+
+#### One shared header source (L12p)
+
+The owner asked for one header with links across the book, the docs and the site (Docs, Manual, Site, GitHub) and a consistent mark and wordmark per site. The three apps use different markup (Starlight overrides in the docs, Astro layouts in the book and the site), so they share data, not components: the links, each site's wordmark text and the mark's SVG.
+
+**Recommendation: a data file exported from `apps/manual`, through the same `exports` pattern as the tokens.** L12a already gives the manual `exports` and makes the docs depend on `@buildanagent/manual` with `workspace:*`. L12p adds a `./site-chrome` export (a JSON file with a shape test) and gives `apps/site` the same dependency. Each app keeps its own header markup and a test that the rendered header holds every link. Three repository facts make this the smallest option. The dependency-cruiser check runs on `packages/` only, so an app that imports another app by name breaks no rule. knip ignores `apps/*`. Nothing reaches npm, because the manual is private. A new `packages/site-chrome` would join the cruiser, knip, the TSDoc check and the changeset config to carry a file of about fifteen lines. Choose it only if a fourth consumer appears or the data needs code that the book's build should not carry. Either way the dependency points one way, from the docs and the site to the manual, so no cycle forms.
+
+Tell the owner of `apps/manual` (its `exports` and header change) and the session that builds the `apps/site` landing page (it takes the dependency and reads the links) before L12p starts. L12p runs on Sonnet, and moves to Opus only if the work touches a shared package's build.
 
 ## 3. What the owner sets up
 

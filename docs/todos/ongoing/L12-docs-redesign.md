@@ -7,17 +7,17 @@
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L5](../done/L5-docs-app.md), [L6](../done/L6-api-reference.md), [L8](../done/L8-cloudflare-deploys.md) |
-| Size | L (the umbrella: it stays `ongoing` and closes when L12a to L12n are done) |
+| Size | L (the umbrella: it stays `ongoing` and closes when L12a to L12p are done) |
 
 ## Goal
 
 Redesign the docs site at `docs.buildanagent.fyi` so it looks like the book at `manual.buildanagent.fyi` and works like a modern reference site: navigation, page anatomy, code tabs, callouts, an API reference layout, search, copy buttons and versioning. Add flat SVG diagrams drawn by scripts, tested code examples where they help, and pages for the protocol, harness and CLI packages. The owner asked for it on 2026-11-22.
 
-The owner's part: answer the nine questions under Owner questions. The sub-todos start on the bracketed defaults for questions 1 to 8 and 9a; only question 9b holds anything back (L12m).
+The owner's part: Q1, Q3 and Q5 are answered (2026-11-22), the manager set the defaults for Q2, Q4, Q6 to Q8 and 9a that day, and only question 9b holds anything back (L12m).
 
 ## Context
 
-- The owner's request, relayed by the manager session on 2026-11-22: study the Lamina PDF docs site's features, match the book's theme from `docs/design/book-tokens.json` through a generated tokens file, include diagrams and tested examples, keep the docs checks passing, add harness-package pages, and leave a header slot for the logo files the manager will hand over (the owner has since chosen logo 3; see Out of scope).
+- The owner's request, relayed by the manager session on 2026-11-22: study the Lamina PDF docs site's features, match the book's theme from `docs/design/book-tokens.json` through a generated tokens file, include diagrams and tested examples, keep the docs checks passing, add harness-package pages, and leave a header slot for the logo files the manager will hand over (the owner has since chosen logo 3 and answered questions 1, 3 and 5; see Out of scope and Owner questions).
 - The study (2026-11-22) was a read-only pass over this repository at `6a6a690c`; this todo and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) record its findings. Its measurements come from the worktree.
 - [`apps/docs/README.md`](../../../apps/docs/README.md) and [ADR 0048](../../decisions/0048-docs-on-astro-starlight.md): the docs app today.
 - [`apps/manual/README.md`](../../../apps/manual/README.md): how the book generates its tokens, self-hosts its fonts and draws its figures.
@@ -25,12 +25,14 @@ The owner's part: answer the nine questions under Owner questions. The sub-todos
 
 ## Scope
 
-L12 is the umbrella for the redesign. It stays `ongoing`, no pull request closes it, and it moves to `done/` when L12a to L12n are done. Each sub-todo gets its own file, made from [TEMPLATE.md](../TEMPLATE.md) when someone starts it, so this change creates none.
+L12 is the umbrella for the redesign. It stays `ongoing`, no pull request closes it, and it moves to `done/` when L12a to L12p are done. Each sub-todo gets its own file, made from [TEMPLATE.md](../TEMPLATE.md) when someone starts it, so this change creates none.
 
 **In scope** (the sub-todo table under Tasks says who delivers each part)
 
 - **Theme.** The book's tokens, fonts and code colours, reused in `apps/docs` (L12a; the design is in DS5).
-- **Chrome and navigation.** A logo slot, favicon, restyled theme select, footer and asides, MDX support for tabs, and a sidebar split into topics (L12b, L12c).
+- **Chrome and navigation.** A header slot that holds the mark and the wordmark "Build An Agent docs", a favicon, a restyled theme select, footer and asides, MDX support for tabs, and a sidebar split into topics (L12b, L12c).
+- **The docs home.** A redesigned home page that leads readers to the six packages' quick starts (L12o).
+- **One shared header source.** One small source that the book, the docs and the site read for the links Docs, Manual, Site and GitHub and for each site's mark and wordmark (L12p).
 - **Diagrams.** A figure pipeline on the book's `svgkit` and nine figures: `package-map`, `run-loop`, `stream-and-transcript`, `stop-reasons`, `approval-pause`, `gateway-adapters`, `session-log`, `sandbox-egress` and `protocol-clients` (L12d, then figures 3 to 9 inside L12g, L12h, L12i and L12k).
 - **Versioning.** A version tag, an "Unreleased docs for `main`" banner on `next.docs.buildanagent.fyi`, an `@alpha` install-line test and a "Docs for main" link (L12e). [DS4](../../plans/publish-and-docs.md#ds4-the-docs-follow-main-until-010-then-releases-accepted) is unchanged.
 - **Content.** A generated API reference and pages for the protocol, harness, CLI and agent-safety packages, `file=` fences on the existing pages, a gateway page and new tested examples (L12f to L12k).
@@ -39,8 +41,9 @@ L12 is the umbrella for the redesign. It stays `ongoing`, no pull request closes
 
 **Out of scope**
 
-- **The logo files.** The owner chose logo 3, "the prompt": a rounded-square outline (50 by 50 in a 64-unit box, stroke 5, corner radius 11) that holds a chevron `>` in the text colour and a short caret in the accent. The accent is `#B04E29` on the light theme and `#E8A27C` on the dark one, and the text colour is `#2A1E16` and `#F4EADC`. The manager hands over the final SVG files. L12b builds the slot: the header takes an inline SVG, and the same mark is the favicon, which a test or a headless render checks at 16 px.
-- **The `apps/site` landing page.** A separate todo.
+- **The logo files.** The manager supplies the SVG files (`docs/design/landing/logo-mark.svg` and `favicon.svg` on the branch `claude/happy-albattani-p54jjp`), and L12b copies them. The owner chose logo 3, "the prompt": a rounded-square outline (50 by 50 in a 64-unit box, stroke 5, corner radius 11) that holds a chevron `>` in the text colour and a short caret in the accent. The accent is `#B04E29` on the light theme and `#E8A27C` on the dark one, and the text colour is `#2A1E16` and `#F4EADC`. L12b's `SiteTitle` takes the mark plus the wordmark "Build An Agent docs" (title case for "Build An Agent", "docs" in the lighter mono style; the mark alone on narrow widths), and the same mark is the favicon, which a test or a headless render checks at 16 px.
+- **The `apps/site` landing page.** Another session builds it. L12o reuses its figure style and tone but changes none of its files.
+- **A manual redesign.** The book stays the design reference. Only its header reads the shared source (L12p).
 - **`.github/workflows/`.** Sessions never edit it. L12m's `_headers` file is not a workflow: `site-stage-dist.mjs` already deploys main's `apps/docs/public/_headers`.
 
 ## Tasks
@@ -49,30 +52,33 @@ The first two tasks are done: the study is the plan, and the table below is the 
 
 - [x] Study the current app, the book's design pipeline and the Lamina PDF practices, and record the plan in [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22).
 - [x] Split this todo into the sub-todos below.
-- [ ] Get the owner's answers to the nine questions under Owner questions.
+- [x] Get the owner's answers to questions 1, 3 and 5 (2026-11-22).
+- [ ] Get the owner's answer to question 9b.
 
 | Todo | Delivers | Depends on | Size | Model |
 | --- | --- | --- | --- | --- |
-| L12a | The manual's `exports` and a parameterised `tokensCss()`; the docs' `generate-tokens`, `tokens.css`, font copy, `starlight.css` mapping, Expressive Code themes, `Head` preload, and the contrast, stale-file, font and no-hex tests | This plan | M | Opus (design tooling) |
-| L12b | `SiteTitle` with the logo slot and favicon, restyled `ThemeSelect`, `Footer` and asides; MDX pages that the content tests read correctly; install tabs; the README's overrides table and upgrade policy | L12a | M | Sonnet, with an Opus high review |
-| L12c | The sidebar topics plugin; the sidebar tests rewritten for order and next links per topic; page-size measurement | L12a | S to M | Sonnet |
-| L12d | The figure pipeline (directive, inliner, sanitiser, `figures:build`, stale test, forced colours) and figures 1 and 2 | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
-| L12e | The version tag, the `next.` banner script, the `@alpha` install-line test and the "Docs for main" link | L12b | S | Sonnet |
-| L12f | The API reference for the four packages, the `.gitignore` entries and the test; build time, size and Pagefind measured | L12c | S to M | Sonnet |
-| L12g | The protocol and CLI pages, the protocol examples and figure 9 | L12d, L12f | M | Sonnet |
+| L12a | Manual `exports`, `tokensCss()`, the docs' tokens, fonts, `starlight.css`, code themes and their tests | This plan | M | Opus (design tooling) |
+| L12b | `SiteTitle` (mark plus wordmark) and favicon, restyled theme select, footer and asides, MDX, install tabs | L12a | M | Sonnet, with an Opus high review |
+| L12c | The sidebar topics plugin, the rewritten sidebar tests and the page-size measurement | L12a | S to M | Sonnet |
+| L12d | The figure pipeline and figures 1 and 2 | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
+| L12e | The version tag, the `next.` banner, the `@alpha` install-line test, the "Docs for main" link | L12b | S | Sonnet |
+| L12f | The API reference for the four packages and its measurements | L12c | S to M | Sonnet |
+| L12g | The protocol and CLI pages, their examples and figure 9 | L12d, L12f | M | Sonnet |
 | L12h | Harness pages, part 1 (overview, sessions, context, tools) and figure 7 | L12g | M | Sonnet |
 | L12i | Harness pages, part 2 (permissions, sandbox, server, extensions) and figure 8 | L12h | M | Sonnet (Opus for any run of the sandbox and credentials example) |
 | L12j | The agent-safety pages and examples | L12f | M | Sonnet |
 | L12k | `file=` fences on the existing pages, the gateway page and figures 3 to 6 | L12d | M | Sonnet |
-| L12l | Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if question 9a is yes, `context7.json` | L12b | M | Sonnet |
+| L12l | Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if 9a is yes, `context7.json` | L12b | M | Sonnet |
 | L12m | The CSP `_headers` file with script hashes, and its test | L12b, L12l | S to M | Opus (security) |
-| L12n | The docs-writing.md rules for diagrams, callouts and tabs, in a pull request of its own | None | S | Sonnet |
+| L12n | The docs-writing.md rules for diagrams, callouts and tabs | None | S | Sonnet |
+| L12o | The docs home page redesign: it leads readers to the quick starts of the gateway, SDK, agent-safety, protocol, harness and CLI, in the figure style and tone of the `apps/site` landing page | L12a, L12b, L12d | M | Sonnet |
+| L12p | One shared header source for the book, the docs and the site: links Docs, Manual, Site and GitHub, plus each site's mark and wordmark ([DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22)) | L12b | S to M | Sonnet (Opus if it touches a shared package's build) |
 
-**Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e and L12f. L12g, L12h and L12i run in sequence, with L12j and L12k beside them. L12l and L12m go last.
+**Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e, L12f and L12p. L12g, L12h and L12i run in sequence, with L12j, L12k and L12o beside them. L12l and L12m go last.
 
 ## Acceptance criteria
 
-L12 is done when L12a to L12n are done and these hold on `main`:
+L12 is done when L12a to L12p are done and these hold on `main`:
 
 - [ ] `pnpm --filter @buildanagent/docs test` and `pnpm check:api-docs` pass, with the tests covering all six packages.
 - [ ] `apps/docs/src/styles/tokens.css` is generated from `docs/design/book-tokens.json`, and a test fails when it is stale.
@@ -82,13 +88,14 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 - [ ] After L12c, no built page exceeds 200 KB of HTML (today `start/install/` is 103 KB). L12c may revise the budget with its measurement, and L12f re-measures it.
 - [ ] Every page has a Markdown twin at `/<page>.md`, and a test fails on a page without one.
 - [ ] Every install line names `@alpha`, a test checks it, and the header shows the shared version.
-- [ ] The header holds the logo slot, and the favicon reads at 16 px.
+- [ ] The header holds the mark and the wordmark "Build An Agent docs", and the favicon reads at 16 px.
+- [ ] The docs home links to the quick start of each of the six packages, and the book, the docs and the site read their header links from one source, with a test in each app.
 - [ ] Each of the four new packages has pages whose code blocks come from `file=` fences or type-check against the packages.
 - [ ] Every one of the nine figures has an SVG that the stale test redraws byte for byte, and alt text that the build requires.
 
 ## Tests
 
-- **Docs app.** New files under `apps/docs/test/`: tokens (stale file), fonts (byte identity), contrast (extra pairs), no-hex, figures (stale SVGs), version and install line, Markdown twins and, in L12m, hashes. The four existing files change for MDX, topics and the new packages.
+- **Docs app.** New files under `apps/docs/test/`: tokens (stale file), fonts (byte identity), contrast (extra pairs), no-hex, figures (stale SVGs), version and install line, Markdown twins, home-page links, header links and, in L12m, hashes. The four existing files change for MDX, topics and the new packages.
 - **Packages.** New examples carry their own tests, and a changed example commits its transcript.
 - **Checks.** `pnpm check`, `pnpm typecheck`, `pnpm test` and the four maintainability checks pass in every sub-todo's pull request.
 - **Browser checks.** A headless Chrome render checks the favicon at 16 px and the banner on a `next.` hostname; CI does not run one today.
@@ -97,7 +104,7 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 
 - The [plan's todo table and DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22), as sub-todos start and finish.
 - `apps/docs/README.md`: the overrides table, the upgrade policy, the coupling to the book's tokens and the four new packages.
-- `apps/manual/README.md`: the new `exports` and the coupling to the docs.
+- `apps/manual/README.md`: the new `exports`, the shared header source and the coupling to the docs.
 - AGENTS.md's `apps/` entry, and [docs-writing.md](../../guidelines/docs-writing.md) (L12n).
 - `THIRD-PARTY-NOTICES.md` for the docs' copy of the fonts.
 
@@ -139,18 +146,18 @@ L12 is done when L12a to L12n are done and these hold on `main`:
 
 ## Owner questions
 
-The sub-todos assume the answers in brackets until the owner replies.
+The sub-todos assume the answers in brackets. The owner answered Q1, Q3 and Q5 on 2026-11-22 (relayed by the manager session); the manager set the other defaults the same day.
 
-1. **The logo slot.** Does the header show the mark and the wordmark "buildanagent docs", or the mark alone? [Mark at 28 px beside the wordmark.] Is the favicon the same mark? [Yes.]
-2. **Search.** Keep Pagefind, and index the generated API pages? [Keep it; index them at a lower weight.]
-3. **The home page.** Redesign it in L12, as a hero with the package map and three entry paths, or later? [Later.]
-4. **Versioning.** A "Docs for main" link and banner now, and a real version switcher only once old releases are archived? [Yes.]
-5. **The header across sites.** Add Book, Docs and Site links to all three sites, which touches the manual and the site? [No, not in L12.]
-6. **Diagram style.** The book's flat panel on grid paper, or plain backgrounds? [The book's panel.]
-7. **Dark mode.** Follow the system, as the book does? [Yes.]
-8. **Body font.** Literata, matching the book, or a sans-serif for reference density? [Literata.]
-9a. **Context7.** Publish a `context7.json`? [No. If yes, L12l adds it.]
-9b. **Strict CSP.** Is the strict CSP wanted now? [No; L12m waits for the answer.]
+1. **The logo slot.** Answered 2026-11-22: the slot holds the mark plus a wordmark that reads "Build An Agent docs", with "Build An Agent" in title case and "docs" in the lighter mono style; the mark alone is fine on narrow widths. The favicon is the same mark.
+2. **Search.** [Keep Pagefind, and index the generated API pages at a lower weight.] Default set 2026-11-22.
+3. **The home page.** Answered 2026-11-22: redesign it now, in L12, as L12o. It is separate from the `apps/site` landing page but reuses its figure style and tone, and it leads readers to the six packages' quick starts.
+4. **Versioning.** [A "Docs for main" link and banner now, and a real version switcher only once old releases are archived.] Default set 2026-11-22.
+5. **The header across sites.** Answered 2026-11-22: yes. One shared header carries links across Book, Docs and Site (Docs, Manual, Site, GitHub) with a consistent mark and wordmark per site, planned as one small shared source (L12p). The manual is not redesigned, but its header reads that source.
+6. **Diagram style.** [The book's flat panel on grid paper.] Default set 2026-11-22.
+7. **Dark mode.** [Follow the system, as the book does.] Default set 2026-11-22.
+8. **Body font.** [Literata, matching the book.] Default set 2026-11-22.
+9a. **Context7.** [No. If yes, L12l adds a `context7.json`.] Default set 2026-11-22.
+9b. **Strict CSP.** Still open. [No; L12m waits for the answer.]
 
 ## Definition of done
 
