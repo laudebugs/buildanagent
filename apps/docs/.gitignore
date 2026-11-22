@@ -1,0 +1,6 @@
+# Astro's generated types and dev cache, and the built site with its Pagefind index
+.astro/
+dist/
+
+# The type-check test's temporary folder
+.snippets-*/

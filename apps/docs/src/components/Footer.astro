@@ -1,0 +1,18 @@
+---
+import Default from "@astrojs/starlight/components/Footer.astro";
+---
+
+<Default {...Astro.props}><slot /></Default>
+<p class="license">
+  These docs are licensed
+  <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. The
+  <a href="https://github.com/laudebugs/buildanagent/blob/main/LICENSE-DOCS">licence text</a> is in the repository.
+</p>
+
+<style>
+  .license {
+    margin-top: 1rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-sm);
+  }
+</style>

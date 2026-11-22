@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.packages.json",
+  // content.config.ts imports astro:content, which only Astro itself resolves.
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"],
+  "exclude": ["src/content.config.ts"]
+}

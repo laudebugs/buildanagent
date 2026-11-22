@@ -101,7 +101,7 @@ Chapters are plain `.md` files. Our citation, glossary and figure plugins are re
 
 ### BK4. `apps/*` joins the workspace as `@buildanagent/manual` (proposed)
 
-Whichever of [L5](../todos/ready/L5-docs-app.md), [L7](../todos/ready/L7-website-app.md) or T1 lands first adds `apps/*` to `pnpm-workspace.yaml` ([DS2](publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)), so T1 adds it only if it is missing. T1 creates `apps/manual/package.json` as a private package named `@buildanagent/manual`, the naming `apps/docs` and `apps/site` use, with exact pins, Astro 7.4.11 shared with `apps/docs`, and these scripts:
+Whichever of [L5](../todos/done/L5-docs-app.md), [L7](../todos/ready/L7-website-app.md) or T1 lands first adds `apps/*` to `pnpm-workspace.yaml` ([DS2](publish-and-docs.md#ds2-two-sites-on-cloudflare-accepted)), so T1 adds it only if it is missing. T1 creates `apps/manual/package.json` as a private package named `@buildanagent/manual`, the naming `apps/docs` and `apps/site` use, with exact pins, Astro 7.4.11 shared with `apps/docs`, and these scripts:
 
 - `build`: `astro build && pagefind --site dist`;
 - `check:book`: the content checks of BK5–BK9;
