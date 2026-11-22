@@ -1,5 +1,5 @@
 // Drives the reader's notes (public/scripts/notes.js) in a real Chromium against the built book: it picks a colour,
-// opens the popover by a click, changes the colour, adds a note and finds its marker, shares a passage and follows the
+// opens the popover by a click, changes the colour, adds a note and finds its dot, shares a passage and follows the
 // copied link, removes a highlight, and checks that no page scrolls sideways at a phone width. It needs Playwright and
 // a Chromium (the cloud sessions have both pre-installed) and a built book (`pnpm --filter @buildanagent/manual build`),
 // so it is not part of `pnpm test`. Screenshots go to the folder named by --shots, at a device scale factor of 2.
@@ -160,37 +160,71 @@ async function runAt(name, viewport, mobile) {
   );
   check(!(await page.locator(".notes-pop:popover-open").count()), `${name}: Remove closes the popover`);
 
-  // 6. A note gets a marker outside the article, and a click on the marker opens the popover.
+  // 6. A note gets a numbered dot right after its passage, and a click on the dot opens the popover.
   await selectIn(page, 2, 10, 70);
   await page.waitForSelector(".notes-toolbar:not([hidden])");
   await page.click(".notes-toolbar >> text=Add note");
   await page.fill("#notes-field", "A private note that Share must not copy.");
   await page.click(".notes-dialog__form button[type='submit']");
   await page.click(".notes-dialog__head button");
-  await page.waitForSelector(".notes-marker", { state: "attached" });
-  const marker = await page.evaluate(() => {
-    const el = document.querySelector(".notes-marker");
+  await page.waitForSelector("article .notes-dot", { state: "attached" });
+  const dot = await page.evaluate(() => {
+    const el = document.querySelector("article .notes-dot");
     const box = el.getBoundingClientRect();
     const article = document.querySelector("article").getBoundingClientRect();
+    const style = getComputedStyle(el);
+    const after = getComputedStyle(el, "::after");
+    // The character before and after the dot, as the text the reader sees.
+    const before = el.previousSibling;
+    const next = el.nextSibling;
+    const rect = (node, offset, length) => {
+      const r = document.createRange();
+      r.setStart(node, offset);
+      r.setEnd(node, offset + length);
+      return r.getBoundingClientRect();
+    };
+    const last = before && before.nodeType === 3 ? rect(before, before.data.length - 1, 1) : null;
+    const first = next && next.nodeType === 3 && next.data.length > 0 ? rect(next, 0, 1) : null;
     return {
-      inside: !document.querySelector("article").contains(el),
       left: box.left,
       right: box.right,
-      articleLeft: article.left,
-      articleRight: article.right,
+      top: box.top,
+      bottom: box.bottom,
       w: box.width,
       h: box.height,
-      hidden: el.getAttribute("aria-hidden"),
+      articleRight: article.right,
+      raised: style.top,
+      reach: [after.top, after.left, after.right, after.bottom],
+      label: el.getAttribute("aria-label"),
+      number: getComputedStyle(el, "::before").content,
+      text: el.textContent,
+      lastRight: last && last.right,
+      lastMid: last && (last.top + last.bottom) / 2,
+      firstLeft: first && first.left,
+      firstMid: first && (first.top + first.bottom) / 2,
+      sameLineAfter: first ? Math.abs((first.top + first.bottom) / 2 - (box.top + box.bottom) / 2) < 12 : true,
+      focusable: el.tabIndex === 0,
     };
   });
+  check(dot.label === "Note 1" && dot.text === "", `${name}: the dot is named "Note 1" and holds no text`);
+  check(dot.focusable, `${name}: the dot can take keyboard focus`);
+  check(dot.w >= 14 && dot.w <= 26 && dot.h >= 12 && dot.h <= 22, `${name}: the dot is about 16px (${dot.w}x${dot.h})`);
   check(
-    marker.inside && marker.hidden === "true",
-    `${name}: the note's marker is outside the article and hidden from assistive technology`,
+    dot.raised === "-0.5em" || parseFloat(dot.raised) < 0,
+    `${name}: the dot is raised like a footnote mark (${dot.raised})`,
   );
-  check(marker.w === 24 && marker.h === 24, `${name}: the marker's target is 24 by 24 CSS pixels`);
   check(
-    marker.left >= marker.articleLeft - 1 && marker.right <= marker.articleRight + 1,
-    `${name}: the marker stays inside the article's width`,
+    dot.reach.every((value) => value === "-14px"),
+    `${name}: the target reaches 14px around the dot`,
+  );
+  check(dot.right <= dot.articleRight + 1, `${name}: the dot is not cut off at the article's right edge`);
+  check(
+    dot.lastRight === null || dot.lastRight <= dot.left + 1,
+    `${name}: the dot sits after the last word, not on it`,
+  );
+  check(
+    !dot.sameLineAfter || dot.firstLeft === null || dot.firstLeft >= dot.right - 1,
+    `${name}: the dot sits on no following character (${dot.right} <= ${dot.firstLeft})`,
   );
   const scroll = await page.evaluate(() => ({
     scroll: document.documentElement.scrollWidth,
@@ -200,11 +234,20 @@ async function runAt(name, viewport, mobile) {
     scroll.scroll <= scroll.client,
     `${name}: the page does not scroll sideways (${scroll.scroll} <= ${scroll.client})`,
   );
-  await page.evaluate(() => document.querySelector(".notes-marker").scrollIntoView({ block: "center" }));
-  if (shots) await page.screenshot({ path: join(shots, `${name}-marker.png`) });
-  await page.locator(".notes-marker").click({ force: false });
+  check(
+    await page.evaluate(() => !document.querySelector("article").innerText.includes("1\u2060")),
+    `${name}: the dot's number is not text in the article`,
+  );
+  await page.evaluate(() => document.querySelector("article .notes-dot").scrollIntoView({ block: "center" }));
+  if (shots) await page.screenshot({ path: join(shots, `${name}-dot.png`) });
+  await page.locator("article .notes-dot").click({ force: false });
   await page.waitForSelector(".notes-pop:popover-open");
-  check((await page.textContent(".notes-pop__quote")).length > 10, `${name}: a click on the marker opens the popover`);
+  check((await page.textContent(".notes-pop__quote")).length > 10, `${name}: a click on the dot opens the popover`);
+  await page.keyboard.press("Escape");
+  await page.focus("article .notes-dot");
+  await page.keyboard.press("Enter");
+  await page.waitForSelector(".notes-pop:popover-open");
+  check(true, `${name}: Enter on the focused dot opens the popover`);
   await page.click(".notes-pop button[data-action='share']");
   await page.waitForFunction(() => document.querySelector(".notes-pop__message")?.textContent.includes("Copied"));
   check(

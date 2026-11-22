@@ -1214,7 +1214,7 @@
    Highlight API, so no element wraps the chapter's text. Each of the four colours has a plain name and a noted name,
    because the specification advises one name per highlight. A highlight's pale background stays decorative; the accent
    underline marks it, at 3:1 or more on the highlight in both modes, and a dashed underline marks one with a note.
-   Firefox 140 to 145 draws no underline, so a note also has its own marker element (.notes-marker). Highlighted text
+   Firefox 140 to 145 draws no underline, so a note also has its own dot element (.notes-dot). Highlighted text
    takes the text colour, which keeps 4.5:1 on every highlight colour (book-tokens.json). */
 ::highlight(manual-hl-amber),
 ::highlight(manual-note-amber) {
@@ -1257,39 +1257,57 @@
   text-decoration-style: dashed;
 }
 
-/* The note markers live in one container outside the article. It sits at the page's origin, as wide as the page, with
-   its horizontal overflow clipped and no pointer events, so a marker can never widen the page; each marker takes
-   pointer events back. A marker is a 24 by 24 pixel target (WCAG 2.5.8) around a 16 pixel bubble in the accent colour. */
-.notes-markers {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 4;
-  width: 100%;
-  height: 0;
-  overflow-x: clip;
-  pointer-events: none;
-}
-
-.notes-marker {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: 24px;
-  height: 24px;
-  pointer-events: auto;
+/* A note's dot sits right after the last word of its passage, inline, so the line reserves its room and it never covers
+   a character. It is raised like a footnote mark and takes the highlight's colour; its number is generated content, so
+   it is not text anyone can select, copy or search. The word joiner at the start of that content keeps the dot on the
+   line of the word before it. A pale fill is only decoration, so a 1.5px accent border gives the dot its 3:1 edge
+   against the page, and the 44px target is an invisible ::after around it. */
+.notes-dot {
+  position: relative;
+  top: -0.5em;
+  margin-inline: 0.15em;
+  padding: 0.05em 0.4em;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 999px;
+  background-color: var(--color-highlight);
+  color: var(--color-text);
+  font-family: system-ui, sans-serif;
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.notes-marker::before {
+.notes-dot::before {
+  content: "\2060" attr(data-n);
+}
+
+.notes-dot::after {
   content: "";
-  box-sizing: border-box;
-  width: 16px;
-  height: 13px;
-  border: 2px solid var(--color-accent);
-  border-radius: 6px 6px 6px 1px;
-  background-color: var(--color-accent);
+  position: absolute;
+  inset: -14px;
+}
+
+.notes-dot[data-color="green"] {
+  background-color: var(--color-highlight-green);
+}
+
+.notes-dot[data-color="blue"] {
+  background-color: var(--color-highlight-blue);
+}
+
+.notes-dot[data-color="pink"] {
+  background-color: var(--color-highlight-pink);
+}
+
+.notes-dot:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
 }
 
 /* The popover opens beside the passage a reader clicks. It is a native popover, so it closes on a click outside and on
@@ -1529,7 +1547,8 @@
 
 /* Printed, the chapter carries no notes: no highlight, marker, popover, toolbar, button or panel. */
 @media print {
-  .notes-ui {
+  .notes-ui,
+  .notes-dot {
     display: none;
   }
 

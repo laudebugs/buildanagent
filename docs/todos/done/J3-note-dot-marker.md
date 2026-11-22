@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `J3` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan BK24](../../plans/build-book.md#bk24-a-readers-notes-stay-in-their-browser-proposed) |
 | Round / milestone | Round T (textbook), notes follow-up |
 | Depends on | [J2](../done/J2-notes-colours-popover.md) |
@@ -40,20 +40,20 @@ Replace J2's bubble marker with a small numbered dot, raised like a footnote mar
 
 ## Tasks
 
-- [ ] Decide where the dot lives so no chapter text moves or is searchable: record the choice and its reason.
-- [ ] Insert and remove the dots as the highlights change, keeping the text model, the anchors and Pagefind unaffected.
-- [ ] Style the dot: size, raise, colour per highlight colour, 44 px target, wrap with the last word, no overflow.
-- [ ] Make it focusable with an aria-label and open the popover from a click, Enter or Space.
-- [ ] Retire the bubble marker container and its layout code, and keep the click test working.
-- [ ] Write the tests, the screenshots and the README text.
+- [x] Decide where the dot lives so no chapter text moves or is searchable: record the choice and its reason.
+- [x] Insert and remove the dots as the highlights change, keeping the text model, the anchors and Pagefind unaffected.
+- [x] Style the dot: size, raise, colour per highlight colour, 44 px target, wrap with the last word, no overflow.
+- [x] Make it focusable with an aria-label and open the popover from a click, Enter or Space.
+- [x] Retire the bubble marker container and its layout code, and keep the click test working.
+- [x] Write the tests, the screenshots and the README text.
 
 ## Acceptance criteria
 
-- [ ] A noted passage ends in a numbered dot that takes the highlight's colour, and a plain highlight has none
-- [ ] The dot never covers a following character, wraps with the last word, and causes no sideways scroll at 393 px
-- [ ] The dot is reachable by Tab, named "Note N", and opens the popover from the keyboard and by touch
-- [ ] The text model, the stored anchors, Pagefind and copy and paste ignore the dot
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline, and the Playwright check passes at 1280 and 393 px
+- [x] A noted passage ends in a numbered dot that takes the highlight's colour, and a plain highlight has none
+- [x] The dot never covers a following character, wraps with the last word, and causes no sideways scroll at 393 px
+- [x] The dot is reachable by Tab, named "Note N", and opens the popover from the keyboard and by touch
+- [x] The text model, the stored anchors, Pagefind and copy and paste ignore the dot
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline, and the Playwright check passes at 1280 and 393 px
 
 ## Tests
 
@@ -70,8 +70,19 @@ The manual's README section "A reader's notes stay in their own browser", the J1
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Code written to the guidelines, with tests, and `pnpm check`, `pnpm typecheck` and `pnpm test` passing locally
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Code written to the guidelines, with tests, and `pnpm check`, `pnpm typecheck` and `pnpm test` passing locally
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained
 - [ ] Copy reviewed with `/anthropic-skills:writing-review`, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The bubble marker and its container are gone. `placeDots()` in `apps/manual/public/scripts/notes.js` inserts one inline `span` after the last word of each noted passage; `clearDots()` removes every dot and joins the split text nodes before each redraw.
+
+- **Where the dot lives.** Inside the article, as an inline element, so the line reserves its room. It splits the text node at the passage's end, which leaves the joined text, the text model and the stored anchors unchanged. A dot never goes inside a link or code: it moves out past inline ancestors the passage ends in.
+- **No searchable text.** The number is generated content (`::before` with `attr(data-n)`), and the element carries `data-pagefind-ignore`, so Pagefind, selection and copy and paste skip it. A word joiner at the start of the content keeps the dot on the line of the word before it.
+- **Look.** About 16 pixels, raised `-0.5em`, the highlight's colour with a 1.5 pixel accent border (3:1 at the edge), an invisible `::after` inset of -14 pixels for a 44 pixel target, and no dot for a plain highlight.
+- **Numbering and keyboard.** The number is the note's place among the notes in the panel's order, and the panel labels each note "Note N". Tab reaches a dot, Enter or Space opens the popover, and focus comes back when it closes.
+- **Mutation observer.** The script drops its own mutation records after it changes the article, so its dots never trigger a redraw.
+- **Checks.** The Playwright run at 1280 and 393 pixels checks the dot's size, raise, target, right edge, position after the last word, no overlap with the next character, no sideways scroll and the keyboard path.

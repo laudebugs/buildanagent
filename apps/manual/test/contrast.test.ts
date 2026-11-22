@@ -210,16 +210,24 @@ test("a highlight draws text in the text colour and an accent underline, and a n
     bodies.some((body) => /text-decoration-style:\s*dashed;/.test(body)),
     "the four noted names are dashed",
   );
-  // The marker's bubble is filled with the accent, which the recorded accent-on-page pair covers.
+  // A note's dot takes the text colour, so its number keeps the recorded text-on-highlight pairs, and its accent border
+  // is what the recorded accent-on-page pair covers. Each colour's dot fills with that colour's token.
   assert.match(
     components,
-    /\.notes-marker::before\s*\{[^}]*border:\s*2px solid var\(--color-accent\);[^}]*background-color:\s*var\(--color-accent\);/s,
+    /\.notes-dot\s*\{[^}]*border:\s*1\.5px solid var\(--color-accent\);[^}]*color:\s*var\(--color-text\);/s,
   );
+  for (const [color, token] of [
+    ["green", "--color-highlight-green"],
+    ["blue", "--color-highlight-blue"],
+    ["pink", "--color-highlight-pink"],
+  ] as const) {
+    assert.match(
+      components,
+      new RegExp(`\\.notes-dot\\[data-color="${color}"\\]\\s*\\{[^}]*background-color:\\s*var\\(${token}\\);`, "s"),
+    );
+  }
   for (const mode of ["light", "dark"] as const) {
     const onPage = tokens.color[mode].contrast.find((pair) => pair.text === "accent" && pair.on === "background");
-    assert.ok(
-      onPage && onPage.ratio >= NON_TEXT_MINIMUM,
-      `${mode}: the marker's accent outline reaches 3:1 on the page`,
-    );
+    assert.ok(onPage && onPage.ratio >= NON_TEXT_MINIMUM, `${mode}: the dot's accent border reaches 3:1 on the page`);
   }
 });
