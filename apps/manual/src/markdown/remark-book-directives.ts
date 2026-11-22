@@ -1,4 +1,4 @@
-import type { Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
+import type { Code, Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
 import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import { isFileListing, isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
@@ -11,7 +11,7 @@ import { captionParts, listingCodeHtml, NOTES_LABEL } from "../components/listin
 import { replayHtml } from "../components/replay-html.js";
 import { checkedChapter } from "./chapter-file.js";
 import { failAt } from "./fail.js";
-import { highlightListing } from "./highlight.js";
+import { highlightInline, highlightListing } from "./highlight.js";
 
 /** What each numbered kind must hold: a table, a fenced code block, or anything at all for a figure. */
 const REQUIRED_CONTENT: Record<NumberedKind, RootContent["type"] | undefined> = {
@@ -48,6 +48,11 @@ export function remarkBookDirectives(options: { readonly book: Book }) {
       if (node.type === "containerDirective" && node.data?.hName !== undefined) return undefined;
       if ((node.type === "leafDirective" || node.type === "containerDirective") && isFileListing(node)) {
         const { figure, code } = fileListing(node, book, outline.slug, file);
+        listings.push(code);
+        return figure;
+      }
+      if (node.type === "containerDirective" && node.name === "listing") {
+        const { figure, code } = inlineListing(node, book, outline.slug, file);
         listings.push(code);
         return figure;
       }
@@ -135,6 +140,34 @@ function numbered(node: ContainerDirective, kind: NumberedKind, file: VFile): Co
       },
     },
   };
+}
+
+/**
+ * A listing written in the chapter, with no file: the same figure as any numbered listing, but its fenced code goes
+ * through the highlighter and the code panel that file listings use, so it shows line numbers and token colours. It has
+ * no path, line range or pin to caption, because no file backs it.
+ */
+function inlineListing(
+  node: ContainerDirective,
+  book: Book,
+  slug: string,
+  file: VFile,
+): { readonly figure: ContainerDirective; readonly code: Promise<void> } {
+  const figure = numbered(node, "listing", file);
+  const id = node.attributes?.id ?? "";
+  const block = book.index.written.get(slug)?.blocks.find((found) => found.kind === "listing" && found.id === id);
+  const index = figure.children.findIndex((child) => child.type === "code");
+  const fenced = figure.children[index] as Code | undefined;
+  if (block === undefined || fenced === undefined) {
+    return failAt(file, `the book index has no listing "${id}"; rerun the build`, node);
+  }
+  const html: Html = { type: "html", value: "" };
+  figure.children[index] = html;
+  const domId = `${NUMBERED_KINDS.listing.prefix}-${id}`;
+  const code = highlightInline(fenced.value, fenced.lang).then((lines) => {
+    html.value = listingCodeHtml(domId, block.number, lines, new Map());
+  });
+  return { figure, code };
 }
 
 /**

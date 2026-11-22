@@ -52,8 +52,36 @@ test("a listing shows its number, its path, its line range and the pin read from
   assert.match(second, /<pre class="listing__code" tabindex="0" aria-label="Code of listing 2\.2"><code>/);
 });
 
+test("a listing written in the chapter goes through the file listings' highlighter and panel, with no path or pin", async () => {
+  const dir = mutatedFixture((fixture) =>
+    edit(fixture, "chapters/second.md", (text) =>
+      text.replace(
+        "## Exercises",
+        ':::listing[A request body]{#body}\n```json\n{\n  "role": "user"\n}\n```\n:::\n\n## Exercises',
+      ),
+    ),
+  );
+  try {
+    const html = await renderLikeAstro(loadBook(fixtureInputs(dir)), "second");
+    const figure = html.slice(
+      html.indexOf('<figure id="lst-body"'),
+      html.indexOf("</figure>", html.indexOf("lst-body")),
+    );
+    assert.match(figure, /<pre class="listing__code" tabindex="0" aria-label="Code of listing 2\.\d+"><code>/);
+    assert.match(figure, /<span class="line" data-line="2"><span class="line__number" aria-hidden="true">2<\/span>/);
+    assert.match(figure, /<span class="tok-keyword">"role"<\/span>: <span class="tok-string">"user"<\/span>/);
+    assert.doesNotMatch(figure, /listing__path|listing__pin|listing__lines/);
+  } finally {
+    removeFixture(dir);
+  }
+});
+
 test("a listing's lines keep their numbers in the file and lose the markers of regions nested in them", () => {
-  const numbers = [...second.matchAll(/<span class="line__number" aria-hidden="true">(\d+)<\/span>/g)].map((m) => m[1]);
+  // The fixture's chapter also holds an inline listing, which numbers its lines from 1; this test reads the file's.
+  const fileListing = second.slice(second.indexOf('<figure id="lst-greet"'));
+  const numbers = [...fileListing.matchAll(/<span class="line__number" aria-hidden="true">(\d+)<\/span>/g)].map(
+    (m) => m[1],
+  );
   assert.deepEqual(numbers, ["3", "5", "7"]);
   assert.doesNotMatch(second, /#(end)?region/);
 });
