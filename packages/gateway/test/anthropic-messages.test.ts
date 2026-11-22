@@ -653,8 +653,8 @@ test("a sampling warning streamed before the request adds no body-less dump", as
 });
 
 // The memory holds 1,000 conversations, so the test streams about 2,000 mock requests. It takes under a second on a
-// free machine but timed out at Vitest's 5 s default on a loaded CI runner. The limit is a time limit, not a timing
-// check: nothing here asserts how long the run takes.
+// free machine but timed out at Vitest's 5 s default on a loaded CI runner, so it gets 30 s. The limit only catches a
+// hang; the test asserts no duration.
 test("the adapter remembers drop_block for the 1,000 most recently used conversations", {
   timeout: 30_000,
 }, async () => {
