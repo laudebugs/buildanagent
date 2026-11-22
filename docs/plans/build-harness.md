@@ -649,7 +649,7 @@ declare function stdioTransport(dispatcher: Dispatcher, io: { input: StdioInput;
 // Revision (plan review 2): N44 retypes io over Web ReadableStream and WritableStream, with a Node adapter, so the transport runs off Node
 // Revision (N29, 2026-11-22): stdioTransport already takes Node and Web streams by their shape, so N44 adds the WebSocket transport and the Web-stream cases
 declare function webSocketTransport(dispatcher: Dispatcher, socket: WebSocketLike, options?: { maxMessageBytes?: number; maxBufferedBytes?: number; writeTimeoutMs?: number; signal?: AbortSignal; log?: (line: string) => void }): Promise<void>; // one client per socket (N44)
-// Revision (N44, 2026-11-22): webSocketTransport takes the standard WebSocket interface and serves one socket, so a reconnect is a new call on the same dispatcher plus session/open with fromSeq; the transport authenticates nobody (N53)
+// Revision (N44, 2026-11-22): webSocketTransport takes the standard WebSocket interface and serves one socket, so a reconnect is a new call on the same dispatcher plus session/open with fromSeq; the transport authenticates nobody and N53 binds identity
 // Revision (N29b, 2026-11-22): the options gain writeTimeoutMs (30,000 ms by default), and the dispatcher answers a command whose params break the protocol schema with InvalidParams
 
 // @buildanagent/harness/telemetry (guide §9; HD7). SEMCONV_GENAI_COMMIT and GEN_AI_ATTRIBUTES come from @buildanagent/sdk/otel.
