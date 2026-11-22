@@ -198,8 +198,8 @@ The sections of README.md and every public export, generated from this package's
 - `interface ScriptedMcpServer`: The server's tools, to pass to `run()`, and what they saw.
 - `interface ScriptedMcpServerOptions`: What `scriptedMcpServer()` takes.
 - `interface ScriptedMcpTool`: One tool the scripted server offers.
-- `class ScriptedModel`
-- `interface ScriptedModelOptions`
+- `class ScriptedModel`: A model adapter that plays back the answers you script, one for each model call.
+- `interface ScriptedModelOptions`: The options of a `ScriptedModel`: the size of its text pieces, its model reference, its ids and its caps.
 - `type ScriptedToolStep`: One scripted result: a fixed result, or a function that builds one from the call's input.
 - `type ScriptStep`: A fixed response, or a responder that builds one from the recorded request.
 - `sequentialIds()`: Returns `prefix-1`, `prefix-2`, …

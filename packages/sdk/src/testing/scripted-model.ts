@@ -66,6 +66,7 @@ export type ScriptStep =
   | StreamScript
   | ((request: RecordedRequest) => AssistantScript | StreamScript | Promise<AssistantScript | StreamScript>);
 
+/** The options of a `ScriptedModel`: the size of its text pieces, its model reference, its ids and its caps. */
 export interface ScriptedModelOptions {
   /** Characters per delta. Default 4. */
   chunkSize?: number;
@@ -181,6 +182,11 @@ async function* playEvents(script: StreamScript, model: ModelRef, options: Strea
   }
 }
 
+/**
+ * A model adapter that plays back the answers you script, one for each model call. It keeps a frozen copy of every
+ * request in `calls`, throws `UnexpectedModelCallError` for a call past the script, and `assertComplete()` fails the
+ * test when a scripted answer went unused. Wrap it with `createModel()` to give a run a model that needs no API key.
+ */
 export class ScriptedModel implements ModelAdapter {
   readonly specificationVersion = "v1" as const;
   readonly api: string;
@@ -227,6 +233,7 @@ export class ScriptedModel implements ModelAdapter {
     }
   }
 
+  /** Plays the next scripted answer as a stream of events, or throws for a call past the script. */
   stream(model: ModelRef, context: ModelContext, options: StreamOptions): AsyncIterable<ModelEvent> {
     const callNumber = this.#used + 1;
     const step = this.#steps[this.#used];

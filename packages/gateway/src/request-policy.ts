@@ -16,6 +16,7 @@ export function setModelRequestsAllowed(allowed: boolean): void {
   modelRequestsAllowed = allowed;
 }
 
+/** Whether real model requests are on for this process. They are on until `setModelRequestsAllowed(false)` turns them off. */
 export function modelRequestsAreAllowed(): boolean {
   return modelRequestsAllowed;
 }
@@ -26,6 +27,7 @@ export function markMockTransport<T extends Transport>(transport: T): T {
   return transport;
 }
 
+/** Whether `transport` was marked as a mock, which may send requests while real model requests are off. */
 export function isMockTransport(transport: Transport | undefined): boolean {
   return transport !== undefined && (transport as unknown as Record<symbol, unknown>)[MOCK_TRANSPORT] === true;
 }

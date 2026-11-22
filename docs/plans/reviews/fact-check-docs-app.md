@@ -66,4 +66,15 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or
 | L5-35 | `@buildanagent/sdk/otel` exports an observer that projects a run onto OpenTelemetry spans | ✅ | `packages/sdk/src/otel/index.ts`: `otelObserver()` projects a run's events onto `gen_ai.*` spans |
 | L5-37 | The default signer holds a random key that lives only in its own process, so another process rejects its signatures, and `hmacSigner()` over a stored key ring lets any process that holds the key verify | ✅ | SDK README, "The run signs with its `signer` option": "The default, `ephemeralSigner()`, holds a random key that lives only in this process … Pass `hmacSigner({ keys, current })` over a key ring you keep there" |
 
-**Totals:** 37 claims: 37 ✅, 0 ✏️, 0 ⚠️.
+## L6: the API reference
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| L6-1 | TypeDoc 0.28.20, `typedoc-plugin-markdown` 4.14.1 and `starlight-typedoc` 0.23.2 are at least a week old, and TypeScript 6.0.3 exists | ✅ | `npm view <package> time`, read 2026-11-22: TypeDoc 0.28.20 on 2026-07-05, the markdown plugin 4.14.1 on 2026-10-19, `starlight-typedoc` 0.23.2 on 2026-10-30, TypeScript 6.0.3 on 2026-04-16. `starlight-typedoc` 0.23.3 (2026-11-19) is newer than a week, so the plan's 0.23.2 stays |
+| L6-2 | TypeDoc 0.28.20 reads TypeScript only up to 6.0, so the docs app pins 6.0.3 for it | ✅ | `npm view typedoc@0.28.20 peerDependencies`: `typescript` `5.0.x` through `6.0.x`. TypeDoc loads the `typescript` its importer resolves, so the docs app's own `typescript` devDependency is 6.0.3 while the repo root has 7.0.2 |
+| L6-3 | `starlight-typedoc` 0.23.2 accepts Astro 7.4.11 and Starlight 0.42.10 | ✅ | `npm view starlight-typedoc@0.23.2 peerDependencies`: `astro >=6.0.0`, `@astrojs/starlight >=0.39.0`, `typedoc >=0.28.0`, `typedoc-plugin-markdown >=4.6.0`; the build runs |
+| L6-4 | With `notDocumented` and `requiredToBeDocumented` limited to enums, variables, functions, classes, interfaces and type aliases, TypeDoc finds 16 undocumented declarations across the two packages' entry points, and none after the TSDoc this change adds | ✅ | The command's own output before and after on this tree: 7 warnings for the gateway and 9 for the SDK, then none. Without the limit TypeDoc also warns on 344 properties and methods, which stay a reader's judgement |
+| L6-5 | Removing the TSDoc from one exported function fails the check, and names it | ✅ | Removing the comment of `modelRequestsAreAllowed()` made `pnpm check:api-docs` exit 1 with "index.modelRequestsAreAllowed (CallSignature) … does not have any documentation"; `test/api-docs.test.ts` repeats it on a fixture |
+| L6-6 | The built docs have a reference page for every export of both packages' entry points | ✅ | `test/api-docs.test.ts` builds the site and finds `<module>/<kind folder>/<name>/index.html` for every declaration TypeDoc lists for each entry point; re-exports, which TypeDoc lists as references, are skipped because their page is in the module that declares them |
+
+**Totals:** 43 claims: 43 ✅, 0 ✏️, 0 ⚠️.

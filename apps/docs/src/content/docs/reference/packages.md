@@ -23,4 +23,8 @@ Two packages hold everything these docs describe. You need this to find which en
 - **`@buildanagent/sdk/otel`**: an observer that exports a run as OpenTelemetry spans.
 - **`@buildanagent/sdk/testing`**: `ScriptedModel` and the doubles that stand in for an approver and a tool server.
 
+## Every export has a reference page
+
+The docs generate a page for each export from its TSDoc, so a page always matches the code it describes. Browse the [gateway API](/reference/gateway/) or the [SDK API](/reference/sdk/), which list each entry point's functions, classes, interfaces and types.
+
 Start with [your first agent](/start/first-agent/) if you have not built one yet.

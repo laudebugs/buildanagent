@@ -31,6 +31,7 @@ export type ModelEvent =
   /** The message's `stopReason` is `"error"` or `"aborted"`; it carries any partial content and usage. */
   | { type: "error"; message: AssistantMessage };
 
+/** The per-call options of `ModelAdapter.stream()`: an abort signal, output and sampling limits, and the raw-event switch. */
 export interface StreamOptions {
   signal?: AbortSignal;
   maxOutputTokens?: number;
@@ -60,6 +61,10 @@ export interface StreamOptions {
   includeRaw?: boolean;
 }
 
+/**
+ * What a provider adapter implements: its identity and one method, `stream()`, which sends a request and returns the
+ * events of the answer. The stream follows the gateway's stream rule, and `createModel()` binds an adapter to a model id.
+ */
 export interface ModelAdapter {
   readonly specificationVersion: "v1";
   /** Wire protocol, for example `"anthropic-messages"`. */
@@ -68,5 +73,6 @@ export interface ModelAdapter {
   readonly provider: string;
   /** Caps for a model the catalog does not list. Without them, `createModel()` needs a catalog entry. */
   readonly defaultCaps?: ModelCaps;
+  /** Sends one request for `model` and streams the answer's events, from `start` to exactly one terminal event. */
   stream(model: ModelRef, context: ModelContext, options: StreamOptions): AsyncIterable<ModelEvent>;
 }

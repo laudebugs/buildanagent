@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
+import { createStarlightTypeDocPlugin } from "starlight-typedoc";
+import { API_PACKAGES, entryPoints, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
 import { exampleFile } from "./src/plugins/example-file.js";
 import { renderInputFiles } from "./src/plugins/render-inputs.js";
 
@@ -26,6 +28,24 @@ if (!existsSync(stamp) || readFileSync(stamp, "utf8") !== digest) {
   writeFileSync(stamp, digest);
 }
 
+// One TypeDoc plugin and sidebar group for each package, from the package's own exports and TSDoc. The pages are
+// written under src/content/docs/reference/ at build time and are not committed.
+const api = API_PACKAGES.map((pkg) => {
+  const [plugin, sidebarGroup] = createStarlightTypeDocPlugin();
+  const { entryPoints: _entries, tsconfig: _tsconfig, ...typeDoc } = typeDocOptions(pkg);
+  return {
+    plugin: plugin({
+      entryPoints: entryPoints(pkg),
+      tsconfig: tsconfigOf(pkg),
+      output: pkg.output,
+      sidebar: { label: pkg.label, collapsed: true },
+      // The root entry's exports are the package's main page, so the module list leads with them.
+      typeDoc: { ...typeDoc, entryModule: "index", entryFileName: "index" },
+    }),
+    sidebarGroup,
+  };
+});
+
 // The docs are fully static: Astro's default static output and no adapter. The sidebar is explicit, in the order
 // start, concepts, guides, testing, reference, so a new page appears only when someone places it.
 export default defineConfig({
@@ -38,7 +58,7 @@ export default defineConfig({
       description: "Docs for the buildanagent gateway and SDK: build an agent, test it offline, ship it.",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
       components: { Footer: "./src/components/Footer.astro" },
-      plugins: [starlightLinksValidator()],
+      plugins: [starlightLinksValidator(), ...api.map((entry) => entry.plugin)],
       sidebar: [
         {
           label: "Start",
@@ -73,7 +93,10 @@ export default defineConfig({
         },
         {
           label: "Reference",
-          items: [{ label: "Packages and entry points", slug: "reference/packages" }],
+          items: [
+            { label: "Packages and entry points", slug: "reference/packages" },
+            ...api.map((entry) => entry.sidebarGroup),
+          ],
         },
       ],
     }),

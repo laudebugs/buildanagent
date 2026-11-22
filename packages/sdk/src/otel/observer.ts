@@ -34,6 +34,7 @@ export interface SpanOptionsLike {
 
 /** The span methods the observer calls. An OpenTelemetry `Span` has all of them. */
 export interface SpanLike {
+  /** Sets one attribute on the span. */
   setAttribute(name: string, value: AttributeValueLike): unknown;
   /** `code` 2 is `SpanStatusCode.ERROR`. */
   setStatus?(status: { readonly code: number; readonly message?: string }): unknown;
@@ -43,6 +44,7 @@ export interface SpanLike {
 
 /** The tracer method the observer calls. An OpenTelemetry `Tracer` has it, so a real tracer fits without a wrapper. */
 export interface TracerLike {
+  /** Starts a span named `name`, optionally under a parent context. */
   startSpan(name: string, options?: SpanOptionsLike, context?: unknown): SpanLike;
 }
 

@@ -60,6 +60,7 @@ export type ToolFailure =
  */
 export interface ToolEffect<I> {
   readonly kind: "write";
+  /** Names the real-world operation this call performs, so a retry of the same operation is recognised. */
   businessKey?(input: I): string;
 }
 
@@ -192,6 +193,7 @@ export interface ToolDefinition<I = unknown, S = unknown, A = unknown> {
    * result's `details`. Default false.
    */
   readonly redactErrors?: boolean;
+  /** Runs the tool on input that passed the schema, and returns what the model reads, in `content`, and more. */
   execute(input: I, ctx: ToolContext<A>): Promise<ToolResult<S>>;
 }
 

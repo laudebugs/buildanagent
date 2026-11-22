@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
+import { API_PACKAGES } from "../api/packages.js";
 
 export const DOCS_DIR = fileURLToPath(new URL("../content/docs/", import.meta.url));
 
@@ -85,10 +86,15 @@ function splitFences(rest: string): { body: string; fences: Fence[] } {
   return { body: prose.join("\n"), fences };
 }
 
-/** Every page, read from disk. */
+/** TypeDoc writes the API reference under these folders at build time, so the pages in them are not ours to check. */
+const GENERATED = API_PACKAGES.map((pkg) => `${pkg.output}/`);
+
+/** Every page we write, read from disk. */
 export function readPages(): Page[] {
-  return pagePaths().map((file) => {
-    const { frontmatter, texts, rest } = frontmatterOf(readFileSync(file, "utf8"));
-    return { path: relative(DOCS_DIR, file), frontmatter, texts, ...splitFences(rest) };
-  });
+  return pagePaths()
+    .filter((file) => !GENERATED.some((folder) => relative(DOCS_DIR, file).split("\\").join("/").startsWith(folder)))
+    .map((file) => {
+      const { frontmatter, texts, rest } = frontmatterOf(readFileSync(file, "utf8"));
+      return { path: relative(DOCS_DIR, file), frontmatter, texts, ...splitFences(rest) };
+    });
 }

@@ -65,15 +65,17 @@ export class TriageAgent extends Think<Env> {
           return CUSTOMERS[customerId] ?? { error: "unknown customer" };
         },
       }),
+      // #region gate
       escalate: tool({
         description: "Page the on-call team",
         inputSchema: z.object({ customerId: z.string(), reason: z.string() }),
-        needsApproval: true,
+        needsApproval: true, // book:note gate
         execute: async ({ customerId, reason }) => {
           this.escalations.push(`${customerId}:${reason}`);
           return { ticket: "ESC-1" };
         },
       }),
+      // #endregion
     };
   }
   override beforeTurn() {

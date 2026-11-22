@@ -52,14 +52,16 @@ const { result } = await collect(
       systemPrompt: "You are a support triage agent. Call lookup_customer first, then classify the issue.",
       tools: [], // no built-in tools (no Bash, Read, Edit...)
       mcpServers: { support: tickets },
+      // #region gate
       allowedTools: ["mcp__support__lookup_customer"], // auto-approve the read-only tool only
       canUseTool: async (toolName, input) => {
         // everything else asks "a human"
         approvals.push(toolName);
-        return toolName === "mcp__support__escalate"
+        return toolName === "mcp__support__escalate" // book:note gate
           ? { behavior: "deny", message: "Escalation needs a human; classify only." }
           : { behavior: "allow", updatedInput: input };
       },
+      // #endregion
       hooks: { PreToolUse: [{ hooks: [auditHook] }] },
       outputFormat: { type: "json_schema", schema: z.toJSONSchema(Triage, { target: "draft-7" }) },
       maxTurns: 6,
