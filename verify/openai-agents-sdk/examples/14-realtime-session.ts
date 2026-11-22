@@ -10,8 +10,9 @@
 // Limits, as of `@openai/agents-realtime` 0.21.0 (November 2026). The testing guide's examples cover the history, tool
 // and interruption checks, but none of them approves a tool call, so the approval check is our own. The scripted
 // transport's `interrupt()` only records the call. The real WebSocket transport also emits `audio_interrupted` itself
-// and sends a `conversation.item.truncate` event that cuts the reply to the audio the caller heard, so this example
-// cannot show truncation, and it says nothing about what a real model chooses to say.
+// and sends a `conversation.item.truncate` event that cuts the reply to the audio the caller heard (unless the whole
+// reply has already played), so this example cannot show truncation, and it says nothing about what a real model
+// chooses to say.
 // Docs: guides/testing.mdx "Test a Voice agent tool workflow" and "Test interruption";
 // guides/voice-agents/build.mdx "Approval before tool execution"
 import type { RunToolApprovalItem } from "@openai/agents-core";
@@ -220,21 +221,17 @@ await connected;
     JSON.stringify(offered) === JSON.stringify(["lookup_order", "cancel_order"]) && agent.handoffs.length === 0,
     "the agent offers only lookup_order and cancel_order: no shell, file-editing or handoff",
   );
-  // The transport's own assertions throw on an unmatched call or a transport that is still open.
-  const passes = (assertion: () => void) => {
+  // The transport's own assertions throw an error that names the unmatched call, so the check's message carries it.
+  const outcome = (assertion: () => void) => {
     try {
       assertion();
-      return true;
-    } catch {
-      return false;
+      return "";
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
     }
   };
-  check(
-    passes(() => transport.assertComplete()),
-    "every call the session made was matched by an expectation",
-  );
-  check(
-    passes(() => transport.assertClosed()),
-    "the transport is closed after session.close()",
-  );
+  const unmatched = outcome(() => transport.assertComplete());
+  check(unmatched === "", `every call the session made was matched by an expectation${unmatched && `: ${unmatched}`}`);
+  const open = outcome(() => transport.assertClosed());
+  check(open === "", `the transport is closed after session.close()${open && `: ${open}`}`);
 }

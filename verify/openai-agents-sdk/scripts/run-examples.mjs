@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { liveMode } from "../../../scripts/live/harness.mjs";
 import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
+import { realtimeNeedsConnection } from "./realtime-classifier.mjs";
 
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
 const ownExamples = !dir.endsWith("extracted");
@@ -25,12 +26,6 @@ const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const root = resolve(".");
 // Resolve tsx from the workspace (pnpm keeps shared dev tools at the repo root).
 const TSX = import.meta.resolve("tsx");
-
-// A realtime source that imports the SDK's in-memory test transport (`@openai/agents-realtime/testing`) makes no
-// connection, so it runs, unless it also names one of the real transports.
-const realtimeNeedsConnection = (code) =>
-  /@openai\/agents\/realtime|RealtimeSession|RealtimeAgent/.test(code) &&
-  !(/@openai\/agents-realtime\/testing/.test(code) && !/OpenAIRealtime(WebRTC|WebSocket|SIP)/.test(code));
 
 // Sources that need things the offline harness cannot provide.
 const needsExternal = (code) =>
@@ -92,6 +87,8 @@ async function runOne(t) {
   };
   const args = ["--import", TSX];
   if (!ownExamples) args.push("--import", join(root, "scripts/scripted-preload.mjs"));
+  // Our own examples have no scripted provider preload, so a separate one keeps them off the network (a live run needs it).
+  else if (!liveRun) args.push("--import", join(root, "scripts/block-network.mjs"));
   // Our own examples also record their model exchange and checks as a transcript (results/transcripts/).
   const transcript = ownExamples ? transcriptRun(args, env) : undefined;
   // A live run swaps @openai/agents/testing's ScriptedModel for one that calls the live provider (examples/lib/live.ts).
