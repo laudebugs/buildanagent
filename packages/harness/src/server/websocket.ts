@@ -40,7 +40,10 @@ export interface WebSocketLike {
   readonly bufferedAmount?: number;
   /** Sends one text frame. */
   send(data: string): void;
-  /** Closes the socket with a status code and a short reason. */
+  /**
+   * Closes the socket with a status code and a short reason. It may throw for a code it refuses, as the standard
+   * `WebSocket` does for any code but 1000 and 3000 to 4999.
+   */
   close(code?: number, reason?: string): void;
   /** Adds the listener the transport reads frames with. */
   addEventListener(type: "message", listener: (event: WebSocketMessageEvent) => void): void;
@@ -61,8 +64,8 @@ export interface WebSocketOptions {
   /**
    * The most bytes one frame may hold: a text frame counted as UTF-8 without one trailing newline, and a binary frame
    * by its byte length, which the transport reads without reading the data. A longer frame is answered with
-   * `InvalidRequest`, and the transport then closes the socket with code 1009. Default 8 MiB, the stdio transport's
-   * bound on a line.
+   * `InvalidRequest`, and the transport then closes the socket with code 1009, or 4009 on a socket that refuses 1009.
+   * Default 8 MiB, the stdio transport's bound on a line.
    */
   readonly maxMessageBytes?: number;
   /**
@@ -73,8 +76,9 @@ export interface WebSocketOptions {
   /**
    * How long, in milliseconds, the send buffer may stay over `maxBufferedBytes` without shrinking. The clock restarts
    * each time the buffer shrinks, so a peer that reads slowly is never cut off; one that reads nothing for this long
-   * stops the transport, which logs why and closes the socket with code 1008. The buffer is checked every 25 ms, so the
-   * stop comes up to 25 ms late. A whole number from 1 to 2,147,483,647, or `Infinity` to wait forever. Default 30,000.
+   * stops the transport, which logs why and closes the socket with code 1008, or 4008 on a socket that refuses 1008.
+   * The buffer is checked every 25 ms, so the stop comes up to 25 ms late. A whole number from 1 to 2,147,483,647, or
+   * `Infinity` to wait forever. Default 30,000.
    */
   readonly writeTimeoutMs?: number;
   /** Stops the transport now: the connection closes, and the socket is closed with code 1000. */
@@ -96,6 +100,8 @@ const NORMAL = 1000;
 const POLICY_VIOLATION = 1008;
 const MESSAGE_TOO_BIG = 1009;
 const INTERNAL_ERROR = 1011;
+/** Where the codes applications may use start (RFC 6455 §7.4.2): 1008 falls back to 4008. */
+const APPLICATION_CODES = 4000;
 /** A close frame's reason holds at most 123 bytes of UTF-8 (RFC 6455 §5.5.1). */
 const MAX_CLOSE_REASON_BYTES = 123;
 
@@ -168,9 +174,13 @@ const withoutNewline = (text: string): string =>
  * The peer's close, or a socket error, stops the transport, and it logs the close code but never the peer's reason.
  * It closes the socket only when it stops itself: with 1008 when the client breaks a bound (128 error answers or
  * refusals unread, or a send buffer that never drains), 1009 for a frame that is too big, 1011 when the socket's
- * `send()` throws, and 1000 when `signal` aborts. Either way it removes its listeners and closes the connection. A
- * turn the client started goes on in the dispatcher. An option out of range, or a socket that is not open, rejects
- * with a `HarnessError`, code `invalid_transport_options`, before the transport connects.
+ * `send()` throws, and 1000 when `signal` aborts. The standard `WebSocket` lets a client close only with 1000 or 3000
+ * to 4999, so the global `WebSocket` of Node and browsers throws for 1008, 1009 and 1011; a socket that throws for one
+ * of them is closed with 4008, 4009 or 4011 instead, with the same reason. A socket that throws for that code too is
+ * left as it is, and the transport logs the error's name, never its message, and still resolves. However it stops, it
+ * removes its listeners and closes the connection. A turn the client started goes on in the dispatcher. An option out
+ * of range, or a socket that is not open, rejects with a `HarnessError`, code `invalid_transport_options`, before the
+ * transport connects.
  */
 export async function webSocketTransport(
   dispatcher: Dispatcher,
@@ -257,12 +267,29 @@ class WebSocketSession {
     this.#stopper.stop(why);
   }
 
+  /**
+   * Closes the socket with the code it is owed. The standard `WebSocket` lets a client close only with 1000 or 3000 to
+   * 4999 and throws for any other code, so a socket that refuses 1008, 1009 or 1011 is closed with 4008, 4009 or 4011,
+   * the same code in the range applications may use.
+   */
   #closeSocket(reason: string): void {
-    if (this.#closeCode === undefined || this.#socket.readyState !== OPEN) return;
+    const code = this.#closeCode;
+    if (code === undefined || this.#socket.readyState !== OPEN) return;
+    const text = closeReason(reason);
+    let failure = this.#tryClose(code, text);
+    if (failure !== undefined && code !== NORMAL) failure = this.#tryClose(APPLICATION_CODES + (code - NORMAL), text);
+    if (failure === undefined) return;
+    const name = failure instanceof Error ? failure.name : "unknown error";
+    this.#log(`websocket: the socket could not be closed: ${name}`);
+  }
+
+  /** Calls `close()`, and returns what it threw, or `undefined` once it closed. */
+  #tryClose(code: number, reason: string): unknown {
     try {
-      this.#socket.close(this.#closeCode, closeReason(reason));
+      this.#socket.close(code, reason);
+      return undefined;
     } catch (error) {
-      this.#log(`websocket: the socket could not be closed: ${error instanceof Error ? error.name : "unknown error"}`);
+      return error ?? new Error("close() threw");
     }
   }
 

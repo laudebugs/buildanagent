@@ -45,6 +45,26 @@ function fakeDispatcher(): {
   return { dispatcher, send: () => deliver as (message: ServerMessage) => unknown, events };
 }
 
+/**
+ * Makes `socket.close()` as strict as the standard `WebSocket`'s, which throws `InvalidAccessError` for any code but
+ * 1000 and 3000 to 4999, and returns every code it was called with.
+ */
+function strictClose(socket: MemorySocket): (number | undefined)[] {
+  const tried: (number | undefined)[] = [];
+  const close = socket.close.bind(socket);
+  socket.close = (code, reason) => {
+    tried.push(code);
+    if (code !== undefined && code !== 1000 && (code < 3000 || code > 4999)) {
+      throw new DOMException(
+        `The close code must be either 1000, or between 3000 and 4999. ${code} is neither.`,
+        "InvalidAccessError",
+      );
+    }
+    close(code, reason);
+  };
+  return tried;
+}
+
 const notification = (n: number): ServerMessage =>
   ({ jsonrpc: "2.0", method: "event", params: { session: "s", seq: n, event: { type: "x".repeat(100) } } }) as never;
 
@@ -315,6 +335,66 @@ describe("the transport stops itself, says why and closes the socket", () => {
     const sent = run.server.closeCalls[0]?.reason ?? "";
     assert.equal(sent, `the socket refused a frame: ${"€".repeat(31)}`);
     assert.equal(new TextEncoder().encode(sent).length, 121);
+  });
+
+  test("a socket that refuses 1008 is closed with 4008, as the standard WebSocket must be", async () => {
+    const { dispatcher } = approvalSetup([]);
+    const [server, client] = MemorySocket.pair();
+    const tried = strictClose(server);
+    client.reading = false;
+    const run = wsRunOn(dispatcher, server, client, { maxBufferedBytes: 1 });
+    for (let i = 0; i < 200; i += 1) run.send("{}");
+    await run.done;
+    const reason = "128 error responses wait unread";
+    assert.deepEqual(tried, [1008, 4008]);
+    assert.deepEqual(server.closeCalls, [{ code: 4008, reason }]);
+    assert.equal(server.readyState, 2);
+    assert.deepEqual(stopped(run), [`websocket: stopped: ${reason}`]);
+    assert.ok(!run.logs.some((line) => line.includes("could not be closed")));
+  });
+
+  test("a socket that refuses 1009 is closed with 4009 after a frame that is too big", async () => {
+    const { dispatcher } = approvalSetup([]);
+    const run = wsRun(dispatcher, { maxMessageBytes: 8 });
+    const tried = strictClose(run.server);
+    run.send("x".repeat(9));
+    await run.done;
+    await until(() => run.closes.length === 1, "the close");
+    assert.deepEqual(tried, [1009, 4009]);
+    assert.deepEqual(run.server.closeCalls, [{ code: 4009, reason: "a frame went over the bound of 8 bytes" }]);
+    assert.deepEqual(run.closes, [4009]);
+  });
+
+  test("a socket that refuses 1011 is closed with 4011 after send() throws", async () => {
+    const fake = fakeDispatcher();
+    const run = wsRun(fake.dispatcher);
+    const tried = strictClose(run.server);
+    run.server.send = () => {
+      throw Object.assign(new Error("SECRET"), { name: "RefusedError" });
+    };
+    fake.send()(notification(1));
+    await run.done;
+    assert.deepEqual(tried, [1011, 4011]);
+    assert.deepEqual(run.server.closeCalls, [{ code: 4011, reason: "the socket refused a frame: RefusedError" }]);
+    assert.ok(!run.logs.some((line) => line.includes("could not be closed")));
+  });
+
+  test("a socket that refuses every close is left as it is, with one line logged and the transport resolved", async () => {
+    const fake = fakeDispatcher();
+    const run = wsRun(fake.dispatcher, { maxMessageBytes: 8 });
+    const tried: (number | undefined)[] = [];
+    run.server.close = (code) => {
+      tried.push(code);
+      throw Object.assign(new Error("SECRET message"), { name: "InvalidAccessError" });
+    };
+    run.send("x".repeat(9));
+    await run.done;
+    assert.ok(run.finished());
+    assert.deepEqual(tried, [1009, 4009]);
+    assert.equal(run.server.readyState, 1);
+    const failures = run.logs.filter((line) => line.includes("could not be closed"));
+    assert.deepEqual(failures, ["websocket: the socket could not be closed: InvalidAccessError"]);
+    for (const line of run.logs) assert.ok(!line.includes("SECRET"), line);
   });
 
   test("an already aborted signal stops it at once", async () => {
