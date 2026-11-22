@@ -4,7 +4,8 @@
  * the same process. `stdioTransport()` serves one client over a pair of byte streams, one JSON-RPC message per line,
  * and `webSocketTransport()` serves one client over a WebSocket, one message per text frame.
  */
-export { createHarness, type Harness, type HarnessEnv, type HarnessOptions } from "../harness.js";
+export { createHarness } from "../create-harness.js";
+export type { CodeCall, CodeCallResult, Harness, HarnessEnv, HarnessOptions } from "../harness.js";
 export {
   type Connection,
   type ConnectOptions,

@@ -18,6 +18,7 @@ import { defineTool, hmacSigner } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
 import { BACKENDS, type Backend, KEY } from "../session/session-helpers.js";
+import { asTurn } from "./helpers.js";
 
 const SOURCE = "https://provider.test/pricing";
 const CATALOG: PriceCatalog = {
@@ -117,7 +118,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const resumed = await createApprovals(second.harness).resolve(session, [
       { requestId: waiting?.request.id as string, decision: "allow", by: "ada" },
     ]);
-    assert.equal(resumed.stopReason, "done");
+    assert.equal(asTurn(resumed).stopReason, "done");
     assert.equal(runs, 1);
     const types = (await entriesOf(backend)).map((entry) => entry.type);
     assert.ok(types.indexOf("approval_resolved") < types.indexOf("tool_result"), "the answer is logged first");
@@ -172,7 +173,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
       { requestId: waiting?.request.id as string, decision: "allow", by: "ada" },
     ]);
     assert.equal(runs, 0, "nothing ran");
-    assert.equal(resumed.stopReason, "awaiting_approval", "the call asks again");
+    assert.equal(asTurn(resumed).stopReason, "awaiting_approval", "the call asks again");
     const requests = (await entriesOf(tampered)).filter((entry) => entry.type === "approval_requested");
     assert.equal(requests.length, 2);
     const [again] = await createApprovals(second.harness).pending(reopened);
@@ -202,7 +203,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
       [{ requestId: waiting?.request.id as string, decision: "allow", by: "ada" }],
       { budgetUsd: 0.000_001 },
     );
-    assert.equal(resumed.stopReason, "budget");
+    assert.equal(asTurn(resumed).stopReason, "budget");
     assert.equal(second.adapter.calls.length, 0, "no model call after the resume");
     await session.close();
   });
@@ -259,12 +260,12 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const answer = [{ requestId: waiting?.request.id as string, decision: "allow" as const, by: "eve" }];
     const wrong = setup([{ content: [{ type: "text", text: "never" }] }], { onRun: () => (runs += 1) });
     const refused = await createApprovals(wrong.harness).resolve(session, answer, { hostContext: { user: "eve" } });
-    assert.equal(refused.stopReason, "error");
+    assert.equal(asTurn(refused).stopReason, "error");
     assert.equal(runs, 0, "another caller's resume ran nothing");
     assert.equal((await approvals.pending(session)).length, 1, "the pause is still waiting");
     const right = setup([{ content: [{ type: "text", text: "Refunded." }] }], { onRun: () => (runs += 1) });
     const resumed = await createApprovals(right.harness).resolve(session, answer, { hostContext: { user: "ada" } });
-    assert.equal(resumed.stopReason, "done");
+    assert.equal(asTurn(resumed).stopReason, "done");
     assert.equal(runs, 1);
     await session.close();
   });
@@ -286,7 +287,7 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     const resumed = await createApprovals(third.harness).resolve(session, [
       { requestId: waiting[0]?.request.id as string, decision: "allow", by: "ada" },
     ]);
-    assert.equal(resumed.stopReason, "done");
+    assert.equal(asTurn(resumed).stopReason, "done");
     assert.equal(runs, 1);
     await session.close();
   });

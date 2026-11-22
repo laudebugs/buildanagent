@@ -6,7 +6,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Docs
 
-- [The session log holds twenty entry types](README.md#the-session-log-holds-twenty-entry-types)
+- [The session log holds twenty-one entry types](README.md#the-session-log-holds-twenty-one-entry-types)
 - [A sandbox says what it stops, and the host decides what it may touch](README.md#a-sandbox-says-what-it-stops-and-the-host-decides-what-it-may-touch)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
@@ -40,6 +40,7 @@ The sections of README.md and every public export, generated from this package's
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
   - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
+  - [Code runs a side effect through the same pipeline and pause as the model, with no model call](README.md#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 
@@ -62,6 +63,7 @@ The sections of README.md and every public export, generated from this package's
 - `type ChildLink`: What links a child session to the session that started it: a tool call, or a workflow step.
 - `interface ClientToolCall`: One call to a `client_request` tool, as `TurnOptions.clientTool` receives it.
 - `type ClientToolRunner`: Runs a `client_request` tool's call by asking the client that holds the tool, and resolves with its result.
+- `CodeCallEntry`: re-exported from `@buildanagent/protocol`.
 - `CompactionEntry`: re-exported from `@buildanagent/protocol`.
 - `CompletionCheckEntry`: re-exported from `@buildanagent/protocol`.
 - `type CompletionOutcome`: What a check found: the body of the `completion_check` entry.
@@ -347,6 +349,8 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/server`
 
+- `interface CodeCall`: A tool call that the host's own code makes with `Harness.invokeTool()`, with no model step.
+- `type CodeCallResult`: What a code call ended in.
 - `interface Connection`: One client's end of the dispatcher: send it messages, and it calls back with what the server sends.
 - `interface ConnectOptions`: What `Dispatcher.connect()` takes besides `send`.
 - `createDispatcher()`: Creates the dispatcher that serves `options.harness` over the protocol's commands.
