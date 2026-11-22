@@ -42,14 +42,14 @@ Project OTel `gen_ai.*` spans from stored entries, with an approval-wait span, c
 
 ## Acceptance criteria
 
-- [ ] A recorded capstone session projects to the expected span tree, checked against a fixture
-- [ ] The approval-wait span's duration equals the gap between the two approval entries
-- [ ] With default options no span attribute contains message or tool-argument text
-- [ ] A session with an unknown price has spans with `buildanagent.cost.basis = "unknown"` and no `buildanagent.cost.usd`
-- [ ] At 80% of a session cap the meter emits one `budget_warning`
-- [ ] With `hashAttributes` naming an attribute, every exported span carries the keyed hash of its value and never the value itself
-- [ ] No `gen_ai.*` string literal appears in `packages/harness/src/telemetry` (a test)
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] A recorded capstone session projects to the expected span tree, checked against a fixture
+- [x] The approval-wait span's duration equals the gap between the two approval entries
+- [x] With default options no span attribute contains message or tool-argument text
+- [x] A session with an unknown price has spans with `buildanagent.cost.basis = "unknown"` and no `buildanagent.cost.usd`
+- [x] At 80% of a session cap the meter emits one `budget_warning`
+- [x] With `hashAttributes` naming an attribute, every exported span carries the keyed hash of its value and never the value itself
+- [x] No `gen_ai.*` string literal appears in `packages/harness/src/telemetry` (a test)
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -78,7 +78,7 @@ The pinned conventions are Development-only; a move is a deliberate change (ADR 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
