@@ -141,6 +141,15 @@ Each row checks a claim about a third-party package or our gateway that E5's cod
 | E5-17 | `guardedProvider()` leaves image models unguarded as well as embedding, transcription, speech and reranking models | README | ✅ | `ai/src/middleware/wrap-provider.ts` lines 37–44: `imageModel` is wrapped only when `imageModelMiddleware` is passed, which `guardedProvider()` never passes; confirms row E5-2 |
 | E5-18 | A stream can report a provider fault as an `error` part and then end with no `finish` part | README, `cost-guard.ts` | ✅ | `@ai-sdk/provider` 4.0.35, `src/language-model/v4/language-model-v4-stream-part.ts` line 117 defines the `error` stream part; changed in the second code-review round: such a stream is charged its projection and the guard carries on, where it had stopped the guard as unreported; test "a stream that reports an error and never finishes is charged its projection, and the guard carries on" |
 
+## An authenticated Cloudflare AI Gateway (fix/158-aig-authorization, 2026-11-22)
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| fix/158-aig-authorization-1 | An authenticated Cloudflare AI Gateway reads its token from `cf-aig-authorization`, in the form `Bearer <token>`, at the provider-native `gateway.ai.cloudflare.com` endpoints | README, `egress.ts` | ✅ | [AI Gateway authentication](https://developers.cloudflare.com/ai-gateway/configuration/authentication/) (modified 2026-11-04): "use the `cf-aig-authorization` header instead"; the value format is on the [Anthropic provider page](https://developers.cloudflare.com/ai-gateway/usage/providers/anthropic/) (modified 2026-10-27): `cf-aig-authorization: Bearer {CF_AIG_TOKEN}` |
+| fix/158-aig-authorization-2 | The Anthropic endpoint reads a provider key from `x-api-key` and the gateway token separately from `cf-aig-authorization` | README | ✅ | Anthropic provider page: "send it in `x-api-key`. AI Gateway does not recognize `Authorization: Bearer` as provider credentials on this endpoint. Authenticate to AI Gateway separately with `cf-aig-authorization`." |
+| fix/158-aig-authorization-3 | A key stored on the gateway is a different mode from a key sent in the request, and is not supported here | README, `explicit-provider.ts` | ✅ | Anthropic provider page: "AI Gateway uses an applicable stored BYOK key, or falls back to Unified Billing when allowed", and "Supplying a real key in `x-api-key` instead selects request-key authentication. This bypasses stored keys and Unified Billing." The package's refusal of stored keys is its own rule, not a Cloudflare claim |
+| fix/158-aig-authorization-4 | Row E6-18's claim that the guard blocks an authenticated gateway no longer holds | README | ✏️ | Changed in this branch: `gatewayToken` lets exactly one `cf-aig-authorization` through; tests in `test/gateway-token.test.ts`. The row stays as the record of the earlier behaviour |
+
 ## E4a build (2026-11-20)
 
 Each row checks a claim that E4a's code, its comments, the package README or the changeset makes about a source outside the new code. E4a makes no claim about a third-party SDK's code; the saga terms and rules come from the sagas report, which its own [fact-check log](../../research/reversible-actions/fact-check-sagas.md) checked against the vendor pages. Rows were read against this branch on 2026-11-20. The plan-approval behaviour itself is confirmed offline by `packages/agent-safety/test/plan-approval.test.ts`.
@@ -170,4 +179,4 @@ Each row checks that a document records the owner's answer as given in this sess
 | 68 | The owner accepted SG2's ordering and put Round E on hold until the owner says go | Plan status and SG2, roadmap, every E todo | ✅ | Owner's answer, 2026-11-19: "Approve plan, don't start yet" |
 | 69 | With ADR 0043 accepted, B10 depends on E1, B15 on E3, N7 and N40 on E2, and N45 on E7, and the graph stays acyclic | Todo headers, roadmap | ✅ | E1 needs only B1 and E3 only E1, so no Round B or N todo is upstream of the E todos it now waits for |
 
-**Totals:** 123 claims: 111 ✅, 9 ✏️, 3 ⚠️.
+**Totals:** 127 claims: 114 ✅, 10 ✏️, 3 ⚠️.
