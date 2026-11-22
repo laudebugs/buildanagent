@@ -1,0 +1,222 @@
+{
+  "format": 2,
+  "example": "08-stop-done-tool",
+  "file": "packages/sdk/examples/08-stop-done-tool.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 30,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Ping the service, then answer."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Answer."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping",
+        "finalAnswer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 30,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-ping",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 30,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-ping",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping",
+        "finalAnswer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 30,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-final",
+            "name": "finalAnswer",
+            "input": {
+              "answer": "42"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "the output tool's call ends the run done after two steps",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "no third request is made, and the strict script would refuse one",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "the answer is result.output, typed by the schema",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "the first request offers both tools: the output tool is sent like any other",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 61,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Ping the service, then finish."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Go."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping",
+        "finish"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 61,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-ping",
+            "name": "ping",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 61,
+      "model": "model-2",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-ping",
+              "name": "ping",
+              "output": "pong"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "ping",
+        "finish"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 61,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-finish",
+            "name": "finish",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 73,
+      "message": "a shouldStop hook ends the run stopped after two steps",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 77,
+      "message": "stoppedBy is the reason the hook gave",
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,235 @@
+{
+  "format": 2,
+  "example": "09-stop-triage-output",
+  "file": "packages/sdk/examples/09-stop-triage-output.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Triage the ticket."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice!"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "triage",
+            "input": {
+              "category": "refund"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 24,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "triage",
+              "output": "The arguments for tool \"triage\" are invalid:\n- /category: Invalid option: expected one of \"billing\"|\"bug\"|\"other\"\n- /urgent: Invalid input: expected boolean, received undefined\nReceived arguments: {\"category\":\"refund\"}\nDo not substitute a mock, a placeholder or invented data for this tool's result. Fix the call, try another approach, or tell the user what failed.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 24,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-2",
+            "name": "triage",
+            "input": {
+              "category": "billing",
+              "urgent": true
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 34,
+      "message": "result.output is the checked, typed object",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 35,
+      "message": "the answer that failed the schema spent one of the model calls",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "the second request carries the failed call as an error result",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 38,
+      "message": "the error result names the field that failed",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 39,
+      "message": "the request carries the schema as the output tool's input schema",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 51,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Triage the ticket."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 51,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "triage",
+            "input": {
+              "category": "refund"
+            }
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "a failed answer on the last allowed call ends the run max_steps",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 60,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Triage the ticket."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "triage"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 60,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Billing, and urgent."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 61,
+      "message": "a text answer ends done with no output",
+      "pass": true
+    }
+  ]
+}
