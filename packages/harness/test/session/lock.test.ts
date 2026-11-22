@@ -29,8 +29,8 @@ const readRecord = (dir: string) =>
   JSON.parse(readFileSync(lockFile(dir), "utf8")) as { pid: number; host: string; token: string; leaseUntil: number };
 
 /**
- * Polls until `check` holds, up to a generous deadline. A renewal runs on a real timer, and a loaded worker can run it
- * late, so a fixed sleep would turn scheduling delay into a failure.
+ * Polls every 10 ms until `check` holds, and fails with `message` once `deadlineMs` has passed. A renewal runs on a real
+ * timer that a loaded worker can run late, so a fixed sleep would turn scheduling delay into a failure.
  */
 async function eventually(check: () => boolean, message: string, deadlineMs = 10_000): Promise<void> {
   const end = Date.now() + deadlineMs;
@@ -41,8 +41,8 @@ async function eventually(check: () => boolean, message: string, deadlineMs = 10
 }
 
 /**
- * Puts another holder's record in place of the lock. It writes a new file and renames it over the lock, so a renewal that
- * already has the old file open can't write its own record over the takeover.
+ * Replaces the lock with another holder's record: it writes a new file and renames it over the lock. A renewal that
+ * already has the old file open then writes into the replaced file, so it can't overwrite the takeover.
  */
 function takeOver(dir: string): void {
   const next = `${lockFile(dir)}.takeover`;
