@@ -23,6 +23,8 @@ const encoder = new TextEncoder();
 const RETRY = encoder.encode("retry");
 const ID = encoder.encode("id");
 const BODILESS = [204, 205, 304];
+const BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+const NEWLINE = new Uint8Array([LF]);
 
 /** An error from the guard, with a code the connection maps to a clear message. */
 export class RemoteRefusal extends Error {
@@ -70,18 +72,19 @@ function nextBreak(chunk: Uint8Array, from: number): number {
 }
 
 /**
- * Splits an event stream into lines, passes each through unchanged unless it is dropped, and fails a line or an event
- * over `max` bytes. A line ends at CR, LF or CRLF, as the event-stream format says. It drops every `retry:` line and
- * every `id:` line whose id the client could not send back, so neither can steer the reconnects.
+ * Splits an event stream into lines, passes each on with an LF after it unless it is dropped, and fails a line or an
+ * event over `max` bytes. A line ends at CR, LF or CRLF, as the event-stream format says; each is passed on as LF, so
+ * dropping a line between a CR and an LF can't join them into one line end and hide a blank line. It drops every
+ * `retry:` line and every `id:` line whose id the client could not send back, so neither can steer the reconnects.
  */
 class EventFilter {
   readonly #max: number;
   #pending: Uint8Array[] = [];
   #pendingBytes = 0;
   #eventBytes = 0;
-  // A chunk that ended in CR may have its LF at the start of the next one; it goes, or is dropped, with its line.
-  #crEnded: "kept" | "dropped" | undefined;
-  #lastKept = true;
+  // A chunk that ended in CR may have its LF at the start of the next one, which is part of the same line end.
+  #crEnded = false;
+  #started = false;
 
   constructor(max: number) {
     this.#max = max;
@@ -90,37 +93,41 @@ class EventFilter {
   /** The bytes to pass on for this chunk, or an error message when a bound is broken. */
   push(chunk: Uint8Array): Uint8Array | string {
     const out: Uint8Array[] = [];
-    let start = this.#leadingLf(chunk, out);
+    let start = this.#startOf(chunk);
     for (let index = nextBreak(chunk, start); index !== -1; index = nextBreak(chunk, start)) {
       const crlf = chunk[index] === CR && chunk[index + 1] === LF;
       const end = crlf ? index + 2 : index + 1;
-      const failure = this.#line(chunk.subarray(start, index), chunk.subarray(index, end), out);
+      const failure = this.#line(chunk.subarray(start, index), out);
       if (failure !== undefined) return failure;
-      if (chunk[index] === CR && end === chunk.length) this.#crEnded = this.#lastKept ? "kept" : "dropped";
+      if (chunk[index] === CR && end === chunk.length) this.#crEnded = true;
       start = end;
     }
     return this.#keepRest(chunk.subarray(start)) ?? concat(out);
   }
 
-  /** Passes on or drops the LF that completes a CRLF the last chunk ended, and returns where the chunk's lines start. */
-  #leadingLf(chunk: Uint8Array, out: Uint8Array[]): number {
-    const ended = this.#crEnded;
-    this.#crEnded = undefined;
-    if (ended === undefined || chunk[0] !== LF) return 0;
-    if (ended === "kept") out.push(chunk.subarray(0, 1));
-    return 1;
+  /**
+   * Where a chunk's lines start: after the LF of a CRLF the last chunk ended, and after a byte order mark at the start
+   * of the stream, which the format ignores, so the first field reads as it is.
+   */
+  #startOf(chunk: Uint8Array): number {
+    let start = this.#crEnded && chunk[0] === LF ? 1 : 0;
+    this.#crEnded = false;
+    if (!this.#started && chunk.length > 0) {
+      this.#started = true;
+      if (startsWith(chunk, BOM)) start = BOM.length;
+    }
+    return start;
   }
 
-  /** Ends one line: checks its size and its event's, and passes it on with its terminator unless it is dropped. */
-  #line(piece: Uint8Array, terminator: Uint8Array, out: Uint8Array[]): string | undefined {
+  /** Ends one line: checks its size and its event's, and passes it on with an LF unless it is dropped. */
+  #line(piece: Uint8Array, out: Uint8Array[]): string | undefined {
     const line = this.#pending.length === 0 ? piece : concat([...this.#pending, piece]);
     this.#pending = [];
     this.#pendingBytes = 0;
     if (line.length > this.#max) return `an event-stream line over ${this.#max} bytes`;
     this.#eventBytes = line.length === 0 ? 0 : this.#eventBytes + line.length;
     if (this.#eventBytes > this.#max) return `an event over ${this.#max} bytes`;
-    this.#lastKept = kept(line);
-    if (this.#lastKept) out.push(concat([line, terminator]));
+    if (kept(line)) out.push(concat([line, NEWLINE]));
     return undefined;
   }
 
@@ -168,9 +175,9 @@ async function readWithin(
 function boundedBody(
   source: ReadableStream<Uint8Array>,
   settings: RemoteSettings,
-  events: boolean,
-  done: () => void,
+  body: { readonly events: boolean; readonly done: () => void; readonly broken: (error: RemoteRefusal) => void },
 ): ReadableStream<Uint8Array> {
+  const { events, done } = body;
   const reader = source.getReader();
   const filter = events ? new EventFilter(settings.maxMessageBytes) : undefined;
   const cap = events ? settings.maxStreamBytes : Math.min(settings.maxMessageBytes, settings.maxStreamBytes);
@@ -185,8 +192,10 @@ function boundedBody(
   };
   const fail = (controller: ReadableStreamDefaultController<Uint8Array>, error: unknown) => {
     reader.cancel().catch(() => {});
-    if (!finished) controller.error(error);
+    if (finished) return;
+    controller.error(error);
     finish();
+    if (error instanceof RemoteRefusal) body.broken(error);
   };
   /** The bytes to pass on for one chunk; it throws when the chunk breaks a bound. */
   const pass = (chunk: Uint8Array): Uint8Array => {
@@ -205,17 +214,21 @@ function boundedBody(
     },
     async pull(controller) {
       try {
-        const read = await readWithin(reader, settings.streamIdleMs);
-        if (finished) return;
-        if (read === "idle")
-          throw new RemoteRefusal("timeout", `a response sent nothing for ${settings.streamIdleMs} ms`);
-        if (read.done) {
-          controller.close();
-          finish();
-          return;
+        // A pull that enqueues nothing is not called again, so it reads on until a chunk has bytes to pass.
+        let passed: Uint8Array | undefined;
+        while (passed === undefined || passed.length === 0) {
+          const read = await readWithin(reader, settings.streamIdleMs);
+          if (finished) return;
+          if (read === "idle")
+            throw new RemoteRefusal("timeout", `a response sent nothing for ${settings.streamIdleMs} ms`);
+          if (read.done) {
+            controller.close();
+            finish();
+            return;
+          }
+          passed = pass(read.value);
         }
-        const passed = pass(read.value);
-        if (passed.length > 0) controller.enqueue(passed);
+        controller.enqueue(passed);
       } catch (error) {
         fail(controller, error);
       }
@@ -235,10 +248,26 @@ const discard = (response: Response): void => {
   response.body?.cancel().catch(() => {});
 };
 
-/** The checks a remote server's fetch adds. `onGet` decides whether a `GET` may go out; false refuses it. */
+/**
+ * The checks a remote server's fetch adds. `onGet` decides whether a `GET` may go out; false refuses it. `onBroken`
+ * hears of a body cut for a bound: `fatal` for a size bound, or a time bound on a response to one request, since the
+ * server is then broken or hostile; not fatal for a time bound on a long-lived stream, a `GET` or a listen.
+ */
 export interface GuardHooks {
   readonly onGet?: () => boolean;
+  readonly onBroken?: (error: RemoteRefusal, fatal: boolean) => void;
   readonly log: (line: string) => void;
+}
+
+/** Whether a request opens a stream meant to stay open: a `GET`, or a `subscriptions/listen` request. */
+function longLived(method: string, body: RequestInit["body"]): boolean {
+  if (method === "GET") return true;
+  if (typeof body !== "string") return false;
+  try {
+    return (JSON.parse(body) as { method?: unknown }).method === "subscriptions/listen";
+  } catch {
+    return false;
+  }
 }
 
 /** Refuses a request the client must not send: one that leaves the origin, a `GET` the hooks refuse, one too many. */
@@ -308,7 +337,7 @@ export function guardedFetch(base: FetchLike, settings: RemoteSettings, hooks: G
       throw error;
     }
     try {
-      return checked(response, settings, release, hooks);
+      return checked(response, settings, hooks, { release, longLived: longLived(method, init.body) });
     } catch (error) {
       release();
       discard(response);
@@ -335,7 +364,13 @@ function refuseResponse(response: Response): void {
   }
 }
 
-function checked(response: Response, settings: RemoteSettings, release: () => void, hooks: GuardHooks): Response {
+function checked(
+  response: Response,
+  settings: RemoteSettings,
+  hooks: GuardHooks,
+  stream: { readonly release: () => void; readonly longLived: boolean },
+): Response {
+  const { release } = stream;
   refuseResponse(response);
   const { status, statusText, headers } = response;
   if (response.body === null || BODILESS.includes(status)) {
@@ -344,6 +379,10 @@ function checked(response: Response, settings: RemoteSettings, release: () => vo
     return new Response(null, { status, statusText, headers });
   }
   if (status >= 400) hooks.log(`the server answered HTTP ${status} ${shortText(statusText, 64)}`);
-  const body = boundedBody(response.body, settings, isEventStream(response), release);
+  const body = boundedBody(response.body, settings, {
+    events: isEventStream(response),
+    done: release,
+    broken: (error) => hooks.onBroken?.(error, error.code === "too_large" || !stream.longLived),
+  });
   return new Response(body, { status, statusText, headers });
 }

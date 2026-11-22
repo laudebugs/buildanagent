@@ -150,6 +150,7 @@ interface Parts {
   readonly hub: ChangeHub;
   readonly timers: McpTimers;
   readonly log: (line: string) => void;
+  readonly refusal: () => Error | undefined;
 }
 
 class Connection implements McpConnection {
@@ -161,6 +162,7 @@ class Connection implements McpConnection {
   readonly #settings: Settings;
   readonly #timers: McpTimers;
   readonly #log: (line: string) => void;
+  readonly #refusal: () => Error | undefined;
   readonly #watchers = new Set<() => void>();
   #closed = false;
   #closing: Promise<void> | undefined;
@@ -175,6 +177,7 @@ class Connection implements McpConnection {
     this.#settings = parts.settings;
     this.#timers = parts.timers;
     this.#log = parts.log;
+    this.#refusal = parts.refusal;
     this.era = parts.era;
     this.protocolVersion = parts.version;
     parts.hub.fire = () => this.#changed();
@@ -291,7 +294,7 @@ class Connection implements McpConnection {
         ? await this.#client.request({ method: "tools/list" }, options)
         : await this.#client.listTools({ cursor }, options);
     } catch (error) {
-      const why = describe(error, this.#settings.secrets);
+      const why = describe(this.#refusal() ?? error, this.#settings.secrets);
       throw new McpError("mcp_tool_list_refused", this.server, `its tool list could not be read: ${why}`, {
         cause: error,
       });
@@ -311,7 +314,9 @@ class Connection implements McpConnection {
       return resultOf(result);
     } catch (error) {
       const failure = failureOf(error, signal, this.#closed);
-      const detail = failure === "server_error" ? `: ${describe(error, this.#settings.secrets)}` : "";
+      const refusal = this.#refusal();
+      const shown = refusal ?? (failure === "server_error" ? error : undefined);
+      const detail = shown === undefined ? "" : `: ${describe(shown, this.#settings.secrets)}`;
       throw new McpError("mcp_call_failed", this.server, `${FAILURE_TEXT[failure]}${detail}`, {
         cause: error,
         failure,
@@ -336,11 +341,18 @@ class Connection implements McpConnection {
   }
 }
 
-function channelOf(config: McpServerConfig, log: (line: string) => void, timers: McpTimers): McpChannel {
+/** A channel, and for a remote one the bound that closed it, which explains a failure better than the library can. */
+interface Opened {
+  readonly channel: McpChannel;
+  readonly refusal: () => Error | undefined;
+}
+
+function channelOf(config: McpServerConfig, log: (line: string) => void, timers: McpTimers): Opened {
   const transport = config.transport;
-  if (transport.kind === "stdio") return new StdioChannel(transport, log);
-  if (transport.kind === "http" || transport.kind === "sse") return remoteChannel(transport, log, timers).channel;
-  return transport.channel;
+  const none = () => undefined;
+  if (transport.kind === "stdio") return { channel: new StdioChannel(transport, log), refusal: none };
+  if (transport.kind === "http" || transport.kind === "sse") return remoteChannel(transport, log, timers);
+  return { channel: transport.channel, refusal: none };
 }
 
 /** What a handshake works with besides the channel. */
@@ -354,11 +366,12 @@ interface HandshakeContext {
 /** Connects through `channel`, bounded by `connectMs`, and closes everything when it fails. */
 async function handshake(
   context: HandshakeContext,
-  channel: McpChannel,
+  opened: Opened,
   prior: "legacy" | undefined,
   deadline: { readonly ms: number; readonly signal: AbortSignal | undefined },
 ): Promise<Connection> {
   const { config, settings, log } = context;
+  const { channel } = opened;
   const client = new Client(CLIENT_INFO, {
     capabilities: {},
     versionNegotiation: { mode: "auto", probe: { timeoutMs: settings.probeMs } },
@@ -411,6 +424,7 @@ async function handshake(
       hub,
       timers: context.timers,
       log,
+      refusal: opened.refusal,
     });
   } catch (error) {
     await client.close().catch(() => {});
@@ -444,15 +458,18 @@ export async function connectMcpServer(
   const context: HandshakeContext = { config, settings, log, timers };
   const ends = Date.now() + settings.connectMs;
   const left = () => ({ ms: ends - Date.now(), signal: options.signal });
-  const failed = (error: unknown) =>
-    new McpError("mcp_connect_failed", config.name, `it did not connect: ${describe(error, settings.secrets)}`, {
+  const opened = channelOf(config, log, timers);
+  const failed = (error: unknown) => {
+    const cause = opened.refusal() ?? error;
+    return new McpError("mcp_connect_failed", config.name, `it did not connect: ${describe(cause, settings.secrets)}`, {
       cause: error,
     });
-  const channel = channelOf(config, log, timers);
+  };
+  const channel = opened.channel;
   const prior = config.transport.kind === "sse" ? "legacy" : undefined;
   let connection: Connection;
   try {
-    connection = await handshake(context, channel, prior, left());
+    connection = await handshake(context, opened, prior, left());
   } catch (first) {
     const exitedOnProbe = channel instanceof StdioChannel && channel.exitedOnProbe;
     if (!exitedOnProbe || options.signal?.aborted === true || left().ms <= 0) throw failed(first);

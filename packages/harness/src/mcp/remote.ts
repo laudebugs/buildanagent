@@ -70,6 +70,8 @@ function reopenSchedule(timers: McpTimers, onExhausted: () => void) {
 export interface RemoteChannel {
   readonly channel: McpChannel;
   readonly settings: RemoteSettings;
+  /** The bound a response broke that closed the connection, if one did. */
+  readonly refusal: () => RemoteRefusal | undefined;
 }
 
 /** Builds the channel for a remote server. Nothing is sent until the client starts it. */
@@ -95,8 +97,19 @@ export function remoteChannel(
           return false;
         }
       : undefined;
+  let refusal: RemoteRefusal | undefined;
+  const onBroken = (error: RemoteRefusal, fatal: boolean) => {
+    if (!fatal) {
+      say(`a stream of the server was cut and may be opened again: ${error.message}`);
+      return;
+    }
+    refusal ??= error;
+    say(`the connection was closed: ${error.message}`);
+    closeChannel();
+  };
   const fetch = guardedFetch(networkOf(transport, settings), settings, {
     ...(onGet === undefined ? {} : { onGet }),
+    onBroken,
     log: say,
   });
   if (transport.kind === "sse") {
@@ -117,5 +130,5 @@ export function remoteChannel(
       },
     }) as unknown as McpChannel;
   }
-  return { channel, settings };
+  return { channel, settings, refusal: () => refusal };
 }
