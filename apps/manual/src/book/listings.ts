@@ -101,7 +101,11 @@ export function resolveListing(
   if (replay !== undefined && replay !== "" && replay !== null) {
     return { message: `replay takes no value; write {… replay}, not replay="${replay}"` };
   }
-  if (!file) return { message: '::listing needs the file it shows, written file="verify/<sdk>/examples/<name>.ts"' };
+  if (!file)
+    return {
+      message:
+        '::listing needs the file it shows, written file="verify/<sdk>/examples/<name>.ts" or file="packages/<package>/examples/<name>.ts"',
+    };
   const found = confined(file, context.repoRoot);
   if (typeof found === "string") return { message: found };
   const { absolute, path } = found;

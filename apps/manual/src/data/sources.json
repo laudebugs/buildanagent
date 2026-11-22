@@ -114,7 +114,7 @@
     "id": "buildanagent-sdk-readme",
     "title": "@buildanagent/sdk README",
     "publisher": "buildanagent",
-    "url": "https://github.com/laudebugs/buildanagent/blob/main/packages/sdk/README.md",
+    "url": "https://github.com/laudebugs/buildanagent/blob/v0.1.0-alpha.19/packages/sdk/README.md",
     "kind": "docs",
     "asOf": "November 2026",
     "version": "@buildanagent/sdk@0.1.0-alpha.19",

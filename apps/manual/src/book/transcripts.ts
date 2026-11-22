@@ -8,8 +8,8 @@ import { manifestVersion, WORKSPACE_VERSION } from "./harnesses.js";
 // A transcript is the recorded run of one harness example against its mock model: each request the example's code
 // sent, each response, and each check() with its result. The harness's `pnpm test` writes it to
 // `<harness>/results/transcripts/<example>.json`, as in `verify/<sdk>/` or `packages/sdk/`, through
-// `scripts/transcripts/write.mjs`, which documents the format, and CI's results-drift check fails when a committed one differs from a fresh run. A listing with `replay`
-// shows its example's transcript as a replay beside the code.
+// `scripts/transcripts/write.mjs`, which documents the format, and CI's results-drift check fails when a committed
+// one differs from a fresh run. A listing with `replay` shows its example's transcript as a replay beside the code.
 
 const part = z.discriminatedUnion("type", [
   z.object({ type: z.literal("text"), text: z.string() }),

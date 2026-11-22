@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
 import { extname, join } from "node:path";
 import type ts from "typescript-api";
@@ -235,6 +235,35 @@ export class CodeNames {
       }
     }
     return [...labels].sort();
+  }
+
+  /**
+   * The source files of our own packages, for the render inputs, when a listing's import resolves into one of them.
+   * Their label is `name@version`, which an edit to their source leaves unchanged, so the files themselves must be
+   * hashed: our packages re-export one another, so every package's `src/` counts.
+   */
+  workspaceSources(written: Iterable<WrittenChapter>): string[] {
+    const packagesDir = join(this.#repoRoot, "packages");
+    let reached = false;
+    for (const chapter of written) {
+      for (const { source } of chapter.blocks) {
+        if (source === undefined || reached) continue;
+        for (const specifier of packageImports(this.#sourceFile(source.path))) {
+          const found = this.#resolve(source, specifier);
+          if (typeof found !== "string" && found.entry.startsWith(`${packagesDir}/`)) reached = true;
+        }
+      }
+    }
+    if (!reached || !existsSync(packagesDir)) return [];
+    const files: string[] = [];
+    for (const name of readdirSync(packagesDir).sort()) {
+      const src = join(packagesDir, name, "src");
+      if (!existsSync(src)) continue;
+      for (const file of readdirSync(src, { recursive: true, encoding: "utf8" }).sort()) {
+        if (file.endsWith(".ts")) files.push(join(src, file));
+      }
+    }
+    return files;
   }
 
   #chapterNames(written: WrittenChapter): ChapterNames | string {

@@ -59,7 +59,10 @@ function machinePatterns() {
 }
 
 test("the harnesses commit transcripts", () => {
-  assert.ok(committed.length > 0, "no committed transcript under verify/*/results/transcripts/");
+  assert.ok(
+    committed.length > 0,
+    "no committed transcript under verify/*/results/transcripts/ or packages/*/results/transcripts/",
+  );
 });
 
 test("one of our own packages records itself at `workspace`, so a release's version bump keeps its transcripts", () => {

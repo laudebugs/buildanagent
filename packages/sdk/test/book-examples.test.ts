@@ -19,6 +19,8 @@ const PACKAGE_DIR = fileURLToPath(new URL("../", import.meta.url));
 const EXAMPLES_DIR = join(PACKAGE_DIR, "examples");
 const TSX = import.meta.resolve("tsx");
 const SOURCE_CONDITION = fileURLToPath(new URL("./source-condition.mjs", import.meta.url));
+/** How long one example may run before it is killed, shorter than the test's own 60-second limit. */
+const EXAMPLE_TIMEOUT_MS = 45_000;
 
 /** The book's examples: the numbered files, such as `01-one-call.ts`. The other files are imported modules. */
 const BOOK_EXAMPLES = readdirSync(EXAMPLES_DIR)
@@ -49,7 +51,15 @@ async function runExample(file: string): Promise<{ exit: number | null; out: str
       child.stderr.on("data", (chunk) => {
         out += chunk;
       });
-      child.on("close", (exit) => done({ exit, out }));
+      // An example that hangs is killed before the test's own time limit, so the cleanup below still runs.
+      const timer = setTimeout(() => {
+        out += `\nkilled after ${EXAMPLE_TIMEOUT_MS} ms`;
+        child.kill("SIGKILL");
+      }, EXAMPLE_TIMEOUT_MS);
+      child.on("close", (exit) => {
+        clearTimeout(timer);
+        done({ exit, out });
+      });
     });
     transcript.write({ harnessDir: PACKAGE_DIR, exampleFile: join(EXAMPLES_DIR, file), cwd });
     return result;

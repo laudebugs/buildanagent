@@ -244,6 +244,19 @@ test("a real AI SDK listing offers its region's names, its transcript's values a
   assert.ok(!hasName(names, "maxBudgetUsd"));
   // Each chapter's names are worked out once per load.
   assert.equal(code.chapter(written), names);
+  // A third-party listing reaches none of our packages' source, so it adds no render input.
+  assert.deepEqual(code.workspaceSources([written]), []);
+});
+
+test("a listing on our SDK reads its exports from source, and that source joins the render inputs", SLOW, () => {
+  const code = new CodeNames(REPO_ROOT);
+  const written = realListing("packages/sdk", "packages/sdk/examples/03-tool-loop.ts", "tool");
+  const names = code.chapter(written);
+  assert.ok(typeof names !== "string", String(names));
+  for (const name of ["defineTool", "run", "z"]) assert.ok(hasName(names, name), name);
+  const sources = code.workspaceSources([written]);
+  assert.ok(sources.includes(join(REPO_ROOT, "packages/sdk/src/run.ts")), "the SDK's source is a render input");
+  assert.ok(sources.includes(join(REPO_ROOT, "packages/gateway/src/complete.ts")), "so is the gateway's");
 });
 
 test(
