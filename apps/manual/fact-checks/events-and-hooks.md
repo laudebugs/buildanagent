@@ -146,13 +146,14 @@ The new examples are `packages/sdk/examples/08-observer-events.ts`, `09-gate-and
 | 96 | Our hook returns a decision object whose `deny` carries the reason, as Copilot's does, and our after-hook returns a patch whose `content` replaces the result | § tool hooks | ✅ | Rows 92 and 94 for ours; Copilot's `permissionDecision: "deny"` with `permissionDecisionReason` and `modifiedResult` are in `verify/copilot-sdk/examples/08-hooks.ts`, region `hooks`. The two shapes differ in names, and the chapter says each SDK returns a different shape |
 | 97 | `run()` returns a `Run` on which `steer()` and `followUp()` are called; each promise settles with a receipt once the message is in the transcript | § steering | ✅ | `run.ts`, `interface Run`: `steer(message): Promise<DeliveryReceipt>` "The promise resolves with a `DeliveryReceipt` once the message is in the transcript", and `followUp` "The receipt works as for `steer()`"; `steering.ts`, `DeliveryReceipt` |
 | 98 | In the example a steer and a follow-up are sent during the first model call, which also calls a tool. The steer is applied at step 1 before the second model call, the follow-up waits for the answer and is applied at step 2, and the run makes three model calls | § steering | ✅ | `10-steering.ts` checks "the steer was applied at step 1, after the first call's tool batch and before the second model call", "the follow-up waited until the run would have ended, then took a step of its own", `applied` equal to `steer@1,follow_up@2`, "the second model call is the first to read the steer, and it does not read the follow-up" and three steps. `steering.test.ts` tests the same boundary rules without the example |
-| 99 | A steering receipt rejects with `undelivered_message` if the run ends first, the example awaits the receipts after the stream ends, and the gate check says `beforeToolCall` ran for both calls and `afterToolCall` ran only for the call that executed | § steering; § tool hooks | ✅ | Re-check of rows 95 and 96: `packages/sdk/src/run.ts` `steer()` and `followUp()` docs ("rejects with an `SdkError` whose code is `undelivered_message` when the run ends first"); `10-steering.ts` awaits `Promise.all(receipts)` after the region |
+| 99 | A steering receipt rejects with `undelivered_message` if the run ends first, and the example awaits the receipts after the stream ends | § steering | ✅ | `packages/sdk/src/run.ts` `steer()` and `followUp()` docs ("rejects with an `SdkError` whose code is `undelivered_message` when the run ends first"); `10-steering.ts` awaits `Promise.all(receipts)` after the region |
+| 100 | After the first code review: the gate check's message says `beforeToolCall` ran for both calls and `afterToolCall` ran only for the call that executed | § tool hooks | ✅ | Re-check of rows 95 and 96: `09-gate-and-redact.ts` check message; the hook list it compares is unchanged
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 89 |
+| ✅ confirmed | 90 |
 | ✏️ corrected | 6 (rows 30, 42, 74, 75, 76 and 84) |
 | ⚠️ unverified, an illustration marked as ours in the text | 4 (rows 1, 3, 52 and 69) |
-| Total | 99 |
+| Total | 100 |
