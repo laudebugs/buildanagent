@@ -397,6 +397,32 @@ Four limits and interactions follow from this design:
 - The context policy's interceptors run before the harness's own `interceptors` and the permission gate. A mid-turn compaction therefore indexes the run's own transcript, a harness `transformContext` or `beforeModelCall` hook sees the masked and compacted view, and a harness `afterToolCall` hook sees the capped result.
 - A steer or follow-up accepted while the retry's summary call runs is delivered only if the retry goes ahead. When the summary is skipped or the turn is aborted, the message is dropped.
 
+## An extension adds hooks and tools in the harness's own process, and project trust only gates loading
+
+An `Extension` from `@buildanagent/harness/extensions` is a name, a version, and any of `interceptors`, `observers` and `tools`. It runs in the harness's process with the harness's permissions, so loading one is a trust decision and nothing more: **trust is not a sandbox.** The permission pipeline still decides every call an extension's tool makes, and an extension's own hooks can do anything the process can.
+
+```ts
+const audit: Extension = {
+  name: "audit",
+  version: "1.0.0",
+  interceptors: { beforeToolCall: (event) => (event.tool === "bash" ? { decision: "ask" } : { decision: "allow" }) },
+  observers: [(event) => log(event)],
+};
+const { interceptors, observers } = composeExtensions([audit, other]);
+registerExtensionTools(registry, [audit, other]);
+const harness = createHarness({ registry, model, system, interceptors, observers, extensionRecords: await recordsOf([audit, other]) });
+```
+
+`composeExtensions()` joins the hooks in the order given, by the SDK's rules. `transformContext`, `beforeModelCall` and `afterToolCall` chain in registration order. `beforeToolCall` is a gate: the first deny wins and any ask asks. `afterModelCall` passes the message on, so the last override stands. `shouldStop` lets any stop win. Observers run in order and change nothing. A hook that throws fails the moment it belongs to, so a gate that fails closed fails the whole gate closed. `composeExtensions()` and `registerExtensionTools()` refuse two extensions with one name, or one with no name or version, with `invalid_extension`. `registerExtensionTools()` registers each extension's tools with source `extension`; an `override: true` tool replaces a built-in of the same name and nothing else. A turn writes an `extension_loaded` entry for each of `extensionRecords` whose name and hash the session's log does not hold yet.
+
+A project can supply its own extensions, and trust decides whether they load. `@buildanagent/harness/extensions/node` loads them from `.agents/extensions/<folder>/`, each with an `index.mjs` or `index.js` whose default export is an `Extension`, or a function returning one. When a project has extensions, `loadProjectExtensions(root, { trust, headless })` loads none of them and returns a notice saying why if the run is headless or the project is not in the `TrustStore`. A headless run loads a trusted project's extensions only with `loadInHeadless: true`. `fileTrustStore(path)` keeps trusted folders in a 0600 JSON file. `memoryTrustStore()` serves tests and hosts that decide trust themselves; it compares the paths it is given, so a host passes the same real paths the loader does. The result of a load holds the `extensions`, the `records` for `extensionRecords` and the `notices`.
+
+Pins keep a trusted project from changing under you. `pinProjectExtensions(root)` writes `.agents/extensions.lock.json`, one SHA-256 per extension folder. The hash covers every file in the folder, in sorted order, each by its path and its own digest. Once a lock file exists, the loader refuses a folder whose hash differs, or that the file does not list, or that the file lists and the project no longer holds, with `extension_hash_mismatch`, and none of the project's extensions load. With no lock file they load and a notice says they are unpinned.
+
+The loader hashes and checks every folder before it imports any, so a refusal runs none of the project's code. Node caches modules for the life of a process, so a folder that changed after the process imported it is refused until the process restarts. An extension folder may not hold a symlink.
+
+Two limits remain. The pin covers the files inside each folder and nothing an extension imports from outside it, such as a relative path that leaves the folder or a package from the project's `node_modules`. And the lock file sits inside the project it pins, so anyone who can edit the project can pin their own changes: the pin catches a change nobody meant, not an attacker who holds the project. Pin a project only after you have read its extensions.
+
 ## A call that needs a person is a signed pause that any process with the key file can resume
 
 When the permission pipeline's gate returns `ask`, the turn ends `awaiting_approval`, and the signed request is the log's `approval_requested` entry, written before any observer of the harness sees the event. A client that listens on the run's own handle, not on the harness's observers, can hear of a request a moment before the log has it. The harness never blocks on an approval, so a restart loses nothing. The entry holds the SDK's request unchanged, with the input the call would run with. It names its key by id and holds no key bytes.

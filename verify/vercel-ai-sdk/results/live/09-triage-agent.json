@@ -1,0 +1,235 @@
+{
+  "format": 2,
+  "example": "09-triage-agent",
+  "file": "verify/vercel-ai-sdk/examples/09-triage-agent.ts",
+  "harness": "verify/vercel-ai-sdk",
+  "pin": "ai@7.0.162",
+  "mock": "ai@7.0.162",
+  "live": {
+    "provider": "anthropic",
+    "model": "claude-haiku-5-5"
+  },
+  "events": [
+    {
+      "kind": "request",
+      "line": 49,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You triage support tickets. Look up the order first. Refund with issueRefund; a person approves it."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I was charged twice for order A-1. Please refund it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder",
+        "issueRefund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 49,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-1>",
+            "name": "lookupOrder",
+            "input": {
+              "orderId": "A-1"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls",
+      "usage": {
+        "uncachedInput": 901,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 140,
+        "reasoning": 85
+      },
+      "modelId": "claude-haiku-5-5"
+    },
+    {
+      "kind": "request",
+      "line": 49,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-1>",
+              "name": "lookupOrder",
+              "output": {
+                "status": "delivered",
+                "amount": 40
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder",
+        "issueRefund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 49,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "reasoning",
+            "text": ""
+          },
+          {
+            "type": "tool-call",
+            "id": "<id-2>",
+            "name": "issueRefund",
+            "input": {
+              "orderId": "A-1",
+              "reason": "Customer reports being charged twice for order A-1. Order status: delivered, amount 40. Refund requested pending human approval."
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls",
+      "usage": {
+        "uncachedInput": 1060,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 197,
+        "reasoning": 82
+      },
+      "modelId": "claude-haiku-5-5"
+    },
+    {
+      "kind": "check",
+      "line": 50,
+      "message": "instructions are the system message",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 51,
+      "message": "both tools are offered",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 53,
+      "message": "step 1 looks up the order",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 55,
+      "message": "the refund waits for approval",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 56,
+      "message": "no refund before approval",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 63,
+      "model": "model-1",
+      "repeated": 5,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "<id-2>",
+              "name": "issueRefund",
+              "output": {
+                "refunded": "A-1"
+              }
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookupOrder",
+        "issueRefund"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 63,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "{\"category\":\"billing\",\"action\":\"refunded\",\"summary\":\"Customer reported being charged twice for order A-1. Order lookup shows status delivered, amount 40. A full refund was issued via issueRefund, pending human approval per the triage process.\"}"
+          }
+        ]
+      },
+      "finish": "stop",
+      "usage": {
+        "uncachedInput": 1274,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "output": 80,
+        "reasoning": 0
+      },
+      "modelId": "claude-haiku-5-5"
+    },
+    {
+      "kind": "check",
+      "line": 64,
+      "message": "after approval the refund runs exactly once",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 65,
+      "message": "the agent returns a typed triage record",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "three model calls in all: lookup, refund request, final answer",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "the final call asks for JSON",
+      "pass": true
+    }
+  ]
+}

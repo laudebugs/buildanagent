@@ -260,7 +260,7 @@ packages/
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
-                                "./credentials", "./extensions", "./memory", "./telemetry", "./server",
+                                "./credentials", "./extensions", "./extensions/node", "./memory", "./telemetry", "./server",
                                 "./ablation", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
     src/context/                write cap, masking, summarizer, mid-turn, overflow retry, policy composer
@@ -555,6 +555,8 @@ declare function scrubSecrets(entry: SessionEntry, secrets: readonly string[]): 
 
 ### 3.5 Extension, protocol, telemetry, eval and ablation APIs
 
+**Revision (N22, 2026-11-22): the extension loader.** `loadProjectExtensions(root, { trust, headless, loadInHeadless?, lockFile?, extensionsDir? })` returns `{ extensions, records, notices }`, not the `Extension[]` of the sketch below, and lives in the Node-only `@buildanagent/harness/extensions/node` entry beside `fileTrustStore()`, `hashExtensionDir()` and `pinProjectExtensions()`. The portable `./extensions` entry holds `composeExtensions()`, `registerExtensionTools()`, `recordsOf()` and `memoryTrustStore()`. `composeExtensions()` delegates to the SDK's `composeInterceptors()`. `HarnessOptions.extensionRecords` makes a turn write the `extension_loaded` entries.
+
 ```ts
 // @buildanagent/harness/extensions (guide §7)
 type Composition = "notify" | "chain" | "gate" | "last_override";
@@ -750,7 +752,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [N22](../todos/ready/N22-in-process-extensions.md) | In-process extensions: composition, project trust and content-hash pins | N11, N12 | M |
+| [N22](../todos/done/N22-in-process-extensions.md) | In-process extensions: composition, project trust and content-hash pins | N11, N12 | M |
 | [N23](../todos/ready/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
