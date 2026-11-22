@@ -1,7 +1,7 @@
 /**
  * Code-initiated tool calls: a side effect the host's own code chose, run through the same permission pipeline, signed
- * pause and log as a call the model makes, with no model step. The `code_call` entry is written before anything else,
- * and its id is the call id, so the call's effect key is fixed before the tool can run, and a resume finds the same key.
+ * pause and log as a call the model makes, with no model step. The `code_call` entry is written before anything else
+ * of the call, and its id is the call id, so the call's effect key is fixed before the tool can run, and a resume finds the same key.
  * A call that was let run and has no result may have taken effect, so it is settled as such and never runs again.
  */
 import { effectKey, renderOutcome, writeOutcome } from "@buildanagent/agent-safety";
@@ -21,6 +21,7 @@ import type { CodeCall, CodeCallResult, Harness } from "../harness.js";
 import type { Decision, PolicySession } from "../permissions/types.js";
 import type { RegisteredTool } from "../tools/types.js";
 import { type CodeCallRecord, codeCallsOf, type WaitingCodeCall } from "./code-call-log.js";
+import { writeCodeCallResult } from "./code-call-result.js";
 import { effectScope } from "./effect-scope.js";
 import { interruptedResult } from "./resume.js";
 import { type ResolutionRecord, recordSessionStart } from "./runner.js";
@@ -33,6 +34,7 @@ type Body = DistributiveOmit<EntryInput, "id" | "parentId" | "timestamp" | "orig
 
 /** How a code call writes: one entry at a time after the one before, with its ids and clock. */
 interface Io {
+  readonly session: Session;
   write(origin: Origin, body: Body, id?: string): Promise<SessionEntry>;
   readonly newId: () => string;
   readonly clock: Clock;
@@ -57,6 +59,7 @@ function ioOf(session: Session, options: IoOptions): Io {
   const newId = options.newId ?? (() => globalThis.crypto.randomUUID());
   const clock = options.clock ?? { now: () => new Date().toISOString() };
   return {
+    session,
     newId,
     clock,
     async write(origin, body, id = newId()) {
@@ -134,22 +137,23 @@ function checkHarness<H>(harness: Harness<H>): void {
 
 /**
  * Settles each code call a crash left open. A call that was let run may have taken effect, so it gets the result an
- * interrupted model call gets. A call that never got that far, and never asked, never ran, so it gets an error that
- * says so. A call that asked still waits.
+ * interrupted model call gets. A call that never got that far never ran, so it gets an error that says so: one that
+ * stopped before it could run or ask anyone, and one whose answer was written but which stopped, or was refused,
+ * before it could run. A call that asked and has no final answer still waits.
  */
 async function settleCodeCalls<H>(path: readonly SessionEntry[], harness: Harness<H>, io: Io): Promise<void> {
-  for (const { call, result, requested, letRun } of codeCallsOf(path).values()) {
-    if (result !== undefined || (requested !== undefined && !letRun)) continue;
+  for (const { call, result, requested, answered, letRun } of codeCallsOf(path).values()) {
+    if (result !== undefined || (requested !== undefined && !answered && !letRun)) continue;
     const body = letRun
       ? { origin: "tool" as const, ...interruptedResult(harness, call.tool) }
-      : {
-          origin: "harness" as const,
-          ...notRun("The code call stopped before it could run or ask anyone, so it never ran."),
-        };
+      : { origin: "harness" as const, ...notRun(answered ? NOT_RUN_ANSWERED : NOT_RUN_EARLY) };
     const { origin, ...fields } = body;
     await io.write(origin, { type: "tool_result", callId: call.callId, tool: call.tool, ...fields });
   }
 }
+
+const NOT_RUN_EARLY = "The code call stopped before it could run or ask anyone, so it never ran.";
+const NOT_RUN_ANSWERED = "The code call stopped after its answer was written and before it could run, so it never ran.";
 
 const notRun = (text: string) => ({
   content: [{ type: "text" as const, text }],
@@ -262,7 +266,10 @@ function thrownResult(tool: RegisteredTool, error: unknown): ToolResult<unknown>
   };
 }
 
-/** Runs the tool through the harness's wrapper with the host context, and writes its result. */
+/**
+ * Runs the tool through the harness's wrapper with the host context, and writes its result. The harness's interceptors
+ * and observers belong to a turn's model step, so they don't run here; the pipeline already decided the call.
+ */
 async function runTool<H>(
   harness: Harness<H>,
   io: Io,
@@ -288,15 +295,13 @@ async function runTool<H>(
   } catch (error) {
     result = thrownResult(tool, error);
   }
-  const entry = await io.write("tool", {
-    type: "tool_result",
-    callId: call.callId,
-    tool: call.tool,
-    content: [...result.content],
-    isError: result.isError === true,
-    ...(result.details === undefined ? {} : { details: result.details }),
-    trust: tool.outputTrust,
-  });
+  const writer = {
+    session: io.session,
+    now: io.clock.now,
+    signal: ctx.signal,
+    write: (body: Body) => io.write("tool", body),
+  };
+  const entry = await writeCodeCallResult(harness, writer, tool, call, result);
   return { status: "done", callId: call.callId, result, entryId: entry.id, effectKey: options.effectKey };
 }
 

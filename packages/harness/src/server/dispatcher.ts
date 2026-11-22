@@ -37,6 +37,7 @@ import type { CompletionSettings } from "../completion/check.js";
 import { HarnessError, isHarnessError } from "../errors.js";
 import type { CodeCallResult, Harness } from "../harness.js";
 import { type Approvals, createApprovals } from "../session/approvals.js";
+import { codeCallRequestIds } from "../session/code-call-log.js";
 import type { SessionLock } from "../session/lock.js";
 import type { SessionIndex } from "../session/pointer.js";
 import { pendingApprovals } from "../session/rebuild.js";
@@ -699,8 +700,11 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
       index: this.#options.index,
       key: this.key(session),
     });
-    // A turn's requests only: the protocol does not yet carry a code call's request, so a client is never shown one.
-    return { pending: pendingApprovals(await reader.path()).map((entry) => entry.request) };
+    // The host's own pending() decides, with a code call's requests taken out: the protocol does not yet carry one, so a
+    // client is never shown one.
+    const waiting = await this.#approvals.pending(reader);
+    const codeRequests = codeCallRequestIds(await reader.path());
+    return { pending: waiting.flatMap(({ request }) => (codeRequests.has(request.id) ? [] : [request])) };
   }
 
   /** A fresh id for a server request, unique within this dispatcher. */

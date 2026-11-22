@@ -44,7 +44,10 @@ export interface HarnessOptions<H = unknown> {
   readonly ablationHash?: string;
   /** When set, its gate decides every tool call, and each decision is written to the log. */
   readonly pipeline?: PermissionPipeline;
-  /** Hooks that run with the pipeline's gate, before it for a gate, as `composeInterceptors()` orders them. */
+  /**
+   * Hooks that run with the pipeline's gate in every turn, before it for a gate, as `composeInterceptors()` orders
+   * them. A code call from `invokeTool()` runs no turn, so they don't see it.
+   */
   readonly interceptors?: Interceptors;
   /** The context layers every turn runs through, from `createContextPolicy()`. Without one a turn sends its whole transcript. */
   readonly context?: ContextPolicy;
@@ -59,7 +62,7 @@ export interface HarnessOptions<H = unknown> {
    * resolve against `env.cwd`.
    */
   readonly skills?: readonly Skill[];
-  /** Observers that see every event of every turn, after the runner's own. */
+  /** Observers that see every event of every turn, after the runner's own. A code call emits no events. */
   readonly observers?: readonly Observer[];
   /** Binds a tool to the turn's host context, such as a write cap. A tool can also read it as `ctx.app`. */
   readonly wrap?: ToolWrapper<H>;
@@ -92,8 +95,8 @@ export interface CodeCall<H = unknown> {
 }
 
 /**
- * What a code call ended in. `done`: the tool ran, and `result` is what it returned, with a write outcome's sentence in
- * front of its content. `denied`: the permission pipeline or a person refused it, and the tool never ran.
+ * What a code call ended in. `done`: the tool ran, and `result` is the whole of what it returned, with a write
+ * outcome's sentence in front of its content; the call's `tool_result` entry may hold it capped. `denied`: the permission pipeline or a person refused it, and the tool never ran.
  * `awaiting_approval`: a person must answer `pending` through `Approvals.resolve()`. `effectKey` is the call's effect
  * identity: from the tool's business key when it declares one, and otherwise from the call id, which is the id of the
  * call's `code_call` entry. `entryId` is the call's `tool_result` entry.
@@ -122,11 +125,17 @@ export interface Harness<H = unknown> extends HarnessOptions<H> {
   readonly ablationHash: string;
   /**
    * Runs a tool call that the host's own code chose, through the same permission pipeline, signed pause and log as a
-   * call the model makes, with no model call. It writes a `code_call` entry, then the pipeline's `permission_decision`.
-   * An allow runs the tool through the harness's `wrap` with `call.hostContext` and writes its `tool_result`. A deny
-   * writes an error `tool_result` and returns `denied`. An ask that no sticky allowance covers writes an
-   * `approval_requested` entry with a request signed as `createPendingRequest()` signs it, and returns
-   * `awaiting_approval`; `Approvals.resolve()` answers it. The session must be open with its lock.
+   * call the model makes, with no model call. The call's own entries start with a `code_call` entry, then the
+   * pipeline's `permission_decision`; before them it writes what the session lacks, a new session's header and
+   * environment stamp, and a result for each earlier code call a crash left open. An allow runs the tool through the
+   * harness's `wrap` with `call.hostContext` and writes its `tool_result`, capped by the harness's `context` policy
+   * and cut to fit the store's entry bound, with its outcome kept. A deny writes an error `tool_result` and returns
+   * `denied`. An ask that no sticky allowance covers writes an `approval_requested` entry with a request signed as
+   * `createPendingRequest()` signs it, and returns `awaiting_approval`; `Approvals.resolve()` answers it. The session
+   * must be open with its lock.
+   *
+   * A code call runs no turn, so the harness's `interceptors` and `observers` don't see it. Put a guard that must cover
+   * code calls in the pipeline's hooks, which see `initiator: "code"`, or in `wrap`.
    *
    * Throws `invalid_code_call` for a tool the registry lacks or that runs on the client, an input or host context with
    * no canonical JSON form, a business key the effect key refuses, a harness with no permission pipeline, or a

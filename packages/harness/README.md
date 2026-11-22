@@ -582,9 +582,9 @@ if (result.status === "awaiting_approval") {
 }
 ```
 
-`invokeTool()` writes a `code_call` entry first, with the call's `callId`, the tool's canonical name, the input and its hash. The entry's id is the call id. The pipeline then decides the call with `initiator: "code"` and writes its `permission_decision`, and the call ends one of three ways:
+The call's own entries start with a `code_call` entry, which holds the call's `callId`, the tool's canonical name, the input and its hash. The entry's id is the call id. Before it, `invokeTool()` writes what the session still lacks: a new session's `session_header` and `env_stamp`, and a `tool_result` for each earlier code call that a crash left open. The pipeline then decides the call with `initiator: "code"` and writes its `permission_decision`, and the call ends one of three ways:
 
-- **`done`.** An allow runs the tool through the harness's `wrap` with the call's host context, and writes its `tool_result`. A sticky allowance covers a code call as it covers a model call. A tool that throws gets an error result; for a write, its outcome is `unknown`, because the write may have taken effect.
+- **`done`.** An allow runs the tool through the harness's `wrap` with the call's host context, and writes its `tool_result`. A sticky allowance covers a code call as it covers a model call. A tool that throws gets an error result; for a write, its outcome is `unknown`, because the write may have taken effect. The harness's context policy caps the stored result as it caps a model call's and spills the full text. A result still over the store's entry bound is cut to fit, with its outcome kept at the front, so a call that ran always gets its result. `result` holds the whole of what the tool returned.
 - **`denied`.** A deny writes an error `tool_result` and returns the reason. The tool never runs.
 - **`awaiting_approval`.** An ask signs the request with `createPendingRequest()` and the harness's signer, and writes it as an `approval_requested` entry before the result returns. The request signs a MAC of `hostContext` when one is given, so only the same host context can resolve it. `pending(session)` lists it after the requests of a paused turn.
 
@@ -595,8 +595,11 @@ Every result except `denied` carries `effectKey`, the call's effect identity. It
 A code call is the host's, so the model never reads it or its result. Each code call runs at most once:
 
 - A call that has a result no longer waits, so a replayed answer throws `approval_not_pending`.
-- A call that was let run, by an allow or by an answer the quorum accepted, and has no result may have taken effect before a crash. It no longer waits, and the next `invokeTool()` on the session settles it with the result an interrupted model call gets, never running it again.
+- A call that was let run and has no result may have taken effect before a crash. A call is let run by the pipeline's allow, by a sticky allowance, or by a person's answer once the pipeline has decided the call again without a deny: the last entry before the tool starts. It no longer waits, and the next `invokeTool()` on the session settles it with the result an interrupted model call gets, never running it again.
+- A call whose answer was written but that was refused, or stopped, before it was let run never ran. It no longer waits either, and the next `invokeTool()` settles it with an error that says it never ran, so a compensation that names it is refused.
 - Within one process, one code call of a session runs at a time, and the session's lock keeps other processes out.
+
+A code call runs no turn, so the harness's `interceptors` and `observers` don't see it: they are the hooks and events of a model step. A `beforeToolCall` may replace the input or ask through the run's own pause, neither of which fits a call whose input is recorded and hashed before it is decided. What applies to a code call is the permission pipeline, whose `hooks` see `initiator: "code"`; the harness's `wrap`, which can guard or redact around the tool; and the context policy's write cap. Put a guard that must cover code calls in the pipeline's `hooks` or in `wrap`.
 
 `compensates` names the call id of an earlier code call that this one undoes, such as a refund reversal after a refund. The earlier call must have run, and the compensation must reach an effect key of its own, or `invokeTool()` throws `invalid_code_call`. The compensation's `code_call` entry records the link.
 

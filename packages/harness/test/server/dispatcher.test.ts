@@ -11,6 +11,7 @@ import {
   inProcessTransport,
   RpcFailure,
 } from "@buildanagent/harness/server";
+import { type Approvals, createApprovals, openSession } from "@buildanagent/harness/session";
 import { fakeSandbox } from "@buildanagent/harness/testing";
 import { createToolRegistry } from "@buildanagent/harness/tools";
 import { ErrorCodes, type ServerMessage } from "@buildanagent/protocol";
@@ -240,6 +241,54 @@ describe("the dispatcher", () => {
       listed.pending,
       joined.pending.map((item) => item.request),
     );
+  });
+
+  test("approval/list asks the host's pending() and leaves a code call's request out", async () => {
+    const registry = createToolRegistry();
+    registry.register({
+      name: "refund",
+      source: "builtin",
+      definition: defineTool({
+        name: "refund",
+        description: "Refunds an order.",
+        inputSchema: { type: "object", properties: { orderId: { type: "string" } }, required: ["orderId"] },
+        async execute() {
+          return { content: [{ type: "text", text: "refunded" }] };
+        },
+      }) as never,
+    });
+    const pipeline = createPermissionPipeline(
+      { mode: "default", interactive: true, policyVersion: "p1", ask: [{ tool: "refund" }] },
+      registry,
+    );
+    const key = Uint8Array.from({ length: 32 }, (_, index) => index + 1);
+    const harness = createHarness({
+      registry,
+      model: scripted([]),
+      system: "You triage tickets.",
+      pipeline,
+      signer: hmacSigner({ keys: { k1: key }, current: "k1" }),
+    });
+    const backend = memoryBackend();
+    const real = createApprovals(harness);
+    let asked = 0;
+    const approvals: Approvals = {
+      ...real,
+      async pending(session) {
+        asked += 1;
+        return real.pending(session);
+      },
+    };
+    const client = inProcessTransport(createDispatcher({ harness, ...backend, userId: "ada", approvals }));
+    await init(client);
+    const { session } = await client.request("session/create", { cwd: "/work" });
+    const handle = await openSession({ ...backend, key: { userId: "ada", sessionId: session } });
+    const call = await harness.invokeTool(handle, { tool: "refund", input: { orderId: "o1" } });
+    assert.equal(call.status, "awaiting_approval");
+    assert.equal((await real.pending(handle)).length, 1, "the host's pending() lists the code call's request");
+    await handle.close();
+    assert.deepEqual((await client.request("approval/list", { session })).pending, []);
+    assert.equal(asked, 1);
   });
 
   test("a client callback that throws does not fail the write, the turn or the lock", async () => {
