@@ -1,7 +1,7 @@
 /**
  * The scheduler seam: a promise to call back for a session at a time. A host that cannot keep a timer alive between
- * requests backs it with its own alarm, such as a Durable Object alarm, a delayed queue message or a workflow sleep, and
- * `processScheduler()` backs it with a timer for a host that stays up. The seam carries a lock's renewals and any wake a
+ * requests backs it with its own alarm, such as a Durable Object alarm, a delayed queue message or a workflow sleep.
+ * `processScheduler()` backs the seam with a timer, for a host that stays up. The seam carries a lock's renewals and any wake a
  * run asks for, such as an approval deadline.
  */
 
@@ -12,8 +12,8 @@
 export interface Scheduler {
   /**
    * Asks for one wake of `sessionId` at `at`. A time in the past wakes at once. Asking twice for the same id and time is
-   * one wake. The id is only a key to the scheduler, so a caller with a second purpose for a session prefixes it, as
-   * `fileLock()` does for its renewals, and the two never cancel each other.
+   * one wake. The id is only a key to the scheduler. A caller that wakes a session for a second purpose prefixes the id,
+   * as `fileLock()` does for its renewals, so the two ids never cancel each other.
    */
   wake(at: Date, sessionId: string): Promise<void>;
   /** Drops every wake still pending for `sessionId`. A wake already delivered is not recalled, and an unknown id is fine. */
@@ -27,11 +27,11 @@ export type WakeHandler = (sessionId: string, at: Date) => void | Promise<void>;
 export interface ProcessScheduler extends Scheduler {
   /** Calls `handler` for every wake as it comes due. The returned function stops it. */
   onWake(handler: WakeHandler): () => void;
-  /** This scheduler's clock in milliseconds since the epoch. A caller that asks for a wake reads its time here, so both agree. */
+  /** This scheduler's clock in milliseconds since the epoch. A caller that asks for a wake reads its time here. */
   now(): number;
 }
 
-/** The options of `processScheduler()`. A test sets all three to drive time by hand. */
+/** The options of `processScheduler()`. A test sets `now`, `setTimer` and `clearTimer` to drive time by hand. */
 export interface ProcessSchedulerOptions {
   /** The clock in milliseconds since the epoch. Default `Date.now`. */
   readonly now?: () => number;
@@ -61,8 +61,8 @@ function defaultSetTimer(callback: () => void, ms: number): unknown {
 /**
  * A `Scheduler` for a host that stays up: each wake is a timer, and the handlers registered with `onWake()` receive it.
  * Wakes do not survive the process, which is the point of the seam: a host that restarts supplies a scheduler that does.
- * Wake times are wall-clock instants, so a clock that steps backward delays a wake by the step; a host that needs a wake
- * on time through clock changes supplies its own scheduler.
+ * Wake times are wall-clock instants, so a clock that steps backward delays a wake by the same amount. A host that must
+ * wake on time despite clock changes supplies its own scheduler.
  */
 export function processScheduler(options: ProcessSchedulerOptions = {}): ProcessScheduler {
   const now = options.now ?? Date.now;
