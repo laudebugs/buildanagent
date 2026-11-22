@@ -24,7 +24,21 @@ export type ClientCommand =
       method: "initialize";
       params: { clientInfo: ClientInfo; capabilities: string[] };
     }
-  | { jsonrpc: "2.0"; id: Id; method: "session/create" | "session/open"; params: { session?: string; cwd: string } }
+  | { jsonrpc: "2.0"; id: Id; method: "session/create"; params: { session?: string; cwd: string } }
+  | {
+      jsonrpc: "2.0";
+      id: Id;
+      method: "session/open";
+      params: {
+        session?: string;
+        cwd: string;
+        /**
+         * Replays the session's entries from this sequence number on, as `entry_appended` events, before any live event.
+         * A client that last saw `seq` N sends N + 1. A value past the log's end is refused with `InvalidParams`.
+         */
+        fromSeq?: number;
+      };
+    }
   | { jsonrpc: "2.0"; id: Id; method: "session/list"; params: { cursor?: string } }
   | {
       jsonrpc: "2.0";
@@ -49,6 +63,10 @@ export type ClientCommand =
       method: "session/checkout" | "session/fork";
       params: { session: string; entryId: string };
     }
+  /**
+   * Withdraws one of the client's own requests by id. A cancelled `turn/start` aborts its turn, which still ends with
+   * `turn/settled`; any other request may still be answered as usual.
+   */
   | { jsonrpc: "2.0"; method: "$/cancelRequest"; params: { id: Id } };
 
 /** The server's answer to `initialize`. */
@@ -170,12 +188,22 @@ export type HarnessEvent =
   | { type: "entry_appended"; entry: SessionEntry }
   | { type: "budget_warning"; spentUsd: number; capUsd: number }
   | { type: "context_fill"; tokens: number; budget: number }
-  | { type: "completion_check"; entry: SessionEntry };
+  | { type: "completion_check"; entry: SessionEntry }
+  /**
+   * The server dropped `count` events of this session because the client was not taking them fast enough. The
+   * notification's `seq` is the last dropped event's. A client recovers the dropped entries with `session/open` and a
+   * `fromSeq` one past the last `seq` it received.
+   */
+  | { type: "events_dropped"; count: number };
 
-/** What the server sends without being asked. `event` carries a sequence number, and every turn ends with `turn/settled`. */
+/**
+ * What the server sends without being asked. `event` carries a sequence number, and every turn ends with `turn/settled`.
+ * `$/cancelRequest` withdraws a server request the client has not answered: the server ignores any answer to it after.
+ */
 export type ServerNotification =
   | { jsonrpc: "2.0"; method: "event"; params: { session: string; seq: number; event: AgentEvent | HarnessEvent } }
-  | { jsonrpc: "2.0"; method: "turn/settled"; params: { session: string; turn: string; result: TurnResultSummary } };
+  | { jsonrpc: "2.0"; method: "turn/settled"; params: { session: string; turn: string; result: TurnResultSummary } }
+  | { jsonrpc: "2.0"; method: "$/cancelRequest"; params: { id: Id } };
 
 /** Everything a client sends: commands, and answers to the server's requests. */
 export type ClientMessage = ClientCommand | ResponseMessage<ServerResultMap[keyof ServerResultMap]>;
