@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U19](../done/U19-research-a2a.md), [T21](T21-chapter-tools-at-scale.md), [T45](T45-example-a2a-delegation.md) |
+| Depends on | [U19](../done/U19-research-a2a.md), [T21](T21-chapter-tools-at-scale.md), [T45](../done/T45-example-a2a-delegation.md) |
 | Size | S |
 
 ## Goal
@@ -22,7 +22,7 @@ U19's report settled the scope, and the owner approved its proposed changes on 2
 - [U19](../done/U19-research-a2a.md)'s [report](../../research/a2a/agent-to-agent-protocols.md) and [fact-check](../../research/a2a/fact-check-agent-to-agent-protocols.md)
 - Chapter T21's todo, [T21](T21-chapter-tools-at-scale.md), and its fact-check file `apps/manual/fact-checks/tools-at-scale.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
-- [T45](T45-example-a2a-delegation.md): the listing, both ends of A2A on ADK in one process, offline
+- [T45](../done/T45-example-a2a-delegation.md): the listing, both ends of A2A on ADK in one process, offline
 
 ## Scope
 
@@ -35,7 +35,7 @@ U19's report settled the scope, and the owner approved its proposed changes on 2
   3. **When to delegate at all:** the 3–10x token cost and U19's five rules, ending with exposure only for an outside caller.
   4. **What ships in TypeScript:** ADK's `toA2a` and `RemoteA2AAgent` on protocol 0.3, the official `@a2a-js/sdk` on 1.0, and the `A2A-Version` rule that keeps the two apart. Name 1.0 as the standard and 0.3 as what ADK ships, and show `@a2a-js/sdk` 1.3.0 code only once a harness runs it.
   5. **What to distrust:** the card's prose, the card's name and every reply, with the harness's `outputTrust: "untrusted"` default for remote-agent tools as the fix.
-- The listing from [T45](T45-example-a2a-delegation.md)'s `verify/google-adk/examples/09-a2a-delegation.ts`
+- The listing from [T45](../done/T45-example-a2a-delegation.md)'s `verify/google-adk/examples/09-a2a-delegation.ts`
 - Rows for the section in `apps/manual/fact-checks/tools-at-scale.md`
 
 **Analogy** (BK22): A2A, as firms contracting through a standard purchase order. Where the analogy breaks: an A2A task can stream updates and ask for more input, which a purchase order never does. A second break note, approved by the owner on 2026-11-19: a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that the calling model reads as prose. Use the analogy only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
@@ -49,7 +49,7 @@ U19's report settled the scope, and the owner approved its proposed changes on 2
 ## Tasks
 
 - [ ] Draft the section with `/anthropic-skills:writing`. If the analogy makes the concept clearer, open with it, then the mechanism and a "Where the analogy breaks" note that carries both breaks, and register it in `analogies.json`; otherwise explain the concept plainly.
-- [ ] Cite T45's checks 2 and 5 only if T45 ran them; otherwise teach those behaviours from ADK's code and say so.
+- [ ] Cite T45's checks 2 and 5 only if T45 ran them; otherwise teach those behaviours from ADK's code and say so. T45 ran both on 2026-11-22 and both held ([its log](../../plans/reviews/fact-check-google-adk-a2a-example.md), rows T45-9 and T45-10), so the section may cite them. It also found two details the section should state: `RemoteA2AAgent`'s `agentCard` is the base URL, not the card URL, and ADK's default client sends no bearer token (rows T45-5 and T45-6).
 - [ ] Fact-check every claim in the section against its primary source into `apps/manual/fact-checks/tools-at-scale.md` before any further edit, and commit the section together with its fact-check rows (BK21).
 - [ ] Run `/anthropic-skills:writing-review` on the whole chapter with the voice check, fix every finding with `/anthropic-skills:writing`, and re-check every claim a fix touched.
 

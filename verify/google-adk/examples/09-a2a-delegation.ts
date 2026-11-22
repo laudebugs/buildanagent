@@ -181,12 +181,28 @@ try {
   const logged: string[] = [];
   const realError = console.error;
   console.error = (...args) => void logged.push(args.join(" ")); // the SDK logs each rejection with a stack trace
-  const [missing, wrong] = await Promise.all([send({}), send({ authorization: "Bearer wrong" })]).finally(() => {
+  // A parent whose RemoteA2AAgent has no clientFactory sends no token, so its delegation fails the same way.
+  const bare = new RemoteA2AAgent({ name: "billing", description: "Invoices.", agentCard: origin });
+  const bareParent = new LlmAgent({ name: "support", model: parentModel, instruction: "Hand off.", subAgents: [bare] });
+  const bareRunner = new InMemoryRunner({ agent: bareParent, appName: "support" });
+  const bareSession = await bareRunner.sessionService.createSession({ appName: "support", userId: "u1" });
+  const [missing, wrong, bareEvents] = await Promise.all([
+    send({}),
+    send({ authorization: "Bearer wrong" }),
+    turn(bareRunner, bareSession.id, "Is invoice inv-7 paid?"),
+  ]).finally(() => {
     console.error = realError;
   });
   check(missing.status === 500, `a request without the token fails as HTTP 500, not 401 (got ${missing.status})`);
   check(wrong.status === 500, "a wrong token fails the same way");
-  check(logged.length === 2, "the server logged both rejections");
+  check(
+    logged.filter((line) => line.includes("missing or invalid `Authorization: Bearer`")).length >= 2,
+    "the server logged the rejections",
+  );
+  check(
+    bareEvents.some((e) => e.errorMessage?.includes("500")),
+    "a RemoteA2AAgent with no clientFactory sends no token, and its delegation ends in the 500",
+  );
   check(billingModel.requests.length === before, "neither refused request reached the agent's model");
   await send({ authorization: `Bearer ${TOKEN}` });
   check(billingModel.requests.length > before, "the same request with the token does reach it");

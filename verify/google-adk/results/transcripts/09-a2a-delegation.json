@@ -349,26 +349,80 @@
       "pass": true
     },
     {
+      "kind": "request",
+      "line": 189,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "You are an agent. Your internal name is \"support\".\n\nHand off.\n\n\nYou have a list of other agents to transfer to:\n\n\nAgent name: billing\nAgent description: Invoices.\n\n\nIf you are the best to answer the question according to your description, you\ncan answer it.\n\nIf another agent is better for answering the question according to its\ndescription, call `transfer_to_agent` function to transfer the\nquestion to that agent. When transferring, do not generate any text other than\nthe function call.\n"
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Is invoice inv-7 paid?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "transfer_to_agent"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 189,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-5",
+            "name": "transfer_to_agent",
+            "input": {
+              "agent_name": "billing"
+            }
+          }
+        ]
+      },
+      "finish": "tool-calls"
+    },
+    {
       "kind": "check",
-      "line": 187,
+      "line": 196,
       "message": "a request without the token fails as HTTP 500, not 401 (got 500)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 188,
+      "line": 197,
       "message": "a wrong token fails the same way",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 189,
-      "message": "the server logged both rejections",
+      "line": 198,
+      "message": "the server logged the rejections",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 190,
+      "line": 202,
+      "message": "a RemoteA2AAgent with no clientFactory sends no token, and its delegation ends in the 500",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 206,
       "message": "neither refused request reached the agent's model",
       "pass": true
     },
@@ -400,7 +454,7 @@
         "parts": [
           {
             "type": "tool-call",
-            "id": "call-5",
+            "id": "call-6",
             "name": "lookup_invoice",
             "input": {
               "invoiceId": "inv-7"
@@ -420,7 +474,7 @@
           "parts": [
             {
               "type": "tool-result",
-              "id": "call-5",
+              "id": "call-6",
               "name": "lookup_invoice",
               "output": {
                 "invoiceId": "inv-7",
@@ -452,13 +506,13 @@
     },
     {
       "kind": "check",
-      "line": 192,
+      "line": 208,
       "message": "the same request with the token does reach it",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 199,
+      "line": 215,
       "message": "toA2a refuses to mount without authentication unless allowUnauthenticated is true",
       "pass": true
     }
