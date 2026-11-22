@@ -56,13 +56,14 @@ export interface StdioOptions {
   /** Stops the transport now: the connection closes, and nothing more is read or waited for. */
   readonly signal?: AbortSignal;
   /**
-   * How long, in milliseconds, the transport waits for the output to take a line once the input has ended. The clock
-   * starts when the transport begins to wait for the output and restarts each time the output takes a line, so a
-   * client that goes on reading, however slowly, is never cut off. A client that has closed its input and takes no
-   * line for this long ends the transport: it logs why and closes the connection, as for a failed output. While the
-   * input is open there is no timeout, because the queue already bounds what a slow client costs, and the time the
-   * dispatcher takes to answer a command does not count. A whole number from 1 to 2,147,483,647, or `Infinity` to wait
-   * forever. Default 30,000 (30 seconds).
+   * How long, in milliseconds, the output may take to take each queued line once the input has ended. The limit is per
+   * line: the clock starts when the transport begins to wait for the output and restarts each time the output takes a
+   * whole line, because an output reports no progress within a line. A client that goes on reading is therefore cut
+   * off only when one line takes longer than this, so a host that sends very large lines to slow clients raises it. A
+   * client that has closed its input and takes no line for this long ends the transport: it logs why and closes the
+   * connection, as for a failed output. While the input is open there is no timeout, because the queue already bounds
+   * what a slow client costs, and the time the dispatcher takes to answer a command does not count. A whole number
+   * from 1 to 2,147,483,647, or `Infinity` to wait forever. Default 30,000 (30 seconds).
    */
   readonly writeTimeoutMs?: number;
 }
@@ -108,8 +109,9 @@ const encoder = new TextEncoder();
  * The end of the input is the client's goodbye. The transport answers every command it has read, waits until each
  * line already sent is written, then closes the connection and resolves. A turn the client started goes on in the
  * dispatcher, but its events have nowhere to go, so a client that wants `turn/settled` keeps its input open until that
- * arrives. An input that fails is logged and then treated as an end. Once the input has ended, an output that takes
- * no line for `writeTimeoutMs`, 30 seconds by default, stops the transport, which logs why. The transport resolves
+ * arrives. An input that fails is logged and then treated as an end. Once the input has ended, the output must take
+ * each queued line within `writeTimeoutMs`, 30 seconds by default; when one line takes longer, the transport stops and
+ * logs why. The transport resolves
  * without waiting, and logs why, when the output fails or closes, when the dispatcher closes the connection or when
  * `signal` aborts. It never ends, closes or cancels either stream: it removes its listeners and releases its locks,
  * and the host owns the rest. A `writeTimeoutMs` that is not a whole number from 1 to 2,147,483,647 or `Infinity`
@@ -353,7 +355,9 @@ class StdioSession {
 
   /**
    * Waits for what `wait` waits on, or stops the transport once the output takes no line for `writeTimeoutMs`. The
-   * timer is cleared however the wait ends, so none outlives it.
+   * limit is per line: the timer restarts only when the output takes a whole line, because neither kind of output
+   * reports progress within one, so a single line that takes longer stops the transport however steadily the client
+   * reads it. The timer is cleared however the wait ends, so none outlives it.
    */
   async #output(wait: PromiseLike<void>): Promise<void> {
     const ms = this.#writeTimeoutMs;

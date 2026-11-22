@@ -473,6 +473,33 @@ describe("the write timeout", () => {
     });
   });
 
+  test("is a limit per line: a line taken just inside the window restarts it, and one line that takes longer stops", async () => {
+    await onFakeClock(async () => {
+      const { output, callbacks } = handFed();
+      const run = started(output, { writeTimeoutMs: 1000 });
+      for (let id = 1; id <= 3; id += 1) run.send()(response(id));
+      run.input.end();
+      await until(() => vi.getTimerCount() === 1, "the write timeout");
+      // The first two lines each take 999 ms, nearly 2 seconds in all, and the transport goes on.
+      for (let taken = 0; taken < 2; taken += 1) {
+        await until(() => callbacks.length === 1, "the next write");
+        await vi.advanceTimersByTimeAsync(999);
+        assert.equal(run.finished(), false);
+        callbacks.shift()?.();
+      }
+      // The third line is still being read when its own 1000 ms run out, so the transport stops.
+      await until(() => callbacks.length === 1, "the last write");
+      await vi.advanceTimersByTimeAsync(999);
+      assert.equal(run.finished(), false);
+      await vi.advanceTimersByTimeAsync(1);
+      await run.done;
+      assert.deepEqual(stoppedLogs(run.logs), [
+        "stdio: stopped: the output took no line for 1000 ms after the input ended",
+      ]);
+      assert.deepEqual(run.events, ["closed"]);
+    });
+  });
+
   test("does not run while the input is open, and takes the value it is given once the input ends", async () => {
     await onFakeClock(async () => {
       const run = started(stalled(), { writeTimeoutMs: 1000 });
