@@ -1,6 +1,6 @@
 # LangChain.js reference
 
-TypeScript reference for [LangChain.js](https://github.com/langchain-ai/langchainjs) v1 agents, pinned to **`langchain@1.6.1`** with `@langchain/core@1.3.4`, `@langchain/langgraph@1.6.0`, `@langchain/anthropic@1.6.0` and `@langchain/openai@1.8.0`: the newest releases at least two weeks old on 2026-11-18. The owner added LangChain as the fifth SDK on 2026-11-18.
+TypeScript reference for [LangChain.js](https://github.com/langchain-ai/langchainjs) v1 agents, pinned to **`langchain@1.6.6`** with `@langchain/core@1.4.1`, `@langchain/langgraph@1.7.4`, `@langchain/anthropic@1.6.5` and `@langchain/openai@1.8.4`: the newest releases at least a week old on 2026-11-22. The owner added LangChain as the fifth SDK on 2026-11-18 at `langchain@1.6.1`; the [update section](fact-check.md#update-to-langchain166-2026-11-22) records the bump.
 
 | File | What it is |
 |---|---|
