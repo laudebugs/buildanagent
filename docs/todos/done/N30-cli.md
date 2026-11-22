@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N30` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build harness §4, Stage 6](../../plans/build-harness.md#46-stage-6-puts-the-protocol-its-transports-and-the-cli-over-the-harness) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N28](../done/N28-server-requests-backpressure.md) |
@@ -25,7 +25,7 @@ Ship `buildanagent` as a client of the in-process transport: a one-shot JSONL mo
 
 - `buildanagent run <prompt> [--json]`: JSONL events on stdout
 - `buildanagent chat`: line mode with approval prompts, grouped calls and chained commands shown normalised
-- `buildanagent rpc` (N29), `resume <session>`, `sessions list|show|search|replay`, `session unlock --force`, `keys rotate|prune`
+- `buildanagent rpc`, which mounts the stdio transport N29 built, `resume <session>`, `sessions list|show|search|replay`, `session unlock --force`, `keys rotate|prune`
 - Preamble size at session start; context fill and running cost with the 80% warning
 - Optional `--otlp-endpoint`; no update check and no commit attribution
 
@@ -35,15 +35,15 @@ Ship `buildanagent` as a client of the in-process transport: a one-shot JSONL mo
 
 ## Tasks
 
-- [ ] Test the CLI through its in-process transport with a scripted model; spawn the binary only in the smoke test, with `spawnEnv`.
+- [x] Test the CLI through its in-process transport with a scripted model; spawn the binary only in the smoke test, with `spawnEnv`.
 
 ## Acceptance criteria
 
-- [ ] `buildanagent run --json` prints one JSON object per line and exits 0 on `done`
-- [ ] `sessions search <text>` finds a message in a recorded session
-- [ ] `sessions replay` plays a session back with zero model calls
-- [ ] With no flags, the CLI opens no outbound connection (guarded `fetch`)
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `buildanagent run --json` prints one JSON object per line and exits 0 on `done`
+- [x] `sessions search <text>` finds a message in a recorded session
+- [x] `sessions replay` plays a session back with zero model calls
+- [x] With no flags, the CLI opens no outbound connection (guarded `fetch`)
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -59,7 +59,14 @@ Line-mode approval UX may be rough; the protocol keeps it replaceable.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+- `buildanagent` runs `run`, `chat`, `resume`, `sessions list|show|search|replay`, `keys rotate|prune`, `session unlock --force` and `rpc` over the harness's in-process and stdio transports, with a scripted model in every test and one spawn smoke test.
+- `--budget` caps each turn and each resume, not the session, because `turn/start` takes no budget; the README and help say so. The binary has no built-in tools until N21, and a `client_request` tool gets a tool error, since the CLI runs no client tools.
+- Known limit: if `approval/list` reads the log after a resume appends an answer but before its event arrives, the answer is dropped and a later settle is discarded.
+- The first code-review round found 10 findings (nine fixed; the tenth, the todo's place, was resolved by moving it after `rpc` landed).
