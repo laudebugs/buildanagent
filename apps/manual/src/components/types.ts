@@ -54,6 +54,10 @@ export interface ReplayEvent {
   readonly body: string;
   /** The line of the example file that led to the event, which the replay highlights in its listing. */
   readonly line?: number;
+  /** The model id an answer reported, on the answer's last event. */
+  readonly modelId?: string;
+  /** The token counts an answer reported, as text, on the answer's last event. */
+  readonly usage?: string;
 }
 
 /** A link to a neighbouring chapter. */

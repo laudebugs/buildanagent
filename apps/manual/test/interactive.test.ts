@@ -142,11 +142,11 @@ test("without JavaScript a replay lists every event and says where each came fro
   );
   const events = [
     ...replay.matchAll(
-      /<li class="replay__event" data-kind="(\w+)" data-step="\d+"(?: data-line="(\d+)")?><span class="replay__role">([^<]+)<\/span><p class="replay__body">([^<]*)<span class="replay__where">([^<]+)<\/span><\/p>/g,
+      /<li class="replay__event" data-kind="(\w+)" data-step="\d+"(?: data-line="(\d+)")?><span class="replay__role">([^<]+)<\/span><p class="replay__body">([^<]*)((?:<span class="replay__answer">[^<]*<\/span>)*)<span class="replay__where">([^<]+)<\/span><\/p>/g,
     ),
   ];
   assert.deepEqual(
-    events.map((m) => [m[1], m[2], m[3], m[4], m[5]]),
+    events.map((m) => [m[1], m[2], m[3], m[4], m[6]]),
     [
       ["user", "6", "System", "Be brief.", "line 6"],
       ["user", "6", "User", "Greet the reader.", "line 6"],
@@ -156,6 +156,21 @@ test("without JavaScript a replay lists every event and says where each came fro
       ["check", "7", "Check", "the greeting reaches the reader", "line 7"],
       ["check", undefined, "Check", "greet is defined", "line 2, outside this listing"],
     ],
+  );
+  assert.deepEqual(
+    events.map((m) => m[5]),
+    [
+      "",
+      "",
+      "",
+      "",
+      '<span class="replay__answer">Model id: demo-model-2</span>' +
+        '<span class="replay__answer">Usage: 1,000 uncached input, 1,500 cache read, 500 cache write, 200 output tokens' +
+        "</span>",
+      "",
+      "",
+    ],
+    "only the answer whose transcript records usage and a model id shows them, under its text",
   );
   assert.match(replay, /<div class="controls"[^>]*aria-label="Replay of Listing 2\.3"[^>]* hidden>/);
   assert.match(html, /<div class="listing-replay"><figure id="lst-noted"/, "the replay follows its listing");
@@ -208,6 +223,52 @@ test("a replay leaves out the model's answer when the next request resends it, a
     { kind: "user", role: "History", body: "1 earlier message sent again" },
     { kind: "result", role: "Tool error", body: 't: {"ok":false}' },
     { kind: "check", role: "Check failed", body: "it failed", line: 9 },
+  ]);
+});
+
+test("an answer shows the usage and model id its transcript records, and an answer without them shows neither", () => {
+  const ask = { kind: "request" as const, model: "model-1", repeated: 0, tools: [] };
+  const say = (text: string) => ({ role: "assistant" as const, parts: [{ type: "text" as const, text }] });
+  const transcript: Transcript = {
+    format: 2,
+    example: "x",
+    file: "x.ts",
+    harness: "verify/x",
+    pin: "x@1.0.0",
+    mock: "x@1.0.0",
+    events: [
+      { ...ask, messages: [{ role: "user", parts: [{ type: "text", text: "Price it." }] }] },
+      {
+        kind: "response",
+        model: "model-1",
+        message: {
+          role: "assistant",
+          parts: [{ type: "reasoning", text: "Sum the classes." }, ...say("$0.0054").parts],
+        },
+        finish: "stop",
+        usage: { uncachedInput: 1000, cacheRead: 1500, cacheWrite: 500, output: 200, reasoning: 50 },
+        modelId: "claude-sonnet-5-5",
+      },
+      { ...ask, model: "model-2", messages: [{ role: "user", parts: [{ type: "text", text: "Again." }] }] },
+      { kind: "response", model: "model-2", message: say("Done."), finish: "stop" },
+      { ...ask, model: "model-3", messages: [{ role: "user", parts: [{ type: "text", text: "Count only." }] }] },
+      { kind: "response", model: "model-3", message: say(""), finish: "stop", usage: { output: 7 } },
+    ],
+  };
+  assert.deepEqual(replayEvents(transcript), [
+    { kind: "user", role: "User", body: "Price it." },
+    { kind: "model", role: "Reasoning", body: "Sum the classes." },
+    {
+      kind: "model",
+      role: "Model",
+      body: "$0.0054",
+      modelId: "claude-sonnet-5-5",
+      usage: "1,000 uncached input, 1,500 cache read, 500 cache write, 200 output tokens, 50 of them on reasoning",
+    },
+    { kind: "user", role: "User", body: "Again." },
+    { kind: "model", role: "Model", body: "Done." },
+    { kind: "user", role: "User", body: "Count only." },
+    { kind: "model", role: "Model", body: "An answer with no content", usage: "7 output tokens" },
   ]);
 });
 

@@ -80,9 +80,16 @@ test("the replay steps forward and back, marks the listing line of each event an
   assert.equal(controls?.hidden, false, "the script shows the controls");
   assert.equal(visible(), 1);
   assert.deepEqual(currentLines(), ["6"]);
+  const answer = () => replay()?.querySelector<HTMLElement>(".replay__event:has(.replay__answer)");
+  assert.equal(answer()?.hasAttribute("data-future"), true, "the answer's usage waits with the answer");
   for (let step = 0; step < 4; step++) click("#lst-noted-replay [data-step-action='next']");
   assert.equal(visible(), 5);
   assert.deepEqual(currentLines(), [], "the model's answer names no line, so no line is marked");
+  assert.equal(answer()?.hasAttribute("data-future"), false, "the answer shows its model id and usage when it shows");
+  assert.deepEqual(
+    [...(answer()?.querySelectorAll(".replay__answer") ?? [])].map((span) => span.textContent),
+    ["Model id: demo-model-2", "Usage: 1,000 uncached input, 1,500 cache read, 500 cache write, 200 output tokens"],
+  );
   click("#lst-noted-replay [data-step-action='next']");
   assert.deepEqual(currentLines(), ["7"], "the first check came from line 7");
   click("#lst-noted-replay [data-step-action='next']");

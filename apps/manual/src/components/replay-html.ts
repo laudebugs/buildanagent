@@ -57,6 +57,18 @@ function breakAtSlashes(path: string): string {
 }
 
 /**
+ * What an answer reported about itself: the model id and the token counts, each on a line of its own under the
+ * answer's text. They are part of the event, so they show with it, with or without JavaScript.
+ */
+function answerHtml(event: ReplayEvent): string {
+  const modelId =
+    event.modelId === undefined ? "" : `<span class="replay__answer">Model id: ${escapeHtml(event.modelId)}</span>`;
+  const usage =
+    event.usage === undefined ? "" : `<span class="replay__answer">Usage: ${escapeHtml(event.usage)}</span>`;
+  return modelId + usage;
+}
+
+/**
  * A recorded run as a panel. Without JavaScript every event shows in order, as a numbered list; src/scripts/steps.ts
  * reveals them one by one with back, next, restart and play, and highlights the listing line an event names.
  */
@@ -74,7 +86,7 @@ export function replayHtml(options: ReplayOptions): string {
       return (
         `<li class="replay__event" data-kind="${event.kind}" data-step="${index}"${line}>` +
         `<span class="replay__role">${escapeHtml(event.role)}</span>` +
-        `<p class="replay__body">${escapeHtml(event.body)}${where}</p></li>`
+        `<p class="replay__body">${escapeHtml(event.body)}${answerHtml(event)}${where}</p></li>`
       );
     })
     .join("");
