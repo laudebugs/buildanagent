@@ -1,0 +1,62 @@
+---
+import { copy } from "../landing/copy.js";
+import narrow from "../landing/layers-narrow.svg?raw";
+import wide from "../landing/layers-wide.svg?raw";
+// The landing page: header, hero, the figure, three cells, the six packages and the footer, in that order. Every
+// string is in src/landing/copy.ts; the two figure drawings are written by figures/layers.ts.
+import Base from "../layouts/Base.astro";
+
+const { hero, figure, cells, packages } = copy;
+const title = "Build An Agent: a gateway, a loop and a harness";
+const description =
+  "Build An Agent is a set of six small TypeScript packages that split an agent into a gateway, a loop and a harness.";
+---
+
+<Base title={title} description={description} bodyClass="landing">
+  <main>
+    <section class="hero">
+      <div class="eyebrow">{hero.eyebrow}</div>
+      <h1>{hero.headlineBefore} <em>{hero.headlineEmphasis}</em></h1>
+      <p class="lead">{hero.lead}</p>
+      <div class="row">
+        <a class="btn primary" href={hero.primary.href}>{hero.primary.label}</a>
+        <a class="btn" href={hero.secondary.href}>{hero.secondary.label}</a>
+      </div>
+      <div class="install">
+        <p>{hero.install.label}</p>
+        <pre><code>{hero.install.command}</code></pre>
+      </div>
+    </section>
+    <figure class="layers">
+      <Fragment set:html={wide} />
+      <Fragment set:html={narrow} />
+      <figcaption>{figure.caption}</figcaption>
+    </figure>
+    <section class="cells">
+      {
+        cells.map((cell) => (
+          <div class="cell">
+            <p class="label">{cell.label}</p>
+            <h2>{cell.heading}</h2>
+            <p>{cell.body}</p>
+          </div>
+        ))
+      }
+    </section>
+    <section class="packages">
+      <h2>{packages.heading}</h2>
+      <ul class="pkgs">
+        {
+          packages.items.map((item) => (
+            <li>
+              <a class="pkg" href={item.href}>
+                <b>{item.name}</b>
+                <span>{item.summary}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </main>
+</Base>
