@@ -34,6 +34,8 @@ The sections of README.md and every public export, generated from this package's
 - [Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow](README.md#two-more-triggers-compact-inside-a-turn-at-90-of-a-small-window-and-after-a-provider-overflow)
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
+- [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
+- [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
   - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
@@ -288,22 +290,47 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/extensions`
 
 - `composeExtensions()`: Joins the extensions' interceptors, in the order given, by the SDK's composition rules, and their observers.
+- `CONTEXT_FILE_MAX_BYTES`: The most bytes of one context, plan or progress file the harness reads.
+- `interface ContextFile`: One `AGENTS.md` or `CLAUDE.md` the project holds.
+- `contextText()`: The text of the leading block: a note saying what it is, then each file in its own labelled section.
 - `interface Extension`: An in-process extension: hooks and tools that run in the harness's own process with its permissions.
 - `interface ExtensionLoadedRecord`: What the log records about a loaded extension, so a session shows which code ran.
 - `type ExtensionTool`: One tool an extension adds.
 - `memoryTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself.
+- `type ParsedSkill`: What `parseSkill()` makes of one file: the skill, or why the file is not one.
+- `parseSkill()`: Reads one `SKILL.md`.
+- `PLAN_FILE`: The plan file, relative to the project root.
+- `interface PlanFiles`: What a plan source found: the text of each file that exists, and a note for each that could not be used.
+- `planPrompt()`: The system prompt's account of the plan files, for a task too long for one context.
+- `type PlanSource`: Reads the plan and progress files.
+- `PROGRESS_FILE`: The progress file, relative to the project root.
+- `projectContext()`: An extension that puts the context files, and the plan and progress files, at the start of every request.
+- `interface ProjectContextOptions`: The settings of `projectContext()`.
 - `recordsOf()`: The records for extensions written in code: their hash covers the name and version, since there are no files.
 - `registerExtensionTools()`: Registers every extension's tools in `registry` with source `extension`.
-- `sha256()`: The digest of `text`, as `sha256:` and hex.
+- `sha256()`: The digest of `data`, as `sha256:` and hex.
+- `interface Skill`: A skill as the system prompt lists it: the body stays in the file.
+- `SKILL_DESCRIPTION_MAX`: The longest skill description, from Pi's skills documentation.
+- `SKILL_NAME_MAX`: The longest skill name, from Pi's skills documentation.
+- `skillOfRead()`: The skill whose `SKILL.md` a `read` call opens, or `undefined`.
+- `skillsPrompt()`: The `## Skills` section a system prompt carries: each skill's name, description and path, and never its body.
 - `interface TrustStore`: Which project folders may load their own extensions.
+- `withPlanConvention()`: `system` followed by the plan-file convention.
+- `withSkills()`: `system` followed by the skills section, or `system` alone when there are no skills.
 
 ## Exports from `@buildanagent/harness/extensions/node`
 
+- `contextFiles()`: Reads the `AGENTS.md` and `CLAUDE.md` of `cwd` and of every folder above it up to the repository root (the first folder with a `.git`; with none, `cwd` alone).
+- `interface DiscoveredSkills`: The skills found, what to record about them, and why any were left out.
+- `discoverSkills()`: Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and every folder above it up to the repository root (the first folder with a `.git`).
+- `interface DiscoverSkillsOptions`: The settings of `discoverSkills()`.
 - `fileTrustStore()`: A trust store in the file at `file`, created on the first `trust()`.
+- `interface FoundContextFiles`: The context files found, and why any were left out.
 - `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
 - `interface LoadOptions`: What `loadProjectExtensions()` needs to decide.
 - `loadProjectExtensions()`: Loads the extensions in a project, or skips them with a notice.
 - `pinProjectExtensions()`: Writes the lock file for every extension folder as it is now.
+- `planFileSource()`: A plan source that reads `.agents/plan.md` and `.agents/progress.json` under `root` each time it is called.
 - `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
 - `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file.
 - `writeLock()`: Writes the lock file for these pins, replacing the old one in one step.
