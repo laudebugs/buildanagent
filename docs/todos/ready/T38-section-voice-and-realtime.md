@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.3, BK19](../../plans/build-book.md#43-four-topics-need-research-before-they-are-written) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [U20](../done/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md), [T46](T46-example-realtime-session.md), [T47](T47-example-voice-pipeline.md) |
+| Depends on | [U20](../done/U20-research-voice-and-realtime.md), [T35](T35-chapter-agents-people-can-watch.md), [T46](T46-example-realtime-session.md), [T47](../done/T47-example-voice-pipeline.md) |
 | Size | S |
 
 ## Goal
@@ -20,7 +20,7 @@ U20's report settled the scope, and the owner approved its proposed changes on 2
 ## Context
 
 - [U20](../done/U20-research-voice-and-realtime.md)'s [report](../../research/voice/voice-and-realtime.md) and [fact-check](../../research/voice/fact-check-voice-and-realtime.md)
-- [T46](T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md): the two listings, both offline
+- [T46](T46-example-realtime-session.md) and [T47](../done/T47-example-voice-pipeline.md): the two listings, both offline
 - Chapter T35's todo, [T35](T35-chapter-agents-people-can-watch.md), and its fact-check file `apps/manual/fact-checks/agents-people-can-watch.md`
 - [Book plan BK21 and BK22](../../plans/build-book.md#bk21-every-section-is-fact-checked-before-the-next-is-drafted-accepted)
 
@@ -35,7 +35,7 @@ U20's report settled the scope, and the owner approved its proposed changes on 2
   3. **Barge-in stops the speech, settles the tools and keeps only the heard words.** Show truncation to `audio_end_ms`, the opposite defaults of Gemini and GPT-Live for tools in flight, and the yield-or-hold trade, with GPT-4o realtime's 0.23 s stop beside its 93% reply rate to background speech.
   4. **Tools must not silence the agent.** Show announcing, background calls and delegation to a text agent, and close on τ-Voice's 85% against 31–51% as the reason for U20's proposed rule to read back consequential arguments.
 - A link to the vendor guides for transports and audio formats, which the section does not cover
-- The listings from [T46](T46-example-realtime-session.md) and [T47](T47-example-voice-pipeline.md); truncation itself is explained in prose, because it needs the real transport
+- The listings from [T46](T46-example-realtime-session.md) and [T47](../done/T47-example-voice-pipeline.md); truncation itself is explained in prose, because it needs the real transport
 - Rows for the section in `apps/manual/fact-checks/agents-people-can-watch.md`
 
 **Analogy** (BK22): voice interruption, as a phone call where either side can cut in. Where the analogy breaks: the agent must stop speaking at once, decide for each tool in flight whether it finishes or is undone, and forget the words the caller never heard. The owner approved this break note on 2026-11-19, replacing the earlier "the agent must cancel speech and tool calls already in flight when the person cuts in", because U20 found that cancelling every tool in flight is not the rule. Use the analogy only if it makes the concept clearer than plain explanation. No illustration unless the section needs one.
@@ -71,6 +71,7 @@ The book's build and `check:book` in the CI `book` job.
 
 - U20 judged that the topic fits one section, and the owner agreed on 2026-11-19, so the risk that it needs a chapter is closed.
 - T46's approval check and all of T47 were untested when this scope was set. If either records a limit, teach that behaviour from the SDK's docs and say so.
+- T47's example is `verify/cloudflare-agents/examples/12-voice-pipeline.ts`, with regions `voice-agent`, `book:note` markers `hold`, `signal` and `stream`, and a transcript. It ran in local workerd with fake speech stages; Workers AI's speech models have no local simulation, and `agents/voice` is experimental at 0.33.0 as of November 2026. A client must set `binaryType = "arraybuffer"` to read audio frames as `ArrayBuffer`s in workerd.
 
 ## Definition of done
 

@@ -111,5 +111,15 @@
     "modelCalls": 0,
     "outcome": "ran",
     "tail": "ok - the note is a row of an FTS5 table, which workerd ran\nok - after eviction the new instance renders the written fact into its system prompt\nok - and renders the search block's count of entries\nok - the model searched through search_context\nok - the search found the note, though the query used other word forms\nok - a second agent name sees neither block\nok - and the same query finds nothing there\nok - its database holds no block row and no note"
+  },
+  {
+    "id": "12-voice-pipeline",
+    "durableObjects": {
+      "Concierge": "Concierge"
+    },
+    "ms": 4569,
+    "modelCalls": 0,
+    "outcome": "ran",
+    "tail": "ok - the interrupt aborted turn 2's context.signal and left turn 1's alone\nok - the TTS call that was speaking saw the same abort\nok - onInterrupt ran once\nok - the status returned to listening after the interrupt\nok - the interrupted turn closed with a turn_metrics outcome of aborted\nok - turn 2's model request holds no tool message from turn 1\nok - and no tool result\nok - the stored history is text only: [{\"role\":\"user\",\"content\":\"what is the weather in Paris\"},{\"role\":\"assistant\",\"content\":\"It is 21 degrees and sunny in Paris.\"},{\"role\":\"user\",\"content\":\"and what about tomorrow\"}]"
   }
 ]

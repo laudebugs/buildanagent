@@ -1178,6 +1178,6 @@ Claims in [`docs/research/book/offline-reading-and-caching.md`](../../research/b
 | docs/175-offline-caching-12 | A cache must not serve a stale response when `no-cache` or `must-revalidate` prohibits it, and `must-revalidate` means a stale response is not reused until validated | Report, option B | ✅ | [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html) (June 2022) §4.2.4: "A cache MUST NOT generate a stale response if it is prohibited by an explicit in-protocol directive (e.g., by a no-cache response directive, a must-revalidate response directive, …)"; §5.2.2.2: "a cache MUST NOT reuse that response to satisfy another request until it has been successfully validated by the origin" |
 | docs/175-offline-caching-13 | RFC 5861, which defines `stale-while-revalidate` and `stale-if-error`, does not mention `must-revalidate` | Report, option B | ✅ | [RFC 5861](https://www.rfc-editor.org/rfc/rfc5861.html) (May 2010, Informational) §3 and §4 read in full; neither names `must-revalidate`. The report's advice to drop it rests on RFC 9111 (row 12), not on RFC 5861 |
 | docs/175-offline-caching-14 | The deploy tooling throws unless `_headers` has exactly one `/*` rule | Report, option B | ✅ | `apps/manual/scripts/stage-dist.mjs`, `previewHeaders`: "main's _headers must have exactly one "/*" rule, not N" |
+| T47-1 | Correction of the voice example's number: T47's example is `12-voice-pipeline.ts`, not 11 | T46, T47 | ✏️ | `11-context-memory.ts` (T44) took number 11 on the Cloudflare harness first, so [T47](../../todos/done/T47-example-voice-pipeline.md) names `12-voice-pipeline.ts`; the next free Cloudflare number is 13 |
 
-
-**Totals:** 701 claims: 610 ✅, 85 ✏️, 6 ⚠️.
+**Totals:** 702 claims: 610 ✅, 86 ✏️, 6 ⚠️.
