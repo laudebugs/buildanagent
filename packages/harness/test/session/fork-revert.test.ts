@@ -282,3 +282,36 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     await session.close();
   });
 });
+
+describe.each(BACKENDS)("%s", (_name, make) => {
+  test("a second revert to an entry before the first one's point drops what came after it, in the tree and in the lookups", async () => {
+    const backend = make();
+    await seed(backend);
+    const session = await openSession(opts(backend));
+    await session.revert("r3");
+    await session.revert("r1");
+    assert.deepEqual(ids(await session.path()), ["h1", "r1"]);
+    for (const dropped of ["r2", "r3"]) {
+      await assert.rejects(() => session.checkout(dropped), code("entry_not_found"), dropped);
+      await assert.rejects(() => session.fork(dropped), code("entry_not_found"), dropped);
+      await assert.rejects(() => session.path(dropped), code("entry_not_found"), dropped);
+    }
+    await session.close();
+    const again = await openSession(opts(backend));
+    await assert.rejects(() => again.checkout("r3"), code("entry_not_found"));
+    await again.close();
+  });
+
+  test("a fork of an entry before its own fork point holds only the entries up to it", async () => {
+    const backend = make();
+    await seed(backend);
+    const session = await openSession(opts(backend));
+    const first = await session.fork("r3");
+    const second = await first.fork("r1");
+    assert.deepEqual(ids(await second.path()), ["h1", "r1"]);
+    await assert.rejects(() => second.checkout("r2"), code("entry_not_found"));
+    await second.close();
+    await first.close();
+    await session.close();
+  });
+});

@@ -188,7 +188,9 @@ export class Session {
       if (entry === undefined) {
         if (above === undefined) throw new HarnessError("entry_not_found", `no entry ${at} in the file ${file}`);
         // A loop and not a spread, because a long prefix would be too many arguments for a call.
-        const prefix = await this.#ancestry(above.session, above.entryId);
+        // The entry not found here is in an earlier file, and the walk goes on up from it, which for the usual fork point
+        // is the entry the header names, and for an entry before it is that entry.
+        const prefix = await this.#ancestry(above.session, at);
         for (let i = prefix.length - 1; i >= 0; i -= 1) path.push(prefix[i] as SessionEntry);
         break;
       }
