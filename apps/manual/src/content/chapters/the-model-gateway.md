@@ -2,7 +2,7 @@
 title: "The model gateway: one streaming method, retries, prompt caching, reasoning replay and cost"
 summary: A model gateway sits between your agent loop and every provider, so it is the one place that sees each call in the provider's terms. This chapter shows why one streaming method, retries, prompt caching, reasoning replay and cost accounting all live there, and what each of them must not do.
 opening: code
-sources: [buildanagent-gateway-readme, buildanagent-agent-sdk-guide, anthropic-rate-limits, anthropic-streaming, openai-chat-completions-create, anthropic-errors, openai-rate-limits, anthropic-prompt-caching, anthropic-pricing, openai-prompt-caching, mcp-changelog-2026-07-28]
+sources: [buildanagent-gateway-readme, buildanagent-agent-sdk-guide, anthropic-rate-limits, anthropic-streaming, openai-chat-completions-create, anthropic-errors, openai-rate-limits, anthropic-prompt-caching, anthropic-pricing, openai-prompt-caching, mcp-changelog-2026-07-28, anthropic-preserved-thinking, anthropic-prefix-checks]
 glossary: [model-gateway, wire-protocol, delta, token]
 switchTo: [B4, B5, B8, B9]
 ---
@@ -114,6 +114,30 @@ The prefix is easy to break from the loop's side. In [[lst:prepare-step]], `prep
 The tool list can also change without your code touching it, and the MCP specification now speaks to that. Its 2026-07-28 changelog lists, among its minor changes: "Servers **SHOULD** return tools from `tools/list`{checked=row-60} in a deterministic order to enable client-side caching and improve LLM prompt cache hit rates" [@mcp-changelog-2026-07-28]. The advice matters because tools lead the prefix. OpenAI's guide lists changes to tool "names, descriptions, schemas, ordering" among the settings that change the cached prefix, and Anthropic's exact-match rule covers the order too, though its page does not name order as such [@openai-prompt-caching; @anthropic-prompt-caching]. A server that lists the same tools in a shuffled order each call hands your agent a reset plate for free. We recommend that your registry sorts the tool list by name, or pins the first listing for the session, whatever order a server sends.
 
 The analogy breaks in two places. A printer sees a swapped plate; a cache sees only identical bytes, so a reordered tool or a timestamp at the front of the system prompt resets it without a visible change. And a plate stays set until someone swaps it, while a cache entry expires after minutes without a read.
+
+## Reasoning replays only on the model that wrote it, so the gateway drops every foreign signature
+
+Your agent runs on Claude Sonnet 5.5, and at step ten Anthropic answers 529. Your fallback sends the next call to a model from another provider. The transcript already holds three reasoning blocks, each with the signature that [[ch:talking-to-a-model]] showed. Which of them may go in the new request? The loop cannot say, because the answer depends on the provider's rules, and so a gateway has to.
+
+Anthropic ties each thinking block to three things. The first is what came before it: `system`, `tools` and every earlier message. The second is the model: "a model reads only some other models' thinking blocks". The third is the account that produced it [@anthropic-preserved-thinking]. Its switch table shows how uneven the second tie is. A block written by Claude Haiku 5.5 is readable by Sonnet 5.5, but a block written by Sonnet 5.5 is not readable by Haiku 5.5, as of November 2026. Sending a block the target cannot read never causes an error on Anthropic's side: "The API drops it for that request and doesn't bill it" [@anthropic-preserved-thinking]. Other providers give you no such promise. OpenAI's Chat Completions messages have no field for reasoning at all [@buildanagent-gateway-readme], so for them the question never reaches the API, and your gateway must answer it first.
+
+Pi answers it in a function called before every request. Its `transformMessages`{checked=row-71} drops thinking from a different model, and the comment in its source reads "Signatures and encrypted reasoning are only valid for the model that produced them" (`@earendil-works/pi-ai@1.5.2`). Our gateway follows the same design, as its guide records, and adds rules of its own [@buildanagent-agent-sdk-guide]. Each reasoning block in our transcript carries a signature record naming the API, the provider and the model that wrote it, and `transformMessages()`{checked=row-68} judges every block against the model it is about to send to. [[tbl:reasoning-rules]] lists the rules.
+
+:::table[What the replay pass does with a reasoning block, by target model, as of November 2026]{#reasoning-rules}
+| The block and the target | What the pass does | Why |
+| --- | --- | --- |
+| Any block, and a target that does not reason | Drops it | The target has no use for it |
+| A block another provider wrote | Drops it | Its signature is valid only where it was written |
+| A block signed by Anthropic, and an Anthropic target | Keeps it exactly as recorded, empty text included | The API checks the block against its signature, and drops it unbilled if the model cannot read it |
+| An unsigned block, and an Anthropic target | Drops it | We read the signature check as rejecting it; Anthropic's page does not say (unverified) |
+| Any block, and the OpenAI Chat adapter | Never sends it | A Chat Completions message has no field for reasoning |
+:::
+
+One more rule comes from Anthropic's side. A request may leave out the oldest thinking, the newest, or all of it, but not a block between two that it keeps [@anthropic-prefix-checks]. So when our pass must drop one block for an Anthropic target, it drops every older block too, and the kept blocks stay one unbroken run [@buildanagent-gateway-readme]. The pass does four more jobs for the same reason, which are skipping failed turns, replacing images for a model that takes none, rewriting tool-call ids a provider would reject, and pairing every tool call with a result. None of them touches the transcript itself.
+
+That last point is why the pass belongs in the gateway and returns a new list each time. Anthropic's advice on switching models is "don't remove thinking, and don't keep a separate history for each model": the next switch back to Sonnet 5.5 finds its reasoning again, because the API never changes your messages [@anthropic-preserved-thinking]. A pass that edited the transcript in place would lose that reasoning for good. Our pass never changes its input, gives the same answer for the same transcript every time, and gives the same answer again when run on its own output [@buildanagent-gateway-readme]. Those three properties keep the replayed front byte for byte the same from request to request, which is what the cache of the previous section needs. They also answer the warning on Anthropic's own page: if your requests pass through a gateway, compare what it sends with what you sent [@anthropic-prefix-checks].
+
+Sometimes the check fails anyway. When a conversation's `system`, `tools` or an earlier message changed after a block was written, Anthropic may answer 400 with "The block is bound to a different conversation" [@anthropic-errors]. Our Anthropic adapter treats that one 400 as worth a retry: it streams a warning and sends the request once more with `drop_block`{checked=row-74}, the setting that tells the API to drop the failing blocks, and then sends it on every later request of that conversation [@buildanagent-gateway-readme]. It is the retry of the second section with a different cure. The adapter changes the request rather than waiting, because waiting cannot fix a transcript that changed. The cost is real, since dropped reasoning is reasoning the model works without, so treat each such warning as a bug in whatever edited the front.
 
 ## Exercises
 
