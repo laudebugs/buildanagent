@@ -1,6 +1,6 @@
-// A payment server for the book's write examples, on loopback: it writes once for each idempotency key, declines one
-// order with a 402, and can say whether it has seen a key. It counts every request a key sent, apart from the writes
-// it made, so a second request cannot hide.
+// A payment server for the book's write examples, on loopback. It writes once for each idempotency key, declines one
+// order with a 402, and answers a lookup GET with whether it has written for a key. It also logs every POST it
+// receives, including repeats under the same key, apart from the keys it wrote for, so a second request cannot hide.
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -15,7 +15,7 @@ export interface FakePayments {
   readonly base: string;
   /** Each key the server wrote for, once. */
   readonly writes: Set<string>;
-  /** Every write request that reached the server, in order. */
+  /** Every write request (POST) that reached the server, in order; lookups are not counted. */
   readonly posts: { key: string; order: number }[];
   close(): Promise<void>;
 }

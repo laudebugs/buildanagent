@@ -21,6 +21,8 @@ export interface ChargeDeps {
 
 /** The caller the example's effect keys are scoped to; a tool call id joins it for each call. */
 export const SCOPE = { tenant: "user-1", session: "session-1", branch: "main" };
+/** The business key of a charge: one charge for one order, however many attempts or call ids it takes. */
+export const chargeKey = (order: number): string => `charge:${order}`;
 const LEASE_MS = 60_000;
 const OK = 200;
 const DECLINED = 402;
@@ -51,14 +53,14 @@ export function chargeTool({ base, store, now = Date.now }: ChargeDeps) {
     name: "charge",
     description: "Charge the customer for an order.",
     inputSchema: z.object({ order: z.number().int().positive() }),
-    effect: { kind: "write", businessKey: ({ order }) => `charge:${order}` }, // book:note key
+    effect: { kind: "write" },
     async execute(input, { callId }) {
       const outcome = await guardedWrite({
         store,
         now,
         leaseMs: LEASE_MS,
         scope: { ...SCOPE, toolCallId: callId },
-        businessKey: `charge:${input.order}`,
+        businessKey: chargeKey(input.order), // book:note key
         operation: "charge",
         input,
         dedupe: "idempotency_key",

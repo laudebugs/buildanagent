@@ -3,7 +3,7 @@
 // and finds the write already there. The server sees one write. The book's Chapter 16 lists it beside the Vercel AI SDK.
 import { effectKey, memoryEffectStore } from "@buildanagent/agent-safety";
 import { run } from "@buildanagent/sdk";
-import { type ChargeDeps, chargeTool, SCOPE, stateOf } from "./charge-tool.js";
+import { type ChargeDeps, chargeKey, chargeTool, SCOPE, stateOf } from "./charge-tool.js";
 import { check, scripted } from "./lib/check.js";
 import { DECLINED_ORDER, startFakePayments } from "./lib/fake-payments.js";
 
@@ -12,8 +12,8 @@ const ORDER = 42;
 const payments = await startFakePayments();
 const store = memoryEffectStore();
 let clock = Date.parse("2026-11-22T10:00:00Z");
-/** How many requests the server has seen; a function, so each check reads it anew. */
-const requests = () => payments.posts.length;
+/** How many write requests (POSTs) the server has seen; a function, so each check reads it anew. */
+const writeRequests = () => payments.posts.length;
 const written = () => payments.writes.size;
 const deps: ChargeDeps = { base: payments.base, store, now: () => clock };
 
@@ -31,13 +31,13 @@ async function charge(order: number, callId: string, withStore = store): Promise
   return read?.content.map((block) => (block.type === "text" ? block.text : "")).join("") ?? "";
 }
 /** The effect key of a charge: with a business key it holds only the tenant and the order. */
-const keyOf = (order: number) => effectKey({ ...SCOPE, toolCallId: "any" }, `charge:${order}`);
+const keyOf = (order: number) => effectKey({ ...SCOPE, toolCallId: "any" }, chargeKey(order));
 
 try {
   check((await charge(7, "call-1")).includes("took effect"), "a normal write reports applied");
   check(written() === 1, "the server wrote once");
   const repeat = await charge(7, "call-2");
-  check(repeat.includes("took effect") && requests() === 1, "a repeat is answered from its record");
+  check(repeat.includes("took effect") && writeRequests() === 1, "a repeat is answered from its record");
   check((await charge(DECLINED_ORDER, "call-3")).includes("did not take effect"), "a declined write is not_applied");
   await charge(DECLINED_ORDER, "call-4");
   check(payments.posts.filter((p) => p.order === DECLINED_ORDER).length === 1, "a decline is not sent again");
@@ -59,7 +59,7 @@ try {
   check((await stateOf(store, await keyOf(ORDER))) === "unknown", "the record says started, so the state is unknown");
   // #endregion
   check((await charge(ORDER, "call-6")).includes("not known"), "while the lease is live a second run answers unknown");
-  check(requests() === 3, "and sends nothing");
+  check(writeRequests() === 3, "and sends nothing");
 
   // #region resume
   // The lease has lapsed. A fresh run, with a fresh call id, finds the record and asks the server before it writes.

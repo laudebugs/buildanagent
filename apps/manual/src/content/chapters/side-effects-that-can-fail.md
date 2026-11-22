@@ -35,7 +35,7 @@ A shop that sends orders by courier writes each order in :analogy[a ledger befor
 
 The key is what lets the shop and the server find the same order again. Think of :analogy[a raffle ticket stub]{#raffle-ticket-stub}: one stub, one prize, however often the holder shows it. An idempotency key works the same way. The caller sends the same key with every attempt at one write, and the server applies the write once and answers a repeat with the first result. Stripe saves the status and body of the first request that used a key and replays them on retries, even for a 500 error [@stripe-idempotent-requests]. A stub is printed before anyone wins and the holder keeps it. The key must likewise exist before the call is made, or a crash loses it and the write can repeat.
 
-Each of this chapter's six listings comes in two tabs. The first runs on our own packages, `@buildanagent/sdk` for the tool and the run and `@buildanagent/agent-safety` for the write guard, and the second keeps the listing the chapter showed before. As of November 2026 the SDK is a `0.1.0` alpha release and `@buildanagent/agent-safety` is not on npm yet, so their names may still change [@buildanagent-agent-safety-readme].
+Each of this chapter's six listings comes in two tabs. The first runs on our own packages, `@buildanagent/sdk` for the tool and the run and `@buildanagent/agent-safety` for the write guard, and the second keeps the listing the chapter showed before. As of November 2026 the SDK is a `0.1.0` alpha release and `@buildanagent/agent-safety` is not on npm yet, so their names may still change.
 
 [[lst:write-tool-ours]] and [[lst:write-tool]] are the charge tool from our example. Each builds the key from the order, checks what it has recorded, writes the intent and only then calls the server. The first saves the outcome last through `guardedWrite()`{checked=row-44}, which stores a record of the write before it runs and settles the record with the outcome after [@buildanagent-agent-safety-readme]. The second keeps a log file of its own.
 
@@ -72,7 +72,7 @@ The Vercel AI SDK tool reads its state from a small log of entries: the state of
 :::
 ::::
 
-The example then crashes the tool on purpose. A child process runs the charge tool for order 42 and kills itself with `SIGKILL` after the server has answered and before the tool logs the outcome. The kill leaves exactly the state in the opening: the server has written once, and the log holds the key and no outcome. Ours cannot kill a process, because a book example writes no file and keeps no store of its own. It stands in with a store whose `settle()` never returns once the server has answered, so the run never records its result, as a process killed at that point would not. `packages/agent-safety/test/crash.test.ts` kills a real child with `SIGKILL` at the same point [@buildanagent-agent-safety-readme].
+The example then crashes the tool on purpose. A child process runs the charge tool for order 42 and kills itself with `SIGKILL` after the server has answered and before the tool logs the outcome. The kill leaves exactly the state in the opening: the server has written once, and the log holds the key and no outcome. Ours cannot kill a process, because a book example runs in one process and keeps no durable store: it uses `memoryEffectStore()`. It stands in with a store whose `settle()` never returns once the server has answered, so the run never records its result, as a process killed at that point would not. `packages/agent-safety/test/crash.test.ts` kills a real child with `SIGKILL` at three points, among them while the payment API holds the request unanswered, and then runs the same call in a second process.
 
 ::::tabs
 :::listing[Our SDK]{#crash-ours file="packages/sdk/examples/11-charge-crash-resume.ts" region="crash"}
@@ -104,7 +104,7 @@ Booking a trip is :analogy[a saga]{#booking-a-trip} you already know. If the fli
 
 Take a refund that updates an order, refunds the card and emails the customer. The refund is the pivot. Stripe can cancel only some card refunds, only "for a short period of time", and "only Dashboard cancellations are currently supported for card refunds", so an agent calling the API cannot count on reversing one [@stripe-refunds]. We treat an email as impossible to unsend. A correction email is a new write, not a compensation. That fixes the sequence of steps, which is our design. The update to the order goes first and writes a lock such as a refund-pending status, and its undo restores the earlier status. The refund goes second, under an idempotency key so a timeout can be retried. The email goes third. A last retryable step turns a refund-pending status into `refunded`. Sending the email before the refund is the one sequence to forbid, because "your refund is on its way" followed by a failed refund leaves a false statement that no step can undo.
 
-The approval has to fit that shape. Every SDK the sagas report surveyed approves one tool call at a time, and none of them models a plan. [[lst:needs-approval-ours]] and [[lst:needs-approval]] show the per-call form, on our SDK and in a Cloudflare agent: a rule decides from the call's arguments whether the call waits for a person. Ours is a `beforeToolCall` gate that returns `ask`, and Cloudflare's is a `needsApproval` function on the tool [@buildanagent-sdk-write-pauses]. As of November 2026, AI SDK 7 deprecates `needsApproval`{checked=row-33} in favour of a call-level `toolApproval`{checked=row-39}, but the Cloudflare chat agent's documentation still uses `needsApproval`, so the listing does too.
+The approval has to fit that shape. Every SDK the sagas report surveyed approves one tool call at a time, and none of them models a plan. [[lst:needs-approval-ours]] and [[lst:needs-approval]] show the per-call form, on our SDK and in a Cloudflare agent: a rule decides from the call's arguments whether the call waits for a person. Ours is a `beforeToolCall` gate that returns `ask` [@buildanagent-sdk-write-pauses], and Cloudflare's is a `needsApproval`{checked=row-33} function on the tool. As of November 2026, AI SDK 7 deprecates `needsApproval`{checked=row-33} in favour of a call-level `toolApproval`{checked=row-39}, but the Cloudflare chat agent's documentation still uses `needsApproval`, so the listing does too.
 
 ::::tabs
 :::listing[Our SDK]{#needs-approval-ours file="packages/sdk/examples/12-approval-gate.ts" region="needs-approval"}
@@ -121,7 +121,7 @@ The refund in both tabs is for 250, so the rule fires. In ours the run does not 
 ::::tabs
 :::listing[Our SDK]{#paused-ours file="packages/sdk/examples/12-approval-gate.ts" region="paused"}
 ::note[The run ends `awaiting_approval`. The call has no result yet.]{#ends}
-::note[`result.pending` holds a signed request for the waiting call.]{#pending}
+::note[`result.pending` holds a signed request for the waiting call, and `verifyResolution()` accepts it under the run's signer.]{#pending}
 ::note[The refund has not run.]{#not-run}
 :::
 :::listing[Cloudflare Agents]{#paused file="verify/cloudflare-agents/examples/06-tool-approval.ts" region="paused"}
