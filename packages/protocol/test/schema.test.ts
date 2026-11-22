@@ -1,21 +1,24 @@
 // The JSON Schema of the entry union: the committed file is what the generator writes now, every fixture validates
-// against it, the changes a reader must reject do not, and the field names of every entry match the type's.
+// against it, the changes a reader must reject do not, and each entry's schema lists its fixtures' fields. `pnpm typecheck` also
+// compares the types (schema-check/types.ts).
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import type { SessionEntry } from "@buildanagent/protocol";
+import { SESSION_ENTRY_TYPES } from "@buildanagent/protocol";
 import { Validator } from "@cfworker/json-schema";
 import { test } from "vitest";
-import { buildSessionEntrySchema, type MirroredEntry } from "../scripts/session-entry-schema.js";
+import { buildSessionEntrySchema } from "../scripts/session-entry-schema.js";
 import { FIXTURES } from "./fixtures.js";
 
 const committed = readFileSync(new URL("../schema/session-entry.schema.json", import.meta.url), "utf8");
 const validator = new Validator(JSON.parse(committed), "2020-12");
 
-type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
-type KeysByType<E extends { type: string }> = { [T in E["type"]]: keyof Extract<E, { type: T }> };
-// Field names only: zod writes an optional field as `a?: T | undefined`, which `exactOptionalPropertyTypes` tells
-// apart from `a?: T`, so the comparison leaves types out. The fixtures check the rest against the schema.
-const sameFields: Equal<KeysByType<SessionEntry>, KeysByType<MirroredEntry>> = true;
+/** The keys a schema branch lists for one entry type. */
+function schemaKeys(type: string): string[] {
+  const branches = (JSON.parse(committed) as { oneOf: { properties: Record<string, { const?: string }> }[] }).oneOf;
+  const branch = branches.find((candidate) => candidate.properties.type?.const === type);
+  assert.ok(branch, `the schema has a branch for ${type}`);
+  return Object.keys(branch.properties).sort();
+}
 
 test("the committed schema is what the generator writes now", () => {
   assert.equal(
@@ -25,8 +28,11 @@ test("the committed schema is what the generator writes now", () => {
   );
 });
 
-test("every entry type has the same field names in the type and in the schema's source", () => {
-  assert.equal(sameFields, true);
+test("each entry type's schema lists the fields its fixtures use, optional ones included", () => {
+  for (const type of SESSION_ENTRY_TYPES) {
+    const used = new Set(FIXTURES.filter((entry) => entry.type === type).flatMap((entry) => Object.keys(entry)));
+    assert.deepEqual(schemaKeys(type), [...used].sort(), type);
+  }
 });
 
 test("every fixture validates against the committed schema", () => {

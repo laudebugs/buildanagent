@@ -13,9 +13,10 @@ import { test } from "vitest";
 import { FIXTURES } from "./fixtures.js";
 
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+// Compile-time check: `pnpm typecheck` fails when the runtime list and the union name different types.
 const sameType: Equal<(typeof SESSION_ENTRY_TYPES)[number], SessionEntry["type"]> = true;
 
-test("SESSION_ENTRY_TYPES lists every type of the union, once each", () => {
+test("SESSION_ENTRY_TYPES lists every type of the union once, which pnpm typecheck enforces", () => {
   assert.equal(sameType, true);
   assert.equal(new Set(SESSION_ENTRY_TYPES).size, SESSION_ENTRY_TYPES.length);
   assert.equal(
@@ -57,6 +58,7 @@ test("parseEntry() refuses text that is not JSON, a value that is not an object,
     { ...entry, seq: -1 },
     { ...entry, seq: 1.5 },
     { ...entry, timestamp: 5 },
+    { ...entry, timestamp: "yesterday" },
     { ...entry, origin: "robot" },
   ];
   for (const input of bad) {
@@ -82,8 +84,11 @@ test("the protocol package depends on no harness package, in its manifest or its
   const declared = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies, ...manifest.peerDependencies });
   assert.ok(!declared.includes("@buildanagent/harness"));
   const src = new URL("../src/", import.meta.url);
-  for (const file of readdirSync(src)) {
-    assert.ok(!/@buildanagent\/harness/.test(readFileSync(new URL(file, src), "utf8")), `${file} imports the harness`);
+  const files = readdirSync(src, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile());
+  assert.ok(files.length > 0, "src/ has files to scan");
+  for (const file of files) {
+    const text = readFileSync(new URL(`${file.parentPath}/${file.name}`, "file:///"), "utf8");
+    assert.ok(!/@buildanagent\/harness/.test(text), `${file.name} imports the harness`);
   }
 });
 

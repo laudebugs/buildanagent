@@ -40,7 +40,7 @@
     "build": "node ../../scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
     "prepack": "pnpm run build && node ../../scripts/copy-licenses.mjs",
     "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.schema.json",
     "test": "vitest run",
     "schema": "tsx scripts/generate-schema.ts"
   },

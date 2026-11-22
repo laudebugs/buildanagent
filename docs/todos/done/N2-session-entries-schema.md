@@ -59,7 +59,7 @@ Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@
 
 ## Tests
 
-`packages/harness/test/session/entries.test.ts`, `schema.test.ts`.
+`packages/protocol/test/entries.test.ts` and `schema.test.ts`, where the union and its schema live, and `packages/harness/test/session/entries.test.ts` for the re-export.
 
 ## Docs to update
 
@@ -91,7 +91,7 @@ The session entry union now lives in `@buildanagent/protocol`, with a generated 
 - A `@stable` tag marks the five base fields, `formatVersion` and each entry's `type`, and a test counts them.
 
 **Decisions.**
-- **The generator is zod, not a type-based tool.** TypeScript 7.0.2's programmatic API is unstable, so `ts-json-schema-generator` and its kind cannot read our types. A zod description in `packages/protocol/scripts/session-entry-schema.ts` mirrors the hand-written types, and `z.toJSONSchema` writes the file. A type test compares the field names of every entry in the two, the fixtures check the rest against the schema, and a staleness test compares the committed file with the generator's output. zod and `@cfworker/json-schema` are dev dependencies of the protocol package, so its built JavaScript imports neither. N26 should reuse the generator for its own schema.
+- **The generator is zod, not a type-based tool.** TypeScript 7.0.2's programmatic API is unstable, so `ts-json-schema-generator` and its kind cannot read our types. A zod description in `packages/protocol/scripts/session-entry-schema.ts` mirrors the hand-written types, and `z.toJSONSchema` writes the file. A compile-time check in `schema-check/types.ts` (a second `tsc` run with `exactOptionalPropertyTypes` off, part of `pnpm typecheck`) requires the two to accept the same values, nested shapes included. A test compares each entry's field names with its fixtures, which catches an optional field that only one side has, and a staleness test compares the committed file with the generator's output. zod and `@cfworker/json-schema` are dev dependencies of the protocol package, so its built JavaScript imports neither. N26 should reuse the generator for its own schema.
 - **The protocol defines `PermissionMode`, `ApprovalPolicy` and `SandboxTier`.** The plan's `env_stamp` names them from the harness, which the protocol must not import, so the protocol owns the three unions and the harness later imports them.
 - **`turn_end.stopReason` imports the SDK's `RunResult`.** B11 is done, so the copied union is not needed.
 - **The tests sit beside the code, in `packages/protocol/test`.** The todo named `packages/harness/test/session`, but the union and its schema live in the protocol, so its tests do; the harness has one test that its entry re-exports the same values.

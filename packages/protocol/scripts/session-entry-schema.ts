@@ -1,9 +1,11 @@
 // The zod mirror of the session entry union, which `generate-schema.ts` turns into schema/session-entry.schema.json.
 // The hand-written types in src/entries.ts are the contract; this file only has to describe the same JSON. A type test
-// in test/schema.test.ts compares the field names of every entry, and the fixtures validate against the generated
-// schema, so a field added to one side and not the other fails a test. Nothing in src/ imports this file, so the
-// published package stays free of zod.
+// in test/schema.test.ts checks, at compile time, that the inferred type and `SessionEntry` accept the same values,
+// nested shapes included, so `pnpm typecheck` fails when either side changes alone. A runtime test compares each
+// entry's top-level field names with the fixtures'. Nothing in src/ imports this file, so the published package stays
+// free of zod.
 import { z } from "zod";
+import { TIMESTAMP_PATTERN } from "../src/entries.js";
 
 const OpaqueToken = z.strictObject({ api: z.string(), provider: z.string(), model: z.string(), value: z.string() });
 
@@ -48,7 +50,7 @@ const base = {
   id: z.string().min(1),
   parentId: z.string().nullable(),
   seq: z.number().int().min(0),
-  timestamp: z.string(),
+  timestamp: z.string().regex(TIMESTAMP_PATTERN),
   origin: z.enum(["user", "operator", "model", "tool", "harness"]),
 };
 
@@ -164,7 +166,6 @@ export function buildSessionEntrySchema(): Record<string, unknown> {
   const schema = z.toJSONSchema(SessionEntry, { target: "draft-2020-12", io: "output", reused: "inline" });
   return {
     ...schema,
-    $id: "https://buildanagent.fyi/schema/session-entry.schema.json",
     title: "SessionEntry",
     description:
       "One line of a buildanagent session file. The format version of the file is the formatVersion of its session_header entry.",
