@@ -57,7 +57,7 @@ const click = (x: number, y: number) => ({ type: "click" as const, x, y, button:
 const computerCall = (callId: string, ...actions: Record<string, unknown>[]) =>
   ({ type: "computer_call", callId, status: "completed", actions }) as never;
 
-function setup() {
+function setup(finalAnswer = "Paid invoice ACME-1042.") {
   const fake = fakeComputer();
   const asked: string[] = []; // every action `needsApproval` was asked about
   // #region computer-tool
@@ -74,7 +74,7 @@ function setup() {
     modelResponse([computerCall("c1", click(INVOICE_FIELD.x, INVOICE_FIELD.y))]),
     modelResponse([computerCall("c2", { type: "type", text: INVOICE_NUMBER }, { type: "keypress", keys: ["Tab"] })]), // book:note batch
     modelResponse([computerCall("c3", click(PAY_BUTTON.x, PAY_BUTTON.y))]), // book:note pay
-    [assistantMessage("Paid invoice ACME-1042.")],
+    [assistantMessage(finalAnswer)],
   ]);
   // #endregion
   const agent = new Agent({ name: "Accounts payable", model, tools: [computer] });
@@ -139,13 +139,22 @@ const resultFor = (request: { input: unknown }, callId: string) =>
 
 // b) A rejected click never reaches the computer.
 {
-  const { agent, log, page, model } = setup();
+  const unpaid = "The payment was not approved, so ACME-1042 is unpaid.";
+  const { agent, log, page, model } = setup(unpaid);
   const first = await runner.run(agent, "Pay invoice ACME-1042");
   const state = await RunState.fromString(agent, JSON.stringify(first.state));
   state.reject(first.interruptions[0]);
   const resumed = await runner.run(agent, state);
   check(!page.paid && log.length === 5, "after reject(), the computer receives no further action");
-  check(resumed.finalOutput === "Paid invoice ACME-1042.", "the model still gets its next turn after the rejection");
+  const rejected = resultFor(model.calls[3].request, "c3") as
+    | { output: { data: string; providerData?: { approvalStatus?: string } } }
+    | undefined;
+  check(
+    rejected?.output.providerData?.approvalStatus === "rejected" &&
+      !rejected.output.data.includes(screenshotOf("filled")),
+    "the model's next request holds a rejected result for c3 with a fallback image, not the page's screenshot",
+  );
+  check(resumed.finalOutput === unpaid, "the model still gets its next turn after the rejection and answers from it");
   model.assertComplete();
 }
 

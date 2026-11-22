@@ -112,8 +112,8 @@
     "file": "/home/user/buildanagent/verify/openai-agents-sdk/examples/13-computer-use-approval.ts",
     "outcome": "ran",
     "exit": 0,
-    "ms": 1172,
+    "ms": 718,
     "modelCalls": 0,
-    "tail": "ok - needsApproval was asked about every action, the batched ones included\nok - after approve() and resume, the Pay click reaches the computer\nok - the approved click runs once, followed by one screenshot\nok - the model's last request carries the receipt screenshot as the result of call c3\nok - the resumed run finishes with the model's answer\nok - after reject(), the computer receives no further action\nok - the model still gets its next turn after the rejection\nok - the model is offered one tool, the computer tool: no shell, file-editing or function tool"
+    "tail": "ok - after approve() and resume, the Pay click reaches the computer\nok - the approved click runs once, followed by one screenshot\nok - the model's last request carries the receipt screenshot as the result of call c3\nok - the resumed run finishes with the model's answer\nok - after reject(), the computer receives no further action\nok - the model's next request holds a rejected result for c3 with a fallback image, not the page's screenshot\nok - the model still gets its next turn after the rejection and answers from it\nok - the model is offered one tool, the computer tool: no shell, file-editing or function tool"
   }
 ]
