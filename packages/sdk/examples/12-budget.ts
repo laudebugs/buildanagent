@@ -47,9 +47,9 @@ check(adapter.calls.length === 1, "the refused call never reached the model"); /
 // #endregion
 
 // Literal checks, in nano-dollars. The first call cost 20 uncached tokens at $2, 3,960 cache-write tokens at $2.50 and
-// 30 output tokens at $10 per million. The projection prices the last call's 3,980 input and 30 output tokens, plus
-// 12 for the 30 characters of tool result added since (at 2.5 characters a token), at the dearest input rate, the
-// 1-hour cache write's $4, and the 500-token answer limit at $10.
+// 30 output tokens at $10 per million. The projection counts the last call's 3,980 input and 30 output tokens, plus 12
+// for the 30 characters of tool result added since (at 2.5 characters a token). It prices all of them at the dearest
+// input rate, the 1-hour cache write's $4, and adds the 500-token answer limit at $10.
 const nanos = (usd: number) => Math.round(usd * 1_000_000_000);
 check(
   spent === spentUsd && nanos(spentUsd) === 20 * 2_000 + 3_960 * 2_500 + 30 * 10_000,

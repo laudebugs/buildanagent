@@ -1,7 +1,7 @@
 // A model call that survives a failure and reuses a cached prefix, on the gateway. The gateway's Anthropic adapter
 // talks to a stub of the Messages API (examples/lib/stub.ts), so a retried failure, a cache write and a cache read all
-// happen on the real wire format: the stub answers an HTTP status the example queues, and reports cache tokens when it
-// sees a marked prefix a second time. The model-gateway chapter lists the code beside the AI SDK's, which retries via
+// happen on the real wire format: the stub answers an HTTP status the example queues, reports a cache write for a
+// marked prefix, and reports a cache read when it sees that prefix again. The model-gateway chapter lists the code beside the AI SDK's, which retries via
 // generateText and reads cache tokens from its mock model. Prices are Claude Sonnet 5.5's, from the shipped catalog.
 import { createModel, type Model, type ModelCallOptions } from "@buildanagent/gateway";
 import { check } from "./lib/check.js";
@@ -65,8 +65,8 @@ check(first.usage.cacheWrite["5m"] === tokensIn(policy), "the first call writes 
 check(cacheRead === tokensIn(policy), `the same prefix, sent again, reports cache-read tokens (${cacheRead})`);
 check(second.usage.cacheWrite["5m"] === 0, "the second call writes nothing");
 
-// Literal checks, in nano-dollars: Sonnet 5.5 costs $2 an uncached input token, $2.5 a cache write, $0.10 a cache
-// read and $10 an output token, per million. 3,973 prefix tokens, 7 or 5 question tokens, 20 output tokens.
+// Literal checks, in nano-dollars. Sonnet 5.5 costs, per million tokens, $2 for uncached input, $2.5 for a cache write,
+// $0.10 for a cache read and $10 for output. 3,973 prefix tokens, 7 or 5 question tokens, 20 output tokens.
 const cost = (message: { cost: { total: number | null } }) =>
   Math.round((message.cost.total ?? Number.NaN) * NANOS_PER_DOLLAR);
 check(cost(first) === 3973 * 2_500 + 7 * 2_000 + ANSWER_TOKENS * 10_000, "the first call is priced with a cache write");
