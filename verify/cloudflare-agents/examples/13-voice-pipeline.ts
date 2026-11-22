@@ -233,8 +233,8 @@ export async function test(env: Env, h: Harness) {
   const mark = inbox.length;
   ws.send(new Uint8Array([1, 0, 0, 0]).buffer);
   // The mixin can speak the first sentence before the model stream has closed, and the transcript records the model's
-  // response when it closes. Waiting for onFinish (which needs the AI SDK to read a few chunks ahead of the mixin)
-  // fixes the order; if an update shrinks that read-ahead, this wait times out instead of silently reordering.
+  // response when the stream closes. Waiting for onFinish fixes the order. onFinish fires only if the AI SDK reads a few
+  // chunks ahead of the mixin; if an update shrinks that read-ahead, this wait times out instead of silently reordering.
   check(
     await h.until(async () => (await agent.snapshot()).modelFinished === 2, 5000),
     "turn 2's model stream finished before the held sentence is checked",
