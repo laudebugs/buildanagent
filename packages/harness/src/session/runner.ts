@@ -546,19 +546,20 @@ export async function runTurn<H = unknown>(
   if (wrote) path = await session.path();
   await recordLoadout(harness, writer, model, tools, path);
   const turnContext = contextFor(harness, session, model, options);
-  // Between turns, before the input is written, the summary layer may replace an outgrown span with a summary.
-  if (
-    options.history === undefined &&
-    (await turnContext?.compact({ path, append: (origin, body) => writer.write(origin, body) }))
-  ) {
-    path = await session.path();
-  }
   const waiting = options.history === undefined ? unansweredCalls(path, true) : [];
   if (waiting.length > 0) {
     throw new HarnessError(
       "invalid_turn_options",
       `the session waits on tool calls with no result (${waiting.map((call) => call.callId).join(", ")}); resolve them before another turn, or pass history`,
     );
+  }
+  // Between turns, before the input is written, the summary layer may replace an outgrown span with a summary. It
+  // runs only once no call waits for a result, so a paused turn's own message is never in the span.
+  if (
+    options.history === undefined &&
+    (await turnContext?.compact({ path, signal, append: (origin, body) => writer.write(origin, body) }))
+  ) {
+    path = await session.path();
   }
   const history = options.history ?? contextOf(path).messages;
   await writeInput(writer, options, newId);

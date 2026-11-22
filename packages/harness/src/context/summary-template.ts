@@ -1,7 +1,21 @@
 /**
- * The summary request: a recall-first template with fixed sections, and a rule to keep exact identifiers. The sections
- * and the rule follow Pi's compaction prompt (MIT, `@earendil-works/pi-coding-agent` 1.5.2); the version names this
- * wording, so an entry says which template wrote its summary and a change to the wording is a new version.
+ * The summary request: a recall-first template with fixed sections, and a rule to keep exact identifiers. The system
+ * prompt and the sections are Pi's compaction prompt (`@earendil-works/pi-coding-agent` 1.5.2), copied from the text
+ * its summary call sends; the version names this wording, so an entry says which template wrote its summary and a change
+ * to the wording is a new version.
+ *
+ * Pi is MIT licensed, and its notice is kept here as the licence asks:
+ *
+ * MIT License. Copyright (c) 2025 Mario Zechner. Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+ * following conditions: The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 import type { Message, ModelContent } from "@buildanagent/gateway";
 

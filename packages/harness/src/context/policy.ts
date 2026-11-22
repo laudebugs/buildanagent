@@ -44,12 +44,24 @@ function checked(options: ContextPolicyOptions) {
 
 /** The summary layer's settings with their defaults. */
 function summarySettings(options: ContextPolicyOptions) {
-  return {
+  const settings = {
     tailTokens: DEFAULT_TAIL_TOKENS,
     toolOutputChars: DEFAULT_TOOL_OUTPUT_CHARS,
     maxOutputTokens: DEFAULT_SUMMARY_OUTPUT_TOKENS,
     ...options.summarize,
   };
+  const whole = (name: string, value: number, least: number) => {
+    if (!Number.isInteger(value) || value < least) {
+      throw new HarnessError("invalid_context_options", `summarize.${name} must be a whole number, ${least} or more`);
+    }
+  };
+  whole("tailTokens", settings.tailTokens, 1);
+  whole("toolOutputChars", settings.toolOutputChars, 0);
+  whole("maxOutputTokens", settings.maxOutputTokens, 1);
+  if (settings.capUsd !== undefined && !(Number.isFinite(settings.capUsd) && settings.capUsd >= 0)) {
+    throw new HarnessError("invalid_context_options", "summarize.capUsd must be a number, 0 or more");
+  }
+  return settings;
 }
 
 /** Creates a context policy. A layer left out of `layers` is on. */
@@ -93,11 +105,12 @@ export function createContextPolicy(options: ContextPolicyOptions = {}): Context
 
       return {
         interceptors: { afterToolCall, transformContext },
-        compact: async ({ path, append }) =>
+        compact: async ({ path, append, signal }) =>
           summarizing &&
           (await compact({
             path,
             append,
+            signal,
             model,
             settings,
             budgetTokens: budget,

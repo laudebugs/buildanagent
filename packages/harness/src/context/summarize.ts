@@ -27,6 +27,8 @@ export interface CompactInput {
   readonly budgetTokens: number;
   readonly hooks: ContextHooks;
   readonly log: CompactionLog | undefined;
+  /** Stops the summary call when the turn is aborted. */
+  readonly signal?: AbortSignal | undefined;
 }
 
 const ZERO_USAGE = {
@@ -60,7 +62,15 @@ export function tailStart(messages: readonly Message[], tailTokens: number): num
   return start;
 }
 
-/** Money spent so far, from the `usage` entries; `null` when a call's price is unknown. */
+/** The reason the summary request cannot fit the summary model's window, or `undefined` when it fits. */
+function tooLongFor(model: Model, request: ModelContext, maxOutputTokens: number): string | undefined {
+  const chars = request.messages.reduce((sum, message) => sum + charsOf(message), request.system.length);
+  const room = model.caps.contextWindow - maxOutputTokens;
+  if (tokensOfChars(chars) <= room) return undefined;
+  return `the span is about ${tokensOfChars(chars)} tokens, more than the summary model's window leaves room for (${room})`;
+}
+
+/** Money spent on the branch so far, from the `usage` entries from the root to HEAD; `null` when a call's price is unknown. */
 function spentUsd(path: readonly SessionEntry[]): number | null {
   let total = 0;
   for (const entry of path) {
@@ -154,9 +164,14 @@ async function summarise(
     tools: [],
   };
   const callOptions = { cacheRetention: "none" as const, maxOutputTokens: settings.maxOutputTokens };
+  const tooLong = tooLongFor(model, request, settings.maxOutputTokens);
+  if (tooLong !== undefined) return { skip: tooLong };
   const reason = overCap(input.path, projectCallCost(model, request, callOptions).total, settings.capUsd);
   if (reason !== undefined) return { skip: reason };
-  const message = await model.complete(request, callOptions);
+  const message = await model.complete(request, {
+    ...callOptions,
+    ...(input.signal === undefined ? {} : { signal: input.signal }),
+  });
   return { summary: summaryOf(message), message, model };
 }
 
@@ -179,8 +194,9 @@ export async function compact(input: CompactInput): Promise<boolean> {
     return false;
   }
   const usageEntryId = await writeUsage(input, made.message);
-  if (made.summary === "" || made.message?.stopReason === "error") {
-    skipped("the summary call returned no usable summary");
+  // A reply that stopped for any reason but its own end, such as the output limit, is cut off and would replace the span for good.
+  if (made.summary === "" || (made.message !== undefined && made.message.stopReason !== "stop")) {
+    skipped(`the summary call returned no usable summary (${made.message?.stopReason ?? "empty"})`);
     return false;
   }
   const hooked = made.message === undefined;

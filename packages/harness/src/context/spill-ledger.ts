@@ -1,4 +1,5 @@
 /** The spills of one session, in log order: which file holds the full text of each capped tool result. */
+import { entriesAfterCompaction } from "../session/rebuild.js";
 import type { Session } from "../session/session.js";
 
 /** Where a capped result's full text went. An empty path means the result was never spilled. */
@@ -22,7 +23,8 @@ export class SpillLedger {
   }
 
   async #read(): Promise<void> {
-    for (const entry of await this.#session.path()) {
+    // Only the results the compacted context still holds, so a result's place here is its place in the view.
+    for (const entry of entriesAfterCompaction(await this.#session.path()).entries) {
       if (entry.type === "tool_result") this.remember(entry.callId, entry.spill ?? NO_SPILL);
     }
   }

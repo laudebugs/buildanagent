@@ -1,6 +1,7 @@
 // Layer 3: between turns, an outgrown span becomes a summary in a `compaction` entry, and the originals stay.
 import assert from "node:assert/strict";
-import { createModel, type Message, type Model } from "@buildanagent/gateway";
+import { createModel, type Message, type Model, type PriceCatalog } from "@buildanagent/gateway";
+import { isHarnessError } from "@buildanagent/harness";
 import {
   type CompactionRecord,
   type ContextPolicyOptions,
@@ -17,8 +18,24 @@ import { describe, test } from "vitest";
 import { tailStart } from "../../src/context/summarize.js";
 import { KEY, memoryBackend } from "../session/session-helpers.js";
 
+const SOURCE = "https://provider.test/pricing";
+const CATALOG: PriceCatalog = {
+  models: [
+    {
+      provider: "scripted",
+      id: "priced",
+      rates: [{ uncachedInput: 3, cacheRead: 0, cacheWrite: { "5m": 0, "1h": 0 }, output: 15, upToInputTokens: null }],
+      contextWindow: 200_000,
+      maxOutputTokens: 4000,
+      asOf: "2026-11-01",
+      sources: { rates: SOURCE, contextWindow: SOURCE, maxOutputTokens: SOURCE },
+    },
+  ],
+};
+
 const model = (adapter: ScriptedModel, id: string) => createModel({ adapter, id, retries: 0 }) as Model;
 const reply = (text: string, reasoning?: string) => ({
+  usage: {},
   content: [
     ...(reasoning === undefined ? [] : [{ type: "reasoning" as const, text: reasoning, signature: "sig-1" as never }]),
     { type: "text" as const, text },
@@ -26,7 +43,11 @@ const reply = (text: string, reasoning?: string) => ({
 });
 const LONG = `Please remember the file src/billing/invoice.ts and the error E_INVOICE_TOTAL. ${"Background detail. ".repeat(60)}`;
 
-async function setup(options: Partial<ContextPolicyOptions> = {}, summarize: SummarizeSettings = {}) {
+async function setup(
+  options: Partial<ContextPolicyOptions> = {},
+  summarize: SummarizeSettings = {},
+  catalog?: PriceCatalog,
+) {
   const main = new ScriptedModel([reply("First answer.", "thinking about it"), reply("Second answer.")]);
   const summary = new ScriptedModel([reply("## Goal\nFix E_INVOICE_TOTAL in src/billing/invoice.ts")]);
   const records: CompactionRecord[] = [];
@@ -40,7 +61,10 @@ async function setup(options: Partial<ContextPolicyOptions> = {}, summarize: Sum
   });
   const harness = createHarness({
     registry: createToolRegistry(),
-    model: model(main, "main-model"),
+    model:
+      catalog === undefined
+        ? model(main, "main-model")
+        : (createModel({ adapter: main, id: "priced", catalog, retries: 0 }) as Model),
     system: "You help.",
     context,
   });
@@ -168,6 +192,52 @@ describe("the summary layer", () => {
     await runTurn(session, harness, { input: "Next?" });
     assert.equal(summary.calls.length, 0);
     assert.equal((await entries()).filter((e) => e.type === "compaction").length, 0);
+  });
+});
+
+describe("the summary call's guards", () => {
+  test("a priced summary whose projected cost passes the cap is skipped with the cap named", async () => {
+    const summary = new ScriptedModel([reply("never asked")]);
+    const priced = createModel({ adapter: summary, id: "priced", catalog: CATALOG, retries: 0 }) as Model;
+    const { records, harness, session } = await setup({}, { model: priced, capUsd: 0.0000001 }, CATALOG);
+    await runTurn(session, harness, { input: LONG });
+    await runTurn(session, harness, { input: "Next?" });
+    assert.equal(summary.calls.length, 0);
+    assert.ok(records.some((r) => r.event === "skipped" && r.detail.includes("past its cap")));
+  });
+
+  test("a summary the model cut off at its output limit is not stored", async () => {
+    const cutOff = new ScriptedModel([{ content: [{ type: "text", text: "## Goal\nFix the" }], stopReason: "length" }]);
+    const { records, harness, session, entries } = await setup({}, { model: model(cutOff, "summary-model") });
+    await runTurn(session, harness, { input: LONG });
+    await runTurn(session, harness, { input: "Next?" });
+    assert.equal((await entries()).filter((e) => e.type === "compaction").length, 0);
+    assert.ok(records.some((r) => r.event === "skipped" && r.detail.includes("length")));
+  });
+
+  test("a span too long for the summary model's window is skipped before the call", async () => {
+    const small = new ScriptedModel([reply("never asked")], {
+      caps: { contextWindow: 200, maxOutputTokens: 100, images: false, reasoning: false },
+    });
+    const { records, harness, session } = await setup({}, { model: model(small, "small-window"), maxOutputTokens: 50 });
+    await runTurn(session, harness, { input: LONG });
+    await runTurn(session, harness, { input: "Next?" });
+    assert.equal(small.calls.length, 0);
+    assert.ok(records.some((r) => r.event === "skipped" && r.detail.includes("window")));
+  });
+
+  test("a summary setting that is not usable is refused", () => {
+    for (const summarize of [
+      { tailTokens: 0 },
+      { toolOutputChars: -1 },
+      { maxOutputTokens: 0 },
+      { capUsd: Number.NaN },
+    ]) {
+      assert.throws(
+        () => createContextPolicy({ spill: memorySpillStore(), summarize }),
+        (error: unknown) => isHarnessError(error) && error.code === "invalid_context_options",
+      );
+    }
   });
 });
 

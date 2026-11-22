@@ -178,7 +178,7 @@ export function summaryMessage(summary: string): Message {
  * everything before its `firstKeptEntryId`. The kept tail loses its signed reasoning, because a block that follows the
  * edited span would carry a signature the summary made stale; blocks written after the compaction are untouched.
  */
-function entriesAfterCompaction(path: readonly SessionEntry[]): {
+export function entriesAfterCompaction(path: readonly SessionEntry[]): {
   readonly entries: readonly SessionEntry[];
   readonly summary: string | undefined;
 } {

@@ -58,7 +58,10 @@ export interface SummarizeSettings {
   readonly model?: Model;
   /** A hint that steers what the summary keeps; recorded on the entry. */
   readonly focus?: string;
-  /** The session's spend cap in US dollars. A summary whose projected cost would pass it is skipped. Default none. */
+  /**
+   * The session's spend cap in US dollars, counted over the entries from the root to HEAD, so a branch left behind by a
+   * re-run is not counted. A summary whose projected cost would pass it is skipped. Default none.
+   */
   readonly capUsd?: number;
 }
 
@@ -110,7 +113,12 @@ export interface TurnContext {
    * Summarises the session when its context is over the budget, before the turn's input is written. Returns whether it
    * wrote a `compaction` entry.
    */
-  compact(input: { readonly path: readonly SessionEntry[]; readonly append: AppendEntry }): Promise<boolean>;
+  compact(input: {
+    readonly path: readonly SessionEntry[];
+    readonly append: AppendEntry;
+    /** Stops the summary call when the turn is aborted. */
+    readonly signal?: AbortSignal;
+  }): Promise<boolean>;
   /** The fill after the latest request view. */
   fill(): ContextFill;
 }
