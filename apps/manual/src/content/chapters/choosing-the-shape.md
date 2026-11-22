@@ -2,7 +2,7 @@
 title: "Choosing the shape: buy, adopt or build, how to plan, and when subagents pay"
 summary: An agent's shape is three choices made before any prompt is written. This chapter sorts the SDKs by who owns the loop, says why to start planning with ReAct, separates workflows, routing and handoffs by who decides the next step, and runs one subagent to show what it keeps out of the parent's context and what it adds to the bill.
 opening: fact
-sources: [anthropic-multi-agent-research-system, claude-agent-sdk-hosting, claude-agent-sdk-overview, copilot-sdk-nodejs-readme, openai-agents-running-agents, pi-how-pi-works, ai-sdk-generate-text, cloudflare-agents-chat-agents, buildanagent-sdk-readme, liu-what-does-a-harness-buy, yao-react, del-rosario-plan-then-execute, shinn-reflexion]
+sources: [anthropic-multi-agent-research-system, claude-agent-sdk-hosting, claude-agent-sdk-overview, copilot-sdk-nodejs-readme, openai-agents-running-agents, pi-how-pi-works, ai-sdk-generate-text, cloudflare-agents-chat-agents, buildanagent-sdk-readme, liu-what-does-a-harness-buy, yao-react, del-rosario-plan-then-execute, shinn-reflexion, anthropic-building-effective-agents, adk-sequential-agents, adk-graph-routes, openai-agents-handoffs, openai-agents-orchestration]
 glossary: [agent, agent-loop, harness, react, plan-and-execute]
 switchTo: [B19b]
 ---
@@ -44,6 +44,42 @@ Plan-and-execute is the route-follower. A planner model writes the whole plan be
 Reflection adds a second pass. In Reflexion, an evaluator scores a finished attempt, the agent writes a verbal reflection on what went wrong and stores it in a memory, and the next trial starts with that memory. No weights change [@shinn-reflexion]. The authors report 91% pass@1 on HumanEval against 80.1% for GPT-4, and 77.1% on MBPP in Python against GPT-4's 80.1%, so the gain is not uniform. Reflexion needs something to reflect on, such as unit tests, and it reruns whole attempts: its loop runs until the evaluator passes or a trial limit is reached. Each reflection therefore costs another full run, and the multiple depends on how often the first attempt fails.
 
 No controlled benchmark that we found compares these patterns under identical models, as of November 2026, so the rule is ours. Start with ReAct, and add a plan or a reflection only for a failure you can name, such as steps that must happen in order or an attempt you can score by running tests. Then measure the change with the evals of [[ch:evals-observability-and-release]], because a pattern that adds calls has to show it adds passes.
+
+## Code, a classifier or the model can pick the next specialist, and each pick costs a different number of calls
+
+A support desk gets two kinds of message, "Where is my refund?" and "Why was I charged twice?", and each kind needs a specialist with its own prompt. [[ch:call-workflow-loop]] sorted the shapes by who decides the next step, and splitting the work among specialists asks that question again. There are three answers. In a workflow, your code fixes the order. In a router, your code or a classifier picks the branch. In a handoff, the model chooses to transfer the conversation.
+
+A workflow fixes the order. Anthropic's simplest form is prompt chaining: each model call processes the output of the previous one, and programmatic checks in between keep the run on track [@anthropic-building-effective-agents]. [[lst:sequential-order]] chains a writer and a reviewer in ADK. The sequential agent runs its sub-agents in the order listed, and no model decides that order [@adk-sequential-agents]. As of November 2026, ADK 2.5.0 deprecates this class in favour of graph-based workflows and says so when you construct one, so read the listing for the idea, which a graph keeps. The cost is countable before the run: two model calls.
+
+:::listing[A writer then a reviewer: code fixes the order, and a state key carries the draft]{#sequential-order file="verify/google-adk/examples/02-workflow-agents.ts" region="sequential"}
+::note[The writer's reply is saved in session state under the key draft.]{#writer}
+::note[The reviewer's instruction holds a placeholder that ADK fills from that state key before the call.]{#reviewer}
+::note[The list's order is the run's order, and no model chooses it.]{#order}
+:::
+
+A router adds a branch. Routing classifies an input and sends it to a specialised follow-up task, and it works when the categories are distinct and a classifier, whether a model or a plain algorithm, can tell them apart accurately [@anthropic-building-effective-agents]. In ADK's graph, a node emits a route value, and an edge map sends each value to a target node [@adk-graph-routes]. In [[lst:route-by-code]] a regular expression is the classifier: input with a digit takes one branch and any other input takes the other. Only the winning branch runs. The digit branch is a plain function and makes no model call, while the other makes one.
+
+:::listing[A route chosen by code: a digit sends the input down one branch and everything else down the other]{#route-by-code file="verify/google-adk/examples/03-graph-workflow.ts" region="routing"}
+::note[A regular expression picks the route, so no model is asked, and a router that misreads an input misreads it the same way every time.]{#route}
+::note[The edge map sends one route to a function node and the other to an agent node, because a graph treats an agent as one more node.]{#edges}
+:::
+
+A handoff lets the model decide. In the OpenAI Agents SDK, handoffs are represented to the model as tools. Listing a specialist under `handoffs` makes the SDK offer a tool for it, and when the model calls that tool, the specialist becomes the active agent for the rest of the turn [@openai-agents-handoffs; @openai-agents-orchestration]. By default the specialist receives the whole conversation so far [@openai-agents-handoffs]. [[lst:handoff-tool]] runs one, and its replay shows two model calls. The first is the triage agent's, which ends in the transfer. The second is the billing agent's, whose request holds the question, the transfer and its result, and which gives the answer.
+
+:::listing[A handoff: the model calls a transfer tool, and the specialist answers]{#handoff-tool file="verify/openai-agents-sdk/examples/03-handoff.ts" region="handoff" replay}
+::note[Listing billing under handoffs makes the SDK offer the model a tool named `transfer_to_Billing_agent`, which keeps the agent name's case where the documentation's example shows lowercase.]{#handoffs}
+::note[The run ends with the billing agent's answer, and the result names it as the last agent.]{#run}
+:::
+
+:::table[Three ways to pick a specialist, and what each costs before the specialist starts]{#pickers}
+| Shape | Who picks | Model calls to pick | What the specialist receives |
+| --- | --- | --- | --- |
+| Workflow | Your code, in a fixed order | None | The previous step's output, which your code passes on |
+| Router | Your code, or a classifier | None for code, one for a model | Whatever your code passes on |
+| Handoff | The conversation's model | One: the call that asks for the transfer | The whole conversation so far, unless you filter it |
+:::
+
+Who picks decides what can go wrong. Code never sends input to a branch it was not given, but it cannot read a message it has no rule for. A classifier reads the message and can misread it, at the price of one call. The model in a handoff reads the whole conversation, and only its prompt and the specialists' descriptions limit where it sends the work. OpenAI separates the handoff from a neighbouring pattern. Use a handoff when routing is part of the workflow and the specialist should own the next part of the conversation. Use an agent as a tool when the specialist should help with a subtask without taking over [@openai-agents-orchestration]. That second case is a subagent, and it is the next section.
 
 ## Exercises
 

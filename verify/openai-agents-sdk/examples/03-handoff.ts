@@ -14,9 +14,11 @@ const model = new ScriptedModel([
   // Billing agent answers.
   [assistantMessage("Billing here: your refund is on its way.")],
 ]);
+// #region handoff
 const billing = new Agent({ name: "Billing agent", handoffDescription: "Handles refunds and invoices", model });
-const triage = new Agent({ name: "Triage agent", instructions: "Route the user.", handoffs: [billing], model });
-const result = await runner.run(triage, "Where is my refund?");
+const triage = new Agent({ name: "Triage agent", instructions: "Route the user.", handoffs: [billing], model }); // book:note handoffs
+const result = await runner.run(triage, "Where is my refund?"); // book:note run
+// #endregion
 
 // handoffs.mdx says "Refund Agent" becomes `transfer_to_refund_agent`; 0.21.0 keeps the case and
 // only replaces spaces (`transfer_to_Refund_Agent`). See docs/reference/openai-agents-sdk/fact-check.md.
