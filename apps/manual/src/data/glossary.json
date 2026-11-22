@@ -158,5 +158,11 @@
     "term": "tool registry",
     "definition": "The one place a harness records every tool of every origin, built-in, extension or MCP. It gives each tool one canonical name, decides whether a request carries the tool's definition, and holds what permission rules and the log need to know about it.",
     "sources": ["buildanagent-harness-readme"]
+  },
+  {
+    "id": "deferred-tool",
+    "term": "deferred tool",
+    "definition": "A tool whose name the model can see but whose description and schema stay out of the request until the model searches for it and the harness loads the match.",
+    "sources": ["claude-agent-sdk-tool-search"]
   }
 ]

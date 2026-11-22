@@ -142,5 +142,13 @@
     "chapter": "testing-offline-and-a-first-agent",
     "illustration": null,
     "breaks": "A check knows only the rules you wrote; a game can go wrong in ways no rule names, and a check that holds for the right behaviour may hold for no behaviour at all."
+  },
+  {
+    "id": "hardware-store-back-room",
+    "concept": "deferred tools",
+    "analogy": "a hardware store that shelves the common tools and fetches the rest from the back room",
+    "chapter": "tools-at-scale",
+    "illustration": "back-room",
+    "breaks": "A clerk fetches a tool in a minute for the price of waiting; a deferred tool costs a round trip and the tokens of its definition, and it keeps costing those tokens each turn it stays loaded, so the shelf must hold the tools used most."
   }
 ]
