@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L11` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Publish and docs §2, PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) |
 | Round / milestone | Round L (publish and docs, added 2026-11-22) |
 | Depends on | [L9](../done/L9-publish-protocol-harness-cli-decision.md), [L10](L10-make-protocol-harness-cli-publishable.md), [N29](../done/N29-stdio-transport.md), [N30](N30-cli.md) |
