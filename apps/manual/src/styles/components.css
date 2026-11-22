@@ -107,6 +107,36 @@
   color: var(--color-text-muted);
 }
 
+/* The Contents page's resume link. public/scripts/reading.js shows it when this browser holds a reader's place. The
+   paragraph keeps the height of the link's two lines while the link is hidden, and each line stays one line, cut with
+   an ellipsis, so the contents under it never move when it appears. The full text stays in the link's name. */
+.resume {
+  min-height: calc(0.75rem * 1.4 + 0.15rem + var(--size-note) * 1.45);
+  margin: 0 0 1.5rem;
+}
+
+.resume__link {
+  display: block;
+  max-width: 100%;
+}
+
+.resume__action,
+.resume__where {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume__action {
+  margin-bottom: 0.15rem;
+}
+
+.resume__where {
+  font-size: var(--size-note);
+  line-height: 1.45;
+}
+
 /* Contents and sidebar */
 
 .contents {

@@ -38,6 +38,12 @@ export interface SandboxConformanceOptions {
     readonly command: (host: string) => readonly string[];
   };
   /**
+   * Variables the backend adds to a command's environment on its own, such as the proxy variables an OS sandbox sets so a
+   * program finds its network proxy. The environment case accepts these besides the given ones, and still fails on any
+   * other variable and on any credential.
+   */
+  readonly addedEnvironment?: readonly string[];
+  /**
    * The case that checks an abort and a timeout end the command's whole tree. `command` starts a background process,
    * writes its process id to the file `pid` in the workspace and then waits for it, and `isAlive` says whether a process
    * is still running. Without it the case skips, because a portable command that forks doesn't exist.
@@ -212,13 +218,16 @@ function workspaceCases(sandboxed: Sandboxed): readonly SandboxCase[] {
     },
     {
       name: "exec's environment holds only the variables it was given, and no credential",
-      run: sandboxed(async (sandbox) => {
+      run: sandboxed(async (sandbox, context) => {
         const given = { ALPHA: "1", BETA: "2" };
         const printed = finished(await exec(sandbox, ["env"], { env: given }));
         const lines = printed.stdout.split("\n").filter((line) => line !== "");
         const names = lines.map((line) => line.slice(0, line.indexOf("=")));
         check(lines.includes("ALPHA=1") && lines.includes("BETA=2"), "the given variables must reach the command");
-        const extra = names.filter((name) => !(name in given) && !ADDED_BY_RUNTIMES.has(name));
+        const addedByBackend = new Set(context.options.addedEnvironment ?? []);
+        const extra = names.filter(
+          (name) => !(name in given) && !ADDED_BY_RUNTIMES.has(name) && !addedByBackend.has(name),
+        );
         check(extra.length === 0, `the command saw variables that were not given: ${extra.join(", ")}`);
         check(!names.some((name) => CREDENTIALS.includes(name)), "no credential may be in the environment");
         return undefined;

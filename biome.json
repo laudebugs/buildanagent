@@ -91,6 +91,8 @@
         "!packages/*/src/testing/guards.ts",
         "!packages/*/src/testing/setup.ts",
         "!packages/harness/src/sandbox/none.ts",
+        "!packages/harness/src/sandbox/process.ts",
+        "!packages/harness/src/sandbox/srt/**",
         "!packages/harness/src/sandbox/spawn-env.ts"
       ],
       "linter": {

@@ -17,6 +17,11 @@ const nodeOnlyFiles = new Set([
   // sandbox entry still works on every target.
   "sandbox/none.ts",
   "sandbox/spawn-env.ts",
+  // The process runner that `none` and `srt` share, and the `srt` backend, run local processes, so they are Node-only
+  // by nature too. They load Node's modules the same way, and the `srt` backend has its own entry,
+  // `@buildanagent/harness/sandbox/srt`, which the portable `./sandbox` entry never imports.
+  "sandbox/process.ts",
+  "sandbox/srt/index.ts",
   // The harness's JSONL session store and file lock keep sessions, locks and pointers in files, so they are Node-only by
   // nature. They have their own entry, `@buildanagent/harness/session/jsonl`, and the portable `./session` entry
   // never imports them.

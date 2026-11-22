@@ -34,6 +34,8 @@
       "entry": ["schema-check/*.ts"]
     },
     // Scaffolds that name the packages they will import once their todos land.
-    "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] }
+    "packages/cli": { "ignoreDependencies": ["@buildanagent/harness"] },
+    // `mkfifo` is a system program the opt-in srt test runs to make a pipe, which Node can't make itself.
+    "packages/harness": { "ignoreBinaries": ["mkfifo"] }
   }
 }
