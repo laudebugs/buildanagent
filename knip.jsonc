@@ -25,8 +25,11 @@
     },
     "packages/sdk": {
       // The README checks load this globals file by the path their config names, and the examples are run by path
-      // (`pnpm exec tsx examples/01-one-call.ts`), so nothing imports them.
-      "entry": ["scripts/readme-globals.ts", "examples/*.ts"]
+      // (`pnpm exec tsx examples/01-one-call.ts`), so nothing imports them. The live run's runner is run by path from
+      // scripts/live/run.mjs as well.
+      "entry": ["scripts/readme-globals.ts", "examples/*.ts", "scripts/run-examples.mjs"],
+      // The types TypeScript reads for examples/lib/live.mjs; knip follows the import to the .mjs file instead.
+      "ignore": ["examples/lib/live.d.mts"]
     },
     "packages/protocol": {
       // The schema-check file is type-checked by `tsc` and never imported: it fails the build when the hand-written
