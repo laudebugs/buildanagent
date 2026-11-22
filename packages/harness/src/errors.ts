@@ -37,7 +37,8 @@ export type HarnessErrorCode =
   | "entry_too_large"
   | "invalid_session_entry"
   | "invalid_session_key"
-  | "session_corrupt";
+  | "session_corrupt"
+  | "invalid_completion_config";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -69,7 +70,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * not expect (`ConflictError`). `entry_too_large`: an entry is over the store's size bound (`EntryTooLargeError`).
  * `invalid_session_entry`: an entry is not valid or is out of place, such as a first entry that is not a header.
  * `invalid_session_key`: a user or session id the store can't use. `session_corrupt`: a log file has a bad line before
- * its last line.
+ * its last line. `invalid_completion_config`: `.agents/harness.json` is not JSON, or its `completionChecks` is not a list
+ * of commands.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";

@@ -417,6 +417,7 @@ class HarnessDispatcher<H> implements Dispatcher {
           running.run = undefined;
         },
         onContextFill: (fill) => this.emit(session, { type: "context_fill", tokens: fill.tokens, budget: fill.budget }),
+        onCompletionCheck: (entry) => this.emit(session, { type: "completion_check", entry }, entry.seq),
         onRun: (run) => {
           running.run = run;
           for (const apply of running.queued.splice(0)) apply(run);

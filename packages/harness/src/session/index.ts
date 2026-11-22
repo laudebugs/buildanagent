@@ -40,6 +40,27 @@ export {
   SESSION_ENTRY_TYPES,
 } from "@buildanagent/protocol";
 export {
+  type CompletionOutcome,
+  type CompletionSettings,
+  DEFAULT_CHECK_TIMEOUT_MS,
+  DENIED_EXIT_CODE,
+  DISCOVERED_SCRIPTS,
+  flagChanges,
+  gitSnapshotter,
+  HARNESS_CONFIG_PATH,
+  isTestFile,
+  MAX_FLAGS,
+  MAX_SNAPSHOT_FILE_BYTES,
+  MAX_SNAPSHOT_FILES,
+  type ResolvedChecks,
+  resolveChecks,
+  runCompletionCheck,
+  type SnapshotOptions,
+  type Snapshotter,
+  snapshotStart,
+  type WorkspaceSnapshot,
+} from "../completion/index.js";
+export {
   type Approvals,
   type ApprovalsOptions,
   createApprovals,
