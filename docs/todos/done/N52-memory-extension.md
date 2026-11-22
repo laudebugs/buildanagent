@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N52` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build harness §4, Stage 5](../../plans/build-harness.md#45-stage-5-adds-extensions-skills-and-the-mcp-client) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N21](../done/N21-builtin-tools.md), [N23](../done/N23-skills-context-files.md), [N33](../done/N33-retention-schema-docs.md) |
@@ -43,25 +43,25 @@ Build long-term memory for our agents as a removable extension, `@buildanagent/h
 
 ## Tasks
 
-- [ ] Write `MemoryRecord` and its on-disk form, one Markdown file per record with the fields in front matter, and document both in `packages/harness/README.md`.
-- [ ] Implement the five commands. Resolve each path to its canonical form, refuse any path outside `.agents/memory/`, URL-encoded traversal included, and refuse a `delete` or `rename` of the directory itself.
-- [ ] Build the index from the records, one line per record with its subject, type, trust and path, and cut it at 200 lines or 25 KB; say in the index when records were left out.
-- [ ] Read time only from the injected clock, and drop expired records from `view` and from the index.
-- [ ] Never renew `validated` on a read. Decide how a successful check against the record's source renews it, and record the choice in HD17.
-- [ ] Mark every write in a session that has received an `outputTrust: "untrusted"` tool result as low-trust, and set the low-trust expiry below each trusted period; record the periods in HD17.
-- [ ] On `delete`, remove the record and its index line, and add the ids of the entries that wrote or returned it to a purge list.
-- [ ] Add a targeted purge that rewrites a session into a new file with the marked entries' content removed and their `EntryBase` kept, and make N33's retention purge read the same list.
-- [ ] Make the extension removable: with it unloaded, no memory tool or index reaches the model.
+- [x] Write `MemoryRecord` and its on-disk form, one Markdown file per record with the fields in front matter, and document both in `packages/harness/README.md`.
+- [x] Implement the five commands. Resolve each path to its canonical form, refuse any path outside `.agents/memory/`, URL-encoded traversal included, and refuse a `delete` or `rename` of the directory itself.
+- [x] Build the index from the records, one line per record with its subject, type, trust and path, and cut it at 200 lines or 25 KB; say in the index when records were left out.
+- [x] Read time only from the injected clock, and drop expired records from `view` and from the index.
+- [x] Never renew `validated` on a read. Decide how a successful check against the record's source renews it, and record the choice in HD17.
+- [x] Mark every write in a session that has received an `outputTrust: "untrusted"` tool result as low-trust, and set the low-trust expiry below each trusted period; record the periods in HD17.
+- [x] On `delete`, remove the record and its index line, and add the ids of the entries that wrote or returned it to a purge list.
+- [x] Add a targeted purge that rewrites a session into a new file with the marked entries' content removed and their `EntryBase` kept, and make N33's retention purge read the same list.
+- [x] Make the extension removable: with it unloaded, no memory tool or index reaches the model.
 
 ## Acceptance criteria
 
-- [ ] A scripted model stores a record in one session and the next session's system prompt carries its index line
-- [ ] A `view` of `.agents/memory/../secrets.env`, or of its URL-encoded form, returns an error result and reads nothing
-- [ ] With the clock advanced 91 days past a project fact's last validation, `view` and the index both omit it; a read in between does not move that date
-- [ ] A write after an untrusted tool result is stored with `trust: "low"` and expires before a trusted record of the same type
-- [ ] After a `delete` and a targeted purge, no session file under the store contains the deleted fact, and every rewritten session still rebuilds
-- [ ] An index over 200 records stops at 200 lines, and one over 25 KB stops at 25 KB
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] A scripted model stores a record in one session and the next session's system prompt carries its index line
+- [x] A `view` of `.agents/memory/../secrets.env`, or of its URL-encoded form, returns an error result and reads nothing
+- [x] With the clock advanced 91 days past a project fact's last validation, `view` and the index both omit it; a read in between does not move that date
+- [x] A write after an untrusted tool result is stored with `trust: "low"` and expires before a trusted record of the same type
+- [x] After a `delete` and a targeted purge, no session file under the store contains the deleted fact, and every rewritten session still rebuilds
+- [x] An index over 200 records stops at 200 lines, and one over 25 KB stops at 25 KB
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -81,9 +81,16 @@ Build long-term memory for our agents as a removable extension, `@buildanagent/h
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+- `memoryExtension({ root, files, registry, clock?, sessionId?, secrets? })` from `@buildanagent/harness/memory` registers the `memory` tool (`view`, `create`, `str_replace`, `delete`, `rename` over `.agents/memory/` only) and loads a capped index (200 lines or 25 KiB); `@buildanagent/harness/memory/node` is the Node-only file store, which refuses a link anywhere on a path. It takes `files` and `registry` because the `Sandbox` interface has no list, delete or rename and the registry gives each tool's `outputTrust`.
+- Only a write renews a record; a read never does. Expiry: project facts 90 days after the last validation (30 low trust), preferences until changed (30 low trust), task records at session end or after 7 days (1 low trust). A write becomes low trust once an untrusted tool result is in the conversation.
+- A `delete` moves the record's call marks to a purge list; `purgeSession()` rewrites a session with the marked entries' content removed and their base fields kept, and `pruneSessions({ marks })` reports the marks it purges. Spill files, compaction summaries and the model's own repeated text can still hold a deleted fact until the retention purge.
+- Open for the owner: whether taint should be read from the log's `tool_result.trust` (a resumed session whose history was compacted away only becomes low trust again on a fresh untrusted result); nothing coordinates two processes writing the same memory folder; the 25 KB cap is read as 25 KiB and the expiry periods are our own choice (rows N52-4 and N52-6, ⚠️).
