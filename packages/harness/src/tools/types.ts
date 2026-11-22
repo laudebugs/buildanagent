@@ -80,7 +80,7 @@ export interface ToolRegistry {
   /**
    * Adds a tool and returns it as registered. Throws a `DuplicateToolError` when the canonical name or alias is
    * taken, and a `HarnessError`, code `invalid_tool_registration`, for a name, source or option that is unusable. An
-   * MCP tool whose server or tool name needs cleaning, holds `__`, starts or ends with `_` or runs past 64 characters gets a hash of its source
+   * MCP tool whose server or tool name needs cleaning, holds `__`, starts or ends with `_`, or runs past 64 characters gets a hash of its source
    * and name in its canonical name, so the name depends on the tool alone. Only a final name that is still taken throws.
    */
   register(tool: ToolRegistration): RegisteredTool;

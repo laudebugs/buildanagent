@@ -107,7 +107,10 @@ function trustOf(registration: ToolRegistration): OutputTrust {
   return isMcp(registration.source) || registration.remoteAgent === true ? "untrusted" : "trusted";
 }
 
-/** A wire description of a tool, enough to count its tokens. A Standard Schema describes itself, and `register()` refuses one that can't, so the empty object schema is only a type-safe fallback. */
+/**
+ * A wire description of a tool, enough to count its tokens. A Standard Schema describes itself, and `register()`
+ * refuses one that can't, so the empty object schema is only a fallback the types require.
+ */
 function wireOf(definition: ToolDefinition<unknown, unknown, unknown>): WireTool {
   const schema = definition.inputSchema as unknown as Record<string, unknown>;
   const standard = schema["~standard"] as { jsonSchema?: { input?(options: { target: string }): unknown } } | undefined;

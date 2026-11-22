@@ -50,10 +50,7 @@ export function toolSearchTool(
   options: ToolSearchOptions,
 ): ToolDefinition<{ query: string }, { activated: string[] }, unknown> {
   if (!(options?.activated instanceof Set)) {
-    throw new HarnessError(
-      "invalid_tool_registration",
-      "toolSearchTool() needs an activated set, because a search that records nothing activates nothing",
-    );
+    throw new HarnessError("invalid_tool_registration", "toolSearchTool() needs an activated set");
   }
   const max = options.maxResults ?? DEFAULT_MAX_RESULTS;
   if (!Number.isInteger(max) || max < 1) {
@@ -98,16 +95,16 @@ export function toolSearchTool(
 }
 
 /**
- * The interceptor that sends what tool search activated: each model call's `activeTools` is the tools the run would
- * send anyway, whatever their source, plus the activated names the registry holds, plus `tool_search`. Register
- * `toolSearchTool()` in the registry first, and take `registry.definitions()` after the last registration, because a
- * name the run was not given makes the SDK throw. Pass the same set to the tool, and a new one for each run.
+ * The interceptor that sends what tool search activated. Each model call's `activeTools` is the run's tools, plus
+ * `tool_search`, plus the activated names the registry holds. Register `toolSearchTool()` in the registry first, then
+ * take `registry.definitions()` after the last registration, because the SDK throws when `activeTools` names a tool the
+ * run does not hold. Pass the same set to the tool, and a new one for each run.
  */
 export function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors {
   if (!registry.list().some((tool) => tool.canonicalName === "tool_search")) {
     throw new HarnessError(
       "invalid_tool_registration",
-      "toolSearchInterceptors() needs the registry to hold the tool_search tool under that name, because activeTools is the complete list a request sends",
+      "toolSearchInterceptors() needs the registry to hold the tool_search tool under that name, because every request sends it by that name",
     );
   }
   return {

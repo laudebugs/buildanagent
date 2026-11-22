@@ -421,12 +421,12 @@ interface ToolRegistry {
   // throws DuplicateToolError; an MCP collision gets a deterministic suffix; replacing a built-in needs override: true
   setExposure(source: ToolSource, exposure: RegisteredTool["exposure"]): void;    // MCP defaults to "deferred"
   definitions<H>(wrap: ToolWrapper<H>, hostContext: H): ToolDefinition<any, any>[]; // per turn, for RunOptions.tools
-  activeTools(activated: ReadonlySet<string>): string[];                         // the registry's own tools a request sends; revision (N11): toolSearchInterceptors() builds its list from the request, so a tool from outside the registry stays
+  activeTools(activated: ReadonlySet<string>): string[];                         // the registry's own tools a request sends; revision (N11): toolSearchInterceptors() builds its list from the request, so a tool from outside the registry stays in it
   preambleTokens(options?: { system?: string }): number;                         // printed at session start; revision (N11): no model, the estimate is character-based
 }
 type ToolWrapper<H = unknown> = (tool: RegisteredTool, hostContext: H) => ToolDefinition<any, any>; // write cap, shadow mode, sandbox binding; the turn's host context
 declare function toolSearchTool(registry: ToolRegistry, options: { activated: Set<string>; maxResults?: number }): ToolDefinition<{ query: string }, { activated: string[] }>; // revision (N11): the caller owns the activated set
-declare function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors; // sends the run's own tools plus the activated ones
+declare function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors; // sends the run's tools plus the activated ones
 declare function builtinTools(sandbox: Sandbox, proxy?: EgressProxy): RegisteredTool[];  // read, write, edit, bash, fetch, grep, glob
 
 // @buildanagent/harness/mcp (guide §4; HD14)
