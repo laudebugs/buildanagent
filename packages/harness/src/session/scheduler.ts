@@ -61,6 +61,8 @@ function defaultSetTimer(callback: () => void, ms: number): unknown {
 /**
  * A `Scheduler` for a host that stays up: each wake is a timer, and the handlers registered with `onWake()` receive it.
  * Wakes do not survive the process, which is the point of the seam: a host that restarts supplies a scheduler that does.
+ * Wake times are wall-clock instants, so a clock that steps backward delays a wake by the step; a host that needs a wake
+ * on time through clock changes supplies its own scheduler.
  */
 export function processScheduler(options: ProcessSchedulerOptions = {}): ProcessScheduler {
   const now = options.now ?? Date.now;
