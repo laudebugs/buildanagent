@@ -350,8 +350,12 @@ describe("the deploy workflows", { skip }, () => {
     const before = names.indexOf("Check that no stable release exists yet");
     const newest = names.indexOf("Check that this commit is still main's newest");
     const deploy = names.indexOf("Deploy");
+    const ended = names.indexOf("Record when the deploy ended");
     const afterDeploy = names.indexOf("Check that no release deployed during this deploy");
-    assert.ok(before >= 0 && before < newest && newest === deploy - 1 && deploy < afterDeploy, names.join(", "));
+    assert.ok(
+      before >= 0 && before < newest && newest === deploy - 1 && ended === deploy + 1 && afterDeploy === ended + 1,
+      names.join(", "),
+    );
     assert.equal(steps(job)[before].if, "github.event_name == 'workflow_run'");
     assert.equal(steps(job)[newest].if, "github.event_name == 'workflow_run'");
     assert.equal(
@@ -359,11 +363,25 @@ describe("the deploy workflows", { skip }, () => {
       "github.event_name == 'workflow_dispatch' || " +
         "(steps.unreleased.outputs.deploy == 'true' && steps.newest.outputs.deploy == 'true')",
     );
-    assert.equal(
-      steps(job)[afterDeploy].if,
-      "github.event_name == 'workflow_run' && steps.deploy.outcome == 'success'",
-    );
+    for (const at of [ended, afterDeploy]) {
+      assert.equal(steps(job)[at].if, "github.event_name == 'workflow_run' && steps.deploy.outcome == 'success'");
+    }
+    assert.equal(steps(job)[deploy].id, "deploy");
+    assert.equal(steps(job)[ended].id, "ended");
     assert.equal(steps(job)[afterDeploy].env.STARTED, `\${{ steps.unreleased.outputs.started }}`);
+    assert.equal(steps(job)[afterDeploy].env.ENDED, `\${{ steps.ended.outputs.ended }}`);
+  });
+
+  // The check finds release deploys by their job's and step's names, so a rename must fail here, not switch it off.
+  test("docs-deploy's release check names production's own job and Deploy step, through env only", () => {
+    const job = SITES.docs.jobs.production;
+    const step = stepNamed(job, "Check that no release deployed during this deploy");
+    assert.equal(step.env.JOB_NAME, job.name);
+    assert.equal(step.env.STEP_NAME, steps(job).find((each) => each.id === "deploy").name);
+    assert.match(step.run, /--arg job "\$JOB_NAME" --arg step "\$STEP_NAME"/);
+    assert.match(step.run, /select\(\.name == \$job\)/);
+    assert.match(step.run, /select\(\.name == \$step and /);
+    assert.ok(!step.run.includes(job.name), "the job's name must come from env");
   });
 
   test("docs-deploy's next and site-deploy's production check main's tip just before they deploy", () => {
@@ -380,8 +398,17 @@ describe("the deploy workflows", { skip }, () => {
       const job = workflow.jobs.preview;
       const names = steps(job).map((step) => step.name);
       const open = names.indexOf("Check that the pull request is still open at this commit");
-      assert.ok(open >= 0 && names[open + 1] === "Deploy the preview", names.join(", "));
+      const late = "Delete the preview of a pull request that closed meanwhile";
+      assert.ok(open >= 0 && names[open + 1] === late && names[open + 2] === "Deploy the preview", names.join(", "));
       assert.doesNotMatch(JSON.stringify(steps(job)[open]), /secrets\./);
+      // The same script as the deletion job's, so both validate the number and run one Wrangler command.
+      assert.equal(stepNamed(job, late).if, "steps.open.outputs.delete == 'true'");
+      assert.equal(stepNamed(job, late).run, stepNamed(workflow.jobs["delete-preview"], "Delete the preview").run);
+      assert.equal(
+        stepNamed(job, late)["working-directory"],
+        stepNamed(workflow.jobs["delete-preview"], "Delete the preview")["working-directory"],
+      );
+      assert.deepEqual(stepNamed(job, late).env, stepNamed(workflow.jobs["delete-preview"], "Delete the preview").env);
       for (const name of ["Deploy the preview", "Record the preview's URLs"]) {
         assert.equal(stepNamed(job, name).if, "steps.open.outputs.deploy == 'true'", name);
       }
@@ -631,23 +658,37 @@ describe("the docs' dispatch and next", { skip }, () => {
 describe("the docs' stable-tag checks in production", { skip }, () => {
   const job = skip ? {} : SITES.docs.jobs.production;
   const before = skip ? "" : stepNamed(job, "Check that no stable release exists yet").run;
-  const afterScript = skip ? "" : stepNamed(job, "Check that no release deployed during this deploy").run;
+  const afterStep = skip ? {} : stepNamed(job, "Check that no release deployed during this deploy");
+  const endedScript = skip ? "" : stepNamed(job, "Record when the deploy ended").run;
   const TAGS = "repos/owner/repo/git/matching-refs/tags/v";
   const RUNS = "repos/owner/repo/actions/workflows/docs-deploy.yml/runs?event=workflow_dispatch&per_page=30";
   const jobsOf = (id) => `repos/owner/repo/actions/runs/${id}/jobs?per_page=100`;
   const STARTED = "2026-11-22T10:00:00Z";
+  const ENDED = "2026-11-22T10:10:00Z";
   const STABLE = [{ ref: "refs/tags/v0.1.0-alpha.3" }, { ref: "refs/tags/v0.1.0" }];
   const check = (answers) => runStep(before, { PATH: fakeGh(answers).PATH, REPO });
-  const checkAfter = (answers, started = STARTED) => {
+  // The job and step names come from the step's own env, which a test above ties to the production job.
+  const checkAfter = (answers, { started = STARTED, ended = ENDED } = {}) => {
     const gh = fakeGh(answers);
-    return { ...runStep(afterScript, { PATH: gh.PATH, REPO, STARTED: started }), calls: gh.calls() };
+    const { JOB_NAME, STEP_NAME } = afterStep.env;
+    const env = { PATH: gh.PATH, REPO, STARTED: started, ENDED: ended, JOB_NAME, STEP_NAME };
+    return { ...runStep(afterStep.run, env), calls: gh.calls() };
   };
-  const release = (id, updated_at) => ({ id, updated_at });
-  const deployJob = (conclusion, completed_at, name = "Deploy docs.buildanagent.fyi") => ({
+  const release = (id, updated_at, status = "completed") => ({ id, status, updated_at });
+  // A release run whose production job's Deploy step ended at completed_at, beside a build job with a Deploy step
+  // of its own, which must not count.
+  const deployJob = (conclusion, completed_at, name = skip ? "" : job.name) => ({
     jobs: [
       { name: "Build the docs at v0.1.0", steps: [{ name: "Deploy", conclusion: "success", completed_at }] },
       { name, steps: [{ name: "Deploy", conclusion, completed_at }] },
     ],
+  });
+
+  test("records the window's end a minute after the deploy ends", () => {
+    const result = runStep(endedScript, {});
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.outputs.ended, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.ok(Date.parse(result.outputs.ended) >= Date.now() + 58_000, result.outputs.ended);
   });
 
   test("lets the deploy go ahead while only prerelease tags exist, and records when its window opens", () => {
@@ -685,7 +726,7 @@ describe("the docs' stable-tag checks in production", { skip }, () => {
     assert.doesNotMatch(result.stdout, /::error::/);
   });
 
-  test("ignores release runs from before the window, and ones whose deploy failed, finished earlier or is another job's", () => {
+  test("ignores release runs from before the window, and ones whose deploy failed, ended earlier or is another job's", () => {
     const result = checkAfter({
       [TAGS]: STABLE,
       [RUNS]: {
@@ -702,22 +743,66 @@ describe("the docs' stable-tag checks in production", { skip }, () => {
       [jobsOf(4)]: deployJob("success", "2026-11-22T10:05:00Z", "Deploy next.docs.buildanagent.fyi"),
     });
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /::notice::/);
+    assert.match(result.stdout, /::notice::A stable release was tagged during this push's deploy/);
     assert.ok(!result.calls.includes(jobsOf(1)), result.calls.join(", "));
   });
 
-  test("fails loudly when a release's deploy succeeded during this deploy", () => {
-    const result = checkAfter({
-      [TAGS]: STABLE,
-      [RUNS]: { workflow_runs: [release(9, "2026-11-22T10:06:00Z")] },
-      [jobsOf(9)]: deployJob("success", "2026-11-22T10:05:00Z"),
-    });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stdout, /::error::Release deploy run 9 /);
+  test("fails loudly when a release's deploy succeeded inside the window, at either edge too", () => {
+    for (const completed of ["2026-11-22T10:05:00Z", STARTED, ENDED]) {
+      const result = checkAfter({
+        [TAGS]: STABLE,
+        [RUNS]: { workflow_runs: [release(9, "2026-11-22T10:11:00Z")] },
+        [jobsOf(9)]: deployJob("success", completed),
+      });
+      assert.notEqual(result.status, 0, completed);
+      assert.match(result.stdout, /::error::Release deploy run 9 /, completed);
+    }
   });
 
-  test("fails on a window start, a run id or a job list it cannot trust, and on a failed lookup", () => {
-    assert.notEqual(checkAfter({ [TAGS]: STABLE, [RUNS]: { workflow_runs: [] } }, "now; rm -rf /").status, 0);
+  test("passes with a notice when a release's deploy ended after the window, so the release is live", () => {
+    const result = checkAfter({
+      [TAGS]: STABLE,
+      [RUNS]: { workflow_runs: [release(9, "2026-11-22T10:12:00Z")] },
+      [jobsOf(9)]: deployJob("success", "2026-11-22T10:10:01Z"),
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /::error::/);
+    assert.match(result.stdout, /::notice::Release deploy run 9 finished after this push's deploy/);
+  });
+
+  test("reads a release run still in progress even if its updated_at predates the window, and lets it finish", () => {
+    const running = {
+      jobs: [
+        {
+          name: job.name,
+          status: "in_progress",
+          steps: [{ name: "Deploy", status: "in_progress", conclusion: null, completed_at: null }],
+        },
+      ],
+    };
+    const result = checkAfter({
+      [TAGS]: STABLE,
+      [RUNS]: { workflow_runs: [release(8, "2026-11-22T09:30:00Z", "in_progress")] },
+      [jobsOf(8)]: running,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.calls.includes(jobsOf(8)), result.calls.join(", "));
+    assert.match(result.stdout, /::notice::A stable release was tagged during this push's deploy/);
+    // The same run, had its Deploy already succeeded inside the window, fails the check.
+    const done = checkAfter({
+      [TAGS]: STABLE,
+      [RUNS]: { workflow_runs: [release(8, "2026-11-22T09:30:00Z", "in_progress")] },
+      [jobsOf(8)]: deployJob("success", "2026-11-22T10:05:00Z"),
+    });
+    assert.notEqual(done.status, 0);
+    assert.match(done.stdout, /::error::Release deploy run 8 /);
+  });
+
+  test("fails on a window edge, a run id or a job list it cannot trust, and on a failed lookup", () => {
+    const none = { [TAGS]: STABLE, [RUNS]: { workflow_runs: [] } };
+    assert.notEqual(checkAfter(none, { started: "now; rm -rf /" }).status, 0);
+    assert.notEqual(checkAfter(none, { ended: "" }).status, 0);
+    assert.notEqual(checkAfter(none, { ended: "2026-11-22T10:10:00Z\nx" }).status, 0);
     for (const id of ["1 x", "*", "0"]) {
       const result = checkAfter({ [TAGS]: STABLE, [RUNS]: { workflow_runs: [release(id, STARTED)] } });
       assert.notEqual(result.status, 0, id);
@@ -774,6 +859,31 @@ describe("the re-check of main's newest commit before a push deploys", { skip },
   }
 });
 
+// Runs a deletion script with a stand-in pnpm that logs its arguments and exits with the given status.
+function runDeletion(script, number, status) {
+  const at = mkdtempSync(join(work, "delete-"));
+  mkdirSync(join(at, "bin"));
+  writeFileSync(join(at, "bin", "pnpm"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${at}/args"\nexit ${status}\n`);
+  chmodSync(join(at, "bin", "pnpm"), 0o755);
+  const result = spawnSync("bash", ["-e", "-c", script], {
+    cwd: at,
+    encoding: "utf8",
+    env: {
+      PATH: `${join(at, "bin")}:${process.env.PATH ?? ""}`,
+      GITHUB_OUTPUT: join(at, "output"),
+      NUMBER: number,
+      DELETED_DIR: join(at, "deleted"),
+    },
+  });
+  const marker = join(at, "deleted", "deleted.txt");
+  return {
+    ...result,
+    args: existsSync(join(at, "args")) ? readFileSync(join(at, "args"), "utf8").trim().split("\n") : null,
+    marker: existsSync(marker) ? readFileSync(marker, "utf8") : null,
+    output: existsSync(join(at, "output")) ? readFileSync(join(at, "output"), "utf8") : "",
+  };
+}
+
 for (const name of ["docs", "site"]) {
   const WORKER = WORKERS[name];
   const ALIAS = `https://pr-7-${WORKER}.example.workers.dev`;
@@ -789,14 +899,39 @@ for (const name of ["docs", "site"]) {
       return { ...runStep(script, { PATH: gh.PATH, REPO, NUMBER: number, HEAD_SHA: SHA }), calls: gh.calls() };
     };
 
+    const late = skip
+      ? {}
+      : stepNamed(SITES[name].jobs.preview, "Delete the preview of a pull request that closed meanwhile");
+
     test("deploys while the pull request is open, from a branch of this repository, at this commit", () => {
       const result = check(pull(7));
       assert.equal(result.status, 0, result.stderr);
       assert.equal(result.outputs.deploy, "true");
+      assert.equal(result.outputs.delete, undefined);
     });
 
+    // This job may have replaced the closed pull request's waiting deletion in their shared queue.
     for (const [label, pr] of [
       ["closed after resolve", pull(7, { state: "closed" })],
+      ["closed after resolve, at a newer commit", pull(7, { state: "closed", sha: OTHER })],
+    ]) {
+      test(`deletes the preview instead of deploying it when the pull request ${label}`, () => {
+        const result = check(pr);
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.outputs.deploy, "false");
+        assert.equal(result.outputs.delete, "true");
+        assert.match(result.stdout, /::notice::.*deleted instead of deployed/);
+        const deleted = runDeletion(late.run, "7", 0);
+        assert.equal(deleted.status, 0, deleted.stderr);
+        assert.deepEqual(deleted.args.slice(0, 4), ["exec", "wrangler", "preview", "delete"]);
+        assert.deepEqual(deleted.args.slice(-3), ["--name", "pr-7", "--skip-confirmation"]);
+        assert.equal(runDeletion(late.run, "7 --name pr-1", 0).args, null);
+      });
+    }
+
+    for (const [label, pr] of [
+      ["closed, from a fork", pull(7, { state: "closed", head: "fork/repo" })],
+      ["closed, from a fork since deleted", { ...pull(7, { state: "closed" }), head: { sha: SHA, repo: null } }],
       ["moved on to a new head SHA", pull(7, { sha: OTHER })],
       ["now from a fork", pull(7, { head: "fork/repo" })],
       ["from a fork since deleted", { ...pull(7), head: { sha: SHA, repo: null } }],
@@ -805,6 +940,7 @@ for (const name of ["docs", "site"]) {
         const result = check(pr);
         assert.equal(result.status, 0, result.stderr);
         assert.equal(result.outputs.deploy, "false");
+        assert.equal(result.outputs.delete, undefined);
         assert.match(result.stdout, /::notice::/);
       });
     }
@@ -880,30 +1016,7 @@ for (const name of ["docs", "site"]) {
   describe(`the ${name} preview's deletion`, { skip }, () => {
     const step = skip ? {} : stepNamed(SITES[name].jobs["delete-preview"], "Delete the preview");
 
-    // A stand-in pnpm that logs its arguments and exits with the given status.
-    function deleteWith(number, status) {
-      const at = mkdtempSync(join(work, "delete-"));
-      mkdirSync(join(at, "bin"));
-      writeFileSync(join(at, "bin", "pnpm"), `#!/bin/bash\nprintf '%s\\n' "$@" > "${at}/args"\nexit ${status}\n`);
-      chmodSync(join(at, "bin", "pnpm"), 0o755);
-      const result = spawnSync("bash", ["-e", "-c", step.run], {
-        cwd: at,
-        encoding: "utf8",
-        env: {
-          PATH: `${join(at, "bin")}:${process.env.PATH ?? ""}`,
-          GITHUB_OUTPUT: join(at, "output"),
-          NUMBER: number,
-          DELETED_DIR: join(at, "deleted"),
-        },
-      });
-      const marker = join(at, "deleted", "deleted.txt");
-      return {
-        ...result,
-        args: existsSync(join(at, "args")) ? readFileSync(join(at, "args"), "utf8").trim().split("\n") : null,
-        marker: existsSync(marker) ? readFileSync(marker, "utf8") : null,
-        output: existsSync(join(at, "output")) ? readFileSync(join(at, "output"), "utf8") : "",
-      };
-    }
+    const deleteWith = (number, status) => runDeletion(step.run, number, status);
 
     test("deletes pr-<n> from main's config and leaves the marker", () => {
       const result = deleteWith("7", 0);
