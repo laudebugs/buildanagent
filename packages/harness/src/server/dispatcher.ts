@@ -441,9 +441,8 @@ class HarnessDispatcher<H> implements Dispatcher, ConnectionHost {
    */
   async #open(connection: ServerConnection, params: Command<"session/open">["params"]): Promise<Dispatched> {
     const id = params.session ?? "";
+    // The schema check has already refused a fromSeq that is not a whole number of at least 0.
     const { fromSeq } = params;
-    if (fromSeq !== undefined && !(Number.isInteger(fromSeq) && fromSeq >= 0))
-      throw failure(ErrorCodes.InvalidParams, "fromSeq must be a whole number of at least 0");
     if (!connection.hold(id)) throw failure(ErrorCodes.InvalidParams, `session ${JSON.stringify(id)} is being opened`);
     try {
       return await this.#openHeld(connection, id, params.cwd, fromSeq);
