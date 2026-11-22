@@ -3,8 +3,8 @@
   "example": "05-thread-memory",
   "file": "verify/langchain/examples/05-thread-memory.ts",
   "harness": "verify/langchain",
-  "pin": "langchain@1.6.1",
-  "mock": "@langchain/core@1.3.4",
+  "pin": "langchain@1.6.6",
+  "mock": "@langchain/core@1.4.1",
   "events": [
     {
       "kind": "request",
