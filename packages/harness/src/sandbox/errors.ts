@@ -1,6 +1,6 @@
-/** The sandbox's two named errors, each a `HarnessError` with its own code and its own fields. */
+/** The sandbox's four named errors, each a `HarnessError` with its own code and its own fields. */
 import { HarnessError } from "../errors.js";
-import type { SandboxDenial } from "./types.js";
+import type { SandboxCapability, SandboxDenial } from "./types.js";
 
 /** Thrown by `provision()` when a backend can't start, such as a missing binary. The host must not run unconfined. */
 export class SandboxUnavailableError extends HarnessError {
@@ -25,5 +25,48 @@ export class SandboxDeniedError extends HarnessError {
       `the sandbox denied a ${denial.kind.replace("_", " ")} of ${denial.target}: ${denial.reason}`,
     );
     this.denial = denial;
+  }
+}
+
+/**
+ * Thrown when the policy a backend read back from what it applied differs from the policy it was asked for, after
+ * `provision()` or a resume. After `provision()` the sandbox is disposed before the error is thrown, so nothing runs
+ * under the wrong policy; after `resumeSandbox()` it is left to the caller, who decides whether to dispose it. `field`
+ * names the first field that differs, such as `network.allow`. The message names only the field and, for `stops`, the
+ * cause, never a path or host from either policy.
+ */
+export class SandboxPolicyMismatchError extends HarnessError {
+  override readonly name = "SandboxPolicyMismatchError";
+  /**
+   * What differs: `readRoots`, `writeRoots`, `network.allow` or `network.deny` for the first field that differs;
+   * `stops` when the applied policy can't deliver a stop the backend claims; `readBack` when a backend that claims a
+   * stop has no read-back or its read-back fails; and `settings` when a settings file isn't in the shape its backend
+   * writes.
+   */
+  readonly field: string;
+
+  /** `options.reason` says why a claimed stop isn't delivered, and must not hold a path or host of either policy. */
+  constructor(field: string, options?: ErrorOptions & { readonly reason?: string }) {
+    const { reason, ...rest } = options ?? {};
+    super(
+      "sandbox_policy_mismatch",
+      reason === undefined
+        ? `the sandbox applied a policy that differs from the one requested, in ${field}`
+        : `the sandbox can't deliver the ${field} its backend claims: ${reason}`,
+      rest,
+    );
+    this.field = field;
+  }
+}
+
+/** Thrown by `resumeSandbox()`, `snapshotSandbox()` and `pauseSandbox()` for a capability the backend doesn't list. */
+export class SandboxUnsupportedError extends HarnessError {
+  override readonly name = "SandboxUnsupportedError";
+  /** The capability that was asked for. */
+  readonly capability: SandboxCapability;
+
+  constructor(capability: SandboxCapability, tier: string) {
+    super("sandbox_unsupported", `this ${tier}-tier sandbox backend can't ${capability}`);
+    this.capability = capability;
   }
 }

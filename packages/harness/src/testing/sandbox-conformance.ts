@@ -6,7 +6,23 @@
  */
 
 import { isHarnessError } from "../errors.js";
-import type { ExecResult, Sandbox, SandboxClient, SandboxDenial, SandboxPolicy } from "../sandbox/types.js";
+import {
+  confirmPolicy,
+  hasCapability,
+  pauseSandbox,
+  policyDifference,
+  resumeSandbox,
+  snapshotSandbox,
+  stopsFor,
+} from "../sandbox/policy.js";
+import type {
+  ExecResult,
+  Sandbox,
+  SandboxCapability,
+  SandboxClient,
+  SandboxDenial,
+  SandboxPolicy,
+} from "../sandbox/types.js";
 import { type CaseReport, type RunnableCase, runCases } from "./run-cases.js";
 
 /** What a factory returns: the backend, and the absolute folder to use as the workspace root. */
@@ -64,6 +80,7 @@ export type SandboxCase = RunnableCase;
 export type SandboxConformanceReport = CaseReport;
 
 const STOPS = ["mistakes", "exfiltration", "hostile_process"];
+const CAPABILITIES: readonly SandboxCapability[] = ["resume", "snapshot", "pause"];
 const ALLOWED_HOST = "allowed.test";
 const SETTLE_MS = 5000;
 // Variables a program may add to its own environment on start, which a case ignores when it counts the variables.
@@ -451,6 +468,121 @@ function processCases(sandboxed: Sandboxed): readonly SandboxCase[] {
   ];
 }
 
+/** The code a call rejects with, or `"it resolved"`. */
+async function rejection(action: () => Promise<unknown>): Promise<string> {
+  return action().then(
+    () => "it resolved",
+    (error: unknown) => codeOf(error) ?? String(error),
+  );
+}
+
+/** Checks that a capability the client doesn't list is refused, and that one it lists works and keeps the files. */
+async function checkCapability(sandbox: Sandbox, context: Context, capability: SandboxCapability): Promise<void> {
+  const { client } = context.under;
+  if (!hasCapability(client, capability)) {
+    const refused =
+      capability === "resume"
+        ? await rejection(() => resumeSandbox(client, "no-such-sandbox", context.policy))
+        : await rejection(() => (capability === "snapshot" ? snapshotSandbox : pauseSandbox)(client, sandbox));
+    check(refused === "sandbox_unsupported", `an unlisted ${capability} must be refused, not ${refused}`);
+    return;
+  }
+  const encoder = new TextEncoder();
+  await sandbox.writeFile(`kept-${capability}.txt`, encoder.encode(capability));
+  let id = sandbox.id;
+  if (capability === "snapshot") id = await snapshotSandbox(client, sandbox);
+  if (capability === "pause") await pauseSandbox(client, sandbox);
+  check(typeof id === "string" && id !== "", `a sandbox that can ${capability} must have an id to resume`);
+  if (!hasCapability(client, "resume")) return;
+  const resumed = await resumeSandbox(client, id, context.policy);
+  try {
+    const kept = text(await resumed.readFile(`kept-${capability}.txt`));
+    check(kept === capability, `a sandbox resumed after ${capability} must keep its files`);
+  } finally {
+    // A resume by the sandbox's own id reattaches to it, which the case's own dispose ends.
+    if (resumed.id !== sandbox.id) await resumed.dispose();
+  }
+}
+
+/** The case that checks the resume, snapshot and pause capabilities. */
+function capabilityCases(sandboxed: Sandboxed): readonly SandboxCase[] {
+  return [
+    {
+      name: "a backend lists only known capabilities, each one it lists works, and one it doesn't is refused with sandbox_unsupported",
+      run: sandboxed(async (sandbox, context) => {
+        const listed = context.under.client.capabilities ?? [];
+        check(
+          Array.isArray(listed) && listed.every((capability) => CAPABILITIES.includes(capability)),
+          "every capability must be a known one",
+        );
+        for (const capability of CAPABILITIES) await checkCapability(sandbox, context, capability);
+        return undefined;
+      }),
+    },
+  ];
+}
+
+const NO_STOP = "the backend does not claim to stop anything, so it enforces no policy to read back";
+
+/** The cases that check the policy a backend reads back, which run only when it claims a stop. */
+function readBackCases(sandboxed: Sandboxed): readonly SandboxCase[] {
+  return [
+    {
+      name: "a backend that claims a stop reads back the policy it applied, which equals the request, and delivers its stops",
+      run: sandboxed(async (sandbox, context) => {
+        const { client } = context.under;
+        if (client.stops.length === 0) return { skipped: NO_STOP };
+        check(typeof sandbox.readBack === "function", "a backend that claims a stop must read its policy back");
+        const applied = await sandbox.readBack();
+        const field = policyDifference(context.policy, applied);
+        check(field === undefined, `the read-back must equal the request, but ${field} differs`);
+        const delivered = stopsFor(client.tier, applied);
+        check(
+          client.stops.every((stop) => delivered.includes(stop)),
+          "the applied policy must deliver every stop claimed",
+        );
+        const stops = sandbox.stops ?? [];
+        check(
+          stops.length === delivered.length && stops.every((stop) => delivered.includes(stop)),
+          "the sandbox's stops must be the ones its applied policy delivers",
+        );
+        return undefined;
+      }),
+    },
+    {
+      name: "a read-back that differs from the request throws sandbox_policy_mismatch, names the field and disposes the sandbox",
+      run: sandboxed(async (sandbox, context) => {
+        const { client } = context.under;
+        if (client.stops.length === 0) return { skipped: NO_STOP };
+        check(typeof sandbox.readBack === "function", "a backend that claims a stop must read its policy back");
+        const applied = await sandbox.readBack();
+        const { policy, outside } = context;
+        const widened: [string, SandboxPolicy][] = [
+          ["readRoots", { ...policy, readRoots: [...policy.readRoots, outside] }],
+          ["writeRoots", { ...policy, writeRoots: [] }],
+          ["network.allow", { ...policy, network: { ...policy.network, allow: [...policy.network.allow, "x.test"] } }],
+          ["network.deny", { ...policy, network: { ...policy.network, deny: ["y.test"] } }],
+        ];
+        for (const [field, other] of widened) {
+          const found = policyDifference(other, applied);
+          check(found === field, `a request that differs in ${field} must be found to differ there, not in ${found}`);
+        }
+        const asked = widened[2]?.[1] ?? policy;
+        const error = await confirmPolicy(client, sandbox, asked).then(
+          () => undefined,
+          (caught: unknown) => caught,
+        );
+        check(codeOf(error) === "sandbox_policy_mismatch", "a mismatch must throw sandbox_policy_mismatch");
+        check((error as { field?: unknown }).field === "network.allow", "the error must name the field");
+        check(!String((error as Error).message).includes("x.test"), "the message must not name a host");
+        const after = await rejection(() => sandbox.readFile("a.txt"));
+        check(after === "sandbox_disposed", `a mismatch must dispose the sandbox, but a later call gave ${after}`);
+        return undefined;
+      }),
+    },
+  ];
+}
+
 /** The cases, for a backend from `factory`. Run each one; a case that doesn't apply resolves with `{ skipped }`. */
 export function sandboxConformanceCases(
   factory: SandboxFactory,
@@ -463,6 +595,8 @@ export function sandboxConformanceCases(
     ...processCases(sandboxed),
     ...disposeCases(factory, options, sandboxed),
     ...policyCases(sandboxed),
+    ...capabilityCases(sandboxed),
+    ...readBackCases(sandboxed),
   ];
 }
 
