@@ -160,4 +160,41 @@ describe("the lock file", () => {
     await pinProjectExtensions(root, { lockFile });
     assert.ok(existsSync(lockFile));
   });
+
+  test("a changed folder is refused before any other folder of the project is imported", async () => {
+    const root = project();
+    const marker = `__ran2_${Math.random().toString(36).slice(2)}`;
+    const second = join(root, ".agents", "extensions", "zeta");
+    mkdirSync(second);
+    writeFileSync(join(second, "index.mjs"), 'export default { name: "zeta", version: "1.0.0" };\n');
+    await pinProjectExtensions(root);
+    await load(root);
+    // Both folders are now imported. Change `zeta`, re-pin, and put a marker in `audit` that a re-import would not run.
+    writeFileSync(join(second, "index.mjs"), 'export default { name: "zeta", version: "2.0.0" };\n');
+    writeFileSync(
+      join(folderOf(root), "index.mjs"),
+      `globalThis.${marker} = true;\nexport default { name: "audit", version: "1.0.0" };\n`,
+    );
+    await pinProjectExtensions(root);
+    await assert.rejects(load(root), mismatch);
+    assert.equal((globalThis as Record<string, unknown>)[marker], undefined);
+  });
+
+  test("a symlinked extension folder is refused", async () => {
+    const root = project();
+    symlinkSync(folderOf(root), join(root, ".agents", "extensions", "alias"));
+    await assert.rejects(load(root), (error: unknown) => isHarnessError(error) && error.code === "invalid_extension");
+  });
+
+  test("an extension whose exports are not the right shape is refused as invalid_extension", async () => {
+    for (const body of [
+      'export default { name: "x", version: "1", observers: "nope" };',
+      'export default { name: "x", version: "1", interceptors: { beforeToolCall: 5 } };',
+      'export default { name: "x", version: "1", tools: 5 };',
+    ]) {
+      const root = project();
+      writeFileSync(join(folderOf(root), "index.mjs"), `${body}\n`);
+      await assert.rejects(load(root), (error: unknown) => isHarnessError(error) && error.code === "invalid_extension");
+    }
+  });
 });

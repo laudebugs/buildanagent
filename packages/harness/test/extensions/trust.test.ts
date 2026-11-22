@@ -1,6 +1,6 @@
 // Project trust gates loading: untrusted and headless runs skip with a notice, a trusted one loads.
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
@@ -115,6 +115,35 @@ describe("fileTrustStore", () => {
     dirs.push(dir);
     const file = join(dir, "trust.json");
     writeFileSync(file, "{ nope");
+    await assert.rejects(
+      fileTrustStore(file).isTrusted("/work"),
+      (error: unknown) => isHarnessError(error) && error.code === "invalid_extension",
+    );
+  });
+
+  test("an untrusted project with a corrupt lock file loads nothing and says why, without reading the lock", async () => {
+    const root = project();
+    writeFileSync(join(root, ".agents", "extensions.lock.json"), "{ not json");
+    const result = await loadProjectExtensions(root, { trust: memoryTrustStore(), headless: false });
+    assert.equal(result.extensions.length, 0);
+    assert.match(result.notices[0] ?? "", /not trusted/);
+  });
+
+  test("concurrent trust() calls do not lose an addition", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "harness-trust-"));
+    dirs.push(dir);
+    const file = join(dir, "trust.json");
+    const store = fileTrustStore(file);
+    await Promise.all(["/work/a", "/work/b", "/work/c"].map((root) => store.trust(root)));
+    assert.deepEqual(JSON.parse(readFileSync(file, "utf8")).trusted, ["/work/a", "/work/b", "/work/c"]);
+  });
+
+  test("a trust file that others may write is refused", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "harness-trust-"));
+    dirs.push(dir);
+    const file = join(dir, "trust.json");
+    writeFileSync(file, '{"trusted":[]}', { mode: 0o666 });
+    chmodSync(file, 0o666);
     await assert.rejects(
       fileTrustStore(file).isTrusted("/work"),
       (error: unknown) => isHarnessError(error) && error.code === "invalid_extension",

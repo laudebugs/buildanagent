@@ -28,11 +28,13 @@ export function composeExtensions(extensions: readonly Extension[]): {
   readonly observers: readonly Observer[];
 } {
   checkNames(extensions);
+  // Only the extensions that have interceptors join: an empty set counts as fail-closed and would undo the others'
+  // `continue`, and with none at all the result is empty, so a host that joins it with its own keeps its own setting.
+  const sets = extensions.flatMap((extension) =>
+    extension.interceptors === undefined ? [] : [extension.interceptors],
+  );
   return {
-    // Only the extensions that have interceptors join: an empty set counts as fail-closed and would undo the others' `continue`.
-    interceptors: composeInterceptors(
-      ...extensions.flatMap((extension) => (extension.interceptors === undefined ? [] : [extension.interceptors])),
-    ),
+    interceptors: sets.length === 0 ? {} : composeInterceptors(...sets),
     observers: extensions.flatMap((extension) => extension.observers ?? []),
   };
 }
@@ -40,6 +42,20 @@ export function composeExtensions(extensions: readonly Extension[]): {
 /** Registers every extension's tools in `registry` with source `extension`. A duplicate name is the registry's error. */
 export function registerExtensionTools(registry: ToolRegistry, extensions: readonly Extension[]): void {
   checkNames(extensions);
+  // Every tool is checked before the first is registered, so a bad one leaves the registry as it was.
+  const names = new Set<string>();
+  for (const tool of extensions.flatMap((extension) => extension.tools ?? [])) {
+    if (typeof tool.name !== "string" || typeof tool.definition !== "object" || tool.definition === null) {
+      throw new HarnessError("invalid_extension", "an extension tool needs a name and a definition");
+    }
+    if (names.has(tool.name) || (registry.get(tool.name) !== undefined && tool.override !== true)) {
+      throw new HarnessError(
+        "duplicate_tool",
+        `the extension tool "${tool.name}" has the name of a tool that is already registered`,
+      );
+    }
+    names.add(tool.name);
+  }
   for (const extension of extensions) {
     for (const tool of extension.tools ?? []) registry.register({ ...tool, source: "extension" });
   }

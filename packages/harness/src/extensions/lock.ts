@@ -4,7 +4,7 @@
  * file, `extensions.lock.json`, holds one hash per extension folder. Node-only: it reads and writes files.
  */
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { HarnessError } from "../errors.js";
 
@@ -58,6 +58,8 @@ export function parseObject(text: string, file: string): Record<string, unknown>
 export async function readLock(file: string): Promise<ReadonlyMap<string, string> | undefined> {
   let text: string;
   try {
+    // A pipe or a device would hang or never end, so only a regular file is read.
+    if (!(await stat(file)).isFile()) throw new HarnessError("invalid_extension", `${file} is not a regular file`);
     text = await readFile(file, "utf8");
   } catch (error) {
     if ((error as { code?: string }).code === "ENOENT") return undefined;

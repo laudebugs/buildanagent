@@ -93,6 +93,10 @@ describe("composeExtensions", () => {
     assert.equal(interceptors.onFailure, "continue");
   });
 
+  test("tools-only extensions compose to an empty set that leaves a host's own onFailure alone", () => {
+    assert.deepEqual(composeExtensions([extension("t", { tools: [] })]).interceptors, {});
+  });
+
   test("an extension with no name, or a name another one has, is refused", () => {
     for (const bad of [[extension("")], [extension("same"), extension("same")]]) {
       assert.throws(
@@ -124,6 +128,16 @@ describe("extension tools and records", () => {
     ]);
     assert.equal(registry.get("lookup")?.source, "extension");
     assert.equal(registry.get("read")?.source, "extension");
+  });
+
+  test("a tool name that is taken, or repeated, leaves the registry as it was", () => {
+    const registry = createToolRegistry();
+    registry.register({ source: "builtin", ...tool("read") });
+    assert.throws(
+      () => registerExtensionTools(registry, [extension("e", { tools: [tool("fresh"), tool("read")] })]),
+      (error: unknown) => isHarnessError(error) && error.code === "duplicate_tool",
+    );
+    assert.equal(registry.get("fresh"), undefined);
   });
 
   test("a harness writes an extension_loaded entry once per extension and hash", async () => {

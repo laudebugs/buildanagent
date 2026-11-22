@@ -26,7 +26,11 @@ export interface Extension {
 export interface ExtensionLoadedRecord {
   readonly name: string;
   readonly tier: "in_process" | "mcp" | "skill";
-  /** `sha256:` and the hex digest of the extension's files, or of its name and version for one built in code. */
+  /**
+   * `sha256:` and the hex digest of the extension's files as they were pinned and imported, or of its name and version
+   * for one built in code. It is the hash that was checked, not proof of what ran: a file changed between the hash and
+   * the import is not caught.
+   */
   readonly contentHash: string;
 }
 
