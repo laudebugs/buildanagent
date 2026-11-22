@@ -60,7 +60,7 @@ const result = await sandbox.exec(["pnpm", "test"], { env: spawnEnv([]), signal:
 console.log("denied" in result ? result.denied.reason : result.exitCode);
 ```
 
-`exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
+`exec` takes an executable and its arguments, with no shell, and resolves with the exit code and output. A failing command is a result, not an error, and a command the policy refuses resolves with `{ denied }`. A command that runs past `timeoutMs` stops with exit code 124 and `timedOut: true`, so a command that exits with 124 itself is told apart, and one the system can't find gives 127. A command that a signal killed gives 128 plus the signal's number, with `signal` naming it. Output past `maxOutputBytes` (8 MiB for each stream by default) is dropped, and the result says `truncated: true`.
 
 The `none` backend starts each command in its own process group. A timeout, an abort or `dispose()` therefore kills the command and everything it started, and `exec` settles even when a background process still holds the output pipes.
 
@@ -224,9 +224,9 @@ The check goes by name and can't catch a credential under an unremarkable one, s
 
 ## Test a sandbox with the fake and the conformance suite
 
-`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
+`./testing` has `fakeSandbox()`, a sandbox in memory that enforces the policy it is given and records every `exec`, but runs no program: it understands `echo`, `env`, `cat`, `write`, `true`, `false`, `sleep` and `net-probe`, plus `find`, `grep` and `bash -c` or `sh -c` with one of those commands as the script, which is what the built-in tools run. It claims tier `os`, because it enforces file roots and the network allowlist, but it confines no real process.
 
-`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
+`runSandboxConformance(factory)` pins the interface for every backend. Its cases check that a file reads back as written, that `exec` reports exit codes and output, that the environment holds only the variables given, that an aborted signal rejects and a timeout stops with 124 and `timedOut: true`, and that `dispose` ends the sandbox and any command still running. When the caller passes `processTree`, a case also checks that an abort or timeout ends the command's whole process tree. A backend that adds variables of its own, such as proxy settings, lists them in `addedEnvironment`, and the environment case accepts those and no others.
 
 A case that needs enforcement runs only when the backend's `stops` claim it:
 
@@ -252,6 +252,44 @@ Three more cases check the read-back and the capabilities: a backend that claims
 - **Host context.** `definitions(wrap, hostContext)` runs each tool through `wrap`, which can bind a write cap, shadow mode, a sandbox or the turn's host context. The registry sets the result's name and exposure, so a wrapper cannot rename or expose a tool. The host context reaches `execute` by the wrapper's closure, never through a schema, so it is in no request, event or saved context.
 - **Output trust.** A tool's `outputTrust` is `untrusted` for an MCP tool and for a tool registered with `remoteAgent: true`, `trusted` otherwise, and the value a registration declares wins. `approvalReuse` defaults to `both`, and `pattern` records whether the tool runs `in_process` or by a `client_request`.
 - **Preamble size.** `preambleTokens({ system })` estimates the tokens a request carries before any message: the system prompt and every `direct` tool. A `deferred` tool adds nothing, which is why the default for MCP is `deferred`. A `RegisteredTool` that `register()` returns is a snapshot, so call `get()` after `setExposure()` to read the current exposure.
+
+## The built-in tools reach files, commands and the web only through the sandbox and the egress proxy
+
+`builtinTools(sandbox, proxy, { root, policy })` returns up to seven tools for one provisioned sandbox: `read`, `write`, `edit`, `bash`, `grep`, `glob` and `fetch`, which needs a proxy, so six without one. No tool touches the host. Files go through the sandbox's `readFile()` and `writeFile()`, commands through its `exec()`, and the web through the proxy's `fetch()`, so the backend and the allowlist decide what each call can reach. This coding agent binds them to a workspace and lets `read` open the write cap's spill files:
+
+```ts
+  const sandbox = await client.provision({ root: workspace }, policy);
+  const spill = fileSpillStore({ dir: spillDir });
+  const registry = createToolRegistry();
+  const spills = (path: string) => spill.read(key, path);
+  for (const tool of builtinTools(sandbox, proxy, { root: workspace, policy, spills })) registry.register(tool);
+  const harness = createHarness({ registry, model, system: SYSTEM, context: createContextPolicy({ spill }) });
+```
+
+Pass the `root` and `policy` the sandbox was provisioned with, because the sandbox interface reports neither. Leave `proxy` out, as `undefined`, and the set has no `fetch`. `env` is the whole environment of every command the tools run; it defaults to a `PATH` and a `LANG` alone, and on Node you pass `spawnEnv()`.
+
+Each tool's contract:
+
+- **`read`** takes `path` or `file_path`, relative to `root` or absolute, `offset` (the first line, from 1), `limit` (a line count) and `column` (where to start in the first line, from 1, to read on in a line too long for a page). With none of the three, it returns the whole file up to 2,000 lines and 32 KiB, and a longer file or a page ends with a line that names the next `offset`. The write cap counts bytes after JSON escaping, so `read` counts 32 KiB the same way (a quote, a backslash or a newline costs two bytes). A page therefore always passes the default 64 KiB cap whole. A line longer than a page is shown in parts, and each part's last line names the `offset` and `column` where the next starts, so a cut result that is one long line can still be read in full. Only an absolute path is offered to the `spills` reader, and a path it knows is served from the spill; a relative path always reads the workspace. A binary file is an error result.
+- **`write`** takes a path and `content`, makes the folders and replaces the whole file.
+- **`edit`** takes a path, `old_string` and `new_string`. `old_string` must occur exactly once: no match, or two matches without `replace_all: true`, returns an error result and leaves the file unchanged. `new_string` is inserted as written, so `$&` stays `$&`. A byte order mark is kept, and a binary file or one that is not UTF-8 is an error result, left unchanged, because writing it back as text would corrupt it.
+- **`bash`** runs `command` as `bash -c` inside the sandbox, from `root`, with a timeout of `timeout_ms` (default 120,000, at most 600,000). The model reads the output, standard error and exit code. A timeout or a denial is an error result, and each stream keeps at most 1 MiB. Only the sandbox's `timedOut` flag marks a timeout, so a command that exits with 124 itself reads as that exit code.
+- **`grep`** searches files for `pattern`, an extended regular expression, below `path` (default `root`), and prints `path:line:text`. `glob` narrows the files: a glob with no `/`, such as `*.ts`, matches the file name, and any other matches the path below `path`. `ignore_case` ignores case. Binary files are skipped (`grep -I`).
+
+  The matching lines stop at 1 MiB, across every `grep` command the call runs, and a result cut there says so, so the model can narrow the search. If the first matching line alone passes 1 MiB, the result still says that lines match, names the file and line, and suggests a narrower search or `read`; it never reports "no match". A file `grep` can't read, or a folder `find` can't list, keeps the matches found elsewhere and adds a line quoting the error; the call fails only when nothing matched.
+- **`glob`** lists the files below `path` whose path matches `pattern`, sorted. `*` matches inside one name, `**` across folders and `?` one character.
+- **`fetch`** sends a GET for an `https` `url` through `proxy.fetch()`. It returns the status line, the final URL, any `location`, the content type and, for a text body, up to 1 MiB of it. A body of another type is left out and reported by its size. Every secret the proxy knows is replaced by `[REDACTED]`, and a body cut at 1 MiB also loses any start of a secret left at its end.
+  - A text body is read in the charset its content type names, when `TextDecoder` knows that label, and as UTF-8 otherwise.
+  - A body with no content type, or with a charset label `TextDecoder` does not know, is shown only when it reads as UTF-8 text with no NUL byte.
+  - A request that takes over 30 seconds returns an error, as do a host off the allowlist and a URL that is not `https`. Plain HTTP is refused, which keeps the model off the proxy's credential routes.
+
+**Paths are checked before the sandbox sees them.** `read`, `grep` and `glob` accept a path inside a read or write root, and `write` and `edit` only inside a write root. A path with a backslash is refused, because the workspace is POSIX, where `\` is part of a name, while the permission rules read it as a separator. The check joins a relative path to `root` and removes `.` and `..`, so `../etc/passwd` and `/etc/passwd` are refused without a sandbox call, and the sandbox gets the checked path. A symlink is invisible to a check on text, so the sandbox's own check of the real path is the second line: its denial reaches the model as an error result. `grep` and `glob` list files with `find`, which never follows a symlink, and skip folders named `.git` and `node_modules` below the folder searched, so a search of `node_modules` itself still works.
+
+**Big results pass the write cap like any other.** The tools cap nothing themselves: the context policy's write cap cuts a long result and spills its full text, and `read` with `spills` opens that spill. Bind `spills` to one session, as `fileSpillStore().read(key, path)` already does, so one session cannot read another's spills.
+
+**Scheduling follows what each tool changes.** `read`, `grep`, `glob` and `fetch` are first-party and read-only, so their calls in one step run together. `write` and `edit` declare a write, so they wait for the file calls before them, and `bash` runs its step one call at a time. A crash during a write makes the next turn report its outcome as unknown. Only `fetch`'s output is `untrusted`, because a web page can carry instructions; the rest is `trusted`, though a workspace file or a command's output can carry instructions too.
+
+**The descriptions are versioned.** Every description, limit and default the tools use is in `BUILTIN_TOOL_DEFAULTS`, and `BUILTIN_TOOLS_HASH` changes whenever any of them does, so two runs with different hashes ran with different tools.
 
 ## One pipeline decides every tool call, and a call no rule settles is denied when nobody can answer
 
@@ -474,7 +512,7 @@ const context = createContextPolicy({ spill: fileSpillStore({ dir: ".sessions/sp
 
 **Layer 1, the write cap.** A tool result whose text is over the cap is cut before the model reads it, and the full text goes to the `spill` store. The model reads the first part and a line that names the file, and the `tool_result` entry stores the same cut text with `spill: { path, bytes }`. If the store cannot write, the text is still cut, and the notice says the rest was not kept.
 
-The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
+The cap counts the bytes the entry takes in the log: JSON escaping, the result's details and other blocks, and 1 KiB for the entry's own fields. A capped entry therefore always fits the stores' 64 KiB entry bound. The default `writeCapBytes` of 65,536 leaves the model a little under 64 KiB of plain text, and less of a text full of newlines or quotes. `fileSpillStore({ dir })` from `@buildanagent/harness/context/file` writes one file per capped result, and `memorySpillStore()` serves tests, with absolute paths under `/spill/`. `fileSpillStore().read()` reads only an absolute path inside the session's folder. A file is named by the run id, a count within the run and the call id, because a provider may reuse a call id. A policy with the layer on and no `spill` throws `invalid_context_options`.
 
 **Layer 2, stepped masking.** Before each model call, every tool result before a cutoff shrinks to its first 500 characters and a pointer line. The line names the spill file, or the log entry when the result was never spilled. A cut never leaves half of a surrogate pair. The cutoff is `floor((messages − 8) / 8) × 8`, so it moves once every eight messages. Between moves the view's prefix stays byte-identical, which keeps a provider's prompt cache hitting.
 

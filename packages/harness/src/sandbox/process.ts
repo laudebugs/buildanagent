@@ -266,7 +266,7 @@ export class ProcessRunner {
       if (options.timeoutMs !== undefined) {
         const note = `timed out after ${options.timeoutMs} ms\n`;
         timer = setTimeout(
-          () => void stop(() => resolve({ exitCode: TIMEOUT_EXIT_CODE, ...output(note) })),
+          () => void stop(() => resolve({ exitCode: TIMEOUT_EXIT_CODE, timedOut: true, ...output(note) })),
           options.timeoutMs,
         );
       }
