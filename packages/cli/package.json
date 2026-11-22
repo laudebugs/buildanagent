@@ -13,10 +13,14 @@
   "type": "module",
   "sideEffects": false,
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
+  },
+  "bin": {
+    "buildanagent": "./dist/bin.js"
   },
   "files": [
     "dist",
+    "llms.txt",
     "LICENSE",
     "LICENSE-APACHE",
     "LICENSE-MIT"
