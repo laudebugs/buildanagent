@@ -3,8 +3,9 @@
  * working directory and in every folder above it up to the repository root. Node-only.
  */
 import { readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { sha256 } from "./compose.js";
+import { attribute } from "./context-files.js";
 import { projectTrusted } from "./load.js";
 import { projectDirs, readProjectFile } from "./project-dirs.js";
 import { parseSkill, type Skill } from "./skills.js";
@@ -38,8 +39,23 @@ const MAX_DEPTH = 4;
 /** The longest `SKILL.md` listed, our own limit. A longer one is skipped with a notice, so a record's hash covers the whole file. */
 const SKILL_FILE_MAX_BYTES = 256 * 1024;
 
-/** The `SKILL.md` files under `dir`, found by walking down at most `MAX_DEPTH` levels. Links are not followed. */
-async function skillFiles(dir: string, depth = 0): Promise<string[]> {
+/**
+ * Why a folder's name is not walked, or `undefined` when it may be. A control character would put a line of the
+ * project's choosing into the system prompt, which lists each skill's path. On POSIX a `\` is an ordinary character in
+ * a name, but a model or a tool that reads the path as Windows does takes it for a separator, so a folder named
+ * `a\..\..\etc` would give a skill a path that seems to name a file outside its folder.
+ */
+function badName(name: string): string | undefined {
+  if (/\p{Cc}/u.test(name)) return "it holds a control character";
+  if (sep === "/" && name.includes("\\")) return "it holds a \\, which a path on Windows reads as a separator";
+  return undefined;
+}
+
+/**
+ * The `SKILL.md` files under `dir`, found by walking down at most `MAX_DEPTH` levels, with a notice in `notices` for
+ * each folder whose name is not walked. Links are not followed.
+ */
+async function skillFiles(dir: string, notices: string[], depth = 0): Promise<string[]> {
   let entries: import("node:fs").Dirent[];
   try {
     entries = await readdir(dir, { withFileTypes: true });
@@ -53,8 +69,10 @@ async function skillFiles(dir: string, depth = 0): Promise<string[]> {
   // A skill's own folder holds its references and scripts, and none of them is another skill.
   if (found.length > 0 || depth >= MAX_DEPTH) return found;
   for (const entry of entries) {
-    if (entry.isDirectory() && entry.name !== "node_modules")
-      found.push(...(await skillFiles(join(dir, entry.name), depth + 1)));
+    if (!entry.isDirectory() || entry.name === "node_modules") continue;
+    const reason = badName(entry.name);
+    if (reason === undefined) found.push(...(await skillFiles(join(dir, entry.name), notices, depth + 1)));
+    else notices.push(`${attribute(join(dir, entry.name))} is skipped: ${reason}`);
   }
   return found;
 }
@@ -96,8 +114,9 @@ async function loadSkill(
 /**
  * Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and
  * every folder above it up to the repository root (the first folder with a `.git`). A `cwd` in no repository searches
- * only itself. A file that is not a skill, a `SKILL.md` that is a link leaving the project, and a name already taken by
- * a nearer skill are skipped with a notice, and the rest still load. The skills' paths are absolute. No skill file is read
+ * only itself. A file that is not a skill, a `SKILL.md` that is a link leaving the project, a name already taken by
+ * a nearer skill, and a folder whose name holds a control character, or a `\` on POSIX, are skipped with a notice, and
+ * the rest still load. The skills' paths are absolute. No skill file is read
  * until the trust store and `headless` allow it: an untrusted project, or a headless run without `loadInHeadless`,
  * lists no skills and returns one notice saying why.
  */
@@ -112,7 +131,7 @@ export async function discoverSkills(cwd: string, options: DiscoverSkillsOptions
   }
   const names = new Set<string>();
   for (const dir of dirs) {
-    for (const file of await skillFiles(join(dir, ".agents", "skills"))) {
+    for (const file of await skillFiles(join(dir, ".agents", "skills"), result.notices)) {
       const found = await loadSkill(root, file, names);
       if ("notice" in found) result.notices.push(found.notice);
       if (!("skill" in found)) continue;

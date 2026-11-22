@@ -133,33 +133,41 @@ export function withSkills(system: string, skills: readonly Skill[]): string {
 /** A Windows drive root such as `C:/`, once `\` is `/`. */
 const DRIVE = /^([A-Za-z]):(?=\/|$)/;
 
+/** Whether `path` is a Windows path: it starts with a drive such as `C:\` or `C:/`, or with `\`. */
+const isWindowsPath = (path: string): boolean => /^(?:[A-Za-z]:[\\/]|\\)/.test(path);
+
 /**
- * `path` made absolute against `cwd` and cleaned of `.` and `..` segments, with `/` separators. Both `/` and `\` separate
- * segments, so a Windows path and a POSIX one resolve alike, and a drive root such as `C:\` is kept, with its letter
- * upper-cased, as Windows ignores its case.
+ * `path` made absolute against `cwd` and cleaned of `.` and `..` segments, with `/` separators. Only `/` separates
+ * segments, as on POSIX, where `\` is an ordinary character in a name. With `windows`, `\` separates them too, and a
+ * drive root such as `C:\` is kept, with its letter upper-cased, as Windows ignores its case.
  */
-function resolvePath(cwd: string, path: string): string {
-  const slashed = path.replaceAll("\\", "/");
-  const absolute = slashed.startsWith("/") || DRIVE.test(slashed);
-  const full = absolute ? slashed : `${cwd.replaceAll("\\", "/")}/${slashed}`;
-  const drive = DRIVE.exec(full)?.[1];
-  const rest = drive === undefined ? full : full.slice(2);
+function resolvePath(cwd: string, path: string, windows: boolean): string {
+  const slashed = windows ? path.replaceAll("\\", "/") : path;
+  const base = windows ? cwd.replaceAll("\\", "/") : cwd;
+  const full = slashed.startsWith("/") || (windows && DRIVE.test(slashed)) ? slashed : `${base}/${slashed}`;
+  const drive = windows ? DRIVE.exec(full)?.[1] : undefined;
+  return `${drive === undefined ? "" : `${drive.toUpperCase()}:`}/${cleaned(drive === undefined ? full : full.slice(2))}`;
+}
+
+/** The `/`-separated `path` without its empty and `.` segments, and with each `..` segment removing the one before. */
+function cleaned(path: string): string {
   const kept: string[] = [];
-  for (const segment of rest.split("/")) {
+  for (const segment of path.split("/")) {
     if (segment === "" || segment === ".") continue;
     if (segment === "..") kept.pop();
     else kept.push(segment);
   }
-  return `${drive === undefined ? "" : `${drive.toUpperCase()}:`}/${kept.join("/")}`;
+  return kept.join("/");
 }
 
 /**
  * The skill whose `SKILL.md` a `read` call opens, or `undefined`. The input names the file in its `path` or
  * `file_path` string, which is taken relative to `cwd` when it is not absolute. Only the skill's own `SKILL.md` counts:
- * reading another file in its folder loads no skill. Windows paths match too: `\` separates segments as `/` does, and
- * a drive letter's case is ignored. On POSIX a file whose name holds a `\` therefore matches the path with a `/` in its
- * place, which changes only which reads are recorded. A read that asks for part of the file, by an `offset` or a
- * `limit` that is not `undefined` or `null`, loads no skill, because it may have shown only a few lines of it.
+ * reading another file in its folder loads no skill. A skill whose path is a Windows path, with a drive such as `C:\`,
+ * matches Windows reads: `\` separates segments as `/` does, and the drive letter's case is ignored. Any other skill
+ * path is a POSIX one, where only `/` separates segments and a `\` is part of a name, so a read of `a\..\x` never
+ * matches the skill at `x`. A read that asks for part of the file, by an `offset` or a `limit` that is not `undefined`
+ * or `null`, loads no skill, because it may have shown only a few lines of it.
  */
 export function skillOfRead(skills: readonly Skill[], cwd: string, input: unknown): Skill | undefined {
   if (typeof input !== "object" || input === null) return undefined;
@@ -168,6 +176,8 @@ export function skillOfRead(skills: readonly Skill[], cwd: string, input: unknow
   if ((offset !== undefined && offset !== null) || (limit !== undefined && limit !== null)) return undefined;
   const named = typeof path === "string" ? path : filePath;
   if (typeof named !== "string" || named === "") return undefined;
-  const resolved = resolvePath(cwd, named);
-  return skills.find((skill) => resolvePath("/", skill.path) === resolved);
+  return skills.find((skill) => {
+    const windows = isWindowsPath(skill.path);
+    return resolvePath("/", skill.path, windows) === resolvePath(cwd, named, windows);
+  });
 }

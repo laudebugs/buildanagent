@@ -8,3 +8,4 @@ export { type LoadOptions, loadProjectExtensions, type ProjectExtensions, pinPro
 export { hashExtensionDir, readLock, writeLock } from "./lock.js";
 export { type DiscoveredSkills, type DiscoverSkillsOptions, discoverSkills } from "./skills-node.js";
 export { fileTrustStore } from "./trust-file.js";
+export { realPathTrustStore } from "./trust-store-node.js";

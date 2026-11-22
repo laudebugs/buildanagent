@@ -12,7 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createModel, type Model } from "@buildanagent/gateway";
 import {
@@ -27,6 +27,7 @@ import {
   type DiscoverSkillsOptions,
   discoverSkills,
   loadProjectExtensions,
+  realPathTrustStore,
 } from "@buildanagent/harness/extensions/node";
 import { createHarness } from "@buildanagent/harness/server";
 import { openSession, runTurn, type SessionEntry } from "@buildanagent/harness/session";
@@ -192,7 +193,7 @@ describe("discoverSkills", () => {
 
   test("the trust gate skips an untrusted or headless project's skills and a trusted one's load", async () => {
     const root = repo({ ".agents/skills/a/SKILL.md": skillFile("a", "A.") });
-    const trust = memoryTrustStore();
+    const trust = realPathTrustStore();
     const untrusted = await discoverSkills(root, { trust, headless: false });
     assert.deepEqual(untrusted.skills, []);
     assert.ok(untrusted.notices[0]?.includes("not trusted"));
@@ -214,6 +215,19 @@ describe("discoverSkills", () => {
     assert.equal(typeof withoutTrust, "function");
   });
 
+  test("the portable memory store compares paths as written; the Node one trusts a link's real path", async () => {
+    const real = repo({ ".agents/skills/a/SKILL.md": skillFile("a", "A.") });
+    const holder = mkdtempSync(join(tmpdir(), "harness-link-"));
+    dirs.push(holder);
+    const linked = join(holder, "proj");
+    symlinkSync(real, linked);
+    // The loaders ask about the real path, which the portable store was not given.
+    assert.deepEqual((await discoverSkills(linked, { trust: memoryTrustStore([linked]) })).skills, []);
+    assert.equal(await memoryTrustStore([linked]).isTrusted(linked), true);
+    assert.equal((await discoverSkills(linked, { trust: memoryTrustStore([realpathSync(real)]) })).skills.length, 1);
+    assert.equal((await discoverSkills(linked, { trust: realPathTrustStore([linked]) })).skills.length, 1);
+  });
+
   test("a project reached through a link is trusted when the store was built with the link's path, for skills and extensions alike", async () => {
     const real = repo({
       ".agents/skills/a/SKILL.md": skillFile("a", "A."),
@@ -223,7 +237,7 @@ describe("discoverSkills", () => {
     dirs.push(holder);
     const linked = join(holder, "proj");
     symlinkSync(real, linked);
-    const trust = memoryTrustStore([linked]);
+    const trust = realPathTrustStore([linked]);
     const skills = await discoverSkills(linked, { trust });
     assert.deepEqual(
       skills.skills.map((skill) => skill.name),
@@ -235,8 +249,8 @@ describe("discoverSkills", () => {
       ["demo"],
     );
     // The real path still counts, as the file trust store has always compared.
-    assert.equal((await discoverSkills(linked, { trust: memoryTrustStore([realpathSync(real)]) })).skills.length, 1);
-    assert.deepEqual((await discoverSkills(linked, { trust: memoryTrustStore([holder]) })).skills, []);
+    assert.equal((await discoverSkills(linked, { trust: realPathTrustStore([realpathSync(real)]) })).skills.length, 1);
+    assert.deepEqual((await discoverSkills(linked, { trust: realPathTrustStore([holder]) })).skills, []);
   });
 
   test("a trusted link pointed at another folder later does not carry the trust to that folder", async () => {
@@ -249,7 +263,7 @@ describe("discoverSkills", () => {
     dirs.push(holder);
     const current = join(holder, "current");
     symlinkSync(reviewed, current);
-    const store = memoryTrustStore([current]);
+    const store = realPathTrustStore([current]);
     // A store that compares strings, as a host's own store may, trusts the link's spelling and nothing else.
     const byString = { isTrusted: async (path: string) => path === current, trust: async () => undefined };
     rmSync(current);
@@ -337,6 +351,8 @@ describe("parseSkill", () => {
   });
 });
 
+const skills = () => [{ name: "demo", description: "d", path: "/work/.agents/skills/demo/SKILL.md" }];
+
 describe("skillOfRead", () => {
   const skills = [{ name: "demo", description: "d", path: "/work/.agents/skills/demo/SKILL.md" }];
   test("matches the skill's own SKILL.md by absolute or relative path, and nothing else", () => {
@@ -364,6 +380,39 @@ describe("skillOfRead", () => {
     assert.equal(skillOfRead(windows, "C:\\work", { path: "D:\\work\\.agents\\skills\\demo\\SKILL.md" }), undefined);
     assert.equal(skillOfRead(windows, "C:\\", { path: "..\\..\\work\\.agents\\skills\\demo\\SKILL.md" })?.name, "demo");
   });
+});
+
+describe("a backslash in a POSIX skill path", () => {
+  test("is part of a name, so a read of another file never matches the skill", () => {
+    const tricky = [{ name: "etc", description: "d", path: "/repo/.agents/skills/a\\..\\..\\..\\etc/SKILL.md" }];
+    assert.equal(skillOfRead(tricky, "/repo", { path: "/repo/etc/SKILL.md" }), undefined);
+    assert.equal(skillOfRead(tricky, "/repo", { path: "etc/SKILL.md" }), undefined);
+    assert.equal(skillOfRead(tricky, "/repo", { path: tricky[0]?.path })?.name, "etc");
+    // A POSIX skill does not match a read that spells its path with backslashes either.
+    assert.equal(skillOfRead(skills(), "/work", { path: "\\work\\.agents\\skills\\demo\\SKILL.md" }), undefined);
+  });
+
+  test.skipIf(sep !== "/")(
+    "discoverSkills skips a folder whose name holds a backslash or a control character",
+    async () => {
+      const root = repo({
+        ".agents/skills/a\\..\\..\\..\\etc/SKILL.md": skillFile("etc", "Forged."),
+        ".agents/skills/b\ninjected/SKILL.md": skillFile("injected", "Forged."),
+        ".agents/skills/ok/SKILL.md": skillFile("ok", "Fine."),
+        "etc/SKILL.md": skillFile("other", "Another file."),
+      });
+      const { skills: found, notices } = await discoverSkills(root, OPEN);
+      assert.deepEqual(
+        found.map((skill) => skill.name),
+        ["ok"],
+      );
+      assert.equal(notices.filter((notice) => notice.includes("is skipped")).length, 2);
+      assert.ok(
+        notices.every((notice) => !notice.includes("\n")),
+        "a notice stays on one line",
+      );
+    },
+  );
 });
 
 describe("the skill_loaded entry", () => {
