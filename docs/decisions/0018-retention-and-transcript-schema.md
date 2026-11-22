@@ -10,9 +10,9 @@ Harness decision 11 asks for the default retention, where expired entries go, an
 
 ## Decision
 
-No automatic deletion by default. `retention: { days, action: "archive" | "purge" }` archives expired sessions as gzip files that stay searchable, or deletes them. `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion` are stable; other fields may change only with a `formatVersion` bump that ships a migration writing a new file. The JSON Schema is published in `packages/harness/schema/`.
+No automatic deletion by default. `retention: { days, action: "archive" | "purge" }` archives expired sessions as gzip files that stay searchable, or deletes them. `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion` are stable; other fields may change only with a `formatVersion` bump that ships a migration writing a new file. The JSON Schema is published in `packages/protocol/schema/session-entry.schema.json`, and the field-by-field page is `packages/harness/docs/session-format.md`.
 
 ## Consequences
 
-- Todo N33 documents the schema and measures disk cost.
+- Todo N33 documents the schema and measures disk cost. It built `retention` and `pruneSessions()` in the harness, which never delete without a period and never run in the background.
 - The agent plan may set a stricter retention for customer data.

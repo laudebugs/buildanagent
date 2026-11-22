@@ -43,7 +43,7 @@ The goal covers every recommendation in the guide's design sections, §2 to §11
 
 ## 2. Decisions
 
-Decisions HD1 to HD12 answer the twelve open decisions of [harness guide §13][hg13], in the same order. HD13 and HD14 are decisions the guide's sketch left implicit: the package split and the MCP client's base. HD15 records the credential proxy's first shape, and HD17 adds long-term memory as a file-based extension (U18). HD16 is not in this plan: plan review 2 proposes it for untrusted-source tools, and it still waits on the owner. The `HD` prefix keeps these apart from the SDK plan's D1–D12 and from the `H` todos. Statuses follow the SDK plan's three: **Decided**, **Decided, provisional** (a named todo checks it), and **Accepted (owner, 2026-11-18)** for HD4, HD5, HD8 and HD11 ([SDK plan §2][sdk2]). HD17 and the HD11 amendment were accepted by the owner on 2026-11-19. No decision in this plan still waits on the owner.
+Decisions HD1 to HD12 answer the twelve open decisions of [harness guide §13][hg13], in the same order. HD13 and HD14 are decisions the guide's sketch left implicit: the package split and the MCP client's base. HD15 records the credential proxy's first shape, and HD17 adds long-term memory as a file-based extension (U18). HD16 is not in this plan: plan review 2 proposes it for untrusted-source tools, and it still waits on the owner. The `HD` prefix keeps these apart from the SDK plan's D1–D12 and from the `H` todos. Statuses follow the SDK plan's three: **Decided**, **Decided, provisional** (a named todo checks it), and **Accepted (owner, 2026-11-18)** for HD4, HD5, HD8 and HD11 ([SDK plan §2][sdk2]). HD17 and the HD11 amendment were accepted by the owner on 2026-11-19. No decision in this plan still waits on the owner. N19's measurement is still to come, and §6.3 holds seven questions that follow from N28 for the owner.
 
 Three decisions merge with the SDK's. For each, this plan references P1's choice and adds only the harness side: HD5 builds on SDK D5, HD7 on SDK D3 and HD9 on SDK D9.
 
@@ -184,7 +184,7 @@ N8, N9 and N10 test the first rule, N25 the third, and B8 surfaces the 400 as a 
 
 **Options.** The default retention period, where expired entries go, and which entry fields are documented as stable ([harness guide §13, decision 11][hg13]).
 
-**Choice.** No automatic deletion by default. A `retention` setting takes `{ days, action: "archive" | "purge" }`. `archive` gzips an expired session's files into `archive/` and keeps them searchable; `purge` deletes them. The stable surface is `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion`. Every other field is documented but may change with a `formatVersion` bump, which arrives with a migration that writes a new file (HD2). N2 publishes the JSON Schema at `packages/protocol/schema/session-entry.schema.json`, beside the union (HD13).
+**Choice.** No automatic deletion by default. A `retention` setting takes `{ days, action: "archive" | "purge" }`. `archive` gzips an expired session's files into `.archive/` and keeps them searchable; `purge` deletes them. The stable surface is `EntryBase` (`id`, `parentId`, `seq`, `timestamp`, `type`, `origin`), the entry type names and `formatVersion`. Every other field is documented but may change, and a change comes with a `formatVersion` bump and a migration that writes a new file (HD2). N2 publishes the JSON Schema at `packages/protocol/schema/session-entry.schema.json`, beside the union (HD13).
 
 **Evidence.** Practitioners treat local transcripts as their system of record, and their named limit is the 30-day purge that matches Claude's `cleanupPeriodDays` default ([harness guide §2][hg2]). The HN synthesis asks for a documented schema, configurable retention and a search and replay CLI ([harness guide §2][hg2]). The guide's settling test needs a month of runs to cost disk; N33 measures the disk cost of the capstone and eval runs instead and reports a projection.
 
@@ -609,6 +609,8 @@ type ClientCommand =
   | { jsonrpc: "2.0"; id: Id; method: "approval/list"; params: { session: string } }
   | { jsonrpc: "2.0"; id: Id; method: "session/checkout" | "session/fork"; params: { session: string; entryId: string } } // experimental
   | { jsonrpc: "2.0"; method: "$/cancelRequest"; params: { id: Id } };
+// Revision (N28): session/open also takes fromSeq?: number, the first sequence number to replay; the server sends $/cancelRequest
+// to withdraw its own requests; HarnessEvent adds { type: "events_dropped"; count: number }
 interface InitializeResult {
   serverInfo: { name: string; version: string; sdkVersion: string; specVersion: "v1" };
   capabilities: string[];                         // from run_start.capabilities plus harness capabilities
@@ -777,7 +779,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N26](../todos/done/N26-protocol-package.md) | Protocol package: the typed union, framing and the generated JSON Schema | N2, B11, B15 | M |
 | [N27](../todos/done/N27-dispatcher-core.md) | Dispatcher and in-process transport: `initialize`, turns, events, `turn/settled` | N26, N7, B16 | M |
-| [N28](../todos/ready/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
+| [N28](../todos/done/N28-server-requests-backpressure.md) | Server requests, cancellation, bounded queues and reconnect | N27, N13 | M |
 | [N29](../todos/ready/N29-stdio-transport.md) | stdio transport and the framing check (HD6) | N28 | S |
 | [N30](../todos/ready/N30-cli.md) | CLI: one-shot JSON mode, line-mode chat, and `sessions` list, show, search and replay | N28 | M |
 
@@ -787,7 +789,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | --- | --- | --- | --- |
 | [N31](../todos/ready/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
 | [N32](../todos/done/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
-| [N33](../todos/ready/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
+| [N33](../todos/done/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
 | [N34](../todos/ready/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |
 | [N35](../todos/ready/N35-harness-capstone.md) | Harness triage capstone, second-process resume and the granularity test (HD1) | N29, N30, N34, B19, B20 | M |
 | [N36](../todos/ready/N36-eval-reports-replay.md) | Eval package: reports, mini-swe-agent trajectories and the offline replay suite | N35 | M |
@@ -875,11 +877,23 @@ N34 makes every removable component a flag in `AblationConfig` and runs the caps
 - **Scope creep from the agent side.** Quorum rules, tiers and provenance policy are tempting to build in. Mitigation: §3.7 gives each requirement a hook and no policy.
 - **Secrets in the log.** A tool result can echo a secret the host knows. Mitigation: `scrubSecrets` runs before every append (N20), and the capstone asserts no credential reaches an entry or a span.
 
-### 6.2 No question is open, and N19's measurement is the only pending input
+### 6.2 The owner answered HD4, HD5, HD8 and HD11, and N19's measurement is still to come
 
-The owner answered HD4, HD5, HD8 and HD11 on 2026-11-18. N19's measurement is the only input still to come, and a change after it is a superseding ADR (HD4). The agent plan answered P2's questions for P3. AD2, AD3, AD4 and AD10 set the policies behind the R1, R4 and R5 hooks, per-block `origin` is fine enough for AD5, and the 10 triage tasks are AD6's classification slice (N38b). P4 settled the thirteen needs (§3.6) and gave [ADR 0009](../decisions/0009-pre-emptive-budget.md) HD9's session cap. The live-run budgets HD8 needs arrive with N38 and N38b.
+The owner answered HD4, HD5, HD8 and HD11 on 2026-11-18. N19's measurement is the one input from those questions still to come, and a change after it is a superseding ADR (HD4). Seven more questions follow from N28, and §6.3 lists them. The agent plan answered P2's questions for P3. AD2, AD3, AD4 and AD10 set the policies behind the R1, R4 and R5 hooks, per-block `origin` is fine enough for AD5, and the 10 triage tasks are AD6's classification slice (N38b). P4 settled the thirteen needs (§3.6) and gave [ADR 0009](../decisions/0009-pre-emptive-budget.md) HD9's session cap. The live-run budgets HD8 needs arrive with N38 and N38b.
 
-### 6.3 Where Round N slots into the roadmap
+### 6.3 Seven questions that follow from N28 wait for the owner
+
+N28 ([Outcome](../todos/done/N28-server-requests-backpressure.md#outcome)) shipped the server's requests, cancels, queue bounds and replay. Its Outcome lists two open questions (1 and 5 below) and names four limits (2, 3, 4 and 6) that need an owner's choice. Question 7 comes from this plan's reading of the release path, not from the Outcome. No ready todo in Round N waits on an answer. Questions 1 to 5 each have an option that changes the protocol's wire form, so settling them before L11 publishes the protocol is cheaper than settling them after.
+
+1. **Should the protocol carry an approver's identity that the server checks?** `Resolution.by` reaches `Approvals.resolve()` as the client sent it (`packages/harness/src/server/answers.ts`), so the transport is the only authentication boundary, and a host that serves several people must authenticate them there. The options are to keep that boundary and document it in the README, or to add an identity to the protocol, such as a token on `initialize` that the dispatcher checks against a host callback and writes into `by`. By our inference, the second is the larger change and reaches the signed approvals of N13 and N14.
+2. **Should grouped and sticky answers get a wire form?** The `group` member of `approval/request` exists in `@buildanagent/protocol` (`packages/protocol/src/messages.ts`), but the dispatcher never sets it, and `ResolveOptions` has no wire form, so a client can't answer a group or keep an allowance for a run or the session (`ResolveOptions.sticky`). The options are to remove `group` until a client needs it, or to add a `group` and a `sticky` field to the answer and map them onto `ResolveOptions`.
+3. **How should a replay's memory be bounded?** A replay holds its entries in the connection's queue until they go out, so `session/open` with a small `fromSeq` on a long session costs memory in proportion to the entries it sends, as opening a session already does. The options are to accept that, to cap the entries one open replays and answer with a cursor for the rest, or to stream the replay from the log as the client reads.
+4. **What should `fromSeq` mean across a revert or a migration?** A replay reads the session's current file (`#replay` in `packages/harness/src/server/dispatcher.ts`). A revert or a migration can move the session to a new file whose sequence numbers start again. A `fromSeq` the client kept from the old file then names a position in the new one, and the replay can send the wrong entries. The options are to give each file an identifier that the client sends back with `fromSeq`, or to send a notification when the session changes file so that clients reopen it from 0.
+5. **Does the harness protocol get an "authorization required" server request?** Proposed change 6 of the [connectors report](../research/connectors/agent-connectors.md) asks for one that carries an authorization URL, plus URL-mode elicitation. It was a proposal while N28 ran, so N28 sends only `approval/request`, `clarification/request` and the client tool call. Accepting it needs a decision on the connectors plan and its own todo; declining it leaves the sign-in to a channel outside the protocol.
+6. **Who owns the scan that `initialize` and `session/list` make of every session?** Both call `listSessions` over the whole store on each call (`#initialize` and `#list` in `dispatcher.ts`), and `#initialize` also opens every session and reads its whole path to find pending approvals. One long session therefore slows every `initialize`, not only a store with many sessions. N27 named the limit, N28 deferred it again, and no todo owns it. The options are a todo that adds an index of pending requests, so `initialize` reads no log, plus a paged `session/list`, or a decision that a personal agent's stored sessions never make it matter.
+7. **Does the first release's changeset cover N28's wire additions?** The protocol, harness and CLI stay `private` until L11 drops it ([ADR 0058](../decisions/0058-publish-protocol-harness-and-cli.md)), so N28 added no changeset, and nothing in the changeset gate would catch the omission later. The additions are `fromSeq` on `session/open`, the `events_dropped` event, the `$/cancelRequest` notification the server now sends, and a value the harness sends in `error.kind`, `answer_not_applied`, which the protocol types as a plain string. [L10](../todos/ready/L10-make-protocol-harness-cli-publishable.md) and [L11](../todos/ready/L11-bootstrap-and-release-protocol-harness-cli.md) should decide whether the changeset that starts the first alpha lists them, or whether that release's notes say only that it is the first.
+
+### 6.4 Where Round N slots into the roadmap
 
 Round N interleaves with Round B in the build phase, starting from B1 and B2, and a new milestone, "M6 Our agent harness", covers N1 to N49 (with N46a/b, N47a/b and N48a/b), N50 and N52; N38b is deferred with the triage agent under M7b. *(Revised in plan review 2, 2026-11-19: the milestone first covered N1 to N40 with N38b.)* Most of Round N waits for the SDK's loop, but the log and the sandbox do not:
 - **After B1 and B2:** the scaffold, entries, store, lock and HEAD (N1 to N5), the sandbox interface and backends (N15 to N17, N19) and the credential proxy (N20), which need only the workspace and the gateway's types.
