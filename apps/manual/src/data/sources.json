@@ -459,5 +459,15 @@
     "asOf": "November 2026",
     "version": "agents@0.33.0",
     "verifiedIn": "apps/manual/fact-checks/memory-and-sessions.md"
+  },
+  {
+    "id": "langchain-human-in-the-loop",
+    "title": "Human-in-the-loop",
+    "publisher": "LangChain documentation",
+    "url": "https://github.com/langchain-ai/docs/blob/9d9747d0cf241e086c616a16d5ce230ad8f8f31d/src/oss/langchain/human-in-the-loop.mdx",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "version": "langchain@1.6.1",
+    "verifiedIn": "apps/manual/fact-checks/approvals-guardrails-and-injection.md"
   }
 ]

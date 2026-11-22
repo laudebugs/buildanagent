@@ -13,7 +13,7 @@ function setup() {
     name: "issue_refund",
     description: "Refund an order",
     parameters: z.object({ orderId: z.string() }),
-    needsApproval: async () => true,
+    needsApproval: async () => true, // book:note rule
     execute: async ({ orderId }) => {
       executed.push(orderId);
       return `refunded ${orderId}`;
@@ -32,15 +32,15 @@ function setup() {
 {
   const { agent, model, executed } = setup();
   // #region approve-resume
-  const first = await runner.run(agent, "Refund order A-1");
+  const first = await runner.run(agent, "Refund order A-1"); // book:note pause
   check(
     first.interruptions.length === 1 && first.interruptions[0].name === "issue_refund",
     "the run pauses with one interruption",
   );
   check(executed.length === 0, "the tool does not execute before approval");
-  const saved = JSON.stringify(first.state);
+  const saved = JSON.stringify(first.state); // book:note save
   const state = await RunState.fromString(agent, saved);
-  state.approve(first.interruptions[0]);
+  state.approve(first.interruptions[0]); // book:note resume
   const resumed = await runner.run(agent, state);
   // #endregion
   check(JSON.stringify(executed) === JSON.stringify(["A-1"]), "after approve() and resume, the tool executes once");
