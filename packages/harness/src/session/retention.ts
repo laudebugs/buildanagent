@@ -5,9 +5,9 @@
  * on a timer. Every doubt resolves to keeping a file: a file the run cannot read, a session it cannot date and a session
  * that a surviving one continues are all left where they are.
  */
-import type { Buffer } from "node:buffer";
+import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readdir, readFile, rename, rm } from "node:fs/promises";
+import { type FileHandle, mkdir, open, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { gunzip as gunzipCallback, gzip as gzipCallback } from "node:zlib";
@@ -29,6 +29,10 @@ export const ARCHIVE_EXTENSION = ".jsonl.gz";
 const LIVE_EXTENSION = ".jsonl";
 const POINTER_EXTENSION = ".pointer.json";
 const DAY_MS = 86_400_000;
+// How much of a live file one read takes, while the run looks for its first and last lines.
+const CHUNK_BYTES = 64 * 1024;
+// An archive never changes in place, so what it holds is kept by path, size, time and inode; this bounds the memory.
+const MAX_CACHED_ARCHIVES = 1024;
 
 /** How long to keep a session after its last entry, and what to do with it then. */
 export interface Retention {
@@ -47,7 +51,10 @@ export interface PruneOptions {
   readonly retention?: Retention;
   /** The clock. Default `new Date()`. */
   readonly now?: () => Date;
-  /** The writer lock. A session whose lock is held is kept, and the run holds each lock it takes until it ends. */
+  /**
+   * The writer lock. A session whose lock is held is kept, and the run holds each lock it takes until that session is
+   * archived, purged or kept.
+   */
   readonly lock?: SessionLock;
 }
 
@@ -161,15 +168,78 @@ type Contents =
   /** A file whose first line is not a session header, so nothing is known of it. */
   | { readonly kind: "opaque" };
 
-/** What a file's bytes say, or `undefined` for a file with no complete line, which was never acknowledged. */
-function contentsOf(bytes: Buffer): Contents | undefined {
-  const lines = bytes.toString("utf8").split("\n");
-  // A last line without a newline was never acknowledged, so it doesn't count.
-  lines.pop();
-  if (lines.length === 0) return undefined;
+/** A file's first and last complete lines, which may be the same line. A last line without a newline doesn't count. */
+interface Edges {
+  readonly first: Buffer;
+  readonly last: Buffer;
+}
+
+/** The edges of a whole file's bytes, or `undefined` for a file with no complete line, which was never acknowledged. */
+function edgesOf(bytes: Buffer): Edges | undefined {
+  const firstEnd = bytes.indexOf(0x0a);
+  if (firstEnd < 0) return undefined;
+  const end = bytes.lastIndexOf(0x0a);
+  const start = end === firstEnd ? 0 : bytes.lastIndexOf(0x0a, end - 1) + 1;
+  return { first: bytes.subarray(0, firstEnd), last: bytes.subarray(start, end) };
+}
+
+/** Reads up to `length` bytes at `position`, fewer when the file is shorter. */
+async function readAt(handle: FileHandle, position: number, length: number): Promise<Buffer> {
+  const buffer = Buffer.alloc(length);
+  const { bytesRead } = await handle.read(buffer, 0, length, position);
+  return buffer.subarray(0, bytesRead);
+}
+
+/** The position of the last newline before `before`, or -1, read backwards a chunk at a time. */
+async function newlineBefore(handle: FileHandle, before: number): Promise<number> {
+  for (let end = before; end > 0; end -= CHUNK_BYTES) {
+    const start = Math.max(0, end - CHUNK_BYTES);
+    const at = (await readAt(handle, start, end - start)).lastIndexOf(0x0a);
+    if (at >= 0) return start + at;
+  }
+  return -1;
+}
+
+/**
+ * A live file's edges, read from its two ends, so a long log costs two short reads; `"empty"` for a file with no complete
+ * line, and `"gone"` for a file that is not there. The bytes past the size the file had when it was opened don't count.
+ */
+async function liveEdges(path: string): Promise<Edges | "empty" | "gone"> {
+  let handle: FileHandle;
+  try {
+    handle = await open(path, "r");
+  } catch (error) {
+    if (isMissing(error)) return "gone";
+    throw error;
+  }
+  try {
+    const { size } = await handle.stat();
+    const head: Buffer[] = [];
+    let firstEnd = -1;
+    for (let at = 0; at < size && firstEnd < 0; ) {
+      const chunk = await readAt(handle, at, Math.min(CHUNK_BYTES, size - at));
+      if (chunk.length === 0) break;
+      const newline = chunk.indexOf(0x0a);
+      head.push(newline < 0 ? chunk : chunk.subarray(0, newline));
+      if (newline >= 0) firstEnd = at + newline;
+      at += chunk.length;
+    }
+    if (firstEnd < 0) return "empty";
+    const first = Buffer.concat(head);
+    const end = await newlineBefore(handle, size);
+    if (end <= firstEnd) return { first, last: first };
+    const start = (await newlineBefore(handle, end)) + 1;
+    return { first, last: await readAt(handle, start, end - start) };
+  } finally {
+    await handle.close();
+  }
+}
+
+/** What a file's first and last complete lines say about it. */
+function contentsOf(edges: Edges): Contents {
   let header: { type?: unknown; parent?: { session?: unknown } | null; spawn?: unknown } | null;
   try {
-    header = JSON.parse(lines[0] ?? "");
+    header = JSON.parse(edges.first.toString("utf8"));
   } catch {
     return { kind: "opaque" };
   }
@@ -178,7 +248,7 @@ function contentsOf(bytes: Buffer): Contents | undefined {
   const parent = header.spawn === undefined ? header.parent?.session : undefined;
   let lastAt: number | undefined;
   try {
-    const at = Date.parse(String((JSON.parse(lines.at(-1) ?? "") as { timestamp?: unknown }).timestamp));
+    const at = Date.parse(String((JSON.parse(edges.last.toString("utf8")) as { timestamp?: unknown }).timestamp));
     lastAt = Number.isNaN(at) ? undefined : at;
   } catch {
     lastAt = undefined;
@@ -227,17 +297,42 @@ interface Scan {
   opaque: boolean;
 }
 
-/** What a file's live or archived copy holds: its contents, `"empty"` with no complete line, or `"gone"` when it went. */
-async function readCopy(path: string, archived: boolean): Promise<Contents | "empty" | "gone"> {
-  let bytes: Buffer | undefined;
-  try {
-    bytes = archived ? await readArchive(path) : await readIfThere(path);
-  } catch (error) {
-    if (isHarnessError(error) && error.code === "session_corrupt") return { kind: "opaque" };
+type Copy = Contents | "empty" | "gone";
+
+const archives = new Map<string, { size: number; mtimeMs: number; ino: number; copy: Copy }>();
+
+/** What an archived copy holds, unpacked once and then kept while the file keeps its size, time and inode. */
+async function readArchivedCopy(path: string): Promise<Copy> {
+  const info = await stat(path).catch((error: unknown) => {
+    if (isMissing(error)) return undefined;
     throw error;
+  });
+  if (info === undefined) return "gone";
+  const cached = archives.get(path);
+  if (cached?.size === info.size && cached.mtimeMs === info.mtimeMs && cached.ino === info.ino) return cached.copy;
+  let copy: Copy;
+  try {
+    const bytes = await readArchive(path);
+    copy = bytes === undefined ? "gone" : contentsOrEmpty(edgesOf(bytes));
+  } catch (error) {
+    if (isHarnessError(error) && error.code === "session_corrupt") copy = { kind: "opaque" };
+    else throw error;
   }
-  if (bytes === undefined) return "gone";
-  return contentsOf(bytes) ?? "empty";
+  archives.delete(path);
+  if (copy !== "gone") archives.set(path, { size: info.size, mtimeMs: info.mtimeMs, ino: info.ino, copy });
+  const oldest = archives.keys().next().value;
+  if (archives.size > MAX_CACHED_ARCHIVES && oldest !== undefined) archives.delete(oldest);
+  return copy;
+}
+
+const contentsOrEmpty = (edges: Edges | undefined): Contents | "empty" =>
+  edges === undefined ? "empty" : contentsOf(edges);
+
+/** What a file's live or archived copy holds: its contents, `"empty"` with no complete line, or `"gone"` when it went. */
+async function readCopy(path: string, archived: boolean): Promise<Copy> {
+  if (archived) return readArchivedCopy(path);
+  const edges = await liveEdges(path);
+  return edges === "empty" || edges === "gone" ? edges : contentsOf(edges);
 }
 
 /**
@@ -439,7 +534,7 @@ interface Run {
   readonly sessions: Map<string, Session>;
   readonly owner: Map<string, string>;
   readonly result: PruneResult;
-  /** The sessions the run means to expire, with the lock it holds for each. */
+  /** The sessions the run means to expire, with the lock it holds for each until that session's own work ends. */
   readonly acting: Map<string, LockHandle | undefined>;
 }
 
@@ -447,6 +542,13 @@ const keep = (run: Run, sessionId: string, reason: KeptReason, error?: unknown):
   run.result.kept.push({ sessionId, reason });
   if (reason === "error") run.result.errors.push({ sessionId, error });
 };
+
+/** Gives up the lock of a session whose work is over, so its writer can open it before the run ends. */
+async function release(run: Run, sessionId: string): Promise<void> {
+  const handle = run.acting.get(sessionId);
+  run.acting.delete(sessionId);
+  await handle?.release().catch(() => undefined);
+}
 
 /** Picks the expired sessions to act on and takes each one's lock, keeping those it can't date, read or lock. */
 async function choose(run: Run, cutoff: number, opaque: boolean): Promise<void> {
@@ -497,12 +599,15 @@ export async function pruneSessions(options: PruneOptions): Promise<PruneResult>
   try {
     await choose(run, cutoff, found.opaque);
     if (retention.action === "archive") {
-      for (const id of run.acting.keys()) await attempt(run, id, () => archiveSession(run, id));
+      for (const id of [...run.acting.keys()]) {
+        await attempt(run, id, () => archiveSession(run, id));
+        await release(run, id);
+      }
     } else {
       await purgeAll(run);
     }
   } finally {
-    for (const handle of run.acting.values()) await handle?.release().catch(() => undefined);
+    for (const id of [...run.acting.keys()]) await release(run, id);
   }
   return result;
 }
@@ -541,10 +646,15 @@ function childrenOf(run: Run, pending: Set<string>): Map<string, string[]> {
   return children;
 }
 
-/** Purges the chosen sessions, minus those a survivor continues, each fork before the session it continues. */
+/**
+ * Purges the chosen sessions, minus those a survivor continues, each fork before the session it continues. Every
+ * decision is made before the first file goes, and each session's lock is given up as soon as its own fate is settled:
+ * a parent's lock stays held until the parent itself is purged or kept, so no fork of it can start meanwhile.
+ */
 async function purgeAll(run: Run): Promise<void> {
   const pending = new Set(run.acting.keys());
   protect(run, pending);
+  for (const id of [...run.acting.keys()]) if (!pending.has(id)) await release(run, id);
   const children = childrenOf(run, pending);
   const ended = new Map<string, boolean>();
   for (let progress = true; progress; ) {
@@ -555,18 +665,21 @@ async function purgeAll(run: Run): Promise<void> {
       pending.delete(id);
       progress = true;
       // A fork that could not be removed still continues this session, so it stays.
-      if (waiting.some((child) => ended.get(child) === false)) {
-        keep(run, id, "continued");
-        ended.set(id, false);
-        continue;
-      }
-      const done = await attempt(run, id, () => purgeSession(run, run.sessions.get(id) as Session));
-      if (done) run.result.purged.push(id);
-      ended.set(id, done);
+      ended.set(id, await purgeUnlessContinued(run, id, waiting, ended));
     }
   }
   // What is left is a cycle of sessions that continue each other, which only a corrupt folder has.
   for (const id of pending) keep(run, id, "continued");
+}
+
+/** Purges one session once its forks have ended, unless one of them failed to go, and gives up its lock. */
+async function purgeUnlessContinued(run: Run, id: string, forks: string[], ended: Map<string, boolean>) {
+  let done = false;
+  if (forks.some((fork) => ended.get(fork) === false)) keep(run, id, "continued");
+  else done = await attempt(run, id, () => purgeSession(run, run.sessions.get(id) as Session));
+  if (done) run.result.purged.push(id);
+  await release(run, id);
+  return done;
 }
 
 async function purgeSession(run: Run, session: Session): Promise<void> {
@@ -580,9 +693,9 @@ async function purgeSession(run: Run, session: Session): Promise<void> {
 
 /** Removes a live file that held no complete line when the run read it, and keeps it if a line has landed since. */
 async function removeStub(path: string): Promise<void> {
-  const bytes = await readIfThere(path);
-  if (bytes === undefined) return;
-  if (bytes.includes(0x0a)) {
+  const edges = await liveEdges(path);
+  if (edges === "gone") return;
+  if (edges !== "empty") {
     throw new HarnessError("session_conflict", `${path} was written during the run, so the session was kept`);
   }
   await rm(path, { force: true });

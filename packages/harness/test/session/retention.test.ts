@@ -363,6 +363,28 @@ describe("purge", () => {
     assert.deepEqual((await pruneSessions(options)).purged, ["old"]);
   });
 
+  test("a log whose lines are longer than one read is dated by its last complete line", async () => {
+    const dir = tempDir();
+    const big = "x".repeat(150_000);
+    const line = (entry: EntryInput) => `${JSON.stringify(entry)}\n`;
+    const write = (name: string, last: EntryInput) =>
+      writeFile(
+        join(dir, "ada", `${name}.jsonl`),
+        line({ ...header(), product: { pad: big } } as EntryInput) +
+          line({ ...record("r1", "h1"), data: { big } }) +
+          line({ ...last, data: { big } }) +
+          '{"torn": "',
+      );
+    mkdirSync(join(dir, "ada"), { recursive: true });
+    await write("stale", record("r2", "r1"));
+    await write("recent", { ...record("r2", "r1"), timestamp: TODAY });
+    // A log of one line is dated by that line.
+    await writeFile(join(dir, "ada", "single.jsonl"), line({ ...header(), product: { pad: big } } as EntryInput));
+    const result = await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" }, now: later(1) });
+    assert.deepEqual([...result.purged].sort(), ["single", "stale"]);
+    assert.deepEqual(files(dir, "ada"), ["recent.jsonl"]);
+  });
+
   test("a derived file whose header can't be read is listed in skipped once", async () => {
     const { dir } = await setup();
     const junk = join(dir, "ada", "%7Ejunk.jsonl");
@@ -470,6 +492,71 @@ describe("purge", () => {
     assert.deepEqual(result.purged, ["old"]);
     assert.deepEqual(files(dir, "ada"), []);
     assert.deepEqual(files(dir, ARCHIVE, "ada"), []);
+  });
+});
+
+describe("locks", () => {
+  /** A lock that grants every session, and records, as each is given up, which sessions' live files are still there. */
+  function watchingLock(dir: string, ids: readonly string[]) {
+    const released: Array<{ sessionId: string; live: string[] }> = [];
+    const lock: SessionLock = {
+      async acquire(key) {
+        return {
+          token: key.sessionId,
+          held: () => true,
+          release: async () => {
+            released.push({
+              sessionId: key.sessionId,
+              live: ids.filter((id) => existsSync(join(dir, "ada", `${id}.jsonl`))),
+            });
+          },
+        };
+      },
+    };
+    return { lock, released };
+  }
+
+  test("an archive gives up each session's lock as soon as that session is archived", async () => {
+    const { dir } = await setup();
+    await jsonlStore({ dir }).append({ userId: "ada", sessionId: "other" }, [header(), record("r1", "h1")]);
+    const { lock, released } = watchingLock(dir, ["old", "other"]);
+    const result = await pruneSessions({
+      dir,
+      userId: "ada",
+      retention: { days: 30, action: "archive" },
+      now: NOW,
+      lock,
+    });
+    assert.deepEqual([...result.archived].sort(), ["old", "other"]);
+    assert.equal(released.length, 2);
+    // The first lock went while the second session was still live, so its writer did not wait for the whole run.
+    assert.deepEqual(released[0]?.live, [released[1]?.sessionId]);
+    assert.deepEqual(released[1]?.live, []);
+  });
+
+  test("a purge gives up each session's lock as soon as that session is purged", async () => {
+    const { dir } = await setup();
+    await jsonlStore({ dir }).append({ userId: "ada", sessionId: "other" }, [header(), record("r1", "h1")]);
+    const { lock, released } = watchingLock(dir, ["old", "other"]);
+    const result = await pruneSessions({
+      dir,
+      userId: "ada",
+      retention: { days: 30, action: "purge" },
+      now: NOW,
+      lock,
+    });
+    assert.deepEqual([...result.purged].sort(), ["old", "other"]);
+    assert.deepEqual(released[0]?.live, [released[1]?.sessionId]);
+  });
+
+  test("a purged fork's lock goes while the session it continues is still there", async () => {
+    const { dir, forkKey } = await withFork(() => new Date("2026-01-02T00:00:00.000Z"));
+    const { lock, released } = watchingLock(dir, ["old", forkKey.sessionId]);
+    await pruneSessions({ dir, userId: "ada", retention: { days: 30, action: "purge" }, now: NOW, lock });
+    assert.deepEqual(released, [
+      { sessionId: forkKey.sessionId, live: ["old"] },
+      { sessionId: "old", live: [] },
+    ]);
   });
 });
 
