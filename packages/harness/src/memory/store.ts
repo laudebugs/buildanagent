@@ -105,14 +105,22 @@ export class RecordStore {
     return parseRecord(text) ?? "invalid";
   }
 
-  /** Every record that holds at `now`. A file that is not a record, or can't be read, is left out. */
-  async live(now: Date): Promise<NamedRecord[]> {
+  /**
+   * Every record on disk, expired or not, which a call can still read until a `create` or a `delete` replaces it. A
+   * file that is not a record, or can't be read, is left out.
+   */
+  async present(): Promise<NamedRecord[]> {
     const found: NamedRecord[] = [];
     for (const name of await this.names()) {
       const record = await this.get(name).catch(() => undefined);
-      if (record !== undefined && record !== "invalid" && !isExpired(record, now)) found.push({ name, record });
+      if (record !== undefined && record !== "invalid") found.push({ name, record });
     }
     return found;
+  }
+
+  /** Every record that holds at `now`. */
+  async live(now: Date): Promise<NamedRecord[]> {
+    return (await this.present()).filter(({ record }) => !isExpired(record, now));
   }
 
   /** Records that `mark`'s call wrote or returned the records at `names`. */

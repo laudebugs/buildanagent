@@ -2,7 +2,7 @@
 // each session that holds them so no session file keeps the fact, every rewritten session still rebuilds, and the
 // retention purge reads the same list.
 import assert from "node:assert/strict";
-import { mkdirSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { isHarnessError } from "@buildanagent/harness";
 import { clearPurgeMarks, readPurgeMarks } from "@buildanagent/harness/memory";
@@ -304,5 +304,52 @@ describe("a delete reaches the log", () => {
       now: later,
     });
     assert.equal(without.purgedMarks, undefined, "without marks the result is as it was");
+  });
+});
+
+describe("the tracker marks reads of a record's file", () => {
+  test("a read of an expired record's file is marked, so its delete purges that read", async () => {
+    const root = project();
+    mkdirSync(join(root, ".agents/memory"), { recursive: true });
+    const clock = testClock();
+    const setup: Setup = { root, files: fileMemoryFiles(root), clock: clock.now, ...fileBackend() };
+    await turn(setup, key("s1"), [{ name: "memory", input: CREATE }], { prefix: "a" });
+    clock.advance(91);
+    const read = await turn(setup, key("s2"), [{ name: "read", input: { path: CREATE.path } }], {
+      prefix: "b",
+      sandboxFiles: { [CREATE.path]: readFileSync(join(root, CREATE.path), "utf8") },
+    });
+    assert.ok(results(read.model).get("b1")?.text.includes(FACT), "the expired record's file is still readable");
+    await turn(setup, key("s3"), [{ name: "memory", input: { command: "delete", path: CREATE.path } }], {
+      prefix: "d",
+    });
+    const marks = await readPurgeMarks(setup.files);
+    assert.ok(marks.some((mark) => mark.tool === "read" && mark.callId === "b1"));
+  });
+
+  test("bookkeeping it can't read, or a linked memory folder, never withholds another tool's result", async () => {
+    const notes = "See .agents/memory/build.md for how to build.";
+    for (const breakFolder of [
+      (root: string) => {
+        mkdirSync(join(root, ".agents/memory"), { recursive: true });
+        writeFileSync(join(root, ".agents/memory/.calls.json"), "not json");
+      },
+      (root: string) => {
+        const outside = tempDir("harness-outside-");
+        mkdirSync(join(root, ".agents"));
+        symlinkSync(outside, join(root, ".agents/memory"));
+      },
+    ]) {
+      const root = project();
+      breakFolder(root);
+      const setup: Setup = { root, files: fileMemoryFiles(root), clock: testClock().now, ...fileBackend() };
+      const read = await turn(setup, key("s1"), [{ name: "read", input: { path: "NOTES.md" } }], {
+        prefix: "b",
+        sandboxFiles: { "NOTES.md": notes },
+      });
+      const result = results(read.model).get("b1");
+      assert.equal(result?.isError, false);
+      assert.ok(result?.text.includes(notes), result?.text);
+    }
   });
 });

@@ -121,22 +121,29 @@ function indexCache(store: RecordStore, now: () => Date): (runId: string, stepIn
 }
 
 /**
- * Marks a call of another tool whose result holds a live record's fact verbatim, when its input or its result names
- * the memory folder, so a `read`, `grep` or `bash` of a record's file is purged with the record.
+ * Marks a call of another tool whose result holds a record's fact verbatim, when its input or its result names the
+ * memory folder, so a `read`, `grep` or `bash` of a record's file is purged with the record. An expired record counts
+ * too, because its file stays readable until a `create` or a `delete` replaces it. Tracking never fails the call: a
+ * folder the file store refuses, or bookkeeping it can't read, leaves the call unmarked and its result as it was,
+ * because the result belongs to another tool and memory is then unusable anyway.
  */
-function tracker(store: RecordStore, now: () => Date) {
+function tracker(store: RecordStore) {
   return async (runId: string, callId: string, tool: string, input: unknown, text: string): Promise<void> => {
     if (tool === MEMORY_TOOL) return;
     if (!text.includes(MEMORY_DIR) && !JSON.stringify(input ?? null).includes(MEMORY_DIR)) return;
-    await store.exclusive(async () => {
-      const held = (await store.live(now())).filter(
-        ({ record }) => record.fact.length >= MIN_TRACKED_FACT && text.includes(record.fact),
-      );
-      await store.touched(
-        held.map(({ name }) => name),
-        { runId, callId, tool },
-      );
-    });
+    try {
+      await store.exclusive(async () => {
+        const held = (await store.present()).filter(
+          ({ record }) => record.fact.length >= MIN_TRACKED_FACT && text.includes(record.fact),
+        );
+        await store.touched(
+          held.map(({ name }) => name),
+          { runId, callId, tool },
+        );
+      });
+    } catch {
+      // The error may quote the folder's paths, so nothing of it is passed on.
+    }
   };
 }
 
@@ -180,7 +187,7 @@ export function memoryExtension(options: MemoryExtensionOptions): MemoryExtensio
   const untrusted = (tool: string): boolean =>
     tool !== MEMORY_TOOL && (options.registry.get(tool)?.outputTrust ?? "untrusted") === "untrusted";
   const indexFor = indexCache(store, now);
-  const track = tracker(store, now);
+  const track = tracker(store);
   const tool = memoryTool({
     root: options.root,
     store,
