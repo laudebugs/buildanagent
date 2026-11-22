@@ -1,8 +1,8 @@
 {
   "repo": "https://github.com/vercel/ai",
-  "tag": "ai@7.0.162",
-  "commit": "2feaeecbd6a921a27123aafa75db6af34e1f246b",
-  "fetchedAt": "2026-11-18T10:52:59.394Z",
+  "tag": "ai@7.0.173",
+  "commit": "0e8e0543aeda7d4dd4ce6eade0d5b7d5a43644c1",
+  "fetchedAt": "2026-11-22T21:29:32.515Z",
   "dirs": [
     "content/docs/02-foundations/",
     "content/docs/03-agents/",

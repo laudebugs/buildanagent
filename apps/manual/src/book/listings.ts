@@ -14,7 +14,7 @@ export interface ListingSource {
   readonly lines: readonly SourceLine[];
   /** The harness directory the file belongs to, such as `verify/vercel-ai-sdk` or `packages/sdk`. */
   readonly harness: string;
-  /** The harness's main package at its pinned version, such as `ai@7.0.162`. */
+  /** The harness's main package at its pinned version, such as `ai@7.0.173`. */
   readonly pin: string;
   /**
    * The pin the harness's transcripts record: the same as `pin` for a `verify/` harness, and `name@workspace` for one
