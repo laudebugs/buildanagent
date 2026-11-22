@@ -4,7 +4,7 @@
  * network file system, so those are unsupported.
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { link, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
 import { hostname } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -33,7 +33,10 @@ export interface FileLockOptions {
   readonly dir: string;
   /** How long a lock lasts without a renewal. Default 30 seconds. */
   readonly leaseMs?: number;
-  /** How often the holder renews. Default 10 seconds, and it must be shorter than the lease. */
+  /**
+   * How often the holder renews. Default 10 seconds or a third of the lease, whichever is less. It must be shorter
+   * than the lease.
+   */
   readonly renewMs?: number;
   /** The clock, in milliseconds. A test sets it. */
   readonly now?: () => number;
@@ -75,10 +78,11 @@ const MAX_TIMER_MS = 2 ** 31 - 1;
 
 function encode(record: LockRecord): string {
   const text = JSON.stringify(record);
-  if (text.length > RECORD_BYTES) {
+  const bytes = new TextEncoder().encode(text).length;
+  if (bytes > RECORD_BYTES) {
     throw new HarnessError("invalid_lock_options", "a lock record is over 1 KiB, so the host name is too long");
   }
-  return text.padEnd(RECORD_BYTES);
+  return text + " ".repeat(RECORD_BYTES - bytes);
 }
 
 /** What a takeover guard holds: who made it, and when by the wall clock, which file ages are measured against. */
@@ -125,7 +129,7 @@ class FileLock implements SessionLock {
   constructor(options: FileLockOptions) {
     this.#dir = options.dir;
     this.#leaseMs = options.leaseMs ?? DEFAULT_LEASE_MS;
-    this.#renewMs = options.renewMs ?? DEFAULT_RENEW_MS;
+    this.#renewMs = options.renewMs ?? Math.min(DEFAULT_RENEW_MS, this.#leaseMs / 3);
     this.#now = options.now ?? Date.now;
     this.#isAlive = options.isAlive ?? processExists;
     this.#host = options.host ?? hostname();
@@ -179,8 +183,9 @@ class FileLock implements SessionLock {
       await rm(aside, { force: true });
       return true;
     }
-    // A fresh guard was grabbed by mistake, so it goes back and this call gives up.
-    await rename(aside, guard).catch(() => undefined);
+    // A fresh guard was grabbed by mistake, so it goes back, unless another has been made since, and this call gives up.
+    await link(aside, guard).catch(() => undefined);
+    await rm(aside, { force: true });
     return false;
   }
 
@@ -199,6 +204,9 @@ class FileLock implements SessionLock {
       const current = parseRecord((await readText(path)) ?? "");
       // Someone renewed or replaced the lock since it was read as stale.
       if (current?.token !== staleToken) return false;
+      // A lock with no record may be one that another writer has just created and not finished writing, so it must
+      // still be old now that the guard is held.
+      if (staleToken === undefined && !(await this.#unreadableIsStale(path))) return false;
       await rm(path, { force: true });
       if (!(await createExclusive(path, encode(record)))) return false;
       // A guard that was cleared while this ran could have let a second reclaimer in, so the lock is read back.

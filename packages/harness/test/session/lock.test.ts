@@ -256,3 +256,19 @@ test("options that would break the lease are refused with their own code", () =>
     assert.throws(() => fileLock({ dir, ...options }), refused, JSON.stringify(options));
   }
 });
+
+test("a short lease alone works, because the renewal default follows it", async () => {
+  const lock = fileLock({ dir: tempDir(), leaseMs: 5000 });
+  const handle = await held(lock);
+  assert.equal(handle.held(), true);
+});
+
+test("a host name is measured in bytes: a multi-byte one over 1 KiB is refused, and a smaller one keeps the record's size", async () => {
+  const dir = tempDir();
+  await assert.rejects(
+    () => fileLock({ dir, host: "é".repeat(600) }).acquire(KEY),
+    (error) => isHarnessError(error) && error.code === "invalid_lock_options",
+  );
+  await held(fileLock({ dir, host: "é".repeat(300) }));
+  assert.equal(readFileSync(lockFile(dir)).length, 1024, "the record fills its 1 KiB exactly, in bytes");
+});

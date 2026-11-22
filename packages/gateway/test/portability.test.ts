@@ -17,8 +17,9 @@ const nodeOnlyFiles = new Set([
   // sandbox entry still works on every target.
   "sandbox/none.ts",
   "sandbox/spawn-env.ts",
-  // The harness's JSONL session store and file lock keep sessions and locks in files, so they are Node-only by nature. It has its own entry,
-  // `@buildanagent/harness/session/jsonl`, and the portable `./session` entry never imports it.
+  // The harness's JSONL session store and file lock keep sessions and locks in files, so they are Node-only by
+  // nature. They have their own entry, `@buildanagent/harness/session/jsonl`, and the portable `./session` entry
+  // never imports them.
   "session/jsonl-store.ts",
   "session/file-lock.ts",
 ]);
