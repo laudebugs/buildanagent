@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 49,
+      "line": 50,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -38,7 +38,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 50,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -57,7 +57,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 50,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -83,7 +83,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 50,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -103,37 +103,37 @@
     },
     {
       "kind": "check",
-      "line": 50,
+      "line": 51,
       "message": "instructions are the system message",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 51,
+      "line": 52,
       "message": "both tools are offered",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 53,
+      "line": 54,
       "message": "step 1 looks up the order",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 55,
+      "line": 56,
       "message": "the refund waits for approval",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 56,
+      "line": 57,
       "message": "no refund before approval",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 63,
+      "line": 64,
       "model": "model-1",
       "repeated": 5,
       "messages": [
@@ -158,7 +158,7 @@
     },
     {
       "kind": "response",
-      "line": 63,
+      "line": 64,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -173,25 +173,25 @@
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 65,
       "message": "after approval the refund runs exactly once",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 65,
+      "line": 66,
       "message": "the agent returns a typed triage record",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 69,
+      "line": 70,
       "message": "three model calls in all: lookup, refund request, final answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 71,
       "message": "the final call asks for JSON",
       "pass": true
     }

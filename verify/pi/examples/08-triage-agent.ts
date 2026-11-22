@@ -52,6 +52,7 @@ const submitTriage = defineTool({
 // 3. The gate: an inline extension sees every tool call before it runs.
 const audit: string[] = [];
 const cwd = mkdtempSync(join(tmpdir(), "pi-triage-"));
+// #region gate
 const resourceLoader = new DefaultResourceLoader({
   cwd,
   agentDir: join(cwd, ".pi-agent"),
@@ -59,12 +60,13 @@ const resourceLoader = new DefaultResourceLoader({
     (pi) => {
       pi.on("tool_call", async (event) => {
         audit.push(event.toolName);
-        if (event.toolName === "escalate") return { block: true, reason: "Escalation needs a human." };
+        if (event.toolName === "escalate") return { block: true, reason: "Escalation needs a human." }; // book:note gate
         return undefined;
       });
     },
   ],
 });
+// #endregion
 await resourceLoader.reload();
 
 // The faux model plays a model that looks up, tries to escalate, then submits.
