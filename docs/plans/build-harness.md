@@ -773,6 +773,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N24](../todos/ready/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/ready/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
 | [N52](../todos/ready/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
+| [N53](../todos/ready/N53-stdio-identity-binding.md) | Bind a stdio client to a user so `Resolution.by` is checked, not trusted | N29, N30 | M |
 
 ### 4.6 Stage 6 puts the protocol, its transports and the CLI over the harness
 

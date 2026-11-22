@@ -34,7 +34,9 @@ Commands:
   keys rotate                 Add a new approval key and make it current.
   keys prune                  Remove the approval keys no waiting request names.
   rpc                         Serve the protocol as JSON-RPC lines over standard
-                              input and output, until input ends.
+                              input and output, until input ends. It
+                              authenticates nobody: whoever holds the streams
+                              acts as the session's user.
 
 Options:
   --model <provider>:<id>     The model to run, such as anthropic:claude-sonnet-5-5

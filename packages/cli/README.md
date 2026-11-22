@@ -84,6 +84,8 @@ The CLI connects to the provider `--model` names and to the collector `--otlp-en
 buildanagent rpc --model anthropic:claude-sonnet-5-5
 ```
 
+`rpc` authenticates nobody: whoever holds its standard input and output acts as the dispatcher's user, and a `Resolution.by` field is passed on as the client sent it. Run it only where you trust every process that can reach those streams.
+
 The [protocol README](https://github.com/laudebugs/buildanagent/blob/main/packages/protocol/README.md) lists every method. The client sends `initialize`, then `session/create` or `session/open`, then `turn/start`, and waits for each response before it sends the next command. The server writes each command's response, the session's `event` notifications and one `turn/settled` per turn to standard output:
 
 ```text
