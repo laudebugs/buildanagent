@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T57` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan BK8](../../plans/build-book.md#bk8-code-from-verify-now-our-own-sdk-as-its-todos-land-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T19](../done/T19-chapter-events-and-hooks.md), [B13](../done/B13-interceptors-observers.md), [B16](../done/B16-steering.md), [B17](../done/B17-otel-observer.md), [T50](../done/T50-chapter-call-workflow-loop-on-our-sdk.md) |
