@@ -197,7 +197,9 @@
     "analogy": "a mechanic's service manuals, opened only when that model of car comes in",
     "chapter": "tools-at-scale",
     "illustration": null,
-    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run.",
+    "breaks": "A mechanic closes the manual when the car leaves the lift; a skill read into context stays there and costs its tokens in every later request of the run."
+  },
+  {
     "id": "raffle-ticket-stub",
     "concept": "idempotency key",
     "analogy": "a raffle ticket stub",

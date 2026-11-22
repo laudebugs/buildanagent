@@ -768,7 +768,9 @@
     "kind": "spec",
     "version": "2026-07-28",
     "asOf": "November 2026",
-    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
     "id": "stripe-idempotent-requests",
     "title": "Idempotent requests",
     "publisher": "Stripe API reference",
