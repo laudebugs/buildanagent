@@ -17,7 +17,7 @@ describe("the layout", () => {
     assert.equal(text, '[\n  {"id":"a","note":"one","nested":{"x":[1,2]}},\n  {"id":"b","note":"two"}\n]\n');
   });
 
-  test("keeps the order of an entry's own keys and sorts ids by code point", () => {
+  test("keeps the order of an entry's own keys and sorts ids by code unit", () => {
     const keyed = formatRegister([{ id: "b", z: 1, a: 2 }]);
     assert.equal(keyed, '[\n  {"id":"b","z":1,"a":2}\n]\n', "the keys stay in the order the entry has them");
     const text = formatRegister([{ id: "b-1" }, { id: "a2" }, { id: "a-2" }, { id: "B" }]);
@@ -48,7 +48,8 @@ describe.each(REGISTER_FILES)("%s", (file) => {
   const text = readFileSync(app(file), "utf8");
 
   test("has no repeated id", () => {
-    assert.deepEqual(repeatedIds(parseRegister(text, file)), [], `a repeated id; keep one entry`);
+    const repeated = repeatedIds(parseRegister(text, file));
+    assert.deepEqual(repeated, [], `${file} repeats ${repeated.join(", ")}: keep one entry of each, then ${FIX}`);
   });
 
   test("is in canonical form: one entry per line, sorted by id", () => {

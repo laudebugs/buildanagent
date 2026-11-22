@@ -7,7 +7,9 @@ const book = getBook();
 
 // Every register entry, by title, so the page's order doesn't depend on the register file's. Each anchor is the id
 // chapters cite with [@id].
-const sources = [...book.sources.values()].sort((a, b) => a.title.localeCompare(b.title, "en"));
+const sources = [...book.sources.values()].sort(
+  (a, b) => a.title.localeCompare(b.title, "en") || a.id.localeCompare(b.id, "en"),
+);
 ---
 
 <BaseLayout title="Sources" description="Every source the book cites, and the fact-check log that verified it.">

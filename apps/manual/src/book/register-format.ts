@@ -17,7 +17,7 @@ export const REGISTER_FILES = [
 
 type Entry = Record<string, unknown> & { id: string };
 
-/** Compares ids by code point, so the order is the same on every machine and locale. */
+/** Compares ids by UTF-16 code unit, so the order is the same on every machine and locale. */
 const byId = (a: Entry, b: Entry): number => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 /**
