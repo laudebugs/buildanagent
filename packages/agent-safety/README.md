@@ -2,7 +2,7 @@
 
 When a tool changes the world, such as sending an email or issuing a refund, your agent must know exactly what happened, and a person must approve exactly what runs. This package gives every write one of five typed outcomes and an identity that a crash can't repeat, hashes tool inputs the same way on every runtime, signs approvals so a forged or stale one runs nothing, lets a person approve a whole plan once before a step that can't be undone, keeps every model call on the user's own key, and refuses a model call before it is sent when the call could push a run past its USD cap.
 
-As of November 2026 the package is private and not on npm. It holds the write outcomes and `renderOutcome()`, `canonicalInputHash()`, the approval signers, and `guardedWrite()`, which keeps a crash or a regenerated turn from repeating a write. It also holds the signed plan approval and `runPlan()`, which runs and compensates an approved plan. For model calls, its guards keep each call on the user's key, and `costGuard()` caps what AI SDK calls may spend. Adapters for the Vercel AI SDK hand all of this to an AI SDK agent, and they also serve Cloudflare's `AIChatAgent`.
+As of November 2026 the package is private and not on npm. It holds the write outcomes (`renderOutcome()`, `canonicalInputHash()`) and the approval signers. `guardedWrite()` keeps a crash or a regenerated turn from repeating a write, and `runPlan()` runs and compensates an approved plan. For model calls, its guards keep each call on the user's key, and `costGuard()` caps what AI SDK calls may spend. Adapters for the Vercel AI SDK hand all of this to an AI SDK agent, and they also serve Cloudflare's `AIChatAgent`.
 
 ## A failed write reports one of five outcomes
 
@@ -161,7 +161,7 @@ Each target has an `EffectStore` and a `PlanLedger` that keep their records acro
 | Vercel, or any Postgres | `./stores/postgres` | `postgresEffectStore()`, `postgresPlanLedger()` | A client with `query(text, values)`, such as `pg`'s `Pool`, and `POSTGRES_SCHEMA` run once |
 | Local Node | the root entry | `memoryEffectStore()`, `memoryPlanLedger()` | Nothing; the records vanish with the process |
 
-On Cloudflare, a Durable Object makes its tables once and passes the store to `guardedWrite()`:
+On Cloudflare, a Durable Object makes its tables once, in its constructor, and passes the store to `guardedWrite()`:
 
 ```ts
 import { createCloudflareTables, durableObjectEffectStore } from "@buildanagent/agent-safety/stores/cloudflare";

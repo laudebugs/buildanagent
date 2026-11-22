@@ -37,7 +37,9 @@ As of November 2026 the package is private and not on npm. Each removable compon
 
 `mistakes` are the agent's own errors, such as a write outside the workspace. `exfiltration` is sending data to a host that is not allowed. No backend claims to stop a `hostile_process`, because a sandbox that shares the host's kernel can't promise it. A backend that can't start throws `SandboxUnavailableError`, and the host must not run unconfined, so no backend falls back to `none`.
 
-`noneSandbox()` needs `unsafe: true`: leaving it out is a type error, and a JavaScript caller gets a `HarnessError` with the code `unsafe_sandbox_not_acknowledged`. Each sandbox it provisions writes a warning to standard error, or to the `warn` option. It enforces no policy, which is what `stops: []` says. This runs a project's tests in a workspace and prints the exit code, or why the command was refused:
+`noneSandbox()` needs `unsafe: true`: leaving it out is a type error, and a JavaScript caller gets a `HarnessError` with the code `unsafe_sandbox_not_acknowledged`. Each sandbox it provisions writes a warning to standard error, or to the `warn` option. It enforces no policy, which is what `stops: []` says.
+
+The example below runs a project's tests in a workspace and prints the exit code, or why the command was refused:
 
 ```ts
 import { noneSandbox, spawnEnv } from "@buildanagent/harness/sandbox";
@@ -306,7 +308,7 @@ Turn a layer off with `layers: { write_cap: false }` or `layers: { mask: false }
 
 Layer 3 of the context policy runs at the start of a turn, before the turn's input is written. When the context is over the budget, the policy summarises everything before a verbatim tail and writes a `compaction` entry. The budget is `budgetTokens`, which defaults to the smaller of the model's window less 16,384 tokens and 200,000. The tail is the newest messages that add up to `summarize.tailTokens` (default 20,000), moved back until it starts with an assistant message, so a call is never split from its result and the summary is never followed by a second user message.
 
-This policy keeps the newest 20,000 tokens verbatim, asks the summary to keep the open bugs, caps the summary call at $5, and hands each written entry to an audit log:
+The policy below sets four options. It keeps the newest 20,000 tokens verbatim, asks the summary to keep the open bugs, caps the summary call at $5 and logs each written entry:
 
 ```ts
 const context = createContextPolicy({

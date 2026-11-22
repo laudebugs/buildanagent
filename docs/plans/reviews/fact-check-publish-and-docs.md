@@ -445,7 +445,7 @@ The decision to publish the protocol, harness and CLI ([ADR 0058](../../decision
 
 ## L10: the protocol, harness, CLI and agent-safety READMEs
 
-The claims the four package READMEs gained or changed in L10, read from the branch `todo/L10-docs` on 2026-11-22.
+The claims the four package READMEs gained or changed in L10, read from the branch `todo/L10-make-packages-publishable` on 2026-11-22.
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
