@@ -47,3 +47,28 @@ The key is what lets the shop and the server find the same order again. Think of
 Three choices in the listing carry the chapter's argument. The key is the business fact, so a second run that asks for the same charge finds the first run's entry. A write the log has already settled is answered from the log, whether it applied or was declined, and no request goes out. Only a definite decline, a 402 from this server, becomes `not_applied`; any other failure stays `unknown`, because a 500 or a dropped connection says nothing about whether the write landed.
 
 Agent vendors point at the tool call id as the natural key, and the advice to persist it is consistent. The OpenAI Agents SDK says that a tool with side effects should be made "idempotent by call ID so an interrupted continuation cannot repeat the effect". Cloudflare's agents documentation tells developers to "Persist idempotency keys or completion records before external side effects". Neither page says how long a call id is unique or what it is unique within. A backend should therefore scope any key by tenant and session, and a key built from the business fact, as the example does, survives a resume that regenerates the model's call and so issues a fresh id for the same charge.
+
+## A crash between the write and the result leaves unknown, and only the other side can settle it
+
+Suppose you phone a restaurant to place an order and :analogy[the line goes dead mid-order]{#dropped-phone-order}. You cannot tell whether the kitchen heard you. Ordering again may feed you twice, and not ordering may leave you hungry. The sensible move is to phone back and ask whether the order is in. The agent's charge tool faces the same silence after a crash, and it needs the same move: ask the server before writing again. A restaurant has no order number to look up, though. That is why the write carried a key that the other side can be asked about.
+
+The tool reads its state from a small log of entries. The state of one operation is the outcome in its last entry, and a last entry that only says the write started means `unknown`.
+
+:::listing[The state of an operation is read from its last log entry]{#effect-log file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="effect-log"}
+:::
+
+The example then crashes the tool on purpose. A child process runs the charge tool for order 42 and kills itself with `SIGKILL` after the server has answered and before the tool logs the outcome. The kill leaves exactly the state in the opening: the server has written once, and the log holds the key and no outcome.
+
+:::listing[A child process is killed between the server's reply and the log entry]{#crash file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="crash"}
+::note[The log has the key and no outcome, so the state is unknown.]{#unknown}
+:::
+
+A fresh run of the same tool now reads the log, sees `unknown` and asks the server for the key, and the server says it has the write. The tool records `applied` and tells the model so, and it sends nothing.
+
+:::listing[The resume asks the server instead of writing again]{#resume file="verify/vercel-ai-sdk/examples/15-write-crash-idempotency.ts" region="resume"}
+::note[The server received exactly one write request for order 42, though the tool ran twice.]{#once}
+:::
+
+The tool's other branches follow from the same rule. A 404 from the lookup proves the write never reached the server, and only then may the tool send it, under the same key. Any other answer leaves the outcome `unknown` and the model is told so. The model never sees a fresh key.
+
+Two limits belong with the example. The log is a small file that survives a killed process and not a power cut, because nothing is synced to disk before the call, so a real deployment replaces it with a store that makes the entry durable first. And the lookup works because the example's server can answer "have you seen this key?". A server that offers neither a lookup nor a replay for a reused key leaves the outcome `unknown` for a person to settle.
