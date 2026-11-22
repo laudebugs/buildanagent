@@ -1,6 +1,7 @@
 /**
  * `JsonlFramer`: splits a byte stream into JSON messages, one per line, on `\n` only. It never uses Node's `readline`,
- * which also splits on U+2028 and U+2029, characters that may sit inside a JSON string.
+ * which also ends a line at a lone `\r`, and some line readers end one at U+2028 and U+2029 too, characters that may sit
+ * inside a JSON string.
  */
 import { ProtocolError } from "./errors.js";
 import { ErrorCodes } from "./jsonrpc.js";
@@ -18,6 +19,9 @@ export interface JsonlFramerOptions {
 }
 
 const NEWLINE = 0x0a;
+
+/** Spaces, tabs and carriage returns only: nothing a message could be made of. */
+const isBlank = (bytes: Uint8Array): boolean => bytes.every((byte) => byte === 0x20 || byte === 0x09 || byte === 0x0d);
 
 function join(parts: readonly Uint8Array[], total: number): Uint8Array {
   const bytes = new Uint8Array(total);
@@ -63,8 +67,7 @@ export class JsonlFramer {
     const out: FramedMessage[] = [];
     const leftover = join(this.#parts, this.#bytes);
     // Spaces, tabs and a \r are not a message, so a stream that ends after them was not cut.
-    const blank = leftover.every((byte) => byte === 0x20 || byte === 0x09 || byte === 0x0d);
-    if (this.#bytes > 0 && !blank && !this.#skipping) {
+    if (this.#bytes > 0 && !isBlank(leftover) && !this.#skipping) {
       out.push({
         ok: false,
         error: new ProtocolError("unterminated_line", "the stream ended in the middle of a line", {
@@ -114,7 +117,7 @@ export class JsonlFramer {
     if (wasSkipping) return;
     const end = bytes.at(-1) === 0x0d ? bytes.length - 1 : bytes.length;
     const line = bytes.subarray(0, end);
-    if (line.every((byte) => byte === 0x20 || byte === 0x09)) return;
+    if (isBlank(line)) return;
     out.push(line.length > this.#maxLineBytes ? this.#tooLong() : parseLine(line));
   }
 }

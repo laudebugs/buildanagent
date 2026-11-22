@@ -90,7 +90,7 @@ function checkEnvelope(value: Record<string, unknown>): void {
   const id = isId(value.id) ? value.id : null;
   if (value.jsonrpc !== "2.0") invalid('a message must carry "jsonrpc": "2.0"', id);
   // Only an error response may have a null id, because the request it answers could not be read.
-  if ("id" in value && !isId(value.id) && !(value.id === null && "error" in value)) {
+  if (value.id !== undefined && !isId(value.id) && !(value.id === null && value.error !== undefined)) {
     invalid("an id must be a number or a string", null);
   }
   checkShape(value, id);
@@ -98,6 +98,14 @@ function checkEnvelope(value: Record<string, unknown>): void {
   if (params !== undefined && (typeof params !== "object" || params === null || Array.isArray(params))) {
     invalid("params must be an object", id);
   }
+}
+
+/** The value as an object that can be an envelope, after the envelope check. */
+function checkObject(value: unknown): Record<string, unknown> {
+  if (typeof value !== "object" || value === null) invalid("a message must be a JSON object");
+  if (Array.isArray(value)) invalid("a batch is not supported, so each message goes on its own line");
+  checkEnvelope(value as Record<string, unknown>);
+  return value as Record<string, unknown>;
 }
 
 /**
@@ -118,10 +126,7 @@ export function decode(input: unknown): JsonRpcMessage {
       });
     }
   }
-  if (typeof value !== "object" || value === null) invalid("a message must be a JSON object");
-  if (Array.isArray(value)) invalid("a batch is not supported, so each message goes on its own line");
-  checkEnvelope(value as Record<string, unknown>);
-  return value as JsonRpcMessage;
+  return checkObject(value) as unknown as JsonRpcMessage;
 }
 
 /**
@@ -130,7 +135,7 @@ export function decode(input: unknown): JsonRpcMessage {
  * must split on `\n` only.
  */
 export function encode(message: ProtocolMessage | JsonRpcMessage): string {
-  checkEnvelope(message as unknown as Record<string, unknown>);
+  checkObject(message);
   try {
     const text = JSON.stringify(message);
     if (text === undefined) invalid("a message must be JSON");

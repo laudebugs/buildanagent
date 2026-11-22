@@ -92,6 +92,8 @@ None open. P4 moved the entry union into this package (R2), so the protocol neve
 - **The SDK's `AgentEvent` is mirrored loosely in the schema.** Its 29 event types would be a second copy to keep in step with the SDK, so the schema checks `type` and the base fields, and a test compares the type list with the SDK's `AGENT_EVENT_TYPES`.
 - **The `dist/` scan builds to a temporary folder,** with `--customConditions source`, because the packages it takes types from may not be built when the tests run.
 - **The schema's shared shapes are named by a hash of their content,** after the generator's own `__schema7` names, which renumber when a shape is added. A shape zod can name by id (`Id`, `ContentBlock`, `SessionEntry`, `SignedPendingRequest`, `Resolution`, `RpcError`) keeps that name.
+- **A client opts into an experimental method by listing its name in `initialize`'s `capabilities`.** The plan said a client "must opt in" without naming how. The server's `experimental` list names the methods, and the dispatcher (N27) answers `NotOptedIn` for one not listed.
+- **The framing rule stands, with a corrected reason.** Pi's documentation says Node's `readline` splits on U+2028 and U+2029, and the plan repeats it. Node 22.23.5 did not when checked (it splits on a lone `\r`), so the README says what was checked, and the rule stays: split on the newline byte alone ([fact-check row N26-4](../../plans/reviews/fact-check-build-harness.md)).
 - **No batch support.** JSON-RPC allows an array of messages. The framing puts one message on each line, so a batch is an `invalid_request`.
 
 **Left out.** The dispatcher, queues and transports (N27 to N29).

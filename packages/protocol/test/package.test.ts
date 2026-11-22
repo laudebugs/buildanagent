@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { afterAll, test } from "vitest";
@@ -35,11 +35,21 @@ function jsFiles(dir: string): string[] {
 }
 
 const SPECIFIER = /\b(?:from|import)\s*\(?\s*["']([^"']+)["']/g;
+// An import whose specifier is not a string literal can't be checked, so it counts as outside the package.
+const COMPUTED_IMPORT = /\bimport\s*\(\s*[^"'\s]/;
+// Comments are removed first, so prose that says "from 'node:readline'" is not read as an import.
+const withoutComments = (source: string): string =>
+  source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
 
 test("the emitted JavaScript imports nothing outside the package", () => {
   // The workspace packages it takes types from may not be built, so the build reads their source, as the tests do. The
   // environment is cleared, as for every spawned process, keeping only the folder of the running `node` on PATH.
-  const env = { PATH: `${dirname(process.execPath)}:/usr/bin:/bin`, HOME: out, TMPDIR: out, LANG: "C.UTF-8" };
+  const env = {
+    PATH: [dirname(process.execPath), "/usr/bin", "/bin"].join(delimiter),
+    HOME: out,
+    TMPDIR: out,
+    LANG: "C.UTF-8",
+  };
   execFileSync(findTsc(), ["-p", "tsconfig.build.json", "--outDir", out, "--customConditions", "source"], {
     cwd: packageDir,
     env,
@@ -48,7 +58,9 @@ test("the emitted JavaScript imports nothing outside the package", () => {
   const files = jsFiles(out);
   assert.ok(files.length > 0, "the build wrote files");
   for (const file of files) {
-    for (const match of readFileSync(file, "utf8").matchAll(SPECIFIER)) {
+    const code = withoutComments(readFileSync(file, "utf8"));
+    assert.doesNotMatch(code, COMPUTED_IMPORT, `${file} has an import whose specifier can't be checked`);
+    for (const match of code.matchAll(SPECIFIER)) {
       assert.match(match[1] as string, /^\.\.?\//, `${file} imports ${match[1]}, which is outside the package`);
     }
   }

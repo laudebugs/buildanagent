@@ -225,3 +225,25 @@ test("encode refuses a response with no result, and says so as a ProtocolError f
     );
   }
 });
+
+test("a keep-alive of carriage returns is skipped mid-stream and at the end of one", () => {
+  const middle = new JsonlFramer().push(bytes('{"a":1}\n\r\r\n{"b":2}\n'));
+  assert.deepEqual(values(middle), [{ a: 1 }, { b: 2 }]);
+  const tail = new JsonlFramer();
+  tail.push(bytes('{"a":1}\n\r\r'));
+  assert.deepEqual(tail.end(), []);
+});
+
+test("encode refuses a value that is not an object with a ProtocolError, and an undefined id counts as no id", () => {
+  for (const input of [null, "x", 3, [], undefined]) {
+    assert.throws(
+      () => encode(input as never),
+      (error) => isProtocolError(error) && error.code === "invalid_request",
+      String(input),
+    );
+  }
+  assert.doesNotThrow(() =>
+    encode({ jsonrpc: "2.0", id: undefined, method: "$/cancelRequest", params: { id: 1 } } as never),
+  );
+  assert.equal(encode({ jsonrpc: "2.0", id: undefined, method: "x" } as never), '{"jsonrpc":"2.0","method":"x"}\n');
+});

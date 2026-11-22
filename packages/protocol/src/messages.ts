@@ -42,7 +42,7 @@ export type ClientCommand =
     }
   | { jsonrpc: "2.0"; id: Id; method: "turn/interrupt"; params: { session: string; reason?: string } }
   | { jsonrpc: "2.0"; id: Id; method: "approval/list"; params: { session: string } }
-  /** Experimental: a client must opt in, and the server answers `NotOptedIn` otherwise. */
+  /** Experimental: a client opts in by listing the method name in its `initialize` capabilities, or the server answers `NotOptedIn`. */
   | {
       jsonrpc: "2.0";
       id: Id;
@@ -56,7 +56,7 @@ export interface InitializeResult {
   serverInfo: { name: string; version: string; sdkVersion: string; specVersion: "v1" };
   /** The SDK's capabilities from `run_start`, plus the harness's own. */
   capabilities: string[];
-  /** The methods a client must opt into. */
+  /** The methods a client must opt into, by listing each method name in the `capabilities` of its `initialize`. */
   experimental: string[];
   /** The requests still waiting for an answer, re-armed for a client that joins. */
   pending: { session: string; request: SignedPendingRequest }[];
