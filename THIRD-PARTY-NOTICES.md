@@ -69,7 +69,7 @@ None of the three licences names a Reserved Font Name. Google Sans Code's `TRADE
 
 Instrument Serif and Literata keep their names. Neither licence reserves a font name, and neither folder in google/fonts carries a `TRADEMARKS.md`. Literata's name table includes the notice "Literata is a trademark of Google Inc.", which the subsets keep unchanged. The owner chose to keep the Literata name on 2026-11-19.
 
-The docs site serves the same files. [`apps/docs/public/fonts/`](apps/docs/public/fonts/) is a byte-for-byte copy of the book's three folders, licence files and `TRADEMARKS.md` included, which `pnpm --filter @buildanagent/docs tokens` writes and a docs test checks, so everything above applies to that copy unchanged.
+The docs site serves the same files. [`apps/docs/public/fonts/`](apps/docs/public/fonts/) is a byte-for-byte copy of the book's three folders, licence files and `TRADEMARKS.md` included, which `pnpm --filter @buildanagent/docs tokens` writes and a docs test checks. Everything above applies to that copy unchanged.
 
 ## Quotations elsewhere are short, attributed excerpts
 
