@@ -3,7 +3,7 @@ name: openai-agents-sdk
 description: Use when writing, reviewing or testing TypeScript that imports `@openai/agents` (Agent, run, Runner, tool, handoffs, guardrails, needsApproval, RunState, sessions, outputType, SandboxAgent, ScriptedModel). Gives the verified setup, the approval-and-resume flow, the gotchas from our fact-check, and how to test offline with ScriptedModel.
 ---
 
-# OpenAI Agents SDK (`@openai/agents@0.21.0`)
+# OpenAI Agents SDK (`@openai/agents@0.22.0`)
 
 The SDK runs an in-process loop with handoffs, input/output/tool guardrails, approvals that survive a restart, and sessions. Any `ModelProvider` can drive it, but tracing exports every run to OpenAI by default. Full reference: [`docs/reference/openai-agents-sdk/guide.md`](../../../docs/reference/openai-agents-sdk/guide.md); verified examples: [`verify/openai-agents-sdk/examples/`](../../../verify/openai-agents-sdk/examples/).
 

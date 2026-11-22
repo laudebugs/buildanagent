@@ -1,6 +1,6 @@
 # verify/vercel-ai-sdk
 
-Offline verification harness for the Vercel AI SDK docs and our examples, pinned to `ai@7.0.162`. No API key is needed: every model call goes to `MockLanguageModelV4` from `ai/test`.
+Offline verification harness for the Vercel AI SDK docs and our examples, pinned to `ai@7.0.173`. No API key is needed: every model call goes to `MockLanguageModelV4` from `ai/test`.
 
 ## How it works
 

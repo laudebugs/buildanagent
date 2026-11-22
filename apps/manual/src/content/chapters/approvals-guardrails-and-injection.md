@@ -7,7 +7,7 @@ glossary: [approval, guardrail, prompt-injection, lethal-trifecta]
 switchTo: [B15, E3]
 ---
 
-In November 2026 we paused a refund run, edited one order number in the saved copy and approved the pause. The pause had asked about order A-1, and the refund went to order Z-9. The edit worked on the OpenAI Agents SDK 0.21.0 and on the AI SDK 7.0.162, because the OpenAI SDK leaves the check to you and the AI SDK makes it only when you give it a secret. OpenAI's documentation states the gap directly: `RunState.fromString()` "does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop].
+In November 2026 we paused a refund run, edited one order number in the saved copy and approved the pause. The pause had asked about order A-1, and the refund went to order Z-9. The edit worked on the OpenAI Agents SDK 0.22.0 and on the AI SDK 7.0.173, because the OpenAI SDK leaves the check to you and the AI SDK makes it only when you give it a secret. OpenAI's documentation states the gap directly: `RunState.fromString()` "does not authenticate the snapshot or the person submitting it" [@openai-agents-human-in-the-loop].
 
 An approval is therefore more than a click. It is a pause saved as data, a decision that arrives later, and a rule for what that decision may cover. This chapter follows the pause from the model's request to the resumed run, shows what an edited call does at each step, and then places the approval among the other gates an agent needs: guardrails on what goes in and out, and containment for the prompt injection that no gate fully stops.
 
@@ -15,7 +15,7 @@ An approval is therefore more than a click. It is a pause saved as data, a decis
 
 A model never runs a tool; it asks, and the SDK decides whether the call runs now. With approval switched on for a tool, the SDK decides "not yet". It ends the run with the call still pending and hands you what you need to continue later. The SDK has not refused the call, and nothing has run. The run is paused, and the next run starts from wherever you saved it.
 
-Our SDK, `@buildanagent/sdk`, is an alpha release as of November 2026, so its names may still change. It signs and checks pauses with code copied byte for byte from `@buildanagent/agent-safety`, a private package that no listing can import, so every tab on our SDK runs that code.
+Our SDK, `@buildanagent/sdk`, is an alpha release as of November 2026, so its names may still change. It signs and checks pauses with code copied byte for byte from `@buildanagent/agent-safety`{checked=row-83}, a separate package that none of this chapter's listings imports. Those listings import only the SDK, so every tab on our SDK runs that code.
 
 Each SDK below marks a tool in one line. Our SDK runs a `beforeToolCall` gate that returns `ask` for the tool. The AI SDK takes a `toolApproval` rule per tool, the OpenAI Agents SDK takes a `needsApproval` function on the tool, and LangChain takes an `interruptOn` entry in its human-in-the-loop middleware [@ai-sdk-tool-approvals; @openai-agents-human-in-the-loop; @langchain-human-in-the-loop].
 
