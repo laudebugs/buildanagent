@@ -12,7 +12,7 @@ The SDK spawns the bundled `claude` CLI, which honours `ANTHROPIC_BASE_URL`. Poi
 
 ## Region markers feed the book's listings
 
-Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)). This harness has no transcript recorder yet, because its mock answers over HTTP to the `claude` CLI, which the SDK runs in a child process, so the book cannot replay its examples; [T49](../../docs/todos/ready/T49-book-http-mock-transcripts.md) adds one.
+Some examples carry `// #region <name>` and `// #endregion` comments, which change no behaviour. The book's `::listing` directive shows the code between them, so a chapter quotes only code that `pnpm test` type-checks and runs. Rename or remove a region only together with the chapters that list it, because `check:book` fails on a region that no longer exists ([how to add a listing](../../apps/manual/README.md#a-listing-shows-a-region-of-a-real-file)).
 
 ## Transcripts record each example's run for the book's replays
 
@@ -47,6 +47,18 @@ The mock chooses which tool to load and which skill to read, as a stand-in for t
 
 Tunables: `EXAMPLE_TIMEOUT_MS` (default 60000) and `EXAMPLE_CONCURRENCY` (default 4). Run one example with `node scripts/run-examples.mjs examples --only 03-permission-order`.
 
-## Live runs (later)
+## A live run sends the CLI's calls through a proxy that alone holds the key
 
-To run an example against the real API, unset `ANTHROPIC_BASE_URL`, set `ANTHROPIC_API_KEY`, and run `pnpm exec tsx examples/<file>.ts`. Keep `maxTurns` and `maxBudgetUsd` set. Some assertions depend on the mock's deterministic tool choice and may need loosening for a real model.
+The book's occasional live run ([`scripts/live/`](../../scripts/live/), started only by `.github/workflows/live-run.yml`) calls `scripts/run-examples.mjs examples --only <example> --live`. The `claude` CLI, not the example, makes every model call, so the cost guard and the host-tool check that other harnesses run in the example's process can't see them there. Instead, the runner starts [`scripts/live/proxy.mjs`](../../scripts/live/proxy.mjs) in its own process and runs the example, with the CLI it spawns, inside `unshare -rn`, a network namespace whose only interface is loopback. The proxy is then the only route to the provider and the only code that holds the key.
+
+The key reaches the proxy and nothing else. `run.mjs` writes the key to a file, and the proxy reads the file and deletes it when it loads (`scripts/live/live.ts`). Beyond the runner's usual allowlist, the example's environment gains only `LIVE`, the provider, the model and the proxy's socket path, never `LIVE_API_KEY_FILE`. Inside the namespace, `scripts/live-preload.mjs` starts a forwarder from the namespace's loopback interface to the proxy's Unix socket ([`scripts/live/forward.mjs`](../../scripts/live/forward.mjs)). It then points the CLI at that forwarder with `ANTHROPIC_BASE_URL` and a placeholder key. The CLI receives each answer's status, content type and body, with the key taken out of the body, but none of the provider's headers, so the account and request ids stay with the proxy. After the run, the runner deletes the example's temporary home, where the CLI keeps its session files.
+
+The live mode offers no host tool, and the proxy refuses any request that does. The preload rewrites the CLI's arguments to `--tools=ToolSearch`, as the SDK's `tools: ["ToolSearch"]` would send, whatever the example asked for. `ToolSearch` only looks up the session's deferred tools, and the mock transcripts' flows start with it. The preload also stops an example whose MCP server is not the SDK's in-process kind. For each request, the proxy then checks three things before it forwards it:
+
+- **Tools.** Every tool must be an example's own `mcp__*` tool or one of the CLI's three built-ins that do nothing on the host: `ToolSearch`, `DeferredToolPlaceholder` and `StructuredOutput` ([`scripts/live-tools.mjs`](scripts/live-tools.mjs)). `denyHostTools` also refuses the shared host-tool names and any tool whose type is other than `custom`, such as Anthropic's server tools.
+- **Fields.** A body field outside the proxy's list stops the request, so a field such as `mcp_servers` or `container` never reaches the provider. The proxy drops `metadata`, which carries the machine's device id.
+- **Cost.** The proxy sets the run's model, caps `max_tokens` at the run's `maxTokens`, and checks the call against the cost guard before it sends it. It settles the guard with the usage the answer reports.
+
+A refused request fails the example, and the runner prints the reason. The proxy records each call it forwards as the mock does, so the live transcript in `results/live/<example>.json` has the shape of the mock one. The proxy also logs each request body it sent to the mock's request log, so `examples/lib/mock-log.ts` works in a live run too. Some checks depend on the mock's deterministic tool choice, so a real model may fail them.
+
+`scripts/ci/live-run.test.mjs` runs `02-custom-tool.ts` live against a stub provider on the loopback interface and checks that its flow matches the mock transcript. It also checks that no key, account id or request id reaches a written file, the request log or the output. Without `--live`, none of this code runs, so `pnpm test` and the committed transcripts are unchanged.
