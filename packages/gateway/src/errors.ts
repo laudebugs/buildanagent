@@ -1,6 +1,6 @@
 /**
  * `GatewayError`: the gateway's error for programmer errors, such as a missing key, invalid options, a malformed
- * catalog, a tool name outside the canonical rule, or a request a mock transport's script did not expect. Two
+ * catalog, a tool name outside the canonical rule, a message with a role the transcript does not have, or a request a mock transport's script did not expect. Two
  * subclasses keep their own names for the cases callers catch by class: `StreamContractError` and
  * `ModelRequestsDisabledError`.
  */
@@ -12,6 +12,7 @@ export type GatewayErrorCode =
   | "invalid_options"
   | "invalid_catalog"
   | "invalid_tool_name"
+  | "invalid_message"
   | "unexpected_request"
   | "stream_contract"
   | "model_requests_disabled";

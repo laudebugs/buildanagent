@@ -303,15 +303,16 @@ The section was drafted after the model-choice section. Every provider page was 
 | 202 | After the medium review: the text says "Of these three providers, only Google still tunes models" and the tally counts rows 198 to 201 | § Tuning | ✅ | Re-check of row 195: wording only; Bedrock tuning of other vendors' models is outside the three providers compared |
 | 203 | After the low review: a sentence introduces the price-table listing | § Tuning | ✅ | Re-check of row 166: the sentence adds no claim |
 | 204 | After the writing review: the MAP 70% sentence, the lifetimes sentence, the Google sentence, the closing rule and the retirement paragraph are reworded; the OpenAI-accepts-no-new-organisations aside is cut from the listing paragraph | § Tuning | ✅ | Re-check of rows 173, 195, 197 and the MAP rows: wording only; 14 of 20, 16 to 30 months, 21 months and the four conditions unchanged. Row 197 stays ⚠️ |
+| 205 | Corrects row 133's probe result (issue #279): `transformMessages()` no longer drops a message whose role was cast to `system`; it throws a `GatewayError` with code `invalid_message` that points to `ModelContext.system` | § Messages and roles | ✏️ | Row 133 recorded on 2026-11-22 that the cast message was dropped and no run-time refusal existed. `packages/gateway/src/transform-messages.ts` now refuses any role other than `user`, `assistant` and `tool`, and `packages/gateway/test/transform-messages.test.ts` fails without that check. The chapter claims only the type error and the missing opt-in, so its text is unchanged |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
 | ✅ confirmed | 178 |
-| ✏️ corrected | 12 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108, 116, 140 and 146) |
+| ✏️ corrected | 13 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108, 116, 140, 146 and 205) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 14 (rows 16, 31, 57, 75, 164, 168, 171, 174, 177, 178, 188, 191, 196 and 197) |
-| Total | 204 |
+| Total | 205 |
 
 A row corrected in place (140) is ✏️, and so is the correction row that records the change (146), as in Chapter 1's rows 134 and 135, so each correction counts as two ✏️ rows.
 

@@ -4,6 +4,7 @@
  * grows, an Anthropic target loses older turns' thinking only as a leading run, which Anthropic's rule on omitted
  * thinking allows.
  */
+import { GatewayError } from "./errors.js";
 import { isCanonicalName } from "./names.js";
 import type { ContentBlock, Message, ModelCaps, ModelContent, ModelRef } from "./types.js";
 
@@ -55,8 +56,12 @@ const CONTINUED_TEXT = "(continued)";
  * short placeholder note when the opening user message was emptied. An input left with nothing to send returns `[]`.
  *
  * Running the pass on its own output returns the same transcript.
+ *
+ * @throws {GatewayError} with code `invalid_message` when a message's role is not `user`, `assistant` or `tool`, such
+ * as a `system` message cast into the transcript. System text belongs in `ModelContext.system`.
  */
 export function transformMessages(messages: readonly Message[], target: ModelRef, caps: ModelCaps): Message[] {
+  assertKnownRoles(messages);
   const cleaned = messages.map((message) => withSendableBlocks(message, caps));
   const reasoned = caps.reasoning ? applyReasoningRules(cleaned, target) : cleaned;
   const merged = mergeAdjacentMessages(pairToolCalls(reasoned), target);
@@ -64,6 +69,19 @@ export function transformMessages(messages: readonly Message[], target: ModelRef
     merged,
     messages.some((message) => message.role === "user"),
   );
+}
+
+// Message has no system role, so a cast one would otherwise match no rule below and vanish without a trace.
+function assertKnownRoles(messages: readonly Message[]): void {
+  messages.forEach((message, index) => {
+    const role: string = message.role;
+    if (role === "user" || role === "assistant" || role === "tool") return;
+    const hint = role === "system" ? " Put system text in ModelContext.system." : "";
+    throw new GatewayError(
+      "invalid_message",
+      `transformMessages(): message ${index} has role "${role}", but a transcript holds only user, assistant and tool messages.${hint}`,
+    );
+  });
 }
 
 function isFailedTurn(message: Message): boolean {

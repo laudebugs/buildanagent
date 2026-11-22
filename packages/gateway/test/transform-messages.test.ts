@@ -3,6 +3,7 @@ import {
   type AssistantMessage,
   type ContentBlock,
   emptyUsage,
+  isGatewayError,
   type Message,
   type ModelCaps,
   type ModelRef,
@@ -654,4 +655,27 @@ test("for generated transcripts any other target keeps completed turns' thinking
     const kept = reasoningKeys(transformMessages(transcript, target, caps));
     assert.ok(isSubsequence(kept, reasoningKeys(completed)), `run ${run} keeps thinking in order`);
   }
+});
+
+test("a message cast to the system role is refused, not dropped, with a pointer to ModelContext.system", () => {
+  const system = { role: "system", content: [{ type: "text", text: "Be brief." }] } as unknown as Message;
+  for (const transcript of [[user("hi"), system], [system, user("hi")], [system]]) {
+    assert.throws(
+      () => transformMessages(transcript, OPUS, CAPS),
+      (error: unknown) =>
+        isGatewayError(error) &&
+        error.code === "invalid_message" &&
+        error.message.includes("ModelContext.system") &&
+        error.message.includes('"system"'),
+    );
+  }
+});
+
+test("a message with any other unknown role is refused with its index", () => {
+  const bad = { role: "developer", content: [] } as unknown as Message;
+  assert.throws(
+    () => transformMessages([user("hi"), bad], GPT, CAPS),
+    (error: unknown) =>
+      isGatewayError(error) && error.code === "invalid_message" && error.message.includes("message 1"),
+  );
 });
