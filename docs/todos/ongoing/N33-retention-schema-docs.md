@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N33` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
 | Depends on | [N5](../done/N5-head-fork-revert.md), [N2](../done/N2-session-entries-schema.md) |
