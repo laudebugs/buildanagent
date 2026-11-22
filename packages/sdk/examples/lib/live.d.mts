@@ -13,10 +13,13 @@ export interface LiveCall {
 }
 
 /**
- * The live run's model on our gateway's real adapter, and the calls it received. Throws outside a live run. `record`
- * wraps the adapter for the transcript recorder.
+ * The live run's model on our gateway's real adapter, and the calls it received, counted above the gateway's retries.
+ * Throws outside a live run. `record` wraps the adapter for the transcript recorder, and `answered(options)` tells it
+ * whether the provider answered the attempt that received `options` with a 2xx status.
  */
-export declare function liveModel(record: (adapter: ModelAdapter) => ModelAdapter): {
+export declare function liveModel(
+  record: (adapter: ModelAdapter, answered: (options: StreamOptions) => boolean) => ModelAdapter,
+): {
   model: Model;
   run: { readonly calls: readonly LiveCall[]; assertComplete(): void };
 };

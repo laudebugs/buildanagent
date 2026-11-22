@@ -11,6 +11,7 @@ import type {
   ModelAdapter,
   ModelContext,
   ModelEvent,
+  StreamOptions,
 } from "@buildanagent/gateway";
 import { type AssistantScript, ScriptedModel, type ScriptStep, type StreamScript } from "@buildanagent/sdk/testing";
 import {
@@ -22,6 +23,7 @@ import {
   record,
   recording,
   reportedUsage,
+  type TranscriptEvent,
   toolCallIds,
   type Usage,
 } from "../../../../scripts/transcripts/events.js";
@@ -135,6 +137,11 @@ interface AnswerRecord {
   modelId(message: AssistantMessage): string | undefined;
   /** True when a script chose the answer's tool-call ids, so the writer keeps them as written. */
   scriptedIds: boolean;
+  /**
+   * Runs at the terminal event, before the answer is recorded, and returns false to record neither. A live attempt
+   * records its request here, once the provider has answered it, rather than when it starts.
+   */
+  beforeResponse?(): boolean;
 }
 
 /** Records each answer once its stream ends, from the terminal event's message. */
@@ -144,7 +151,7 @@ async function* recorded(
   answer: AnswerRecord,
 ): AsyncGenerator<ModelEvent> {
   for await (const event of events) {
-    if (event.type === "done" || event.type === "error") {
+    if ((event.type === "done" || event.type === "error") && (answer.beforeResponse?.() ?? true)) {
       const message: Message = { role: "assistant", parts: event.message.content.map(blockPart) };
       record({
         kind: "response",
@@ -159,14 +166,19 @@ async function* recorded(
   }
 }
 
-/** Records one call's request, before its answer streams. */
-function recordRequest(owner: object, context: ModelContext): void {
-  record({
+/** One call's request as the transcript records it. */
+function requestOf(owner: object, context: ModelContext): TranscriptEvent {
+  return {
     kind: "request",
     model: nameOf(owner),
     messages: messagesOf(context),
     tools: context.tools.map((tool) => tool.name),
-  });
+  };
+}
+
+/** Records one call's request, before its answer streams. */
+function recordRequest(owner: object, context: ModelContext): void {
+  record(requestOf(owner, context));
 }
 
 /** Wraps `ScriptedModel.prototype.stream` so that each call records its request, then its answer. */
@@ -204,19 +216,31 @@ function liveUsage({ usage }: AssistantMessage): Usage | undefined {
 /**
  * The live run's adapter (live.mjs), recording each call as a scripted one is recorded: the request, then the answer
  * with the usage the provider reported. A real model chose every tool-call id, so the writer keeps none as written.
- * Without the recorder the adapter comes back unchanged.
+ * The gateway retries a request that fails before any output, so `answered(options)` tells, once an attempt's stream
+ * ends, whether the provider answered that attempt with a 2xx status; an attempt it refused, such as a 429 the gateway
+ * retries, records neither its request nor its failure, so the transcript holds the run's calls as the proxied
+ * harnesses' transcripts do. Without the recorder the adapter comes back unchanged.
  */
-export function recordedLiveAdapter(adapter: ModelAdapter): ModelAdapter {
+export function recordedLiveAdapter(
+  adapter: ModelAdapter,
+  answered: (options: StreamOptions) => boolean,
+): ModelAdapter {
   if (!recording) return adapter;
   const owner = {};
   return {
     ...adapter,
     stream: (ref, context, options) => {
-      recordRequest(owner, context);
+      // Read now, as a scripted call's request is, so a later change to the context can't rewrite it.
+      const request = requestOf(owner, context);
       return recorded(owner, adapter.stream(ref, context, options), {
         usage: liveUsage,
         modelId: () => undefined,
         scriptedIds: false,
+        beforeResponse: () => {
+          if (!answered(options)) return false;
+          record(request);
+          return true;
+        },
       });
     },
   };

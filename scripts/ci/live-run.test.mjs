@@ -610,6 +610,52 @@ test("our SDK's triage agent runs live through our gateway's two adapters and ke
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("a call our gateway retries after a 429 counts once in our SDK's checks and transcript, and the guard charges both attempts", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "live-sdk-retry-"));
+  const entries = sdkEntries();
+  // Each API refuses its first request as a rate-limited provider does; the gateway waits and sends it again.
+  const refusals = {
+    anthropic: { type: "error", error: { type: "rate_limit_error", message: "rate limited" } },
+    "openai-chat": { error: { type: "rate_limit_exceeded", message: "rate limited" } },
+  };
+  const stub = await startStub(stubScript(entries), {
+    refuse: (api, n) =>
+      n === 0 ? { status: 429, body: refusals[api], headers: { "retry-after-ms": "0" } } : undefined,
+  });
+  const out = join(dir, "out");
+  const report = join(dir, "report");
+  const { code, out: log } = await runLive([
+    ...["--config", writeConfig(dir, entries), "--out", out, "--report", report],
+    ...["--base-url", `anthropic=${stub.url}`, "--base-url", `openai=${stub.url}`],
+  ]);
+  await stub.close();
+  assert.equal(code, 0, log);
+  const results = JSON.parse(readFileSync(join(report, "live-report.json"), "utf8"));
+  assert.ok(results.complete, log);
+  for (const example of results.examples) {
+    assert.equal(example.outcome, "ran", `${example.provider}\n${log}`);
+    // The example's own check that it made exactly three calls passes: the retried attempt is not a call of the run.
+    assert.deepEqual(example.checks, { passed: 6, total: 6 }, `${example.provider}\n${log}`);
+    // The guard charged the refused attempt too, at its projection, beside the three answered calls' streamed usage.
+    assert.equal(example.calls, 4, "the ledger holds the refused attempt and the three calls");
+    const model = catalog.models.find((m) => m.provider === example.provider && m.id === example.model);
+    const streamed = priceUsage({ uncachedInput: 120, cacheRead: 0, cacheWrite: 0, output: 30 }, model);
+    assert.ok(example.spent > 3 * streamed, `${example.provider} spent ${example.spent}, no more than 3 answers`);
+  }
+  for (const result of compareAll({ ...config, examples: entries }, { liveDir: out })) {
+    assert.deepEqual(result.differences, [], result.provider);
+  }
+  for (const provider of ["anthropic", "openai"]) {
+    const transcript = JSON.parse(readFileSync(join(out, "packages/sdk", provider, "13-triage-agent.json"), "utf8"));
+    assert.deepEqual(transcriptProblems(transcript), []);
+    const kinds = transcript.events
+      .map((event) => event.kind)
+      .filter((kind) => kind === "request" || kind === "response");
+    assert.deepEqual(kinds, ["request", "response", "request", "response", "request", "response"], provider);
+  }
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("our SDK's runner runs only under run.mjs, with --live and one example", () => {
   const runner = join(root, "packages/sdk/scripts/run-examples.mjs");
   const run = (args, env = {}) => {

@@ -236,10 +236,13 @@ const ANSWERS = { anthropic: anthropicAnswer, openai: openaiAnswer, "openai-chat
 /**
  * Starts the stub. `script(api, body, n)` returns the n-th turn (from 0) for a request to one API, `anthropic`,
  * `openai` (Responses) or `openai-chat` (Chat Completions): text, or `{ tools: [{ name, input }] }`. `usage` sets the token counts every answer reports. `fail(provider, body)`, when
- * it returns an object, makes the stub answer with that error body and status 401 instead. Resolves with its base
- * URL, the requests it received and `close()`.
+ * it returns an object, makes the stub answer with that error body and status 401 instead. `refuse(provider, n)`, when
+ * it returns `{ status, body, headers }`, answers the n-th request (from 0) to one API with that failure instead, as a
+ * provider refuses a request the client may retry; a refused request takes no turn of the script. Resolves with its
+ * base URL, the requests it received and `close()`.
  */
-export async function startStub(script, { usage = { input: 120, output: 30 }, fail } = {}) {
+export async function startStub(script, { usage = { input: 120, output: 30 }, fail, refuse } = {}) {
+  const received = { anthropic: 0, openai: 0, "openai-chat": 0 };
   const requests = [];
   const counts = { anthropic: 0, openai: 0, "openai-chat": 0 };
   const server = createServer((req, res) => {
@@ -259,6 +262,12 @@ export async function startStub(script, { usage = { input: 120, output: 30 }, fa
       if (failure) {
         res.writeHead(401, { "content-type": "application/json", "request-id": STUB_IDS.requestId });
         res.end(JSON.stringify(failure));
+        return;
+      }
+      const refusal = refuse?.(provider, received[provider]++);
+      if (refusal) {
+        res.writeHead(refusal.status, { "content-type": "application/json", ...refusal.headers });
+        res.end(JSON.stringify(refusal.body));
         return;
       }
       const n = counts[provider]++;

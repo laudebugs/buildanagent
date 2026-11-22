@@ -17,6 +17,7 @@
 // event or reports no usage. The answer reaches the adapter with only its status, content type and body, plus a failed
 // answer's numeric retry delays, so the provider's other headers, which name the account and the request, go no
 // further.
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createModel } from "@buildanagent/gateway";
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { openaiChat } from "@buildanagent/gateway/openai-chat";
@@ -25,6 +26,9 @@ import { beginCall, denyHostTools, guardStream, live } from "../../../../scripts
 
 // Kept before the offline setup replaces it (see above).
 const fetchOutside = globalThis.fetch;
+
+/** The attempt whose stream is running, so the transport can mark it answered; see liveModel(). */
+const attemptOf = new AsyncLocalStorage();
 
 /** Each provider's fixed endpoint, and the tool types that are plain functions the example's process runs. */
 const PROVIDERS = {
@@ -174,7 +178,11 @@ function failureHeaders(response) {
   return headers;
 }
 
-/** The transport the adapter sends through: the run's provider endpoint only, each request under the cost guard. */
+/**
+ * The transport the adapter sends through: the run's provider endpoint only, each request under the cost guard. A 2xx
+ * answer marks the attempt it belongs to as answered (liveModel()), so the transcript records only answered attempts;
+ * the guard charges every attempt either way.
+ */
 export function liveTransport(config, send = fetchOutside) {
   const endpoint = `${baseURLOf(config)}${PROVIDERS[config.provider].path}`;
   return async (request) => {
@@ -205,6 +213,8 @@ export function liveTransport(config, send = fetchOutside) {
       guard.settle(undefined);
       return new Response(await response.text(), { status: response.status, headers: failureHeaders(response) });
     }
+    const attempt = attemptOf.getStore();
+    if (attempt !== undefined) attempt.answered = true;
     const read = usageReader(config.provider);
     return new Response(guardStream(response.body, guard, read.usageOf, read.isFinish), {
       status: response.status,
@@ -219,39 +229,67 @@ function providerAdapter(config) {
   return config.provider === "anthropic" ? anthropic(settings) : openaiChat(settings);
 }
 
+/** Runs each step of an attempt's stream inside its store, so the transport that step reaches marks that attempt. */
+async function* within(store, events) {
+  const iterator = events[Symbol.asyncIterator]();
+  try {
+    while (true) {
+      const next = await attemptOf.run(store, () => iterator.next());
+      if (next.done) return;
+      yield next.value;
+    }
+  } finally {
+    await attemptOf.run(store, () => iterator.return?.());
+  }
+}
+
 /**
  * The live run's model: our gateway's real adapter for the run's provider behind createModel(), with each call's
  * output allowance held to the run's maxTokens, and the calls it received. It turns on real model requests, which the
  * offline setup turned off, so it throws outside a live run rather than turn them on there. `record` wraps the adapter
- * for the transcript recorder.
+ * for the transcript recorder, which records an attempt only when `answered` says the provider answered it with a
+ * 2xx status, as the proxied harnesses' proxy records only answers.
+ *
+ * createModel() retries a request that fails before any output, so one call the run makes can be several attempts at
+ * the adapter. `calls` counts the run's calls, above those retries, as `ScriptedModel.calls` counts a script's; the cost
+ * guard still charges every attempt, a failed one at its projection.
  */
 export function liveModel(record) {
   if (live === undefined) throw new Error("live mode: liveModel() runs only under scripts/live/run.mjs");
   const config = live;
   const inner = providerAdapter(config);
+  // Each attempt's store, by the options object the recorder passed that attempt, which the recorder reads back.
+  const stores = new WeakMap();
   const capped = {
     ...inner,
-    stream: (ref, context, options) =>
-      inner.stream(ref, context, {
+    stream: (ref, context, options) => {
+      const store = { answered: false };
+      stores.set(options, store);
+      const events = inner.stream(ref, context, {
         ...options,
         maxOutputTokens: Math.min(options.maxOutputTokens ?? config.maxTokens, config.maxTokens),
-      }),
+      });
+      return within(store, events);
+    },
   };
   const calls = [];
-  const adapter = record(capped);
+  const adapter = record(capped, (options) => stores.get(options)?.answered === true);
   allowModelRequests(true);
-  const model = createModel({
-    adapter: {
-      ...adapter,
-      stream: (ref, context, options) => {
-        calls.push(structuredClone({ model: ref, context, options: { maxOutputTokens: options.maxOutputTokens } }));
-        return adapter.stream(ref, context, options);
+  const model = createModel({ adapter, id: config.model });
+  const count = (context, options = {}) =>
+    calls.push(structuredClone({ model: model.ref, context, options: { maxOutputTokens: options.maxOutputTokens } }));
+  return {
+    model: {
+      ...model,
+      stream: (context, options) => {
+        count(context, options);
+        return model.stream(context, options);
+      },
+      complete: (context, options) => {
+        count(context, options);
+        return model.complete(context, options);
       },
     },
-    id: config.model,
-  });
-  return {
-    model,
     run: {
       calls,
       // A real model follows no script, so no step can go unused; the example's own checks judge its flow.
