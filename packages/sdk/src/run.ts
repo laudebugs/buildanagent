@@ -40,22 +40,29 @@ const randomIds = (): string => globalThis.crypto.randomUUID();
 
 type AnyTools = readonly ToolDefinition<unknown, unknown, unknown>[];
 
-/** The app type a tool declares, or `never` for a tool that declares none (its type is `unknown`). */
-type DeclaredApp<T> = T extends ToolDefinition<unknown, unknown, infer A> ? (unknown extends A ? never : A) : never;
+/**
+ * The app type a tool declares, wrapped in a one-element tuple so that intersecting the tools' types cannot split a
+ * union that one tool declares, or `never` for a tool that declares none (its type is `unknown`).
+ */
+type DeclaredApp<T> = T extends ToolDefinition<unknown, unknown, infer A> ? (unknown extends A ? never : [A]) : never;
 
 type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (value: infer I) => void
   ? I
   : never;
 
+/** The value type of an intersection of one-element tuples, which is the intersection of their element types. */
+type Unwrapped<T> = T extends readonly [unknown] ? T[0] : never;
+
 /**
  * What `run()` and `continueRun()` require of `app`, from the tools' declared types alone: nothing when no tool
  * declares one, and otherwise an `app` that has every declared type at once, so a typed tool beside an untyped one
- * still needs it, and `null` or another type is refused. The requirement depends on the type of the `tools` list the
+ * still needs it, and `null` or another type is refused. When two tools declare types that cannot both hold, such as
+ * `string` and `number`, no `app` compiles, which tells you the tools cannot share a run. The requirement depends on the type of the `tools` list the
  * call infers, so it does not apply when you give `run()` explicit type arguments.
  */
 export type AppFor<T extends AnyTools> = [DeclaredApp<T[number]>] extends [never]
   ? unknown
-  : { readonly app: UnionToIntersection<DeclaredApp<T[number]>> };
+  : { readonly app: Unwrapped<UnionToIntersection<DeclaredApp<T[number]>>> };
 
 /** The options `run()` and `continueRun()` share. */
 export interface RunOptions<S = unknown, A = unknown> {

@@ -9,6 +9,7 @@ import {
   type RunResult,
   run,
   type ToolContext,
+  type ToolDefinition,
 } from "@buildanagent/sdk";
 import { test } from "vitest";
 import { pendingOf, processSigner } from "./resume-helpers.js";
@@ -18,6 +19,18 @@ const SYSTEM = "You look customers up.";
 
 interface Session {
   readonly customerId: string;
+}
+
+/** A tool that does nothing and declares `A` as its app type. */
+function declaring<A>() {
+  return defineTool<object, unknown, A>({
+    name: "declaring",
+    description: "Declares an app type.",
+    inputSchema: { type: "object", properties: {} },
+    async execute() {
+      return { content: [] };
+    },
+  });
 }
 
 /** A lookup whose schema declares no identity field: the customer comes from `ctx.app`. */
@@ -104,8 +117,31 @@ test("a run whose tools declare app data must pass it, with the declared type", 
       return { content: [] };
     },
   });
-  // @ts-expect-error: one run has one app type, and these two are unrelated.
+  // The `app` must have both declared types, so one with only `customerId` is refused and one with both compiles.
+  // @ts-expect-error: `app` lacks the `tenant` field that `other` declares.
   never(() => run({ ...base, tools: [lookupTool(), other], app: { customerId: "cust-1" } }));
+  never(() => run({ ...base, tools: [lookupTool(), other], app: { customerId: "cust-1", tenant: 7 } }));
+  // Types that cannot both hold leave no `app` that compiles, which shows the two tools cannot share a run.
+  const text_ = declaring<string>();
+  const count = declaring<number>();
+  // @ts-expect-error: no value is both a string and a number.
+  never(() => run({ ...mixed, tools: [text_, count], app: "x" }));
+  // A tool may declare a union, such as a session that is signed in or anonymous, and the whole union is the type.
+  type Visitor = { kind: "user"; id: string } | { kind: "anon" };
+  const visitorTool = declaring<Visitor>();
+  const visitor: Visitor = { kind: "anon" };
+  never(() => run({ ...mixed, tools: [visitorTool], app: visitor }));
+  never(() => run({ ...mixed, tools: [visitorTool, plain], app: { kind: "user", id: "u1" } }));
+  // @ts-expect-error: a value outside the union is refused.
+  never(() => run({ ...mixed, tools: [visitorTool], app: { kind: "bot" } }));
+  // A declared type that includes `undefined` accepts it, because the tool says it can be absent.
+  const maybe = declaring<Session | undefined>();
+  never(() => run({ ...mixed, tools: [maybe], app: undefined }));
+  // A tools list held in a variable, not written in the call, has the same rule.
+  const held: readonly ToolDefinition<unknown, unknown, Session>[] = [lookupTool()];
+  never(() => run({ ...mixed, tools: held, app: { customerId: "cust-1" } }));
+  // @ts-expect-error: `app` is still required for a list held in a variable.
+  never(() => run({ ...mixed, tools: held }));
   // `continueRun()` has the same rule.
   const context = { system: SYSTEM, messages: [] };
   never(() => continueRun(context, { model, tools: [lookupTool()], app: { customerId: "cust-1" } }));
