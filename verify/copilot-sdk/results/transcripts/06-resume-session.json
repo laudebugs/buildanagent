@@ -1,0 +1,147 @@
+{
+  "format": 1,
+  "example": "06-resume-session",
+  "file": "verify/copilot-sdk/examples/06-resume-session.ts",
+  "harness": "verify/copilot-sdk",
+  "pin": "@github/copilot-sdk@1.0.31",
+  "mock": "@github/copilot-sdk@1.0.31",
+  "events": [
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "My favourite colour is teal.\nmock-reply: Got it."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "note"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "toolu_mock_1",
+            "name": "note",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_use"
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "toolu_mock_1",
+              "name": "note",
+              "output": "noted"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "note"
+      ]
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Got it.\nTool results: noted"
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 29,
+      "message": "listSessions before start() throws (got \"Client not connected\")",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 32,
+      "message": "listSessions on a new client finds the stopped session",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 37,
+      "message": "resumeSession returns the same session id",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "model": "claude-sonnet-4.5",
+      "repeated": 4,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "What is my favourite colour?\nmock-reply: Teal."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "model": "claude-sonnet-4.5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Teal."
+          }
+        ]
+      },
+      "finish": "end_turn"
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "the resumed turn carries the first turn's messages",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 45,
+      "message": "the custom tool is gone after a resume without tools",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "getEvents() returns both user messages",
+      "pass": true
+    }
+  ]
+}

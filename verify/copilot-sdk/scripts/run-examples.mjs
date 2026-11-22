@@ -2,14 +2,22 @@
 // Each example runs in its own network namespace (unshare -rn, loopback only) with an allowlisted
 // environment, a temp HOME and working directory, and sandbox-preload.mjs, which starts the mock
 // model inside the namespace and points every session at it as a BYOK provider.
-// Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2]
-// For a directory other than extracted/, every *.ts file is run (our own examples).
+// Usage: node scripts/run-examples.mjs [dir=extracted] [--only id1,id2] [--live]
+// For a directory other than extracted/, every *.ts file is run (our own examples), and each one's model exchange and
+// checks are written to results/transcripts/.
+// --live, which only scripts/live/run.mjs passes, runs one of our examples against a real provider. The runtime makes
+// the model calls from inside the namespace, so they leave through scripts/live/proxy.mjs, in this process, which
+// alone holds the key and reaches the network (see the README's live section).
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { liveMode } from "../../../scripts/live/harness.mjs";
+import { transcriptRun } from "../../../scripts/transcripts/write.mjs";
+import { liveTool } from "./live-tools.mjs";
+import { messagesOf } from "./mock-model.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dir = resolve(process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "extracted");
@@ -18,6 +26,10 @@ const only = process.argv.includes("--only")
   : null;
 const isDocs = dir.endsWith("extracted");
 const VERBOSE = process.argv.includes("--verbose");
+const liveRun = liveMode();
+// The proxy reads the key when it loads, so it loads only once liveMode() has accepted the run.
+const proxy = liveRun ? await import("../../../scripts/live/proxy.mjs") : undefined;
+
 const TIMEOUT_MS = Number(process.env.EXAMPLE_TIMEOUT_MS ?? (isDocs ? 30000 : 90000));
 const CONCURRENCY = Number(process.env.EXAMPLE_CONCURRENCY ?? 4);
 const root = resolve(".");
@@ -116,7 +128,12 @@ async function runOne(t) {
   await cp(join(root, "fixtures"), cwd, { recursive: true });
   const log = resolve(`.tmp/logs/${t.id}.jsonl`);
   await writeFile(log, "");
-  // Allowlisted environment: no inherited tokens, proxies or host config reach the example or runtime.
+  // A live run's calls go to the proxy, which records them as the mock would and logs them where the mock logs.
+  const live = liveRun
+    ? await proxy.startLiveProxy({ allowTool: liveTool, messagesOf, secrets: liveRun.transcript.live.secrets, log })
+    : undefined;
+  // Allowlisted environment: no inherited tokens, proxies or host config reach the example or runtime. A live run adds
+  // only the proxy's socket and the run's provider and model, never LIVE_API_KEY_FILE.
   const env = {
     PATH: process.env.PATH,
     HOME: home,
@@ -127,6 +144,7 @@ async function runOne(t) {
     COPILOT_AUTO_UPDATE: "false",
     COPILOT_DISABLE_LOGIN_SHELL_ENV: "1",
     FIXTURES: join(root, "fixtures"),
+    ...live?.env,
   };
   // Docs blocks print a marker when their last statement has run, so a block that finishes but leaves
   // its client (and the runtime process) open counts as having run rather than timing out.
@@ -136,7 +154,11 @@ async function runOne(t) {
     runFile = resolve(`.tmp/patched/${t.id}.ts`);
     await writeFile(runFile, `${code}\nconsole.log(${JSON.stringify(DONE)});\n`);
   }
-  const argv = ["--import", TSX, "--import", PRELOAD, runFile];
+  // Our own examples also record their model exchange and checks as a transcript (results/transcripts/). The recorder
+  // loads before the preload, which finds it when it starts the mock; the mock and the example share one process.
+  const argv = ["--import", TSX];
+  const transcript = isDocs ? undefined : transcriptRun(argv, env);
+  argv.push("--import", PRELOAD, runFile);
   const started = Date.now();
   const result = await new Promise((done) => {
     const child = spawn("unshare", ["-rn", "sh", "-c", `${LO_UP} && exec "$0" "$@"`, process.execPath, ...argv], {
@@ -145,6 +167,7 @@ async function runOne(t) {
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    groups.add(child.pid);
     let out = "";
     let finished = false;
     const kill = () => {
@@ -177,22 +200,39 @@ async function runOne(t) {
       done({ exit, timedOut: false, out });
     });
   });
+  await live?.close();
+  // A killed example never wrote its checks, so a transcript of only its requests and answers would replace a complete
+  // one; the timeout is the finding, and the file stays as it was.
+  if (!result.timedOut) {
+    transcript?.write({
+      harnessDir: root,
+      exampleFile: resolve(t.file),
+      cwd,
+      ...(live ? { mockEvents: live.events } : {}),
+      ...liveRun?.transcript,
+    });
+  }
   await rm(home, { recursive: true, force: true }).catch(() => {});
   const entries = (await readFile(log, "utf8"))
     .split("\n")
     .filter(Boolean)
     .map((l) => JSON.parse(l));
-  const requests = entries.filter((r) => r.path?.endsWith("/v1/messages"));
+  // The proxy logs a live run's calls at the path the runtime asked for, which on OpenAI ends in /responses.
+  const requests = entries.filter((r) => /\/v1\/messages$|\/responses$/.test(r.path ?? ""));
   const toolCalls = requests.filter((r) => r.plan?.tool).map((r) => r.plan.tool);
-  const outcome = result.timedOut
-    ? requests.length
-      ? "timeout-after-model-call"
-      : "timeout"
-    : result.exit === 0 || result.leftOpen
-      ? requests.length
-        ? "ran"
-        : "ran-no-model-call"
-      : "error";
+  const refused = live?.refused ?? [];
+  const outcome =
+    refused.length > 0
+      ? "error"
+      : result.timedOut
+        ? requests.length
+          ? "timeout-after-model-call"
+          : "timeout"
+        : result.exit === 0 || result.leftOpen
+          ? requests.length
+            ? "ran"
+            : "ran-no-model-call"
+          : "error";
   const out = result.out.replace(`${DONE}\n`, "");
   // A first guess at why a block failed, for the reviewer; the fact-check decides.
   const cause =
@@ -213,13 +253,37 @@ async function runOne(t) {
     modelRequests: requests.length,
     toolCalls,
     harness: entries.filter((e) => e.harness).map((e) => e.harness),
-    tail: out
-      .trim()
-      .split("\n")
-      .slice(-(VERBOSE ? 40 : 8))
-      .join("\n")
-      .slice(-(VERBOSE ? 4000 : 1000)),
+    // A live run's caller prints the tail when the example fails, so it loses the key and any account or request id.
+    tail: (liveRun?.redact ?? String)(
+      [
+        ...refused.map((reason) => `live proxy refused a request: ${reason}`),
+        ...out
+          .trim()
+          .split("\n")
+          .slice(-(VERBOSE ? 40 : 8)),
+      ]
+        .join("\n")
+        .slice(-(VERBOSE ? 4000 : 1000)),
+    ),
   };
+}
+
+// Each example runs in its own process group, which a signal to this runner does not reach, so the runner stops every
+// group itself when it is told to stop or exits.
+const groups = new Set();
+const stopGroups = () => {
+  for (const pid of groups) {
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {}
+  }
+};
+process.on("exit", stopGroups);
+for (const signal of ["SIGTERM", "SIGINT"]) {
+  process.on(signal, () => {
+    stopGroups();
+    process.exit(1);
+  });
 }
 
 const results = [];
