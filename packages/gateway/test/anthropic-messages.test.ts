@@ -25,7 +25,7 @@ import {
 import { anthropic } from "@buildanagent/gateway/anthropic";
 import { markMockTransport, mockTransport, type WireResponse } from "@buildanagent/gateway/testing";
 import { test } from "vitest";
-import { fakeEntry } from "./fixtures.js";
+import { fakeEntry, withSentHeaders } from "./fixtures.js";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/anthropic-messages/", import.meta.url));
 const MODEL = { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" };
@@ -56,7 +56,7 @@ const hello: ModelContext = {
 };
 
 async function run(script: WireResponse[], context: ModelContext = hello, options: StreamOptions = {}) {
-  const transport = mockTransport("anthropic-messages", script);
+  const transport = withSentHeaders(mockTransport("anthropic-messages", script));
   const adapter = anthropic({ apiKey: KEY, transport });
   const events = await assertStreamContract(adapter.stream(MODEL, context, { caps: CAPS, ...options }));
   return { events, transport, adapter, terminal: terminalOf(events) };
@@ -101,10 +101,11 @@ test.each(readdirSync(FIXTURES).filter((name) => name.startsWith("error-")))(
 test("every request carries anthropic-version 2026-10-21 and the thinking-binding beta", async () => {
   const { transport } = await run([failed(400, "error-bound-to-different-conversation.json"), streamed("text.sse")]);
   assert.equal(transport.requests.length, 2);
-  for (const request of transport.requests) {
-    assert.equal(request.headers["anthropic-version"], "2026-10-21");
-    assert.equal(request.headers["anthropic-beta"], "thinking-binding-controls-2026-08-01");
-    assert.equal(request.headers["x-api-key"], KEY);
+  assert.equal(transport.sent.length, 2);
+  for (const headers of transport.sent) {
+    assert.equal(headers["anthropic-version"], "2026-10-21");
+    assert.equal(headers["anthropic-beta"], "thinking-binding-controls-2026-08-01");
+    assert.equal(headers["x-api-key"], KEY);
   }
 });
 
@@ -199,7 +200,7 @@ test("a direct stream() call without caps uses the adapter's defaultCaps, not th
 });
 
 test("caller headers are lower-cased, their key headers dropped and their betas merged", async () => {
-  const transport = mockTransport("anthropic-messages", [streamed("text.sse")]);
+  const transport = withSentHeaders(mockTransport("anthropic-messages", [streamed("text.sse")]));
   const headers = {
     "X-Api-Key": "sk-caller-header",
     Authorization: "Bearer caller",
@@ -208,7 +209,7 @@ test("caller headers are lower-cased, their key headers dropped and their betas 
   };
   const adapter = anthropic({ apiKey: KEY, transport, headers });
   await assertStreamContract(adapter.stream(MODEL, hello, { caps: CAPS }));
-  const sent = transport.requests[0]?.headers ?? {};
+  const sent = transport.sent[0] ?? {};
   assert.equal(sent["x-api-key"], KEY);
   assert.equal("authorization" in sent, false);
   assert.equal(sent["anthropic-beta"], "files-api-2025-04-14,thinking-binding-controls-2026-08-01");

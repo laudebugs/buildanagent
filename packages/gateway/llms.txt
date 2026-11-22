@@ -141,7 +141,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface MockTransport`: A transport that replays a script, with the requests it has received so far.
 - `class ModelRequestsDisabledError`: Thrown before a request is sent while real model requests are off and the transport is not a mock.
 - `PROVIDER_KEY_VARIABLES`: Environment variables that hold real provider credentials.
-- `interface RecordedRequest`: A request as the mock transport received it.
+- `interface RecordedRequest`: A request as the mock transport received it, with credentials redacted: a credential header's value and a key in the URL are `"[redacted]"`.
 - `REDACTED`: What a redacted header's value becomes, so a test can still see that the header was sent.
 - `redactHeaders()`: A copy of `headers` with lower-case names, where every credential header's value is `"[redacted]"`.
 - `redactUrl()`: `url` with its user name and password, and the value of every query parameter that carries a key (`key`, `access_token`, `sig`, `signature` or a credential name such as `api_key`), replaced by `"[redacted]"`.
