@@ -91,9 +91,10 @@ The harness now has `Session`, with a persisted HEAD, fork, revert, child and mi
 - **A revert returns this session,** though the plan's signature says it returns a session: the logical session is the same, and only its file changed.
 - **Physical file names are the session id for a first file, and a generated id after.** A revert's file is `r<id>`, a migrated one `m<id>`, and a fork or child takes its new session id as its file name.
 - **A file in another format is `unsupported_format`.** `load()` reported it as `session_corrupt`, which sends a reader to look for damage in a whole file. It now says what it is.
-- **A file that continues a parent can't be migrated.** Only the current file moves, so a fork's or a revert's parent would stay in the old format and make the session unreadable. `migrateSession()` refuses it, and takes the session's writer lock for the whole migration.
+- **A file that continues a parent can't be migrated, and a session with forks can't either.** Only the current file moves, so a revert's or a fork's parent would stay in the old format and make the session unreadable, and the forks that name a migrated file as their parent would too. `migrateSession()` refuses the first case, after it has seen that the log needs migrating, and can't see the second, because a store has no index of dependents. Migrating a whole tree of branches is left for when a second format exists. It takes the session's writer lock for the whole migration.
+- **A fork or child whose link can't be written leaves its file behind.** The file is a session nothing links to, which retention (N33) removes.
 - **A session's tree is its file plus the path to its fork point.** Entries the parent writes after a fork, and entries a revert went back from, aren't reachable from the new file, though they stay in the old one. Without this a fork could check out what it was never given, and a parent growing would change the fork.
 - **Derived files have names that start with `~`** (`DERIVED`), which `listSessions()` leaves out. The store itself still lists every file. Deleting a session across its files, and what a delete does to forks that name it as a parent, belong to retention (N33).
 
-**Left out.** Rebuilding a `Context` (N7), deleting a session across its files (N33), and migrations themselves, because only format 1 exists.
+**Left out.** Rebuilding a `Context` (N7), deleting a session across its files and removing orphaned files (N33), migrating a session that has branches, and migrations themselves, because only format 1 exists.
 

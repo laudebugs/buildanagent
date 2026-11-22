@@ -3,7 +3,7 @@
  * writing a temp file and renaming it over the old one, so a crash leaves the old pointer or the new and never half of one.
  */
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename } from "node:fs/promises";
+import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { HarnessError } from "../errors.js";
 import type { SessionIndex } from "./pointer.js";
@@ -55,12 +55,18 @@ export function fileIndex(options: FileIndexOptions): SessionIndex {
       const temp = `${target}.${randomUUID()}.tmp`;
       const handle = await open(temp, "wx");
       try {
-        await handle.writeFile(JSON.stringify({ file }));
-        await handle.sync();
-      } finally {
-        await handle.close();
+        try {
+          await handle.writeFile(JSON.stringify({ file }));
+          await handle.sync();
+        } finally {
+          await handle.close();
+        }
+        await rename(temp, target);
+      } catch (error) {
+        // A failed write must not leave its temp file behind. The old pointer is untouched.
+        await rm(temp, { force: true });
+        throw error;
       }
-      await rename(temp, target);
       // The rename is only durable once the folder is.
       await flush(join(target, "..")).catch(() => undefined);
     },

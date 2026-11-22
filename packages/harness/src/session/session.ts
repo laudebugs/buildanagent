@@ -178,12 +178,18 @@ export class Session {
     const header = entries[0];
     const above = header?.type === "session_header" ? header.parent : undefined;
     const path: SessionEntry[] = [];
+    const seen = new Set<string>();
     let at: string | null = entryId;
     while (at !== null) {
+      if (seen.has(at))
+        throw new HarnessError("session_corrupt", `the entries of the file ${file} have a cycle at ${at}`);
+      seen.add(at);
       const entry = byId.get(at);
       if (entry === undefined) {
         if (above === undefined) throw new HarnessError("entry_not_found", `no entry ${at} in the file ${file}`);
-        path.push(...(await this.#ancestry(above.session, above.entryId)).toReversed());
+        // A loop and not a spread, because a long prefix would be too many arguments for a call.
+        const prefix = await this.#ancestry(above.session, above.entryId);
+        for (let i = prefix.length - 1; i >= 0; i -= 1) path.push(prefix[i] as SessionEntry);
         break;
       }
       path.push(entry);
@@ -321,7 +327,9 @@ export class Session {
 
   /**
    * Starts the log of a subagent or a workflow step, and records the link in this session with a `subagent_link` entry
-   * that carries `spawningCallId` or `stepId`, whichever was given, and never both.
+   * that carries `spawningCallId` or `stepId`, whichever was given, and never both. If the link can't be written, for
+   * example because the lock was lost, the child's file stays in the store as a session no one links to, which retention
+   * removes; the same holds for a fork that can't be opened.
    */
   async child(link: ChildLink): Promise<Session> {
     this.#requireWriter();

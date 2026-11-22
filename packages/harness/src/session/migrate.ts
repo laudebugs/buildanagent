@@ -78,7 +78,7 @@ function stepsFrom(version: number, migrations: readonly Migration[]): Migration
  * Migrates the session's current file to the current format. A session already there is left alone. A session from a
  * newer format is refused, because only a newer harness can read it. Otherwise the entries go through each step, the
  * new file is written in one append (which checks every entry against the current format), read back and compared, and
- * only then does the pointer move. A file whose header names a parent file is migrated alone, and its parent is not.
+ * only then does the pointer move. A file whose header names a parent file is refused, because its parent would stay in the old format, and so is, without being noticed, a file that forks name as their parent.
  */
 export async function migrateSession(options: MigrateOptions): Promise<MigrationResult> {
   const handle = await options.lock.acquire(options.key);
@@ -100,17 +100,17 @@ async function migrateLocked(options: MigrateOptions): Promise<MigrationResult> 
   const file = (await index.get(key)) ?? key.sessionId;
   const raw = await rawEntries(store, { userId: key.userId, sessionId: file });
   const version = versionOf(raw);
-  if ((raw[0] as { parent?: unknown }).parent !== undefined) {
-    throw new HarnessError(
-      "unsupported_format",
-      "this file continues a parent file, which would stay in the old format and make the session unreadable, so migrate the parent's session first and fork again",
-    );
-  }
   if (version === FORMAT_VERSION) return { migrated: false, version };
   if (version > FORMAT_VERSION) {
     throw new HarnessError(
       "unsupported_format",
       `the log is format ${version}, newer than this harness reads (${FORMAT_VERSION})`,
+    );
+  }
+  if ((raw[0] as { parent?: unknown }).parent !== undefined) {
+    throw new HarnessError(
+      "unsupported_format",
+      "this file continues a parent file, which would stay in the old format and make the session unreadable, so migrate the parent's session first and fork again",
     );
   }
   const steps = stepsFrom(version, options.migrations);

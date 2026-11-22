@@ -216,3 +216,37 @@ test("a log the store can't read for another reason than a format is not reporte
     (error) => !isHarnessError(error) || error.code !== "unsupported_format",
   );
 });
+
+test("a log that is already current is left alone even when its file continues a parent", async () => {
+  const store = memoryStore();
+  const index = memoryIndex();
+  await store.append(KEY, [header(), record("r1", "h1")]);
+  const session = await openSession({
+    store,
+    index,
+    key: KEY,
+    lock: memoryLock(),
+    newId: (() => {
+      let n = 0;
+      return () => `g${++n}`;
+    })(),
+  });
+  await session.revert("r1");
+  await session.close();
+  assert.deepEqual(await migrateSession({ store, index, key: KEY, lock: memoryLock(), migrations: [] }), {
+    migrated: false,
+    version: 1,
+  });
+});
+
+test("a pointer that can't be written leaves no temp file behind", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "harness-pointer-"));
+  dirs.push(dir);
+  const index = fileIndex({ dir });
+  await index.set(KEY, "a");
+  // The pointer's own path is a folder, so the rename over it fails after the temp file was written.
+  rmSync(join(dir, "ada", "s1.pointer.json"));
+  mkdirSync(join(dir, "ada", "s1.pointer.json"));
+  await assert.rejects(() => index.set(KEY, "b"));
+  assert.deepEqual(readdirSync(join(dir, "ada")), ["s1.pointer.json"]);
+});
