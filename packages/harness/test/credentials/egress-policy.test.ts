@@ -8,7 +8,8 @@ import {
   isValidRefName,
   pushVerdict,
 } from "@buildanagent/harness/credentials";
-import { test } from "vitest";
+import { test, vi } from "vitest";
+import { PushReader } from "../../src/credentials/git-route.js";
 
 // The policy compiler and the git route's pure checks. The proxy that runs a compiled policy is tested against a real
 // HTTPS server in git-route.test.ts.
@@ -194,6 +195,58 @@ test("a push the route can't parse, or one past its size limit, is refused and n
   assert.deepEqual(pushVerdict(endless, filter, false), { refused: "git_too_large" });
   const shallow = encoder.encode(`${pkt(`shallow ${NEW}\n`)}${pkt(`${OLD} ${NEW} refs/heads/agent/s\0caps\n`)}0000`);
   assert.equal(pushVerdict(shallow, filter, true), "allowed", "a shallow line may come before the commands");
+});
+
+/** A command list whose lines end exactly `over` bytes past `GIT_MAX_COMMAND_BYTES`, then its flush and a pack. */
+function listAtLimit(over: number): Uint8Array {
+  const shallow = pkt(`shallow ${NEW}\n`);
+  const lines = shallow.repeat(Math.floor((GIT_MAX_COMMAND_BYTES - 300) / shallow.length));
+  const room = GIT_MAX_COMMAND_BYTES + over - lines.length - pkt(`${OLD} ${NEW} refs/heads/agent/\0caps\n`).length;
+  const list = `${lines}${pkt(`${OLD} ${NEW} refs/heads/agent/${"x".repeat(room)}\0caps\n`)}`;
+  assert.equal(list.length, GIT_MAX_COMMAND_BYTES + over);
+  return encoder.encode(`${list}0000PACK`);
+}
+
+test("a whole command list in one piece is held to the size limit, at the limit and one byte over", () => {
+  for (const ended of [true, false]) {
+    assert.equal(pushVerdict(listAtLimit(0), filter, ended), "allowed", "a list of exactly the limit");
+    assert.deepEqual(pushVerdict(listAtLimit(1), filter, ended), { refused: "git_too_large" }, "one byte over");
+  }
+  const reader = new PushReader(filter);
+  const over = listAtLimit(1);
+  assert.equal(reader.add(over.subarray(0, 100)), "incomplete");
+  assert.deepEqual(reader.add(over.subarray(100)), { refused: "git_too_large" }, "the rest in one piece");
+});
+
+test("a push body in thousands of tiny pieces is read once, in linear time", () => {
+  const shallow = encoder.encode(pkt(`shallow ${NEW}\n`).repeat(1200));
+  const tail = encoder.encode(`${pkt(`${OLD} ${NEW} refs/heads/agent/t\0caps\n`)}0000PACK`);
+  const decode = vi.spyOn(TextDecoder.prototype, "decode");
+  try {
+    for (const [ending, expected] of [
+      [tail, "allowed"],
+      [encoder.encode("0000"), { refused: "git_bad_pkt_line" }],
+      [encoder.encode(`${pkt(`${OLD} ${NEW} refs/heads/main\0caps\n`)}0000`), { refused: "git_ref_refused" }],
+    ] as const) {
+      decode.mockClear();
+      const body = new Uint8Array([...shallow, ...ending]);
+      const reader = new PushReader(filter);
+      let verdict: ReturnType<PushReader["add"]> = "incomplete";
+      const started = performance.now();
+      for (let at = 0; at < body.length && verdict === "incomplete"; at += 11) {
+        verdict = reader.add(body.subarray(at, at + 11));
+      }
+      assert.ok(body.length / 11 > 5000, "more than 5,000 pieces");
+      assert.deepEqual(verdict === "incomplete" ? reader.end() : verdict, expected);
+      assert.ok(
+        decode.mock.calls.length <= 1202,
+        `each pkt-line is decoded once, not ${decode.mock.calls.length} times`,
+      );
+      assert.ok(performance.now() - started < 2000, "and quickly");
+    }
+  } finally {
+    decode.mockRestore();
+  }
 });
 
 test("ref names follow git's own rules", () => {

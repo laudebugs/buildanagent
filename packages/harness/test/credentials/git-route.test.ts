@@ -12,6 +12,7 @@ import {
   compileEgressPolicy,
   type EgressProxy,
   type EgressRecord,
+  GIT_MAX_COMMAND_BYTES,
   startEgressProxy,
 } from "@buildanagent/harness/credentials";
 import { spawnEnv } from "@buildanagent/harness/sandbox";
@@ -343,9 +344,9 @@ test("an in-process fetch takes the same route, with the same push check", async
   assert.equal(seen[0]?.headers.authorization, expected);
 });
 
-test("a push body sent a few bytes at a time is read whole and quickly, and one that stalls times out", async () => {
-  fresh();
-  const slow = await startEgressProxy({
+/** A proxy with its own timeouts, in front of the same fake GitHub. */
+function startTimedProxy(timeouts: { idleTimeoutMs?: number }): Promise<EgressProxy> {
+  return startEgressProxy({
     ...compileEgressPolicy(
       {
         allow: [],
@@ -366,36 +367,44 @@ test("a push body sent a few bytes at a time is read whole and quickly, and one 
     resolve: async (host) => (host === "github.test" ? ["127.0.0.1"] : []),
     ca: readFileSync(join(folders[0] ?? "", "cert.pem"), "utf8"),
     unsafeAllowAddresses: ["127.0.0.1"],
-    idleTimeoutMs: 400,
+    ...timeouts,
   });
+}
+
+/** Posts a push body to `to`'s git route in `chunks`, pausing `pauseMs` after each, and resolves with the status. */
+function postPush(to: EgressProxy, chunks: string[], pauseMs: number): Promise<number> {
+  const { port: proxyPort } = new URL(to.url);
+  return new Promise<number>((done, fail) => {
+    const request = http.request(
+      {
+        host: "127.0.0.1",
+        port: Number(proxyPort),
+        path: "/git/owner/repo.git/git-receive-pack",
+        method: "POST",
+        headers: { authorization: basic(to.sentinels.git ?? "") },
+      },
+      (response) => {
+        response.resume();
+        response.on("end", () => done(response.statusCode ?? 0));
+      },
+    );
+    request.on("error", fail);
+    void (async () => {
+      for (const chunk of chunks) {
+        if (request.destroyed) return;
+        request.write(chunk);
+        await new Promise((resume) => setTimeout(resume, pauseMs));
+      }
+      request.end();
+    })();
+  });
+}
+
+test("a push body sent a few bytes at a time is read whole and quickly, and one that stalls times out", async () => {
+  fresh();
+  const slow = await startTimedProxy({ idleTimeoutMs: 400 });
   try {
-    const { port: slowPort } = new URL(slow.url);
-    const headers = { authorization: basic(slow.sentinels.git ?? "") };
-    const post = (chunks: string[], pauseMs: number) =>
-      new Promise<number>((done, fail) => {
-        const request = http.request(
-          {
-            host: "127.0.0.1",
-            port: Number(slowPort),
-            path: "/git/owner/repo.git/git-receive-pack",
-            method: "POST",
-            headers,
-          },
-          (response) => {
-            response.resume();
-            response.on("end", () => done(response.statusCode ?? 0));
-          },
-        );
-        request.on("error", fail);
-        void (async () => {
-          for (const chunk of chunks) {
-            if (request.destroyed) return;
-            request.write(chunk);
-            await new Promise((resume) => setTimeout(resume, pauseMs));
-          }
-          request.end();
-        })();
-      });
+    const post = (chunks: string[], pauseMs: number) => postPush(slow, chunks, pauseMs);
     const body = `${command(`refs/heads/agent/${"x".repeat(900)}`)}0000PACK`;
     const pieces = body.match(/[\s\S]{1,3}/g) ?? [];
     const started = Date.now();
@@ -423,3 +432,25 @@ test("a push body sent a few bytes at a time is read whole and quickly, and one 
     await slow.close();
   }
 }, 30_000);
+
+test("a whole command list in one piece is held to the size limit, by the proxy and by an in-process fetch", async () => {
+  fresh();
+  const shallow = pkt(`shallow ${NEW}\n`);
+  const lines = shallow.repeat(Math.floor((GIT_MAX_COMMAND_BYTES - 300) / shallow.length));
+  const list = (over: number) => {
+    const room = GIT_MAX_COMMAND_BYTES + over - lines.length - command("refs/heads/agent/").length;
+    return `${lines}${command(`refs/heads/agent/${"x".repeat(room)}`)}0000PACK`;
+  };
+  const url = "http://egress.proxy/git/owner/repo.git/git-receive-pack";
+  for (const [over, status] of [
+    [0, 200],
+    [1, 403],
+  ] as const) {
+    const fetched = await proxy.fetch(url, { method: "POST", headers: authorized(), body: list(over) });
+    await fetched.arrayBuffer();
+    assert.equal(fetched.status, status, `fetch, ${over} byte over`);
+    assert.equal(await postPush(proxy, [list(over)], 0), status, `proxy, ${over} byte over`);
+    if (status === 403) assert.equal(logs.at(-1)?.reason, "git_too_large");
+  }
+  assert.equal(seen.length, 2, "only the lists at the limit reached the fake GitHub");
+});

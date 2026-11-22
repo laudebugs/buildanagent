@@ -16,7 +16,7 @@ import {
   parseAllow,
   parseRoutes,
 } from "./allowlist.js";
-import { basicCarries, basicHeader, type GitRouteFilter, gitEndpoint, pushProgress } from "./git-route.js";
+import { basicCarries, basicHeader, type GitRouteFilter, gitEndpoint, PushReader, pushVerdict } from "./git-route.js";
 
 export type { CredentialRoute } from "./allowlist.js";
 
@@ -155,17 +155,6 @@ function gitCredentialRefusal(presented: string | string[] | undefined, sentinel
     return { ...refusal(401, "git_credential_missing"), headers: { "www-authenticate": 'Basic realm="egress"' } };
   }
   return typeof presented === "string" && basicCarries(presented, sentinel) ? undefined : refusal(403, "bad_sentinel");
-}
-
-/** The chunks joined into one array. */
-function concat(chunks: readonly Uint8Array[]): Uint8Array {
-  const joined = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.length, 0));
-  let at = 0;
-  for (const chunk of chunks) {
-    joined.set(chunk, at);
-    at += chunk.length;
-  }
-  return joined;
 }
 
 class EgressGate {
@@ -469,9 +458,9 @@ class EgressGate {
   }
 
   /**
-   * Reads a push's command list and checks it, then hands back a body that starts with what was read. The chunks are
-   * kept in a list and joined only when they reach the length the check next needs, so a body sent in tiny pieces is
-   * not copied once per piece. The check gives up once the body is idle for the idle timeout, which each chunk resets.
+   * Reads a push's command list and checks it, then hands back a body that starts with what was read. `PushReader`
+   * reads each chunk once, so the check is linear in the bytes however small the chunks. The check gives up once the
+   * body is idle for the idle timeout, which each chunk resets.
    */
   private checkPush(
     body: import("node:stream").Readable | Uint8Array | undefined,
@@ -479,49 +468,42 @@ class EgressGate {
   ): Promise<{ readonly refused: string } | { readonly body: import("node:stream").Readable | Uint8Array }> {
     if (body === undefined) return Promise.resolve({ refused: "git_bad_pkt_line" });
     if (body instanceof Uint8Array) {
-      const { verdict } = pushProgress(body, filter, true);
+      const verdict = pushVerdict(body, filter, true);
       return Promise.resolve(verdict === "allowed" ? { body } : { refused: (verdict as { refused: string }).refused });
     }
     return new Promise((resolve) => {
+      const reader = new PushReader(filter);
       const chunks: Uint8Array[] = [];
-      let received = 0;
-      let needed = 1;
       const idleMs = this.options.idleTimeoutMs ?? DEFAULT_IDLE_MS;
-      let timer = setTimeout(() => settle({ refused: "git_timeout" }), idleMs);
+      const timedOut = () => settle({ refused: "git_timeout" });
+      let idle = setTimeout(timedOut, idleMs);
       const settle = (outcome: { refused: string } | { body: import("node:stream").Readable }) => {
-        clearTimeout(timer);
+        clearTimeout(idle);
         body.off("data", onData);
         body.off("end", onEnd);
         body.off("error", onError);
         body.off("close", onError);
         resolve(outcome);
       };
-      const judge = (ended: boolean) => {
-        const read = chunks.length === 1 ? (chunks[0] as Uint8Array) : concat(chunks);
-        chunks.splice(0, chunks.length, read);
-        const progress = pushProgress(read, filter, ended);
-        if (progress.verdict === "incomplete") {
-          needed = progress.needed;
-          return;
-        }
-        if (progress.verdict !== "allowed") {
-          settle(progress.verdict);
+      const judge = (verdict: ReturnType<PushReader["add"]>, ended: boolean) => {
+        if (verdict === "incomplete") return;
+        if (verdict !== "allowed") {
+          settle(verdict);
           return;
         }
         const rest = new this.modules.stream.PassThrough();
-        rest.write(read);
+        for (const chunk of chunks) rest.write(chunk);
         settle({ body: rest });
         if (ended) rest.end();
         else body.pipe(rest);
       };
       const onData = (chunk: Uint8Array) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => settle({ refused: "git_timeout" }), idleMs);
+        clearTimeout(idle);
+        idle = setTimeout(timedOut, idleMs);
         chunks.push(chunk);
-        received += chunk.length;
-        if (received >= needed) judge(false);
+        judge(reader.add(chunk), false);
       };
-      const onEnd = () => judge(true);
+      const onEnd = () => judge(reader.end(), true);
       const onError = () => settle({ refused: "request_failed" });
       body.on("data", onData);
       body.once("end", onEnd);
