@@ -13,7 +13,7 @@ export default function draw(): Figure {
     figure.box({ x: 34, y: 84, width: 120, height: 30 }, { label: "the sample", tone: "accent" });
     figure.box({ x: 34, y: 126, width: 120, height: 44 }, { label: ["behind the", "glass"] });
     figure.box({ x: 162, y: 126, width: 50, height: 44 }, { label: "port" });
-    figure.text({ x: 120, y: 202 }, "one labelled item passes", { tone: "muted" });
+    figure.text({ x: 120, y: 202 }, "things pass in and out", { tone: "muted" });
     figure.text({ x: 120, y: 220 }, "through the port", { tone: "muted" });
   });
 

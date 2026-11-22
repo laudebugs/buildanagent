@@ -81,3 +81,14 @@ The claims log for [`permissions-sandboxes-and-credentials.md`](../src/content/c
 | 45 | In example 10, the first query offers a mail server whose tool is `send_email`, a second server holds private notes, and `ran.send` counts the mail handler's runs; with `mcpServers: {}` the mock model's request lists no tools | Exercise 2 | ✅ | `verify/claude-agent-sdk/examples/10-refusals-are-recorded.ts`, the `mail` and `notes` servers and the `ran` counter; a probe copy of the file run on 2026-11-22 with `mcpServers: {}` recorded a request whose `tools` list was empty (the probe file and its transcript were deleted). The chapter asks the reader to predict `permission_denials` and does not state it |
 | 46 | In query a) of example 03, the `canUseTool` callback allows the call, so the handler runs once and the callback was asked; a deny rule is evaluated before the callback, so adding `disallowedTools: [NAME]` stops the call before the callback | Exercise 1 | ✅ | `verify/claude-agent-sdk/examples/03-permission-order.ts`, checks a) "unlisted tool reaches canUseTool" and "canUseTool 'allow' lets the tool run"; check c) for the deny rule's effect; the permissions page, steps 2 and 6. The chapter asks the reader to predict the counts |
 | 47 | The centerpiece's six gates are in the order hooks, deny rules, ask rules, mode, allow rules, host callback; a command runs in a walled floor with a writable workspace and a read-only folder; the sandbox has one lane out to a proxy that adds a secret from a vault and forwards to allowed hosts | Figure `permission-pipeline` | ✅ | `packages/harness/README.md`: the pipeline order (row 14), the sandbox mounts (row 22) and the proxy's routes (row 31). The vault stands on the host as the credential route's secret function; the lane and the walls are drawn for the picture, not a measured layout |
+| 48 | The `bypassPermissions` mode is step 4 of the six, after the deny rules | § A permission pipeline | ✅ | Row 4 and the permissions page, step 4; replaces the draft's "last in the order", which row 4 contradicted (found in the first code review) |
+| 49 | The glovebox figure shows things passing in and out through its port, and the analogy's breaks note says a glovebox does not filter what leaves | § A sandbox limits | ✏️ | Corrects row 28's figure: the drawing and caption said "one labelled item" and "chosen things", which implied filtering; both now say things pass in and out |
+
+## Tally
+
+| Verdict | Rows |
+| --- | --- |
+| ✅ confirmed | 46 |
+| ✏️ corrected | 2 (rows 11 and 49) |
+| ⚠️ unverified, our reading, marked as ours in the text | 1 (row 42) |
+| Total | 49 |

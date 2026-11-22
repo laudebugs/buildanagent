@@ -98,12 +98,12 @@ export default function draw(): IsoFigure {
   parts.slab("call.card", CALL, 0, CALL_H, { tone: "hi", bevel: 0.4 });
   for (const gate of GATES) {
     const plan: Plan = { x: gate.x, y: GATE_Y, w: GATE_W, d: GATE_D, r: 1 };
-    const lit = gate.name === "deny";
-    parts.slab(`gate.${gate.name}`, plan, 0, GATE_H, { tone: lit ? "hi" : "mid", lit, bevel: 0.6 });
+    parts.slab(`gate.${gate.name}`, plan, 0, GATE_H, { tone: "mid", bevel: 0.6 });
   }
   // One lamp on top of each lit gate.
   parts.cylinder("gate.hooks.lamp", [GATES[0].x + GATE_W / 2, GATE_Y + GATE_D / 2], LAMP_R, GATE_H, LAMP_H, {
     tone: "hi",
+    lit: true,
     attributes: step(0),
   });
   parts.cylinder("gate.deny.lamp", [GATES[1].x + GATE_W / 2, GATE_Y + GATE_D / 2], LAMP_R, GATE_H, LAMP_H, {

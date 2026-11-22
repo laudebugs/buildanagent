@@ -36,7 +36,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <text x="94" y="160.3" text-anchor="middle" class="fig-text">glass</text>
 <rect x="162" y="126" width="50" height="44" rx="4" class="fig-paper"/>
 <text x="187" y="152.2" text-anchor="middle" class="fig-text">port</text>
-<text x="120" y="202" text-anchor="middle" class="fig-text fig-text--muted">one labelled item passes</text>
+<text x="120" y="202" text-anchor="middle" class="fig-text fig-text--muted">things pass in and out</text>
 <text x="120" y="220" text-anchor="middle" class="fig-text fig-text--muted">through the port</text>
 </g>
 <text x="260" y="108" text-anchor="middle" class="fig-text fig-text--muted">like</text>
