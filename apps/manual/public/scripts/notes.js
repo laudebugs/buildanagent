@@ -4,7 +4,10 @@
 // quote again, so a highlight survives small edits to the chapter, and one it cannot place stays listed in the notes
 // panel with its text. The CSS Custom Highlight API draws the highlights, so the chapter's markup is never wrapped or
 // changed. Everything stays in this browser's localStorage: the script makes no request, and it writes stored text
-// into the page only as text. Without JavaScript, without CSS.highlights or with storage blocked, nothing appears.
+// into the page only as text. Each highlight has one of four colours, a click on a highlight or its note marker opens a
+// popover with colour, Share and Remove, and a highlight with a note gets a marker element outside the article, because
+// Firefox 140 to 145 draws no underline from a CSS highlight. Without JavaScript, without CSS.highlights or with
+// storage blocked, nothing appears.
 // The file is served as-is from public/, not bundled, like reading.js; the tests import its exported functions.
 
 /** The localStorage key that holds every chapter's highlights. */
@@ -22,8 +25,32 @@ export const MAX_QUOTE = 1000;
 /** How many characters of the chapter's text an anchor keeps on each side of its quote. */
 export const CONTEXT = 32;
 
-/** The names the two kinds of highlight take in `CSS.highlights`, which the stylesheet's `::highlight()` rules use. */
-export const HIGHLIGHT_NAMES = { plain: "manual-highlight", noted: "manual-note" };
+/** The four colours a reader can choose, in the order their highlights register, and the one a new highlight takes. */
+export const COLORS = ["amber", "green", "blue", "pink"];
+export const DEFAULT_COLOR = "amber";
+
+/** What each colour is called to a reader, in the popover and the panel, so colour is never the only cue. */
+export const COLOR_LABELS = { amber: "Amber", green: "Green", blue: "Blue", pink: "Pink" };
+
+/** The version of the stored value this script writes; it also reads version 1, which had no colours. */
+export const STORE_VERSION = 2;
+
+/**
+ * The name a highlight takes in `CSS.highlights`, which the stylesheet's `::highlight()` rules use. Each range carries
+ * one name, because the specification advises one name per highlight. A colour this script does not know draws amber.
+ * @param {string} color
+ * @param {boolean} noted
+ * @returns {string}
+ */
+export function highlightName(color, noted) {
+  return `manual-${noted ? "note" : "hl"}-${COLORS.includes(color) ? color : DEFAULT_COLOR}`;
+}
+
+/** Every highlight name, in registration order: the plain names, then the noted ones, which paint above them. */
+export const HIGHLIGHT_NAMES = [
+  ...COLORS.map((color) => highlightName(color, false)),
+  ...COLORS.map((color) => highlightName(color, true)),
+];
 
 /** The keyboard shortcut that acts on the selection or opens the notes panel, as `aria-keyshortcuts` writes it. */
 export const SHORTCUT = "Alt+Shift+N";
@@ -33,6 +60,8 @@ export const REPAINT_MS = 100;
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ITEM_ID = /^[a-z0-9]{1,40}$/;
+// A stored colour this version does not know, written by a later one, is kept as stored and drawn as the default.
+const COLOR_ID = /^[a-z]{1,16}$/;
 const MAX_HEADING_ID = 200;
 // Text inside these elements is not part of the chapter's prose: figures and listings, replays, controls that scripts
 // add or relabel, hidden glossary cards and this script's own panel. Leaving them out keeps the text the script
@@ -63,15 +92,18 @@ const isHeadingId = (value) =>
 
 /**
  * @typedef {{ quote: string, prefix: string, suffix: string, section: string, offset: number }} Anchor
- * @typedef {Anchor & { id: string, note: string, at: number }} Item
+ * @typedef {Anchor & { id: string, note: string, at: number, color: string }} Item
  * @typedef {{ id: string, start: number }} Section
  * @typedef {{ text: string, before: number[][], seg: number[], off: number[] }} TextIndex
  * @typedef {{ start: number, end: number, status: "found" | "moved" } | { status: "lost" }} Located
  */
 
+/** Versions 1 and 2 are the shapes this script reads; any other version belongs to another script and is never touched. */
+const isOurVersion = (version) => version === 1 || version === STORE_VERSION;
+
 function parseItem(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  const { id, quote, prefix, suffix, section, offset, note, at } = value;
+  const { id, quote, prefix, suffix, section, offset, note, at, color } = value;
   if (typeof id !== "string" || !ITEM_ID.test(id)) return undefined;
   if (typeof quote !== "string" || quote.length === 0 || quote.length > MAX_QUOTE) return undefined;
   if (typeof prefix !== "string" || typeof suffix !== "string" || typeof note !== "string") return undefined;
@@ -85,6 +117,7 @@ function parseItem(value) {
     offset,
     note: note.slice(0, MAX_NOTE),
     at,
+    color: typeof color === "string" && COLOR_ID.test(color) ? color : DEFAULT_COLOR,
   };
 }
 
@@ -104,7 +137,7 @@ export function parseStored(raw) {
   } catch {
     return chapters;
   }
-  const stored = value?.v === 1 ? value.chapters : undefined;
+  const stored = isOurVersion(value?.v) ? value.chapters : undefined;
   if (typeof stored !== "object" || stored === null || Array.isArray(stored)) return chapters;
   for (const [slug, list] of Object.entries(stored)) {
     if (!SLUG.test(slug) || !Array.isArray(list)) continue;
@@ -130,7 +163,7 @@ export function parseStored(raw) {
 export function serializeStored(chapters) {
   const out = {};
   for (const [slug, items] of chapters) if (items.length > 0) out[slug] = items;
-  return JSON.stringify({ v: 1, chapters: out });
+  return JSON.stringify({ v: STORE_VERSION, chapters: out });
 }
 
 /**
@@ -391,6 +424,123 @@ export function toMarkdown(title, url, items) {
   return `${lines.join("\n").trimEnd()}\n`;
 }
 
+const WORD = /[\p{L}\p{N}_]/u;
+
+/** The longest passage a share link carries whole, and the length of each end when it carries only the ends. */
+export const WHOLE_QUOTE = 120;
+export const END_TERM = 40;
+
+/** How much text before and after the passage a link may add to tell a repeated passage from the others. */
+export const LINK_CONTEXT = 32;
+
+const squash = (text) => text.replace(/\s+/g, " ").trim();
+
+/** Drops the word a passage starts in the middle of, because a text directive matches whole words. */
+function trimStart(text, before) {
+  const cut = WORD.test(text[0] ?? "") && WORD.test(before.slice(-1)) ? text.replace(/^[\p{L}\p{N}_]+\s*/u, "") : text;
+  return squash(cut);
+}
+
+/** Drops the word a passage ends in the middle of. */
+function trimEnd(text, after) {
+  const cut = WORD.test(text.slice(-1)) && WORD.test(after[0] ?? "") ? text.replace(/\s*[\p{L}\p{N}_]+$/u, "") : text;
+  return squash(cut);
+}
+
+/** The first or last `max` characters of a text, cut back to a whole word when the cut falls inside one. */
+function edgeTerm(text, max, fromEnd) {
+  if (text.length <= max) return text;
+  if (!fromEnd) {
+    const cut = text.slice(0, max);
+    if (!WORD.test(text[max] ?? "")) return cut.trim();
+    const space = cut.search(/\s\S*$/);
+    return (space > 0 ? cut.slice(0, space) : cut).trim();
+  }
+  const cut = text.slice(-max);
+  if (!WORD.test(text[text.length - max - 1] ?? "")) return cut.trim();
+  const space = cut.search(/\s/);
+  return (space >= 0 ? cut.slice(space) : cut).trim();
+}
+
+/** The last `LINK_CONTEXT` characters of a text, without a word the cut starts in the middle of. */
+function contextTail(text) {
+  const clean = squash(text);
+  const tail = clean.slice(-LINK_CONTEXT);
+  const cutInWord = clean.length > LINK_CONTEXT && WORD.test(clean[clean.length - LINK_CONTEXT - 1] ?? "");
+  return (cutInWord ? tail.replace(/^\S*\s+/, "") : tail).trim();
+}
+
+/** The first `LINK_CONTEXT` characters of a text, without a word the cut ends in the middle of. */
+function contextHead(text) {
+  const clean = squash(text);
+  const head = clean.slice(0, LINK_CONTEXT);
+  const cutInWord = clean.length > LINK_CONTEXT && WORD.test(clean[LINK_CONTEXT] ?? "");
+  return (cutInWord ? head.replace(/\s+\S*$/, "") : head).trim();
+}
+
+const encodeTerm = (term) => encodeURIComponent(term).replaceAll("-", "%2D");
+
+function countOf(text, needle) {
+  let count = 0;
+  for (let at = text.indexOf(needle); at >= 0; at = text.indexOf(needle, at + needle.length)) count += 1;
+  return count;
+}
+
+/**
+ * The text directive that scrolls to a highlighted passage, as `text=...`, or "" when the passage leaves no whole word
+ * to match. Each term must sit inside one block, so a passage over `WHOLE_QUOTE` characters or across blocks goes in
+ * as its first and last `END_TERM` characters, cut at words. Context from the passage's own block joins only when the
+ * passage's first term occurs more than once in the page's text, which a directive searches whole.
+ * @param {{ quote: string, before: string, after: string, first: string, last: string, spans: boolean }} parts
+ *   `first` and `last` are the passage's text in its first and last block, the whole passage when it has one block;
+ *   `before` and `after` are the text of those blocks around the passage.
+ * @param {string} pageText The page's rendered text.
+ * @returns {string}
+ */
+export function textDirective(parts, pageText) {
+  const { before, after, spans } = parts;
+  const whole = trimEnd(trimStart(parts.quote, before), after);
+  const first = trimStart(parts.first, before);
+  const last = trimEnd(parts.last, after);
+  const terms =
+    !spans && whole.length <= WHOLE_QUOTE
+      ? [whole]
+      : [edgeTerm(first, END_TERM, false), edgeTerm(last, END_TERM, true)];
+  if (terms.some((term) => term === "")) return "";
+  const repeated = countOf(squash(pageText).toLowerCase(), (terms[0] ?? "").toLowerCase()) > 1;
+  const prefix = repeated ? contextTail(before) : "";
+  const suffix = repeated ? contextHead(after) : "";
+  const pieces = [
+    ...(prefix ? [`${encodeTerm(prefix)}-`] : []),
+    ...terms.map(encodeTerm),
+    ...(suffix ? [`-${encodeTerm(suffix)}`] : []),
+  ];
+  return `text=${pieces.join(",")}`;
+}
+
+/**
+ * The link a Share copies: the page's address without any fragment, the passage's section heading as the fallback
+ * and the text directive after it.
+ * @param {string} base The page's origin, path and query.
+ * @param {string} section The id of the heading above the passage, or "".
+ * @param {string} directive
+ * @returns {string}
+ */
+export function shareLink(base, section, directive) {
+  return `${base.split("#")[0]}#${section}${directive ? `:~:${directive}` : ""}`;
+}
+
+/**
+ * The text Share copies: the passage in quotation marks, the chapter's title and the link. The note is never part of it.
+ * @param {string} quote
+ * @param {string} title
+ * @param {string} link
+ * @returns {string}
+ */
+export function shareText(quote, title, link) {
+  return `“${quote}”\n— ${title}\n${link}`;
+}
+
 /**
  * A new highlight id: the time and a random part, in base 36.
  * @param {number} now
@@ -476,7 +626,7 @@ export function pointOffset(index, nodes, container, offset) {
 }
 
 /**
- * Names what the stored value is: "empty" when nothing is stored, "ours" when it is this script's version 1 shape,
+ * Names what the stored value is: "empty" when nothing is stored, "ours" when it is this script's version 1 or 2 shape,
  * and "foreign" for anything else, such as a later version's value or damaged text, which the script reads as no
  * notes but never overwrites.
  * @param {unknown} raw
@@ -491,7 +641,7 @@ export function storedKind(raw) {
   } catch {
     return "foreign";
   }
-  const chapters = value?.v === 1 ? value.chapters : undefined;
+  const chapters = isOurVersion(value?.v) ? value.chapters : undefined;
   return typeof chapters === "object" && chapters !== null && !Array.isArray(chapters) ? "ours" : "foreign";
 }
 
@@ -566,6 +716,11 @@ class Notes {
     this.storage = storage;
     this.items = [];
     this.foreign = false;
+    /** The colour the next highlight takes: the one the reader picked last, amber until then. */
+    this.color = DEFAULT_COLOR;
+    /** The highlights as drawn, each with its range and its paint order, for the click test and the markers. */
+    this.drawn = [];
+    this.canPop = typeof win.HTMLElement?.prototype?.showPopover === "function";
     this.reload();
     // The chapter's text model is built once and rebuilt only after the article's text or the attributes that decide
     // which text counts have changed.
@@ -592,6 +747,13 @@ class Notes {
     this.build();
     this.paint();
     this.listen();
+    // A marker follows its passage when the article reflows, so it is placed again when the article's size changes and
+    // when fonts finish loading.
+    if (typeof win.ResizeObserver === "function") {
+      this.resizer = new win.ResizeObserver(() => this.layoutMarkers());
+      this.resizer.observe(article);
+    }
+    whenFontsLoad(this.doc, () => this.layoutMarkers());
   }
 
   /** Reads this chapter's highlights from storage, and whether the stored value is one this page must not overwrite. */
@@ -614,14 +776,23 @@ class Notes {
     const doc = this.doc;
     const ui = { "data-pagefind-ignore": true, "data-notes-ui": true };
     this.live = element(doc, "div", { ...ui, className: "visually-hidden", role: "status" });
-    this.highlightButton = element(doc, "button", { type: "button", className: "control", text: "Highlight" });
+    this.swatches = COLORS.map((color) => this.swatch(color));
     this.noteButton = element(doc, "button", { type: "button", className: "control", text: "Add note" });
     this.toolbarMessage = element(doc, "p", { className: "notes-toolbar__message", hidden: true });
     this.toolbar = element(
       doc,
       "div",
       { ...ui, className: "notes-toolbar notes-ui", role: "group", "aria-label": "Selected text", hidden: true },
-      [this.highlightButton, this.noteButton, this.toolbarMessage],
+      [
+        element(
+          doc,
+          "div",
+          { className: "notes-colors", role: "group", "aria-label": "Highlight in colour" },
+          this.swatches,
+        ),
+        this.noteButton,
+        this.toolbarMessage,
+      ],
     );
     this.count = element(doc, "span", { className: "notes-open__count" });
     this.openButton = element(
@@ -638,8 +809,69 @@ class Notes {
       [element(doc, "span", { text: "Notes" }), this.count],
     );
     this.buildDialog(ui);
-    doc.body.append(this.live, this.toolbar, this.openButton, this.dialog);
+    this.buildPopover(ui);
+    this.markers = element(doc, "div", {
+      "data-pagefind-ignore": true,
+      "data-notes-ui": true,
+      className: "notes-markers notes-ui",
+    });
+    doc.body.append(this.live, this.toolbar, this.openButton, this.dialog, this.pop, this.markers);
     this.updateCount();
+  }
+
+  /** A colour button: a swatch beside the colour's name, so colour is never the only cue. */
+  swatch(color, pressed) {
+    return element(this.doc, "button", {
+      type: "button",
+      className: `control notes-swatch notes-swatch--${color}`,
+      "data-color": color,
+      "data-action": `color-${color}`,
+      "aria-pressed": pressed === undefined ? undefined : String(pressed),
+      text: COLOR_LABELS[color],
+    });
+  }
+
+  /** The popover a click on a highlight or a note marker opens: the passage, its colours, Share and Remove. */
+  buildPopover(ui) {
+    const doc = this.doc;
+    this.popQuote = element(doc, "p", { className: "notes-pop__quote" });
+    this.popColors = element(doc, "div", {
+      className: "notes-colors",
+      role: "group",
+      "aria-label": "Highlight colour",
+    });
+    this.popShare = element(doc, "button", {
+      type: "button",
+      className: "control",
+      "data-action": "share",
+      text: "Share",
+    });
+    this.popRemove = element(doc, "button", {
+      type: "button",
+      className: "control",
+      "data-action": "delete",
+      text: "Remove",
+    });
+    this.popField = element(doc, "textarea", {
+      className: "notes-dialog__field",
+      rows: 5,
+      readonly: true,
+      hidden: true,
+      "aria-label": "Text to copy",
+    });
+    this.popMessage = element(doc, "p", { className: "notes-pop__message", role: "status" });
+    this.pop = element(
+      doc,
+      "div",
+      { ...ui, className: "notes-pop notes-ui", popover: "auto", role: "dialog", "aria-label": "Highlight actions" },
+      [
+        this.popQuote,
+        this.popColors,
+        element(doc, "div", { className: "notes-pop__actions" }, [this.popShare, this.popRemove]),
+        this.popField,
+        this.popMessage,
+      ],
+    );
   }
 
   buildDialog(ui) {
@@ -676,6 +908,13 @@ class Notes {
       element(doc, "div", { className: "notes-dialog__actions" }, [this.saveButton, this.cancelButton]),
     ]);
     this.status = element(doc, "p", { className: "notes-dialog__status", role: "status" });
+    this.shareField = element(doc, "textarea", {
+      className: "notes-dialog__field",
+      rows: 5,
+      readonly: true,
+      hidden: true,
+      "aria-label": "Text to copy",
+    });
     this.warning = element(doc, "p", {
       className: "notes-dialog__flag",
       text: MESSAGES.foreign,
@@ -732,6 +971,7 @@ class Notes {
         this.form,
         this.warning,
         this.status,
+        this.shareField,
         this.empty,
         this.list,
         element(doc, "div", { className: "notes-dialog__actions" }, [this.exportButton]),
@@ -752,12 +992,29 @@ class Notes {
     };
     doc.addEventListener("selectionchange", later);
     win.addEventListener("scroll", () => this.position(), { passive: true });
-    win.addEventListener("resize", () => this.position());
+    win.addEventListener("resize", () => {
+      this.position();
+      this.layoutMarkers();
+    });
+    doc.addEventListener("click", (event) => this.onClick(event));
+    // A click outside or Escape closes the popover without calling this script.
+    this.pop.addEventListener("toggle", (event) => {
+      if (event.newState !== "closed") return;
+      this.popOpen = false;
+      this.popId = undefined;
+    });
     // A press on the toolbar keeps the selection the reader made.
     this.toolbar.addEventListener("pointerdown", (event) => event.preventDefault());
     this.toolbar.addEventListener("mousedown", (event) => event.preventDefault());
-    this.highlightButton.addEventListener("click", () => this.addPending(false));
+    for (const swatch of this.swatches) {
+      swatch.addEventListener("click", () => {
+        this.color = swatch.getAttribute("data-color") ?? DEFAULT_COLOR;
+        this.addPending(false);
+      });
+    }
     this.noteButton.addEventListener("click", () => this.addPending(true));
+    this.popShare.addEventListener("click", () => this.sharePopped());
+    this.popRemove.addEventListener("click", () => this.removePopped());
     this.toolbar.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -805,8 +1062,8 @@ class Notes {
       this.onSelection();
       if (this.pending && !this.toolbar.hidden) {
         this.returnFocus = active;
-        const first = [this.highlightButton, this.noteButton].find((button) => !button.disabled);
-        (first ?? this.highlightButton).focus();
+        const first = [...this.swatches, this.noteButton].find((button) => !button.disabled);
+        (first ?? this.swatches[0]).focus();
       } else {
         this.open(active);
       }
@@ -842,8 +1099,7 @@ class Notes {
     const isNew = this.pending !== undefined && this.existing(this.pending) === undefined;
     const full = isNew && this.items.length >= MAX_HIGHLIGHTS;
     const problem = "reason" in built ? MESSAGES.long : full ? MESSAGES.full : "";
-    this.highlightButton.disabled = problem !== "";
-    this.noteButton.disabled = problem !== "";
+    for (const button of [...this.swatches, this.noteButton]) button.disabled = problem !== "";
     this.toolbarMessage.textContent = problem;
     this.toolbarMessage.hidden = problem === "";
     this.toolbar.hidden = false;
@@ -916,7 +1172,7 @@ class Notes {
       this.clearSelection();
       return;
     }
-    const item = this.makeItem(pending.anchor, "");
+    const item = this.makeItem(pending.anchor, "", this.color);
     const problem = this.commit([...this.items, item]);
     if (problem) {
       this.notice(problem);
@@ -933,8 +1189,8 @@ class Notes {
     } else if (fromToolbar) this.restoreFocus();
   }
 
-  makeItem(anchor, note) {
-    return { id: newId(Date.now(), Math.random()), ...anchor, note: cleanNote(note), at: Date.now() };
+  makeItem(anchor, note, color = this.color) {
+    return { id: newId(Date.now(), Math.random()), ...anchor, note: cleanNote(note), at: Date.now(), color };
   }
 
   clearSelection() {
@@ -982,9 +1238,9 @@ class Notes {
   paint() {
     const { win, doc } = this;
     const chapter = this.chapter();
-    const plain = [];
-    const noted = [];
+    const groups = new Map(HIGHLIGHT_NAMES.map((name) => [name, []]));
     this.placed = new Map();
+    this.drawn = [];
     for (const item of this.items) {
       const located = locate(chapter.index.text, item, chapter.sections);
       this.placed.set(item.id, located);
@@ -997,11 +1253,254 @@ class Notes {
       const range = doc.createRange();
       range.setStart(startNode, from.off);
       range.setEnd(endNode, to.off);
-      (item.note ? noted : plain).push(range);
+      const name = highlightName(item.color, item.note !== "");
+      groups.get(name)?.push(range);
+      // A noted name has priority 1 and registers after the plain ones, so it paints above them: the order a click
+      // follows when highlights overlap.
+      this.drawn.push({ item, range, rank: (item.note ? 1000 : 0) + HIGHLIGHT_NAMES.indexOf(name) });
     }
-    win.CSS.highlights.set(HIGHLIGHT_NAMES.plain, new win.Highlight(...plain));
-    win.CSS.highlights.set(HIGHLIGHT_NAMES.noted, new win.Highlight(...noted));
+    // Deleting before setting keeps the registration order the same on every paint, which breaks priority ties.
+    for (const [name, ranges] of groups) {
+      const highlight = new win.Highlight(...ranges);
+      highlight.priority = name.startsWith("manual-note-") ? 1 : 0;
+      win.CSS.highlights.delete(name);
+      win.CSS.highlights.set(name, highlight);
+    }
+    this.layoutMarkers();
     this.updateCount();
+  }
+
+  /**
+   * Draws one marker per noted highlight, above the end of the passage's last line. The markers live in their own
+   * container outside the article, in page coordinates, with the hit area kept inside the article's width so a marker
+   * never widens the page.
+   */
+  layoutMarkers() {
+    const { win, doc } = this;
+    if (!this.markers) return;
+    const size = 24;
+    const box = this.article.getBoundingClientRect();
+    const markers = [];
+    for (const { item, range } of this.drawn) {
+      if (!item.note) continue;
+      const rects = [...range.getClientRects()];
+      const last = rects[rects.length - 1];
+      if (!last) continue;
+      const left = Math.max(box.left, Math.min(last.right - size / 2, box.right - size));
+      const marker = element(doc, "span", {
+        className: "notes-marker",
+        "data-id": item.id,
+        "data-notes-ui": true,
+        "aria-hidden": "true",
+      });
+      // Set through the CSSOM, which the content security policy allows.
+      marker.style.left = `${Math.round(left + win.scrollX)}px`;
+      marker.style.top = `${Math.round(last.top - size / 2 + win.scrollY)}px`;
+      markers.push(marker);
+    }
+    this.markers.replaceChildren(...markers);
+  }
+
+  /** The highlight that paints on top where the point falls inside a range's rectangles, within two pixels. */
+  hit(x, y) {
+    const slack = 2;
+    let best;
+    for (const entry of this.drawn) {
+      const inside = [...entry.range.getClientRects()].some(
+        (rect) =>
+          x >= rect.left - slack && x <= rect.right + slack && y >= rect.top - slack && y <= rect.bottom + slack,
+      );
+      if (inside && (!best || entry.rank >= best.rank)) best = entry;
+    }
+    return best;
+  }
+
+  /** A click on a highlight or a note marker opens the popover; a click on a link, a control or a drag does not. */
+  onClick(event) {
+    const { win } = this;
+    const target = event.target;
+    if (!this.canPop || this.dialog.open || event.defaultPrevented || event.button > 0) return;
+    if (typeof target?.closest !== "function") return;
+    const marker = target.closest(".notes-marker");
+    if (!marker && target.closest("[data-notes-ui]")) return;
+    if (!marker) {
+      if (!this.article.contains(target)) return;
+      if (target.closest("a[href], button, input, textarea, select, summary, label, [role='button']")) return;
+      if (win.getSelection()?.isCollapsed === false) return;
+    }
+    const entry = marker
+      ? this.drawn.find((drawn) => drawn.item.id === marker.getAttribute("data-id"))
+      : this.hit(event.clientX, event.clientY);
+    if (entry) this.openPop(entry, event.clientX, event.clientY);
+  }
+
+  /** Opens the popover for a highlight beside the click, with focus on its first control. */
+  openPop(entry, x, y) {
+    const { win } = this;
+    const item = entry.item;
+    this.popId = item.id;
+    this.popMessage.textContent = "";
+    this.popField.hidden = true;
+    this.renderPop();
+    try {
+      if (!this.popOpen) this.pop.showPopover();
+    } catch {
+      return;
+    }
+    this.popOpen = true;
+    const box = this.pop.getBoundingClientRect();
+    const width = this.doc.documentElement.clientWidth || win.innerWidth;
+    const gap = 8;
+    // Beside the passage, not over it: below its last line, or above its first when the window has no room below.
+    const rects = [...entry.range.getClientRects()];
+    const first = rects[0];
+    const last = rects[rects.length - 1];
+    const below = (last ? last.bottom : y + 8) + gap;
+    const above = (first ? first.top : y - 8) - gap - box.height;
+    const top = below + box.height <= win.innerHeight - gap || above < gap ? below : above;
+    const left = Math.max(gap, Math.min(x - 16, width - box.width - gap));
+    this.pop.style.top = `${Math.round(Math.max(gap, Math.min(top, win.innerHeight - box.height - gap)))}px`;
+    this.pop.style.left = `${Math.round(left)}px`;
+    this.popColors.querySelector("button")?.focus({ preventScroll: true });
+  }
+
+  /** The popover's passage and colour buttons for the highlight it is open on. */
+  renderPop() {
+    const item = this.items.find((other) => other.id === this.popId);
+    if (!item) return;
+    this.popQuote.textContent = `“${shorten(item.quote, 120)}”`;
+    this.popColors.replaceChildren(...COLORS.map((color) => this.colorButton(item, color)));
+    this.popShare.hidden = this.placed.get(item.id)?.status === "lost";
+  }
+
+  /** A colour button on a highlight, pressed when the highlight has that colour. */
+  colorButton(item, color) {
+    const button = this.swatch(color, highlightName(item.color, false) === highlightName(color, false));
+    button.addEventListener("click", () => this.setColor(item.id, color));
+    return button;
+  }
+
+  /** Gives a highlight another colour. A colour this script did not write stays as stored until the reader picks one. */
+  setColor(id, color) {
+    this.reload();
+    if (this.foreign) {
+      this.say(MESSAGES.foreign);
+      this.popMessage.textContent = MESSAGES.foreign;
+      return;
+    }
+    const target = this.items.find((item) => item.id === id);
+    if (!target) return;
+    const problem = this.commit(this.items.map((item) => (item.id === id ? { ...item, color } : item)));
+    if (problem) {
+      this.say(problem);
+      this.popMessage.textContent = problem;
+      return;
+    }
+    this.color = color;
+    this.say(`Highlight colour changed to ${COLOR_LABELS[color].toLowerCase()}.`);
+    this.renderPop();
+    if (this.dialog.open) this.rerender();
+    (this.popColors.querySelector(`[data-color="${color}"]`) ?? this.popShare).focus({ preventScroll: true });
+  }
+
+  /** Removes the highlight the popover is open on, and closes the popover. */
+  removePopped() {
+    const item = this.items.find((other) => other.id === this.popId);
+    if (!item) return;
+    const problem = this.commit(this.items.filter((other) => other.id !== item.id));
+    if (problem) {
+      this.say(problem);
+      this.popMessage.textContent = problem;
+      return;
+    }
+    this.closePop();
+    this.say(`Deleted the highlight on “${shorten(item.quote)}”.`);
+  }
+
+  closePop() {
+    try {
+      if (this.popOpen) this.pop.hidePopover();
+    } catch {
+      // A popover that is already closed has nothing to do here.
+    }
+    this.popOpen = false;
+    this.popId = undefined;
+  }
+
+  /** Copies what Share offers for the highlight the popover is open on. */
+  sharePopped() {
+    const item = this.items.find((other) => other.id === this.popId);
+    if (!item) return;
+    this.share(item, {
+      say: (message) => {
+        this.popMessage.textContent = message;
+        this.say(message);
+      },
+      field: this.popField,
+    });
+  }
+
+  /**
+   * The text Share copies for a highlight: the passage, the chapter's title and a link that scrolls to the passage.
+   * Never the note. Gives "" when the passage is not on the page.
+   */
+  shareFor(item) {
+    const entry = this.drawn.find((drawn) => drawn.item.id === item.id);
+    if (!entry) return "";
+    const { doc, win } = this;
+    const range = entry.range;
+    const blockOf = (node) => (node.nodeType === 1 ? node : node.parentElement)?.closest(BLOCK) ?? this.article;
+    const startBlock = blockOf(range.startContainer);
+    const endBlock = blockOf(range.endContainer);
+    const part = (from, to) => {
+      const piece = doc.createRange();
+      piece.setStart(from.node, from.offset);
+      piece.setEnd(to.node, to.offset);
+      return piece.toString();
+    };
+    const blockStart = { node: startBlock, offset: 0 };
+    const blockEnd = (block) => ({ node: block, offset: block.childNodes.length });
+    const here = { node: range.startContainer, offset: range.startOffset };
+    const there = { node: range.endContainer, offset: range.endOffset };
+    const spans = startBlock !== endBlock;
+    const quote = item.quote;
+    const parts = {
+      quote,
+      before: part(blockStart, here),
+      after: part(there, blockEnd(endBlock)),
+      first: spans ? part(here, blockEnd(startBlock)) : quote,
+      last: spans ? part({ node: endBlock, offset: 0 }, there) : quote,
+      spans,
+    };
+    const pageText = pageTextOutsideNotes(doc);
+    const base = `${win.location.origin}${win.location.pathname}${win.location.search}`;
+    const title = doc.querySelector("h1")?.textContent ?? doc.title;
+    return shareText(quote, title, shareLink(base, item.section, textDirective(parts, pageText)));
+  }
+
+  /**
+   * Copies Share's text to the clipboard. When the browser refuses, the text appears in a field with its text selected
+   * to copy by hand. Nothing is sent anywhere.
+   */
+  share(item, surface) {
+    const text = this.shareFor(item);
+    if (text === "") return;
+    surface.field.value = text;
+    const fallback = () => {
+      surface.field.hidden = false;
+      surface.say("Select the text below and copy it.");
+      surface.field.focus();
+      surface.field.select();
+    };
+    const clipboard = this.win.navigator.clipboard;
+    if (!clipboard || typeof clipboard.writeText !== "function") {
+      fallback();
+      return;
+    }
+    clipboard.writeText(text).then(() => {
+      surface.field.hidden = true;
+      surface.say("Copied the passage and its link to the clipboard.");
+    }, fallback);
   }
 
   updateCount() {
@@ -1019,8 +1518,10 @@ class Notes {
 
   open(opener) {
     this.opener = opener && opener !== this.doc.body ? opener : this.openButton;
+    this.closePop();
     this.hideToolbar();
     this.status.textContent = "";
+    this.shareField.hidden = true;
     this.exportBlock.hidden = true;
     this.form.hidden = true;
     const pending = this.pending;
@@ -1103,6 +1604,24 @@ class Notes {
         });
         remove.addEventListener("click", () => this.remove(item));
         buttons.push(edit, remove);
+        if (place.status !== "lost") {
+          const share = element(doc, "button", {
+            type: "button",
+            className: "control",
+            "data-action": "share",
+            text: "Share",
+          });
+          share.addEventListener("click", () =>
+            this.share(item, { say: (message) => this.say(message), field: this.shareField }),
+          );
+          buttons.push(share);
+        }
+        const colors = element(
+          doc,
+          "div",
+          { className: "notes-colors", role: "group", "aria-label": "Highlight colour" },
+          COLORS.map((color) => this.colorButton(item, color)),
+        );
         const parts = [element(doc, "blockquote", { className: "notes-dialog__quote", text: item.quote })];
         if (place.status === "moved") {
           parts.push(
@@ -1120,7 +1639,7 @@ class Notes {
           );
         }
         if (item.note) parts.push(element(doc, "p", { className: "notes-dialog__note", text: item.note }));
-        parts.push(element(doc, "div", { className: "notes-dialog__actions" }, buttons));
+        parts.push(element(doc, "div", { className: "notes-dialog__actions" }, buttons), colors);
         return element(doc, "li", { className: "notes-dialog__item", "data-id": item.id }, parts);
       }),
     );
@@ -1304,6 +1823,36 @@ class Notes {
     }
     this.blobUrl = undefined;
     this.download.removeAttribute("href");
+  }
+}
+
+/**
+ * The page's text without this script's own interface, which quotes the passage and would count as a repeat of it. A
+ * text directive searches the whole page, so hidden text, such as a closed glossary card, counts too: over-counting
+ * only adds context to a link, which does no harm.
+ * @param {Document} doc
+ * @returns {string}
+ */
+export function pageTextOutsideNotes(doc) {
+  const walker = doc.createTreeWalker(doc.body, 4);
+  const parts = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (node.parentElement?.closest("[data-notes-ui], script, style, template")) continue;
+    parts.push(node.data);
+  }
+  return parts.join(" ");
+}
+
+// The blocks a text directive's terms must each sit inside.
+const BLOCK = "p, li, blockquote, td, th, dd, dt, h2, h3, h4, figcaption, aside";
+
+/** Calls back when the page's fonts finish loading, since they change where a line ends. */
+function whenFontsLoad(doc, callback) {
+  try {
+    doc.fonts?.ready?.then(callback);
+    doc.fonts?.addEventListener?.("loadingdone", callback);
+  } catch {
+    // A browser without font events keeps the markers where the layout placed them.
   }
 }
 

@@ -1211,20 +1211,172 @@
 }
 
 /* A reader's highlights and notes (public/scripts/notes.js, BK24). The script draws each highlight with the CSS Custom
-   Highlight API, so no element wraps the chapter's text. A highlight's pale background stays decorative; the accent
+   Highlight API, so no element wraps the chapter's text. Each of the four colours has a plain name and a noted name,
+   because the specification advises one name per highlight. A highlight's pale background stays decorative; the accent
    underline marks it, at 3:1 or more on the highlight in both modes, and a dashed underline marks one with a note.
-   Highlighted text takes the text colour, which keeps 4.5:1 on the highlight (book-tokens.json). */
-::highlight(manual-highlight),
-::highlight(manual-note) {
+   Firefox 140 to 145 draws no underline, so a note also has its own marker element (.notes-marker). Highlighted text
+   takes the text colour, which keeps 4.5:1 on every highlight colour (book-tokens.json). */
+::highlight(manual-hl-amber),
+::highlight(manual-note-amber) {
   background-color: var(--color-highlight);
+}
+
+::highlight(manual-hl-green),
+::highlight(manual-note-green) {
+  background-color: var(--color-highlight-green);
+}
+
+::highlight(manual-hl-blue),
+::highlight(manual-note-blue) {
+  background-color: var(--color-highlight-blue);
+}
+
+::highlight(manual-hl-pink),
+::highlight(manual-note-pink) {
+  background-color: var(--color-highlight-pink);
+}
+
+::highlight(manual-hl-amber),
+::highlight(manual-hl-green),
+::highlight(manual-hl-blue),
+::highlight(manual-hl-pink),
+::highlight(manual-note-amber),
+::highlight(manual-note-green),
+::highlight(manual-note-blue),
+::highlight(manual-note-pink) {
   color: var(--color-text);
   text-decoration-line: underline;
   text-decoration-color: var(--color-accent);
   text-decoration-thickness: 2px;
 }
 
-::highlight(manual-note) {
+::highlight(manual-note-amber),
+::highlight(manual-note-green),
+::highlight(manual-note-blue),
+::highlight(manual-note-pink) {
   text-decoration-style: dashed;
+}
+
+/* The note markers live in one container outside the article. It sits at the page's origin, as wide as the page, with
+   its horizontal overflow clipped and no pointer events, so a marker can never widen the page; each marker takes
+   pointer events back. A marker is a 24 by 24 pixel target (WCAG 2.5.8) around a 16 pixel bubble in the accent colour. */
+.notes-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 100%;
+  height: 0;
+  overflow-x: clip;
+  pointer-events: none;
+}
+
+.notes-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.notes-marker::before {
+  content: "";
+  box-sizing: border-box;
+  width: 16px;
+  height: 13px;
+  border: 2px solid var(--color-accent);
+  border-radius: 6px 6px 6px 1px;
+  background-color: var(--color-accent);
+}
+
+/* The popover opens beside the passage a reader clicks. It is a native popover, so it closes on a click outside and on
+   Escape, and the script places it through the style object, which the content security policy allows. */
+.notes-pop {
+  position: fixed;
+  inset: auto;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(26rem, calc(100vw - 1rem));
+  margin: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+.notes-pop__quote {
+  margin: 0 0 0.5rem;
+  font-size: var(--size-note);
+  line-height: 1.45;
+}
+
+.notes-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+}
+
+.notes-swatch {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  padding-inline: 0.5rem;
+}
+
+.notes-swatch::before {
+  content: "";
+  box-sizing: border-box;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 50%;
+  background-color: var(--color-highlight);
+}
+
+.notes-swatch--green::before {
+  background-color: var(--color-highlight-green);
+}
+
+.notes-swatch--blue::before {
+  background-color: var(--color-highlight-blue);
+}
+
+.notes-swatch--pink::before {
+  background-color: var(--color-highlight-pink);
+}
+
+.notes-swatch[aria-pressed="true"] {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.notes-pop__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.notes-pop__message {
+  margin: 0.5rem 0 0;
+  font-size: var(--size-note);
+  line-height: 1.45;
+  color: var(--color-text-soft);
+}
+
+.notes-pop__message:empty {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .notes-pop .control,
+  .notes-toolbar .control {
+    min-block-size: 44px;
+  }
 }
 
 /* The toolbar sits beside the selection and the Notes button in the window's corner, both fixed, so neither moves the
@@ -1375,14 +1527,20 @@
   text-decoration: none;
 }
 
-/* Printed, the chapter carries no notes: no highlight, toolbar, button or panel. */
+/* Printed, the chapter carries no notes: no highlight, marker, popover, toolbar, button or panel. */
 @media print {
   .notes-ui {
     display: none;
   }
 
-  ::highlight(manual-highlight),
-  ::highlight(manual-note) {
+  ::highlight(manual-hl-amber),
+  ::highlight(manual-hl-green),
+  ::highlight(manual-hl-blue),
+  ::highlight(manual-hl-pink),
+  ::highlight(manual-note-amber),
+  ::highlight(manual-note-green),
+  ::highlight(manual-note-blue),
+  ::highlight(manual-note-pink) {
     background-color: transparent;
     color: inherit;
     text-decoration-line: none;
