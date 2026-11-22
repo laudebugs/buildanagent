@@ -1059,5 +1059,72 @@
     "kind": "post",
     "asOf": "November 2026",
     "verifiedIn": "apps/manual/fact-checks/the-session-log-and-context.md"
+  },
+  {
+    "id": "a2a-spec",
+    "title": "Agent2Agent (A2A) Protocol Specification",
+    "publisher": "A2A Project, Linux Foundation",
+    "url": "https://a2a-protocol.org/latest/specification/",
+    "kind": "spec",
+    "version": "1.0.1",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "adk-a2a-intro",
+    "title": "A2A Protocol and ADK: introduction",
+    "publisher": "Google, Agent Development Kit docs",
+    "url": "https://adk.dev/a2a/intro/",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "claude-multi-agent-guidance",
+    "title": "Building multi-agent systems: when and how to use them",
+    "publisher": "Anthropic, Claude blog",
+    "url": "https://claude.com/resources/articles/building-multi-agent-systems-when-and-how-to-use-them",
+    "kind": "post",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "a2a-js-sdk",
+    "title": "a2a-js: the A2A JavaScript SDK",
+    "publisher": "A2A Project",
+    "url": "https://github.com/a2aproject/a2a-js/tree/v1.3.0",
+    "kind": "repo",
+    "version": "v1.3.0",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "guirao-agent-cards",
+    "title": "We Have All the Cards: Securing Agent Cards at the Operational Trust Boundary of the Agent2Agent Protocol",
+    "publisher": "Guirao Aguilera, Misra and Lopez-Morales (arXiv:2611.18887)",
+    "url": "https://arxiv.org/abs/2611.18887",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "kumar-name-collision",
+    "title": "Agent Name Collision Attacks in Multi-Agent Systems",
+    "publisher": "Adithyan Arun Kumar (arXiv:2609.27624)",
+    "url": "https://arxiv.org/abs/2609.27624",
+    "kind": "paper",
+    "version": "v1",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
+  },
+  {
+    "id": "ms-agent-framework-a2a",
+    "title": "A2A Agent",
+    "publisher": "Microsoft Learn, Agent Framework",
+    "url": "https://learn.microsoft.com/en-us/agent-framework/integrations/by-component/agent-services/a2a",
+    "kind": "docs",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/tools-at-scale.md"
   }
 ]

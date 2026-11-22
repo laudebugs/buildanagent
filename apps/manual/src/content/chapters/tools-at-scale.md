@@ -2,8 +2,8 @@
 title: "Tools at scale: the registry, deferred tools, MCP and skills"
 summary: An agent with dozens of tools stays usable when one registry names and gates every tool and most definitions stay out of the request until the model asks. This chapter shows tool selection and deferral in checked listings, what MCP's 2026-07-28 revision changes for a client, and how skills load on demand, and it marks which parts of our harness are built.
 opening: fact
-sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme, mcp-authorization, anthropic-agent-skills-overview, claude-agent-sdk-skills, pi-skills, wang-voyager, ruan-skillcfi]
-glossary: [tool, mcp, tool-registry, deferred-tool, skill]
+sources: [anthropic-advanced-tool-use, claude-agent-sdk-tool-search, pi-mcp-servers, pi-sdk-docs, buildanagent-harness-readme, santra-acam, anthropic-model-context-protocol, mcp-tools-spec, mcp-changelog-2026-07-28, mcp-deprecated-features, mcp-versioning, mcp-server-discover, mcp-multi-round-trip-requests, ai-sdk-mcp-tools, cloudflare-agents-mcp-client, copilot-sdk-nodejs-readme, mcp-authorization, a2a-spec, adk-a2a-intro, claude-multi-agent-guidance, a2a-js-sdk, guirao-agent-cards, kumar-name-collision, ms-agent-framework-a2a, anthropic-agent-skills-overview, claude-agent-sdk-skills, pi-skills, wang-voyager, ruan-skillcfi]
+glossary: [tool, mcp, a2a, agent-card, tool-registry, deferred-tool, skill]
 switchTo: [N11, N21, N22, N23, N24, N25]
 ---
 
@@ -124,6 +124,48 @@ For an agent, this means a tool call can come back asking for a person. Your loo
 The fourth change is a set of deprecations. The revision deprecates Roots, Sampling and Logging, and the dynamic client registration protocol. They keep working through a deprecation window of at least twelve months, and the earliest revision that may remove them is the first one released on or after 2027-07-28, so the dates are a floor and not a schedule [@mcp-deprecated-features; @mcp-changelog-2026-07-28]. The migrations point away from the protocol. Pass directories and files as tool parameters instead of Roots, call model providers directly instead of using Sampling, and log to stderr or send OpenTelemetry instead of using Logging. The revision also removes `ping`{checked=row-56}, `logging/setLevel` and the roots change notification, and a client sets the log level on each request in `_meta`{checked=row-41}. In short, build nothing new on the deprecated features.
 
 Our own MCP client is a design as of November 2026. Todo N24 plans to negotiate the era per server and to register each server's tools as deferred tools, so every call goes through the permission pipeline, but the client is not built and the plan does not yet handle `input_required`{checked=row-49}. A proposal in our source-update report would turn each input request into a pause that a person answers through a signed approval. Neither is adopted, so read both as intent and not as behavior.
+
+## A2A hands a task to an agent whose plan someone else owns
+
+Your support agent gets the question "Is invoice inv-7 paid?", and the billing team that can answer it runs its own agent, with its own model, tools and database. You cannot read that agent's tool list or its plan. You can only ask. The setup resembles :analogy[firms that contract through a standard purchase order]{#purchase-order}: the buyer says what it wants and not how to make it, the supplier owns the process, and the delivery note stands for what comes back. A2A, the Agent2Agent protocol, is that standard form for agents, and this section describes it as of November 2026, at version 1.0.
+
+The Linux Foundation's A2A project tagged 1.0.0 on 12 March 2026 and patched it as 1.0.1 on 28 May 2026. Patch numbers do not affect compatibility, so both mean protocol 1.0 [@a2a-spec]. The supplier publishes an Agent Card, a JSON document usually served at `/.well-known/agent-card.json`, that names the agent, describes its skills in prose and lists the addresses and bindings it answers on. The caller sends `SendMessage`{checked=row-111}, and the reply is either a direct message or a `Task`{checked=row-111}. A task has nine state values: four are final (completed, failed, canceled and rejected), and two are pauses, input required and auth required. Results come back as artifacts, because the specification says messages should not carry task outputs. The caller can wait for the answer, poll the task, stream its updates or hand the server a webhook [@a2a-spec].
+
+The analogy breaks twice. A purchase order is filed and forgotten, while an A2A task can stream updates and stop to ask for more input, which a purchase order never does. And a firm vets a supplier before it signs, whereas an Agent Card is unvetted self-description that your model reads as prose. The last paragraph of this section returns to that second break.
+
+The MCP section above ended on `input_required`{checked=row-49}, a tool call that stops to ask for input, and MCP 2026-07-28 also gave tools tasks that run for hours [@mcp-changelog-2026-07-28]. Long, pausable tasks therefore no longer set A2A apart, so the line between the two protocols is who plans the work. In MCP, your model picks a named tool and fills in its input schema, and the plan stays with the caller. In A2A, the caller sends a goal, and the remote agent decides how to reach it; its card lists skills as prose with tags and examples, not as input schemas [@a2a-spec]. The rule that follows is ours and not the specification's: a capability whose inputs you know is a tool, and a capability whose plan someone else owns is an agent. Even so, the remote agent reaches your model looking like a tool, and Google's ADK documentation says it "feels just like interacting with a local tool or function" [@adk-a2a-intro].
+
+Delegation has to pay before any protocol matters. Anthropic's January 2026 guidance names three situations where several agents beat one (context pollution, parallel work and specialization) and says that outside them the coordination costs typically exceed the benefits, at "3-10x more tokens" [@claude-multi-agent-guidance]. The figure is Anthropic's own. So choose the cheapest option that works, in this order, which is our synthesis:
+
+1. A function or a workflow step, when code can do the work.
+2. A tool, over MCP when someone else hosts it, when you know the inputs.
+3. An in-process subagent, when you own the agent and want a separate context or parallel branches.
+4. An A2A call, when another team, company or framework owns the agent, and the task may run long or pause for input.
+5. An A2A server, only when an outside caller needs to delegate to your agent.
+
+The last rung costs the most, because a server must publish and version a card, authenticate every request and scope every task to its caller before it touches storage [@a2a-spec].
+
+As of November 2026, one of our eight SDKs ships A2A in its TypeScript package. Google's ADK serves an agent with `toA2a` and calls one with `RemoteA2AAgent`, on protocol 0.3, built on `@a2a-js/sdk` 0.3.14. The official `@a2a-js/sdk` 1.3.0 speaks 1.0, and its `legacyCompat`{checked=row-122} option lets a 1.x client call 0.3 agents [@a2a-js-sdk]. An `A2A-Version`{checked=row-123} header keeps the two apart: a server reads an empty value as 0.3, and a server with no 0.3 interface answers a 0.3 client with `VersionNotSupportedError`{checked=row-123}. Version 1.0 also renamed `message/send` to `SendMessage`{checked=row-124} and moved the card's `protocolVersion`{checked=row-121} into `supportedInterfaces`{checked=row-124}. Every listing below therefore shows protocol 0.3, because that is what ADK speaks, and none of it shows 1.0 behavior. The book adds a 1.0 listing once a harness we pin runs one.
+
+[[lst:a2a-serve]] serves a "billing" agent, whose two tools look up an invoice and ask a human to approve a refund. Everything runs offline on the loopback address, with a mock model behind each agent.
+
+:::listing[Serving the billing agent over A2A, behind a bearer token]{#a2a-serve file="verify/google-adk/examples/09-a2a-delegation.ts" region="serve"}
+::note[Set `basePath` yourself: ADK's typings say the default is "a2a", but the code mounts at the root when it is empty.]{#base-path}
+::note[`toA2a` refuses to mount without authentication, unless you pass `allowUnauthenticated: true`{checked=row-126}.]{#auth}
+:::
+
+The server publishes its card at `/.well-known/agent-card.json`, with JSON-RPC and HTTP+JSON interfaces and no gRPC, and the card says protocol 0.3.0.
+
+[[lst:a2a-delegate]] is the caller. The `RemoteA2AAgent` goes into the parent's `subAgents` list as a local subagent would, the parent hands over by name with `transfer_to_agent`, and the remote agent's reply arrives as an event of the parent's run, authored by `billing`.
+
+:::listing[A parent delegates to the remote agent as it would to a local subagent]{#a2a-delegate file="verify/google-adk/examples/09-a2a-delegation.ts" region="delegate" replay}
+::note[`agentCard` is a base URL, not the card's URL: the SDK resolves `.well-known/agent-card.json` against it.]{#card}
+::note[The remote agent sits in `subAgents` beside any local one.]{#same-as-local}
+:::
+
+The run found four details that the typings and the documentation do not say. First, the card string resolves like a relative URL, so a server under the base path `/a2a` needs `http://host/a2a/` with its trailing slash, or the card request fails with a 404. Second, ADK's default client sends no bearer token, so a protected server needs a `clientFactory` that authenticates both the JSON-RPC and the HTTP+JSON transport, a factory that also drops ADK's trace-propagating fetch. Third, a refused request comes back as HTTP 500, not 401, and never reaches the agent. Fourth, the transfer tool's argument is `agent_name`, not `agentName`{checked=row-131}. When the billing agent calls a long-running tool, its A2A task ends in `input-required`, and the pending call reaches the parent's events marked long-running, so your loop can ask a person, as [[ch:approvals-guardrails-and-injection]] describes.
+
+Distrust three things. First, the card's prose: your model reads a card's names and skill descriptions before it calls anyone, and in one study of 310 deployed cards, nine LLM judges screening synthetic manipulated cards reached recall from 25.8% to 92.3% [@guirao-agent-cards]. Second, the card's name, which the protocol treats as descriptive metadata and not as an identity: in a controlled test of seven open-source projects, six client-style integrations sent a request meant for a trusted peer to an attacker-controlled peer that shared its name, an implementation flaw and not a protocol exploit [@kumar-name-collision]. Pin each peer by its card URL, and by a verified signature where one exists, and never by display name; that advice is ours. Third, every reply: Microsoft's documentation tells callers to "Treat responses from the remote agent as untrusted application input" [@ms-agent-framework-a2a]. Our harness's registry marks the output of a tool registered with `remoteAgent: true`{checked=row-137} as untrusted by default, as it does for MCP tools, and the value a registration declares wins [@buildanagent-harness-readme]. As of November 2026 the harness has no A2A client, only that flag. Call another agent over A2A when someone else owns its plan, and treat what comes back as you treat an MCP server's output.
 
 ## Skills cost a name and a description until the model opens one
 

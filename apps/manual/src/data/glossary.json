@@ -88,6 +88,20 @@
     "sources": ["anthropic-model-context-protocol"]
   },
   {
+    "id": "a2a",
+    "term": "A2A",
+    "kind": "abbr",
+    "expansion": "Agent2Agent protocol",
+    "definition": "An open protocol for handing a task to an agent that someone else owns: the caller reads the agent's card, sends a message and follows a task that may stream, run for days or pause for input.",
+    "sources": ["a2a-spec"]
+  },
+  {
+    "id": "agent-card",
+    "term": "Agent Card",
+    "definition": "The JSON document in which an A2A server describes itself: its name, skills in prose, and the addresses and bindings it answers on. A caller reads it before sending a task, and nothing vets what it says.",
+    "sources": ["a2a-spec"]
+  },
+  {
     "id": "token",
     "term": "token",
     "definition": "The smallest unit a language model reads and writes, such as a word, part of a word or a character. Providers count a call's input and output in tokens and bill by the count.",
