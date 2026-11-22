@@ -51,9 +51,9 @@ The chapter's last `##` section is `## Exercises`, and it holds a list and nothi
 
 ## The registers keep one entry per line, so branches that add entries merge cleanly
 
-`src/data/sources.json`, `src/data/glossary.json` and `src/content/analogies.json` are JSON arrays with one entry per line, sorted by id (by code point, so the order never depends on a machine's locale). Git merges by line, so two branches that each add an entry merge without a conflict unless both add at the same place in the order, and a conflict that does arise shows whole entries. Biome skips these three files, because it would put each entry back on many lines.
+`src/data/sources.json`, `src/data/glossary.json` and `src/content/analogies.json` are JSON arrays with one entry per line, sorted by id (by code point, so the order never depends on a machine's locale). Git merges by line, so two branches that each add an entry merge without a conflict unless both add at the same place in the order, or one adds the entry that sorts last, which also edits the old last line's comma. A conflict that does arise shows whole entries. Biome skips these three files, because it would put each entry back on many lines.
 
-To add an entry, write it as one line anywhere in the array, then run `pnpm --filter @buildanagent/manual registers:format`, which moves it to its place in the order and rewrites the rest unchanged. [`test/registers.test.ts`](test/registers.test.ts) fails on a repeated id and on a register that differs from the canonical layout, and its message names the command. The sources page lists sources in this order, so it is alphabetical by id. A conflict is still possible when two branches add entries that sort next to each other: keep both lines, then run the command.
+To add an entry, write it as one line anywhere in the array, then run `pnpm --filter @buildanagent/manual registers:format`, which moves it to its place in the order and rewrites the rest unchanged. [`test/registers.test.ts`](test/registers.test.ts) fails on a repeated id and on a register that differs from the canonical layout, and its message names the command. The sources page sorts its list by title, so its order doesn't depend on the file. A conflict is still possible when two branches add entries that sort next to each other, or at the end: keep both lines, then run the command.
 
 ## Citations point at the source register
 
@@ -62,15 +62,7 @@ Cite a source with `[@id]`, or several with `[@a; @b]`. The id must be in [`src/
 Each register entry names the fact-check log that verified it:
 
 ```json
-{
-  "id": "anthropic-building-effective-agents",
-  "title": "Building effective agents",
-  "publisher": "Anthropic",
-  "url": "https://www.anthropic.com/engineering/building-effective-agents",
-  "kind": "post",
-  "asOf": "November 2026",
-  "verifiedIn": "docs/research/agent/fact-check.md"
-}
+{"id":"anthropic-building-effective-agents","title":"Building effective agents","publisher":"Anthropic","url":"https://www.anthropic.com/engineering/building-effective-agents","kind":"post","asOf":"November 2026","verifiedIn":"docs/research/agent/fact-check.md"}
 ```
 
 `kind` is `docs`, `repo`, `paper`, `spec` or `post`, and an optional `version` holds a tag or commit. `verifiedIn` is a path from the repository root, and it must name a fact-check log. Four kinds count: a `fact-check*.md` file under `docs/research/` or in `docs/plans/reviews/`, a `docs/reference/<sdk>/fact-check.md`, and a chapter's own log in `apps/manual/fact-checks/`. That log must contain the URL, whether as an inline link, a bare URL or a reference-style definition. To cite a new source, first add its row to the chapter's fact-check log, `apps/manual/fact-checks/<slug>.md`, then add the entry with that log as `verifiedIn`. Set `"secondary": true` when the check rests on a search summary or a secondary write-up; the sources page then says so.
@@ -384,14 +376,7 @@ Use a common word sparingly as a tag. Even once per paragraph, "session" links 4
 Analogies are optional (BK22). A chapter that uses one first registers it in [`src/content/analogies.json`](src/content/analogies.json):
 
 ```json
-{
-  "id": "kitchen-ticket-rail",
-  "concept": "agent loop",
-  "analogy": "a kitchen ticket rail",
-  "chapter": "call-workflow-loop",
-  "illustration": "ticket-rail",
-  "breaks": "A cook remembers yesterday's orders; a model sees only what the transcript carries."
-}
+{"id":"kitchen-ticket-rail","concept":"agent loop","analogy":"a kitchen ticket rail","chapter":"call-workflow-loop","illustration":"ticket-rail","breaks":"A cook remembers yesterday's orders; a model sees only what the transcript carries."}
 ```
 
 The chapter then marks each use with `:analogy[the ticket rail]{#kitchen-ticket-rail}`. A later chapter refers back to the same analogy by the same id; it may not name an analogy from a later chapter. `illustration` is the id of a figure in that chapter, or `null`; that figure carries the analogy's mark, as the figures section describes. The check compares analogies and concepts without case, punctuation or a leading article. It fails on the same analogy listed twice, on an analogy that explains a second concept, on a concept given a second analogy, and on a chapter that names an id the register lacks. It cannot tell that two different phrasings describe nearly the same image, such as a kitchen ticket rail and a waiter's order spike, so reviewers catch near-duplicates when they vet a chapter's analogies.

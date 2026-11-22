@@ -18,6 +18,8 @@ describe("the layout", () => {
   });
 
   test("keeps the order of an entry's own keys and sorts ids by code point", () => {
+    const keyed = formatRegister([{ id: "b", z: 1, a: 2 }]);
+    assert.equal(keyed, '[\n  {"id":"b","z":1,"a":2}\n]\n', "the keys stay in the order the entry has them");
     const text = formatRegister([{ id: "b-1" }, { id: "a2" }, { id: "a-2" }, { id: "B" }]);
     assert.deepEqual(
       text
@@ -32,6 +34,13 @@ describe("the layout", () => {
     assert.deepEqual(repeatedIds([{ id: "a" }, { id: "b" }, { id: "a" }, { id: "a" }]), ["a"]);
     assert.throws(() => parseRegister('[{"name":"x"}]'), /needs a string id/);
     assert.throws(() => parseRegister('{"id":"a"}'), /JSON array/);
+  });
+
+  test("refuses a repeated key inside an entry, names the file on a syntax error, and writes an empty register as []", () => {
+    assert.throws(() => parseRegister('[{"id":"a","x":1,"x":2}]', "sources.json"), /repeats the key "x"/);
+    assert.doesNotThrow(() => parseRegister('[{"id":"a","x":"{\\"y\\":1,\\"y\\":2}"},{"id":"b","x":1}]'));
+    assert.throws(() => parseRegister('[{"id":"a"} {"id":"b"}]', "glossary.json"), /glossary.json is not valid JSON/);
+    assert.equal(formatRegister([]), "[]\n");
   });
 });
 
