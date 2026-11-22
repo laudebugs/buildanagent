@@ -87,6 +87,11 @@
       "types": "./dist/extensions/index.d.ts",
       "default": "./dist/extensions/index.js"
     },
+    "./extensions/node": {
+      "source": "./src/extensions/node.ts",
+      "types": "./dist/extensions/node.d.ts",
+      "default": "./dist/extensions/node.js"
+    },
     "./memory": {
       "source": "./src/memory/index.ts",
       "types": "./dist/memory/index.d.ts",
@@ -166,6 +171,10 @@
       "./extensions": {
         "types": "./dist/extensions/index.d.ts",
         "default": "./dist/extensions/index.js"
+      },
+      "./extensions/node": {
+        "types": "./dist/extensions/node.d.ts",
+        "default": "./dist/extensions/node.js"
       },
       "./memory": {
         "types": "./dist/memory/index.d.ts",
