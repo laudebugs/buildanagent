@@ -67,27 +67,34 @@ test("an extension replaces a built-in only with override: true, and keeps its p
   assert.throws(() => registry.register(registration("write", "builtin", { override: true })), DuplicateToolError);
 });
 
-test("an MCP tool is namespaced, and two servers with one tool name get distinct, stable names", () => {
-  const first = createToolRegistry();
-  const github = first.register(registration("search", "mcp:github"));
-  const linear = first.register(registration("search", "mcp:linear"));
-  assert.equal(github.canonicalName, "mcp__github__search");
-  assert.equal(linear.canonicalName, "mcp__linear__search");
-  // Two servers whose names clean to the same text collide, and the later one gets a hash suffix.
-  const a = first.register(registration("run", "mcp:my.server"));
-  const b = first.register(registration("run", "mcp:my:server"));
-  assert.equal(a.canonicalName, "mcp__my_server__run");
+test("an MCP tool is namespaced, and a name that needs cleaning gets a hash that depends on the tool alone", () => {
+  const registry = createToolRegistry();
+  assert.equal(registry.register(registration("search", "mcp:github")).canonicalName, "mcp__github__search");
+  assert.equal(registry.register(registration("search", "mcp:linear")).canonicalName, "mcp__linear__search");
+  assert.equal(registry.register(registration("run_tests", "mcp:ci-box")).canonicalName, "mcp__ci-box__run_tests");
+  // Two servers whose names clean to the same text both get a hash, so neither name depends on which came first.
+  const a = registry.register(registration("run", "mcp:my.server"));
+  const b = registry.register(registration("run", "mcp:my:server"));
+  assert.match(a.canonicalName, /^mcp__my_server__run_[0-9a-f]{8}$/);
   assert.match(b.canonicalName, /^mcp__my_server__run_[0-9a-f]{8}$/);
-  // The suffix depends on the source and name only, so another registry, in any order, makes the same name.
-  const second = createToolRegistry();
-  second.register(registration("run", "mcp:my:server"));
-  const later = second.register(registration("run", "mcp:my.server"));
-  assert.match(later.canonicalName, /^mcp__my_server__run_[0-9a-f]{8}$/);
-  const alone = createToolRegistry();
-  alone.register(registration("run", "mcp:my.server"));
-  assert.equal(alone.register(registration("run", "mcp:my:server")).canonicalName, b.canonicalName);
+  assert.notEqual(a.canonicalName, b.canonicalName);
+  const reversed = createToolRegistry();
+  assert.equal(reversed.register(registration("run", "mcp:my:server")).canonicalName, b.canonicalName);
+  assert.equal(reversed.register(registration("run", "mcp:my.server")).canonicalName, a.canonicalName);
   // The same server listing the same tool twice is a duplicate, not a collision.
-  assert.throws(() => first.register(registration("search", "mcp:github")), DuplicateToolError);
+  assert.throws(() => registry.register(registration("search", "mcp:github")), DuplicateToolError);
+});
+
+test("a double underscore in a server or tool name cannot make two tools share a name, whatever the order", () => {
+  const forward = createToolRegistry();
+  const one = forward.register(registration("b__c", "mcp:a"));
+  const two = forward.register(registration("c", "mcp:a__b"));
+  const backward = createToolRegistry();
+  const twoFirst = backward.register(registration("c", "mcp:a__b"));
+  const oneSecond = backward.register(registration("b__c", "mcp:a"));
+  assert.notEqual(one.canonicalName, two.canonicalName);
+  assert.equal(oneSecond.canonicalName, one.canonicalName);
+  assert.equal(twoFirst.canonicalName, two.canonicalName);
 });
 
 test("a long MCP name is cut to 64 characters with a hash suffix, and every canonical name passes the SDK rule", () => {
@@ -136,6 +143,9 @@ test("an alias is kept apart from the canonical name, and get() finds a tool by 
   assert.throws(() => registry.register(registration("shell", "extension", { alias: "bash" })), DuplicateToolError);
   assert.throws(() => registry.register(registration("shell", "extension", { alias: "Bash" })), DuplicateToolError);
   assert.throws(() => registry.register(registration("same", "extension", { alias: "same" })), DuplicateToolError);
+  // A later tool may not take an earlier tool's alias as its canonical name either, or get() would find the wrong one.
+  assert.throws(() => registry.register(registration("Bash", "extension")), DuplicateToolError);
+  assert.equal(registry.get("Bash"), bash);
 });
 
 test("exposure defaults to deferred for MCP and direct elsewhere, and setExposure() changes a source, now and later", () => {
@@ -145,6 +155,7 @@ test("exposure defaults to deferred for MCP and direct elsewhere, and setExposur
   assert.deepEqual([read.exposure, search.exposure], ["direct", "deferred"]);
   registry.setExposure("mcp:github", "direct");
   assert.equal(registry.get("mcp__github__search")?.exposure, "direct");
+  assert.equal(search.exposure, "deferred", "a tool returned earlier is a snapshot; get() reads the current one");
   assert.equal(
     registry.register(registration("issues", "mcp:github")).exposure,
     "direct",
@@ -296,6 +307,14 @@ test("preambleTokens() counts the system prompt and every direct tool, and a def
   registry.register(registration("search", "mcp:github"));
   assert.equal(registry.preambleTokens(), one, "a deferred tool is not in the preamble");
   assert.ok(registry.preambleTokens({ system: "You are a careful agent." }) > one);
+  // A Standard Schema that can't describe itself counts as an empty object schema, and a schema that can is counted.
+  const bare = createToolRegistry();
+  const noJson = {
+    ...tool("source_name", "A tool."),
+    inputSchema: { "~standard": { version: 1, vendor: "test", validate: () => ({ value: {} }) } },
+  };
+  bare.register({ name: "bare", source: "builtin", definition: noJson as never });
+  assert.ok(bare.preambleTokens() > 0);
   registry.setExposure("mcp:github", "direct");
   assert.ok(registry.preambleTokens() > one, "a tool made direct is");
 });

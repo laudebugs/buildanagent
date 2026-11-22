@@ -2,6 +2,7 @@
 // one, and activation never reorders the tools already sent.
 import assert from "node:assert/strict";
 import { createModel } from "@buildanagent/gateway";
+import { isHarnessError } from "@buildanagent/harness";
 import { createToolRegistry, toolSearchInterceptors, toolSearchTool } from "@buildanagent/harness/tools";
 import { defineTool, run } from "@buildanagent/sdk";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
@@ -111,4 +112,24 @@ test("the search tool's own definition carries a schema the model can fill in, a
   const outcome = await search.execute({ query: "message" }, {} as never);
   assert.deepEqual(outcome.structured, { activated: ["mcp__slack__send_message"] });
   assert.equal(outcome.isError, undefined);
+});
+
+test("a repeated query word counts once, and the server prefix matches nothing by itself", async () => {
+  const repeated = await runWithSearch("issue issue issue", 1);
+  assert.deepEqual(
+    [...repeated.activated],
+    ["mcp__github__create_issue"],
+    "one distinct word, so the first of the ties",
+  );
+  const prefix = await runWithSearch("mcp github");
+  assert.equal(prefix.activated.size, 0, "the server's name and `mcp` are not in a tool's own name or description");
+});
+
+test("toolSearchInterceptors() throws unless the registry holds tool_search, since activeTools is the complete list", () => {
+  const registry = createToolRegistry();
+  registry.register({ name: "read", source: "builtin", definition: tool("Read a file.") });
+  assert.throws(
+    () => toolSearchInterceptors(registry, new Set()),
+    (error) => isHarnessError(error) && error.code === "invalid_tool_registration",
+  );
 });

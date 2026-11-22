@@ -85,7 +85,11 @@ export interface ToolRegistry {
   get(name: string): RegisteredTool | undefined;
   /** Every tool, in registration order. A replaced built-in keeps its place. */
   list(): readonly RegisteredTool[];
-  /** Sets the exposure of every tool of `source`, and of each one registered after. An explicit exposure on a tool is replaced. */
+  /**
+   * Sets the exposure of every tool of `source`, and of each one registered after. An explicit exposure on a tool is
+   * replaced. A `RegisteredTool` that `register()` or `get()` returned earlier is a snapshot, so call `get()` again to
+   * read the current exposure.
+   */
   setExposure(source: ToolSource, exposure: ToolExposure): void;
   /**
    * The definitions for one turn, for `RunOptions.tools`, in registration order so the cached prefix never moves when
@@ -93,10 +97,13 @@ export interface ToolRegistry {
    */
   definitions<H = undefined>(wrap?: ToolWrapper<H>, hostContext?: H): ToolDefinition<unknown, unknown, unknown>[];
   /**
-   * The complete list of names a request sends, for `ModelCallPatch.activeTools`: every `direct` tool, then each name
-   * in `activated`, in registration order. A name the registry doesn't hold is left out.
+   * The complete list of names a request sends, for `ModelCallPatch.activeTools`: every `direct` tool and every tool
+   * named in `activated`, in registration order. A name the registry doesn't hold is left out.
    */
   activeTools(activated: ReadonlySet<string>): string[];
-  /** An estimate of the tokens a request carries before any message: the system prompt and every `direct` tool. */
+  /**
+   * An estimate of the tokens a request carries before any message: the system prompt and every `direct` tool. A
+   * tool whose schema can't describe itself counts as an empty object schema.
+   */
   preambleTokens(options?: PreambleOptions): number;
 }

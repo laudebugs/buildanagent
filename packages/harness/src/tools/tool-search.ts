@@ -3,6 +3,7 @@
  * and the interceptor turns the names it recorded into `activeTools`, so a deferred tool is absent until it is asked for.
  */
 import type { Interceptors, ToolDefinition } from "@buildanagent/sdk";
+import { HarnessError } from "../errors.js";
 import type { ToolRegistry } from "./types.js";
 
 const DEFAULT_MAX_RESULTS = 5;
@@ -27,9 +28,10 @@ function words(text: string): string[] {
  * with the other, so `issue` finds `issues`, and a word of under three letters, such as `an`, matches nothing.
  */
 function scoreOf(query: readonly string[], haystack: readonly string[]): number {
+  // A repeated word counts once, so repeating one cannot outrank a tool that matches more of what was asked.
   const matches = (word: string) =>
     word.length >= 3 && haystack.some((have) => have.length >= 3 && (have.startsWith(word) || word.startsWith(have)));
-  return query.filter(matches).length;
+  return new Set(query.filter(matches)).size;
 }
 
 /**
@@ -58,7 +60,8 @@ export function toolSearchTool(
         .filter((tool) => tool.exposure === "deferred")
         .map((tool) => ({
           tool,
-          score: scoreOf(wanted, words(`${tool.canonicalName} ${tool.alias ?? ""} ${tool.definition.description}`)),
+          // The tool's own name, not the canonical one, so `mcp` and the server's name match nothing by themselves.
+          score: scoreOf(wanted, words(`${tool.definition.name} ${tool.alias ?? ""} ${tool.definition.description}`)),
         }))
         .filter((match) => match.score > 0)
         .sort((a, b) => b.score - a.score)
@@ -78,8 +81,15 @@ export function toolSearchTool(
 
 /**
  * The interceptor that sends what tool search activated: each model call's `activeTools` is every `direct` tool plus
- * the names in `activated`. Pass the same set to `toolSearchTool()`, and a new one for each run.
+ * the names in `activated`. Register `toolSearchTool()` in the registry first, because `activeTools` is the complete list a
+ * request sends and the interceptor throws a `HarnessError` otherwise. Pass the same set to the tool, and a new one for each run.
  */
 export function toolSearchInterceptors(registry: ToolRegistry, activated: ReadonlySet<string>): Interceptors {
+  if (registry.get("tool_search") === undefined) {
+    throw new HarnessError(
+      "invalid_tool_registration",
+      "toolSearchInterceptors() needs the registry to hold the tool_search tool, because activeTools is the complete list a request sends",
+    );
+  }
   return { beforeModelCall: () => ({ activeTools: registry.activeTools(activated) }) };
 }

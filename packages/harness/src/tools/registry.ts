@@ -73,6 +73,8 @@ function shortHash(text: string): string {
 }
 
 const clean = (part: string): string => part.replace(/[^A-Za-z0-9_-]/g, "_");
+// A part with letters, digits and hyphens, joined by single underscores, can't be mistaken for two parts by the `__` between them.
+const PLAIN_PART = /^[A-Za-z0-9-]+(?:_[A-Za-z0-9-]+)*$/;
 
 /** `base`, or `base` cut to fit with `_<hash>` after it, when a suffix is needed or the name is too long. */
 function suffixed(base: string, source: string, name: string): string {
@@ -90,11 +92,12 @@ function trustOf(registration: ToolRegistration): OutputTrust {
   return isMcp(registration.source) || registration.remoteAgent === true ? "untrusted" : "trusted";
 }
 
-/** An in-process wire description of a tool, enough to count its tokens. A Standard Schema describes itself. */
+/** A wire description of a tool, enough to count its tokens. A Standard Schema describes itself; one that can't gives an empty object schema. */
 function wireOf(definition: ToolDefinition<unknown, unknown, unknown>): WireTool {
   const schema = definition.inputSchema as unknown as Record<string, unknown>;
-  const standard = schema["~standard"] as { jsonSchema?: { input(options: { target: string }): unknown } } | undefined;
-  const inputSchema = standard?.jsonSchema?.input({ target: "draft-2020-12" }) ?? schema;
+  const standard = schema["~standard"] as { jsonSchema?: { input?(options: { target: string }): unknown } } | undefined;
+  const described = standard === undefined ? schema : standard.jsonSchema?.input?.({ target: "draft-2020-12" });
+  const inputSchema = described ?? { type: "object" };
   return {
     name: definition.name,
     description: definition.description,
@@ -115,6 +118,7 @@ class Registry implements ToolRegistry {
     if (replaces !== undefined && !this.#mayReplace(registration, replaces)) {
       throw new DuplicateToolError(canonicalName, `${replaces.tool.source} already holds it`);
     }
+    this.#checkNameAgainstAliases(canonicalName, replaces);
     this.#checkAlias(registration.alias, canonicalName, replaces);
     const tool: RegisteredTool = {
       canonicalName,
@@ -171,7 +175,11 @@ class Registry implements ToolRegistry {
     return estimateInputTokens({ system: options.system ?? "", messages: [], tools: wire });
   }
 
-  /** The canonical name: an MCP tool is namespaced and suffixed on a collision; any other name is used as it is. */
+  /**
+   * The canonical name: an MCP tool is namespaced, and any other name is used as it is. A part that needs cleaning, or
+   * holds `__` and so could blur the namespace, adds a hash of the source and name, so a name depends on its tool and
+   * never on what was registered before it.
+   */
   #canonicalFor({ name, source }: ToolRegistration): string {
     if (!isMcp(source)) {
       if (!isCanonicalName(name)) {
@@ -179,24 +187,29 @@ class Registry implements ToolRegistry {
       }
       return name;
     }
-    const base = `mcp__${clean(source.slice("mcp:".length))}__${clean(name)}`;
-    const fits = base.length <= MAX_NAME;
-    const first = fits ? base : suffixed(base, source, name);
-    const taken = this.#entries.find((entry) => entry.tool.canonicalName === first);
-    if (taken === undefined) return first;
-    // The same server listing the same tool twice is a duplicate; a different tool that cleans to the same name collides.
-    if (taken.tool.source === source && taken.name === name) {
-      throw new DuplicateToolError(first, `${source} already registered a tool named "${name}"`);
-    }
-    const second = suffixed(base, source, name);
-    if (this.#entries.some((entry) => entry.tool.canonicalName === second))
-      throw new DuplicateToolError(second, "a suffixed name collided too");
-    return second;
+    const server = source.slice("mcp:".length);
+    const base = `mcp__${clean(server)}__${clean(name)}`;
+    const plain = PLAIN_PART.test(server) && PLAIN_PART.test(name) && base.length <= MAX_NAME;
+    const canonical = plain ? base : suffixed(base, source, name);
+    const taken = this.#entries.find((entry) => entry.tool.canonicalName === canonical);
+    if (taken === undefined) return canonical;
+    const same = taken.tool.source === source && taken.name === name;
+    throw new DuplicateToolError(
+      canonical,
+      same ? `${source} already registered a tool named "${name}"` : "a hash suffix collided",
+    );
   }
 
   /** Whether `registration` may take the place of `existing`: only a non-MCP tool that says so, over a built-in. */
   #mayReplace(registration: ToolRegistration, existing: Entry): boolean {
     return registration.override === true && existing.tool.source === "builtin" && registration.source !== "builtin";
+  }
+
+  /** A new canonical name may not equal another tool's alias, or `get()` would find the wrong tool. */
+  #checkNameAgainstAliases(canonicalName: string, replaces: Entry | undefined): void {
+    const clash = this.#entries.find((entry) => entry !== replaces && entry.tool.alias === canonicalName);
+    if (clash !== undefined)
+      throw new DuplicateToolError(canonicalName, `${clash.tool.canonicalName} uses it as an alias`);
   }
 
   /** An alias is unique among aliases, and no tool's canonical name is another tool's alias. */

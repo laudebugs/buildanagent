@@ -52,7 +52,7 @@ Hold every tool from every source in one registry that names it canonically, ref
 - [x] A deferred tool is absent from requests until `tool_search` activates it, then present in the next request
 - [x] Activation does not reorder tools already sent
 - [x] A host-context value reaches `execute` and appears in no recorded request and no entry
-- [x] An MCP-sourced tool's results and a remote-agent tool's results are written with `trust: "untrusted"`, a built-in's with `"trusted"`, and a declared `outputTrust` overrides any default
+- [x] An MCP-sourced tool's and a remote-agent tool's `outputTrust` resolves to `"untrusted"`, a built-in's to `"trusted"`, and a declared `outputTrust` overrides any default; the session runner (N6) copies it into `tool_result.trust`
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -85,17 +85,17 @@ The harness now holds every tool in one registry that names, defers and wraps th
 - Types: `RegisteredTool`, `ToolRegistration`, `ToolSource`, `HostPattern`, `ToolExposure`, `OutputTrust`, `ApprovalReuse`, `ToolWrapper` and `PreambleOptions`.
 
 **Behavior.**
-- A canonical name is checked once, with the gateway's `isCanonicalName()`. An MCP tool becomes `mcp__<server>__<tool>`, with characters outside the rule replaced by `_`. A collision, or a name over 64 characters, appends `_` and an FNV-1a hash of the source and name, so the name does not depend on registration order. The same server listing the same tool twice is a duplicate.
+- A canonical name is checked once, with the gateway's `isCanonicalName()`. An MCP tool becomes `mcp__<server>__<tool>`, with characters outside the rule replaced by `_`. An MCP name that needs cleaning, holds `__` or runs past 64 characters appends `_` and an FNV-1a hash of the source and name, so a name depends on its tool alone and not on registration order. The same server listing the same tool twice is a duplicate, and a new name may not equal another tool's alias.
 - An extension, client or other non-MCP tool replaces a built-in only with `override: true`, in the built-in's place in the order. Override reaches nothing else.
 - Aliases are unique among aliases and never equal another tool's canonical name.
 - `definitions()` returns frozen definitions in registration order, with the registry's name and exposure. `activeTools()` is every `direct` tool plus the activated names, in that order.
-- `outputTrust` resolves to `untrusted` for an MCP tool or a `remoteAgent` tool and `trusted` otherwise, and a declared value wins. The session runner copies it into `tool_result.trust`.
+- `outputTrust` resolves to `untrusted` for an MCP tool or a `remoteAgent` tool and `trusted` otherwise, and a declared value wins. The registry only resolves it: the session runner (N6) copies it into `tool_result.trust`.
 
 **Decisions.**
 - **A flag marks a remote-agent tool,** `remoteAgent: true`, because the plan's `ToolSource` union has no `agent:` source and a flag leaves that union as it is.
 - **`preambleTokens()` takes no model.** The gateway's `estimateInputTokens()` counts characters and does not depend on the model, so the plan's `model` argument would do nothing. It takes the system prompt as an option instead.
 - **`register()` takes `exposure` as optional,** because the registry defaults it per source, and `outputTrust` on a `RegisteredTool` is always resolved.
-- **Tool search lives beside the registry,** with the activated set passed explicitly, so a run owns its own and the registry holds no per-run state.
+- **Tool search lives beside the registry,** with the activated set passed explicitly, so a run owns its own and the registry holds no per-run state. The registry must hold `tool_search`, because `activeTools` is the complete list a request sends, and the interceptor throws otherwise.
 - **The host context reaches `execute` through the wrapper's closure,** as the todo says. A caller can instead pass it as `RunOptions.app` and read it as `ctx.app`, which the harness plan records as the follow-up for N6; an `app` binds into signed approvals, so N6 decides.
 - **No built-in or MCP tool exists yet,** so the tests register stand-ins. N21 and N24 register the real ones.
 
