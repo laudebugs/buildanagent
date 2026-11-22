@@ -26,9 +26,10 @@ const agent = new Agent({ name: "Refunds", model, tools: [refund] });
 // #region tamper
 const first = await runner.run(agent, "Refund order A-1");
 check(first.interruptions.length === 1 && executed.length === 0, "the run pauses before the refund");
-// The saved snapshot is a string in your database; anyone who can write it can edit the paused call.
+// The saved snapshot is a string in your database; anyone who can write it can edit the paused call, and this edit
+// changes only that call's arguments, not the user's message.
 const saved = JSON.stringify(first.state);
-const edited = saved.replaceAll("A-1", "Z-9"); // book:note edit
+const edited = saved.replaceAll('\\"orderId\\":\\"A-1\\"', '\\"orderId\\":\\"Z-9\\"'); // book:note edit
 const state = await RunState.fromString(agent, edited);
 state.approve(state.getInterruptions()[0]); // book:note approve
 await runner.run(agent, state);

@@ -1,35 +1,35 @@
 [
   {
     "id": "00-sandbox",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/00-sandbox.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/00-sandbox.ts",
     "outcome": "ran-no-model-call",
     "exit": 0,
     "leftOpen": false,
-    "ms": 3776,
+    "ms": 3826,
     "modelRequests": 0,
     "toolCalls": [],
     "harness": [],
-    "tail": "ok - no credential or proxy variables reach the example (found: none)\nok - HOME is a temp dir, not the real home, and cwd is inside it (/tmp/cp-00-sandbox-ZVzHVM)\nok - a raw TCP connection to a public address fails (ENETUNREACH)\nok - DNS lookups fail (EAI_AGAIN)\nok - the preload rejects non-local fetch()\nok - loopback still works (the mock answers)"
+    "tail": "ok - no credential or proxy variables reach the example (found: none)\nok - HOME is a temp dir, not the real home, and cwd is inside it (/tmp/cp-00-sandbox-ZIlwm0)\nok - a raw TCP connection to a public address fails (ENETUNREACH)\nok - DNS lookups fail (EAI_AGAIN)\nok - the preload rejects non-local fetch()\nok - loopback still works (the mock answers)"
   },
   {
     "id": "01-hello-session",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/01-hello-session.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/01-hello-session.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1220,
+    "ms": 1180,
     "modelRequests": 1,
     "toolCalls": [],
     "harness": [],
-    "tail": "ok - sendAndWait resolves with an assistant.message event\nok - the reply carries the model's text (got \"4\")\nok - events arrive in order: user.message → assistant.turn_start → assistant.message → assistant.turn_end → session.idle\nok - the session has an id\nok - one model request reached the mock (got 1)\nok - by default the runtime offers its built-in tools, bash included\nobserved-events: [\"session.start\",\"session.managed_settings_resolved\",\"pending_messages.modified\",\"session.title_changed\",\"session.skills_loaded\",\"session.mcp_servers_loaded\",\"session.tools_updated\",\"instruction.update\",\"user.message\",\"system.message\",\"model.turn_started\",\"assistant.turn_start\",\"session.usage_info\",\"model.log\",\"model.call_start\",\"model.model_call_started\",\"assistant.usage\",\"model.model_call_success\",\"model.call_finished\",\"model.message\",\"assistant.message\",\"model.response\",\"model.call_final_result\",\"model.turn_ended\",\"assistant.turn_end\",\"model.messages_snapshot\",\"assistant.idle\",\"session.idle\"]"
+    "tail": "ok - sendAndWait resolves with an assistant.message event\nok - the reply carries the model's text (got \"4\")\nok - events arrive in order: user.message → assistant.turn_start → assistant.message → assistant.turn_end → session.idle\nok - the session has an id\nok - one model request reached the mock (got 1)\nok - by default the runtime offers its built-in tools, bash included\nobserved-events: [\"session.start\",\"session.managed_settings_resolved\",\"pending_messages.modified\",\"session.skills_loaded\",\"session.title_changed\",\"session.mcp_servers_loaded\",\"session.tools_updated\",\"instruction.update\",\"user.message\",\"system.message\",\"model.turn_started\",\"assistant.turn_start\",\"session.usage_info\",\"model.log\",\"model.call_start\",\"model.model_call_started\",\"assistant.usage\",\"model.call_finished\",\"assistant.message\",\"model.call_final_result\",\"assistant.turn_end\",\"model.model_call_success\",\"model.message\",\"model.response\",\"model.turn_ended\",\"model.messages_snapshot\",\"assistant.idle\",\"session.idle\"]"
   },
   {
     "id": "02-custom-tool",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/02-custom-tool.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/02-custom-tool.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1813,
+    "ms": 1600,
     "modelRequests": 2,
     "toolCalls": [
       "get_weather"
@@ -39,11 +39,11 @@
   },
   {
     "id": "03-permission-deny",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/03-permission-deny.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/03-permission-deny.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1324,
+    "ms": 1350,
     "modelRequests": 4,
     "toolCalls": [
       "issue_refund",
@@ -54,11 +54,11 @@
   },
   {
     "id": "04-restrict-builtins",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/04-restrict-builtins.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/04-restrict-builtins.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 2277,
+    "ms": 1540,
     "modelRequests": 11,
     "toolCalls": [
       "ping",
@@ -72,11 +72,11 @@
   },
   {
     "id": "05-streaming",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/05-streaming.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/05-streaming.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 945,
+    "ms": 1109,
     "modelRequests": 2,
     "toolCalls": [],
     "harness": [],
@@ -84,11 +84,11 @@
   },
   {
     "id": "06-resume-session",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/06-resume-session.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/06-resume-session.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1992,
+    "ms": 1145,
     "modelRequests": 3,
     "toolCalls": [
       "note"
@@ -98,11 +98,11 @@
   },
   {
     "id": "07-mcp-server",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/07-mcp-server.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/07-mcp-server.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1547,
+    "ms": 1487,
     "modelRequests": 3,
     "toolCalls": [
       "orders-order_status"
@@ -112,11 +112,11 @@
   },
   {
     "id": "08-hooks",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/08-hooks.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/08-hooks.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1431,
+    "ms": 1269,
     "modelRequests": 3,
     "toolCalls": [
       "close_ticket",
@@ -127,11 +127,11 @@
   },
   {
     "id": "09-triage-agent",
-    "file": "/home/user/buildanagent/verify/copilot-sdk/examples/09-triage-agent.ts",
+    "file": "/home/user/agent-speak/verify/copilot-sdk/examples/09-triage-agent.ts",
     "outcome": "ran",
     "exit": 0,
     "leftOpen": false,
-    "ms": 1464,
+    "ms": 1910,
     "modelRequests": 7,
     "toolCalls": [
       "lookup_orders",
