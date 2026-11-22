@@ -77,12 +77,12 @@ async function resume(context: Context, requestId: string) {
   );
   // #endregion
 
-  // An editor who also rewrites the stored hash cannot sign it again without the key.
-  const forged = JSON.parse(saved);
+  // An editor who rewrites the input and its hash too still cannot sign the request again without the key.
+  const forged = JSON.parse(saved.replaceAll('"orderId":"A-1"', '"orderId":"Z-9"'));
   forged.pending[0].inputHash = await canonicalInputHash({ orderId: "Z-9" });
   check(
     (await resume(forged, request.id)).events.join() === "signature_invalid",
-    "a rewritten hash fails the signature",
+    "a record rewritten to Z-9, hash included, fails the signature",
   );
   // The transcript's own arguments are never what runs: only the signed input is.
   const shown = saved.replace('"input":{"orderId":"A-1"}', '"input":{"orderId":"Z-9"}');

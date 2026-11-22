@@ -49,9 +49,12 @@ async function decide(decision: "allow" | "deny") {
   }).result; // book:note pause
   check(first.stopReason === "awaiting_approval" && first.pending.length === 1, "the run ends with one request");
   const [request] = first.pending;
-  check(request !== undefined && refunded.length === 0, "the tool has not run, and the model was called once");
+  check(
+    request !== undefined && refunded.length === 0 && asked.adapter.calls.length === 1,
+    "the tool has not run, and the model was called once",
+  );
   const stored = JSON.stringify(first.context); // book:note save
-  const answered = scripted([{ content: [{ type: "text", text: "Done." }] }]);
+  const answered = scripted([{ content: [{ type: "text", text: "Done." }] }]); // book:note mock2
   const second = await continueRun(JSON.parse(stored), {
     model: answered.model,
     tools: [issueRefund],

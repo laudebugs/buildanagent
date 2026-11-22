@@ -99,7 +99,7 @@
     {
       "kind": "check",
       "line": 83,
-      "message": "a rewritten hash fails the signature",
+      "message": "a record rewritten to Z-9, hash included, fails the signature",
       "pass": true
     },
     {

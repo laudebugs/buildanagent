@@ -68,7 +68,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 58,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -121,7 +121,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 58,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -136,25 +136,25 @@
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 66,
       "message": "one model call before, one after",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 67,
       "message": "the resumed run ends with the model's answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 71,
+      "line": 74,
       "message": "approved: the tool runs exactly once, for the order the request signs",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 75,
+      "line": 78,
       "message": "approved: the model reads the tool's result",
       "pass": true
     },
@@ -220,7 +220,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 58,
       "model": "model-4",
       "repeated": 0,
       "messages": [
@@ -274,7 +274,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 58,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -289,25 +289,25 @@
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 66,
       "message": "one model call before, one after",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 67,
       "message": "the resumed run ends with the model's answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 80,
+      "line": 83,
       "message": "denied: the tool never runs",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 81,
+      "line": 84,
       "message": "denied: the model reads the denial and still answers",
       "pass": true
     }
