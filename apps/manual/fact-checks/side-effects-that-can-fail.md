@@ -70,12 +70,14 @@ The claims log for [`side-effects-that-can-fail.md`](../src/content/chapters/sid
 | 39 | `needsApproval` is deprecated in ai 7 in favour of a call-level `toolApproval`, and the Cloudflare chat agent's documentation still uses it | § A plan of several writes | ✅ | The header comment of `verify/cloudflare-agents/examples/06-tool-approval.ts` ("needsApproval is deprecated in ai 7 (call-level toolApproval), but AIChatAgent's docs still use it") |
 | 40 | After `compensated` only a new operation may repeat the work, and only if the user still wants it; after `partial` the rule is an idempotent resume or a person's decision; both are our proposal | § A write reports | ✅ | [Server rollback report](../../../docs/research/reversible-actions/server-rollback.md), the outcome table's retry rules ("New operation only, if the user still wants it"; "Idempotent resume or human escalation"); the report calls the taxonomy ours, and the chapter says "our proposal" |
 | 41 | `needsApproval` is deprecated in AI SDK 7, as of November 2026 | § A plan of several writes | ✅ | Row 39, with the date of the example's header comment |
+| 42 | In the example, a declined charge for order 13 is `not_applied` and the killed run for order 42 is `unknown` | § A write reports | ✅ | Example 15's checks "a declined write reports not_applied" (the 402 for order 13) and "the log has the key and no outcome, so the state is unknown" (order 42) |
+| 43 | After the writing review: Amazon "calls" reconciliation heavy lifting and prefers a unique request identifier from the caller, and the Cloudflare documentation still uses `needsApproval` while AI SDK 7 deprecates it; a 404 from the example's lookup shows that this server holds no record of the key | Sections 1, 2, 3, 4 | ✅ | Re-checks of rows 8, 39 and 23 after the sentences were split or reworded: same sources, same claims, "proves" softened to "shows that this server holds no record of the key" |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 27 |
+| ✅ confirmed | 29 |
 | ✏️ corrected | 2 (rows 8 and 38, correcting rows 6 and the Amazon claim as first drafted) |
 | ⚠️ unverified, our reasoning or an absence, marked as ours in the text | 12 |
-| Total | 41 |
+| Total | 43 |

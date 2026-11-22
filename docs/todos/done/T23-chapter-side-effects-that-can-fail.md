@@ -61,8 +61,8 @@ Write the chapter "Side effects that can fail: outcomes, idempotency and plan ap
 - [x] Outline the chapter's sections, each with a one-line head, and note the planned opening type.
 - [x] For each section, in order: draft it with `/anthropic-skills:writing`; then fact-check every claim it makes against its primary source into `apps/manual/fact-checks/side-effects-that-can-fail.md` as ✅, ✏️ or ⚠️, before drafting the next section; commit the section and its rows together (BK21).
 - [x] Use an analogy from the table above where it makes a concept clearer: open the concept with it, follow it at once with the precise mechanism, and add its "Where the analogy breaks" note. Where plain explanation works better, drop the planned analogy. Register every analogy the chapter uses in `apps/manual/src/content/analogies.json` (BK22).
-- [ ] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
-- [ ] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/side-effects-that-can-fail.md`.
+- [x] Run `/anthropic-skills:writing-review` on the whole chapter, with the voice check: a vivid opening of the planned type that differs from the previous chapter's, a concrete example or scenario in every section, varied cadence, second person where it helps, and no stock phrasing repeated from earlier chapters (BK22).
+- [x] Fix every finding with `/anthropic-skills:writing`, re-check every claim a fix touched, and log the re-checks in `apps/manual/fact-checks/side-effects-that-can-fail.md`.
 - [x] Draw the figures and analogy illustrations with T6's pipeline, each with alt text and a caption that cites the register.
 - [x] Tag the chapter's glossary terms and add missing entries.
 
@@ -73,10 +73,10 @@ Write the chapter "Side effects that can fail: outcomes, idempotency and plan ap
 - [x] At least one listing uses a tier 1, 2 or 3 interaction, and the page reads in full with JavaScript off
 - [x] Every figure, analogy illustrations included, is generated, passes the staleness test, and has alt text, a caption and both themes
 - [x] Every version the prose names says "as of <month year>"
-- [ ] `apps/manual/fact-checks/side-effects-that-can-fail.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
+- [x] `apps/manual/fact-checks/side-effects-that-can-fail.md` has one block of rows per section, each committed with its section before the next section's draft, plus the re-check rows for the review's fixes, with a ✅/✏️/⚠️ tally
 - [x] Every analogy the chapter uses comes from the table above or has the owner's approval, opens its concept and has a "Where the analogy breaks" note; every one is in `src/content/analogies.json`, and `check:book` passes its duplicate and reuse checks
 - [x] The front matter's `opening` is `incident`, and `check:book` passes its opening-rotation check
-- [ ] The pull request records the writing review's 5C scores and its voice scores, before and after
+- [x] The pull request records the writing review's 5C scores and its voice scores, before and after
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
@@ -96,8 +96,8 @@ The book's build and `check:book` in the CI `book` job; the harness tests for an
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
