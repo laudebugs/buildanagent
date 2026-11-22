@@ -3,8 +3,8 @@
 // span for each model call and tool call, with the token counts on the model calls and the agent span. An in-memory
 // exporter holds them, so the example reads the tree back and needs no collector.
 // The judge is scripted, so the example tests the grading code, not a model's judgement. A second scripted model
-// answers with a score from 0 to 1 and a pass or fail grade, and the grading code parses the answer, rejects output
-// that is malformed or contradicts itself, and never passes it through as a grade.
+// answers with a score from 0 to 1 and a pass or fail grade. The grading code parses each answer and rejects output
+// that is malformed or contradicts itself.
 // Docs: ai-sdk-core/telemetry.mdx, ai-sdk-core/generating-text.mdx
 import { OpenTelemetry } from "@ai-sdk/otel";
 import { InMemorySpanExporter, SimpleSpanProcessor, TracerProvider } from "@opentelemetry/sdk-trace";
