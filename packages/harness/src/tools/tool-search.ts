@@ -77,8 +77,8 @@ function lineOf(tool: RegisteredTool): string {
 
 /**
  * The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best
- * matches in `options.activated` and tells the model their names, and the descriptions of trusted tools. `hidden` tools are never found,
- * because hiding one means the model should not learn it exists. Results are in registration order among equal scores.
+ * matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools. `hidden`
+ * tools are never found, because hiding one means the model should not learn it exists. Results are in registration order among equal scores.
  */
 export function toolSearchTool(
   registry: ToolRegistry,

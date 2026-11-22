@@ -169,8 +169,8 @@ export interface McpManager {
    */
   connect(): Promise<readonly McpServerStatus[]>;
   /**
-   * One `extension_loaded` record of tier `mcp` per connected server, in config order, for `HarnessOptions.extensionRecords`.
-   * A turn then writes an entry for each record its session's log does not hold yet. A server that failed to connect
+   * One `extension_loaded` record of tier `mcp` per connected server, in config order, for
+   * `HarnessOptions.extensionRecords`. A turn then writes an entry for each record its session's log does not hold yet. A server that failed to connect
    * has no record: its status says why, and nothing of it ran in a turn.
    */
   records(): readonly ExtensionLoadedRecord[];

@@ -5,10 +5,9 @@
  *
  * A server's tools are registered all or none: the list is checked, then registered through `registerAll()`, which
  * removes the tools it added when any one is refused, so a list the registry would refuse halfway leaves nothing
- * behind. Every tool is marked as not first-party and as a
- * write, whatever its annotations say, so a server's `readOnlyHint` can't make the loop run its calls together or run
- * one again after a crash. The calls reach the server only through the turn's tool pipeline, so the permission gate
- * and the write cap apply to them as to any tool.
+ * behind. Every tool is marked as not first-party and as a write, whatever its annotations say, so a server's
+ * `readOnlyHint` can't make the loop run its calls together or run one again after a crash. The calls reach the server
+ * only through the turn's tool pipeline, so the permission gate and the write cap apply to them as to any tool.
  */
 import { defineTool, type ToolDefinition } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";

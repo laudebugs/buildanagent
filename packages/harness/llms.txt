@@ -216,7 +216,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface ToolRegistry`: One registry for the tools of every source.
 - `toolSearchInterceptors()`: The interceptor that sends what tool search activated.
 - `interface ToolSearchOptions`: The options of `toolSearchTool()`.
-- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, and the descriptions of trusted tools.
+- `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools.
 - `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
 - `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
 
