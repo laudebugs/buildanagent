@@ -29,5 +29,5 @@ export { FORMAT_VERSION, parseEntry, SESSION_ENTRY_TYPES } from "./entries.js";
 export type { ProtocolErrorCode } from "./errors.js";
 export { isProtocolError, ProtocolError } from "./errors.js";
 
-/** The package's name. Nothing else is built yet. */
+/** The package's name. */
 export const PACKAGE_NAME = "@buildanagent/protocol";

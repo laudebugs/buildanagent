@@ -2,6 +2,8 @@
 // entries, refuses a format it does not know and refuses entries that break the base.
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   FORMAT_VERSION,
   isProtocolError,
@@ -57,8 +59,10 @@ test("parseEntry() refuses text that is not JSON, a value that is not an object,
     { ...entry, parentId: 3 },
     { ...entry, seq: -1 },
     { ...entry, seq: 1.5 },
+    { ...entry, seq: 1e300 },
     { ...entry, timestamp: 5 },
     { ...entry, timestamp: "yesterday" },
+    { ...entry, timestamp: "2026-13-45T99:99:99Z" },
     { ...entry, origin: "robot" },
   ];
   for (const input of bad) {
@@ -83,22 +87,24 @@ test("the protocol package depends on no harness package, in its manifest or its
   const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const declared = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies, ...manifest.peerDependencies });
   assert.ok(!declared.includes("@buildanagent/harness"));
-  const src = new URL("../src/", import.meta.url);
+  const src = fileURLToPath(new URL("../src/", import.meta.url));
   const files = readdirSync(src, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile());
   assert.ok(files.length > 0, "src/ has files to scan");
   for (const file of files) {
-    const text = readFileSync(new URL(`${file.parentPath}/${file.name}`, "file:///"), "utf8");
+    const text = readFileSync(join(file.parentPath, file.name), "utf8");
     assert.ok(!/@buildanagent\/harness/.test(text), `${file.name} imports the harness`);
   }
 });
 
 test("the stable fields carry a @stable tag: the base fields, formatVersion and each entry's type", () => {
   const source = readFileSync(new URL("../src/entries.ts", import.meta.url), "utf8");
-  const tagged = (field: string) => new RegExp(`@stable \\*/\\n  ${field}\\b`).test(source);
+  // A field is tagged when the doc comment right above it, however Biome wraps it, holds `@stable`.
+  const tagged = (field: string) => new RegExp(`@stable\\s*\\*/\\s*${field}\\??:`).test(source);
   for (const field of ["id", "parentId", "seq", "timestamp", "origin", "formatVersion"]) {
     assert.ok(tagged(field), `${field} lacks @stable`);
   }
-  const typeFields = source.match(/\n {2}type: "[a-z_]+";/g) ?? [];
+  const typeFields = source.match(/^ {2}type: "[a-z_]+";/gm) ?? [];
   assert.equal(typeFields.length, SESSION_ENTRY_TYPES.length);
-  assert.equal(source.match(/@stable \*\/\n {2}type: "/g)?.length, SESSION_ENTRY_TYPES.length);
+  const taggedTypes = source.match(/@stable\s*\*\/\s*type: "[a-z_]+";/g) ?? [];
+  assert.equal(taggedTypes.length, SESSION_ENTRY_TYPES.length);
 });

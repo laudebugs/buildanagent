@@ -278,7 +278,10 @@ export const SESSION_ENTRY_TYPES = [
   "product_record",
 ] as const satisfies readonly SessionEntry["type"][];
 
-/** An ISO 8601 date and time with a zone, such as `2026-11-22T03:00:00.000Z`: what `timestamp` holds. */
+/**
+ * The shape of an ISO 8601 date and time with a zone, such as `2026-11-22T03:00:00.000Z`: what `timestamp` holds. The
+ * schema checks only this shape; `parseEntry()` also refuses a date that does not exist.
+ */
 export const TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 const ORIGINS: readonly string[] = ["user", "operator", "model", "tool", "harness"];
@@ -290,8 +293,13 @@ function reject(message: string): never {
 function checkBase(value: Record<string, unknown>): void {
   if (typeof value.id !== "string" || value.id === "") reject("an entry needs a non-empty string id");
   if (value.parentId !== null && typeof value.parentId !== "string") reject("parentId must be a string or null");
-  if (!Number.isInteger(value.seq) || (value.seq as number) < 0) reject("seq must be a whole number, 0 or more");
-  if (typeof value.timestamp !== "string" || !TIMESTAMP_PATTERN.test(value.timestamp)) {
+  if (!Number.isSafeInteger(value.seq) || (value.seq as number) < 0)
+    reject("seq must be a safe whole number, 0 or more");
+  if (
+    typeof value.timestamp !== "string" ||
+    !TIMESTAMP_PATTERN.test(value.timestamp) ||
+    Number.isNaN(Date.parse(value.timestamp))
+  ) {
     reject("timestamp must be an ISO 8601 date and time with a zone");
   }
   if (typeof value.origin !== "string" || !ORIGINS.includes(value.origin))
