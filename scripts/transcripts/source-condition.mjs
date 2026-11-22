@@ -1,7 +1,7 @@
-// Preloaded with `--import` into each book example that defineBookExamples() (book-examples.ts) runs. It resolves our own
-// workspace packages through their `source` export condition, so an example runs on src/ with no build, as the tests
-// do (ADR 0050). It adds the condition for `@buildanagent/*` only: a third-party package may also declare `source`,
-// pointing at files its published tarball leaves out, as pi-schema 1.5.2 does.
+// Preloaded with `--import` into each book example that defineBookExamples() (book-examples.ts) runs. It resolves our
+// own workspace packages through their `source` export condition, so an example runs on src/ with no build, as the
+// tests do (ADR 0050). It adds the condition for `@buildanagent/*` only: a third-party package may also declare
+// `source`, pointing at files its published tarball leaves out, as pi-schema 1.5.2 does.
 import { registerHooks } from "node:module";
 
 registerHooks({

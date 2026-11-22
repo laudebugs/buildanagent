@@ -1,5 +1,5 @@
-// Our SDK's side of the transcript recorder (scripts/transcripts/). When scripts/transcripts/book-examples.ts preloads the
-// recorder, this file attaches it to `ScriptedModel`, so each request and answer of every scripted model joins the
+// Our SDK's side of the transcript recorder (scripts/transcripts/). When scripts/transcripts/book-examples.ts preloads
+// the recorder, this file attaches it to `ScriptedModel`, so each request and answer of every scripted model joins the
 // example's transcript; otherwise it does nothing. The recorder only reads the request and the stream's events, so the
 // model answers as it would without it.
 import type {
