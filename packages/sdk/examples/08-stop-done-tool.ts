@@ -21,6 +21,7 @@ const callTool = (callId: string, name: string, input: unknown): ScriptStep => (
 
 {
   // #region done-tool
+  const STEP_CAP = 10;
   const finalAnswer = outputTool({ name: "finalAnswer", schema: z.object({ answer: z.string() }) });
   const { adapter, model } = scripted([
     callTool("call-ping", "ping", {}),
@@ -31,7 +32,7 @@ const callTool = (callId: string, name: string, input: unknown): ScriptStep => (
     system: "Ping the service, then answer.",
     tools: [ping],
     output: finalAnswer, // book:note done-tool
-    maxSteps: 10, // book:note either
+    maxSteps: STEP_CAP, // book:note either
     input: "Answer.",
   }).result;
   const answer = result.stopReason === "done" ? result.output?.answer : undefined; // book:note answer

@@ -11,6 +11,7 @@ const answerWith = (callId: string, input: unknown): ScriptStep => ({
 });
 
 // #region triage
+const STEP_CAP = 3;
 const triage = outputTool({
   name: "triage",
   description: "Ticket triage", // book:note output
@@ -24,7 +25,7 @@ const result = await run({
   model,
   system: "Triage the ticket.",
   output: triage,
-  maxSteps: 3,
+  maxSteps: STEP_CAP,
   input: "I was charged twice!",
 }).result;
 const out: { category: "billing" | "bug" | "other"; urgent: boolean } | undefined =
@@ -45,14 +46,18 @@ adapter.assertComplete();
 
 // With one step, the failed answer is the last call the run may make, so the run ends max_steps with no output.
 {
-  const { model } = scripted([answerWith("call-1", { category: "refund" })]);
-  const result = await run({ model, system: "Triage the ticket.", output: triage, maxSteps: 1, input: "?" }).result;
+  const SINGLE_STEP = 1;
+  const { adapter, model } = scripted([answerWith("call-1", { category: "refund" })]);
+  const result = await run({ model, system: "Triage the ticket.", output: triage, maxSteps: SINGLE_STEP, input: "?" })
+    .result;
   check(result.stopReason === "max_steps", "a failed answer on the last allowed call ends the run max_steps");
+  adapter.assertComplete();
 }
 
 // A model that answers in text skips the schema: the run ends done, and result.output is undefined.
 {
-  const { model } = scripted([{ content: [{ type: "text", text: "Billing, and urgent." }] }]);
+  const { adapter, model } = scripted([{ content: [{ type: "text", text: "Billing, and urgent." }] }]);
   const result = await run({ model, system: "Triage the ticket.", output: triage, input: "?" }).result;
   check(result.stopReason === "done" && result.output === undefined, "a text answer ends done with no output");
+  adapter.assertComplete();
 }

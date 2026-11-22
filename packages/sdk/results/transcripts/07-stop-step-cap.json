@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -37,7 +37,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -54,7 +54,7 @@
     },
     {
       "kind": "request",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -76,7 +76,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -93,7 +93,7 @@
     },
     {
       "kind": "request",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "repeated": 5,
       "messages": [
@@ -115,7 +115,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -132,31 +132,31 @@
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 39,
       "message": "the cap ends the run max_steps, not done",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 41,
       "message": "maxSteps: 3 lets exactly three requests reach the model",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 41,
+      "line": 42,
       "message": "the cap emits one warning event, coded max_steps",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 42,
+      "line": 43,
       "message": "the last response's tool call still ran, so it has a result",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -185,7 +185,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -202,7 +202,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 3,
       "messages": [
@@ -224,7 +224,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -241,7 +241,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 5,
       "messages": [
@@ -263,7 +263,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -280,7 +280,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 7,
       "messages": [
@@ -302,7 +302,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -319,7 +319,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 9,
       "messages": [
@@ -341,7 +341,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -358,7 +358,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 11,
       "messages": [
@@ -380,7 +380,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -397,7 +397,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 13,
       "messages": [
@@ -419,7 +419,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -436,7 +436,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 15,
       "messages": [
@@ -458,7 +458,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -475,7 +475,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 17,
       "messages": [
@@ -497,7 +497,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -514,7 +514,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 19,
       "messages": [
@@ -536,7 +536,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -553,7 +553,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 21,
       "messages": [
@@ -575,7 +575,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -592,7 +592,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 23,
       "messages": [
@@ -614,7 +614,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -631,7 +631,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 25,
       "messages": [
@@ -653,7 +653,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -670,7 +670,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 27,
       "messages": [
@@ -692,7 +692,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -709,7 +709,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 29,
       "messages": [
@@ -731,7 +731,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -748,7 +748,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 31,
       "messages": [
@@ -770,7 +770,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -787,7 +787,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 33,
       "messages": [
@@ -809,7 +809,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -826,7 +826,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 35,
       "messages": [
@@ -848,7 +848,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -865,7 +865,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 37,
       "messages": [
@@ -887,7 +887,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -904,7 +904,7 @@
     },
     {
       "kind": "request",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "repeated": 39,
       "messages": [
@@ -926,7 +926,7 @@
     },
     {
       "kind": "response",
-      "line": 49,
+      "line": 51,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -943,7 +943,7 @@
     },
     {
       "kind": "check",
-      "line": 50,
+      "line": 52,
       "message": "default: the run stops after 20 model calls",
       "pass": true
     }

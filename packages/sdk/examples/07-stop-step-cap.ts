@@ -22,12 +22,13 @@ const forever = (count: number): ScriptStep[] =>
 
 {
   // #region step-cap
-  const { adapter, model } = scripted(forever(3)); // book:note script
+  const STEP_CAP = 3;
+  const { adapter, model } = scripted(forever(STEP_CAP)); // book:note script
   const started = run({
     model,
     system: "Keep pinging.",
     tools: [ping],
-    maxSteps: 3, // book:note cap
+    maxSteps: STEP_CAP, // book:note cap
     input: "Loop.",
   });
   const warnings: string[] = [];
@@ -45,8 +46,12 @@ const forever = (count: number): ScriptStep[] =>
 
 // Without maxSteps the default cap is 20 model calls.
 {
-  const { adapter, model } = scripted(forever(20));
+  const DEFAULT_STEP_CAP = 20;
+  const { adapter, model } = scripted(forever(DEFAULT_STEP_CAP));
   const result = await run({ model, system: "Keep pinging.", tools: [ping], input: "Loop." }).result;
-  check(result.stopReason === "max_steps" && result.steps === 20, "default: the run stops after 20 model calls");
+  check(
+    result.stopReason === "max_steps" && result.steps === DEFAULT_STEP_CAP,
+    "default: the run stops after 20 model calls",
+  );
   adapter.assertComplete();
 }
