@@ -27,6 +27,8 @@ type Props = PageProps & {
   readonly hasFileListing?: boolean;
   /** Whether one of those listings shows a file the live run compares, so the line gives the comparison's date. */
   readonly hasComparedListing?: boolean;
+  /** The chapter's slug, under which public/scripts/reading.js stores the reader's place. */
+  readonly slug?: string;
 };
 
 const {
@@ -42,6 +44,7 @@ const {
   sources = [],
   hasFileListing = false,
   hasComparedListing = false,
+  slug,
 } = Astro.props;
 ---
 
@@ -52,7 +55,7 @@ const {
     <div class="chapter-body">
       <Sidebar headings={headings} parts={parts} current={current} />
       <!-- Only a chapter's body carries data-pagefind-body, so search indexes chapters and skips every other page. -->
-      <article class="article" data-pagefind-body>
+      <article class="article" data-pagefind-body data-reading-chapter={slug}>
         {
           hasFileListing && (
             <ListingVerification lastCompared={book.live.lastCompared} compared={hasComparedListing} />

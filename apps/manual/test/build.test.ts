@@ -292,6 +292,32 @@ test("the contents list every chapter in the outline, linking only the written o
   assert.match(html, /<span class="contents__planned">Tools: schemas/);
 });
 
+test("the contents page holds the resume link hidden, with no address, inside a paragraph that keeps its height", () => {
+  const html = readFileSync(join(out, "index.html"), "utf8");
+  const slot = html.match(/<p class="resume" data-resume>[\s\S]*?<\/p>/)?.[0] ?? "";
+  assert.ok(slot, "the contents page has the resume paragraph");
+  const link = slot.match(/<a\b[^>]*>/)?.[0] ?? "";
+  assert.match(link, /class="resume__link"/);
+  assert.match(link, /data-resume-link/);
+  assert.match(link, /\shidden(\s|>|=)/, "the link stays hidden until the script finds a place");
+  assert.doesNotMatch(link, /\shref=/, "a hidden link has no address until the script sets one");
+  assert.match(slot, /<span class="resume__action label">Resume reading<\/span>/);
+  assert.match(slot, /<span class="resume__where" data-resume-where><\/span>/);
+  assert.ok(html.indexOf("data-resume") < html.indexOf('class="contents"'), "the link sits above the contents");
+  const css = files(".css")
+    .map((path) => readFileSync(join(out, path), "utf8"))
+    .join("\n");
+  assert.match(css, /\.resume\{min-height:calc\(/, "the paragraph reserves the link's height");
+});
+
+test("a chapter page names its slug for the reading script, and every page loads that script as a same-origin module", () => {
+  assert.match(chapter(), /<article class="article" data-pagefind-body data-reading-chapter="call-workflow-loop">/);
+  for (const { path, html } of pages()) {
+    assert.match(html, /<script type="module" src="\/scripts\/reading\.js"><\/script>/, path);
+  }
+  assert.ok(existsSync(join(out, "scripts", "reading.js")));
+});
+
 test("the site header links to the glossary and the sources, and both pages exist", () => {
   const html = readFileSync(join(out, "index.html"), "utf8");
   assert.match(html, /<a href="\/glossary\/">Glossary<\/a>/);
