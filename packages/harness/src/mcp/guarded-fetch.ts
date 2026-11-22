@@ -124,7 +124,7 @@ class EventFilter {
     const line = this.#pending.length === 0 ? piece : concat([...this.#pending, piece]);
     this.#pending = [];
     this.#pendingBytes = 0;
-    if (line.length > this.#max) return `an event-stream line over ${this.#max} bytes`;
+    // An event holds its lines, so the event's bound is also each line's; `#keepRest()` bounds a line still open.
     this.#eventBytes = line.length === 0 ? 0 : this.#eventBytes + line.length;
     if (this.#eventBytes > this.#max) return `an event over ${this.#max} bytes`;
     if (kept(line)) out.push(concat([line, NEWLINE]));

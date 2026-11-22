@@ -67,6 +67,7 @@ export interface McpInProcessTransport {
 
 /** The part of an egress proxy a remote server's requests go through: `startEgressProxy()` returns one. */
 export interface McpEgressFetch {
+  /** Sends one request under the proxy's allowlist and resolves with its response. */
   fetch(input: string | URL, init?: RequestInit): Promise<Response>;
 }
 
@@ -89,7 +90,7 @@ export interface McpRemoteSettings {
    */
   readonly headers?: Readonly<Record<string, string>>;
   /**
-   * The egress proxy to send every request through, so its allowlist, address checks and log apply (N20). The URL
+   * The egress proxy to send every request through, so its allowlist, address checks and log apply. The URL
    * must then be `https:` and its host on the proxy's allowlist. Left out, the harness connects itself, with the
    * address checks below.
    */
@@ -235,6 +236,7 @@ export interface McpConnection {
 export interface McpTimers {
   /** Calls `run` once after `ms` milliseconds, and returns a handle for `clearTimeout`. */
   setTimeout(run: () => void, ms: number): unknown;
+  /** Cancels a timer `setTimeout` returned, if it has not run yet. */
   clearTimeout(handle: unknown): void;
   /** The time now, in milliseconds. */
   now(): number;

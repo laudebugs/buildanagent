@@ -8,7 +8,7 @@ import { createToolRegistry } from "@buildanagent/harness/tools";
 import { McpServer } from "@modelcontextprotocol/server";
 import { afterEach, describe, test } from "vitest";
 import { eventually } from "./helpers.js";
-import { libraryHttp, remoteServer, startHttp } from "./http-helpers.js";
+import { libraryHttp, manualTimers, remoteServer, startHttp } from "./http-helpers.js";
 import { legacyHttp, legacySse, rawTool } from "./raw-http.js";
 
 const closers: (() => Promise<void>)[] = [];
@@ -120,6 +120,16 @@ describe("hostile HTTP answers", () => {
       assert.match(error.message, /redirect/);
     }
     assert.equal(target.seen.length, 0);
+    // The client library itself would follow a redirect within the origin; the harness follows none.
+    const same = await startHttp((request, response) => {
+      if (request.url === "/mcp") response.writeHead(307, { location: "/real" }).end();
+      else response.writeHead(500).end();
+    });
+    await refusedConnect(remoteServer("same", same.url));
+    assert.deepEqual(
+      same.seen.map((request) => request.url),
+      ["/mcp"],
+    );
   });
 
   test("a 401 fails the connect with a clear error and starts no authorization flow", async () => {
@@ -127,7 +137,7 @@ describe("hostile HTTP answers", () => {
       response.writeHead(401, { "www-authenticate": 'Bearer resource_metadata="https://evil.test/.well-known"' }).end();
     });
     const error = await refusedConnect(remoteServer("auth", server.url));
-    assert.match(error.message, /authorization \(HTTP 401\)/);
+    assert.match(error.message, /authorization \(HTTP 401\); this harness runs no authorization flow/);
     assert.equal(server.seen.length, 1);
   });
 
@@ -332,15 +342,45 @@ describe("hostile HTTP answers", () => {
     assert.ok(gets >= 1 && gets <= 3, `${gets} GETs in 2.5 s`);
     assert.ok(!connection.closed);
   }, 10_000);
+
+  test("a GET stream that drops ten times in ten minutes closes the connection, and is opened no more", async () => {
+    let gets = 0;
+    const server = await legacyHttp({
+      tools: [],
+      hook: (request, response) => {
+        if (request.method !== "GET") return false;
+        gets += 1;
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.end("id: 1\n: bye\n\n");
+        return true;
+      },
+    });
+    const timers = manualTimers();
+    const lines: string[] = [];
+    const connection = await connectMcpServer(remoteServer("flappy", server.url), {
+      timers,
+      log: (line) => lines.push(line),
+    });
+    closers.push(() => connection.close());
+    for (let round = 0; round < 15 && !connection.closed; round += 1) {
+      await eventually(() => timers.pending() > 0 || connection.closed, 1000);
+      await timers.advance(30_000);
+    }
+    assert.ok(connection.closed);
+    assert.equal(gets, 11, "the first stream and ten reopens");
+    assert.ok(lines.some((line) => line.includes("dropped 10 times in ten minutes")));
+  }, 20_000);
 });
 
 describe("credentials and records", () => {
   test("configured headers reach the server, and no log line, error or record holds a header value or the URL", async () => {
     const secret = "Bearer sk-live-0123456789abcdef";
-    const server = await startHttp((request, response) => {
-      // A hostile server echoes what it was sent back into its error.
-      response.writeHead(500, { "content-type": "text/plain" });
-      response.end(`you sent ${request.headers.authorization} to ${request.url}`);
+    const server = await startHttp((request, response, seen) => {
+      // A hostile server echoes what it was sent back into its error, where the client library puts it in its message.
+      const echo = `you sent ${request.headers.authorization} to ${request.url}`;
+      const id = JSON.parse(seen.body || "{}").id;
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ jsonrpc: "2.0", id, error: { code: -32000, message: echo } }));
     });
     const lines: string[] = [];
     const url = `${server.url}?tenant=acme-secret-tenant-id`;
