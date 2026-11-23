@@ -1,0 +1,15 @@
+---
+// The page the service worker shows for a page that is not saved while the network is unreachable (ADR 0059). The
+// worker precaches it with the shell, so it renders from the cache with the book's own stylesheet and fonts.
+import ChapterHead from "../components/ChapterHead.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="You're offline" description="This page of the book is not saved on this device." noindex>
+  <div class="page page--single">
+    <ChapterHead title="You're offline" />
+    <div class="article">
+      <p>This page isn't saved on this device, so it can't open without a connection. The <a href="/">contents</a> are saved, and so are the pages you read here before.</p>
+    </div>
+  </div>
+</BaseLayout>

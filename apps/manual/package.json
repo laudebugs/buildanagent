@@ -17,7 +17,9 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
+    "build": "astro build && pagefind --site dist && node scripts/offline-build.mjs dist",
+    "icons": "node scripts/generate-icons.mjs",
+    "check:offline": "node scripts/offline-browser-check.mjs",
     "check:book": "tsx scripts/check-book.ts",
     "book:switch-report": "tsx scripts/switch-report.ts",
     "figures:build": "tsx scripts/build-figures.ts figures test/fixtures/book/figures test/fixtures/site/figures",
@@ -31,6 +33,7 @@
   "dependencies": {
     "@astrojs/markdown-remark": "7.3.8",
     "astro": "7.4.11",
+    "esbuild": "0.28.2",
     "pagefind": "1.6.0",
     "remark-directive": "4.0.0",
     "remark-parse": "11.0.0",

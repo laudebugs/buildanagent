@@ -7,6 +7,8 @@ import "../styles/layout.css";
 import "../styles/components.css";
 import "../styles/figures.css";
 import "../styles/anatomy.css";
+import tokens from "../../../../docs/design/book-tokens.json";
+import { offlineHosts } from "../offline/hosts.js";
 import type { PageProps } from "./page-props.js";
 
 type Props = PageProps & {
@@ -15,6 +17,10 @@ type Props = PageProps & {
 };
 
 const { title, description, noindex = false } = Astro.props;
+// The browser's toolbar takes the page colour of the reader's system theme, as the installed app's manifest does.
+const pageColor = { light: tokens.color.light.values.background, dark: tokens.color.dark.values.background };
+// Only these hosts register the offline worker; public/scripts/offline.js reads them (src/offline/hosts.ts).
+const hosts = offlineHosts(Astro.site, process.env.MANUAL_OFFLINE_TEST_HOST).join(" ");
 ---
 
 <!doctype html>
@@ -26,10 +32,17 @@ const { title, description, noindex = false } = Astro.props;
     {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={pageColor.light} />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={pageColor.dark} />
+    <meta name="manual-offline-hosts" content={hosts} />
     <!-- Blocking on purpose: it applies a stored theme before the first paint. -->
     <script is:inline src="/scripts/theme.js"></script>
     <!-- A module, so it runs once the page is parsed: it records the reader's place and shows the resume link. -->
     <script is:inline type="module" src="/scripts/reading.js"></script>
+    <!-- A module too: it registers the offline worker on the book's own host and shows the update notice. -->
+    <script is:inline type="module" src="/scripts/offline.js"></script>
     <link rel="preload" href="/fonts/literata/literata-roman.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/instrument-serif/instrument-serif-regular.woff2" as="font" type="font/woff2" crossorigin />
     <slot name="head" />
