@@ -92,7 +92,7 @@ The default look did not change. A screenshot of the model gateway chapter at 12
 - **The phone at 150%.** The sample was the contents page, the glossary and the three chapters with the most `<pre>`, `<figure>` and `<table>` elements in the built HTML: the-model-gateway (18, 24 and 3), tools-at-scale (18, 21 and 1) and approvals-guardrails-and-injection (16, 19 and 1). No sampled page scrolls sideways in any pairing. With `--all`, all 24 built pages pass in every pairing. The header measures 52 px, the wordmark shows whole, and every button sits in the row.
 - **Accessibility.** axe-core 4.14.1 finds no violation on the chapter in each pairing at 150% on the phone, or in Book at 100% on a desktop.
 
-`check:header`, `check:offline` and the manual's 709 Vitest tests also pass.
+`check:header`, `check:offline` and the manual's 714 Vitest tests also pass.
 
 ## Two things this pull request leaves to the offline plan and part 2
 
