@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T67b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build the book §1](../../plans/build-book.md) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
 | Depends on | [T67a](../done/T67a-manual-offline-pwa.md) |
@@ -37,7 +37,7 @@ Give a reader a button that saves every page of the manual for offline reading, 
 
 ## Tasks
 
-- [ ] Claim the todo when T67a is done.
+- [x] Claim the todo when T67a is done.
 - [ ] Write the copy and fact-check its claims (storage limits, eviction, which browsers support what, as of November 2026).
 - [ ] Add the worker's save, remove and status messages and the saved-copy cache.
 - [ ] Build the control, its states and its styles (tokens only, light and dark, a 44 pixel target).
@@ -65,7 +65,7 @@ As above, beside T67a's tests.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated

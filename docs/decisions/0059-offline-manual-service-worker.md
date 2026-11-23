@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (owner, 2026-11-23, on [issue #175](https://github.com/laudebugs/buildanagent/issues/175))
 - **Date:** 2026-11-23
-- **Plan:** [Book plan §1](../plans/build-book.md#1-goal-and-non-goals) (the reversed non-goal); todos [T67a](../todos/done/T67a-manual-offline-pwa.md) and [T67b](../todos/ready/T67b-manual-save-for-offline.md)
+- **Plan:** [Book plan §1](../plans/build-book.md#1-goal-and-non-goals) (the reversed non-goal); todos [T67a](../todos/done/T67a-manual-offline-pwa.md) and [T67b](../todos/ongoing/T67b-manual-save-for-offline.md)
 
 ## Context
 
