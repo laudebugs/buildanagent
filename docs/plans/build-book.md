@@ -616,6 +616,8 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T62](../todos/done/T62-chapter-choosing-the-shape-on-our-packages.md) | Add our own packages to Chapter 8's listings as tabs (BK8) | T17, B19b, T50 | M |
 | [T63](../todos/done/T63-chapter-side-effects-that-can-fail-on-our-packages.md) | Add our own packages to Chapter 16's listings as tabs (BK8) | T23, E1, E2, E3, E4a, E4b, T50 | M |
 | [T66](../todos/done/T66-chapter-tools-at-scale-on-our-packages.md) | Add our own packages to Chapter 13's listings as tabs (BK8) | T21, N11, N21, N22, N23, N24 | M |
+| [T67a](../todos/ongoing/T67a-manual-offline-pwa.md) | Make the manual installable and readable offline: manifest, icons, a service worker with a per-build file list, an offline page, an update notice and the ADR that reverses the offline non-goal (owner's yes on issue #175, 2026-11-23) | None | L |
+| [T67b](../todos/ready/T67b-manual-save-for-offline.md) | A "Save the manual for offline reading" control: progress, size, saved date and build, remove, and the offline state | T67a | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
