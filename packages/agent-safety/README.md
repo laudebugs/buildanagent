@@ -63,7 +63,7 @@ Beside the text, it returns the outcome's fields as a JSON `payload`, and `isErr
 
 ## Use an outcome as an AI SDK tool result
 
-The `./ai` subpath hands outcomes to the Vercel AI SDK. It is tested against exactly `ai` 7.0.173 and `@ai-sdk/provider-utils` 5.0.81, and its optional peers name those releases, so a project on an older `ai` 7.0.x gets a peer warning. Return the outcome from your tool's `execute`, and convert it in `toModelOutput`:
+The `./ai` subpath hands outcomes to the Vercel AI SDK. It is tested against exactly `ai` 7.0.173 and `@ai-sdk/provider-utils` 5.0.81, which its optional peers name, so any other release gets a peer warning. Return the outcome from your tool's `execute`, and convert it in `toModelOutput`:
 
 ```ts
 import { toAiToolResult } from "@buildanagent/agent-safety/ai";
