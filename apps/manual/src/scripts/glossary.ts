@@ -14,6 +14,10 @@ const terms = [...document.querySelectorAll<HTMLElement>(".glossary-term")];
 /** The space a card keeps from the viewport's edges, in pixels. */
 const MARGIN = 8;
 
+/** The bottom edge of the sticky header, in pixels, or 0 while it is slid away or absent: a card stays below it. */
+const headerBottom = (): number =>
+  Math.max(0, document.querySelector<HTMLElement>("[data-site-header]")?.getBoundingClientRect().bottom ?? 0);
+
 /** The gap between a term and its card, the 0.4rem the stylesheet gives the card without this script. */
 const gap = (): number => 0.4 * Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
 
@@ -41,7 +45,7 @@ function place(term: HTMLElement): void {
   const right = document.documentElement.clientWidth - MARGIN;
   const x = Math.max(MARGIN, Math.min(line.left, right - width));
   const above = line.top - gap() - height;
-  const below = above < MARGIN;
+  const below = above < headerBottom() + MARGIN;
   // CSSOM writes, which the page's content security policy allows: it blocks style attributes in markup, not these.
   card.style.setProperty("--card-x", `${x}px`);
   card.style.setProperty("--card-y", `${below ? line.bottom + gap() : above}px`);

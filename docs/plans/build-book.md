@@ -620,6 +620,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T66](../todos/done/T66-chapter-tools-at-scale-on-our-packages.md) | Add our own packages to Chapter 13's listings as tabs (BK8) | T21, N11, N21, N22, N23, N24 | M |
 | [T67a](../todos/done/T67a-manual-offline-pwa.md) | Make the manual installable and readable offline: manifest, icons, a service worker with a per-build file list, an offline page, an update notice and the ADR that reverses the offline non-goal (owner's yes on issue #175, 2026-11-23) | None | L |
 | [T67b](../todos/done/T67b-manual-save-for-offline.md) | A "Save the manual for offline reading" control: progress, size, saved date and build, remove, and the offline state | T67a | M |
+| [T68](../todos/done/T68-manual-sticky-header.md) | A sticky header (56 px on a desktop, one 52 px row on a phone with a menu, hiding on a scroll down), a reading progress line, a slot for the settings button and the scroll offsets that go with them (owner's pick H2, 2026-11-23) | T67b | M |
 | [T68a](../todos/done/T68a-manual-paper-references-tooling.md) | Tooling for research-paper references: `[[paper:id]]`, a described first mention and linked later ones, `check:book` rules, the Sources page's "Cited in" and an audit script | None | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
