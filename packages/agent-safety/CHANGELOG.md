@@ -1,5 +1,12 @@
 # @buildanagent/agent-safety
 
+## 0.1.0-alpha.34
+
+### Patch Changes
+
+- be43a99: The AI SDK adapters are now tested against `ai` 7.0.173, `@ai-sdk/anthropic` 4.0.105, `@ai-sdk/openai` 4.0.118 and `@ai-sdk/provider-utils` 5.0.81. The optional peers name exactly those releases, so a project on any other release, such as `ai` 7.0.162, now gets a peer warning.
+- @buildanagent/gateway@0.1.0-alpha.34
+
 ## 0.1.0-alpha.33
 
 ### Patch Changes
