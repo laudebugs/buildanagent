@@ -68,13 +68,15 @@ A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar
 
 To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
 
-The plugin must come before every TypeDoc plugin in `plugins`. It writes the sidebar, and each TypeDoc plugin replaces its placeholder group in that sidebar, so a TypeDoc plugin that runs earlier finds no sidebar and generates an empty group. The plugin also refuses a `sidebar` option in the Starlight config.
+The plugin must come before every TypeDoc plugin in `plugins`. `starlight-sidebar-topics` writes the sidebar, and each TypeDoc plugin then replaces its placeholder group in it. A TypeDoc plugin that runs first finds no sidebar and generates an empty group. `starlight-sidebar-topics` also refuses a `sidebar` option in the Starlight config.
 
 `src/route-data.ts`, a Starlight route middleware, adds `aria-current="page"` to the current tab. The plugin gives every page the same attributes for a tab, so the middleware replaces the current tab's `attrs` object for that page, and `test/topics.test.ts` requires the attribute on exactly the current tab of every page.
 
 Previous and next links stop at a topic's first and last page: the first page of "SDK & gateway" has no Previous link, and `reference/packages` has no Next link.
 
-`test/topics.test.ts` reads the built pages. It fails on a page over 200 KiB of HTML, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic. The budget is 200 KiB (204,800 bytes; sizes in these docs are in bytes or KiB, 1 KiB being 1,024 bytes). Raise it only with a new measurement, recorded in the L12 todo, which holds the measurements. A collapsed group still holds every link in the HTML, so collapsing does not shrink a page: an API topic that nears the budget must be split into more topics or have modules dropped from its sidebar.
+`test/topics.test.ts` reads the built pages. It fails on a page over the budget, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic.
+
+The budget is 200 KiB of HTML per page (204,800 bytes; 1 KiB is 1,024 bytes). A collapsed group still holds every link in the HTML, so collapsing does not shrink a page. Split an API topic that nears the budget into more topics, or drop modules from its sidebar. Raise the budget only with a new measurement, and record it in the L12 todo's L12c measurements.
 
 ## The API reference is generated
 
