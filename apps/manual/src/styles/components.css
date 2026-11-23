@@ -1461,8 +1461,8 @@
   }
 }
 
-/* In forced colours the dots keep their own fill, so each colour still shows. The rings and borders use system colours,
-   which stay visible on the forced background, and the pressed colour's ring is Highlight. */
+/* In forced colours the dots keep their own fill, so a colour still shows, and the rings and borders are drawn in system
+   colours, which stay visible on the forced background. The pressed colour's ring is Highlight. */
 @media (forced-colors: active) {
   .notes-pop .notes-swatch::before {
     border-color: CanvasText;
@@ -1609,10 +1609,10 @@
 /* On a narrow window the popover is a bottom sheet: full width, rounded at the top, with a handle to swipe down. The
    quotation is cut to two lines. */
 .notes-pop[data-sheet]:popover-open {
-  /* The display applies only to an open popover: a closed one keeps data-sheet, and display: flex would otherwise beat
-     the rule above that hides it. The sheet is a flex column packed at the top, never a grid, so spare height cannot
-     stretch its rows apart. Its height is its content's, up to half the visual viewport, and it scrolls inside itself
-     past that. The script sets both custom properties; 50dvh stands in when it has not run. */
+  /* The sheet's display applies only while the popover is open (`:popover-open`); the script also clears `data-sheet`
+     and `data-compact` in `beforetoggle` when it closes, so a closed one has neither. A flex column packed at the top, never a grid, so a sheet taller than its content cannot stretch its rows apart.
+     The height is the content's up to half the visual viewport (the script sets both custom properties; 50dvh stands in
+     without it), and the sheet scrolls inside itself past that. */
   inset: auto 0 var(--notes-sheet-bottom, 0);
   display: flex;
   flex-direction: column;
@@ -1645,10 +1645,44 @@
   position: sticky;
   inset-block-start: -8px;
   z-index: 1;
-  block-size: 20px;
+  /* Tall enough for the Close button, so the colours below never sit under it. */
+  block-size: 44px;
   margin-block: -8px -4px;
   background-color: var(--color-background);
   touch-action: none;
+}
+
+/* The cross sits at the strip's right end, 44px square, clear of the safe area; the colours start below the strip. */
+.notes-pop__close {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: calc(max(4px, env(safe-area-inset-right)) - 16px);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.notes-pop__close svg {
+  inline-size: 20px;
+  block-size: 20px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* The ring hugs the 44px target, as the colours' does theirs. */
+.notes-pop__close:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px;
 }
 
 .notes-pop[data-sheet] .notes-pop__grab span {
@@ -1663,8 +1697,8 @@
   line-clamp: 2;
 }
 
-/* With the keyboard open the passage is on the page above the sheet, so the sheet drops its quotation. Its actions stay
-   at the sheet's foot whatever scrolls. */
+/* With the keyboard open the passage is on the page above the sheet, so the sheet drops its quotation, and its actions
+   stay at the sheet's foot whatever scrolls. */
 .notes-pop[data-sheet][data-compact] .notes-pop__quote {
   display: none;
 }
