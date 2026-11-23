@@ -49,6 +49,9 @@ const OLDER_RECORD = `${RECORD_PREFIX}older.json`;
 const SAVED_RECORD = `${RECORD_PREFIX}saved.json`;
 // A complete saved copy of an older build that install carried over, so the control can offer to update it.
 const PREVIOUS_RECORD = `${RECORD_PREFIX}previous.json`;
+// Written by REMOVE_ALL into every other build's cache: install carries nothing over from such a cache, and the cache's
+// own worker purges its saved copy when it activates.
+const REMOVED_RECORD = `${RECORD_PREFIX}removed.json`;
 // Written when a worker starts to install into its cache and cleared when it activates. A build's cache can be another
 // worker's older cache and a waiting worker's own at once, when a deploy brings back a build whose id is the same, so
 // no worker deletes a cache whose own worker is installing or waiting. A mark older than a day is from a worker that
@@ -484,10 +487,7 @@ export class OfflineWorker {
   // last write always holds the latest state.
   #write(path: string, value: () => unknown): Promise<void> {
     const next = this.#records.then(async () => {
-      await (await this.#cache()).put(
-        `${this.#deps.origin}${path}`,
-        new Response(JSON.stringify(value()), { headers: { "content-type": "application/json" } }),
-      );
+      await (await this.#cache()).put(`${this.#deps.origin}${path}`, jsonResponse(value()));
     });
     this.#records = next.catch(() => undefined);
     return next;
@@ -585,6 +585,8 @@ export class OfflineWorker {
     for (const name of await this.#deps.caches.keys()) {
       if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
       const older = await this.#deps.caches.open(name);
+      // The reader removed the saved copy since this cache was filled, so nothing in it is carried back.
+      if (await older.match(`${this.#deps.origin}${REMOVED_RECORD}`)) continue;
       const copy = savedRecord(
         await readJson(await older.match(`${this.#deps.origin}${SAVED_RECORD}`)),
         name.slice(CACHE_PREFIX.length),
@@ -628,6 +630,9 @@ export class OfflineWorker {
       else for (const id of kept) this.#olderClients.set(id, name);
     }
     this.#olderLoaded = true;
+    // The reader removed the saved copy while this build waited, after install had carried it over.
+    const cache = await this.#cache();
+    if (await cache.match(`${this.#deps.origin}${REMOVED_RECORD}`)) await this.#purge(cache);
     await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
     await this.#write(PENDING_RECORD, () => ({ since: null }));
     this.#activated = true;
@@ -938,9 +943,15 @@ export class OfflineWorker {
     // A later worker's activation deleted this cache. The files in flight may already have written it back with at
     // most one file each; the saved record is never written, and the next activation deletes that orphan cache.
     if (stopped === "gone") return { type: "SAVE_DONE", result: "partial", saved: null, failed: run.failed };
-    const complete = !run.cancelled && (await this.#storedPaths(cache)).size === this.#files.size;
+    // A cancel that came while the last file was in flight still leaves every file stored, which is a saved copy.
+    const complete = (await this.#storedPaths(cache)).size === this.#files.size;
     if (!complete) {
-      const reason = stopped === "quota" ? "quota" : undefined;
+      const reason =
+        stopped === "quota"
+          ? "quota"
+          : run.failed.some((problem) => problem.reason === "storage")
+            ? "storage"
+            : undefined;
       return {
         type: "SAVE_DONE",
         result: run.cancelled ? "cancelled" : "partial",
@@ -1004,19 +1015,36 @@ export class OfflineWorker {
       running.cancelled = true;
       await running.result.catch(() => undefined);
     }
-    const cache = await this.#cache();
+    await this.#purge(await this.#cache());
+    // Another build's cache can bring the copy back: a waiting build carried the files over and records them as
+    // `previous`, and an older cache an open tab still reads holds its saved record for the next install to find.
+    // This worker knows neither build's shell, so it deletes their records and marks them removed: install carries
+    // nothing over from a marked cache, and a marked cache's own worker purges it when it activates.
+    for (const name of await this.#deps.caches.keys()) {
+      if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
+      const other = await this.#deps.caches.open(name);
+      await other.delete(`${this.#deps.origin}${SAVED_RECORD}`);
+      await other.delete(`${this.#deps.origin}${PREVIOUS_RECORD}`);
+      await other.put(`${this.#deps.origin}${REMOVED_RECORD}`, jsonResponse({ at: this.#now() }));
+    }
+    await this.pruneOlder();
+    return { type: "REMOVED", removed: true };
+  }
+
+  // Deletes every file of this build's cache but the shell, the saved, previous and removed records, and the problems
+  // of the deleted files.
+  async #purge(cache: CacheLike): Promise<void> {
     const shell = new Set(this.#build.shell);
     for (const path of await this.#storedPaths(cache)) {
       if (!shell.has(path)) await cache.delete(`${this.#deps.origin}${path}`);
     }
-    await cache.delete(`${this.#deps.origin}${SAVED_RECORD}`);
-    await cache.delete(`${this.#deps.origin}${PREVIOUS_RECORD}`);
+    for (const record of [SAVED_RECORD, PREVIOUS_RECORD, REMOVED_RECORD]) {
+      await cache.delete(`${this.#deps.origin}${record}`);
+    }
     const problems = await this.#loadProblems();
     const before = problems.size;
     for (const path of [...problems.keys()]) if (!shell.has(path)) problems.delete(path);
     if (problems.size !== before) await this.#write(PROBLEMS_RECORD, () => Object.fromEntries(problems));
-    await this.pruneOlder();
-    return { type: "REMOVED", removed: true };
   }
 
   /**
@@ -1060,8 +1088,9 @@ export class OfflineWorker {
     const entries = [...(await this.#loadProblems())].filter(([path]) => this.#files.has(path));
     const origin = this.#deps.origin;
     const record = savedRecord(await readJson(await cache.match(`${origin}${SAVED_RECORD}`)), this.#build.build);
-    // A copy counts as saved only while the cache still holds every listed file, so an eviction shows as not saved.
-    const whole = record?.complete === true && saved.size === this.#files.size;
+    // A copy counts as saved only while the cache still holds every listed file, so an eviction shows as not saved. A
+    // full cache is saved even if its record says partial, as when the worker stopped before the closing write.
+    const whole = record !== null && saved.size === this.#files.size;
     const previous = whole ? null : previousRecord(await readJson(await cache.match(`${origin}${PREVIOUS_RECORD}`)));
     return {
       type: "STATUS",
@@ -1092,6 +1121,10 @@ function withoutType({ type: _type, ...rest }: SaveProgress): Omit<SaveProgress,
 
 function refused(reason: "not-active" | "busy"): SaveDone {
   return { type: "SAVE_DONE", result: "refused", reason, saved: null, failed: [] };
+}
+
+function jsonResponse(value: unknown): Response {
+  return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
 }
 
 async function readJson(response: Response | undefined): Promise<unknown> {

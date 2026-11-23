@@ -179,6 +179,7 @@ test("another refused write is reported as a storage problem and the save goes o
     key.endsWith("/chapter-5/") ? new DOMException("The operation is insecure.", "SecurityError") : null;
   const done = await worker.saveAll();
   assert.equal(done.result, "partial");
+  assert.equal(done.reason, "storage", "the answer names the refused write");
   assert.deepEqual(done.failed, [{ path: "/chapter-5/", reason: "storage" }]);
   assert.equal((await worker.status()).stored.files, FILES - 1);
 });
@@ -457,4 +458,71 @@ test("the worker listens only to a tab or window of its own origin, never to a f
   assert.ok(!fromBookWindow(ORIGIN, { origin: ORIGIN, source: null }), "a MessagePort or no source");
   assert.ok(!fromBookWindow(ORIGIN, { origin: ORIGIN, source: { ...page, url: "https://evil.example/" } }));
   assert.ok(!fromBookWindow(ORIGIN, { origin: ORIGIN, source: { ...page, url: "not a url" } }));
+});
+
+const B2_TEXTS = { ...TEXTS, "/glossary/": "<h1>Glossary, edited</h1>" };
+
+test("Remove while a new build waits also removes the copy that build carried over, so it is not offered back", async () => {
+  const caches = new FakeCaches();
+  const b1 = await active({}, { caches });
+  assert.equal((await b1.worker.saveAll()).result, "saved");
+  const network = new FakeNetwork(served(B2_TEXTS));
+  const b2 = new OfflineWorker(buildOf("b2", B2_TEXTS, SHELL), { origin: ORIGIN, caches, fetch: network.fetch });
+  await b2.install();
+  assert.deepEqual((await b2.status()).previous, { at: 1_000, build: "b1" }, "the waiting build carried the copy");
+  assert.deepEqual(await b1.worker.removeAll(), { type: "REMOVED", removed: true });
+  await b2.activate();
+  const status = await b2.status();
+  assert.equal(status.saved, null);
+  assert.equal(status.previous, null, "no Update the saved copy for a removed copy");
+  assert.equal(status.partial, null);
+  assert.equal(status.stored.files, SHELL.length, "the carried files are gone, the shell stays");
+});
+
+test("Remove marks an older cache an open tab still reads, so the next install carries nothing back from it", async () => {
+  const caches = new FakeCaches();
+  const old = await active({}, { caches }, buildOf("b0", TEXTS, SHELL));
+  assert.equal((await old.worker.saveAll()).result, "saved");
+  await (await caches.open("manual-b0")).put(`${ORIGIN}/__manual-offline__/clients.json`, ok('["tab-old"]'));
+  const { worker } = await active({}, { caches, openClients: async () => ["tab-old"] });
+  await worker.removeAll();
+  assert.ok(caches.stores.has("manual-b0"), "the open tab still reads it");
+  const network = new FakeNetwork(served(B2_TEXTS));
+  const b2 = new OfflineWorker(buildOf("b2", B2_TEXTS, SHELL), { origin: ORIGIN, caches, fetch: network.fetch });
+  await b2.install();
+  const status = await b2.status();
+  assert.equal(status.previous, null);
+  assert.equal(status.stored.files, SHELL.length, "nothing came back from the marked cache");
+});
+
+test("a Cancel that lands while the last file is in flight still leaves a saved copy", async () => {
+  const caches = new FakeCaches();
+  const first = await active({}, { caches });
+  await first.worker.saveAll();
+  await (await caches.open("manual-b1")).delete(`${ORIGIN}/glossary/`);
+  const gate = gated();
+  const worker = new OfflineWorker(buildOf("b1", TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: gate.fetch,
+    now: () => 3_000,
+  });
+  const saving = worker.saveAll();
+  await gate.release(0);
+  assert.equal(gate.waiting.length, 1, "only the glossary is left");
+  worker.cancelSave();
+  await gate.release();
+  const done = await saving;
+  assert.equal(done.result, "saved");
+  assert.deepEqual((await worker.status()).saved, { at: 3_000, build: "b1", files: FILES, bytes: BYTES });
+});
+
+test("a full cache whose closing record was never written reads as saved, not partly saved", async () => {
+  const { worker, cache } = await active();
+  await worker.saveAll();
+  // As if the browser stopped the worker between the last file and the closing record.
+  await (await cache()).put(`${ORIGIN}/__manual-offline__/saved.json`, ok('{"at":900,"build":"b1","complete":false}'));
+  const status = await worker.status();
+  assert.deepEqual(status.saved, { at: 900, build: "b1", files: FILES, bytes: BYTES });
+  assert.equal(status.partial, null);
 });
