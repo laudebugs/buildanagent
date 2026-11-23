@@ -10,7 +10,7 @@ Run each from the repo root.
 | --- | --- |
 | `pnpm --filter @buildanagent/manual build` | Builds the site into `apps/manual/dist/`, indexes the chapters with Pagefind, then writes the offline worker `sw.js` and its file list `offline-manifest.json` |
 | `pnpm --filter @buildanagent/manual dev` | Serves the site locally while you edit |
-| `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
+| `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including one full build into a temporary folder that `test/build.test.ts` and `test/offline-build.test.ts` share (`test/built-book.ts`, a Vitest global setup) |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
 | `pnpm --filter @buildanagent/manual audit:papers` | Reports how the chapters name each research paper in the register, and lists research names the register lacks; it writes nothing and never fails |
@@ -569,8 +569,9 @@ Seven test files cover the offline work:
 - `test/offline-save.test.ts` runs `SAVE_ALL`, `CANCEL_SAVE` and `REMOVE_ALL` against the same fakes: progress, a resumed save, a refused quota, two saves at once, a save during an update and the senders the worker ignores.
 - `test/save-offline.test.ts` runs the control in happy-dom against the worker's logic through a fake container, in each of its states.
 - `test/offline-register.test.ts` runs `offline.js` in happy-dom with a fake service worker container.
+- `test/build-isolation.test.ts` fails when a test file other than `test/built-book.ts` runs `astro build`, because `astro build` writes `.astro/.prerender` whatever `--outDir` says and two builds at once delete each other's chunks. It also runs the two build test files together from a clean `.astro` and fails on any skipped or failed test.
 - `test/offline-assets.test.ts` checks the manifest against the tokens, the icons' sizes and maskable safe zone, the favicon's hash and the headers.
-- `test/offline-build.test.ts` builds the fixture book through Pagefind and the offline step. It checks the list against `dist/` byte for byte, the build marks, the id, the shell, the stamped worker, the pages' head links and the deploy scripts' rules. A test on two fixture builds that differ in one stylesheet checks that saved pages carry over while a changed chapter does not.
+- `test/offline-build.test.ts` copies the shared fixture build and runs Pagefind and the offline step on the copy. It checks the list against `dist/` byte for byte, the build marks, the id, the shell, the stamped worker, the pages' head links and the deploy scripts' rules. A test on two fixture builds that differ in one stylesheet checks that saved pages carry over while a changed chapter does not.
 - `scripts/offline-verify-deployed.test.mjs` runs the post-deploy check against a local server.
 
 `pnpm --filter @buildanagent/manual check:offline` drives the worker in Chromium against a server that rewrites addresses as Cloudflare would. It lands on a chapter, checks that the worker saves it and the shell, and asks Chromium whether the book is installable. Offline, it opens the landing chapter, a rewritten chapter, a deep link, a page without its slash and an unsaved page, and runs two searches never run online. It saves a highlight and finally serves a changed build to check the update notice. It needs Playwright, so `pnpm test` does not run it.

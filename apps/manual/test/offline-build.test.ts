@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,22 +26,16 @@ import {
   BUILD_PLACEHOLDER as WORKER_PLACEHOLDER,
   withMark,
 } from "../src/offline/worker.js";
+import { builtBook } from "./built.js";
+import { nearestBin } from "./built-book.js";
 import { basic, FakeCaches, FakeNetwork } from "./offline-fakes.js";
 
-// Builds the fixture book the way `pnpm build` does, `astro build`, then Pagefind, then scripts/offline-build.mjs,
-// into a temporary folder, and checks what the offline step wrote: a file list that matches dist/ byte for byte, a
+// Takes the fixture book test/built-book.ts built once for the whole run, copies it to a temporary folder of its own
+// because Pagefind and the offline step write into it, and finishes it the way `pnpm build` does, Pagefind then
+// scripts/offline-build.mjs, and checks what the offline step wrote: a file list that matches dist/ byte for byte, a
 // worker that carries the build's id and list, and a site the deploy scripts still accept (ADR 0059).
 const app = fileURLToPath(new URL("..", import.meta.url));
-const fixtureBook = fileURLToPath(new URL("./fixtures/site/", import.meta.url));
 let out = "";
-
-function nearestBin(name: string): string {
-  for (let dir = app; dir !== dirname(dir); dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", ".bin", name);
-    if (existsSync(bin)) return bin;
-  }
-  throw new Error(`no node_modules/.bin/${name} above ${app}`);
-}
 
 interface Listed {
   url: string;
@@ -61,6 +55,7 @@ let manifest: OfflineManifest;
 
 beforeAll(async () => {
   out = mkdtempSync(join(tmpdir(), "manual-offline-"));
+  cpSync(builtBook(), out, { recursive: true });
   const home = mkdtempSync(join(tmpdir(), "manual-home-"));
   // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
   const env = {
@@ -69,11 +64,8 @@ beforeAll(async () => {
     TMPDIR: tmpdir(),
     LANG: process.env.LANG ?? "C.UTF-8",
     ASTRO_TELEMETRY_DISABLED: "1",
-    BOOK_FIXTURE_DIR: fixtureBook,
   };
-  const run = promisify(execFile);
-  await run(nearestBin("astro"), ["build", "--outDir", out], { cwd: app, env });
-  await run(nearestBin("pagefind"), ["--site", out], { cwd: app, env });
+  await promisify(execFile)(nearestBin("pagefind"), ["--site", out], { cwd: app, env });
   await writeOffline(out);
   manifest = JSON.parse(readFileSync(join(out, "offline-manifest.json"), "utf8"));
   rmSync(home, { recursive: true, force: true });
