@@ -3,13 +3,16 @@ import { readFileSync } from "node:fs";
 import { test } from "vitest";
 import { exampleSource, parseExampleRef } from "../src/plugins/example-code.js";
 import { isTypeScriptLang, pagePaths, readPages } from "../src/plugins/pages.js";
+import { showsTypeScriptThroughCode } from "./code-component.js";
 import { EXCEPTIONS } from "./exceptions.js";
 
 // Every TypeScript block on a docs page comes from a tested example file, so the docs never show code that no
 // package test runs. A page that must show a block of its own lists it in exceptions.ts with the reason.
 
 const typescriptFences = readPages().flatMap((page) =>
-  page.fences.filter((fence) => isTypeScriptLang(fence.lang)).map((fence) => ({ page: page.path, fence })),
+  page.fences
+    .filter((fence) => isTypeScriptLang(fence.lang))
+    .map((fence, index) => ({ page: page.path, fence, key: `${page.path}#${index + 1}` })),
 );
 
 test("the pages have TypeScript blocks, so the rule below is not vacuous", () => {
@@ -19,8 +22,8 @@ test("the pages have TypeScript blocks, so the rule below is not vacuous", () =>
 test("every TypeScript block on a docs page has a file fence from an examples folder", () => {
   const bare = typescriptFences
     .filter(({ fence }) => parseExampleRef(fence.meta) === undefined)
-    .map(({ page, fence }) => `${page}:${fence.line}`)
-    .filter((where) => !EXCEPTIONS.has(where));
+    .filter(({ key }) => !EXCEPTIONS.has(key))
+    .map(({ page, fence }) => `${page}:${fence.line}`);
   assert.deepEqual(
     bare,
     [],
@@ -36,8 +39,13 @@ test("every file fence names an example file whose region exists", () => {
 });
 
 test("a listed exception still names a block that exists", () => {
-  const where = new Set(typescriptFences.map(({ page, fence }) => `${page}:${fence.line}`));
-  for (const key of EXCEPTIONS.keys()) assert.ok(where.has(key), `${key} is no longer a TypeScript block`);
+  const where = new Set(typescriptFences.map(({ key }) => key));
+  for (const key of EXCEPTIONS.keys()) {
+    assert.ok(
+      where.has(key),
+      `${key} names no TypeScript block: keys are "<page path>#<n>", the n-th block on the page`,
+    );
+  }
 });
 
 test("the language check ignores case", () => {
@@ -45,16 +53,8 @@ test("the language check ignores case", () => {
   for (const lang of ["js", "json", "bash", ""]) assert.ok(!isTypeScriptLang(lang), lang);
 });
 
-// MDX can pass code to a component as a prop, as in `<Code code={...} lang="ts" />`. That is no fence, so the rules
-// above cannot see it; a page that shows TypeScript uses a file fence instead.
-const CODE_COMPONENT = /<Code\b[^>]*?\blang=(?:"([^"]*)"|'([^']*)'|\{["']([^"']*)["']\})/gi;
-
 test("no docs page shows TypeScript through a Code component", () => {
-  const found = pagePaths().flatMap((path) =>
-    [...readFileSync(path, "utf8").matchAll(CODE_COMPONENT)]
-      .filter((m) => isTypeScriptLang(m[1] ?? m[2] ?? m[3] ?? ""))
-      .map(() => path),
-  );
+  const found = pagePaths().filter((path) => showsTypeScriptThroughCode(readFileSync(path, "utf8")));
   assert.deepEqual(
     found,
     [],
@@ -63,7 +63,21 @@ test("no docs page shows TypeScript through a Code component", () => {
 });
 
 test("the Code component check finds a ts lang prop, however it is written", () => {
-  for (const tag of ['<Code code="x" lang="ts" />', "<Code lang='TypeScript' code={x} />", '<Code lang={"tsx"} />']) {
-    assert.ok([...tag.matchAll(CODE_COMPONENT)].length === 1, tag);
+  for (const tag of [
+    '<Code code="x" lang="ts" />',
+    "<Code lang='TypeScript' code={x} />",
+    '<Code lang={"tsx"} />',
+    '<Code code={fn((a) => a)} lang="ts" />',
+    '<Code code={`a > b`} lang="ts">',
+    "<Code\n  code={{ a: 1 }}\n  lang={ 'ts' }\n/>",
+  ]) {
+    assert.ok(showsTypeScriptThroughCode(tag), tag);
+  }
+  for (const tag of [
+    '<Code code="x" lang="json" />',
+    '<Code code={fn((a) => a)} lang="bash" />',
+    '<Codex lang="ts" />',
+  ]) {
+    assert.ok(!showsTypeScriptThroughCode(tag), tag);
   }
 });

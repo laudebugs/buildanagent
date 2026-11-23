@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { defaultCatalog, findCatalogEntry } from "@buildanagent/gateway";
 import { test } from "vitest";
 import { lookupOrderTool } from "../examples/lookup-order-tool.js";
 import { answerOrderQuestion } from "../examples/order-agent.js";
@@ -105,6 +106,20 @@ test("the make-openai-model example binds the OpenAI adapter to one model id", a
   const { makeOpenAiModel } = await import("../examples/make-openai-model.js");
   const model = makeOpenAiModel("test-key");
   assert.deepEqual(model.ref, { api: "openai-chat", provider: "openai", id: "gpt-5.4-mini" });
+});
+
+// A page shows each id, so an id the price catalog lacks or has retired would send readers to a model that fails.
+test("the model ids the make-model examples bind are in the price catalog and not retired", async () => {
+  const { makeModel } = await import("../examples/make-model.js");
+  const { makeOpenAiModel } = await import("../examples/make-openai-model.js");
+  for (const model of [makeModel("test-key"), makeOpenAiModel("test-key")]) {
+    const entry = findCatalogEntry(defaultCatalog, model.ref.provider, model.ref.id);
+    assert.ok(entry, `${model.ref.provider}/${model.ref.id} is not in the price catalog`);
+    assert.ok(
+      entry.retires === undefined || entry.retires > new Date().toISOString().slice(0, 10),
+      `${model.ref.id} retired on ${entry.retires}`,
+    );
+  }
 });
 
 // The example runs in its own process, because the vitest setup has already blocked fetch in this one and would hide
