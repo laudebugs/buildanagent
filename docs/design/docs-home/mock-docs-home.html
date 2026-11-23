@@ -1,0 +1,172 @@
+<title>Buildanagent Docs Home Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap">
+<style>
+/* Layout: a switcher bar, then one full landing-page mock at a time (three directions). Every mock uses the chosen prompt logo and the manual's tokens (docs/design/book-tokens.json), so each can be built on the same palette. */
+:root {
+  --page: #FAF3E8; --text: #2A1E16; --soft: #4A3B2F; --muted: #6B5B4D; --accent: #B04E29; --panel: #F3EADB; --rule: #E4D6C2; --ink: #17110D; --ink-text: #F4EADC; --ink-accent: #E8A27C; --ink-rule: #3A2B20; --ink-muted: #A8968A;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: Literata, Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #2A1E16; --text: #F4EADC; --soft: #D9C9B6; --muted: #A8968A; --accent: #E8A27C; --panel: #17110D; --rule: #3A2B20; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #2A1E16; --text: #F4EADC; --soft: #D9C9B6; --muted: #A8968A; --accent: #E8A27C; --panel: #17110D; --rule: #3A2B20; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--text); font: 16px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 64px; }
+.eyebrow { font: 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1.t { font: 400 clamp(30px, 5vw, 44px)/1.05 var(--display); margin: 8px 0; text-wrap: balance; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 12px; }
+.bar button { font: 13px/1 var(--mono); padding: 11px 14px; border: 1px solid var(--rule); background: var(--panel); color: var(--text); cursor: pointer; }
+.bar button[aria-selected="true"] { background: var(--accent); color: var(--page); border-color: var(--accent); }
+.bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.blurb { color: var(--soft); max-width: 72ch; margin: 0 0 16px; font-size: 15px; }
+.frame { border: 1px solid var(--rule); overflow: hidden; }
+.pg[hidden] { display: none; }
+.pg a { color: inherit; }
+.mark { width: 28px; height: 28px; flex: none; } .mark path, .mark rect { vector-effect: non-scaling-stroke; }
+.sfg { stroke: currentColor; fill: none; } .sac { stroke: var(--a); fill: none; }
+nav.top { display: flex; align-items: center; gap: 18px; padding: 14px 22px; flex-wrap: wrap; }
+nav.top .brand { display: flex; gap: 9px; align-items: center; font: 400 22px/1 var(--display); margin-right: auto; }
+nav.top .brand i { font-style: normal; color: var(--a); }
+nav.top a { font: 13px/1 var(--mono); text-decoration: none; opacity: .85; }
+.btn { display: inline-block; font: 600 13px/1 var(--mono); padding: 13px 18px; text-decoration: none; border: 1px solid currentColor; }
+.btn.p { background: var(--a); border-color: var(--a); color: var(--bg); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+pre { margin: 0; font: 13px/1.6 var(--mono); overflow-x: auto; }
+.pkgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+.pkg { padding: 14px; border: 1px solid var(--line); min-width: 0; }
+.pkg b { font: 600 13px/1.3 var(--mono); display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+.pkg span { font-size: 14px; opacity: .85; }
+.foot { padding: 18px 22px; font: 12px/1.5 var(--mono); opacity: .75; display: flex; gap: 16px; flex-wrap: wrap; }
+
+
+/* Hybrid of Textbook (cream paper, serif, flat figures) and Blueprint (ruled panels, isometric stack). One shared scope, three layouts. */
+.H { --bg: #FAF3E8; --fg: #2A1E16; --a: #B04E29; --line: #2A1E16; --soft2: #6B5B4D; --cell: #F3EADB; --hair: #E4D6C2; background: var(--bg); color: var(--fg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .H { --bg: #2A1E16; --fg: #F4EADC; --a: #E8A27C; --line: #F4EADC; --soft2: #A8968A; --cell: #17110D; --hair: #3A2B20; } }
+:root[data-theme="dark"] .H { --bg: #2A1E16; --fg: #F4EADC; --a: #E8A27C; --line: #F4EADC; --soft2: #A8968A; --cell: #17110D; --hair: #3A2B20; }
+.H h2 { font: 400 clamp(36px, 5.8vw, 64px)/1 var(--display); margin: 14px 0; text-wrap: balance; }
+.H h2 em { color: var(--a); }
+.H h3 { font: 400 28px/1.1 var(--display); margin: 0 0 14px; text-wrap: balance; }
+.H .lead { max-width: 46ch; color: var(--soft2); margin: 0 0 22px; font-size: 17px; }
+.H .cap { font: 12px/1.4 var(--mono); color: var(--soft2); margin-top: 8px; }
+.H svg.iso { width: min(100%, 360px); height: auto; }
+.H .pkg { border-color: var(--hair); background: var(--cell); }
+.H .n { font: 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--a); }
+.H .cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.H .cells > div { padding: 20px 22px; border-left: 1px solid var(--line); }
+.H .cells > div:first-child { border-left: 0; }
+.H .cells b { display: block; font: 400 24px/1.1 var(--display); margin: 8px 0 6px; }
+.H .cells p { margin: 0; font-size: 14.5px; color: var(--soft2); }
+@media (max-width: 760px) { .H .cells > div { border-left: 0; border-top: 1px solid var(--line); } .H .cells > div:first-child { border-top: 0; } }
+.H section.s { padding: 30px 22px; }
+/* V1: split hero, ruled panel on the right */
+.V1 .hero { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.V1 .hero > div { padding: 46px 22px; min-width: 0; }
+.V1 .hero > figure { margin: 0; padding: 22px; display: grid; place-items: center; align-content: center; background: var(--cell); border-left: 1px solid var(--line); }
+@media (max-width: 760px) { .V1 .hero { grid-template-columns: 1fr; } .V1 .hero > figure { border-left: 0; border-top: 1px solid var(--line); } }
+/* V2: centred headline, full-width figure with labelled callouts */
+.V2 .hero { text-align: center; padding: 50px 22px 16px; }
+.V2 .hero .lead { margin-inline: auto; }
+.V2 .hero .row { justify-content: center; }
+.V2 .wide { margin: 10px 22px 26px; border: 1px solid var(--line); background: var(--cell); padding: 18px; }
+.V2 .wide svg { width: 100%; height: auto; display: block; }
+/* V3: book layout, a contents rail and chapter sections */
+.V3 .book { display: grid; grid-template-columns: 220px minmax(0, 1fr); border-top: 1px solid var(--line); }
+.V3 .toc { padding: 24px 22px; border-right: 1px solid var(--line); font: 13px/1.5 var(--mono); }
+.V3 .toc ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.V3 .toc li a { text-decoration: none; display: flex; gap: 8px; }
+.V3 .toc li a span { color: var(--a); min-width: 1.4em; }
+.V3 .main { min-width: 0; }
+.V3 .hero { padding: 40px 28px 28px; display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px; align-items: center; }
+.V3 .ch { padding: 26px 28px; border-top: 1px solid var(--hair); display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 16px; }
+.V3 .ch .no { font: 400 54px/1 var(--display); color: var(--a); }
+.V3 .ch p { margin: 4px 0 8px; font-size: 15.5px; color: var(--soft2); max-width: 58ch; }
+.V3 .ch code { font: 12.5px/1.4 var(--mono); background: var(--cell); border: 1px solid var(--hair); padding: 2px 7px; }
+@media (max-width: 760px) { .V3 .book { grid-template-columns: 1fr; } .V3 .toc { border-right: 0; border-bottom: 1px solid var(--line); } .V3 .hero { grid-template-columns: 1fr; } .V3 .ch { grid-template-columns: 1fr; gap: 4px; } }
+
+.H svg text { stroke: none; }
+.V2b .hero { padding: 46px 22px 22px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px; align-items: end; border-top: 1px solid var(--line); }
+.V2b .hero { text-align: left; }
+.V2b .hero .lead { margin-inline: 0; }
+.V2b .hero .row { justify-content: flex-start; }
+.V2b .hero h2 { margin: 12px 0 0; }
+.V2b .hero .lead { margin: 0 0 16px; }
+.V2b .wide { margin: 0; border-left: 0; border-right: 0; }
+.V2b .cells > div { display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 12px; }
+.V2b .cells .dot { grid-row: span 3; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--a); color: var(--a); font: 600 13px/1 var(--mono); display: grid; place-items: center; margin-top: 2px; }
+.V2b .cells .n { display: none; }
+.V2b .cells b { margin: 0 0 4px; }
+@media (max-width: 760px) { .V2b .hero { grid-template-columns: 1fr; } }
+
+.H .search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--hair); background: var(--cell); padding: 8px 12px; font: 13px/1 var(--mono); color: var(--soft2); min-width: 150px; }
+.H .search kbd { margin-left: auto; font: 11px/1 var(--mono); border: 1px solid var(--hair); padding: 3px 5px; }
+.H .brand small { font: 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--soft2); border-left: 1px solid var(--soft2); padding-left: 10px; margin-left: 4px; }
+.D .center { text-align: center; padding: 48px 22px 20px; }
+.D .center .lead { margin-inline: auto; } .D .center .row { justify-content: center; }
+.D pre.code { white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; margin: 0; padding: 14px 16px; background: var(--cell); border: 1px solid var(--hair); font: 13px/1.6 var(--mono); overflow-x: auto; }
+.D .code .c { color: var(--soft2); } .D .code .k { color: var(--a); }
+.D .sec { padding: 26px 22px; border-top: 1px solid var(--line); }
+.D .cardgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.D .card { border: 1px solid var(--line); background: var(--cell); padding: 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.D .card .n { font: 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--a); }
+.D .card b { font: 400 23px/1.15 var(--display); }
+.D .card p { margin: 0; font-size: 14.5px; color: var(--soft2); }
+.D .card .go { margin-top: auto; padding-top: 8px; font: 600 12.5px/1 var(--mono); color: var(--a); }
+.D .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--line); }
+.D .split > div { padding: 40px 22px; min-width: 0; } .D .split > div + div { border-left: 1px solid var(--line); background: var(--cell); }
+.D table.q { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.D table.q th { font: 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--a); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.D table.q td a { white-space: nowrap; }
+.D table.q td { padding: 12px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+.D table.q td:first-child { font: 600 13px/1.4 var(--mono); }
+.D .tablewrap { overflow-x: auto; }
+.D .shell { display: grid; grid-template-columns: 200px minmax(0, 1fr); border-top: 1px solid var(--line); }
+.D .side { padding: 20px 16px; border-right: 1px solid var(--line); font: 13px/1.5 var(--mono); display: grid; gap: 4px; align-content: start; }
+.D .side .grp { margin-top: 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--a); }
+.D .side a { text-decoration: none; padding: 3px 0; }
+.D .side a.cur { color: var(--a); font-weight: 600; }
+@media (max-width: 760px) { .D .split, .D .shell { grid-template-columns: 1fr; } .D .split > div + div, .D .side { border-left: 0; border-right: 0; border-top: 1px solid var(--line); } }
+#B2 .split > div + div { display: flex; flex-direction: column; }
+#B2 .split > div + div > div:last-child { flex: 1; display: grid; grid-auto-rows: 1fr; }
+#B2 .split > div + div .card { justify-content: center; }
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="logo" viewBox="0 0 64 64"><rect x="7" y="7" width="50" height="50" rx="11" fill="none" stroke="currentColor" stroke-width="5"/><path d="M21 23L34 32L21 41" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 43H48" fill="none" stroke="var(--a)" stroke-width="5" stroke-linecap="round"/></symbol>
+</defs></svg>
+
+<div class="wrap">
+  <div class="eyebrow">docs.buildanagent.fyi · home page</div>
+  <h1 class="t">Three docs home designs</h1>
+  <div class="bar" role="tablist" aria-label="Designs"><button role="tab" data-k="A" aria-selected="true">A · Package cards</button><button role="tab" data-k="B" aria-selected="false">B · Choose a job</button><button role="tab" data-k="B2" aria-selected="false">B2 · Choose a job, hero filled</button><button role="tab" data-k="C" aria-selected="false">C · Index table</button></div>
+  <p class="blurb" id="blurb"></p>
+  <div class="frame"><div class="pg H D" id="A"><nav class="top"><span class="brand"><svg class="mark" viewBox="0 0 64 64"><use href="#logo"/></svg>Build An Agent<small>docs</small></span><span class="search">Search the docs <kbd>/</kbd></span><a href="#">Manual</a><a href="#">Site</a><a href="#">GitHub</a></nav>
+<div class="center"><div class="eyebrow">Documentation · alpha</div><h2>Build An Agent <em>docs</em></h2><p class="lead">Quick starts, guides and the API reference for the six packages. Pick the one you need, or start with the gateway and work up.</p><pre class="code"><span class="c"># the alpha tag; stable comes later</span>
+<span class="k">pnpm add</span> @buildanagent/sdk@alpha @buildanagent/gateway@alpha</pre></div>
+<div class="sec"><h3>Start with a package</h3><div class="cardgrid"><a class="card" href="#" style="text-decoration:none"><div class="n">Gateway</div><b>Call models the same way</b><p>Streams replies, retries failed requests, sets prompt caching and prices each call.</p><span class="go">Quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">SDK</div><b>Run the agent loop</b><p>Turns, tools and the conditions that stop a run.</p><span class="go">Quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Harness</div><b>Add tools and sessions</b><p>The session log, built-in tools, MCP servers and extensions.</p><span class="go">Quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Agent safety</div><b>Check approvals and cap spend</b><p>Typed write outcomes, signed approvals and a cost cap.</p><span class="go">Quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Protocol</div><b>Read the session events</b><p>The session log and client messages that front ends read.</p><span class="go">Quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">CLI</div><b>Run it in a terminal</b><p>Runs the harness from the command line.</p><span class="go">Quick start →</span></a></div></div>
+<div class="sec"><h3>Learn the ideas</h3><p class="lead" style="max-width:60ch">The manual teaches how agents work, with runnable listings from eight SDKs. Read it beside the docs.</p><div class="row"><a class="btn" href="#">Open the manual</a><a class="btn" href="#">Read the guides</a></div></div></div><div class="pg H D" id="B" hidden><nav class="top"><span class="brand"><svg class="mark" viewBox="0 0 64 64"><use href="#logo"/></svg>Build An Agent<small>docs</small></span><span class="search">Search the docs <kbd>/</kbd></span><a href="#">Manual</a><a href="#">Site</a><a href="#">GitHub</a></nav>
+<div class="split"><div><div class="eyebrow">Documentation · alpha</div><h2>What do you want to build?</h2><p class="lead">Choose the job and the docs take you to the right package, with a quick start you can run.</p><pre class="code"><span class="c"># the alpha tag; stable comes later</span>
+<span class="k">pnpm add</span> @buildanagent/sdk@alpha @buildanagent/gateway@alpha</pre></div>
+<div><div class="n" style="font:11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--a);margin-bottom:10px">Four ways in</div><div style="display:grid;gap:10px"><a class="card" href="#" style="text-decoration:none"><div class="n">Path 1</div><b>I want to call a model</b><p>Send one request and read its streamed reply, cost and cache use.</p><span class="go">Gateway quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Path 2</div><b>I want an agent that uses tools</b><p>Define a tool, run the loop and see why it stopped.</p><span class="go">SDK quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Path 3</div><b>I want sessions, approvals and a safe default</b><p>Keep a session log, gate risky calls and cap spend.</p><span class="go">Harness quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Path 4</div><b>I want a front end or a terminal client</b><p>Read the events a session emits, or run it from the command line.</p><span class="go">Protocol and CLI quick starts →</span></a></div></div></div>
+<div class="sec"><h3>All six packages</h3><div class="pkgs"><div class="pkg"><b>@buildanagent/gateway</b><span>Call models the same way.</span></div><div class="pkg"><b>@buildanagent/sdk</b><span>Run the agent loop.</span></div><div class="pkg"><b>@buildanagent/harness</b><span>Add tools and sessions.</span></div><div class="pkg"><b>@buildanagent/agent-safety</b><span>Check approvals and cap spend.</span></div><div class="pkg"><b>@buildanagent/protocol</b><span>Read the session events.</span></div><div class="pkg"><b>@buildanagent/cli</b><span>Run it in a terminal.</span></div></div></div></div><div class="pg H D" id="B2" hidden><nav class="top"><span class="brand"><svg class="mark" viewBox="0 0 64 64"><use href="#logo"/></svg>Build An Agent<small>docs</small></span><span class="search">Search the docs <kbd>/</kbd></span><a href="#">Manual</a><a href="#">Site</a><a href="#">GitHub</a></nav>
+<div class="split"><div><div style="display:flex;flex-direction:column;gap:22px;height:100%"><div><div class="eyebrow">Documentation · alpha</div><h2>What do you want to build?</h2><p class="lead">Choose the job and the docs take you to the right package, with a quick start you can run.</p></div><pre class="code"><span class="c"># the alpha tag; stable comes later</span>
+<span class="k">pnpm add</span> @buildanagent/sdk@alpha @buildanagent/gateway@alpha</pre><div style="flex:1;display:flex;flex-direction:column;justify-content:center;border-top:1px solid var(--hair);padding-top:18px"><div class="n" style="font:11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--a);margin-bottom:10px">The three layers</div><svg viewBox="34 0 376 250" role="img" aria-label="The three layers from top to bottom: harness, loop, gateway" style="width:100%;height:auto;display:block"><g stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" font-family="ui-monospace,Menlo,monospace" font-size="11"><path d="M100 4L160 34L100 64L40 34Z" fill="var(--cell)"/><path d="M40 34L100 64V76L40 46Z" fill="var(--bg)"/><path d="M100 64L160 34V46L100 76Z" fill="var(--bg)"/><text x="100" y="38" text-anchor="middle" fill="currentColor" stroke="none">harness</text><path d="M100 84L160 114L100 144L40 114Z" fill="var(--a)"/><path d="M40 114L100 144V156L40 126Z" fill="var(--bg)"/><path d="M100 144L160 114V126L100 156Z" fill="var(--bg)"/><text x="100" y="118" text-anchor="middle" fill="var(--bg)" stroke="none">loop (sdk)</text><path d="M100 164L160 194L100 224L40 194Z" fill="var(--cell)"/><path d="M40 194L100 224V236L40 206Z" fill="var(--bg)"/><path d="M100 224L160 194V206L100 236Z" fill="var(--bg)"/><text x="100" y="198" text-anchor="middle" fill="currentColor" stroke="none">gateway</text></g><g font-family="ui-monospace,Menlo,monospace" font-size="12" fill="currentColor"><path d="M175 34H200M175 114H200M175 194H200" stroke="var(--a)" stroke-width="2"/><text x="208" y="38">tools, sessions, approvals</text><text x="208" y="118">model calls and tool calls</text><text x="208" y="198">streaming, retries, cost</text></g></svg></div><div class="row" style="gap:18px;margin-top:6px;font:13px/1 var(--mono)"><a href="#">Read the manual</a><a href="#">All guides</a><a href="#">API reference</a><a href="#">Changelog</a></div></div></div>
+<div><div class="n" style="font:11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--a);margin-bottom:10px">Four ways in</div><div style="display:grid;gap:10px"><a class="card" href="#" style="text-decoration:none"><div class="n">Path 1</div><b>I want to call a model</b><p>Send one request and read its streamed reply, cost and cache use.</p><span class="go">Gateway quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Path 2</div><b>I want an agent that uses tools</b><p>Define a tool, run the loop and see why it stopped.</p><span class="go">SDK quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Path 3</div><b>I want sessions, approvals and a safe default</b><p>Keep a session log, gate risky calls and cap spend.</p><span class="go">Harness quick start →</span></a><a class="card" href="#" style="text-decoration:none"><div class="n">Path 4</div><b>I want a front end or a terminal client</b><p>Read the events a session emits, or run it from the command line.</p><span class="go">Protocol and CLI quick starts →</span></a></div></div></div>
+<div class="sec"><h3>All six packages</h3><div class="pkgs"><div class="pkg"><b>@buildanagent/gateway</b><span>Call models the same way.</span></div><div class="pkg"><b>@buildanagent/sdk</b><span>Run the agent loop.</span></div><div class="pkg"><b>@buildanagent/harness</b><span>Add tools and sessions.</span></div><div class="pkg"><b>@buildanagent/agent-safety</b><span>Check approvals and cap spend.</span></div><div class="pkg"><b>@buildanagent/protocol</b><span>Read the session events.</span></div><div class="pkg"><b>@buildanagent/cli</b><span>Run it in a terminal.</span></div></div></div></div><div class="pg H D" id="C" hidden><nav class="top"><span class="brand"><svg class="mark" viewBox="0 0 64 64"><use href="#logo"/></svg>Build An Agent<small>docs</small></span><span class="search">Search the docs <kbd>/</kbd></span><a href="#">Manual</a><a href="#">Site</a><a href="#">GitHub</a></nav>
+<div class="shell"><aside class="side"><span class="grp">Start</span><a class="cur" href="#">Overview</a><a href="#">Install the alpha</a><a href="#">What the SDK is</a><span class="grp">Packages</span><a href="#">Gateway</a><a href="#">SDK</a><a href="#">Harness</a><a href="#">Agent safety</a><a href="#">Protocol</a><a href="#">CLI</a><span class="grp">Reference</span><a href="#">API reference</a><a href="#">Changelog</a></aside>
+<div><div class="center" style="text-align:left;padding:34px 24px 16px"><div class="eyebrow">Documentation · alpha</div><h2 style="font-size:clamp(34px,5vw,52px)">Everything in one place, by package</h2><p class="lead" style="margin-inline:0">Each row links a package's quick start, its guides and its API reference. The sidebar holds one package at a time, so pages stay light.</p><pre class="code"><span class="c"># the alpha tag; stable comes later</span>
+<span class="k">pnpm add</span> @buildanagent/sdk@alpha @buildanagent/gateway@alpha</pre></div>
+<div class="sec" style="padding-top:8px"><div class="tablewrap"><table class="q"><thead><tr><th>Package</th><th>What it does</th><th>Start</th><th>Learn</th><th>Look up</th></tr></thead><tbody><tr><td>gateway</td><td>Streams replies, retries failed requests, sets prompt caching and prices each call.</td><td><a href="#">Quick start</a></td><td><a href="#">Guides</a></td><td><a href="#">API reference</a></td></tr><tr><td>sdk</td><td>Turns, tools and the conditions that stop a run.</td><td><a href="#">Quick start</a></td><td><a href="#">Guides</a></td><td><a href="#">API reference</a></td></tr><tr><td>harness</td><td>The session log, built-in tools, MCP servers and extensions.</td><td><a href="#">Quick start</a></td><td><a href="#">Guides</a></td><td><a href="#">API reference</a></td></tr><tr><td>agent-safety</td><td>Typed write outcomes, signed approvals and a cost cap.</td><td><a href="#">Quick start</a></td><td><a href="#">Guides</a></td><td><a href="#">API reference</a></td></tr><tr><td>protocol</td><td>The session log and client messages that front ends read.</td><td><a href="#">Quick start</a></td><td><a href="#">Guides</a></td><td><a href="#">API reference</a></td></tr><tr><td>cli</td><td>Runs the harness from the command line.</td><td><a href="#">Quick start</a></td><td><a href="#">Guides</a></td><td><a href="#">API reference</a></td></tr></tbody></table></div></div></div></div></div></div>
+  <p class="blurb" style="margin-top:14px">Copy is layout text; the real page's claims will come from the READMEs and be fact-checked. The header shows the new links (Manual, Site, GitHub) and the "Build An Agent docs" wordmark.</p>
+</div>
+<script>
+var notes={A:"A · Package cards. A centred welcome with the install line, then six cards, one per package, each leading to its quick start. The simplest, and closest to the site's landing page.",B:"B · Choose a job. Starts from what a reader wants to do and routes them to a package: call a model, run tools, add sessions and approvals, build a front end. Best for first-time readers.",B2:"B2 · Choose a job, hero filled. The same page, with the empty space under the install line filled by a small figure of the three layers and links to the manual, guides, API reference and changelog, pinned to the bottom so the two columns end together.",C:"C · Index table. A reference-style home: a sidebar peek and one table with Start, Learn and Look up links per package. Densest, and the most like the docs once a reader is inside."};
+var tabs=Array.prototype.slice.call(document.querySelectorAll(".bar button"));
+function show(k){tabs.forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.k===k));});["A","B","B2","C"].forEach(function(x){document.getElementById(x).hidden=x!==k;});document.getElementById("blurb").textContent=notes[k];}
+tabs.forEach(function(b){b.addEventListener("click",function(){show(b.dataset.k);});});show("A");
+</script>
