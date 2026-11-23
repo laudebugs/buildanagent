@@ -1639,6 +1639,44 @@ test("Add note on a passage below the window scrolls the passage itself into vie
   }
 });
 
+test("Add note on a passage above the window, with a phone header slid away, scrolls up past the header's full height", () => {
+  const { win } = stage([CONTRACT]);
+  layout(win, { ...RECTS, [SELECTED]: [rect(20, -300, 120, -280)] });
+  const root = win.document.documentElement;
+  root.style.setProperty("--header-height", "52px");
+  root.setAttribute("data-header-hidden", "");
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+  const scrolls: number[] = [];
+  Object.defineProperty(win, "scrollBy", { configurable: true, value: (_x: number, y: number) => scrolls.push(y) });
+  addNote(win);
+  // An upward scroll brings the header back, so the line lands 16px below where it will be: -300 - 52 - 16.
+  assert.deepEqual(scrolls, [-368]);
+});
+
+test("the popover and the toolbar are placed again when the phone header slides back or away", async () => {
+  const { win } = stage([CONTRACT]);
+  const at: { rects: Rect[] } = { rects: [rect(20, 30, 120, 50)] };
+  vi.spyOn(win.Range.prototype, "getClientRects").mockImplementation(function (this: Range) {
+    const text = this.toString().replace(/\s+/g, " ");
+    return (text === SELECTED ? at.rects : ((RECTS as Record<string, Rect[]>)[text] ?? [])) as never;
+  } as never);
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+  const root = win.document.documentElement;
+  root.style.setProperty("--header-height", "52px");
+  root.setAttribute("data-header-hidden", "");
+  addNote(win);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  assert.equal(pop.style.top, "58px", "under the passage, with the header away");
+  assert.equal(pop.hasAttribute("data-offscreen"), false);
+  // The header's script shows it again a frame later: the passage is now under it.
+  root.removeAttribute("data-header-hidden");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(pop.hasAttribute("data-offscreen"), true, "the passage under the header counts as away");
+  root.setAttribute("data-header-hidden", "");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(pop.hasAttribute("data-offscreen"), false, "and it shows again when the header slides away");
+});
+
 test("the popover and the toolbar stay below the sticky header, and a passage under the header counts as away", () => {
   const { win } = stage([CONTRACT]);
   const at: { rects: Rect[] } = { rects: [rect(120, 600, 220, 620)] };

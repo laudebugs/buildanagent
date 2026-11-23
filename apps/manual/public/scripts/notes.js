@@ -768,6 +768,13 @@ class Notes {
       this.resizer.observe(article);
     }
     whenFontsLoad(this.doc, () => this.refit());
+    // The header's script slides a phone header away and back a frame after the scroll that decided it, so the toolbar
+    // and the popover are placed again whenever it does: their top limit moved.
+    this.headerWatch = new win.MutationObserver(() => {
+      this.position();
+      this.placePop();
+    });
+    this.headerWatch.observe(this.doc.documentElement, { attributes: true, attributeFilter: ["data-header-hidden"] });
   }
 
   /** Reads this chapter's highlights from storage, and whether the stored value is one this page must not overwrite. */
@@ -1791,7 +1798,9 @@ class Notes {
       const lines = [...range.getClientRects()];
       const clear = this.headerClear();
       const away = lines.length > 0 && (lines[lines.length - 1].bottom < clear || lines[0].top > win.innerHeight);
-      if (away) win.scrollBy?.(0, Math.round(lines[0].top - clear - 16));
+      // A phone header slid away comes back on any upward scroll, so a scroll up makes room for its full height.
+      const up = away && lines[0].top - clear - 16 < 0;
+      if (away) win.scrollBy?.(0, Math.round(lines[0].top - (up ? this.headerHeight() : clear) - 16));
       this.placePop();
     }
     // iOS Safari opens the keyboard only for a focus() made inside the tap that asked for it, so the field takes focus
@@ -1884,8 +1893,12 @@ class Notes {
    * a phone's header is slid away (`data-header-hidden` on the root) or on a page without one.
    */
   headerClear() {
+    return this.doc.documentElement.hasAttribute("data-header-hidden") ? 0 : this.headerHeight();
+  }
+
+  /** The sticky header's height, `--header-height`, whether it shows or not, or 0 on a page without one. */
+  headerHeight() {
     const root = this.doc.documentElement;
-    if (root.hasAttribute("data-header-hidden")) return 0;
     const value = Number.parseFloat(this.win.getComputedStyle?.(root)?.getPropertyValue("--header-height") ?? "");
     return Number.isFinite(value) && value > 0 ? value : 0;
   }

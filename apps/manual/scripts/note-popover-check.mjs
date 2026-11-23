@@ -13,7 +13,8 @@
 //    note another tab put on the same passage;
 //  - in a 1280x420 window the toolbar and the popover stay below the sticky header, and a passage below the fold of a
 //    paragraph taller than the window is scrolled into view with its popover shown; on an iPhone 14 the sheet's reveal
-//    keeps the passage's first line below the header;
+//    keeps the passage's first line below the header; in a 700x800 window, where the header slides away but the popover
+//    is not a sheet, Add note on a passage above the window brings the header back and ends below it;
 //  - a highlight's own popover is the same component, and every action is reachable from the keyboard alone;
 //  - the popover's roles, names and states, read from the browser's accessibility tree.
 // The repo has no axe-core, so the last item is a targeted check of roles, names, labels and states, not an axe run.
@@ -709,6 +710,49 @@ async function runPhone(name, context) {
   await page.close();
 }
 
+/**
+ * A 700x800 window: a phone header (it slides away) with the desktop popover. With the header slid away and the passage
+ * scrolled above the window, Add note scrolls up, which brings the header back; the passage and the popover must end
+ * below it, visible, with focus in the field.
+ */
+async function runMid(name, context) {
+  const page = await context.newPage();
+  await fresh(page);
+  await selectAt(page, 2, 0.5);
+  await page.evaluate(() => scrollBy({ top: 600, behavior: "instant" }));
+  await page.waitForTimeout(400);
+  const hidden = await page.evaluate(() => document.documentElement.hasAttribute("data-header-hidden"));
+  check(hidden, `${name} 700px: the header has slid away after a downward scroll`);
+  await page.waitForSelector(".notes-toolbar:not([hidden])");
+  await page.click(".notes-toolbar >> text=Add note");
+  await page.waitForSelector(".notes-pop:popover-open", { state: "attached" });
+  await page.waitForTimeout(500);
+  const header = await headerBottom(page);
+  const s = await read(page);
+  check(header > 0, `${name} 700px: the upward scroll brought the header back (${header}px)`);
+  check(!s.sheet && s.open && !s.hidden, `${name} 700px: the popover shows, not a sheet`);
+  check(
+    s.first && s.first.top >= header + 16 - 1,
+    `${name} 700px: the passage's first line is below the header (${s.first?.top} >= ${header} + 16)`,
+  );
+  check(s.rect.top >= header - 0.5, `${name} 700px: the popover is below the header (${s.rect.top})`);
+  check(s.activeTag.startsWith("textarea#notes-pop-field"), `${name} 700px: focus is in the field (${s.activeTag})`);
+  // A downward scroll slides the header away with the passage near the top; a short upward one brings it back a
+  // frame after the scroll. The popover is placed again then: it never sits over the header that came back.
+  await page.evaluate(() => scrollBy({ top: 60, behavior: "instant" }));
+  await page.waitForTimeout(400);
+  await page.evaluate(() => scrollBy({ top: -12, behavior: "instant" }));
+  await page.waitForTimeout(400);
+  const back = await headerBottom(page);
+  const after = await read(page);
+  check(back > 0, `${name} 700px: a short upward scroll brought the header back (${back}px)`);
+  check(
+    after.hidden || after.rect.top >= back - 0.5,
+    `${name} 700px: the popover is then hidden with its passage or below the header (top ${after.rect.top}, hidden ${after.hidden})`,
+  );
+  await page.close();
+}
+
 async function launch(type, name) {
   const browser = await type.launch({ env: browserEnv });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "light" });
@@ -716,6 +760,8 @@ async function launch(type, name) {
     await run(name, context);
     const short = await browser.newContext({ viewport: { width: 1280, height: 420 }, colorScheme: "light" });
     await runShort(name, short);
+    const mid = await browser.newContext({ viewport: { width: 700, height: 800 }, colorScheme: "light" });
+    await runMid(name, mid);
     const { defaultBrowserType: _ignored, ...phone } = playwright.devices["iPhone 14"];
     await runPhone(`${name.split(" ")[0]} iPhone 14`, await browser.newContext(phone));
   } finally {

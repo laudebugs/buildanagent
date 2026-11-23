@@ -23,6 +23,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { formatSize } from "../public/scripts/save-offline.js";
 import { loadPlaywright } from "./lib/browser-check.mjs";
 import { buildTestBook, offlineEnv, serveBook } from "./lib/offline-site.mjs";
 
@@ -98,10 +99,11 @@ try {
   );
   await controlled(page);
   await waitForState(page, "not-saved");
-  const mb = Math.round(manifest.total.bytes / 1e6);
+  // The control's own rounding: one decimal below 10, as in "about 5.1 MB".
+  const size = formatSize(manifest.total.bytes);
   const detail = await textOf(page, "detail");
   check(
-    detail.startsWith(`The whole manual is about ${mb} MB.`) && /room for about/.test(detail),
+    detail.startsWith(`The whole manual is ${size}.`) && /room for about/.test(detail),
     `the control shows the build's size and the room left ("${detail}")`,
   );
 
