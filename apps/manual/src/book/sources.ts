@@ -63,7 +63,7 @@ const sourceFields = z.strictObject({
     // An abbreviation's own full stop, as in "by Wang et al.", may end it.
     .refine(
       (text) => !/[.!?]$/.test(text) || /(?<![\p{L}\p{N}])et al\.$/u.test(text),
-      "the blurb shows mid-sentence, so it ends without a full stop",
+      'the blurb sits inside parentheses, so it ends without a full stop, except for a closing "et al."',
     )
     .optional(),
   /** Other spellings of a paper's name that chapters must not write bare either, such as "τ-bench" for "tau-bench". */

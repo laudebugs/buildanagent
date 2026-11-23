@@ -23,7 +23,7 @@ Give the book the tooling for the owner's rule on research papers: no paper stay
 
 **In scope**
 
-- `short`, `blurb` and `aliases` on register entries of kind `paper`, with `short` and `blurb` required except for ids on a temporary `papersPending` list.
+- `short`, `blurb` and `aliases` on register entries of kind `paper`, with `short` and `blurb` required except for ids on the temporary pending list, `papers-pending.json`.
 - `[[paper:id]]` and `[[paper:id described]]` in chapter text: a link to the entry on the Sources page, with the blurb on a chapter's first use.
 - `check:book` rules: no bare paper name, a described first mention, a paper URL of a known shape, and `[[paper:id]]` only for papers.
 - The Sources page shows a paper's short name, blurb and "Cited in" links to each chapter that mentions it.

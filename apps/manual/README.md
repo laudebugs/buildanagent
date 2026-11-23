@@ -81,7 +81,11 @@ Name a research paper with `[[paper:id]]`, never as bare text. The rule covers p
 
 The blurb shows in parentheses after the name, so it has no parentheses of its own and no closing full stop, except the one in a closing "et al.". The `url` must be the paper's own page: its arXiv abstract, its DOI, or its page at a venue that `src/book/papers.ts` lists.
 
-A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. So does one in a heading, a box title or a tab's caption, which never counts as the first mention, because the blurb would land in the heading's link and the contents; name the paper in the text as well. When your sentence already says what the paper is and who wrote it, write the first one as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence. A `[@id]` citation of a paper is still how you cite it, and it counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. The id must be in the chapter's `sources`, as for a citation.
+A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. So does one in a heading, a box title or a tab's caption, and it never counts as the first mention: the blurb would end up inside the heading's link and the contents. Name the paper in the text as well.
+
+When the sentence already says what the paper is and who wrote it, write the first mention as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence.
+
+A `[@id]` citation of a paper still cites it and counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. As for any citation, the id must be in the chapter's `sources`.
 
 `check:book` fails when a chapter:
 

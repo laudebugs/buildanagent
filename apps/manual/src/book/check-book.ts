@@ -54,12 +54,14 @@ export async function checkBookReport(inputs?: BookInputs): Promise<BookReport> 
  */
 export function paperNotes(book: Book): string[] {
   const pending = [...book.papers.pending].sort();
-  const notes = [`${pending.length} paper(s) pending a short name and blurb in ${book.names.papersPending}`];
+  const notes = [
+    `${pending.length} ${pending.length === 1 ? "paper still waits" : "papers still wait"} for a short name and blurb (listed in ${book.names.papersPending})`,
+  ];
   const badUrls = pending.filter((id) => {
     const url = book.sources.get(id)?.url;
     return url !== undefined && !isPaperUrl(url);
   });
-  if (badUrls.length > 0) notes.push(`pending papers whose url is not a paper's own page yet: ${badUrls.join(", ")}`);
+  if (badUrls.length > 0) notes.push(`pending papers whose url is not a paper page yet: ${badUrls.join(", ")}`);
   const described: { file: string; line: number; id: string }[] = [];
   for (const [id, uses] of paperUses(book.index.written.values(), book.papers, book.sources)) {
     for (const { chapter, mentions } of uses) {
@@ -70,7 +72,9 @@ export function paperNotes(book: Book): string[] {
       }
     }
   }
-  notes.push(`${described.length} paper mention(s) marked described, whose sentence must describe the paper:`);
+  notes.push(
+    `${described.length} paper ${described.length === 1 ? "mention is" : "mentions are"} marked described; each sentence must describe the paper itself:`,
+  );
   // By file, then by line as a number, so line 9 comes before line 120.
   described.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line));
   notes.push(...described.map(({ file, line, id }) => `  ${file}:${line}: [[paper:${id} described]]`));

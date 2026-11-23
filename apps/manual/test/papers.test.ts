@@ -94,9 +94,9 @@ test("[[paper:id described]] links the name with the first mention's anchor and 
 
 test("check:book's notes count the pending papers and list each described mention with its line", () => {
   assert.deepEqual(paperNotes(book), [
-    "1 paper(s) pending a short name and blurb in papers-pending.json",
-    "pending papers whose url is not a paper's own page yet: beta-paper",
-    "1 paper mention(s) marked described, whose sentence must describe the paper:",
+    "1 paper still waits for a short name and blurb (listed in papers-pending.json)",
+    "pending papers whose url is not a paper page yet: beta-paper",
+    "1 paper mention is marked described; each sentence must describe the paper itself:",
     "  chapters/second.md:20: [[paper:gamma-paper described]]",
   ]);
 });

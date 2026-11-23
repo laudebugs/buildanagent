@@ -770,7 +770,7 @@ const cases: readonly Case[] = [
         s.map((e) => (e.id === "gamma-paper" ? { ...e, blurb: `${String(e.blurb)}.` } : e)),
       ),
     file: "sources.json",
-    message: /entry 3: blurb: the blurb shows mid-sentence/,
+    message: /entry 3: blurb: the blurb sits inside parentheses, so it ends without a full stop/,
   },
   {
     rule: "a spelling two papers share fails",
