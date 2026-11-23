@@ -1,6 +1,6 @@
 // Runs the README's examples in examples/: the refund that a regenerated turn can't repeat, the refund plan a person
-// signs once, and the run that stops at its USD cap. The model is a MockLanguageModelV4 and the payment API a stub,
-// so nothing leaves the process.
+// signs once, the run that stops at its USD cap, and the call on the user's own key under a cap. The model is a
+// MockLanguageModelV4 or a stub transport and the payment API a stub, so nothing leaves the process.
 import assert from "node:assert/strict";
 import { lintPlan, memoryEffectStore, planCard, signPlan } from "@buildanagent/agent-safety";
 import { testSigner } from "@buildanagent/agent-safety/testing";
@@ -8,6 +8,7 @@ import { customProvider } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { test } from "vitest";
 import { cappedAnswer } from "../examples/capped-answer.js";
+import { answerOnUserKey } from "../examples/own-key-capped.js";
 import { type Payments, type RefundInput, refundOnce } from "../examples/refund-once.js";
 import { refundPlan } from "../examples/refund-plan.js";
 
@@ -85,4 +86,46 @@ test("a call whose projection fits the cap runs, and one that could pass it is n
   const answer = await cappedAnswer(dear.provider, "claude-sonnet-5-5", "Where is my refund?");
   assert.match(answer, /^Stopped at the cap of 0\.5 USD: 0 spent/);
   assert.equal(dear.requests.length, 0);
+});
+
+function anthropicAnswer(text: string): Response {
+  return Response.json({
+    id: "msg_1",
+    type: "message",
+    role: "assistant",
+    model: "claude-haiku-5-5",
+    content: [{ type: "text", text }],
+    stop_reason: "end_turn",
+    stop_sequence: null,
+    usage: { input_tokens: 100, output_tokens: 10 },
+  });
+}
+
+/** A transport that records the address and key of every request and answers like the API, so nothing leaves the process. */
+function recordingTransport() {
+  const sent: { url: string; key: string | null }[] = [];
+  const send = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    const request = new Request(input, init);
+    sent.push({ url: request.url, key: request.headers.get("x-api-key") });
+    return anthropicAnswer("Your refund is on its way.");
+  }) as typeof fetch;
+  return { send, sent };
+}
+
+test("a cheap call goes out with only the user's key to the one address, and a call that could pass the cap is never sent", async () => {
+  const transport = recordingTransport();
+  assert.equal(
+    await answerOnUserKey("sk-user-1", "claude-haiku-5-5", "Where is my refund?", transport.send),
+    "Your refund is on its way.",
+  );
+  assert.deepEqual(transport.sent, [{ url: "https://api.anthropic.com/v1/messages", key: "sk-user-1" }]);
+  const refused = await answerOnUserKey("sk-user-1", "claude-sonnet-5-5", "Where is my refund?", transport.send);
+  assert.match(refused, /^Stopped at the cap of 0\.5 USD: 0 spent/);
+  assert.equal(transport.sent.length, 1, "the refused call sent nothing");
+});
+
+test("a missing key is refused before any request", async () => {
+  const transport = recordingTransport();
+  await assert.rejects(answerOnUserKey("", "claude-haiku-5-5", "Hi", transport.send), { code: "invalid_byok_config" });
+  assert.equal(transport.sent.length, 0);
 });
