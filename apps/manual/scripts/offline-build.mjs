@@ -6,7 +6,7 @@
 //
 // The application shell, which the worker saves when it installs, is the home page, the offline page and the search
 // page, with every same-origin stylesheet, script, icon and manifest they link, every font the stylesheets name, and
-// the Pagefind files a search needs.
+// the Pagefind files a search needs. The fonts of the reader's optional typeface pairings stay out (OPTIONAL_FONTS).
 //
 // Every page carries <meta name="manual-build" content="__MANUAL_BUILD__">; this step writes the build id into it, so
 // the worker can still recognise one of its pages after a CDN rewrote a few of its bytes.
@@ -25,6 +25,38 @@ export const EXCLUDED = new Map([
   ["offline-manifest.json", "the list itself, which changes with every build"],
   ["404.html", "a page that is not found is never saved as a page that is"],
 ]);
+
+/**
+ * Returns the font files only a non-default reading pairing uses: every file of every pairing's faces but the default
+ * pairing's (the top-level display and body) and the code font. `tokens` is the parsed book-tokens.json.
+ */
+export function optionalFontUrls(tokens) {
+  const { font } = tokens;
+  const reading = font.reading;
+  const files = (face) => (face.files ?? []).map((file) => file.src);
+  const faceOf = (name) => (name === "display" || name === "body" ? font[name] : reading.faces[name]);
+  const pairing = (id) => reading.pairings.find((entry) => entry.id === id);
+  const kept = new Set(files(font.code));
+  const def = pairing(reading.default);
+  for (const name of [def.display, def.body]) for (const src of files(faceOf(name))) kept.add(src);
+  const optional = new Set();
+  for (const entry of reading.pairings) {
+    for (const name of [entry.display, entry.body]) {
+      for (const src of files(faceOf(name))) if (!kept.has(src)) optional.add(src);
+    }
+  }
+  return [...optional].sort();
+}
+
+/**
+ * Fonts the shell leaves out, each with the reason; they stay on the list, so a later save can fetch them byte-checked.
+ * Derived from font.reading in docs/design/book-tokens.json, so a new pairing needs no second list.
+ */
+export const OPTIONAL_FONTS = new Map(
+  optionalFontUrls(
+    JSON.parse(readFileSync(new URL("../../../docs/design/book-tokens.json", import.meta.url), "utf8")),
+  ).map((url) => [url, "belongs to an optional reading pairing, so a first visit does not spend its bytes unasked"]),
+);
 
 /** The pages of the application shell, which the worker saves when it installs. */
 export const SHELL_PAGES = ["/", "/offline/", "/search/"];
@@ -123,7 +155,11 @@ export function shellUrls(dist, files) {
     const html = readFileSync(join(dist, byUrl.get(page).path), "utf8");
     for (const url of linked(html)) {
       add(url, page);
-      if (url.endsWith(".css")) for (const font of fontsIn(readFileSync(join(dist, url), "utf8"))) add(font, url);
+      if (url.endsWith(".css")) {
+        for (const font of fontsIn(readFileSync(join(dist, url), "utf8"))) {
+          if (!OPTIONAL_FONTS.has(font)) add(font, url);
+        }
+      }
       if (url.endsWith(".webmanifest")) {
         for (const icon of JSON.parse(readFileSync(join(dist, url), "utf8")).icons ?? []) add(icon.src, url);
       }

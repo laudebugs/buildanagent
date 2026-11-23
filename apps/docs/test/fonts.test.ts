@@ -2,16 +2,24 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { readTokens } from "@buildanagent/manual/design/tokens";
 import { test } from "vitest";
-import { BOOK_FONTS_URL, DOCS_FONTS_URL, fontFiles, preloadedFonts } from "../src/design/theme.js";
+import {
+  BOOK_FONTS_URL,
+  bookFontFilesForDocs,
+  DOCS_FONTS_URL,
+  docsFontFolders,
+  fontFiles,
+  preloadedFonts,
+} from "../src/design/theme.js";
 
 const docsFiles = fontFiles(DOCS_FONTS_URL);
 
-test("the docs serve exactly the book's font files and licences", () => {
+test("the docs serve exactly the book's display, body and code font files and their licences", () => {
+  assert.deepEqual(docsFontFolders(), ["instrument-serif", "literata", "manual-code"]);
   assert.ok(docsFiles.some((file) => file.endsWith("/OFL.txt")));
   assert.ok(docsFiles.includes("manual-code/TRADEMARKS.md"));
   assert.deepEqual(
     docsFiles,
-    fontFiles(BOOK_FONTS_URL),
+    bookFontFilesForDocs(),
     "public/fonts/ differs from the book's: run pnpm --filter @buildanagent/docs tokens",
   );
 });

@@ -51,6 +51,70 @@
         }
       ],
       "licences": ["OFL.txt", "TRADEMARKS.md"]
+    },
+    {
+      "upstream": "atkinsonhyperlegible",
+      "folder": "atkinson-hyperlegible",
+      "neutralName": null,
+      "fonts": [
+        {
+          "upstream": "AtkinsonHyperlegible-Regular.ttf",
+          "served": "atkinson-hyperlegible-regular.woff2"
+        },
+        {
+          "upstream": "AtkinsonHyperlegible-Italic.ttf",
+          "served": "atkinson-hyperlegible-italic.woff2"
+        },
+        {
+          "upstream": "AtkinsonHyperlegible-Bold.ttf",
+          "served": "atkinson-hyperlegible-bold.woff2"
+        }
+      ],
+      "licences": ["OFL.txt"]
+    },
+    {
+      "upstream": "spacegrotesk",
+      "folder": "space-grotesk",
+      "neutralName": null,
+      "fonts": [
+        {
+          "upstream": "SpaceGrotesk[wght].ttf",
+          "served": "space-grotesk-roman.woff2"
+        }
+      ],
+      "licences": ["OFL.txt"]
+    },
+    {
+      "upstream": "inter",
+      "folder": "inter",
+      "neutralName": null,
+      "fonts": [
+        {
+          "upstream": "Inter[opsz,wght].ttf",
+          "served": "inter-roman.woff2"
+        },
+        {
+          "upstream": "Inter-Italic[opsz,wght].ttf",
+          "served": "inter-italic.woff2"
+        }
+      ],
+      "licences": ["OFL.txt"]
+    },
+    {
+      "upstream": "bitter",
+      "folder": "bitter",
+      "neutralName": null,
+      "fonts": [
+        {
+          "upstream": "Bitter[wght].ttf",
+          "served": "bitter-roman.woff2"
+        },
+        {
+          "upstream": "Bitter-Italic[wght].ttf",
+          "served": "bitter-italic.woff2"
+        }
+      ],
+      "licences": ["OFL.txt"]
     }
   ],
   "files": [
@@ -103,6 +167,66 @@
       "path": "googlesanscode/TRADEMARKS.md",
       "bytes": 1478,
       "sha256": "d9c627c968837b4a148195153271ca69e98d4bc750b041e0d98ba7b376b1cf50"
+    },
+    {
+      "path": "atkinsonhyperlegible/AtkinsonHyperlegible-Regular.ttf",
+      "bytes": 54348,
+      "sha256": "7fb917c89019896d0b52ee84b7cbb3304c18cb90b19a62f5e32712bd23e97669"
+    },
+    {
+      "path": "atkinsonhyperlegible/AtkinsonHyperlegible-Italic.ttf",
+      "bytes": 54892,
+      "sha256": "021beda4d3c6edfc78872e436d74009f9a1bcb294331908fe5747c61d3dcc514"
+    },
+    {
+      "path": "atkinsonhyperlegible/AtkinsonHyperlegible-Bold.ttf",
+      "bytes": 55256,
+      "sha256": "5a3b0c8cc8ca545155150b4512a1fa248298df121c50d6557e651e61fbdab92f"
+    },
+    {
+      "path": "atkinsonhyperlegible/OFL.txt",
+      "bytes": 4352,
+      "sha256": "f32d22b3908fcad2c86a74000614ec22e6a7f66ea7e867e616026a27aebdc143"
+    },
+    {
+      "path": "spacegrotesk/SpaceGrotesk[wght].ttf",
+      "bytes": 136676,
+      "sha256": "acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72"
+    },
+    {
+      "path": "spacegrotesk/OFL.txt",
+      "bytes": 4495,
+      "sha256": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72"
+    },
+    {
+      "path": "inter/Inter[opsz,wght].ttf",
+      "bytes": 876576,
+      "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031"
+    },
+    {
+      "path": "inter/Inter-Italic[opsz,wght].ttf",
+      "bytes": 906596,
+      "sha256": "acd98e64795781b2058f07b18475e0ecee2a0fe2b42a49e2f9e37d0d6bf66ce6"
+    },
+    {
+      "path": "inter/OFL.txt",
+      "bytes": 4377,
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+    },
+    {
+      "path": "bitter/Bitter[wght].ttf",
+      "bytes": 328636,
+      "sha256": "ef2b9a711fb02f1e5823b34da1b7450e0fc76793b7d733a8b41006e24916d4a7"
+    },
+    {
+      "path": "bitter/Bitter-Italic[wght].ttf",
+      "bytes": 317652,
+      "sha256": "5e6e0af503171c9d7b4be7a22c16f474d7a638cf83a80051d825bcc58d664bc3"
+    },
+    {
+      "path": "bitter/OFL.txt",
+      "bytes": 4424,
+      "sha256": "152a1e283e23b42c4940da4c72f2f5bebaa17969cb77c76d7af05903846006f1"
     }
   ]
 }

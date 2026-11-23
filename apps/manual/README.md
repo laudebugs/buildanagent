@@ -23,6 +23,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual icons` | Draws the installed app's icons in `public/icons/` from `public/favicon.svg` in Chromium, and records the favicon's hash in `scripts/icons.json` |
 | `pnpm --filter @buildanagent/manual check:offline` | Builds the book with a loopback test host and drives the offline worker in Chromium, online and offline; needs Playwright |
 | `pnpm --filter @buildanagent/manual check:header` | Drives the sticky header in Chromium (and WebKit when installed), at desktop size and as an iPhone 14, against the built book; `--shots <folder>` saves screenshots; needs Playwright and a build |
+| `pnpm --filter @buildanagent/manual check:reading` | Loads the built book in Chromium with each typeface pairing and text size stored, on a desktop and as an iPhone 14, and checks fonts, requests, sizes, sideways scroll, the header and axe; `--all` checks every page, `--shots <folder>` saves screenshots; needs Playwright and a build |
 | `pnpm --filter @buildanagent/manual offline:verify <origin>` | Compares a deployed copy of the book with its own `/offline-manifest.json`, file by file, and reports rewritten and failed files |
 | `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
@@ -427,9 +428,9 @@ The build reads chapters from `src/content/chapters/` and their logs from `fact-
 
 ## The tokens come from one JSON file
 
-`scripts/generate-tokens.ts` reads `book-tokens.json` and writes `src/styles/tokens.css`. The generated file puts the light page and light panel values on `:root` and on any `[data-theme="light"]` element. The dark values apply under `prefers-color-scheme: dark`, unless the reader chose light, and on any `[data-theme="dark"]` element. Because the panel tokens follow the same rule, a code or figure panel always matches its page: a light panel framed by `#E4D6C2` in light mode, C1 Ember in dark mode.
+`scripts/generate-tokens.ts` reads `book-tokens.json` and writes `src/styles/tokens.css` and `src/styles/reading.css` ([A reader chooses a typeface pairing and a text size](#a-reader-chooses-a-typeface-pairing-and-a-text-size)). The generated file puts the light page and light panel values on `:root` and on any `[data-theme="light"]` element. The dark values apply under `prefers-color-scheme: dark`, unless the reader chose light, and on any `[data-theme="dark"]` element. Because the panel tokens follow the same rule, a code or figure panel always matches its page: a light panel framed by `#E4D6C2` in light mode, C1 Ember in dark mode.
 
-Four checks in three test files guard the file. First, `test/tokens.test.ts` fails when the committed CSS differs from what the script writes, and when a page or panel token has a value in one mode only. Second, `test/contrast.test.ts` reads every pair from the JSON file's `contrast` lists and recomputes its WCAG ratio from the colours the CSS ships. It fails below 4.5:1 for text and below 3:1 for focus rings, and it fails when a recorded ratio differs from the recomputed one at two decimals. Third, `test/styles.test.ts` fails when a stylesheet or component writes its own hex colour. Fourth, the same file fails when a decorative token colours anything but a border or a background.
+Four checks in three test files guard the file. First, `test/tokens.test.ts` fails when either committed CSS file differs from what the script writes, and when a page or panel token has a value in one mode only. Second, `test/contrast.test.ts` reads every pair from the JSON file's `contrast` lists and recomputes its WCAG ratio from the colours the CSS ships. It fails below 4.5:1 for text and below 3:1 for focus rings, and it fails when a recorded ratio differs from the recomputed one at two decimals. Third, `test/styles.test.ts` fails when a stylesheet or component writes its own hex colour. Fourth, the same file fails when a decorative token colours anything but a border or a background.
 
 To change a token, edit the JSON file, update its recorded ratio if a colour changed, then run `pnpm --filter @buildanagent/manual tokens`.
 
@@ -447,7 +448,9 @@ The package's `exports` map lets `apps/docs` reuse the generator without copying
 | `--panel-text`, `--panel-comment` | Code and figure text on a panel; comments, line numbers and panel labels | Text on the page |
 | `--panel-amber`, `--panel-olive`, `--panel-terracotta` | Keywords, strings and highlights on a panel; the terracotta bar that marks a highlighted line | Text on the page |
 | `--panel-grid`, `--panel-border` | The grid paper behind a figure and the panel's edge | Text, focus rings or a line that carries meaning |
-| `--font-display`, `--font-body`, `--font-code` | Headings and chapter links; body text and notes; listings, labels and figure captions | |
+| `--font-display`, `--font-body`, `--font-code` | Headings and chapter links; body text and notes; listings, labels and figure captions. The reader's pairing replaces the first two | |
+| `--weight-display` | The weight of every element set in `--font-display`: 400 for Book, 700 for Readable and Slab, 600 for Sans | |
+| `--reading-scale` | Dividing a rem length that must keep its default size at every text size, as the header does | Body text, which should follow the reader's size |
 | `--size-*`, `--line-height-body` | Type sizes, which scale from the phone value at 360 px to the desktop value at 1280 px | |
 | `--page-width`, `--measure`, `--article-max`, `--side-note-width`, `--gutter` | Direction C's widths: the page (100rem), the prose measure (42rem, about 75 characters of body text), a chapter's widest article column (59.5rem: the measure, a gap and a side note), the side note beside the prose and the side gutter. The sidebar (11rem) and the "On this page" rail (15rem) are fixed in `layout.css` | |
 
@@ -455,7 +458,7 @@ A figure colours its parts with the `fig-*` classes in `src/styles/figures.css`,
 
 ## The fonts are self-hosted subsets
 
-The site serves Instrument Serif, Literata and Google Sans Code from `public/fonts/`, so a reader's browser fetches nothing from another origin. The files come from [google/fonts](https://github.com/google/fonts) at the commit `fonts/sources.json` records. That file is the one list of the families. For each family it records the upstream folder and the SHA-256 of each upstream file, the served folder and file names, the licence files and, for Google Sans Code, the neutral name. Two scripts rebuild the served files, and both run only when a font changes:
+The site serves Instrument Serif, Literata and Google Sans Code, and the reading pairings' Atkinson Hyperlegible, Space Grotesk, Inter and Bitter, from `public/fonts/`, so a reader's browser fetches nothing from another origin. The files come from [google/fonts](https://github.com/google/fonts) at the commit `fonts/sources.json` records. That file is the one list of the families. For each family it records the upstream folder and the SHA-256 of each upstream file, the served folder and file names, the licence files and, for Google Sans Code, the neutral name. Two scripts rebuild the served files, and both run only when a font changes:
 
 ```sh
 cd apps/manual
@@ -466,24 +469,59 @@ uv run --no-project --with fonttools==4.68.0 --with brotli==1.2.1 \
 
 `fetch-fonts.mjs` downloads the upstream files into the gitignored `fonts/upstream/` and refuses a file whose hash differs from the manifest; after a re-pin, `--record` writes the new hashes. `subset-fonts.py` writes WOFF2 subsets with Latin, punctuation, arrows, maths and box-drawing characters, and copies each family's `OFL.txt` beside them.
 
-Google Sans Code's `TRADEMARKS.md` keeps the Google mark off modified versions, so its subsets are named Manual Code in their files, their CSS and their name tables. Instrument Serif and Literata keep their names, because neither licence reserves a font name and neither family has a trademark file; the owner chose to keep Literata's name on 2026-11-19. [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md) records the licences. `test/fonts.test.ts` checks the licence files, and it reads each subset's WOFF2 name table to check the family names and that no Manual Code name record mentions Google.
+Google Sans Code's `TRADEMARKS.md` keeps the Google mark off modified versions, so its subsets are named Manual Code in their files, their CSS and their name tables. Instrument Serif and Literata keep their names, because neither licence reserves a font name and neither family has a trademark file; the owner chose to keep Literata's name on 2026-11-19. The four reading families keep theirs too. None has a trademark file, and only Bitter's licence reserves a name, "Bitter Pro", which the served family, Bitter, does not use; that name appears in the subsets only in the copyright notice's URL, which the OFL requires them to keep. Inter's and Bitter's name tables also carry trademark notices, which the subsets keep, as Literata's does. [THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md) records those notices and the licences. `test/fonts.test.ts` checks the licence files, and it reads each subset's WOFF2 name table to check the family names, that no Manual Code name record mentions Google and that no Bitter name record but the copyright names Bitter Pro. It reads its list of families from `fonts/sources.json` and `book-tokens.json`, so a new family is checked once both files list it.
 
 ### What a page downloads
 
 The subsets, as committed, weigh:
 
-| File | Bytes | Preloaded |
+| File | Bytes | Pairing |
 | --- | --- | --- |
-| `instrument-serif/instrument-serif-regular.woff2` | 23,024 | Yes |
-| `instrument-serif/instrument-serif-italic.woff2` | 24,128 | No |
-| `literata/literata-roman.woff2` | 145,056 | Yes |
-| `literata/literata-italic.woff2` | 149,452 | No |
-| `manual-code/manual-code-roman.woff2` | 42,228 | No |
-| `manual-code/manual-code-italic.woff2` | 46,048 | No |
+| `instrument-serif/instrument-serif-regular.woff2` | 23,024 | Book, preloaded |
+| `instrument-serif/instrument-serif-italic.woff2` | 24,128 | Book |
+| `literata/literata-roman.woff2` | 145,056 | Book, preloaded |
+| `literata/literata-italic.woff2` | 149,452 | Book |
+| `manual-code/manual-code-roman.woff2` | 42,228 | Every pairing |
+| `manual-code/manual-code-italic.woff2` | 46,048 | Every pairing |
+| `atkinson-hyperlegible/atkinson-hyperlegible-regular.woff2` | 19,464 | Readable, preloaded |
+| `atkinson-hyperlegible/atkinson-hyperlegible-bold.woff2` | 19,976 | Readable, preloaded |
+| `atkinson-hyperlegible/atkinson-hyperlegible-italic.woff2` | 20,788 | Readable |
+| `space-grotesk/space-grotesk-roman.woff2` | 29,964 | Sans, preloaded |
+| `inter/inter-roman.woff2` | 90,144 | Sans, preloaded |
+| `inter/inter-italic.woff2` | 99,840 | Sans |
+| `bitter/bitter-roman.woff2` | 39,980 | Slab, preloaded |
+| `bitter/bitter-italic.woff2` | 39,164 | Slab |
 
-`layouts/BaseLayout.astro` preloads the two files every page paints first: the title in Instrument Serif and the body in Literata's roman, 168 KB together. The other four load when a page first uses them.
+`public/scripts/reading-settings.js` preloads the chosen pairing's upright files, the ones every page paints first: for Book, the title in Instrument Serif and the body in Literata's roman, 168 KB together. The other files load when a page first uses them, and another pairing's files never load.
 
 Literata stays variable on both its axes, optical size (7–72) and weight (200–900), because the plan sets no narrower range, though narrowing both axes would roughly halve the body font. T2 measured the trade on a smaller Latin subset: the full axes took 125,796 bytes; limiting weight to 300–700 took 116,524 bytes; limiting weight to 400–700 and optical size to 12–36 took 65,596 bytes. A later todo can narrow the axes if the chapters never use the extremes.
+
+## A reader chooses a typeface pairing and a text size
+
+A reader can set the book in one of four typeface pairings and at one of five text sizes; the owner chose both lists on 2026-11-23 (design S1). The choice lives in the reader's own browser and applies before the first paint. This part ships the fonts, the early script and the CSS; the settings panel that writes the choice is [T70](../../docs/todos/ready/T70-manual-reading-settings-ui.md).
+
+| Pairing | `data-reading-font` | Headings | Body |
+| --- | --- | --- | --- |
+| Book (the default) | none | Instrument Serif 400 | Literata |
+| Readable | `readable` | Atkinson Hyperlegible 700 | Atkinson Hyperlegible |
+| Sans | `sans` | Space Grotesk 600 | Inter |
+| Slab | `slab` | Bitter 700 | Bitter |
+
+The code face, Manual Code, the figures' labels and Pagefind's search page stay the same in every pairing. Space Grotesk has no italic, so the browser slants its roman for an italic word in a Sans heading.
+
+**The data.** The `font.reading` block of `book-tokens.json` lists the pairings, the faces only they use, each pairing's heading weight and the sizes 90, 100, 115, 130 and 150 percent. `scripts/generate-tokens.ts` writes `src/styles/reading.css` from it: an `@font-face` rule for each reading face, `--weight-display` and `--reading-scale` on `:root`, and one rule per pairing and per size. A pairing's families appear only under `:root[data-reading-font="<id>"]`. A browser downloads a face only once an element uses its family, so declaring every face costs nothing, and a page fetches only the chosen pairing's files. A size step sets the root `font-size` to its percent, which every rem length follows, and sets `--reading-scale` to match.
+
+**The early script.** `public/scripts/reading-settings.js` reads two localStorage keys, `manual-reading-font` and `manual-reading-size`, and sets `data-reading-font` and `data-reading-size` on `<html>`. It accepts only the exact values in its lists, `readable`, `sans` or `slab` and `90`, `115`, `130` or `150`, and removes the attribute for the defaults, `book` and `100`, and for anything else. `BaseLayout` loads it as a blocking script in `<head>`, right after `theme.js` and before the stylesheet, so the attributes are on `<html>` before the first paint. It then adds a preload link for the chosen pairing's upright files, which is why the layout itself preloads no font. Every storage call sits in try/catch, so blocked storage gives the default, and so does the rest of the start-up, which runs after the script has put its API on `window`. Without JavaScript the page shows Book at 100% and preloads nothing. The script uses optional chaining and `??`, so it runs from Safari 13.1, Chrome 80 and Firefox 74, and it avoids `Object.hasOwn` (Safari 15.4), `at()`, `structuredClone`, `replaceAll` and logical assignment. In an older browser it is a syntax error: the page shows Book at 100% and `window.manualReadingSettings` stays undefined, so the settings panel must check for it.
+
+A blocking script cannot be a module, so it cannot export. It leaves its lists and functions, frozen, on `window.manualReadingSettings`: the two keys, `PAIRINGS` (each id with its preload files), `SIZES`, `readFont`, `readSize`, `read(storage)` and `apply(root, settings)`. The settings panel will use them, so the allow-lists live in one place. `test/reading-settings.test.ts` runs the script in a sandbox and checks that its lists match `book-tokens.json`.
+
+**The header keeps its size.** The header is the book's controls, not its text. Every rem length in it is divided by `--reading-scale`, so it stays one 52 px row on a phone and one 56 px row on a desktop at every text size, and the wordmark never shortens to an ellipsis. The wordmark's size is a clamp of rem and viewport parts, so only its rem parts are divided; the viewport part is left alone, and the wordmark measures the same at 1024 px wide at every size. The search field's height and padding are divided like the buttons'; only its text follows the reader's size, which keeps the 16px minimum under a finger. `check:reading` measures the header on a 1280 px desktop at every size.
+
+**Sizes in px.** Text sized in px would ignore the reader's size. The notes popover's quote (13px), note and field (15.5px) and action row (12px) now use rem: 0.8125rem, 0.96875rem and 0.75rem, the same sizes at 100%. Figures keep px: an SVG's text scales with its SVG, and `figures/lib/svgkit.ts` measures labels at those sizes. The search box now caps itself at its column's width and lets its field shrink, because at 150% on a phone the gallery's sample box was wider than the screen.
+
+**Checks.** `test/reading-settings.test.ts` checks the script: the allow-lists, ignored values, the defaults, storage that throws, a browser without `Object.hasOwn`, a failing start-up, the preloads and its place in the layout. It also checks that the CSS names a pairing's families only under that pairing's attribute and that every pairing's files are in `fonts/sources.json` and `public/fonts/` with their `OFL.txt`. `test/build.test.ts` checks the built pages: the script comes before the stylesheet, and no page preloads a font itself.
+
+`check:reading` measures a build in Chromium, with each pairing and size stored before the page loads. For each pairing it checks the computed font of the title, a section heading and the body, and that the page requests only that pairing's fonts and the code face's. It confirms the attributes are on `<html>` in the first animation frame and that each size sets the root font size. It checks that a sample of pages never scrolls sideways at 150% on an iPhone 14, checks the header at that size and runs axe in each pairing. WebKit is not checked.
 
 ## The components work without JavaScript
 
@@ -584,7 +622,7 @@ It is not part of `pnpm test`, and `.github/workflows` does not run it yet. What
 A reader can install the manual from the browser's address bar and open the contents, the search and every page they have read with no connection ([ADR 0059](../../docs/decisions/0059-offline-manual-service-worker.md)). A service worker at `/sw.js` does the work, and it stores only the files of the build it came with. That rule keeps an old build from mixing with a new one, and a deploy needs nothing beyond the usual build.
 
 - **What the build adds.** `scripts/offline-build.mjs` runs after Pagefind. It lists every file of `dist/` with its size and SHA-256 in `dist/offline-manifest.json`, a page as it is with the placeholder still in its mark, leaving out `_headers`, `sw.js`, the list itself and `404.html`. It then writes the build id into every page's `<meta name="manual-build">`, which the layout renders with the placeholder `__MANUAL_BUILD__`, and bundles `src/offline/sw.ts` and `src/offline/worker.ts` with esbuild into `dist/sw.js`, a classic script with the id and the list stamped at its top. The id hashes a format version, the worker's code, the files and the shell, so any change gives a new worker, and a browser installs a new worker only when its bytes differ.
-- **What the worker saves.** On install it saves the application shell: the contents, the offline page (`src/pages/offline.astro`, at `/offline/`) and the search page, with every stylesheet, script, font, icon and manifest they link, and every Pagefind file a search needs. In the build of 2026-11-23 that added the save control, the shell was 57 files and 1.65 MB, of which Pagefind was about 1.07 MB; the build prints the current figures on its `Offline:` line. It also copies every file an older build's cache holds with unchanged content. The worker compares a page with its mark set back to the placeholder, so a saved chapter carries over when only its mark changed, and is stored with the new build's mark.
+- **What the worker saves.** On install it saves the application shell: the contents, the offline page (`src/pages/offline.astro`, at `/offline/`) and the search page, with every stylesheet, script, font, icon and manifest they link, and every Pagefind file a search needs. The build prints the shell's file count and size on its `Offline:` line. The shell leaves out the fonts of the reader's optional typeface pairings: 8 files, 359,320 bytes, which `OPTIONAL_FONTS` derives from `font.reading` in `book-tokens.json`. The list still holds them. It also copies every file an older build's cache holds with unchanged content. The worker compares a page with its mark set back to the placeholder, so a saved chapter carries over when only its mark changed, and is stored with the new build's mark.
 - **What it saves after install.** The page a reader lands on loads before the worker controls it, so `offline.js` asks the worker to save it and the files it loaded. A page the reader opens later is saved when its bytes match the list. The whole book, about 5 MB as of 2026-11-23, is saved only when the reader asks, with the footer's control.
 - **What a reader gets.** A page comes from the network, and from the saved copy when the network fails or takes more than 3 seconds. A page that is not saved shows the offline page, and a page asked for without its slash redirects to it, as Cloudflare does online. Hashed files, under `/_astro/` and Pagefind's `index/` and `fragment/`, come from the cache first. For a page that came from the cache or matched the list, every other asset comes from the cache first too, and from the network only when its bytes are this build's. The worker keeps that record in its cache, so it survives a restart of the worker.
 - **What the worker refuses.** It answers only same-origin GET requests for listed paths, and leaves everything else, `/sw.js` and `/offline-manifest.json` included, to the browser. A path is decoded segment by segment before the lookup. An encoded dot segment, slash or control character matches nothing. A response is stored only when it is a plain 200 with the listed size and hash, no `Set-Cookie`, no `Vary: *` and no `no-store` or `private`. A 404 or an error page is shown, never saved.

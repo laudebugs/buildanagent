@@ -50,6 +50,7 @@ html {
   margin-right: auto;
   font-family: var(--font-display);
   font-size: var(--size-chapter-link);
+  font-weight: var(--weight-display);
   line-height: 1.1;
   color: var(--color-text);
   text-decoration: none;
@@ -201,6 +202,85 @@ html {
     text-decoration-thickness: 0.07em;
     text-underline-offset: 0.18em;
     cursor: pointer;
+  }
+}
+
+/* The header is the book's controls, not its text, so the reader's text size (reading.css) leaves it at its default
+   size: every rem length in it is divided by --reading-scale, which is 1 at the default size, so these rules change
+   nothing there. A larger size would otherwise widen the wordmark and the buttons past one row on a phone, or past the
+   56px desktop row. The search field's own text still follows the reader's size, and keeps 16px under a finger
+   (components.css). The family follows the chosen pairing. */
+.site-header__inner {
+  gap: calc(1.5rem / var(--reading-scale));
+}
+
+/* --size-chapter-link is clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem). Only its rem parts follow the text size, so
+   only they are divided: dividing the whole token would divide the viewport term too and shrink the wordmark at a
+   large size. test/reading-settings.test.ts fails when these numbers differ from the token's. */
+.site-header__title {
+  font-size: clamp(
+    calc(1.375rem / var(--reading-scale)),
+    calc(1.2772rem / var(--reading-scale)) +
+    0.4348vw,
+    calc(1.625rem / var(--reading-scale))
+  );
+}
+
+.site-header__nav {
+  gap: calc(0.5rem / var(--reading-scale)) calc(1.25rem / var(--reading-scale));
+}
+
+.site-header__nav a,
+.site-menu a,
+.site-menu button {
+  font-size: calc(var(--size-label) / var(--reading-scale));
+}
+
+.site-header__tools {
+  gap: calc(0.5rem / var(--reading-scale));
+}
+
+.site-header .search-box {
+  gap: calc(0.4rem / var(--reading-scale));
+}
+
+.site-header .search-box__input {
+  width: clamp(calc(7rem / var(--reading-scale)), 14vw, calc(12rem / var(--reading-scale)));
+  min-height: calc(2.25rem / var(--reading-scale));
+  padding: calc(0.25rem / var(--reading-scale)) calc(0.6rem / var(--reading-scale));
+}
+
+.site-header .control {
+  gap: calc(0.4rem / var(--reading-scale));
+  min-height: calc(2.25rem / var(--reading-scale));
+  padding: calc(0.25rem / var(--reading-scale)) calc(0.75rem / var(--reading-scale));
+  font-size: calc(var(--size-label) / var(--reading-scale));
+}
+
+.site-header .site-header__icon-button,
+.site-header .theme-toggle {
+  min-width: calc(2.25rem / var(--reading-scale));
+  padding-inline: calc(0.25rem / var(--reading-scale));
+}
+
+.site-header__icon-button svg,
+.site-header .theme-toggle__icon {
+  width: calc(1.15rem / var(--reading-scale));
+  height: calc(1.15rem / var(--reading-scale));
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .site-header__inner {
+    gap: calc(0.25rem / var(--reading-scale));
+  }
+
+  .site-header .search-box__input {
+    width: auto;
+  }
+
+  .site-header .control {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 

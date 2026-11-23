@@ -316,6 +316,18 @@ test("a chapter page names its slug for the reading script, and every page loads
   assert.ok(existsSync(join(out, "scripts", "reading.js")));
 });
 
+test("every page loads the reading-settings script blocking in <head>, before its stylesheet and any font preload", () => {
+  for (const { path, html } of pages()) {
+    const head = html.slice(0, html.indexOf("</head>"));
+    const tag = head.indexOf('<script src="/scripts/reading-settings.js"></script>');
+    assert.ok(tag > 0, `${path}: a classic script, with no type, async or defer, in <head>`);
+    const stylesheet = head.indexOf('rel="stylesheet"');
+    assert.ok(stylesheet < 0 || tag < stylesheet, `${path}: before the stylesheet`);
+    assert.doesNotMatch(head, /rel="preload"[^>]*as="font"/, `${path}: the script preloads the chosen pairing's fonts`);
+  }
+  assert.ok(existsSync(join(out, "scripts", "reading-settings.js")));
+});
+
 test("only a chapter page loads the notes script, as a same-origin module, and no built page holds its interface", () => {
   const tag = /<script type="module" src="\/scripts\/notes\.js"><\/script>/;
   assert.match(chapter(), tag);

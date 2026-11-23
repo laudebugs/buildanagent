@@ -71,10 +71,29 @@ export function fontFiles(folder: URL): string[] {
     .sort();
 }
 
-/** Replaces the docs fonts folder with a copy of the book's, so a font the book drops leaves the docs too. */
+/**
+ * The book's font folders the docs serve: those of the display, body and code fonts the tokens name. The book's reading
+ * pairings add folders of their own, which the docs never use, so they stay out of the copy.
+ */
+export function docsFontFolders(tokens: BookTokens = readTokens()): string[] {
+  const folders = [tokens.font.display, tokens.font.body, tokens.font.code].flatMap((font) =>
+    font.files.map((file) => file.src.split("/")[2] ?? ""),
+  );
+  return [...new Set(folders)].sort();
+}
+
+/** The book's font files the docs serve: every file in {@link docsFontFolders}, as {@link fontFiles} lists them. */
+export function bookFontFilesForDocs(): string[] {
+  const folders = docsFontFolders();
+  return fontFiles(BOOK_FONTS_URL).filter((file) => folders.includes(file.split("/")[0] ?? ""));
+}
+
+/** Replaces the docs fonts folder with a copy of the book's folders it uses, so a font the book drops leaves too. */
 export function copyFonts(): void {
   rmSync(DOCS_FONTS_URL, { recursive: true, force: true });
-  cpSync(BOOK_FONTS_URL, DOCS_FONTS_URL, { recursive: true });
+  for (const folder of docsFontFolders()) {
+    cpSync(new URL(`${folder}/`, BOOK_FONTS_URL), new URL(`${folder}/`, DOCS_FONTS_URL), { recursive: true });
+  }
 }
 
 /** The two font files every page preloads, the regular faces of the body and display fonts, as the book does. */

@@ -21,6 +21,7 @@
     "icons": "node scripts/generate-icons.mjs",
     "check:offline": "node scripts/offline-browser-check.mjs",
     "check:header": "node scripts/header-check.mjs",
+    "check:reading": "node scripts/reading-check.mjs",
     "check:save-offline": "node scripts/save-offline-check.mjs",
     "offline:verify": "node scripts/offline-verify-deployed.mjs",
     "check:book": "tsx scripts/check-book.ts",
