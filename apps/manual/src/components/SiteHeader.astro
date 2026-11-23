@@ -7,10 +7,9 @@ import ThemeToggle from "./ThemeToggle.astro";
 // search button opens. src/scripts/header.ts hides the phone header while a reader scrolls down and runs the menu and
 // the panel; without it the buttons stay hidden and the links and the search box show in a wrapped, shown header.
 //
-// The "settings" slot is for the reading-settings button (the "Aa" of design S1). Until that ships nothing fills it and
-// the empty wrapper takes no room. To add the button, render it into the slot where a layout uses this component:
-//   <SiteHeader><SettingsButton slot="settings" /></SiteHeader>
-// The button then sits between the search and the theme toggle on a desktop and a phone alike.
+// The "settings" slot holds the reading settings: BaseLayout renders ReadingSettings.astro (the "Aa" button of design S1
+// and its panel) into it, so the button sits between the search and the theme toggle on a desktop and a phone alike.
+// The wrapper is laid out as its contents, so the button is one of the tools' flex items; an empty slot is not drawn.
 const links = [
   { label: "Contents", href: "/" },
   { label: "Glossary", href: "/glossary/" },

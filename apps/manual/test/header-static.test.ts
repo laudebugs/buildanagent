@@ -75,9 +75,11 @@ test("the chapter rails stick below the header", () => {
   for (const top of sticky) assert.equal(top, "calc(var(--header-height) + 1.5rem)");
 });
 
-test("the settings slot is an empty wrapper that is not drawn, and a named slot fills it", () => {
+test("the settings slot is a wrapper laid out as its contents, which the layout fills with the reading settings", () => {
   assert.match(component, /<div class="site-header__slot" data-slot="settings"><slot name="settings" \/><\/div>/);
+  assert.match(headerCss, /\.site-header__slot\s*\{\s*display: contents;/);
   assert.match(headerCss, /\.site-header__slot:empty\s*\{\s*display: none;/);
+  assert.match(read("src/layouts/BaseLayout.astro"), /<SiteHeader><ReadingSettings slot="settings" \/><\/SiteHeader>/);
 });
 
 test("the menu button and the search button name what they control and start hidden", () => {

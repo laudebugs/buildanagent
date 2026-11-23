@@ -18,6 +18,8 @@ export interface HeaderFlags {
   readonly menuOpen: boolean;
   /** Whether the search field's panel is open. */
   readonly searchOpen: boolean;
+  /** Whether the reading settings panel is open. */
+  readonly settingsOpen: boolean;
   /** Whether a keyboard reader's focus is inside the header. */
   readonly focusInside: boolean;
   /** The header's height in pixels: the reader is "near the top" while the page is scrolled less than this. */
@@ -34,7 +36,8 @@ export function initialHeaderState(scrollY = 0): HeaderState {
 
 /**
  * The header's state after a scroll to `scrollY`. It hides on a downward scroll and returns on the first upward one, and
- * it stays shown on a desktop, near the top of the page, while the menu or search is open and while focus is inside it.
+ * it stays shown on a desktop, near the top of the page, while the menu, search or reading settings are open and while
+ * focus is inside it.
  * A move shorter than the threshold changes nothing and keeps its starting point, so a slow scroll still adds up.
  * A rubber-band overscroll (a negative `scrollY`) counts as the top.
  */
@@ -45,7 +48,13 @@ export function nextHeaderState(
   threshold: number = SCROLL_THRESHOLD,
 ): HeaderState {
   const y = Math.max(0, scrollY);
-  const pinned = !flags.phone || flags.menuOpen || flags.searchOpen || flags.focusInside || y < flags.headerHeight;
+  const pinned =
+    !flags.phone ||
+    flags.menuOpen ||
+    flags.searchOpen ||
+    flags.settingsOpen ||
+    flags.focusInside ||
+    y < flags.headerHeight;
   if (pinned) return { hidden: false, lastY: y };
   const delta = y - prev.lastY;
   if (Math.abs(delta) < threshold) return prev;

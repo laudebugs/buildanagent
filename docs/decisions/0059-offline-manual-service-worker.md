@@ -27,7 +27,7 @@ The manual gets a web app manifest, icons drawn from the favicon, an offline pag
 - **Production host only.** The layout writes the hosts that may register the worker into `<meta name="manual-offline-hosts">`, from the Astro config's `site`. Any other host, a preview at `pr-<n>.manual.buildanagent.fyi` included, registers nothing and removes a worker and `manual-` caches that an earlier visit left. A build may add one host through `MANUAL_OFFLINE_TEST_HOST`, which accepts only `127.0.0.1` or `localhost`, so the browser check can run on loopback and no setting can add a host that serves readers.
 - **Headers.** `_headers` adds `manifest-src 'self'` to the policy, because `default-src 'none'` would block the manifest. It sends `/sw.js` and `/offline-manifest.json` with `Cache-Control: no-cache`, and the manifest as `application/manifest+json`. The worker sits at the root, so it needs no `Service-Worker-Allowed` header. The policy's `worker-src 'self'` already covers it, and every script stays a same-origin file.
 
-The page and the worker speak a small message protocol. A reply goes to the message's `MessagePort` when the page sends one, and otherwise to the sending page. The worker answers only a message whose origin is its own and whose sender is a tab or window of that origin (a `window` client whose `frameType` is `top-level` or `auxiliary`), so a frame or a worker is ignored. The book's policy already sends `frame-ancestors 'none'`, so the frame check is a second guard. The table gives the protocol in its final form, after T67b:
+The page and the worker speak a small message protocol. A reply goes to the message's `MessagePort` when the page sends one, and otherwise to the sending page. The worker answers only a message whose origin is its own and whose sender is a tab or window of that origin (a `window` client whose `frameType` is `top-level` or `auxiliary`), so a frame or a worker is ignored. The book's policy already sends `frame-ancestors 'none'`, so the frame check is a second guard. The table gives the protocol as of T70, which added `SAVE_FILES`:
 
 | Message | Sent by | Reply |
 | --- | --- | --- |
@@ -35,10 +35,11 @@ The page and the worker speak a small message protocol. A reply goes to the mess
 | `{ type: "SKIP_WAITING" }` | the update notice's Reload | none; the waiting worker activates and the page reloads on `controllerchange` |
 | `{ type: "SAVE_PAGE", paths: [path] }` | a page the worker did not control when it loaded | `{ type: "SAVED", saved: [path], failed: [{ path, reason }] }`; at most 100 paths, listed same-origin ones only |
 | `{ type: "SAVE_ALL" }` | the save control | `{ type: "SAVE_PROGRESS", done, total, bytes, failed }` after each file, then `{ type: "SAVE_DONE", result, reason?, saved, failed: [{ path, reason }] }`, where `result` is `saved`, `partial` (`reason` `quota` or `storage` when the browser refused a write), `cancelled` or `refused` (`reason` `not-active` or `busy`) |
+| `{ type: "SAVE_FILES", paths: [path] }` | the reading settings panel | `{ type: "SAVED_FILES", saved: [path], failed: [{ path, reason }] }`; at most 16 paths, plain listed paths under `/fonts/` only, and the worker ignores a longer message |
 | `{ type: "CANCEL_SAVE" }` | the save control | none; the running `SAVE_ALL` answers with `cancelled` |
 | `{ type: "REMOVE_ALL" }` | the save control | `{ type: "REMOVED", removed }` |
 
-A failure's reason is `different-bytes`, `no-build-mark`, `not-storable`, `network`, `quota` or `storage`, and `SAVE_DONE` may also give `other-build` for a file a newer deploy replaced. The worker ignores any other message.
+A failure's reason is `different-bytes`, `no-build-mark`, `not-storable`, `network`, `quota` or `storage`, and `SAVE_DONE` and `SAVED_FILES` may also give `other-build` for a file a newer deploy replaced. `SAVED_FILES` adds `not-allowed`, `not-listed`, `not-active` and `busy`, which the addendum below explains. The worker ignores any other message.
 
 ## Saving the whole book (addendum, 2026-11-23)
 
@@ -53,6 +54,18 @@ T67b added the reader's control, in the footer of every page, and the worker's s
 The control does not call `navigator.storage.persist()`: Firefox answers it with a permission prompt and Safari grants it mainly to Home Screen web apps, so it would add a prompt for little gain ([MDN, storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria); [WebKit, updates to storage policy](https://webkit.org/blog/14403/updates-to-storage-policy/)). The control tells the reader instead that a browser may still clear the copy, and that Safari may clear it after seven days of Safari use without a visit to the manual.
 
 Building T67b exposed a gap in T67a. A page an older worker stamped with its own mark is a response the worker built, of type `default`, which the store rules refused, so a saved page carried over through one update but not two. A copy read back from the worker's own cache may now be of type `default`. Its bytes are still checked against the list.
+
+## Saving a reading pairing's fonts (addendum, 2026-11-23)
+
+T69 left the fonts of the optional reading pairings out of the shell, so a reader who picked Readable, Sans or Slab saw a fallback face offline until they saved the whole book. T70's settings panel closes that gap with `SAVE_FILES`, a message that names the files to save. Because the page names the files, five rules keep the message narrow.
+
+- **Only fonts of this build.** The worker accepts a path only when it starts with `/fonts/`, normalises to itself and holds no `?`, `#` or backslash. A query string, a fragment, a dot segment, an encoded or doubled separator and any other folder therefore answer `not-allowed`. A path that passes but is not on the build's list answers `not-listed`. Neither reaches the network.
+- **Few at a time.** A message may carry at most 16 paths; the worker ignores a longer one, as it ignores a `SAVE_PAGE` of more than 100. A pairing has at most three font files as of 2026-11-23, and the page sends a larger pairing in several messages of at most 16 paths, reporting it saved only when every message's answer lists all its paths.
+- **The store rules hold.** Each file is fetched past the HTTP cache and stored only with the listed size and SHA-256, and a failure is recorded for STATUS like any other.
+- **Nothing downloads twice.** A file the cache holds is answered as saved without a request. `SAVE_ALL` and `SAVE_FILES` share one table of downloads in flight, so a file both ask for is fetched once, and `SAVE_ALL` skips a file `SAVE_FILES` stored after it started. `REMOVE_ALL` waits for a `SAVE_FILES` in flight, so no font is written back after the copy is removed.
+- **Only the active worker saves.** A waiting worker answers each path with `not-active`, and a worker removing the saved copy answers `busy`, as `SAVE_ALL` does.
+
+The page sends `SAVE_FILES` only while a worker controls it and only for a non-default pairing, because the shell already holds Book's fonts. A pairing's files cost 60,228 bytes for Readable, 219,948 for Sans and 79,144 for Slab. `SAVE_ALL` still saves the whole list, all three pairings included, and the footer's control shows that total. A test build measured the list at 114 files and 5,639,802 bytes on 2026-11-23.
 
 ## What can rewrite the book on its way
 
