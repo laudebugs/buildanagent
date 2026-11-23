@@ -223,7 +223,7 @@ function statusView(s) {
   if (status.previous) {
     const left = formatSize(Math.max(0, total.bytes - status.stored.bytes));
     return {
-      state: `Your saved copy is from an earlier version, saved on ${formatDate(status.previous.at)}.`,
+      state: `Your saved copy is from an earlier version, dated ${formatDate(status.previous.at)}.`,
       detail: `Save it again to update it: ${left} is left to download.`,
       primary: { label: "Update the saved copy", action: "save" },
       remove: true,

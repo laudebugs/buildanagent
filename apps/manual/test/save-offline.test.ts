@@ -355,7 +355,7 @@ test("after an update, an older saved copy offers Update the saved copy, with wh
     manifest: { build: "1111111111111111", total: { files: FILES, bytes: 4_955_201 } },
   });
   await mount(win);
-  assert.equal(ui.state(), "Your saved copy is from an earlier version, saved on 23 November 2026.");
+  assert.equal(ui.state(), "Your saved copy is from an earlier version, dated 23 November 2026.");
   assert.equal(ui.primary().textContent, "Update the saved copy");
   ui.primary().click();
   await settle();
