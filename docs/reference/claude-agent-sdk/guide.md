@@ -29,7 +29,7 @@ npm install @anthropic-ai/claude-agent-sdk zod
 export ANTHROPIC_API_KEY=...   # needs Node.js 18.14+; the SDK ignores .env files
 ```
 
-Installation comes down to three points. First, keep optional dependencies on, because the CLI binary arrives as one, such as `@anthropic-ai/claude-agent-sdk-linux-x64`. Second, the SDK pins the CLI to its own version, so updating the SDK updates the CLI. Anthropic advises taking patch releases freely and reading the changelog before a minor release (`hosting.md`). Third, `ANTHROPIC_BASE_URL` routes model calls through a gateway or proxy. The verification harness uses that same variable to substitute the mock API. **[verified]**
+Installation comes down to three points. First, keep optional dependencies on, because the CLI binary arrives as one, such as `@anthropic-ai/claude-agent-sdk-linux-x64`. Second, the SDK pins the CLI to its own version, so updating the SDK updates the CLI. Anthropic advises taking patch releases freely and reading the changelog before a minor release (`hosting.md`). Third, `ANTHROPIC_BASE_URL` routes model calls through a gateway or proxy. The verification harness uses that same variable to substitute the mock API. The package also declares `@anthropic-ai/sdk >=0.93.0` as a peer, which npm and pnpm install for you. It imports that peer only for types, so its version does not change what the CLI sends; we checked 0.129.0 and 1.8.0. **[verified]**
 
 ## 3. The loop streams messages and always ends with a result
 
