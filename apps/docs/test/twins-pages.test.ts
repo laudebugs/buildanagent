@@ -173,6 +173,24 @@ test("the reading order is the home page, the sidebar, then any page it leaves o
   assert.equal(new Set(placed.map((p) => p.page.slug)).size, pages.length, "every page is placed once");
 });
 
+test("the topics plugin's index-labelled wrappers are not sections: the groups inside them are", () => {
+  const pages = [page(""), page("a/one"), page("b/two"), page("reference/sdk/x", { generated: true })];
+  const placed = readingOrder(pages, [
+    {
+      label: "0",
+      items: [
+        { label: "Start", items: [{ slug: "a/one" }] },
+        { label: "Guides", items: [{ slug: "b/two" }] },
+      ],
+    },
+    { label: "1", items: [{ label: "SDK", autogenerate: { directory: "reference/sdk" } }] },
+  ]);
+  assert.deepEqual(
+    placed.map(({ section, page: p }) => `${section}:${p.slug}`),
+    ["Overview:", "Start:a/one", "Guides:b/two", `${OPTIONAL_SECTION}:reference/sdk/x`],
+  );
+});
+
 test("llms.txt lists each twin once under its section with an absolute address, the optional section last", () => {
   const placed = readingOrder(
     [page(""), page("a/one"), page("ref/x", { generated: true, description: undefined })],

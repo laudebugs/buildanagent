@@ -171,6 +171,12 @@ export function readingOrder(pages: readonly TwinPage[], sidebar: readonly Sideb
   place(bySlug.get(""), HOME_SECTION);
   const walk = (entries: readonly SidebarEntry[], section: string): void => {
     for (const entry of entries) {
+      // starlight-sidebar-topics wraps each topic's groups in a group labelled with its index ("0", "1", ...). The
+      // wrapper is not a section: the groups inside it are, as they were before the sidebar had topics.
+      if (section === "" && entry.items !== undefined && /^\d+$/.test(entry.label ?? "")) {
+        walk(entry.items, "");
+        continue;
+      }
       const name = section === "" ? (entry.label ?? "") : section;
       if (entry.slug !== undefined) place(bySlug.get(normalizeSlug(entry.slug)), name);
       // An internal link names a page by its address, so it places that page as a slug does; an outside link names none.
