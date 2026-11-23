@@ -1090,6 +1090,12 @@ class Notes {
     sheetQuery?.addEventListener?.("change", () => {
       if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches) this.closePop();
     });
+    // On iOS the on-screen keyboard shrinks the visual viewport and leaves the layout viewport alone. The sheet therefore
+    // follows the visual one: it sits on that viewport's bottom edge and takes at most half its height.
+    const visual = win.visualViewport;
+    visual?.addEventListener?.("resize", () => this.layoutSheet());
+    visual?.addEventListener?.("scroll", () => this.layoutSheet());
+    win.addEventListener("resize", () => this.layoutSheet());
     this.popEdit.addEventListener("click", () => this.editPopped());
     this.popSave.addEventListener("click", () => this.savePopped());
     this.popCancel.addEventListener("click", () => this.cancelPopped());
@@ -1689,9 +1695,16 @@ class Notes {
       return;
     }
     this.popOpen = true;
+    this.popRange = entry.range;
+    this.sheetKey = undefined;
     if (sheet) {
       this.pop.style.top = "";
       this.pop.style.left = "";
+      this.layoutSheet();
+      // Fonts or the note's text may still change the sheet's height after the first frame.
+      win.requestAnimationFrame?.(() => {
+        if (this.popOpen && this.popId === item.id) this.revealPassage();
+      });
     } else {
       const box = this.pop.getBoundingClientRect();
       const width = this.doc.documentElement.clientWidth || win.innerWidth;
@@ -1708,6 +1721,50 @@ class Notes {
       this.pop.style.left = `${Math.round(left)}px`;
     }
     this.popColors.querySelector("button")?.focus({ preventScroll: true });
+  }
+
+  /**
+   * Sizes the bottom sheet to the visual viewport. Its bottom edge is the viewport's and its height is at most half the
+   * viewport's, and it scrolls inside itself past that. In a viewport as short as a phone with its keyboard open, the
+   * limit rises to 55% and the quotation is hidden to make room.
+   */
+  layoutSheet() {
+    const { win } = this;
+    if (!this.popOpen || !this.pop.hasAttribute("data-sheet")) return;
+    const visual = win.visualViewport;
+    const usable = visual && visual.height > 0;
+    const height = usable ? visual.height : win.innerHeight;
+    const lifted = usable ? Math.max(0, win.innerHeight - visual.height - visual.offsetTop) : 0;
+    const compact = height < COMPACT_HEIGHT;
+    this.pop.toggleAttribute("data-compact", compact);
+    this.pop.style.setProperty("--notes-sheet-bottom", `${Math.round(lifted)}px`);
+    this.pop.style.setProperty("--notes-sheet-max", `${Math.floor(height * (compact ? 0.55 : 0.5))}px`);
+    // A keyboard that opens or closes changes the viewport's height, and the passage is brought back above the sheet.
+    // The key leaves out the lift. The lift depends on the visual viewport's offset, which iOS changes while it pans for
+    // the keyboard, so a reveal that scrolled the page would change the key and trigger another reveal.
+    const key = `${Math.round(height)}/${compact}`;
+    if (key !== this.sheetKey) {
+      this.sheetKey = key;
+      this.revealPassage();
+    }
+  }
+
+  /**
+   * Scrolls the page, when the sheet covers the highlighted passage, so that the passage shows above the sheet. A
+   * passage of several lines is judged by its last line, and the scroll stops before it pushes the first line off the
+   * window.
+   */
+  revealPassage() {
+    const { win } = this;
+    const rects = [...(this.popRange?.getClientRects?.() ?? [])];
+    if (rects.length === 0 || typeof win.scrollBy !== "function") return;
+    const first = rects[0];
+    const last = rects[rects.length - 1];
+    const sheetTop = this.pop.getBoundingClientRect().top;
+    const gap = 16;
+    const needed = last.bottom - (sheetTop - gap);
+    if (needed <= 0) return;
+    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap)));
   }
 
   /**
@@ -2364,6 +2421,8 @@ const INLINE =
 
 // The popover is a bottom sheet in a window this narrow, and a swipe down of this many pixels closes it.
 const SHEET_QUERY = "(max-width: 40rem)";
+/** A visual viewport shorter than this, in pixels, is a phone with its keyboard open. */
+const COMPACT_HEIGHT = 520;
 const SWIPE_CLOSE = 80;
 
 // A margin marker is 28 pixels across and sits 8 pixels from the text column, so it needs this much free room beside the
