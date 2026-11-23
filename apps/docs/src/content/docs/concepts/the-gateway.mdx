@@ -9,7 +9,7 @@ The gateway makes every model call for your agent, whichever provider answers. I
 
 ## An adapter reaches each provider
 
-An adapter is an object that talks to one provider, and you make it with your own API key. `createModel()` binds one adapter to one model id, and the result is the model your code calls. The gateway ships two adapters. `anthropic()` speaks Anthropic's Messages API, and `openaiChat()` speaks OpenAI's Chat Completions API and the servers that copy it. A scripted adapter plays answers from memory and sends no request, so a test needs no key.
+An adapter is an object that talks to one provider, and you make it with your own API key. `createModel()` binds one adapter to one model id, and the result is the model your code calls. The gateway ships two adapters. `anthropic()` speaks Anthropic's Messages API, and `openaiChat()` (shown as `openai-chat`) speaks OpenAI's Chat Completions API and the servers that copy it. A scripted adapter plays answers from memory and sends no request, so a test needs no key.
 
 ::figure[A call goes from your code through the gateway to one adapter]{id="gateway-adapters" alt="Your code calls one model, and the gateway passes each call to an adapter. The anthropic and openai-chat adapters reach a provider's API, and a scripted adapter sends no request."}
 
@@ -26,7 +26,7 @@ Make a model with the adapter for your provider. Each adapter takes the key you 
   </TabItem>
 </Tabs>
 
-The gateway streams, retries, caches and prices every call, whichever adapter you pass. An adapter implements one method, `stream()`, and `createModel()` derives the rest. The scripted adapter below is that method and nothing more:
+The gateway streams, retries, caches and prices every call, whichever adapter you pass. An adapter implements one method, `stream()`, and `createModel()` adds `complete()`, retries, caching and pricing around it. The scripted adapter below is that method and nothing more:
 
 ```ts file="packages/gateway/examples/03-scripted-adapter.ts" region="scripted"
 ```
@@ -79,7 +79,7 @@ A failed attempt still costs tokens, so the final message's usage and cost add u
 
 ## One option sets prompt caching
 
-The `cacheRetention` option takes `"none"`, `"short"` or `"long"`. Each adapter maps it to its provider's own cache controls, and leaving it out keeps the adapter's default, which is `"short"` for both adapters. The Anthropic adapter puts up to three cache breakpoints, on the system prompt, the last tool and the last block of the last user message. `"short"` asks for the 5-minute cache, `"long"` asks for the 1-hour cache and `"none"` sends no breakpoint. OpenAI caches prompts on its own, so the OpenAI-compatible adapter acts on the option only for a model whose flags allow explicit breakpoints or extended retention.
+The `cacheRetention` option takes `"none"`, `"short"` or `"long"`. Each adapter maps it to its provider's cache controls, and leaving it out means `"short"`. The Anthropic adapter puts up to three cache breakpoints, on the system prompt, the last tool and the last block of the last user message. `"short"` asks for the 5-minute cache, `"long"` asks for the 1-hour cache and `"none"` sends no breakpoint. OpenAI caches prompts on its own, so the OpenAI-compatible adapter acts on the option only for a model the gateway marks as taking explicit cache breakpoints or extended retention.
 
 The first call with a long system prompt writes the prompt to the cache. The next call with the same prompt reports the tokens it read from the cache:
 

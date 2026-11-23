@@ -30,7 +30,7 @@ An error terminal is how a failed model call ends: as an event with its partial 
 
 The terminal event, `done` or `error`, carries the finished assistant message, with its content, stop reason, usage and cost. A run adds that message to the transcript. It adds each tool result and your own input beside it, so the transcript holds user messages, assistant messages and tool results in the order they happened.
 
-::figure[A model stream becomes one message of the transcript]{id="stream-and-transcript" alt="A model's answer streams as a start event, block events and one terminal event, done or error. The terminal event carries the assistant message, which joins the user messages and tool results in the transcript."}
+::figure[A model stream becomes one message of the transcript]{id="stream-and-transcript" alt="A stream ends in one terminal event. Its assistant message joins the transcript."}
 
 ## A run streams one closed set of events
 

@@ -20,7 +20,7 @@ A fence with a `file` attribute takes its code from a file under a package's `ex
 ```
 ````
 
-The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import: `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
+The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import. `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
 
 ## Draw a figure with a script, and the build inlines it
 
@@ -39,7 +39,9 @@ A figure is a script that draws an SVG with the book's kit, and a page places th
 
 Draw a figure 320 units wide or less where you can. At that width it fits a 390 px phone whole. A wider figure keeps its natural size, so its labels stay at 12 px, and its panel scrolls sideways under a hint on a narrower screen. The kit allows up to 520.
 
-The build fails, naming the page and line, when a figure has no alt text, no caption or an id the registry lacks. It also fails when the directive carries any other attribute, when a page shows one figure twice or when the caption holds more than text and inline code. The directive works in `.md` and `.mdx` pages alike: `concepts/the-gateway.mdx` places one, and `test/figure-build.test.ts` requires that an MDX page carries a figure. A caption holds no apostrophe, because Starlight's typographic quotes change it and the test compares the text as written. `src/plugins/figure.ts` implements the directive. Starlight's remark-directive parses it, and the plugin runs before Starlight puts unknown directives back as text.
+The build fails, naming the page and line, when a figure has no alt text, no caption or an id the registry lacks. It also fails when the directive carries any other attribute, when a page shows one figure twice or when the caption holds more than text and inline code. `src/plugins/figure.ts` implements the directive. Starlight's remark-directive parses it, and the plugin runs before Starlight puts unknown directives back as text.
+
+The directive works in `.md` and `.mdx` pages alike: `concepts/the-gateway.mdx` places one, and `test/figure-build.test.ts` requires that an MDX page carries a figure. A caption holds no apostrophe, because Starlight's typographic quotes change it and the test compares the text as written.
 
 Each committed SVG starts with a `<style>` that embeds the code font and the panel tokens, so the file renders on its own, for example in a pull request. The page inlines the drawing without that standalone `<style>`. `src/plugins/figure-svg.ts` reads the rest of the file tag by tag, repairs nothing and refuses:
 
