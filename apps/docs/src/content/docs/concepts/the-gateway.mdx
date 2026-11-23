@@ -37,7 +37,7 @@ The SDK's `ScriptedModel` is a scripted adapter that plays the answers you list,
 
 `model.stream()` yields one event sequence for every adapter: a `start` event, each content block's start, deltas and end, and one terminal event, `done` or `error`. The terminal event carries the finished assistant message. `model.complete()` folds the stream into that message for you.
 
-Two more events can appear: a `retry` event, which comes after `start` and before any content when the gateway retries a failed call, and a `warning` event, which reports something the call survived, such as an option the provider would reject, and can come anywhere between `start` and the terminal event. [The transcript and the stream](/concepts/transcript-and-stream/) states the four rules of the sequence.
+Two more events can appear. A `retry` event comes after `start` and before any content when the gateway retries a failed call. A `warning` event reports something the call survived, such as an option the provider would reject, and can come anywhere between `start` and the terminal event. [The transcript and the stream](/concepts/transcript-and-stream/) states the four rules of the sequence.
 
 This code reads a stream's text as it arrives and keeps the closing message:
 
