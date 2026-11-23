@@ -50,7 +50,7 @@ The manual's header stays reachable while a reader scrolls, and a thin line alon
 
 ## Tests
 
-`apps/manual/test/` plus a Playwright check, desktop Chromium and WebKit and an iPhone 14 touch profile.
+`apps/manual/test/` plus a Playwright check, desktop Chromium, an iPhone 14 touch profile, and WebKit where installed.
 
 ## Docs to update
 
@@ -58,10 +58,19 @@ The manual's header stays reachable while a reader scrolls, and a thin line alon
 
 ## Outcome
 
-The header is sticky at 56 px on a desktop and one 52 px row on a phone, with a menu, a search panel, hide-on-scroll, a 3 px progress line, scroll padding, rail offsets and an empty settings slot. `check:header` (new, run by hand) passes in Chromium on both profiles; WebKit is not installed here, so it was not run. The measurements, the behaviour table and the limits are in [the report](../../research/book/sticky-header.md), and the README section "The header stays in reach" explains how to extend it.
+The header is sticky at 56 px on a desktop and one 52 px row on a phone, with a menu, a search panel, hide-on-scroll, a 3 px progress line, scroll padding, rail offsets and an empty settings slot. `check:header` (new, run by hand) passes in Chromium on both profiles; WebKit is not installed here, so it was not run. The measurements, the behaviour table and the limits are in [the report](../../research/book/sticky-header.md), and the README section [The header stays in reach, and a line shows how far the reader is through the chapter](../../../apps/manual/README.md#the-header-stays-in-reach-and-a-line-shows-how-far-the-reader-is-through-the-chapter) explains how to extend it. The header without JavaScript is covered only by `test/header-static.test.ts`, which reads the source; no browser ran it.
 
 Follow-ups: run `check:header` in CI (`.github/` was off limits), run it in WebKit where installed, and clamp the note popover and the selection toolbar below the header in `position()` in `public/scripts/notes.js`, using `--header-height` plus the function's margin, which another pull request is editing. Glossary cards already clamp below the header.
 
-Review fixes: the reduced-motion rule moved after the progress line's transition; the progress line remeasures when the body resizes or a `details` toggles; glossary cards open below the header; a header without JavaScript is static; the progress of a short page reaches 1 at its end; choosing Notes from the phone menu keeps focus; every width query in `header.css` must equal the phone query; the report's claims are in the fact-check log.
+Review fixes:
+
+- The reduced-motion rule moved after the progress line's transition.
+- The progress line remeasures when the body resizes or a `details` toggles.
+- Glossary cards open below the header.
+- A header without JavaScript is static.
+- The progress of a short page reaches 1 at its end.
+- Choosing Notes from the phone menu keeps focus.
+- Every width query in `header.css` must equal the phone query.
+- The report's claims are in the fact-check log.
 
 - [x] `pnpm check`, `pnpm typecheck`, `pnpm test`, `check:book`, the build and the four maintainability checks pass.

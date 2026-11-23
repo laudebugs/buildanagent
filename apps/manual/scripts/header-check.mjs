@@ -129,6 +129,10 @@ async function jumps(page, bottom, name) {
     box.top >= bottom - 0.5 && box.bottom <= (await page.evaluate(() => innerHeight)),
     `${name}: a jump down leaves the heading fully visible below the header (top ${box.top.toFixed(0)})`,
   );
+  check(
+    Math.abs(box.top - (bottom + 12)) <= 1,
+    `${name}: a jump down puts the heading 12px below the header (top ${box.top.toFixed(1)}, want ${bottom + 12})`,
+  );
   await scrollTo(page, (await page.evaluate(() => document.documentElement.scrollHeight)) - 2000);
   const first = await page.evaluate(() => document.querySelectorAll(".article h2[id]")[0]?.id);
   await page.evaluate((target) => {
