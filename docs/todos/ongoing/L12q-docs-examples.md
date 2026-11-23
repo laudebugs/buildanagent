@@ -71,3 +71,15 @@ The plan's todo table, and the L12 todo if its example list changes.
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+
+## Outcome
+
+Three of the four examples are in. The sandbox example is another worker's. No `src/`, `package.json` or `tsconfig.build.json` file changed, so no changeset. The protocol's `tsconfig.json` now includes `examples/`, so `pnpm typecheck` checks them, and none ships in a tarball (row L12q-10). Claims are in the fact-check log, rows L12q-1 to L12q-10.
+
+- **Protocol** (`packages/protocol/examples/`, test `test/examples.test.ts`):
+  - `read-stream.ts`: `readStream()` frames a chunked JSONL stream and decodes each message. A page can quote the region `read`.
+  - `read-session-file.ts`: `summarizeSession()` counts a session file's entries by type, reports unreadable lines and stops at a newer format. Region: `read`.
+  - `client-requests.ts`: `requestLines()` writes `session/create` and `turn/start`, and `describeServerMessage()` narrows the server's four message kinds. Regions: `requests` and `reply`.
+  - The examples validate nothing against the JSON Schema: the schema files are not in the tarball and the validator is a dev dependency, so no public entry point offers it.
+- **Harness** (`packages/harness/examples/compaction.ts`, test `test/examples/compaction.test.ts`): `chatWithCompaction()` runs three questions under a small budget, so the third turn starts with a summary. It returns the summary, the tokens before and after, and how many entries the summary replaced. Regions: `policy` (the context policy and harness), `run` (the session and turns) and `report` (reading the `compaction` entry).
+- **Agent-safety** (`packages/agent-safety/examples/own-key-capped.ts`, test in `test/examples.test.ts`): `answerOnUserKey()` builds the provider with `explicitProvider()` from the caller's key, guards it with a 0.5 USD cap and returns the refusal text when a call could pass it. Regions: `provider` and `call`. The caller's `send` replaces the network `fetch`, which `explicitProvider()` accepts as its `fetch` option.
