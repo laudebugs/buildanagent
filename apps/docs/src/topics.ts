@@ -1,0 +1,101 @@
+/**
+ * The sidebar topics. A topic is one tab at the top of the sidebar, and a page embeds only its own topic's links, so a
+ * page's size follows its topic, not the whole site. Adding a topic is one entry in this list: its label, its landing
+ * page, its icon and its items. The astro config passes the result to `starlight-sidebar-topics`, and the tests read the
+ * same list, so a page that no topic names fails them.
+ */
+
+/** A sidebar item the topic list holds: a page by slug, a group of items, or a group another plugin generates. */
+export type TopicItem = { label: string; slug: string } | { label: string; items: TopicItem[] } | object;
+
+/** One sidebar topic. */
+export interface Topic {
+  /** The tab's text. */
+  readonly label: string;
+  /** A name that unlisted pages use to join the topic; only a topic that has them needs one. */
+  readonly id?: string;
+  /** The slug of the page the tab links to; it is also the topic's first page. */
+  readonly link: string;
+  /** One of Starlight's built-in icon names. */
+  readonly icon: string;
+  /** The topic's own sidebar. */
+  readonly items: TopicItem[];
+}
+
+/** One package's generated API reference: the topic's tab, the folder TypeDoc writes to and the group it generates. */
+export interface ApiTopic {
+  /** The tab's text, such as "Gateway API". */
+  readonly label: string;
+  /** The folder under `src/content/docs/` that holds the package's generated pages, such as `reference/gateway`. */
+  readonly output: string;
+  /** The placeholder group that the package's TypeDoc plugin fills with the package's exports. */
+  readonly group: object;
+}
+
+/**
+ * The pages no sidebar item names but that belong to a topic, as glob patterns by topic id. TypeDoc writes each
+ * package's module page without a sidebar entry, so the plugin would refuse it as a page in no topic; naming the
+ * output folder puts every generated page, listed or not, in that package's topic.
+ */
+export function unlistedPages(apis: readonly ApiTopic[]): Record<string, string[]> {
+  return Object.fromEntries(apis.map((api) => [api.output, [`/${api.output}/**`]]));
+}
+
+/**
+ * The topics in the order the tabs show: the written docs, then one topic for each package's generated API reference.
+ * Each package gets its own topic, not one shared "API reference", because a page embeds every link of its topic and the
+ * generated reference is by far the largest part of the sidebar.
+ */
+export function topics(apis: readonly ApiTopic[]): Topic[] {
+  return [
+    {
+      label: "SDK & gateway",
+      link: "start/what-the-sdk-is",
+      icon: "open-book",
+      items: [
+        {
+          label: "Start",
+          items: [
+            { label: "What the SDK is", slug: "start/what-the-sdk-is" },
+            { label: "Install", slug: "start/install" },
+            { label: "Your first agent", slug: "start/first-agent" },
+          ],
+        },
+        {
+          label: "Concepts",
+          items: [
+            { label: "The transcript and the stream", slug: "concepts/transcript-and-stream" },
+            { label: "Stop reasons", slug: "concepts/stop-reasons" },
+            { label: "Tools", slug: "concepts/tools" },
+            { label: "Approvals", slug: "concepts/approvals" },
+          ],
+        },
+        {
+          label: "Guides",
+          items: [
+            { label: "Add a tool", slug: "guides/add-a-tool" },
+            { label: "Pause for approval", slug: "guides/pause-for-approval" },
+          ],
+        },
+        {
+          label: "Testing",
+          items: [
+            { label: "Test with ScriptedModel", slug: "testing/scripted-model" },
+            { label: "Keep tests offline", slug: "testing/offline" },
+          ],
+        },
+        {
+          label: "Reference",
+          items: [{ label: "Packages and entry points", slug: "reference/packages" }],
+        },
+      ],
+    },
+    ...apis.map((api) => ({
+      id: api.output,
+      label: api.label,
+      link: api.output,
+      icon: "document",
+      items: [api.group],
+    })),
+  ];
+}

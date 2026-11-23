@@ -4,12 +4,14 @@ import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
+import starlightSidebarTopics from "starlight-sidebar-topics";
 import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 import { API_PACKAGES, entryPoints, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
 import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
 import { figureDirective } from "./src/plugins/figure.js";
 import { renderInputFiles } from "./src/plugins/render-inputs.js";
+import { topics, unlistedPages } from "./src/topics.js";
 
 // Astro caches each page's rendered HTML until the page's own file changes. A page that shows an example file, or the
 // plugin that fills its fence, would therefore keep old code after an edit. When any of those files differs from the
@@ -30,8 +32,8 @@ if (!existsSync(stamp) || readFileSync(stamp, "utf8") !== digest) {
   writeFileSync(stamp, digest);
 }
 
-// One TypeDoc plugin and sidebar group for each package, from the package's own exports and TSDoc. The pages are
-// written under src/content/docs/reference/ at build time and are not committed.
+// One TypeDoc plugin, sidebar group and sidebar topic for each package, from the package's own exports and TSDoc. The
+// pages are written under src/content/docs/reference/ at build time and are not committed.
 const api = API_PACKAGES.map((pkg) => {
   const [plugin, sidebarGroup] = createStarlightTypeDocPlugin();
   const { entryPoints: _entries, tsconfig: _tsconfig, ...typeDoc } = typeDocOptions(pkg);
@@ -40,17 +42,19 @@ const api = API_PACKAGES.map((pkg) => {
       entryPoints: entryPoints(pkg),
       tsconfig: tsconfigOf(pkg),
       output: pkg.output,
-      sidebar: { label: pkg.label, collapsed: true },
+      sidebar: { label: pkg.name, collapsed: false },
       // The package's root entry is its main page, so the module list leads with its exports. Each module is named for
       // its import path by an `@module` tag in the entry file.
       typeDoc: { ...typeDoc, entryFileName: "index" },
     }),
-    sidebarGroup,
+    group: sidebarGroup,
+    label: pkg.label,
+    output: pkg.output,
   };
 });
 
-// The docs are fully static: Astro's default static output and no adapter. The sidebar is explicit, in the order
-// start, concepts, guides, testing, reference, so a new page appears only when someone places it.
+// The docs are fully static: Astro's default static output and no adapter. The sidebar is explicit, so a new page
+// appears only when someone places it in a topic.
 export default defineConfig({
   site: "https://docs.buildanagent.fyi",
   cacheDir: CACHE_DIR,
@@ -82,46 +86,12 @@ export default defineConfig({
         minSyntaxHighlightingColorContrast: 0,
         styleOverrides: CODE_STYLE_OVERRIDES,
       },
-      plugins: [starlightLinksValidator(), ...api.map((entry) => entry.plugin)],
-      sidebar: [
-        {
-          label: "Start",
-          items: [
-            { label: "What the SDK is", slug: "start/what-the-sdk-is" },
-            { label: "Install", slug: "start/install" },
-            { label: "Your first agent", slug: "start/first-agent" },
-          ],
-        },
-        {
-          label: "Concepts",
-          items: [
-            { label: "The transcript and the stream", slug: "concepts/transcript-and-stream" },
-            { label: "Stop reasons", slug: "concepts/stop-reasons" },
-            { label: "Tools", slug: "concepts/tools" },
-            { label: "Approvals", slug: "concepts/approvals" },
-          ],
-        },
-        {
-          label: "Guides",
-          items: [
-            { label: "Add a tool", slug: "guides/add-a-tool" },
-            { label: "Pause for approval", slug: "guides/pause-for-approval" },
-          ],
-        },
-        {
-          label: "Testing",
-          items: [
-            { label: "Test with ScriptedModel", slug: "testing/scripted-model" },
-            { label: "Keep tests offline", slug: "testing/offline" },
-          ],
-        },
-        {
-          label: "Reference",
-          items: [
-            { label: "Packages and entry points", slug: "reference/packages" },
-            ...api.map((entry) => entry.sidebarGroup),
-          ],
-        },
+      // The sidebar is the topics plugin's (src/topics.ts), not a `sidebar` option, which the plugin refuses.
+      plugins: [
+        starlightLinksValidator(),
+        // First of the three, because it writes the sidebar and each TypeDoc plugin replaces its placeholder in it.
+        starlightSidebarTopics(topics(api), { topics: unlistedPages(api) }),
+        ...api.map((entry) => entry.plugin),
       ],
     }),
   ],

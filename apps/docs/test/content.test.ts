@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, test } from "vitest";
+import { API_PACKAGES } from "../src/api/packages.js";
 import { exampleSource, parseExampleRef } from "../src/plugins/example-code.js";
 import { type Page, readPages } from "../src/plugins/pages.js";
+import { topics } from "../src/topics.js";
 
 // The rules of docs/guidelines/docs-writing.md that a program can check, run over every page.
 const pages = readPages();
@@ -15,7 +17,6 @@ const MAX_INLINE_CODE_LINES = 5;
 const BANNED = /\b(simply|just|easy|easily|obviously|please|utilize|via|etc)\b|note that|!/i;
 // A word that may start with a capital in the middle of a sentence-case heading.
 const PROPER_NOUNS = new Set(["Node", "Zod", "JSON", "Standard", "TypeScript", "OpenTelemetry", "Anthropic", "OpenAI"]);
-const SITE = fileURLToPath(new URL("..", import.meta.url));
 
 /** Every todo id, from the file names of the todo board, so a page that names one is caught. */
 function todoIds(): string[] {
@@ -108,17 +109,40 @@ describe.each(pages.map((page) => [page.path, page] as const))("%s", (_path, pag
 });
 
 describe("the sidebar", () => {
-  const config = readFileSync(`${SITE}astro.config.mjs`, "utf8");
-  const slugs = [...config.matchAll(/slug: "([^"]+)"/g)].map((match) => match[1]);
+  // The topic list with stand-ins for the generated API groups, which hold no slugs.
+  const topicList = topics(API_PACKAGES.map((pkg) => ({ label: pkg.label, output: pkg.output, group: { items: [] } })));
+  const slugsOf = (items: readonly object[]): string[] =>
+    items.flatMap((item) =>
+      "slug" in item ? [String(item.slug)] : "items" in item ? slugsOf(item.items as readonly object[]) : [],
+    );
+  const slugs = topicList.flatMap((topic) => slugsOf(topic.items));
 
-  test("names every page except the home page, once, and no page that is missing", () => {
+  test("names every page except the home page in exactly one topic, and no page that is missing", () => {
     const expected = pages.map((page) => page.path.replace(/\.mdx?$/, "")).filter((slug) => slug !== "index");
     assert.deepEqual([...slugs].sort(), expected.sort());
   });
 
+  test("puts the topics in the order SDK & gateway, then one API topic for each package", () => {
+    assert.deepEqual(
+      topicList.map((topic) => topic.label),
+      ["SDK & gateway", ...API_PACKAGES.map((pkg) => pkg.label)],
+    );
+  });
+
   test("puts the sections in the order start, concepts, guides, testing, reference", () => {
-    const labels = [...config.matchAll(/label: "([^"]+)",\s*items:/g)].map((match) => match[1]);
-    assert.deepEqual(labels, ["Start", "Concepts", "Guides", "Testing", "Reference"]);
+    const sdk = topicList[0]?.items as { label: string }[];
+    assert.deepEqual(
+      sdk.map((group) => group.label),
+      ["Start", "Concepts", "Guides", "Testing", "Reference"],
+    );
+  });
+
+  test("links each topic to a page of its own: a listed page or the generated API index", () => {
+    for (const topic of topicList) {
+      const listed = slugsOf(topic.items).includes(topic.link);
+      const generated = API_PACKAGES.some((pkg) => topic.link === pkg.output);
+      assert.ok(listed || generated, `${topic.label} links to ${topic.link}, which none of its pages is`);
+    }
   });
 
   test("ends every page with a link to the next page in the sidebar", () => {

@@ -96,7 +96,8 @@ describe("the home page's styles", () => {
     const site = builtSite();
     const notFound = readFileSync(`${site}/404.html`, "utf8");
     assert.match(notFound, /data-has-hero/, "the premise: the 404 page sets data-has-hero");
-    assert.doesNotMatch(notFound, /card-grid/);
+    // The markup, not the word: the topic tabs import Starlight's component barrel, so its card-grid CSS is inlined.
+    assert.doesNotMatch(notFound, /class="[^"]*\bcard-grid\b/);
     assert.match(readFileSync(`${site}/index.html`, "utf8"), /card-grid/);
   });
 });
