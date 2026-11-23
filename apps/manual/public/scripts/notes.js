@@ -4,8 +4,9 @@
 // quote again, so a highlight survives small edits to the chapter, and one it cannot place stays listed in the notes
 // panel with its text. The CSS Custom Highlight API draws the highlights, so the chapter's markup is never wrapped or
 // changed. Everything stays in this browser's localStorage: the script makes no request, and it writes stored text
-// into the page only as text. Each highlight has one of four colours, a click on a highlight or its note marker opens a
-// popover with colour, Share and Remove, and a highlight with a note gets a marker, because Firefox 140 to 145 draws
+// into the page only as text. Each highlight has one of four colours. Add note on a selection opens a popover under the
+// passage to write the note, and a click on a highlight or its note marker opens the same popover with colour, Share
+// and Remove. A highlight with a note gets a marker, because Firefox 140 to 145 draws
 // no underline from a CSS highlight: a speech bubble in the margin where the window leaves room beside the article,
 // and a numbered dot after the passage's last word where it does not. Without JavaScript, without CSS.highlights or with
 // storage blocked, nothing appears.
@@ -693,7 +694,7 @@ const MESSAGES = {
   storage: "This browser would not save the change: its storage is full or turned off.",
   foreign:
     "Nothing was changed: this browser holds notes in a form this page cannot read, saved by a newer or damaged version of the book. Export shows them as stored.",
-  gone: "That highlight was deleted in another tab or window. Save to add it back with this note.",
+  gone: "That highlight was deleted in another tab or window. Press Save note to add it back with this note.",
 };
 
 /**
@@ -767,6 +768,13 @@ class Notes {
       this.resizer.observe(article);
     }
     whenFontsLoad(this.doc, () => this.refit());
+    // The header's script slides a phone header away and back a frame after the scroll that decided it, so the toolbar
+    // and the popover are placed again whenever it does: their top limit moved.
+    this.headerWatch = new win.MutationObserver(() => {
+      this.position();
+      this.placePop();
+    });
+    this.headerWatch.observe(this.doc.documentElement, { attributes: true, attributeFilter: ["data-header-hidden"] });
   }
 
   /** Reads this chapter's highlights from storage, and whether the stored value is one this page must not overwrite. */
@@ -872,23 +880,30 @@ class Notes {
       element(doc, "span", { "aria-hidden": "true" }),
       this.popClose,
     ]);
+    // The colours are one radio group: one stop in the tab order, the arrow keys move between them, and the checked
+    // one is the highlight's colour.
     this.popColors = element(doc, "div", {
       className: "notes-colors",
-      role: "group",
+      role: "radiogroup",
       "aria-label": "Highlight colour",
     });
+    this.popHint = element(doc, "p", { className: "notes-pop__hint", text: "Esc to cancel", hidden: true });
+    this.popHead = element(doc, "div", { className: "notes-pop__head" }, [this.popColors, this.popHint]);
     this.popQuote = element(doc, "p", { className: "notes-pop__quote" });
     this.popNote = element(doc, "p", { className: "notes-pop__note" });
     this.popField = element(doc, "textarea", {
+      id: "notes-pop-field",
       className: "notes-pop__field",
       rows: 3,
       maxlength: MAX_NOTE,
       placeholder: "Add a note…",
       "aria-label": "Note",
+      "aria-describedby": "notes-pop-count",
       hidden: true,
     });
+    this.popCount = element(doc, "span", { id: "notes-pop-count", className: "notes-pop__count", hidden: true });
     this.popEdit = action("edit", "Edit");
-    this.popSave = action("save", "Save");
+    this.popSave = action("save", "Save note", " notes-pop__act--primary");
     this.popCancel = action("cancel", "Cancel");
     this.popShare = action("share", "Share");
     this.popRemove = action("delete", "Remove", " notes-pop__act--remove");
@@ -906,7 +921,7 @@ class Notes {
       { ...ui, className: "notes-pop notes-ui", popover: "auto", role: "dialog", "aria-label": "Highlight" },
       [
         this.popGrab,
-        this.popColors,
+        this.popHead,
         this.popQuote,
         this.popNote,
         this.popField,
@@ -916,6 +931,7 @@ class Notes {
           this.popCancel,
           this.popShare,
           this.popRemove,
+          this.popCount,
         ]),
         this.popCopy,
         this.popMessage,
@@ -1040,10 +1056,19 @@ class Notes {
       });
     };
     doc.addEventListener("selectionchange", later);
-    win.addEventListener("scroll", () => this.position(), { passive: true });
+    // The toolbar and the popover stay with their passage while the page scrolls or the window changes size.
+    win.addEventListener(
+      "scroll",
+      () => {
+        this.position();
+        this.placePop();
+      },
+      { passive: true },
+    );
     win.addEventListener("resize", () => {
       this.position();
       this.refit();
+      this.placePop();
     });
     // On iOS Safari a tap fires a click only when an element below the body listens, so the article listens itself.
     this.article.addEventListener("click", (event) => this.onClick(event));
@@ -1065,19 +1090,15 @@ class Notes {
         this.hover(this.hoverSources.pointer ?? this.hoverSources.focus);
       });
     }
-    // A click outside or Escape closes the popover without calling this script.
-    // beforetoggle runs synchronously, so a click that follows a light dismiss already sees a closed popover.
-    this.pop.addEventListener("toggle", (event) => {
-      if (event.newState === "closed") this.restoreDotFocus();
-    });
+    // A click outside closes the popover in the browser (its light dismiss). beforetoggle runs synchronously, so the
+    // popover's state, an unsaved new highlight included, is cleared before the click that follows can open it again;
+    // the toggle event, which comes later, then finishes the close through closeEditor. A popover opened again in the
+    // meantime is left alone.
     this.pop.addEventListener("beforetoggle", (event) => {
-      if (event.newState !== "closed") return;
-      this.popOpen = false;
-      this.popId = undefined;
-      // The sheet attributes are cleared as the popover closes, so a closed popover keeps no sheet or compact layout
-      // and nothing of it can cover the page; opening it sets them again.
-      this.pop.removeAttribute("data-sheet");
-      this.pop.removeAttribute("data-compact");
+      if (event.newState === "closed") this.endPop();
+    });
+    this.pop.addEventListener("toggle", (event) => {
+      if (event.newState === "closed" && !this.popOpen && this.closedPop) this.closeEditor("outside");
     });
     // A press on the toolbar keeps the selection the reader made.
     // A finger's pointerdown is left alone: WebKit drops the tap's click when a touch pointerdown is cancelled.
@@ -1099,17 +1120,18 @@ class Notes {
         this.addPending(false, color);
       });
     }
-    this.noteButton.addEventListener("click", () => this.addPending(true));
+    // A press from the keyboard reaches a button as a click with no pointer detail, and its focus returns there after.
+    this.noteButton.addEventListener("click", (event) => this.addPending(true, this.color, event.detail === 0));
     this.popShare.addEventListener("click", () => this.sharePopped());
     this.popRemove.addEventListener("click", () => this.removePopped());
-    this.pop.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") this.popEscaped = true;
-    });
-    // A rotation or a resize across the sheet's width while the popover is open closes it, since a popover placed
-    // beside a passage and a full-width sheet are laid out differently; opening it again lays it out afresh.
+    this.popColors.addEventListener("keydown", (event) => this.onColorKey(event));
+    this.popField.addEventListener("input", () => this.updatePopCount());
+    // A rotation or a resize across the sheet's width while the popover is open lays it out again in the other mode,
+    // a popover under the passage or a full-width sheet, keeping what it holds: a new note, the typed text and focus.
     const sheetQuery = typeof win.matchMedia === "function" ? win.matchMedia(SHEET_QUERY) : undefined;
     sheetQuery?.addEventListener?.("change", () => {
-      if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches) this.closePop();
+      if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches)
+        this.relayoutPop(sheetQuery.matches);
     });
     // The on-screen keyboard shrinks the visual viewport, and on iOS it leaves the layout viewport alone, so the sheet
     // follows the visual one: it sits on its bottom edge and takes at most half its height.
@@ -1122,11 +1144,11 @@ class Notes {
     win.addEventListener("resize", () => this.layoutSheet());
     this.popEdit.addEventListener("click", () => this.editPopped());
     this.popSave.addEventListener("click", () => this.savePopped());
-    this.popCancel.addEventListener("click", () => this.cancelPopped());
+    this.popCancel.addEventListener("click", () => this.closeEditor("cancel"));
     this.popGrab.addEventListener("pointerdown", (event) => {
       if (!event.target?.closest?.(".notes-pop__close")) this.startSwipe(event);
     });
-    this.popClose.addEventListener("click", () => this.closeEditor());
+    this.popClose.addEventListener("click", () => this.closeEditor("close"));
     this.toolbar.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -1182,6 +1204,14 @@ class Notes {
       }
       return;
     }
+    // Escape on an open popover, wherever focus is, closes it through closeEditor before the browser's own light
+    // dismiss can, so a new highlight that was never saved is dropped and focus goes back to the passage.
+    // An Escape that ends an input method's composition belongs to the field, not to the popover.
+    if (event.key === "Escape" && this.popOpen && !event.isComposing && event.keyCode !== 229) {
+      event.preventDefault();
+      this.closeEditor("escape");
+      return;
+    }
     if (event.key === "Escape" && !this.toolbar.hidden && !this.dialog.open) this.hideToolbar();
   }
 
@@ -1230,9 +1260,11 @@ class Notes {
     const height = win.innerHeight;
     const box = this.toolbar.getBoundingClientRect();
     const gap = 8;
+    // Never under the sticky header: its height is the top limit while it shows.
+    const limit = gap + this.headerClear();
     let top = last.bottom + gap;
     if (top + box.height > height - gap) top = first.top - box.height - gap;
-    top = Math.max(gap, Math.min(top, height - box.height - gap));
+    top = Math.max(limit, Math.min(top, height - box.height - gap));
     const left = Math.max(gap, Math.min(last.left, width - box.width - gap));
     // Set through the CSSOM, which the content security policy allows; a style attribute in markup it would block.
     this.toolbar.style.top = `${Math.round(top)}px`;
@@ -1260,10 +1292,10 @@ class Notes {
   }
 
   /**
-   * Highlights the pending selection, or opens the note form for it. The toolbar stays open, with the reason in view,
-   * until the highlight is saved.
+   * Highlights the pending selection, or opens the note editor for it: the popover at the passage, or the panel's form
+   * when the panel is open. The toolbar stays open, with the reason in view, until the highlight is saved.
    */
-  addPending(withNote, color = this.color) {
+  addPending(withNote, color = this.color, byKeyboard = false) {
     const pending = this.pending;
     const fromToolbar = this.toolbar.contains(this.doc.activeElement);
     if (!pending) return;
@@ -1274,6 +1306,10 @@ class Notes {
     }
     if (!withNote && existing) {
       this.notice("That passage is already highlighted.");
+      return;
+    }
+    if (withNote && !this.dialog.open && this.canPop) {
+      this.writeNote(pending, existing, byKeyboard);
       return;
     }
     if (withNote) {
@@ -1363,20 +1399,20 @@ class Notes {
       const located = locate(chapter.index.text, item, chapter.sections);
       this.placed.set(item.id, located);
       if (located.status === "lost") continue;
-      const from = rawPoint(chapter.index, located.start, "start");
-      const to = rawPoint(chapter.index, located.end, "end");
-      const startNode = from && chapter.nodes[from.seg];
-      const endNode = to && chapter.nodes[to.seg];
-      if (!startNode || !endNode) continue;
-      const range = doc.createRange();
-      range.setStart(startNode, from.off);
-      range.setEnd(endNode, to.off);
+      const range = rangeIn(doc, chapter, located);
+      if (!range) continue;
       const name = highlightName(item.color, item.note !== "");
       groups.get(name)?.push(range);
       // A noted name has priority 1 and registers after the plain ones, so it paints above them: the order a click
       // follows when highlights overlap.
       this.drawn.push({ item, range, rank: (item.note ? 1000 : 0) + HIGHLIGHT_NAMES.indexOf(name) });
     }
+    // A new note's draft is drawn as a plain highlight in its colour while the popover is open, but it is not stored,
+    // so it takes no marker and no click opens it.
+    this.draftRange = this.draft
+      ? rangeIn(doc, chapter, locate(chapter.index.text, this.draft.anchor, chapter.sections))
+      : undefined;
+    if (this.draft && this.draftRange) groups.get(highlightName(this.draft.color, false))?.push(this.draftRange);
     // Deleting before setting keeps the registration order the same on every paint, which breaks priority ties.
     for (const [name, ranges] of groups) {
       const highlight = new win.Highlight(...ranges);
@@ -1402,6 +1438,13 @@ class Notes {
     this.hover(this.hoverSources.pointer ?? this.hoverSources.focus);
     if (focusedId !== undefined) this.noteControl(focusedId)?.focus({ preventScroll: true });
     this.updateCount();
+    // An open popover follows its passage's new range, since a redraw builds every range afresh.
+    if (this.popOpen) {
+      const range =
+        this.popId === undefined ? this.draftRange : this.drawn.find((entry) => entry.item.id === this.popId)?.range;
+      if (range) this.popRange = range;
+      this.placePop();
+    }
   }
 
   /** The right edge of the chapter's text column: its first paragraph, which the article's box is wider than. */
@@ -1648,11 +1691,9 @@ class Notes {
       ? this.drawn.find((drawn) => drawn.item.id === marker.getAttribute("data-id"))
       : this.hit(event.clientX, event.clientY);
     if (!entry) return;
-    // A marker is a button, so Enter and Space reach it as a click with no pointer position: its own place stands in.
-    const box = marker ? marker.getBoundingClientRect() : undefined;
-    const byKeyboard = marker !== null && event.detail === 0;
-    this.popFromKey = byKeyboard;
-    this.openPop(entry, box ? box.left + box.width / 2 : event.clientX, box ? box.top + box.height / 2 : event.clientY);
+    // A marker is a button, so Enter and Space reach it as a click with no pointer detail.
+    this.popFromKey = marker !== null && event.detail === 0;
+    this.openPop(entry);
   }
 
   /**
@@ -1670,25 +1711,8 @@ class Notes {
     const entry = this.drawn.find((drawn) => drawn.item.id === dot.getAttribute("data-id"));
     if (!entry) return;
     event.preventDefault();
-    const box = dot.getBoundingClientRect();
     this.popFromKey = true;
-    this.openPop(entry, box.left + box.width / 2, box.top + box.height / 2);
-  }
-
-  /**
-   * Returns focus to the note's marker when the popover was opened from the keyboard or closed with Escape and focus
-   * has been left on the page body. A click outside leaves focus where the reader put it.
-   */
-  restoreDotFocus() {
-    const id = this.popReturnId;
-    const byKeyboard = this.popFromKey || this.popEscaped;
-    this.popReturnId = undefined;
-    this.popFromKey = false;
-    this.popEscaped = false;
-    if (id === undefined || !byKeyboard) return;
-    const active = this.doc.activeElement;
-    if (active && active !== this.doc.body && active !== this.doc.documentElement) return;
-    this.noteControl(id)?.focus({ preventScroll: true });
+    this.openPop(entry);
   }
 
   /** Whether the window is narrow enough that the popover is a bottom sheet. */
@@ -1697,21 +1721,55 @@ class Notes {
   }
 
   /**
-   * Opens the popover for a highlight: beside the passage on a wide window, as a bottom sheet on a narrow one, with
-   * focus on its first control.
+   * Opens the popover to write a note on the selected passage. A passage already highlighted opens its own highlight
+   * with the field ready. A new passage gets a draft: a highlight drawn in the colour the reader picked last but never
+   * stored, which the colours recolour while the reader writes, which Save stores with the note and which every other
+   * way of closing drops. Storing nothing until Save means Cancel, Escape and a click outside have nothing to undo,
+   * and another tab never sees a highlight the reader has not kept.
    */
-  openPop(entry, x, y) {
+  writeNote(pending, existing, byKeyboard) {
+    this.hideToolbar();
+    this.pending = undefined;
+    this.clearSelection();
+    this.closePop();
+    this.popFromKey = byKeyboard;
+    const entry = existing ? this.drawn.find((drawn) => drawn.item.id === existing.id) : undefined;
+    if (entry) {
+      this.openPop(entry, true);
+      return;
+    }
+    this.draft = { anchor: pending.anchor, color: this.color };
+    this.paint();
+    this.openPop(undefined, true);
+  }
+
+  /**
+   * Opens the popover for a highlight, or for the draft when `entry` is undefined: under the passage on a wide window,
+   * as a bottom sheet on a narrow one. Focus goes to the note field when the popover is for writing, and otherwise to
+   * the checked colour. `editing` opens a saved note's field at once, as Add note on its passage does.
+   */
+  openPop(target, editing = false) {
     const { win } = this;
-    const item = entry.item;
-    this.popId = item.id;
-    this.popReturnId = item.id;
-    this.popEscaped = false;
+    let entry = target;
+    // A highlight opened while a new note is being written replaces the new note, which is dropped as Cancel drops it.
+    if (entry && this.draft) {
+      this.draft = undefined;
+      this.paint();
+      entry = this.drawn.find((drawn) => drawn.item.id === target.item.id);
+      if (!entry) return;
+    }
+    const item = entry?.item;
+    const range = entry ? entry.range : this.draftRange;
+    if ((!item && !this.draft) || !range) return;
+    this.closedPop = undefined;
+    this.popId = item?.id;
+    this.popReturnId = item?.id;
     // A copy of the highlight as it was when the popover opened, so a Save after another tab deleted it can add it back.
-    this.popItem = { ...item };
+    this.popItem = item ? { ...item } : undefined;
     this.popMessage.textContent = "";
     this.popCopy.hidden = true;
-    this.popEditing = false;
-    this.popField.value = item.note;
+    this.popEditing = editing && item !== undefined && item.note !== "";
+    this.popField.value = item?.note ?? "";
     const sheet = this.isSheet();
     this.pop.toggleAttribute("data-sheet", sheet);
     this.pop.style.transform = "";
@@ -1722,7 +1780,8 @@ class Notes {
       return;
     }
     this.popOpen = true;
-    this.popRange = entry.range;
+    this.popRange = range;
+    this.popBlock = blockAround(range.startContainer);
     this.sheetKey = undefined;
     if (sheet) {
       this.pop.style.top = "";
@@ -1730,29 +1789,132 @@ class Notes {
       this.layoutSheet();
       // Fonts or the note's text may still change the sheet's height after the first frame.
       win.requestAnimationFrame?.(() => {
-        if (this.popOpen && this.popId === item.id) this.revealPassage();
+        if (this.popOpen && this.popRange === range) this.revealPassage();
       });
     } else {
-      const box = this.pop.getBoundingClientRect();
-      const width = this.doc.documentElement.clientWidth || win.innerWidth;
-      const gap = 8;
-      // Beside the passage, not over it: below its last line, or above its first when the window has no room below.
-      const rects = [...entry.range.getClientRects()];
-      const first = rects[0];
-      const last = rects[rects.length - 1];
-      const below = (last ? last.bottom : y + 8) + gap;
-      const above = (first ? first.top : y - 8) - gap - box.height;
-      const top = below + box.height <= win.innerHeight - gap || above < gap ? below : above;
-      const left = Math.max(gap, Math.min(x - 16, width - box.width - gap));
-      this.pop.style.top = `${Math.round(Math.max(gap, Math.min(top, win.innerHeight - box.height - gap)))}px`;
-      this.pop.style.left = `${Math.round(left)}px`;
+      // A passage the reader cannot see, such as one selected and then scrolled away, is brought into view first, so
+      // the popover opens beside it rather than hidden. The passage itself is scrolled to, not its block, which can be
+      // taller than the window, and it lands just below the sticky header.
+      const lines = [...range.getClientRects()];
+      const clear = this.headerClear();
+      const away = lines.length > 0 && (lines[lines.length - 1].bottom < clear || lines[0].top > win.innerHeight);
+      // A phone header slid away comes back on any upward scroll, so a scroll up makes room for its full height.
+      const up = away && lines[0].top - clear - 16 < 0;
+      if (away) win.scrollBy?.(0, Math.round(lines[0].top - (up ? this.headerHeight() : clear) - 16));
+      this.placePop();
     }
     // iOS Safari opens the keyboard only for a focus() made inside the tap that asked for it, so the field takes focus
-    // here, synchronously, and never after a timer or a transition. A keyboard reader who opened the popover from a
-    // marker keeps focus on the first colour, as before.
-    const writing = this.popEditing || item.note === "";
-    if (writing && !this.popFromKey) this.focusField();
-    else this.popColors.querySelector("button")?.focus({ preventScroll: true });
+    // here, synchronously, and never after a timer or a transition. A keyboard reader who opened a plain highlight from
+    // its marker starts on the colours, as before; a new note and Add note always start in the field.
+    const writing = this.popEditing || item === undefined || item.note === "";
+    if (writing && (!this.popFromKey || editing)) this.focusField();
+    else this.focusColor();
+  }
+
+  /** Switches an open popover between the sheet and the popover under the passage, leaving its content alone. */
+  relayoutPop(sheet) {
+    this.pop.toggleAttribute("data-sheet", sheet);
+    this.pop.style.transform = "";
+    this.sheetKey = undefined;
+    if (sheet) {
+      this.pop.removeAttribute("data-side");
+      // A sheet always shows, so a popover hidden with its passage shows again, with the focus it had.
+      this.setOffscreen(false);
+      this.pop.style.top = "";
+      this.pop.style.left = "";
+      this.layoutSheet();
+    } else {
+      this.pop.removeAttribute("data-compact");
+      this.pop.style.removeProperty("--notes-sheet-bottom");
+      this.pop.style.removeProperty("--notes-sheet-max");
+      this.placePop();
+    }
+  }
+
+  /**
+   * Places the popover under the passage's last line, or above its first when the window has no room below. It is
+   * clamped to the reading column and to the window, and placed again whenever the page scrolls or the window resizes,
+   * so it stays with its passage. The sheet lays itself out instead.
+   */
+  placePop() {
+    if (!this.popOpen || this.pop.hasAttribute("data-sheet")) return;
+    const { win, doc } = this;
+    const rects = [...(this.popRange?.getClientRects?.() ?? [])];
+    const first = rects[0];
+    const last = rects[rects.length - 1];
+    if (!first || !last) return;
+    const height = win.innerHeight;
+    const gap = 8;
+    // The sticky header covers the window's top while it shows, so it is the top limit, and a passage under it is away.
+    const clear = this.headerClear();
+    const limit = gap + clear;
+    // While the passage is scrolled out of the window the popover is hidden, still open and holding what the reader
+    // wrote, so it never sits over unrelated text; it shows again, with focus back in it, when the passage returns.
+    const away = last.bottom < clear || first.top > height;
+    this.setOffscreen(away);
+    if (away) return;
+    const box = this.pop.getBoundingClientRect();
+    const width = doc.documentElement.clientWidth || win.innerWidth;
+    const below = last.bottom + gap;
+    const above = first.top - gap - box.height;
+    const fitsBelow = below + box.height <= height - gap;
+    const fitsAbove = above >= limit;
+    // With room on neither side, the side with more room wins and the window's edge clamps it.
+    const side = fitsBelow || (!fitsAbove && height - last.bottom >= first.top) ? "below" : "above";
+    const top = Math.max(limit, Math.min(side === "below" ? below : above, height - box.height - gap));
+    const column = (this.article.querySelector("p") ?? this.article).getBoundingClientRect();
+    const inColumn = Math.max(column.left, Math.min(last.left, column.right - box.width));
+    const left = Math.max(gap, Math.min(inColumn, width - box.width - gap));
+    this.pop.setAttribute("data-side", side);
+    // Set through the CSSOM, which the content security policy allows; a style attribute in markup it would block.
+    this.pop.style.top = `${Math.round(top)}px`;
+    this.pop.style.left = `${Math.round(left)}px`;
+  }
+
+  /**
+   * Hides the popover while its passage is away, or shows it again. Hiding remembers what had focus in it, since a
+   * browser drops focus from a hidden element, and showing gives that focus back when nothing else has taken it.
+   */
+  setOffscreen(away) {
+    if (away === this.pop.hasAttribute("data-offscreen")) return;
+    if (away) {
+      const active = this.doc.activeElement;
+      this.hiddenFocus = this.pop.contains(active) ? active : undefined;
+    }
+    this.pop.toggleAttribute("data-offscreen", away);
+    if (away) return;
+    const back = this.hiddenFocus;
+    this.hiddenFocus = undefined;
+    if (back?.isConnected && this.pop.contains(back) && this.isFocusOnPage()) back.focus({ preventScroll: true });
+  }
+
+  /**
+   * How much of the window's top the sticky header covers: its height (`--header-height`) while it shows, and 0 while
+   * a phone's header is slid away (`data-header-hidden` on the root) or on a page without one.
+   */
+  headerClear() {
+    return this.doc.documentElement.hasAttribute("data-header-hidden") ? 0 : this.headerHeight();
+  }
+
+  /** The sticky header's height, `--header-height`, whether it shows or not, or 0 on a page without one. */
+  headerHeight() {
+    const root = this.doc.documentElement;
+    const value = Number.parseFloat(this.win.getComputedStyle?.(root)?.getPropertyValue("--header-height") ?? "");
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  }
+
+  /** Whether focus rests on the page itself rather than on a control. */
+  isFocusOnPage() {
+    const active = this.doc.activeElement;
+    return !active || active === this.doc.body || active === this.doc.documentElement;
+  }
+
+  /** Gives focus to the checked colour, the one stop the colour group has in the tab order. */
+  focusColor(color) {
+    const target = color
+      ? this.popColors.querySelector(`[data-color="${color}"]`)
+      : this.popColors.querySelector("[aria-checked='true']");
+    (target ?? this.popColors.querySelector("button"))?.focus({ preventScroll: true });
   }
 
   /** Puts focus in the note field with the caret after its text, without scrolling the page. */
@@ -1811,29 +1973,54 @@ class Notes {
     const gap = 16;
     const needed = last.bottom - (sheetTop - gap);
     if (needed <= 0) return;
-    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap)));
+    // The passage's first line stays below the sticky header while it shows.
+    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap - this.headerClear())));
+  }
+
+  /**
+   * What the popover is open on: the stored highlight, or the draft of a new one, which has no note and is not stored.
+   */
+  popSubject() {
+    if (this.popId === undefined) {
+      return this.draft
+        ? { quote: this.draft.anchor.quote, color: this.draft.color, note: "", stored: false }
+        : undefined;
+    }
+    const item = this.items.find((other) => other.id === this.popId);
+    return item ? { ...item, stored: true, lost: this.placed.get(item.id)?.status === "lost" } : undefined;
   }
 
   /**
    * The popover's colours, quotation, note or note field, and actions for the highlight it is open on. Every piece of
-   * text goes in as text. A plain highlight, or a note being edited, shows the field.
+   * text goes in as text. A new note, a plain highlight and a note being edited show the field, with Save note and
+   * Cancel, the count of characters and, on a wide window, the Esc hint; a stored highlight adds Share and Remove.
    */
   renderPop() {
-    const item = this.items.find((other) => other.id === this.popId);
-    if (!item) return;
-    const writing = this.popEditing || item.note === "";
-    this.popQuote.textContent = item.quote;
+    const subject = this.popSubject();
+    if (!subject) return;
+    const writing = !subject.stored || this.popEditing || subject.note === "";
+    this.pop.setAttribute("aria-label", subject.stored ? "Highlight" : "New note");
+    this.popQuote.textContent = subject.quote;
     // The full passage is the tooltip, since the quotation is clamped to a few lines.
-    this.popQuote.setAttribute("title", item.quote);
-    this.popQuote.setAttribute("data-color", colorKey(item.color));
-    this.popNote.textContent = item.note;
+    this.popQuote.setAttribute("title", subject.quote);
+    this.popQuote.setAttribute("data-color", colorKey(subject.color));
+    this.popNote.textContent = subject.note;
     this.popNote.hidden = writing;
     this.popField.hidden = !writing;
-    this.popColors.replaceChildren(...COLORS.map((color) => this.colorButton(item, color)));
+    this.popHint.hidden = !writing;
+    this.popCount.hidden = !writing;
+    this.updatePopCount();
+    this.popColors.replaceChildren(...COLORS.map((color) => this.colorRadio(color, colorKey(subject.color) === color)));
     this.popEdit.hidden = writing;
     this.popSave.hidden = !writing;
-    this.popCancel.hidden = !(writing && item.note !== "");
-    this.popShare.hidden = this.placed.get(item.id)?.status === "lost";
+    this.popCancel.hidden = !writing;
+    this.popShare.hidden = !subject.stored || subject.lost;
+    this.popRemove.hidden = !subject.stored;
+  }
+
+  /** The count under the field, such as "45 / 500", which the field names as its description. */
+  updatePopCount() {
+    this.popCount.textContent = `${this.popField.value.length} / ${MAX_NOTE}`;
   }
 
   /** Edit turns the note into a field with the note's text in it. */
@@ -1846,18 +2033,10 @@ class Notes {
     this.focusField();
   }
 
-  /** Cancel drops what was typed and shows the note again. */
-  cancelPopped() {
-    const item = this.items.find((other) => other.id === this.popId);
-    this.popEditing = false;
-    if (item) this.popField.value = item.note;
-    this.renderPop();
-    this.popEdit.focus({ preventScroll: true });
-  }
-
   /**
    * Save writes the field's text as the highlight's note, from the stored list, so another tab's changes are kept. If
-   * the highlight was deleted in another tab, Save adds it back with the note, as the panel's form does.
+   * the highlight was deleted in another tab, Save adds it back with the note, as the panel's form does. A new note
+   * stores its highlight here for the first time, in the colour the reader left checked.
    */
   savePopped() {
     this.reload();
@@ -1866,13 +2045,17 @@ class Notes {
       this.popMessage.textContent = MESSAGES.foreign;
       return;
     }
+    if (this.popId === undefined && this.draft) {
+      this.saveDraft();
+      return;
+    }
     const note = cleanNote(this.popField.value);
     let item = this.items.find((other) => other.id === this.popId);
     let items;
     if (item) {
       // Nothing changes when the text is the same, so nothing is written or announced.
       if (note === item.note) {
-        this.closeEditor();
+        this.closeEditor("save");
         return;
       }
       const current = item;
@@ -1895,8 +2078,51 @@ class Notes {
     this.popId = item.id;
     this.popReturnId = item.id;
     this.popMessage.textContent = "";
-    this.closeEditor();
+    this.closeEditor("save");
     this.say(note === "" && before !== "" ? "Note removed." : "Note saved.");
+  }
+
+  /**
+   * Stores the draft as a highlight with the field's note. A passage another tab highlighted meanwhile takes the note
+   * and the colour instead of a second highlight. A save that fails keeps the popover open with the reason.
+   */
+  saveDraft() {
+    const draft = this.draft;
+    if (!draft) return;
+    const note = cleanNote(this.popField.value);
+    const same = this.items.find((other) => sameAnchor(other, draft.anchor));
+    let items;
+    let id;
+    if (same) {
+      // An empty field never wipes the other tab's note, and its colour stays unless the reader picked one here.
+      id = same.id;
+      const kept = { note: note || same.note, color: draft.picked ? draft.color : same.color };
+      items = this.items.map((other) => (other.id === same.id ? { ...other, ...kept, at: Date.now() } : other));
+    } else if (this.items.length >= MAX_HIGHLIGHTS) {
+      this.say(MESSAGES.full);
+      this.popMessage.textContent = MESSAGES.full;
+      return;
+    } else {
+      const item = this.makeItem(draft.anchor, note, draft.color);
+      id = item.id;
+      items = [...this.items, item];
+    }
+    // The draft is stored from here on, so it is no longer drawn apart from the stored highlights.
+    this.draft = undefined;
+    const problem = this.commit(items);
+    if (problem) {
+      this.draft = draft;
+      this.paint();
+      this.say(problem);
+      this.popMessage.textContent = problem;
+      return;
+    }
+    const saved = items.find((other) => other.id === id);
+    this.color = saved?.color ?? draft.color;
+    this.popReturnId = id;
+    this.popMessage.textContent = "";
+    this.closeEditor("save");
+    this.say(saved?.note ? "Note saved." : "Highlight saved without a note.");
   }
 
   /**
@@ -1904,7 +2130,8 @@ class Notes {
    * note are read again, a highlight that is gone closes the popover, and text the reader is typing is kept.
    */
   refreshPop() {
-    if (!this.popOpen) return;
+    // A draft is not stored, so another tab's change leaves it as it is; its Save looks at the stored list again.
+    if (!this.popOpen || this.popId === undefined) return;
     const item = this.items.find((other) => other.id === this.popId);
     if (!item) {
       // A reader who is writing a note keeps the popover, and Save adds the highlight back.
@@ -1922,7 +2149,7 @@ class Notes {
     const color = this.pop.contains(active) ? active?.getAttribute?.("data-color") : null;
     this.renderPop();
     // The colour buttons are rebuilt, so one that had focus gets it back.
-    if (color) this.popColors.querySelector(`[data-color="${color}"]`)?.focus({ preventScroll: true });
+    if (color) this.focusColor(color);
   }
 
   /**
@@ -1947,7 +2174,7 @@ class Notes {
       win.removeEventListener("pointerup", end);
       win.removeEventListener("pointercancel", end);
       this.pop.style.transform = "";
-      if (distance > SWIPE_CLOSE) this.closeEditor();
+      if (distance > SWIPE_CLOSE) this.closeEditor("swipe");
     };
     win.addEventListener("pointermove", move);
     win.addEventListener("pointerup", end);
@@ -1959,6 +2186,55 @@ class Notes {
     const button = this.swatch(color, highlightName(item.color, false) === highlightName(color, false));
     button.addEventListener("click", () => this.setColor(item.id, color));
     return button;
+  }
+
+  /**
+   * A colour in the popover: a radio named for its colour, checked for the highlight's colour, and in the tab order only
+   * when checked, since the arrow keys move between the four.
+   */
+  colorRadio(color, checked) {
+    const radio = this.swatch(color);
+    radio.setAttribute("role", "radio");
+    radio.setAttribute("aria-checked", String(checked));
+    radio.setAttribute("tabindex", checked ? "0" : "-1");
+    radio.addEventListener("click", () => this.pickColor(color));
+    return radio;
+  }
+
+  /**
+   * Gives the highlight the popover is open on another colour. A draft is recoloured on the page and nothing is stored;
+   * a stored highlight is stored in its new colour at once, as before. Picking the colour it has changes nothing.
+   */
+  pickColor(color) {
+    const subject = this.popSubject();
+    if (!subject || subject.color === color) {
+      this.focusColor(color);
+      return;
+    }
+    if (this.popId !== undefined) {
+      this.setColor(this.popId, color);
+      return;
+    }
+    if (!this.draft) return;
+    this.draft = { ...this.draft, color, picked: true };
+    this.paint();
+    this.renderPop();
+    this.focusColor(color);
+  }
+
+  /** The arrow keys, Home and End move between the popover's colours, and choose the colour they move to. */
+  onColorKey(event) {
+    const radio = event.target?.closest?.("[role='radio']");
+    if (!radio) return;
+    const at = COLORS.indexOf(radio.getAttribute("data-color") ?? "");
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    let next;
+    if (step !== undefined) next = COLORS[(at + step + COLORS.length) % COLORS.length];
+    else if (event.key === "Home") next = COLORS[0];
+    else if (event.key === "End") next = COLORS[COLORS.length - 1];
+    if (next === undefined) return;
+    event.preventDefault();
+    this.pickColor(next);
   }
 
   /** Gives a highlight another colour. A colour this script did not write stays as stored until the reader picks one. */
@@ -1983,8 +2259,8 @@ class Notes {
     if (this.dialog.open) this.rerender();
     // The panel redraws its rows, so focus goes to the same colour in the row; otherwise it stays in the popover.
     const row = this.dialog.open ? [...this.list.children].find((child) => child.getAttribute("data-id") === id) : null;
-    const scope = row ?? this.popColors;
-    (scope.querySelector(`[data-color="${color}"]`) ?? this.popShare).focus({ preventScroll: true });
+    if (row) row.querySelector(`[data-color="${color}"]`)?.focus({ preventScroll: true });
+    else if (this.popOpen) this.focusColor(color);
   }
 
   /** Removes the highlight the popover is open on, and closes the popover. */
@@ -2007,45 +2283,95 @@ class Notes {
       return;
     }
     this.popReturnId = item.id;
-    this.closeEditor();
+    this.closeEditor("remove");
     this.say(item.note === "" ? "Highlight removed." : "Note removed.");
   }
 
   /**
-   * The one way the editor closes by the reader's own act: Save, Remove, the Close button and a swipe down. It blurs the
-   * field, so the on-screen keyboard goes, and hides the popover. Focus then goes to the note's marker when the popover
-   * was opened from the keyboard or is a sheet (a touch reader's marker is a dot with no shade). After a mouse close it
-   * stays on the page, since a focused margin marker would keep its passage brightened; after Remove no marker is left
-   * to take it. Escape and a tap outside close the popover in the browser and reach `restoreDotFocus` through its
-   * toggle event instead. Nothing typed is kept: closing drops it, as those two do.
+   * The one way the popover closes when the reader closes it: Save, Cancel, Remove, the Close button, a swipe down,
+   * Escape and a click outside (`how` names which). It blurs the field, so the on-screen keyboard goes, hides the
+   * popover and clears its state, which drops a draft that was never saved and anything typed and not saved. Focus then
+   * goes to the note's marker when the popover was opened from the keyboard, is a sheet or was closed with Escape. When
+   * no marker is left, after Remove or a new note dropped, a keyboard reader's focus goes to the passage's block. After
+   * a mouse close it stays on the page, since a focused margin marker would keep its passage brightened, and after a
+   * click outside it stays where the reader clicked. It never scrolls.
    */
-  closeEditor() {
-    const id = this.popReturnId ?? this.popId;
-    const toMarker = this.popFromKey || this.pop.hasAttribute("data-sheet");
-    this.popReturnId = undefined;
-    this.popFromKey = false;
-    this.popEscaped = false;
+  closeEditor(how = "close") {
+    if (this.popOpen) {
+      // The field gives up focus first, so an on-screen keyboard goes.
+      const typing = this.doc.activeElement;
+      if (typing && this.pop.contains(typing)) typing.blur?.();
+      try {
+        this.pop.hidePopover();
+      } catch {
+        // A popover that is already closed has nothing to do here.
+      }
+      this.endPop();
+    }
+    const closed = this.closedPop;
+    this.closedPop = undefined;
+    if (!closed) return;
+    // Focus never stays in the closed popover, a light dismiss included.
+    const inside = this.doc.activeElement;
+    if (inside && this.pop.contains(inside)) inside.blur?.();
     const active = this.doc.activeElement;
-    if (active && this.pop.contains(active)) active.blur?.();
-    this.closePop();
-    if (toMarker) {
-      const control = id === undefined ? undefined : this.noteControl(id);
-      control?.focus({ preventScroll: true });
+    const onPage = !active || active === this.doc.body || active === this.doc.documentElement;
+    const keyboard = closed.fromKey || how === "escape";
+    const outside = how === "outside";
+    const toMarker = outside ? keyboard && onPage : keyboard || closed.sheet;
+    const control = closed.id === undefined ? undefined : this.noteControl(closed.id);
+    if (toMarker && control) {
+      control.focus({ preventScroll: true });
       return;
     }
+    if (toMarker && keyboard && closed.block?.isConnected) this.focusBlock(closed.block);
     // A pointer close leaves no marker focused, so no passage stays brightened by a focus that is gone.
     this.hoverSources.focus = undefined;
     this.hover(this.hoverSources.pointer);
   }
 
+  /**
+   * Clears the popover's state as it closes, however it closes: the browser's light dismiss reaches it through
+   * beforetoggle, and closeEditor and closePop call it. What closeEditor needs to move focus is kept in `closedPop`.
+   * A draft that was never saved goes with it, so cancelling a new note leaves no highlight. Calling it twice is safe.
+   */
+  endPop() {
+    if (this.popOpen) {
+      this.closedPop = {
+        id: this.popReturnId ?? this.popId,
+        fromKey: this.popFromKey,
+        sheet: this.pop.hasAttribute("data-sheet"),
+        block: this.popBlock,
+      };
+    }
+    this.popOpen = false;
+    this.popId = undefined;
+    this.popReturnId = undefined;
+    this.popFromKey = false;
+    this.popEditing = false;
+    this.popRange = undefined;
+    this.popBlock = undefined;
+    // The sheet attributes are cleared as the popover closes, so a closed popover keeps no sheet or compact layout
+    // and nothing of it can cover the page; opening it sets them again.
+    this.pop.removeAttribute("data-sheet");
+    this.pop.removeAttribute("data-compact");
+    this.pop.removeAttribute("data-offscreen");
+    this.hiddenFocus = undefined;
+    if (this.draft) {
+      this.draft = undefined;
+      this.paint();
+    }
+  }
+
+  /** Closes the popover without moving focus, as when the panel opens over it or its highlight is gone. */
   closePop() {
     try {
       if (this.popOpen) this.pop.hidePopover();
     } catch {
       // A popover that is already closed has nothing to do here.
     }
-    this.popOpen = false;
-    this.popId = undefined;
+    this.endPop();
+    this.closedPop = undefined;
   }
 
   /** Copies what Share offers for the highlight the popover is open on. */
@@ -2335,7 +2661,11 @@ class Notes {
       const item = this.makeItem(target.anchor, note);
       items = [...this.items, item];
     } else {
-      items = this.items.map((item) => (item.id === id ? { ...item, note, at: Date.now() } : item));
+      // A new note with an empty field, on a passage another tab highlighted and noted meanwhile, keeps that note.
+      const keep = !("id" in target) && note === "";
+      items = this.items.map((item) =>
+        item.id === id ? { ...item, note: keep ? item.note : note, at: Date.now() } : item,
+      );
     }
     const problem = this.commit(items);
     if (problem) {
@@ -2349,7 +2679,7 @@ class Notes {
     this.selectionBlock.hidden = true;
     this.pending = undefined;
     this.renderList();
-    this.say(note ? "Note saved." : "Highlight saved without a note.");
+    this.say(items.find((item) => item.id === savedId)?.note ? "Note saved." : "Highlight saved without a note.");
     this.focusItem(savedId);
   }
 
@@ -2408,13 +2738,18 @@ class Notes {
   /** Scrolls a passage's block into view and gives it focus, so the keyboard continues from the passage. */
   reveal(block) {
     const { win } = this;
+    const still = win.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
+    block.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
+    this.focusBlock(block);
+  }
+
+  /** Gives a passage's block focus without scrolling, so the keyboard continues from the passage. */
+  focusBlock(block) {
     // The block then gives up the tabindex it took for this.
     if (!block.hasAttribute("tabindex")) {
       block.setAttribute("tabindex", "-1");
       block.addEventListener("blur", () => block.removeAttribute("tabindex"), { once: true });
     }
-    const still = win.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? true;
-    block.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
     block.focus({ preventScroll: true });
   }
 
@@ -2535,6 +2870,23 @@ function bubble(doc) {
   svg.append(path);
   return svg;
 }
+
+/** The DOM range of a located passage in the chapter's text model, or undefined when it is lost. */
+function rangeIn(doc, chapter, located) {
+  if (located.status === "lost") return undefined;
+  const from = rawPoint(chapter.index, located.start, "start");
+  const to = rawPoint(chapter.index, located.end, "end");
+  const startNode = from && chapter.nodes[from.seg];
+  const endNode = to && chapter.nodes[to.seg];
+  if (!startNode || !endNode) return undefined;
+  const range = doc.createRange();
+  range.setStart(startNode, from.off);
+  range.setEnd(endNode, to.off);
+  return range;
+}
+
+/** The block of prose a node sits in, such as its paragraph or list item. */
+const blockAround = (node) => (node.nodeType === 1 ? node : node.parentElement)?.closest(BLOCK) ?? undefined;
 
 const anchorOf = (item) => ({
   quote: item.quote,

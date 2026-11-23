@@ -1341,16 +1341,16 @@
   outline-offset: 2px;
 }
 
-/* The popover opens beside the passage a reader clicks, or as a bottom sheet on a narrow window. It is a native popover,
-   so it closes on a click outside and on Escape, and the script places it through the style object, which the content
-   security policy allows. */
+/* The popover opens under the passage a reader clicks or is writing a new note on, or as a bottom sheet on a narrow
+   window. It is a native popover, so it closes on a click outside and on Escape, and the script places it through the
+   style object, which the content security policy allows. */
 .notes-pop {
   position: fixed;
   inset: auto;
   box-sizing: border-box;
   display: grid;
   gap: 10px;
-  width: 330px;
+  width: 372px;
   max-width: calc(100vw - 1rem);
   margin: 0;
   padding: 12px 14px;
@@ -1366,7 +1366,33 @@
   display: none;
 }
 
+/* While its passage is scrolled out of the window, an open popover is hidden rather than left over other text. */
+.notes-pop[data-offscreen] {
+  visibility: hidden;
+}
+
 .notes-pop__grab {
+  display: none;
+}
+
+/* The colours on the left and, while a note is being written, the Esc hint on the right. */
+.notes-pop__head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notes-pop__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* A sheet has no keyboard to press Esc on, and its Close button says how to close it. */
+.notes-pop[data-sheet] .notes-pop__hint {
   display: none;
 }
 
@@ -1410,8 +1436,8 @@
   outline-offset: 1px;
 }
 
-/* In the popover a colour is an 18px circle in a 24px target, its name kept for assistive technology, and the current
-   colour is ringed. */
+/* In the popover a colour is an 18px circle in a 24px target, its name kept for assistive technology, and the checked
+   colour (the colours are a radio group) is ringed. */
 .notes-pop .notes-colors {
   flex-wrap: nowrap;
   gap: 2px;
@@ -1439,11 +1465,11 @@
   block-size: 18px;
 }
 
-.notes-pop .notes-swatch[aria-pressed="true"] {
+.notes-pop .notes-swatch[aria-checked="true"] {
   outline: 0;
 }
 
-.notes-pop .notes-swatch[aria-pressed="true"]::before {
+.notes-pop .notes-swatch[aria-checked="true"]::before {
   outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
@@ -1453,33 +1479,33 @@
   outline-offset: 2px;
 }
 
-/* A pointer's hover rings the dot in the muted colour; the pressed colour keeps its solid ring. */
+/* A pointer's hover rings the dot in the muted colour; the checked colour keeps its solid ring. */
 @media (hover: hover) {
-  .notes-pop .notes-swatch:not([aria-pressed="true"]):hover::before {
+  .notes-pop .notes-swatch:not([aria-checked="true"]):hover::before {
     outline: 2px solid var(--color-text-muted);
     outline-offset: 2px;
   }
 }
 
 /* In forced colours the dots keep their own fill, so a colour still shows, and the rings and borders are drawn in system
-   colours, which stay visible on the forced background. The pressed colour's ring is Highlight. */
+   colours, which stay visible on the forced background. The checked colour's ring is Highlight. */
 @media (forced-colors: active) {
   .notes-pop .notes-swatch::before {
     border-color: CanvasText;
     forced-color-adjust: none;
   }
 
-  .notes-pop .notes-swatch:not([aria-pressed="true"]):hover::before {
+  .notes-pop .notes-swatch:not([aria-checked="true"]):hover::before {
     outline-color: CanvasText;
   }
 
-  .notes-pop .notes-swatch[aria-pressed="true"]::before {
+  .notes-pop .notes-swatch[aria-checked="true"]::before {
     outline-color: Highlight;
   }
 }
 
-/* The passage is a small quotation: upright, muted, with a 3px bar in the highlight's edge shade, and cut to three
-   lines (two in a sheet). Its full text is the tooltip. */
+/* The passage is a small quotation: upright, muted, with a 3px bar in the highlight's edge shade, and cut to two lines
+   with an ellipsis. Its full text is the tooltip. */
 .notes-pop__quote {
   --notes-edge: var(--color-highlight-edge);
   display: -webkit-box;
@@ -1492,8 +1518,8 @@
   font-style: normal;
   line-height: 1.5;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow-wrap: anywhere;
 }
 
@@ -1570,6 +1596,30 @@
 .notes-pop__act--remove {
   margin-inline-start: auto;
   color: var(--color-danger);
+}
+
+/* Save note is the one filled action: page-coloured text on the accent, the pair the page's text selection uses, which
+   reaches 4.5:1 in both modes because the accent reaches it as text on the page. Its border turns into a system colour
+   in forced colours, so the button keeps an edge there. */
+.notes-pop__act--primary {
+  padding: 7px 12px;
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  background-color: var(--color-accent);
+  color: var(--color-background);
+}
+
+/* The count of characters, such as "45 / 500", at the row's end. */
+.notes-pop__count {
+  margin-inline-start: auto;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.notes-pop__act--remove:not([hidden]) ~ .notes-pop__count {
+  margin-inline-start: 0;
 }
 
 .notes-pop__message {
@@ -1690,11 +1740,6 @@
   block-size: 4px;
   border-radius: 2px;
   background-color: var(--color-text-muted);
-}
-
-.notes-pop[data-sheet] .notes-pop__quote {
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
 }
 
 /* With the keyboard open the passage is on the page above the sheet, so the sheet drops its quotation, and its actions
