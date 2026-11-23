@@ -17,6 +17,8 @@ The owner's part: Q1, Q3 and Q5 are answered (2026-11-22), the manager set the d
 
 Status of L12o (2026-11-23): the docs home page is rebuilt as design A, a centred welcome with the install line and a grid of six package cards (`index.mdx`, `starlight.css`, `test/home.test.ts`). The gateway and SDK cards lead to the Install and first-agent pages; the harness, agent-safety, protocol and CLI cards lead to their READMEs on GitHub, because the docs have no quick start for them until L12g to L12i land, and then those four cards move to the new pages. L12o depends only on L12a and L12b: the owner chose a design with no illustration (manager's message, 2026-11-23), so it needs no figure from L12d.
 
+Status of L12c (2026-11-23): in progress on `todo/L12c-sidebar-topics`. `starlight-sidebar-topics` 0.9.0 splits the sidebar into the topics "SDK & gateway" and "API reference".
+
 ## Context
 
 - The owner's request, relayed by the manager session on 2026-11-22: study the Lamina PDF docs site's features, match the book's theme from `docs/design/book-tokens.json` through a generated tokens file, include diagrams and tested examples, keep the docs checks passing, add harness-package pages, and leave a header slot for the logo files the manager will hand over (the owner has since chosen logo 3 and answered questions 1, 3 and 5; see Out of scope and Owner questions).
