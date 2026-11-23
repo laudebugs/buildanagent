@@ -29,7 +29,7 @@ The gateway and the SDK are two of the six `@buildanagent` packages. Each packag
 
 ::figure[The six packages, each above the packages it imports]{id="package-map" alt="The six packages stack with the gateway at the bottom and the CLI at the top. Each package imports only packages below it. The arrows run from the CLI to the harness, from the harness to the protocol and agent-safety, from the protocol to the SDK, and from the SDK and agent-safety to the gateway."}
 
-Each package below imports the packages named after it. The gateway imports none:
+Each entry in this list names the packages that package imports. The gateway imports none:
 
 - **`@buildanagent/sdk`**: the gateway.
 - **`@buildanagent/agent-safety`**: the gateway.

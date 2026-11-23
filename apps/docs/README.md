@@ -41,7 +41,7 @@ Draw a figure 320 units wide or less where you can. At that width it fits a 390 
 
 The build fails, naming the page and line, when a figure has no alt text, no caption or an id the registry lacks. It also fails when the directive carries any other attribute, when a page shows one figure twice or when the caption holds more than text and inline code. `src/plugins/figure.ts` implements the directive. Starlight's remark-directive parses it, and the plugin runs before Starlight puts unknown directives back as text.
 
-Each committed SVG starts with a `<style>` that embeds the code font and the panel tokens, so the file renders on its own, for example in a pull request. The page inlines the drawing without that standalone `<style>`, and the sanitiser refuses anything the kit never writes. `src/plugins/figure-svg.ts` reads the rest of the file tag by tag and repairs nothing. It refuses:
+Each committed SVG starts with a `<style>` that embeds the code font and the panel tokens, so the file renders on its own, for example in a pull request. The page inlines the drawing without that standalone `<style>`. `src/plugins/figure-svg.ts` reads the rest of the file tag by tag, repairs nothing and refuses:
 
 - an element other than `g`, `rect`, `path`, `circle` and `text`, such as `script`, `style`, `foreignObject`, `image`, `use` or `a`;
 - an attribute other than the kit's, such as an event handler, `href`, `xlink:href`, `style` or `fill`, or a value outside the kit's pattern, such as path data with anything but numbers and `M`, `L`, `Q` and `Z`;

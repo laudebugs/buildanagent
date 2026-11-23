@@ -1,8 +1,8 @@
 // One run of the SDK's loop (packages/sdk/src/loop.ts): the model is called, the tools it asks for run, their results
 // go back to the next model call, and the run ends when the model answers without a tool call (`done`) or with another
 // stop reason, such as `max_steps`, `budget`, `error` or `awaiting_approval`. The page beside the figure names every
-// stop reason, so the figure labels that exit "otherwise" and keeps to the one cycle. It is drawn in two columns, 320 wide, so it fits a 390 px phone
-// whole: the run on the left, the tools on the right.
+// stop reason, so the figure labels that exit "otherwise" and keeps to the one cycle. It is drawn in two columns, 320
+// wide, so it fits a 390 px phone whole: the run on the left, the tools on the right.
 import { Figure, type Rect } from "@buildanagent/manual/figures/svgkit";
 
 const LEFT = 8;
