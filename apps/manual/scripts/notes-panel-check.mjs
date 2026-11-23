@@ -510,9 +510,11 @@ async function phone(browser, name) {
     sizes.every((size) => size >= 44),
     `${name}: every control in the panel is a 44px target (${sizes.join(",")})`,
   );
-  if (shots && name === "chromium iPhone 14") await page.screenshot({ path: join(shots, "after-phone-menu.png"), scale: "css" });
+  if (shots && name === "chromium iPhone 14")
+    await page.screenshot({ path: join(shots, "after-phone-menu.png"), scale: "css" });
   await page.keyboard.press("Escape");
-  if (shots && name === "chromium iPhone 14") await page.screenshot({ path: join(shots, "after-phone.png"), scale: "css" });
+  if (shots && name === "chromium iPhone 14")
+    await page.screenshot({ path: join(shots, "after-phone.png"), scale: "css" });
   // Edit on a phone closes the full-width panel, then opens the sheet with the field ready.
   await page.click(".notes-card:first-child .notes-card__more");
   await page.click(".notes-card:first-child [data-action='edit']");
