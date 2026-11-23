@@ -41,7 +41,7 @@ export async function clearLeftovers(win) {
 }
 
 /** The notice's text when another tab of the book already switched to the new version. */
-export const SWITCHED_TEXT = "The manual was updated in another tab.";
+export const SWITCHED_TEXT = "Another tab updated the manual. Reload to match it.";
 
 /**
  * Shows the update notice once. Reload asks the worker that is waiting when the reader presses it, which may be a
