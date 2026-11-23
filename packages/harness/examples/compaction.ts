@@ -1,6 +1,6 @@
-// A chat that outgrows its context budget. At the start of the next turn the context policy asks the model for a summary
-// of the older messages and writes it as a `compaction` entry. The next request reads the summary and the newest
-// messages instead of the whole chat, and the log keeps every original entry.
+// A chat that outgrows its context budget. At the start of the next turn the context policy asks the model for a
+// summary of the older messages and writes it as a `compaction` entry. The next request reads the summary and the
+// newest messages instead of the whole chat, and the log keeps every original entry.
 import type { Model } from "@buildanagent/gateway";
 import { createContextPolicy, type SpillStore } from "@buildanagent/harness/context";
 import { createHarness } from "@buildanagent/harness/server";
@@ -15,7 +15,8 @@ import {
 } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";
 
-// A small budget, so two long questions fill it; a real agent keeps the default, a little under the model's window.
+// A small budget, so two long questions fill it. A real agent keeps the default, which is the model's window less
+// 16,384 tokens, at most 200,000.
 const BUDGET_TOKENS = 2_000;
 const TAIL_TOKENS = 300;
 
@@ -52,7 +53,9 @@ async function reportOn(session: Session): Promise<CompactionReport | undefined>
 }
 // #endregion
 
-/** Asks each question in one session, and reports the latest compaction that the longer chat caused, if one happened. */
+/**
+ * Asks each question in one session, and reports the latest compaction that the longer chat caused, if one happened.
+ */
 export async function chatWithCompaction(
   log: Log,
   model: Model,

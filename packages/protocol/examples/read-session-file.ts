@@ -9,7 +9,10 @@ export interface SessionSummary {
 }
 
 // #region read
-/** Reads `file`, the text of a session file. Throws a `ProtocolError` with code `unsupported_format_version` for a newer one. */
+/**
+ * Reads `file`, the text of a session file.
+ * Throws a `ProtocolError` with code `unsupported_format_version` for a newer one.
+ */
 export function summarizeSession(file: string): SessionSummary {
   const summary: SessionSummary = { counts: {}, unreadableLines: [] };
   const lines = file.split("\n");

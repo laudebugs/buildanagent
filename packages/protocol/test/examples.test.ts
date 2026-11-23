@@ -1,7 +1,7 @@
 // Runs the examples in examples/: reading a chunked stream, reading a session file, and writing requests and reading
 // replies. Each one takes its input from the test and sends nothing anywhere.
 import assert from "node:assert/strict";
-import { decode, isProtocolError, type ServerMessage } from "@buildanagent/protocol";
+import { DEFAULT_MAX_LINE_BYTES, decode, isProtocolError, type ServerMessage } from "@buildanagent/protocol";
 import { test } from "vitest";
 import { describeServerMessage, requestLines } from "../examples/client-requests.js";
 import { summarizeSession } from "../examples/read-session-file.js";
@@ -27,6 +27,26 @@ test("a line that is a JSON string holding an envelope is refused, not read a se
   const reading = readStream([bytes(`${JSON.stringify(envelope)}\n`)]);
   assert.deepEqual(reading.messages, []);
   assert.deepEqual(reading.refused, ["invalid_request"]);
+});
+
+test("a line over the framer's bound is skipped and reported once, and the lines after it still read", () => {
+  const long = bytes(`${"x".repeat(DEFAULT_MAX_LINE_BYTES + 10)}\n`);
+  const half = Math.floor(long.length / 2);
+  const reading = readStream([
+    bytes(`${JSON.stringify(NOTIFICATIONS[0])}\n`),
+    long.subarray(0, half),
+    long.subarray(half),
+    bytes(`${JSON.stringify(NOTIFICATIONS[1])}\n`),
+  ]);
+  assert.deepEqual(reading.messages, [NOTIFICATIONS[0], NOTIFICATIONS[1]]);
+  assert.deepEqual(reading.refused, ["line_too_long"]);
+});
+
+test("a line that ends in CRLF reads like one that ends in LF", () => {
+  const text = `${JSON.stringify(NOTIFICATIONS[0])}\r\n${JSON.stringify(NOTIFICATIONS[1])}\r\n`;
+  const reading = readStream([bytes(text)]);
+  assert.deepEqual(reading.messages, [NOTIFICATIONS[0], NOTIFICATIONS[1]]);
+  assert.deepEqual(reading.refused, []);
 });
 
 const toFile = (entries: readonly unknown[]) => entries.map((entry) => JSON.stringify(entry)).join("\n");
@@ -89,4 +109,14 @@ test("each kind of server message is described by what it asks of the client", (
   ]);
   assert.equal(describeServerMessage(NOTIFICATIONS[0] as ServerMessage), "event 0");
   assert.equal(describeServerMessage(RESPONSES[0] as ServerMessage), "answer to request 0");
+});
+
+test("a CRLF session file counts its entries and numbers its unreadable lines", () => {
+  const file = `${toFile(FIXTURES.slice(0, 2))}\nnot an entry\n${toFile(FIXTURES.slice(2, 3))}\n`.replaceAll(
+    "\n",
+    "\r\n",
+  );
+  const summary = summarizeSession(file);
+  assert.deepEqual(summary.counts, { session_header: 1, turn_start: 1, message_block: 1 });
+  assert.deepEqual(summary.unreadableLines, [3]);
 });

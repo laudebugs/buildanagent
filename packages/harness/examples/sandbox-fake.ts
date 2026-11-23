@@ -1,6 +1,6 @@
-// The sandbox interface, shown with `fakeSandbox()`, the test double you run the rest of your agent on in tests. It
-// keeps a workspace in memory, enforces the policy it is given and runs no real program. A real backend, such as
-// `srtSandbox()` or `dockerSandbox()`, replaces it with the same `provision()`, `exec()` and policy read-back.
+// The sandbox interface, shown with `fakeSandbox()`. It is an in-memory sandbox that keeps a workspace, enforces the
+// policy it is given and runs no real program. A real backend, such as `srtSandbox()` or `dockerSandbox()`, replaces
+// it with the same `provision()`, `exec()` and policy read-back.
 import type { ExecResult, SandboxDenial, SandboxPolicy, SandboxStop } from "@buildanagent/harness/sandbox";
 import { fakeSandbox } from "@buildanagent/harness/testing";
 
