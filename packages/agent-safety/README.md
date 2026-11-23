@@ -63,7 +63,7 @@ Beside the text, it returns the outcome's fields as a JSON `payload`, and `isErr
 
 ## Use an outcome as an AI SDK tool result
 
-The `./ai` subpath hands outcomes to the Vercel AI SDK (`ai` 7.0.162). Return the outcome from your tool's `execute`, and convert it in `toModelOutput`:
+The `./ai` subpath hands outcomes to the Vercel AI SDK, `ai` 7.0.162 to 7.0.173. Return the outcome from your tool's `execute`, and convert it in `toModelOutput`:
 
 ```ts
 import { toAiToolResult } from "@buildanagent/agent-safety/ai";
@@ -419,7 +419,7 @@ It can't catch a value you left out of `state`: if a step's arguments came from 
 
 ## Every model call carries the user's own key, or it fails
 
-An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. In `ai` 7.0.162 three paths let that happen without a line of your code choosing it. A provider built without `apiKey` reads `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` from the environment. A provider built without `baseURL` reads `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. A string model id such as `"anthropic/<model>"` goes to Vercel AI Gateway, which signs in with `AI_GATEWAY_API_KEY` or a Vercel OIDC token and, by default, falls back to Vercel's own billed keys. The `./byok` subpath closes all three for the models it builds and for string ids. A call on a model built with `explicitProvider()` throws before it is sent if it would carry anything but the key you passed, and a string id throws once `assertNoDefaultProvider()` has run. A model object you build any other way, such as one from `createAnthropic()` or the `gateway` that `ai` exports, isn't checked, so build every model with `explicitProvider()`:
+An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. In `ai` 7.0.162 to 7.0.173 three paths let that happen without a line of your code choosing it. A provider built without `apiKey` reads `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` from the environment. A provider built without `baseURL` reads `ANTHROPIC_BASE_URL` or `OPENAI_BASE_URL`. A string model id such as `"anthropic/<model>"` goes to Vercel AI Gateway, which signs in with `AI_GATEWAY_API_KEY` or a Vercel OIDC token and, by default, falls back to Vercel's own billed keys. The `./byok` subpath closes all three for the models it builds and for string ids. A call on a model built with `explicitProvider()` throws before it is sent if it would carry anything but the key you passed, and a string id throws once `assertNoDefaultProvider()` has run. A model object you build any other way, such as one from `createAnthropic()` or the `gateway` that `ai` exports, isn't checked, so build every model with `explicitProvider()`:
 
 ```ts
 import { assertNoDefaultProvider, explicitProvider } from "@buildanagent/agent-safety/byok";
@@ -456,7 +456,7 @@ A route through Cloudflare AI Gateway passes only with `byok_only: true` and its
 
 ## A model call that could pass the USD cap is never sent
 
-An agent loop that checks its spend after each response stops only once a response has already crossed the cap, so it overshoots by the whole cost of that call. The AI SDK has `stopWhen` but no spend cap at all. `costGuard()` from the `./cost` subpath checks before each call instead. It is a language-model middleware: before the provider sees a request, the guard projects the most the request can cost and throws `BudgetExceeded` if the spend so far plus that projection would pass `capUsd`. In `ai` 7.0.162 every step of `generateText` and `streamText`, and every retry, calls the model's `doGenerate` or `doStream`, so the guard sees each request. Because it wraps the model, the same guard caps a Cloudflare `AIChatAgent` that calls `streamText` in `onChatMessage`.
+An agent loop that checks its spend after each response stops only once a response has already crossed the cap, so it overshoots by the whole cost of that call. The AI SDK has `stopWhen` but no spend cap at all. `costGuard()` from the `./cost` subpath checks before each call instead. It is a language-model middleware: before the provider sees a request, the guard projects the most the request can cost and throws `BudgetExceeded` if the spend so far plus that projection would pass `capUsd`. In `ai` 7.0.162 to 7.0.173 every step of `generateText` and `streamText`, and every retry, calls the model's `doGenerate` or `doStream`, so the guard sees each request. Because it wraps the model, the same guard caps a Cloudflare `AIChatAgent` that calls `streamText` in `onChatMessage`.
 
 This run caps its spend at 50 cents and says so when the cap stops it. Build `provider` with `explicitProvider()`, as above:
 
