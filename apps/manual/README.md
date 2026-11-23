@@ -28,6 +28,27 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual offline:verify <origin>` | Compares a deployed copy of the book with its own `/offline-manifest.json`, file by file, and reports rewritten and failed files |
 | `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
+## Browser checks that CI does not run
+
+Sessions may not edit workflows, so the owner decides which of these browser checks a workflow runs. None runs in CI today: `ci.yml` and `book-build.yml` run `check:book` and the Vitest tests, and `book-build.yml` drives Chrome only for `figures:audit`. A workflow job for any of them needs Playwright's Chromium, a build and no secrets. The times below are one run in a cloud session.
+
+Run each as `pnpm --filter @buildanagent/manual check:<name>`. "Build" means `pnpm --filter @buildanagent/manual build` first; `offline` and `save-offline` build their own test book into a temporary folder. The checks that drive WebKit skip it with a message when it is not installed.
+
+| Check | Needs | What it proves | Time |
+| --- | --- | --- | --- |
+| `check:header` | Build | The sticky header stays fixed, 56px and never hidden on a desktop, 52px on a phone, where it hides on a scroll down and returns on a scroll up | 34 s |
+| `check:reading` | Build | Each typeface pairing and text size, stored before load, reaches `<html>` in the first frame and requests only its own fonts | 26 s |
+| `check:settings` | Build | The reading panel opens, applies and stores a choice, survives a reload, says so when storage refuses writes and works offline | 53 s |
+| `check:note-popover` | Build | A new note opens only its popover at the passage, which follows scrolling and resizing | 13 s |
+| `check:notes-panel` | Build | The notes panel sits below the header, each card shows two buttons, and its menus, Delete, Share and Export work | 11 s |
+| `check:note-editor` | Build | The note editor takes focus, and each way of closing it leaves no stray state | 7 s |
+| `check:note-sheet` | Build | The phone's note sheet stays compact, on the bottom edge, with its passage in view | 18 s |
+| `check:touch-fields` | Build | Every text field is at least 16px on a phone, so iOS does not zoom the page | 2 s |
+| `check:save-offline` | Chromium | The footer's save control saves the book and reads it offline | 14 s |
+| `check:offline` | Chromium | The service worker saves the shell, installs the book and opens chapters offline | 20 s |
+
+`scripts/notes-browser-check.mjs` has no `check:` command: run it with `node` from `apps/manual` after a build. It drives colour, popover, share and the margin marker in Chromium (9 s) and is not in CI either.
+
 ## The outline places the chapter and gives it its number
 
 Each chapter lives at `src/content/chapters/<slug>.md`, and its page is `/<slug>/`. Its slug must appear in [`src/outline.ts`](src/outline.ts), which lists the two parts and their chapters in reading order. The chapter's number is its position there, counted across both parts, so moving a chapter in the outline renumbers it, its figures, listings and tables, and every reference to them. The contents page lists every chapter in the outline, as plain text until its file exists. Each chapter also needs its fact-check log at `fact-checks/<slug>.md`, and `check:book` fails without it ([`fact-checks/README.md`](fact-checks/README.md)).
@@ -526,7 +547,7 @@ A blocking script cannot be a module, so it cannot export. It leaves its lists a
 
 ### The panel in the header writes the choice
 
-The header's settings slot holds the "Aa" button, a big A and a small a on one baseline (icon I1), and the panel it opens (`src/components/ReadingSettings.astro`, `public/scripts/reading-panel.js`, `src/styles/reading-panel.css`). The panel lists the four pairings, each with its heading and body faces and an "Aa" in its heading face, then the five size steps, then "Saved on this device" and Reset. When storage is missing, the note says "Not saved: this resets when you leave the page" from the moment the panel starts, and when the browser refuses a write it says so too; it says "Saved on this device" again after the next write works. The size steps leave a key with Alt, Ctrl or Meta held to the browser, so Alt+Left still goes back. Both groups are native radio buttons in a `fieldset`, so a screen reader names each choice and the arrow keys move between them. A choice applies at once through `apply` and is stored through `save`, and Reset stores the defaults, which deletes both keys.
+The header's settings slot holds the "Aa" button, a big A and a small a on one baseline (icon I1), and the panel it opens (`src/components/ReadingSettings.astro`, `public/scripts/reading-panel.js`, `src/styles/reading-panel.css`). The panel lists the four pairings, each with its heading and body faces and an "Aa" in its heading face, then the five size steps, then "Saved on this device" and Reset. When storage is missing, or exists but refuses a write, the note says "Not saved: this browser blocked storage" from the moment the panel starts: it probes storage once by writing and removing the key `manual-reading-probe`, and a pick that cannot be saved shows the same note. The pick still applies for that page view. The note says "Saved on this device" again after the next write works. The size steps leave a key with Alt, Ctrl or Meta held to the browser, so Alt+Left still goes back. Both groups are native radio buttons in a `fieldset`, so a screen reader names each choice and the arrow keys move between them. A choice applies at once through `apply` and is stored through `save`, and Reset stores the defaults, which deletes both keys.
 
 - **Its names come from the build.** `src/components/reading-options.ts` reads `book-tokens.json`: each pairing's faces, every file its text can use and their size, and each step's name. The steps are Small (90%), Default (100%), Large (115%), Larger (130%) and Largest (150%), and the label under the steps reads "115% · Large". The script holds no list of its own: it reads the values from the markup and checks them through the early script's API.
 - **The size steps act like a slider without wrapping.** The arrow keys move one step, Right and Down to the larger size, and Home and End go to the ends. The largest step is therefore never one key press from the smallest, as it would be in a plain radio group.
