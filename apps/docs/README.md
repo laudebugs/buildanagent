@@ -48,11 +48,11 @@ The docs look like the book because they read the book's design data instead of 
 
 Run `pnpm --filter @buildanagent/docs tokens` after changing `book-tokens.json`. It rewrites `tokens.css` and replaces `public/fonts/` with a fresh copy of the book's folder, so a font the book drops leaves the docs too. Starlight loads `tokens.css` before `starlight.css`, and `astro.config.mjs` lists them in that order.
 
-The page chrome differs from Starlight's defaults in the places the next section lists. Two more rules in `starlight.css` restyle Starlight's own parts without replacing them. The Previous and Next links at the foot of a page are one compact row each: a rule border, no shadow, a 12px label, a title at the note size and a 44px minimum height. The theme select is a compact box with a rule border and a small radius, its text at the label size in the soft text colour. That colour is a pair `pairs.ts` already measures, so the select adds none.
+The page chrome differs from Starlight's defaults in two ways. The four components in the next section are replaced. Two rules in `starlight.css` restyle Starlight's own parts without replacing them. The Previous and Next links at the foot of a page are one compact row each: a rule border, no shadow, a 12px label, a title at the note size and a 44px minimum height. The theme select is a compact box with a rule border and a small radius, its text at the label size in the soft text colour, a pair `pairs.ts` already measures, so the select adds no pair.
 
 ### Components the docs override
 
-The docs override four Starlight components, each for one reason, and every other component is Starlight's own. A fifth override needs a row here, and `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
+The docs override four Starlight components and leave the rest as Starlight ships them. A fifth override needs a row here: `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
 
 | Component | File | Why |
 | --- | --- | --- |
@@ -61,13 +61,15 @@ The docs override four Starlight components, each for one reason, and every othe
 | `SiteTitle` | `src/components/SiteTitle.astro` | Draws the mark and the wordmark "Build An Agent docs" in place of Starlight's text title. The mark is inline, so it takes its frame from the link colour and its caret from the accent token. Below 30rem only the mark shows, and the wordmark stays in the page for screen readers. |
 | `SocialIcons` | `src/components/SocialIcons.astro` | Puts Docs, Manual and Site before the GitHub icon, in the order of the site's header. Docs carries `aria-current="true"`, not `"page"`, because the link goes to the docs home, which is not always the page the reader is on. `src/chrome.ts` hard-codes the addresses until the shared header source (L12p) replaces that file. |
 
-`test/logo.test.ts` guards the mark: it requires the favicon's strokes to be at least 2px wide at 16px, requires both colour schemes, and requires `SiteTitle` to draw logo 3 with colours from the tokens. It also draws the favicon at 16px in light and dark in headless Chromium and fails when the drawing is blank, when its window fills in or when the caret loses its own colour. Playwright is not a dependency of the repo, so that last test skips where Playwright and a browser are missing, which includes CI today. `test/favicon.test.ts` builds the site and requires the title, the wordmark, the licence line and the favicon link on every page.
+`test/logo.test.ts` guards the mark. It requires the favicon's strokes to be at least 2px wide at 16px and the favicon to set colours for both schemes, and it requires `SiteTitle` to draw logo 3 in token colours. In headless Chromium it also draws the favicon at 16px in light and dark, and fails when the drawing is blank, when the space inside the frame fills in or when the caret loses its own colour. Playwright is not a dependency of the repo, so this render test skips where Playwright or a browser is missing, as it does in CI today. `test/favicon.test.ts` builds the site and requires the title, the wordmark, the licence line and the favicon link on every page.
 
 ### Tabs and MDX
 
-A page that needs Starlight's `<Tabs>` is an `.mdx` file that imports `Tabs` and `TabItem` from `@astrojs/starlight/components`. Give every group of tabs a `syncKey`, so a reader's choice of package manager carries to the next page: the Install page does this with pnpm, npm and yarn. The content tests read an `.mdx` page as they read Markdown, except that a line holding only an import or one component tag is blank to them, so the paragraph, sentence and heading rules count the same words. Fences in sibling tabs take the sentence before the first tab as their introduction. A component tag that carries words on its own line stays in the body and is counted, and so do the `title`, `label` and `description` values of a one-line tag. Imports, exports and `{/* */}` comments outside a code block are blank too, and a code block's own lines are never changed. `test/mdx.test.ts` pins these rules.
+A page that needs Starlight's `<Tabs>` is an `.mdx` file that imports `Tabs` and `TabItem` from `@astrojs/starlight/components`. Give every group of tabs a `syncKey`, so a reader's choice of package manager carries to the next page, as the Install page does with pnpm, npm and yarn.
 
-Five test files guard the theme and the header, and `test/logo.test.ts` and `test/mdx.test.ts` guard the logo and MDX support described above:
+The content tests read an `.mdx` page as they read Markdown, with these exceptions. A line holding only an import or one component tag counts as blank, so the paragraph, sentence and heading rules count the same words. Imports, exports and `{/* */}` comments outside a code block are blank too, and a code block's own lines never change. A component tag that carries words on its own line stays in the body and is counted, and so do the `title`, `label` and `description` values of a one-line tag. Fences in sibling tabs take the sentence before the first tab as their introduction. `test/mdx.test.ts` pins these rules.
+
+Five more test files guard the theme and the header:
 
 - `test/tokens.test.ts` fails when `tokens.css` differs from what the generator writes, when the docs tokens differ from the book's anywhere between the header comment and the print block, or when `customCss` stops loading the tokens first.
 - `test/fonts.test.ts` fails when `public/fonts/` has a file the book lacks, lacks one the book has, or differs from the book's copy by a byte, and when `Head.astro` preloads anything but the Literata and Instrument Serif roman files.
@@ -103,7 +105,7 @@ The docs serve their own copy of the book's six WOFF2 subsets, with each family'
 
 ### Upgrading Starlight
 
-Starlight stays pinned to one exact version, and each pull request moves it one minor release, so a visual change has one cause. The author reads the changelog for renamed or removed `--sl-*` variables, changed component props and Expressive Code changes, and updates the version named in `starlight.css` and in this README. Then `pnpm --filter @buildanagent/docs build` and `test` run: the build fails on a broken link or an override whose import has moved, and the tests catch a wrong colour, but not a renamed variable. The look is the check for that, so the author opens the built site in light and dark and looks at a page with an aside, a code block, a table, a set of tabs and the search dialog, and at each override in the table above.
+Pin Starlight to one exact version and move it one minor release in each pull request, so a visual change has one cause. Read the changelog for renamed or removed `--sl-*` variables, changed component props and Expressive Code changes, and update the version named in `starlight.css` and in this README. Then run `pnpm --filter @buildanagent/docs build` and `test`. The build fails on a broken link or an override whose import has moved, and the tests catch a wrong colour but not a renamed variable, so the look is the check for that. Open the built site in light and dark, and look at a page with an aside, a code block, a table, a set of tabs and the search dialog, and at each override in the table above.
 
 ## Licence
 
