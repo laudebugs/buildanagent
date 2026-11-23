@@ -5,7 +5,9 @@
 # never inlined (astro.config.mjs and test/build.test.ts), so no hash or 'unsafe-inline' is needed. Figures are inline
 # SVG styled by classes, so they need nothing extra. Three sources serve Pagefind's search: 'wasm-unsafe-eval' lets it
 # compile its WebAssembly, worker-src lets it start pagefind-worker.js, and data: in img-src lets its stylesheet draw
-# the search icon as a data: SVG. None of them allows eval() of script text.
+# the search icon as a data: SVG. None of them allows eval() of script text. worker-src also covers the offline
+# service worker, /sw.js, and manifest-src lets a browser read the installed app's manifest, which default-src 'none'
+# would block (ADR 0059).
 #
 # Strict-Transport-Security tells a browser to use HTTPS only, for a year. Its includeSubDomains covers the names
 # under the host that sends it, such as anything.manual.buildanagent.fyi, not the sibling sites. No preload: joining
@@ -15,12 +17,26 @@
 # stage-dist.mjs --preview adds it, and Cloudflare adds it only to previews on workers.dev. HTTPS-only suits the
 # previews too, since Cloudflare gives them a certificate. Keep exactly one /* rule and no X-Robots-Tag here.
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 
 # Astro puts a content hash in every file name under /_astro/, so a changed file gets a new name and the old one can
-# be cached for a year. Every other file keeps Cloudflare's default, which revalidates before each reuse.
+# be cached for a year. Every other file keeps Cloudflare's default, which revalidates before each reuse, except the
+# two below that ask for no-cache.
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The offline worker and its file list must reach a browser fresh after every deploy, or an old build could keep
+# serving: no-cache makes a browser check with the server before each reuse. The worker sits at the site root, so its
+# default scope is the whole book and it needs no Service-Worker-Allowed header.
+/sw.js
+  Cache-Control: no-cache
+
+/offline-manifest.json
+  Cache-Control: no-cache
+
+# The installed app's manifest, with the media type its specification names.
+/manifest.webmanifest
+  Content-Type: application/manifest+json

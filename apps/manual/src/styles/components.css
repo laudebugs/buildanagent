@@ -1787,3 +1787,52 @@
     text-decoration-line: none;
   }
 }
+
+/* The update notice that public/scripts/offline.js adds while a new build's worker waits (ADR 0059). It sits at the
+   bottom of the window, and only a press on Reload reloads the page. */
+.update-notice {
+  position: fixed;
+  inset-inline: 1rem;
+  inset-block-end: 1rem;
+  z-index: 50;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  max-width: 30rem;
+  margin-inline: auto;
+  padding: 10px 14px;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--size-note);
+}
+
+.update-notice__text {
+  flex: 1 1 12rem;
+  margin: 0;
+}
+
+.update-notice__button {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-text);
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.update-notice__button--quiet {
+  border-color: transparent;
+  color: var(--color-text-soft);
+}
+
+.update-notice__button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
