@@ -702,7 +702,7 @@ const MESSAGES = {
 /** What the notes panel says while the chapter has no highlights. */
 const EMPTY = "No notes yet. Select text in the chapter, then choose Add note.";
 /** The rest of the panel footer's sentence on storage, which its tooltip and the panel's description carry. */
-const STORAGE_MORE = "Clearing this site's data deletes them, so export them to keep a copy.";
+const STORAGE_MORE = "Clearing this site's data deletes your notes, so export them to keep a copy.";
 const STORAGE_NOTE = `Your notes stay in this browser only. ${STORAGE_MORE}`;
 
 /**

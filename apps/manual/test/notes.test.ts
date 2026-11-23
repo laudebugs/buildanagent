@@ -2847,7 +2847,7 @@ test("the panel has a title and count, Export and Close as named icons, a hint, 
   assert.equal(foot?.querySelector("span:not(.visually-hidden)")?.textContent, "Saved in this browser only.");
   assert.match(
     foot?.getAttribute("title") ?? "",
-    /Clearing this site's data deletes them/,
+    /Clearing this site's data deletes your notes/,
     "the long sentence is its tooltip",
   );
   assert.equal(dialog.getAttribute("aria-describedby"), "notes-storage");

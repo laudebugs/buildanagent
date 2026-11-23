@@ -191,7 +191,7 @@ async function desktop(browser, name) {
   check(p.hint === "Click a note to go to its passage.", `${name}: the hint line says what a click does`);
   check(p.foot === "Saved in this browser only.", `${name}: the footer is one line (${p.foot})`);
   check(
-    /Clearing this site's data deletes them/.test(p.footTitle ?? ""),
+    /Clearing this site's data deletes your notes/.test(p.footTitle ?? ""),
     `${name}: its tooltip holds the full sentence`,
   );
   check(p.oldRows === 0 && p.oldText.length === 0, `${name}: no card has the old row of buttons (${p.oldText})`);
