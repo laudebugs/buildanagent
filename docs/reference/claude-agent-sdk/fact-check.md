@@ -93,6 +93,25 @@ Seven programs in `verify/claude-agent-sdk/examples/` assert documented behavior
 
 **F5. Inherited environment variables leak host configuration into the CLI.** The first harness passed `process.env` to each run. On this cloud host, the spawned CLI then offered the host's extra deferred tools, such as `ListPlugins` and `SuggestConnectors`, even with a private `CLAUDE_CONFIG_DIR` and `settingSources: []`, and it called the host's agent-proxy endpoint. After the runner switched to an allowlisted environment (`PATH`, a temp `HOME`, `TMPDIR`, `LANG` and the mock settings), those tools and that request disappeared, and the host has no managed-settings file. The inherited environment was therefore the cause. Production deployments should build the CLI's `env` from an allowlist and audit `init.tools`.
 
+## Update to @anthropic-ai/sdk 1.8.0 (2026-11-23)
+
+The weekly update job moved the harness's `@anthropic-ai/sdk` from `0.129.0` to `1.8.0`, a major release published 2026-11-10 (PR #372). The package under test, `@anthropic-ai/claude-agent-sdk`, stays at 0.3.327. It declares `@anthropic-ai/sdk >=0.93.0` as a peer dependency, so 1.8.0 satisfies it. The owner merged #372 before this sweep, so this section follows the merge. I compared the committed results from before the bump (`1b7df387^`) with the merged ones by block id.
+
+| Measure | 0.129.0 run | 1.8.0 run |
+|---|---|---|
+| Blocks type-checked | 385 | 385, same ids |
+| Type-check status or error list changed | n/a | 0 blocks |
+| Doc blocks that ran, skipped, exited without a call, errored | 69 / 6 / 8 / 4 | 69 / 6 / 8 / 4 |
+| Doc blocks whose outcome, exit code, request count or tool-result count changed | n/a | 0 |
+| Own examples that ran | 10 of 10 | 10 of 10 |
+| Transcripts under `results/transcripts/` | n/a | unchanged |
+
+- **The line numbers moved because the docs did, not the SDK.** The bump commit's `typecheck-docs.json` and `run-docs.json` shift `line` values and three blocks (`typescript__60`, `__158`, `__180`) grew by one or two lines. Those pages come from the regenerated live-site mirror. Ignoring `line` and `lines`, no block changed its status or its error codes and messages.
+- **Other run-to-run noise.** Machine paths, timings, session ids and node process ids differ in `run-docs.json` and `run-examples.json`. `03-permission-order.ts` shows 14 model requests in the committed file against 13 before: CI runs as a non-root user, so query c) (`bypassPermissions`) reaches the model there, and as root it does not (verify README, "Transcripts"). A local root run on 1.8.0 gives 13.
+- **The peer is not on the request path.** The package imports `@anthropic-ai/sdk` only in `sdk.d.ts`, for the types `BetaMessage`, `BetaRawMessageStreamEvent`, `BetaUsage` and `MessageParam`. Its JavaScript never loads it, and the bundled CLI makes the API calls, so the harness's mock Messages API still receives the CLI's requests. The 1.x client sends its key as `Authorization: Bearer`, where 0.x sent `x-api-key`, but that client never calls the mock. The mock, the harness scripts, the examples and the transcripts mention neither header, and the runner passes a placeholder `ANTHROPIC_API_KEY`.
+- **The API-surface diff is unchanged.** `factcheck-api.json` differs only by its `checkedAt` time.
+- **Nothing in the reference, skill or manual cites the peer's version or its types.** The manual's fact-check logs name `sdk.d.ts` for `claude-agent-sdk` only, which did not change.
+
 ## TypeScript parity
 
 Anthropic ships the SDK in TypeScript and Python, and the [TypeScript gap report](../../comparison/typescript-gaps.md#claude-agent-sdk-typescript-leads-python-and-trails-it-in-two-small-places) compares 0.3.327 with Python `claude-agent-sdk` 0.2.183 at tag `v0.2.183`. TypeScript is the richer package: it declares 33 hook events against Python's 10, plus runtime controls such as `applyFlagSettings` and options such as `persistSession` that the docs mark TypeScript-only. Python leads in two small places. It ships a session-store conformance suite in the package, where TypeScript users copy one from the examples, and it can run the CLI as another OS user, which TypeScript leaves to `spawnClaudeCodeProcess`. Neither Python-only item touches the agent loop.

@@ -7,6 +7,8 @@ description: Use when writing, reviewing or testing TypeScript that imports `@an
 
 The SDK runs Claude Code's CLI as a subprocess, and the CLI owns the loop, the tools and the transcripts. You build a safe agent by narrowing what the CLI may do: remove built-in tools, auto-approve only read-only tools, gate the rest, and cap every run. Full reference: [`docs/reference/claude-agent-sdk/guide.md`](../../../docs/reference/claude-agent-sdk/guide.md); verified examples: [`verify/claude-agent-sdk/examples/`](../../../verify/claude-agent-sdk/examples/).
 
+The package declares `@anthropic-ai/sdk >=0.93.0` as a peer and imports it only for types; our harness runs on 1.8.0 (0.129.0 before 2026-11-23) with identical results.
+
 ## When to use it
 
 Choose it for a coding- or filesystem-shaped agent when Claude-only models are acceptable and one CLI subprocess per session (about 1 GiB RAM) is affordable. Choose the OpenAI Agents SDK or the Vercel AI SDK for multi-provider agents, and Pi when you must own the loop ([comparison](../../../docs/comparison/deep-comparison.md)).
