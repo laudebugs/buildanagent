@@ -64,32 +64,119 @@ function frontmatterOf(text: string): { frontmatter: Record<string, string>; tex
   return { frontmatter, texts, rest: text.slice(match[0].length) };
 }
 
-/** Splits the body into prose lines and fenced blocks. */
-function splitFences(rest: string): { body: string; fences: Fence[] } {
-  const lines = rest.split("\n");
+/**
+ * A one-line MDX component tag, such as `<Tabs syncKey="pm">`, `</TabItem>` or `<LinkCard title="Read" />`. A tag with
+ * text on its own line, such as `<Aside>Read this.</Aside>`, does not match and stays in the body.
+ */
+const COMPONENT_TAG = /^\s*<\/?[A-Z][\w.]*(?:\s[^<>]*)?\/?>\s*$/;
+
+/** The attributes of a component tag whose string values a reader sees, so the prose rules check them. */
+const VISIBLE_ATTRIBUTE = /\b(?:title|label|description)=(?:"([^"]*)"|'([^']*)')/g;
+
+/** A one-line `{/* ... *\/}` comment, a side-effect import or a one-line import: code, not prose. */
+const MDX_CODE_LINE = /^\s*(?:\{\/\*.*\*\/\}|import\s+["'][^"']+["'];?|import\s.+\sfrom\s+["'][^"']+["'];?)\s*$/;
+
+/** A line that opens a fenced code block. */
+const FENCE_OPEN = /^\s*(?:`{3,}|~{3,})/;
+
+/** A string or template literal on one line, which the export scan drops before it counts brackets. */
+const STRING_LITERAL = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
+
+/** How many lines from `start` an MDX import, export or comment spans, or 0 when the line starts none of them. */
+function codeSpan(lines: readonly string[], start: number): number {
+  const first = lines[start] ?? "";
+  if (MDX_CODE_LINE.test(first)) return 1;
+  // `import` must be followed by a space and a name, or by `{` or `*`, so prose such as "Importantly, ..." is not one.
+  const kind = /^\s*(?:(import)(?:\s+[\w{*]|\s*[{*])|(export)\s+(?:const|let|var|function)\b|(\{\/\*))/.exec(first);
+  if (kind === null) return 0;
+  const isComment = kind[3] !== undefined;
+  // A multi-line import ends on its `from` line, a comment on `*/}`, and an export once its brackets balance.
+  let depth = 0;
+  for (let j = start; j < lines.length; j += 1) {
+    const line = lines[j] ?? "";
+    // No statement spans a fence, and an import or export does not span a blank line; a comment may.
+    if (j > start && (FENCE_OPEN.test(line) || (!isComment && line.trim() === ""))) return 0;
+    if (kind[1] !== undefined && /\sfrom\s+["'][^"']+["'];?\s*$/.test(line)) return j - start + 1;
+    if (isComment && /\*\/\}\s*$/.test(line)) return j - start + 1;
+    if (kind[2] !== undefined) {
+      // Brackets inside string and template literals do not count.
+      for (const ch of line.replace(STRING_LITERAL, "")) depth += "({[".includes(ch) ? 1 : ")}]".includes(ch) ? -1 : 0;
+      if (depth <= 0) return j - start + 1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * What an MDX line outside a fence leaves for the prose rules: nothing for an import, export, comment or a component
+ * tag, except that the values of a tag's `title`, `label` and `description` attributes stay, because a reader sees them.
+ */
+function proseOfComponentLine(line: string): string | undefined {
+  if (!COMPONENT_TAG.test(line)) return undefined;
+  return [...line.matchAll(VISIBLE_ATTRIBUTE)].map((m) => m[1] ?? m[2] ?? "").join(" ");
+}
+
+/** The lines `<TabItem ...>` and `</TabItem>`, the only lines allowed between two fences that share an introduction. */
+const TAB_ITEM_LINE = /^\s*<\/?TabItem\b[^<>]*>\s*$/;
+
+/**
+ * Splits a page body into prose lines and fenced blocks. In `mdx`, lines outside fences that only import, export, comment
+ * or open or close a component are blanked (a blank still separates two paragraphs). A fence's `code` is always read
+ * from the page's own lines, so a line inside a code block is never blanked.
+ */
+export function splitFences(rest: string, mdx: boolean): { body: string; fences: Fence[] } {
+  const raw = rest.split("\n");
+  // `view` holds each line as the prose rules see it: the raw line, or the blanked MDX line outside a fence.
+  const view: string[] = [];
   const prose: string[] = [];
   const fences: Fence[] = [];
-  for (let i = 0; i < lines.length; i += 1) {
+  // The line that closed the previous fence, so tabs that follow each other can share one introduction.
+  let previousClose = -1;
+  for (let i = 0; i < raw.length; i += 1) {
     // A fence may be indented, as in a list item, and use backticks or tildes; it closes on a line of the same
     // character that is at least as long.
-    const open = /^\s*(`{3,}|~{3,})(\w*)\s*(.*)$/.exec(lines[i] ?? "");
+    const open = /^\s*(`{3,}|~{3,})(\w*)\s*(.*)$/.exec(raw[i] ?? "");
     if (open === null) {
-      prose.push(lines[i] ?? "");
+      const span = mdx ? codeSpan(raw, i) : 0;
+      if (span > 0) {
+        for (let n = 0; n < span; n += 1) {
+          view.push("");
+          prose.push("");
+        }
+        i += span - 1;
+      } else {
+        // A tag's visible attribute text goes to the prose rules but not to `view`: a tab's label introduces nothing.
+        const shown = mdx ? proseOfComponentLine(raw[i] ?? "") : undefined;
+        view.push(shown === undefined ? (raw[i] ?? "") : "");
+        prose.push(shown ?? raw[i] ?? "");
+      }
       continue;
     }
     const mark = (open[1] ?? "").charAt(0);
     const length = (open[1] ?? "").length;
-    const end = lines.findIndex((line, j) => j > i && new RegExp(`^\\s*\\${mark}{${length},}\\s*$`).test(line));
-    const close = end === -1 ? lines.length : end;
+    const end = raw.findIndex((line, j) => j > i && new RegExp(`^\\s*\\${mark}{${length},}\\s*$`).test(line));
+    const close = end === -1 ? raw.length : end;
     let before = "";
-    for (let k = i - 1; k >= 0 && before === ""; k -= 1) before = (lines[k] ?? "").trim();
+    for (let k = i - 1; k >= 0 && before === ""; k -= 1) before = (view[k] ?? "").trim();
+    // Only TabItem lines between two fences mean they sit in sibling tabs, so the second takes the first's
+    // introduction. Any other line, a component included, keeps the strict rule.
+    const between = raw.slice(previousClose + 1, i);
+    const siblings =
+      mdx &&
+      previousClose >= 0 &&
+      between.some((line) => TAB_ITEM_LINE.test(line)) &&
+      between.every((line) => line.trim() === "" || TAB_ITEM_LINE.test(line));
+    if (siblings) before = fences.at(-1)?.before ?? before;
     fences.push({
       line: i + 1,
       lang: open[2] ?? "",
       meta: open[3] ?? "",
-      code: lines.slice(i + 1, close).join("\n"),
+      code: raw.slice(i + 1, close).join("\n"),
       before,
     });
+    // The fence's own lines stay in `view` unchanged, so a later `before` that reaches them reads the closing fence.
+    for (let n = i; n <= Math.min(close, raw.length - 1); n += 1) view.push(raw[n] ?? "");
+    previousClose = close;
     i = close;
   }
   return { body: prose.join("\n"), fences };
@@ -99,6 +186,6 @@ function splitFences(rest: string): { body: string; fences: Fence[] } {
 export function readPages(): Page[] {
   return pagePaths().map((file) => {
     const { frontmatter, texts, rest } = frontmatterOf(readFileSync(file, "utf8"));
-    return { path: relative(DOCS_DIR, file), frontmatter, texts, ...splitFences(rest) };
+    return { path: relative(DOCS_DIR, file), frontmatter, texts, ...splitFences(rest, file.endsWith(".mdx")) };
   });
 }

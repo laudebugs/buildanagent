@@ -1,0 +1,75 @@
+---
+// The header's title: the mark from the logo, then the wordmark "Build An Agent docs". The link keeps Starlight's own
+// address for the docs home. On a narrow screen only the mark shows, and the wordmark stays in the page for screen
+// readers, so the link always has a name.
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<a href={siteTitleHref} class="site-title sl-flex">
+  <svg class="mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <rect x="7" y="7" width="50" height="50" rx="11" fill="none" stroke="currentColor" stroke-width="5"></rect>
+    <path
+      d="M21 23L34 32L21 41"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="5"
+      stroke-linecap="round"
+      stroke-linejoin="round"></path>
+    <path d="M38 43H48" fill="none" stroke="var(--color-accent)" stroke-width="5" stroke-linecap="round"></path>
+  </svg>
+  <span class="wordmark" translate="no"><span class="name">Build An Agent</span> <span class="kind">docs</span></span>
+</a>
+
+<style>
+  .site-title {
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .mark {
+    flex: none;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4em;
+    overflow: hidden;
+  }
+
+  /* The display face sets small for its size, so the name is larger than the body text beside it. */
+  .name {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  /* "docs" is the lighter, mono half of the wordmark. */
+  .kind {
+    font-family: var(--font-code);
+    font-size: var(--size-label);
+    color: var(--sl-color-gray-3);
+  }
+
+  .site-title:hover .name {
+    color: var(--sl-color-white);
+  }
+
+  /* Hidden to the eye but not to a screen reader, so the mark alone still has a name. */
+  @media (max-width: 29.99rem) {
+    .wordmark {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+</style>

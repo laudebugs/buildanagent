@@ -76,6 +76,8 @@ The first two tasks are done: the study is the plan, and the table below is the 
 
 **Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e, L12f and L12p. L12g, L12h and L12i run in sequence, with L12j, L12k and L12o beside them. L12l and L12m go last.
 
+**L12b progress (2026-11-23).** L12b has no todo file of its own, so this paragraph records its outcome. It shipped four changes in `apps/docs`: a `SiteTitle` override that draws logo 3 inline beside the wordmark "Build An Agent docs" (the mark alone below 30rem, with the wordmark kept for screen readers); a compact, rule-bordered theme select that adds no colour pair; MDX support in the content checks (`src/plugins/pages.ts`, `test/mdx.test.ts`) with package-manager tabs on the Install page; and the overrides table and the Starlight upgrade policy in `apps/docs/README.md`. The favicon is the one from the merged landing-page change. `test/logo.test.ts` checks its structure always and draws it at 16 px in headless Chromium where Playwright is installed, so the 16 px question under "Unverified items" is answered locally but not in CI, which has no Playwright. Screenshots at 1280 and 390 px in both modes showed that the footer and asides needed no change. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12b-1` to `L12b-15`.
+
 ## Acceptance criteria
 
 L12 is done when L12a to L12p are done and these hold on `main`:
