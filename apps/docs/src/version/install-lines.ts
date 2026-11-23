@@ -48,29 +48,38 @@ const COMMAND = /\b(?:pnpm (?:add|i|install|dlx)|npm (?:install|i|add)|yarn (?:a
 // end of a code span in Markdown source (a backtick) or the end of the line. `textOfHtml` turns the end of a code span
 // and of a table cell into a line end.
 const ARGUMENTS_END = /&&|\|\||;|\||`|\n/;
-// `@buildanagent/<name>`, then an optional `@<tag or version>`. A token with a subpath, such as
+// `@buildanagent/<name>`, then an optional `@<tag, version or range>`. A token with a subpath, such as
 // `@buildanagent/gateway/testing`, is an import specifier and npm cannot install it, so it is not an install target.
-const PACKAGE = /^@buildanagent\/[a-z0-9-]+(?:@[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+// The suffix is anything after the second `@`, so a range (`@^0.1.0`, `@~1`, `@>=0.1`, `@*`) is still a target to check.
+const PACKAGE = /^@buildanagent\/[a-z0-9-]+(?:@\S*)?$/;
 // Prose punctuation and quotes around an argument, such as the full stop after `@buildanagent/sdk@alpha.`.
 const AROUND_TOKEN = /^[("'[]+|[.,:)"'\]]+$/g;
 
 /** The text of a built page's code, one line per row: tags removed, block, cell and code-span ends turned into line breaks, entities decoded. */
 export function textOfHtml(html: string): string {
-  return html
-    .replace(/<(script|style)\b[\s\S]*?<\/\1>/g, "")
-    .replace(/<\/(?:div|p|li|pre|tr|td|th|code|h[1-6])>|<br\s*\/?>/g, "\n")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
-    .replace(/&(lt|gt|quot|amp);/g, (_, name: string) => ({ lt: "<", gt: ">", quot: '"', amp: "&" })[name] as string);
+  return (
+    html
+      .replace(/<(script|style)\b[\s\S]*?<\/\1>/g, "")
+      .replace(/<\/(?:div|p|li|pre|tr|td|th|code|h[1-6])>|<br\s*\/?>/g, "\n")
+      // Quote-aware: Expressive Code's copy button carries the block in `data-code="..."` with `>` unescaped (`=>`, `2>&1`),
+      // so a plain `[^>]*` would end the tag at the first one and leak the rest of the attribute into the text.
+      .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, "")
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+      .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+      .replace(/&(lt|gt|quot|amp);/g, (_, name: string) => ({ lt: "<", gt: ">", quot: '"', amp: "&" })[name] as string)
+  );
 }
 
 /** Every install line in `text` (Markdown, MDX or the output of `textOfHtml`). A line ending in a backslash continues on the next. */
 export function installLines(text: string): string[] {
-  return text
-    .replace(/\\[ \t]*\r?\n[ \t]*/g, " ")
-    .split("\n")
-    .filter((line) => line.search(COMMAND) !== -1 && line.includes("@buildanagent/"));
+  return (
+    text
+      // Built HTML closes each rendered line with nested block ends, so a continuation is a backslash and then a run of
+      // line breaks, not one.
+      .replace(/\\[ \t]*(?:\r?\n[ \t]*)+/g, " ")
+      .split("\n")
+      .filter((line) => line.search(COMMAND) !== -1 && line.includes("@buildanagent/"))
+  );
 }
 
 /** The `@buildanagent/*` install targets among a command's own arguments, which end at a separator or a span end. */
@@ -89,9 +98,12 @@ export function installProblems(text: string, rule: InstallRule): InstallProblem
   for (const line of installLines(text)) {
     for (const command of line.matchAll(COMMAND)) {
       for (const token of targets(line.slice(command.index + command[0].length))) {
-        const tagged = /^@buildanagent\/[a-z0-9-]+@/.test(token);
-        const alpha = token.endsWith("@alpha");
-        if (rule === "alpha" ? !alpha : tagged && alpha) problems.push({ line: line.trim(), token });
+        const suffix = token.slice(token.indexOf("@", 1) + 1);
+        const hasSuffix = token.indexOf("@", 1) !== -1;
+        // Alpha rule: exactly `@alpha`, so a range, `@latest` and a pinned `-alpha.N` version all fail. Stable rule: no `@alpha`.
+        if (rule === "alpha" ? !hasSuffix || suffix !== "alpha" : hasSuffix && suffix === "alpha") {
+          problems.push({ line: line.trim(), token });
+        }
       }
     }
   }

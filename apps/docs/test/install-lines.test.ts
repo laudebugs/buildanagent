@@ -181,6 +181,28 @@ describe("in the alpha state", () => {
   });
 });
 
+describe("a version range or an exact version after the package name", () => {
+  test("under the alpha rule only exactly @alpha passes: a range, a wildcard, an exact version and a bare name fail", () => {
+    for (const suffix of ["@^0.1.0", "@~1", "@>=0.1", "@*", "@0.1.0-alpha.3", "@latest", ""]) {
+      const line = `pnpm add @buildanagent/sdk${suffix}`;
+      const [problem] = installProblems(line, "alpha");
+      assert.equal(problem?.token, `@buildanagent/sdk${suffix}`, line);
+    }
+    assert.deepEqual(installProblems("pnpm add @buildanagent/sdk@alpha", "alpha"), []);
+  });
+
+  test("under the stable rule a range, an exact version and a bare name pass and only @alpha fails", () => {
+    for (const suffix of ["@^0.1.0", "@~1", "@>=0.1", "@*", "@1.0.0", ""]) {
+      assert.deepEqual(installProblems(`pnpm add @buildanagent/sdk${suffix}`, "stable"), [], suffix);
+    }
+    assert.equal(installProblems("pnpm add @buildanagent/sdk@alpha", "stable").length, 1);
+  });
+
+  test("a subpath is still not an install target when a suffix follows", () => {
+    assert.deepEqual(installProblems("pnpm add @buildanagent/gateway/testing@^1", "alpha"), []);
+  });
+});
+
 describe("in the stable state", () => {
   test("accepts bare names and exact versions, and catches @alpha", () => {
     assert.deepEqual(installProblems("pnpm add @buildanagent/sdk @buildanagent/gateway@1.0.0", "stable"), []);
@@ -193,6 +215,29 @@ describe("in the stable state", () => {
 });
 
 describe("built HTML", () => {
+  // Expressive Code closes each line with two block ends, so a rendered continuation is a backslash and two line breaks.
+  const line = (text: string) => `<div class="ec-line"><div class="code"><span>${text}</span></div></div>`;
+  const block = (...lines: string[]) => `<pre data-language="bash"><code>${lines.map(line).join("")}</code></pre>`;
+
+  test("a backslash continuation in built HTML is joined, so the packages on later lines are checked", () => {
+    const html = block("pnpm add \\", "  @buildanagent/sdk \\", "  zod");
+    const text = textOfHtml(html);
+    assert.equal(installLines(text).length, 1);
+    assert.equal(installProblems(text, "alpha")[0]?.token, "@buildanagent/sdk");
+    assert.deepEqual(
+      installProblems(textOfHtml(block("pnpm add \\", "  @buildanagent/sdk@alpha \\", "  zod")), "alpha"),
+      [],
+    );
+  });
+
+  test("a > inside the copy button's data-code attribute does not end the tag and leak into the text", () => {
+    // Found in built pages: Expressive Code leaves `>` unescaped inside data-code (`=>`), and the same holds for `2>&1`.
+    const html = `${block("pnpm add zod 2>&1 | tee out.log")}<div class="copy"><button title="Copy" data-code="pnpm add zod 2>&1 | tee pnpm add @buildanagent/sdk"><div></div></button></div>`;
+    const text = textOfHtml(html);
+    assert.ok(!text.includes("tee pnpm add @buildanagent/sdk"), text);
+    assert.deepEqual(installProblems(text, "alpha"), []);
+  });
+
   // The shape Expressive Code gives a bash block: one div per line, spans inside, `&` and quotes as entities.
   const html = `<pre data-language="bash"><code><div class="ec-line"><div class="code"><span style="--0:#fff">pnpm</span><span> add @buildanagent/sdk@alpha </span><span>@buildanagent/gateway &#x26;&#x26; zod</span></div></div></code></pre><script>var a="pnpm add @buildanagent/sdk"</script>`;
 

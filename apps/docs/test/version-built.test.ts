@@ -31,7 +31,14 @@ test("every page shows the SDK's version in the header, with a label a screen re
   for (const { path, html } of pages()) {
     assert.ok(/<span class="version[ "]/.test(html), `${path}: no version tag`);
     const tag = /<span class="version[ "][^>]*>(.*?)<\/span>(?=<\/div>)/s.exec(html)?.[1] ?? "";
-    assert.equal(tag.replace(/<[^>]*>/g, ""), `Version ${SDK_VERSION}`, `${path}: version text`);
+    assert.equal(
+      tag
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+      `Version ${SDK_VERSION}`,
+      `${path}: version text`,
+    );
     const link = /<a [^>]*class="site-title[^"]*"[^>]*>[\s\S]*?<\/a>/.exec(html)?.[0] ?? "";
     assert.ok(link !== "" && !link.includes(SDK_VERSION), `${path}: the version stays outside the home link`);
   }
