@@ -496,42 +496,298 @@ function lockEntries(section, body) {
   return entries;
 }
 
-// The values in an importer that an update may change: in the harness's own, each dependency's specifier and resolved
-// version; in another harness's, only the peers in a resolved version's parentheses, because pnpm shares one
-// resolution of a peer across the workspace, so bumping one harness can move a peer that another harness installs.
+// The harness's own importer may change each dependency's specifier and resolved version, to registry versions.
 const OWN_VALUE = /^( {8}(?:specifier|version): )(.*)$/;
-const PEER_SUFFIX = /^( {8}version: [^(\s]+)(\(.*)$/;
 // A registry version, with the peers pnpm resolved it against in parentheses. No `link:`, `file:` or URL, which would
 // install a path or a download in place of the registry's package.
 const REGISTRY_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\([^\s:]*\))?$/;
 
-/**
- * Says what is wrong with one importer's new entry, or returns "". `pattern` matches each line whose second group may
- * change; every other line, and the key, must stay as they were.
- */
-function importerProblem(name, prior, entry, pattern) {
-  const mask = (lines) => trimBlank(lines.map((line) => (pattern ? line.replace(pattern, "$1…") : line)));
+/** Says what is wrong with the harness's own importer's new entry, or returns "". */
+function ownImporterProblem(name, prior, entry) {
+  const mask = (lines) => trimBlank(lines.map((line) => line.replace(OWN_VALUE, "$1…")));
   if (entry.key !== prior.key || mask(entry.lines) !== mask(prior.lines)) {
-    return pattern ? `changes more of the ${name} importer than an update may` : `changes the ${name} importer`;
+    return `changes more of the ${name} importer than an update may`;
   }
   const old = trimBlank(prior.lines).split("\n");
   const changed = trimBlank(entry.lines)
     .split("\n")
     .filter((line, i) => line !== old[i]);
-  const valid = pattern === OWN_VALUE ? REGISTRY_VERSION : /^\([^\s:]*\)$/;
-  return changed.every((line) => valid.test(pattern.exec(line)?.[2] ?? ""))
+  return changed.every((line) => REGISTRY_VERSION.test(OWN_VALUE.exec(line)?.[2] ?? ""))
     ? ""
     : `the ${name} importer points a dependency at something other than a registry version`;
 }
 
+// Another importer's resolved version, split into the version itself and the peers pnpm resolved it against.
+const RESOLVED_VERSION = /^( {8}version: [^(\s]+)(.*)$/;
+// One peer as pnpm writes it in a resolved version: a registry name and an exact version. No `link:`, `file:`, `npm:`
+// alias or URL.
+const PEER_HEAD = /^((?:@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*)@(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/;
+// A dependency line in a snapshot, under `dependencies:` or `optionalDependencies:`: a name and a version, with the
+// peers pnpm resolved it against.
+const SNAPSHOT_DEPENDENCY = /^ {6}(?:'([^']+)'|([^\s:'"]+)): (\S+)$/;
+const DEPENDENCY_HEADINGS = new Set(["    dependencies:", "    optionalDependencies:"]);
+// How deep a moved snapshot's dependencies are followed before the check gives up and refuses.
+const MAX_SNAPSHOT_DEPTH = 16;
+
 /**
- * Says what is wrong with an update's pnpm-lock.yaml, given main's text and the update's. Every importer but the
- * harness's must stay byte for byte, and in the harness's only its dependencies' specifiers and versions may change.
- * In `packages` and `snapshots` an entry may be added or removed but never changed, because an existing entry may be
- * one that main's other importers install. Every other section, such as `settings` and `overrides`, stays as it was.
- * New entries must be plain lines, so no YAML construct can make them read differently to pnpm than to this check.
+ * Splits a peer suffix, such as `(a@1.0.0(b@2.0.0))(c@3.0.0)`, into its top-level groups, each as its head (`a@1.0.0`),
+ * its name when the head is a registry name and version, the peers nested in it and its whole text. Returns undefined
+ * for text that isn't balanced groups.
  */
-export function lockfileProblems(before, after, harness) {
+function peerGroups(text) {
+  const groups = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "(") {
+      if (depth++ === 0) start = i + 1;
+    } else if (text[i] === ")") {
+      if (--depth < 0) return undefined;
+      if (depth === 0) {
+        const inner = text.slice(start, i);
+        const at = inner.indexOf("(");
+        const head = at < 0 ? inner : inner.slice(0, at);
+        groups.push({ head, name: PEER_HEAD.exec(head)?.[1], nested: at < 0 ? "" : inner.slice(at), text: inner });
+      }
+    } else if (depth === 0) return undefined;
+  }
+  return depth === 0 ? groups : undefined;
+}
+
+/** Splits a snapshot key or a resolved version, such as `a@1.0.0(b@2.0.0)`, at its first parenthesis. */
+const splitSuffix = (text) => {
+  const at = text.indexOf("(");
+  return at < 0 ? [text, ""] : [text.slice(0, at), text.slice(at)];
+};
+
+/**
+ * Says what is wrong with a change of a peer suffix from `before` to `after`, or returns "". A group whose text
+ * changed, or that is new, must pass `policy.group`; a group that is gone must pass `policy.drop`; the groups that
+ * stay keep their order; and no peer is listed twice.
+ */
+function peerSuffixProblem(before, after, policy) {
+  const old = peerGroups(before);
+  const now = peerGroups(after);
+  if (!old) return `main's peers ${before} don't parse`;
+  if (!now) return `peers ${after} aren't a list pnpm writes`;
+  const key = (group) => group.name ?? group.head;
+  const byName = new Map(old.map((group) => [key(group), group]));
+  if (byName.size !== old.length || new Set(now.map(key)).size !== now.length) return "lists a peer twice";
+  for (const group of now) {
+    const prior = byName.get(key(group));
+    if (prior?.text === group.text) continue;
+    if (!group.name) return `peer ${group.head} isn't a registry version`;
+    const problem = policy.group(group, prior);
+    if (problem) return problem;
+  }
+  const kept = new Set(now.map(key));
+  for (const group of old) {
+    if (!kept.has(key(group)) && !policy.drop(group)) return `drops peer ${group.head}, which no update replaces`;
+  }
+  const order = (groups, other) => groups.map(key).filter((name) => other.has(name));
+  if (JSON.stringify(order(old, kept)) !== JSON.stringify(order(now, new Set(old.map(key))))) {
+    return "reorders its peers";
+  }
+  return "";
+}
+
+/**
+ * The rules for a workspace importer (the root's, a package's or an app's). These hold the tools CI and the release
+ * run, so a peer may move only to exactly one of the plan's bumps, and the snapshot of that bump must be one main
+ * already has, or the snapshot the harness's own importer resolves the bump to, whose dependencies follow the same rule.
+ */
+function workspacePolicy(bumps, own, snapshots) {
+  const bump = (head) => bumps.some((b) => `${b.name}@${b.version}` === head);
+  // The snapshot the harness's own importer resolves each bump to, such as `ai@7.0.173(zod@4.6.7)`.
+  const bumpSnapshots = new Set([...own.resolved].filter((key) => bump(splitSuffix(key)[0])));
+  const policy = {
+    name: "the plan's bumps",
+    group(group, prior) {
+      if (prior?.head !== group.head && !bump(group.head)) return `peer ${group.head} isn't one of the planned bumps`;
+      return peerSuffixProblem(prior?.nested ?? "", group.nested, policy);
+    },
+    drop: (group) => bumps.some((b) => b.name === group.name && `${b.name}@${b.version}` !== group.head),
+    target(key, visited) {
+      if (snapshots.unchanged(key)) return "";
+      if (!bumpSnapshots.has(key)) return `${key}, which is neither in main nor the harness's own resolution of a bump`;
+      if (visited.has(key)) return "";
+      visited.add(key);
+      for (const { name, value } of snapshots.dependencies(key) ?? []) {
+        const problem = policy.target(`${name}@${value}`, visited);
+        if (problem) return `the new snapshot ${key}, which depends on ${problem}`;
+      }
+      return "";
+    },
+  };
+  return policy;
+}
+
+/**
+ * The rules for another harness's importer: a peer may move only to a snapshot the updated harness's own importer
+ * reaches, since pnpm shares one resolution of a peer across the workspace, and the harnesses are test fixtures that
+ * already install whatever the updated harness resolves.
+ */
+function harnessPolicy(bumps, own, snapshots) {
+  return {
+    name: "the updated harness's resolution",
+    group: (group) =>
+      own.reaches.has(group.text) ? "" : `peer ${group.text} isn't in the updated harness's own resolution`,
+    drop: (group) => bumps.some((b) => b.name === group.name) || own.names.has(group.name),
+    target: (key) =>
+      snapshots.unchanged(key) || own.reaches.has(key)
+        ? ""
+        : `${key}, which isn't in the updated harness's own resolution`,
+  };
+}
+
+/**
+ * Says what is wrong with an importer that isn't the harness's own, or returns "". Only the peers in a resolved
+ * version's parentheses may change, under `policy`; the key, every specifier, the version before the parentheses and
+ * the list of dependencies stay byte for byte. Each dependency that moved is added to `moved`, but only if the whole
+ * importer passes.
+ */
+function peerImporterProblem(name, prior, entry, policy, moved) {
+  const mask = (lines) => trimBlank(lines.map((line) => line.replace(RESOLVED_VERSION, "$1…")));
+  if (entry.key !== prior.key || mask(entry.lines) !== mask(prior.lines)) return `changes the ${name} importer`;
+  const old = trimBlank(prior.lines).split("\n");
+  const lines = trimBlank(entry.lines).split("\n");
+  const here = [];
+  for (const [i, line] of lines.entries()) {
+    if (line === old[i]) continue;
+    const was = RESOLVED_VERSION.exec(old[i]);
+    const now = RESOLVED_VERSION.exec(line);
+    // The dependency is the nearest key above the line, such as `      wrangler:` or `      '@types/node':`.
+    const dependency = /^ {6}(?:'([^']+)'|([^\s:'"]+)):$/.exec(
+      lines.slice(0, i).findLast((l) => /^ {6}\S/.test(l)) ?? "",
+    );
+    if (!was || !now || !dependency) return `changes the ${name} importer`;
+    const dep = dependency[1] ?? dependency[2];
+    const problem = peerSuffixProblem(was[2], now[2], policy);
+    if (problem) return `changes the ${name} importer's ${dep}: ${problem}`;
+    const version = (match) => match[1].replace(/^ {8}version: /, "") + match[2];
+    here.push({ importer: name, from: `${dep}@${version(was)}`, to: `${dep}@${version(now)}`, policy });
+  }
+  moved.push(...here);
+  return "";
+}
+
+/** Reads a snapshot body's dependency lines, or returns a problem string. */
+function snapshotDependencies(body) {
+  const deps = new Map();
+  const rest = [];
+  let heading = "";
+  for (const line of body.split("\n")) {
+    if (/^ {4}\S/.test(line)) heading = line;
+    const m = DEPENDENCY_HEADINGS.has(heading) ? SNAPSHOT_DEPENDENCY.exec(line) : null;
+    if (!m) {
+      rest.push(line);
+      continue;
+    }
+    const name = m[1] ?? m[2];
+    if (deps.has(name)) return `lists ${name} twice`;
+    deps.set(name, { heading, value: m[3] });
+  }
+  return { deps, rest };
+}
+
+/**
+ * Says what is wrong with the snapshot a dependency moved to, `to`, against main's snapshot for it, `from`, or returns
+ * "". Every line but the dependency lines stays as it was. A dependency line follows the snapshot key's peer groups:
+ * a peer group that changed changes its line to match, a new one adds a line under `dependencies:` or
+ * `optionalDependencies:`, a dropped one drops its line, and the snapshot each such line points at must pass
+ * `policy.target`. Any other dependency keeps its version and may change only its peers, under the same policy,
+ * when its own snapshot moved the same way.
+ */
+function movedSnapshotProblem({ from, to, policy }, snapshots, visited, depth = 0) {
+  // A snapshot is checked once for each policy: a harness's looser rule must not stand in for the workspace's.
+  const seen = `${policy.name}\0${to}`;
+  if (visited.has(seen)) return "";
+  visited.add(seen);
+  if (depth > MAX_SNAPSHOT_DEPTH) return `the snapshot ${to} nests moved snapshots too deeply`;
+  const prior = snapshots.old.get(from);
+  const entry = snapshots.now.get(to);
+  if (!prior || !entry) return `the snapshot ${to} has no counterpart for ${from}`;
+  const before = snapshotDependencies(prior.body);
+  const after = snapshotDependencies(entry.body);
+  const changes = `the snapshot ${to} changes more than ${from} with its peers`;
+  if (typeof before === "string" || typeof after === "string") return `the snapshot ${to}: ${after}`;
+  if (JSON.stringify(before.rest) !== JSON.stringify(after.rest)) return changes;
+  const groups = (key) => new Map((peerGroups(splitSuffix(key)[1]) ?? []).map((g) => [g.name ?? g.head, g]));
+  const oldGroups = groups(from);
+  const newGroups = groups(to);
+  for (const name of new Set([...before.deps.keys(), ...after.deps.keys()])) {
+    const o = before.deps.get(name);
+    const n = after.deps.get(name);
+    const og = oldGroups.get(name);
+    const ng = newGroups.get(name);
+    if (o && n && o.heading !== n.heading) return changes;
+    if (og?.text !== ng?.text) {
+      // A peer of this snapshot: its line carries the group's text after the name.
+      const line = (group) => group?.text.slice(name.length + 1);
+      if (o?.value !== line(og) || n?.value !== line(ng)) return changes;
+      // A new peer's line goes where pnpm writes it: optionalDependencies for a peer the package marks optional, else
+      // dependencies, read from the package's entry, which must declare the peer.
+      if (n && !o && n.heading !== snapshots.peerHeading(splitSuffix(to)[0], name)) {
+        return `${changes}: ${name} isn't a peer the package declares under that heading`;
+      }
+      if (n) {
+        const problem = policy.target(`${name}@${n.value}`, new Set());
+        if (problem) return `the snapshot ${to} points ${name} at ${problem}`;
+      }
+      continue;
+    }
+    if (!o || !n) return changes;
+    if (o.value === n.value) continue;
+    const [base, suffix] = splitSuffix(o.value);
+    const [newBase, newSuffix] = splitSuffix(n.value);
+    if (base !== newBase) return `${changes}: it moves ${name} from ${o.value} to ${n.value}`;
+    const problem = peerSuffixProblem(suffix, newSuffix, policy);
+    if (problem) return `the snapshot ${to} changes ${name}'s peers: ${problem}`;
+    const nested = movedSnapshotProblem(
+      { from: `${name}@${o.value}`, to: `${name}@${n.value}`, policy },
+      snapshots,
+      visited,
+      depth + 1,
+    );
+    if (nested) return nested;
+  }
+  return "";
+}
+
+/** What the harness's own importer resolves: each dependency's snapshot key, and every snapshot reachable from them. */
+function ownResolution(entry, snapshots) {
+  const resolved = new Set();
+  let dep;
+  for (const line of entry?.lines ?? []) {
+    const key = /^ {6}(?:'([^']+)'|([^\s:'"]+)):$/.exec(line);
+    if (key) dep = key[1] ?? key[2];
+    const version = /^ {8}version: (\S+)$/.exec(line);
+    if (version && dep) resolved.add(`${dep}@${version[1]}`);
+  }
+  const reaches = new Set();
+  const queue = [...resolved];
+  while (queue.length > 0) {
+    const key = queue.pop();
+    if (reaches.has(key)) continue;
+    reaches.add(key);
+    for (const { name, value } of snapshots.dependencies(key) ?? []) queue.push(`${name}@${value}`);
+  }
+  const names = new Set([...reaches].map((key) => key.slice(0, key.indexOf("@", 1))));
+  return { resolved, reaches, names };
+}
+
+/**
+ * Says what is wrong with an update's pnpm-lock.yaml, given main's text and the update's, and the plan's `bumps`.
+ * - In the harness's own importer only its dependencies' specifiers and versions may change, to registry versions.
+ * - In any other importer only the peers in a resolved version's parentheses may change: in another harness's, to a
+ *   snapshot the updated harness reaches; in the workspace's own (the root, packages/* and apps/*), which hold the tools
+ *   CI and the release run, only to exactly one of the bumps. The snapshot such a dependency moves to must be main's
+ *   with nothing changed but the lines for those peers.
+ * - In `packages` and `snapshots` an entry may be added or removed but never changed, because an existing entry may be
+ *   one that main's other importers install. Every other section, such as `settings` and `overrides`, stays as it was.
+ * - New entries must be plain lines, so no YAML construct can make them read differently to pnpm than to this check.
+ */
+export function lockfileProblems(before, after, harness, bumps = []) {
   const file = "pnpm-lock.yaml";
   if (/[\t\r]/.test(after)) return [`${file}: holds a tab or a carriage return`];
   const top = (text) => splitAt(text.split("\n"), (line) => /^\S/.test(line));
@@ -543,6 +799,7 @@ export function lockfileProblems(before, after, harness) {
     return [`${file}: its sections changed from ${keys(was)} to ${keys(now)}`];
   }
   const problems = [];
+  const sections = new Map();
   for (const [i, { key, body }] of now.blocks.entries()) {
     const section = key.replace(/:.*$/, "");
     const old = was.blocks[i].body;
@@ -556,20 +813,8 @@ export function lockfileProblems(before, after, harness) {
       problems.push(`${file}: ${typeof oldEntries === "string" ? `main's ${oldEntries}` : newEntries}`);
       continue;
     }
-    if (section === "importers") {
-      const own = `verify/${harness}`;
-      if (JSON.stringify([...oldEntries.keys()]) !== JSON.stringify([...newEntries.keys()])) {
-        problems.push(`${file}: adds, removes or reorders an importer`);
-        continue;
-      }
-      for (const [name, entry] of newEntries) {
-        // The workspace's own importers (the root, packages/*, apps/*) hold the tools CI and the release run.
-        const pattern = name === own ? OWN_VALUE : name.startsWith("verify/") ? PEER_SUFFIX : undefined;
-        const problem = importerProblem(name, oldEntries.get(name), entry, pattern);
-        if (problem) problems.push(`${file}: ${problem}`);
-      }
-      continue;
-    }
+    sections.set(section, { oldEntries, newEntries });
+    if (section === "importers") continue;
     for (const [name, entry] of newEntries) {
       const prior = oldEntries.get(name);
       if (prior) {
@@ -582,6 +827,64 @@ export function lockfileProblems(before, after, harness) {
         problems.push(`${file}: the new package ${name} doesn't resolve from the npm registry by its integrity alone`);
       }
     }
+  }
+  const importers = sections.get("importers");
+  if (!importers) return problems;
+  const { oldEntries, newEntries } = importers;
+  if (JSON.stringify([...oldEntries.keys()]) !== JSON.stringify([...newEntries.keys()])) {
+    return [...problems, `${file}: adds, removes or reorders an importer`];
+  }
+  const snaps = sections.get("snapshots") ?? { oldEntries: new Map(), newEntries: new Map() };
+  const packages = sections.get("packages") ?? { oldEntries: new Map(), newEntries: new Map() };
+  const snapshots = {
+    old: snaps.oldEntries,
+    now: snaps.newEntries,
+    // An entry main has that the update keeps; the generic rule above refuses any change to it.
+    unchanged: (key) => snaps.oldEntries.has(key) && snaps.newEntries.get(key)?.body === snaps.oldEntries.get(key).body,
+    // Where a snapshot of `pkg` (such as `wrangler@4.160.1`) lists its resolved peer `name`, or undefined when the
+    // package's entry, main's where it has one, doesn't declare that peer.
+    peerHeading(pkg, name) {
+      const entry = packages.oldEntries.get(pkg) ?? packages.newEntries.get(pkg);
+      let section = "";
+      let declared = false;
+      let current;
+      let optional = false;
+      for (const line of entry?.lines ?? []) {
+        if (/^ {4}\S/.test(line)) section = line;
+        const key = /^ {6}(?:'([^']+)'|([^\s:'"]+)):(?: (.*))?$/.exec(line);
+        if (key) current = key[1] ?? key[2];
+        if (section === "    peerDependencies:" && key && current === name) declared = true;
+        if (section === "    peerDependenciesMeta:" && current === name && line === "        optional: true")
+          optional = true;
+      }
+      return declared ? (optional ? "    optionalDependencies:" : "    dependencies:") : undefined;
+    },
+    dependencies(key) {
+      const entry = snaps.newEntries.get(key);
+      const read = entry && snapshotDependencies(entry.body);
+      return read && typeof read !== "string"
+        ? [...read.deps].map(([name, { value }]) => ({ name, value }))
+        : undefined;
+    },
+  };
+  const own = `verify/${harness}`;
+  const resolution = ownResolution(newEntries.get(own), snapshots);
+  const workspace = workspacePolicy(bumps, resolution, snapshots);
+  const harnesses = harnessPolicy(bumps, resolution, snapshots);
+  const moved = [];
+  for (const [name, entry] of newEntries) {
+    const prior = oldEntries.get(name);
+    const problem =
+      name === own
+        ? ownImporterProblem(name, prior, entry)
+        : peerImporterProblem(name, prior, entry, name.startsWith("verify/") ? harnesses : workspace, moved);
+    if (problem) problems.push(`${file}: ${problem}`);
+  }
+  // Several importers can move to one shared snapshot, which is checked, and reported, once.
+  const visited = new Set();
+  for (const move of moved) {
+    const problem = movedSnapshotProblem(move, snapshots, visited);
+    if (problem) problems.push(`${file}: the ${move.importer} importer's ${move.from}: ${problem}`);
   }
   return problems;
 }
@@ -604,7 +907,7 @@ function checkUpdate(root, harness, base, head, bumpsText) {
   const show = (rev, file) => git("show", `${rev}:${file}`);
   problems.push(...manifestProblems(show(base, manifest), show(head, manifest), bumps).map((p) => `${manifest}: ${p}`));
   if (changed.has("pnpm-lock.yaml")) {
-    problems.push(...lockfileProblems(show(base, "pnpm-lock.yaml"), show(head, "pnpm-lock.yaml"), harness));
+    problems.push(...lockfileProblems(show(base, "pnpm-lock.yaml"), show(head, "pnpm-lock.yaml"), harness, bumps));
   }
   return problems;
 }
