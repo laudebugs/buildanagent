@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L14` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) |
 | Round / milestone | Round L (publish and docs, added 2026-11-23) |
 | Depends on | [L13](../done/L13-landing-page.md) |
@@ -48,7 +48,7 @@ Give the manual (manual.buildanagent.fyi) and the docs (docs.buildanagent.fyi) t
 - [x] Both built sites contain `/favicon.svg`, identical to the site's, and every built HTML page links it
 - [x] The test in each app fails when the file or the link is removed
 - [x] The stage and guard scripts pass on both builds with no `.github/` change
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -64,9 +64,16 @@ The plan's todo table, and the manual's and the docs' READMEs if they list their
 
 ## Definition of done
 
-- [ ] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
-- [ ] A `/code-review low` on the pull request, with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+- [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] A `/code-review low` on the pull request, with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+
+## Outcome
+
+- Both apps ship `favicon.svg`, byte for byte the site's, and the manual's layout links it; each app has a test that fails when the file is missing or differs from the site's, and the manual's also fails when a built page lacks the link.
+- Starlight already uses `/favicon.svg` as its default `favicon` and links it as `rel="shortcut icon"`, so the docs need only the file in `public/`; the explicit `favicon` setting is harmless but redundant, and the docs test cannot tell it from the default. The manual links it as `rel="icon"`, so the two sites use different `rel` spellings.
+- The stage and guard scripts of both sites have no file-type allowlist and accepted real builds containing the file (manual: 92 files, docs: 595 files), so no script or workflow changed.
+- At 16 pixels the outline and chevron stay legible and the underscore shrinks to a small dash in both colour schemes; the one risk is a tab strip that doesn't pass its colour scheme to the icon, which shows the light colours on a dark strip.
