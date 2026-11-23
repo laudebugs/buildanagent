@@ -152,7 +152,7 @@ The owner asked to review every SDK-reference and book todo against U22 and upda
 
 ### U24: Research redesign versus AI for one workflow (added 2026-11-23)
 
-The owner asked whether an AI chat, a workflow or an agent should solve a problem that redesigning the app would solve, and wants to measure some of their own workflows. Their hypothesis is that a model in a plain workflow often gains little and that defaults, fewer steps and better search may fix the real problem. U24 gathers the controlled studies and deployed-agent measurements, the human-computer-interaction evidence on defaults, steps and search, and the automation literature, then proposes a before-and-after method with four arms and a decision rule for Chapter 1. The report is in `docs/research/redesign-vs-ai/` (its link is added when U24 is done).
+The owner asked whether an AI chat, a workflow or an agent should solve a problem that redesigning the app would solve, and wants to measure some of their own workflows. Their hypothesis is that a model in a plain workflow often gains little and that defaults, fewer steps and better search may fix the real problem. U24 gathers the controlled studies and deployed-agent measurements, the human-computer-interaction evidence on defaults, steps and search, and the automation literature, then proposes a before-and-after method with four arms and a decision rule for Chapter 1. The report is [`redesign-vs-ai.md`](../research/redesign-vs-ai/redesign-vs-ai.md), with its fact-check in [`fact-check-redesign-vs-ai.md`](../research/redesign-vs-ai/fact-check-redesign-vs-ai.md).
 
 ## 5. Todos
 
@@ -182,7 +182,7 @@ The owner asked whether an AI chat, a workflow or an agent should solve a proble
 | U17 | Read fourteen owner-chosen sources, most of them unfetched seeds, against the main report (done: [source-update-2026-11-19.md](../research/source-update-2026-11-19.md)) | R1 |
 | U22 | Survey recent AI agent research papers (done: [agent-research-papers.md](../research/papers/agent-research-papers.md)) | None |
 | U23 | Fold U22's findings into the build guides and the book's todos (done: [agent-harness.md](../guides/agent-harness.md), [agent.md](../guides/agent.md)) | U22 |
-| U24 | Research redesign versus AI for one workflow (ongoing) | None |
+| U24 | Research redesign versus AI for one workflow (done: [redesign-vs-ai.md](../research/redesign-vs-ai/redesign-vs-ai.md)) | None |
 | G1b | Guide: building an agent SDK (done: [docs/guides/agent-sdk.md](../guides/agent-sdk.md)) | G1a, H3, R1 |
 | G2a | Deep research: building an agent harness (done) | G1a |
 | G2b | Guide: building an agent harness (done: [docs/guides/agent-harness.md](../guides/agent-harness.md)) | G2a, G1b, H3 |

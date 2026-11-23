@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | ID | `U24` |
-| Status | `ongoing` |
-| Plan | [Build guides §4d, U24](../../plans/build-guides.md#u24-research-redesign-versus-ai-added-2026-11-23) |
+| Status | `done` |
+| Plan | [Build guides §4d, U24](../../plans/build-guides.md#u24-research-redesign-versus-ai-for-one-workflow-added-2026-11-23) |
 | Round / milestone | Research (added 2026-11-23) |
 | Depends on | None |
 | Size | L |
@@ -34,18 +34,18 @@ Answer the owner's question: should we use an AI chat, a workflow or an agent to
 
 ## Tasks
 
-- [ ] Gather primary sources first; mark anything taken from a secondary write-up as such.
-- [ ] Draft each section with `/anthropic-skills:writing`, and fact-check it into the log before drafting the next.
-- [ ] Run `/anthropic-skills:writing-review` on the whole report, fix every finding, and re-check every claim a fix touched.
-- [ ] Add the folder to AGENTS.md's research list and README's docs table.
+- [x] Gather primary sources first; mark anything taken from a secondary write-up as such.
+- [x] Draft each section with `/anthropic-skills:writing`, and fact-check it into the log before drafting the next.
+- [x] Run `/anthropic-skills:writing-review` on the whole report, fix every finding, and re-check every claim a fix touched.
+- [x] Add the folder to AGENTS.md's research list and README's docs table.
 
 ## Acceptance criteria
 
-- [ ] The report answers the research question in its thesis, and every number has a fact-check row
-- [ ] The log marks every claim ✅, ✏️ or ⚠️
-- [ ] The worked example is labelled illustrative and its arithmetic can be checked in the text
-- [ ] Every relative link resolves
-- [ ] `pnpm check` passes
+- [x] The report answers the research question in its thesis, and every number has a fact-check row
+- [x] The log marks every claim ✅, ✏️ or ⚠️
+- [x] The worked example is labelled illustrative and its arithmetic can be checked in the text
+- [x] Every relative link resolves
+- [x] `pnpm check` passes
 
 ## Tests
 
@@ -64,8 +64,12 @@ None beyond `pnpm check`, `pnpm fact-check-logs` and the link check; the report 
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check` passes locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check` passes locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The report is [redesign-vs-ai.md](../../research/redesign-vs-ai/redesign-vs-ai.md), with its [fact-check log](../../research/redesign-vs-ai/fact-check-redesign-vs-ai.md) (107 claims: 84 ✅, 3 ✏️, 20 ⚠️). Its thesis is that no study we verified compares a model with a redesign, that defaults, fewer steps and search show large effects with no model, and that the owner can settle the question for one workflow with a pre-registered four-arm paired measurement. It proposes four questions that give the owner's four outcomes, one section for Chapter 1 and six plan changes. Two papers were paywalled and are checked at their abstracts only. The code-review rounds and the writing review stay open until the pull request's rounds finish.
