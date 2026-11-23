@@ -84,5 +84,8 @@ test("every built page has the header title with the mark, the wordmark and the 
   // The Install page is MDX with package-manager tabs, so Starlight's synced tabs are on the page.
   const install = readFileSync(join(out, "start", "install", "index.html"), "utf8");
   assert.match(install, /data-sync-key="package-manager"/);
-  for (const label of ["pnpm", "npm", "yarn"]) assert.match(install, new RegExp(`role="tab"[^>]*>[^<]*${label}`));
+  const tabs = [...install.matchAll(/<a role="tab"[^>]*>([^<]*)<\/a>/g)].map((m) =>
+    (m[1] ?? "").replace(/<[^>]*>/g, "").trim(),
+  );
+  assert.deepEqual(tabs, ["pnpm", "npm", "yarn"]);
 });

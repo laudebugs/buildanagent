@@ -55,3 +55,68 @@ test("Markdown keeps the strict rule: a fence after another fence has no introdu
 test("component lines in Markdown are plain text, so a .md page cannot hide words in them", () => {
   assert.match(splitFences("<Tabs>\n", false).body, /<Tabs>/);
 });
+
+test("lines inside a code block are never blanked, whatever they look like", () => {
+  const page = [
+    "```ts",
+    'import { createAgent } from "@buildanagent/sdk";',
+    "const a = 1;",
+    "```",
+    "",
+    "```tsx",
+    "<Foo />",
+    "```",
+    "",
+    "```ts",
+    'import { wrong } from "nowhere";',
+    "```",
+  ].join("\n");
+  const { fences } = splitFences(page, true);
+  assert.equal(fences[0]?.code, 'import { createAgent } from "@buildanagent/sdk";\nconst a = 1;');
+  assert.equal(fences[1]?.code, "<Foo />");
+  assert.equal(fences[2]?.code, 'import { wrong } from "nowhere";');
+});
+
+test("text a reader sees in a component's title, label or description is still checked as prose", () => {
+  const { body } = splitFences(
+    [
+      '<Aside title="Mind this gotcha">',
+      '<LinkCard title="Read more" description="A short pointer." href="/x/" />',
+    ].join("\n"),
+    true,
+  );
+  assert.match(body, /Mind this gotcha/);
+  assert.match(body, /Read more/);
+  assert.match(body, /A short pointer\./);
+  assert.doesNotMatch(body, /href|<LinkCard/);
+});
+
+test("a fence borrows the previous fence's introduction only across TabItem lines", () => {
+  const between = (middle: string) =>
+    splitFences(`Run it:\n\n\`\`\`bash\none\n\`\`\`\n${middle}\n\`\`\`bash\ntwo\n\`\`\`\n`, true).fences[1]?.before;
+  assert.equal(between('</TabItem>\n<TabItem label="npm">'), "Run it:");
+  assert.equal(between("<Aside>\n</Aside>"), "```");
+  assert.equal(between("<Card>"), "```");
+});
+
+test("imports, exports and comments outside a fence leave no words in the body", () => {
+  const { body } = splitFences(
+    [
+      'import "./x.css";',
+      "import {",
+      "  Tabs,",
+      "  TabItem,",
+      '} from "@astrojs/starlight/components";',
+      "export const meta = {",
+      '  a: "b",',
+      "};",
+      "{/* a note to authors */}",
+      "{/*",
+      "  more of the note",
+      "*/}",
+      "Real words.",
+    ].join("\n"),
+    true,
+  );
+  assert.equal(body.replace(/\s+/g, " ").trim(), "Real words.");
+});

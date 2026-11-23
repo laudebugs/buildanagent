@@ -45,13 +45,20 @@ interface Browser {
 }
 
 async function launch(): Promise<Browser | undefined> {
+  let chromium: { launch(): Promise<Browser> };
   try {
-    const { chromium } = createRequire(import.meta.url)("playwright") as {
-      chromium: { launch(): Promise<Browser> };
-    };
+    ({ chromium } = createRequire(import.meta.url)("playwright") as { chromium: { launch(): Promise<Browser> } });
+  } catch (error) {
+    // Only a missing module means "not installed"; anything else is a real failure.
+    if ((error as NodeJS.ErrnoException).code === "MODULE_NOT_FOUND") return undefined;
+    throw error;
+  }
+  try {
     return await chromium.launch();
-  } catch {
-    return undefined;
+  } catch (error) {
+    // Playwright reports a missing browser binary as "Executable doesn't exist"; any other launch error is real.
+    if (/Executable doesn't exist|playwright install/i.test(String(error))) return undefined;
+    throw error;
   }
 }
 
