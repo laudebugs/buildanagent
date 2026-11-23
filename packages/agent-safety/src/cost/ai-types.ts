@@ -1,6 +1,6 @@
 /**
  * The AI SDK's provider-level types, read off the `LanguageModelMiddleware` that `ai` exports, so this subpath needs
- * no peer dependency beyond `ai` itself. They are the `@ai-sdk/provider` 4.x types `ai` 7.0.162 builds on.
+ * no peer dependency beyond `ai` itself. They are the `@ai-sdk/provider` 4.x types `ai` 7.0.173 builds on.
  */
 import type { LanguageModelMiddleware } from "ai";
 

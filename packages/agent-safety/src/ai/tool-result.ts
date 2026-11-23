@@ -1,6 +1,6 @@
 /**
- * `toAiToolResult()`: a write outcome as an `ai` tool result. In `ai` 7.0.162 a tool's `toModelOutput` returns one of
- * the `ToolResultOutput` variants of `@ai-sdk/provider-utils` 5.0.74, and the `error-json` variant is the one that
+ * `toAiToolResult()`: a write outcome as an `ai` tool result. In `ai` 7.0.173 a tool's `toModelOutput` returns one of
+ * the `ToolResultOutput` variants of `@ai-sdk/provider-utils` 5.0.81, and the `error-json` variant is the one that
  * sets the provider's error flag, so every kind but `applied` uses it. The import is type-only, so this subpath loads
  * without `ai` installed.
  */
