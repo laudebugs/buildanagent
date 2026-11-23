@@ -21,8 +21,28 @@ const placed = readPages().flatMap((page) =>
 const htmlOf = (page: string): string =>
   readFileSync(join(builtSite(), page.replace(/(?:index)?\.mdx?$/, ""), "index.html"), "utf8");
 
-test("the pages place the two figures", () => {
-  assert.deepEqual(placed.map(({ id }) => id).sort(), ["package-map", "run-loop"]);
+/** The page's text with the entities the serializer writes in attributes and text turned back into characters. */
+const decoded = (html: string): string =>
+  html
+    .replace(/&#(?:x27|39);/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+
+test("the pages place the six figures", () => {
+  assert.deepEqual(placed.map(({ id }) => id).sort(), [
+    "approval-pause",
+    "gateway-adapters",
+    "package-map",
+    "run-loop",
+    "stop-reasons",
+    "stream-and-transcript",
+  ]);
+});
+
+test("a figure sits on an MDX page, so the directive is tested through the MDX pipeline", () => {
+  assert.ok(placed.some(({ page }) => page.endsWith(".mdx")));
 });
 
 describe.each(placed.map((figure) => [`${figure.page}: ${figure.id}`, figure] as const))("%s", (_name, figure) => {
@@ -30,7 +50,7 @@ describe.each(placed.map((figure) => [`${figure.page}: ${figure.id}`, figure] as
     const html = htmlOf(figure.page);
     const start = html.indexOf(`<figure class="docs-figure not-content" id="figure-${figure.id}"`);
     assert.ok(start !== -1, "the page has no figure element for it");
-    const element = html.slice(start, html.indexOf("</figure>", start) + "</figure>".length);
+    const element = decoded(html.slice(start, html.indexOf("</figure>", start) + "</figure>".length));
     assert.match(
       element,
       new RegExp(`<svg viewBox="[^"]+" width="\\d+" height="\\d+" class="fig" data-figure="${figure.id}"`),
