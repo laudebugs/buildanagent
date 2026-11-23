@@ -7,6 +7,14 @@ import { API_PACKAGES } from "../api/packages.js";
 
 export const DOCS_DIR = fileURLToPath(new URL("../content/docs/", import.meta.url));
 
+/** The fence languages that mean TypeScript, so every check that looks for TypeScript blocks agrees on them. */
+const TYPESCRIPT_LANGUAGES: ReadonlySet<string> = new Set(["ts", "tsx", "typescript", "mts", "cts"]);
+
+/** Whether a fence or component language names TypeScript. The match ignores case, so `TS` and `TypeScript` count. */
+export function isTypeScriptLang(lang: string): boolean {
+  return TYPESCRIPT_LANGUAGES.has(lang.toLowerCase());
+}
+
 /** A fenced code block, with the line of its opening fence and the paragraph text before it. */
 export interface Fence {
   readonly line: number;

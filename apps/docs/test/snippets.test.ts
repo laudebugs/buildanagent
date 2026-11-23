@@ -7,7 +7,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
 import { parseExampleRef } from "../src/plugins/example-code.js";
-import { readPages } from "../src/plugins/pages.js";
+import { isTypeScriptLang, readPages } from "../src/plugins/pages.js";
+import { EXCEPTIONS } from "./exceptions.js";
 
 // A short code block that a page writes inline must still compile against the packages. A longer block comes from an
 // example file, which the package's own type-check already covers. Each block is a module of its own, beside the
@@ -21,10 +22,15 @@ const APP = fileURLToPath(new URL("..", import.meta.url));
 test("every inline TypeScript block type-checks against the packages", { timeout: 60_000 }, () => {
   const blocks = readPages().flatMap((page) =>
     page.fences
-      .filter((fence) => ["ts", "typescript"].includes(fence.lang) && parseExampleRef(fence.meta) === undefined)
+      .filter((fence) => isTypeScriptLang(fence.lang) && parseExampleRef(fence.meta) === undefined)
       .map((fence) => ({ where: `${page.path}:${fence.line}`, code: fence.code })),
   );
-  assert.ok(blocks.length > 0, "the pages have inline TypeScript blocks");
+  // The fence rule (fences.test.ts) leaves no inline block today, so this check guards one a page lists as an
+  // exception. It may be empty only while that list is, so an exception that no block reaches cannot pass unchecked.
+  if (blocks.length === 0) {
+    assert.equal(EXCEPTIONS.size, 0, "a listed exception names a block, but the check collected no inline block");
+    return;
+  }
   const folder = mkdtempSync(join(APP, ".snippets-"));
   try {
     for (const [index, block] of blocks.entries()) {

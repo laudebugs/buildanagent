@@ -9,7 +9,9 @@ import { ANSWER, ANSWER_TOKENS, anthropicOver, anthropicStub, instantly, tokensI
 
 const MAX_OUTPUT_TOKENS = 500;
 const NANOS_PER_DOLLAR = 1_000_000_000;
+// #region policy
 const policy = Array.from({ length: 400 }, (_, i) => `Refund rule ${i}: refund within 30 days.`).join("\n");
+// #endregion
 
 // #region wire
 const stub = anthropicStub();
