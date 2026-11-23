@@ -694,7 +694,7 @@ const MESSAGES = {
   storage: "This browser would not save the change: its storage is full or turned off.",
   foreign:
     "Nothing was changed: this browser holds notes in a form this page cannot read, saved by a newer or damaged version of the book. Export shows them as stored.",
-  gone: "That highlight was deleted in another tab or window. Save to add it back with this note.",
+  gone: "That highlight was deleted in another tab or window. Press Save note to add it back with this note.",
 };
 
 /**
