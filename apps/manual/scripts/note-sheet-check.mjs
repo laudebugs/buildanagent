@@ -1,15 +1,19 @@
 // Checks, in a touch-emulated browser at an iPhone 14's size, that the note popover is a compact bottom sheet and that
-// its colour swatches draw a small focus ring. It runs in Chromium and, when it is installed, in WebKit (Safari's
-// engine; `PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit`), and says so when WebKit is missing. The
-// sheet must be at most 55% of the viewport, sit on the viewport's bottom edge with the passage still visible above it,
-// have no gap over 24px between its stacked sections and scroll inside itself, with its field and actions in view and
-// the passage still showing, when the window is as short as a phone with its keyboard open. A closed sheet must be
-// display:none and leave the page tappable, close by Escape, a tap outside and a swipe, and open again without a
-// reload. A swatch's focus outline must hug a small target, with a touch screen and with a mouse. Screenshots go to
-// the folder named by --shots, at CSS pixel scale, with the file name prefix --prefix (before or after), from Chromium.
+// its colour swatches draw a small focus ring.
+//
+// The sheet must be at most 55% of the viewport and sit on the viewport's bottom edge with the passage still visible
+// above it. It must have no gap over 24px between its stacked sections and scroll inside itself. In a window as short
+// as a phone with its keyboard open, its field and actions must be in view and the passage must still show. A closed
+// sheet must be display:none and leave the page tappable; it must close by Escape, a tap outside and a swipe, and open
+// again without a reload. A swatch's focus outline must hug a small target, with a touch screen and with a mouse.
+//
+// It runs in Chromium and, when it is installed, in WebKit (Safari's engine;
+// `PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit`), and says so when WebKit is missing. A WebKit build is
+// not a real iPhone: Safari's on-screen keyboard and visual viewport are not tested. Screenshots go to the folder named
+// by --shots, at CSS pixel scale, from Chromium, with the file name prefix --prefix (before or after).
 //
 // It needs Playwright, a browser and a built book (`pnpm --filter @buildanagent/manual build`), so it is not part of
-// `pnpm test`. A WebKit build is not a real iPhone: Safari's on-screen keyboard and visual viewport are not tested.
+// `pnpm test`.
 //
 //   node scripts/note-sheet-check.mjs [--shots <folder>] [--prefix <name>]
 import assert from "node:assert/strict";

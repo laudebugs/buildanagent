@@ -1090,8 +1090,8 @@ class Notes {
     sheetQuery?.addEventListener?.("change", () => {
       if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches) this.closePop();
     });
-    // The on-screen keyboard shrinks the visual viewport, and on iOS it leaves the layout viewport alone, so the sheet
-    // follows the visual one: it sits on its bottom edge and takes at most half its height.
+    // On iOS the on-screen keyboard shrinks the visual viewport and leaves the layout viewport alone. The sheet therefore
+    // follows the visual one: it sits on that viewport's bottom edge and takes at most half its height.
     const visual = win.visualViewport;
     visual?.addEventListener?.("resize", () => this.layoutSheet());
     visual?.addEventListener?.("scroll", () => this.layoutSheet());
@@ -1724,9 +1724,9 @@ class Notes {
   }
 
   /**
-   * Sizes the bottom sheet to the visual viewport: its bottom edge is the viewport's, its height at most half of the
-   * viewport's (a little more when the viewport is as short as a phone with its keyboard open, where the quotation is
-   * hidden to make room), and it scrolls inside itself past that.
+   * Sizes the bottom sheet to the visual viewport. Its bottom edge is the viewport's and its height is at most half the
+   * viewport's, and it scrolls inside itself past that. In a viewport as short as a phone with its keyboard open, the
+   * limit rises to 55% and the quotation is hidden to make room.
    */
   layoutSheet() {
     const { win } = this;
@@ -1740,8 +1740,8 @@ class Notes {
     this.pop.style.setProperty("--notes-sheet-bottom", `${Math.round(lifted)}px`);
     this.pop.style.setProperty("--notes-sheet-max", `${Math.floor(height * (compact ? 0.55 : 0.5))}px`);
     // A keyboard that opens or closes changes the viewport's height, and the passage is brought back above the sheet.
-    // The key leaves out the lift: it includes the visual viewport's offset, which iOS changes while it pans for the
-    // keyboard, and a reveal that scrolled the page would then change it and scroll again.
+    // The key leaves out the lift. The lift depends on the visual viewport's offset, which iOS changes while it pans for
+    // the keyboard, so a reveal that scrolled the page would change the key and trigger another reveal.
     const key = `${Math.round(height)}/${compact}`;
     if (key !== this.sheetKey) {
       this.sheetKey = key;
@@ -1750,8 +1750,9 @@ class Notes {
   }
 
   /**
-   * Scrolls the page, when the sheet covers the highlighted passage, so the passage shows above the sheet. A passage of
-   * several lines is judged by its last line, and the scroll stops short of pushing its first line off the window.
+   * Scrolls the page, when the sheet covers the highlighted passage, so that the passage shows above the sheet. A
+   * passage of several lines is judged by its last line, and the scroll stops before it pushes the first line off the
+   * window.
    */
   revealPassage() {
     const { win } = this;
