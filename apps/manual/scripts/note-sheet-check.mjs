@@ -1,12 +1,15 @@
-// Checks, in a touch-emulated Chromium at an iPhone 14's size, that the note popover is a compact bottom sheet and that
-// its colour swatches draw a small focus ring. The sheet must be at most 55% of the viewport, sit on the viewport's
-// bottom edge with the passage still visible above it, have no gap over 24px between its stacked sections and scroll
-// inside itself, with its field and actions in view, when the window is as short as a phone with its keyboard open. A
-// swatch's focus outline must hug a target of at most 56x56. Screenshots go to the folder named by --shots, in both
-// themes, at CSS pixel scale, with the file name prefix --prefix (before or after).
+// Checks, in a touch-emulated browser at an iPhone 14's size, that the note popover is a compact bottom sheet and that
+// its colour swatches draw a small focus ring. It runs in Chromium and, when it is installed, in WebKit (Safari's
+// engine; `PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit`), and says so when WebKit is missing. The
+// sheet must be at most 55% of the viewport, sit on the viewport's bottom edge with the passage still visible above it,
+// have no gap over 24px between its stacked sections and scroll inside itself, with its field and actions in view and
+// the passage still showing, when the window is as short as a phone with its keyboard open. A closed sheet must be
+// display:none and leave the page tappable, close by Escape, a tap outside and a swipe, and open again without a
+// reload. A swatch's focus outline must hug a small target, with a touch screen and with a mouse. Screenshots go to
+// the folder named by --shots, at CSS pixel scale, with the file name prefix --prefix (before or after), from Chromium.
 //
-// It needs Playwright, a Chromium and a built book (`pnpm --filter @buildanagent/manual build`), so it is not part of
-// `pnpm test`. It cannot show what a real iOS Safari does with its on-screen keyboard and visual viewport.
+// It needs Playwright, a browser and a built book (`pnpm --filter @buildanagent/manual build`), so it is not part of
+// `pnpm test`. A WebKit build is not a real iPhone: Safari's on-screen keyboard and visual viewport are not tested.
 //
 //   node scripts/note-sheet-check.mjs [--shots <folder>] [--prefix <name>]
 import assert from "node:assert/strict";
@@ -19,9 +22,8 @@ const shots = arg("--shots");
 const prefix = arg("--prefix") ?? "after";
 if (shots) mkdirSync(shots, { recursive: true });
 
-const { chromium, devices } = loadPlaywright();
+const { chromium, webkit, devices } = loadPlaywright();
 const { server, origin } = await serveDist();
-const browser = await chromium.launch({ env: browserEnv });
 const { defaultBrowserType: _ignored, ...phone } = devices["iPhone 14"];
 const { width, height } = phone.viewport;
 const failures = [];
@@ -30,8 +32,11 @@ const check = (condition, message) => {
   if (!condition) failures.push(message);
 };
 
-/** Opens the popover on a fresh highlight; `note` saves a note first so the popover shows the saved-note view. */
-async function openSheet(page, note) {
+/**
+ * Opens the popover on a fresh highlight, its passage centred at `at` of the window's height; `note` saves a note first
+ * so the popover shows the saved-note view. A mouse clicks and a touch screen taps.
+ */
+async function openSheet(page, note, at = 0.5) {
   await page.goto(`${origin}/tools/`);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -39,16 +44,7 @@ async function openSheet(page, note) {
   await selectIn(page, 2, 10, 70);
   await page.waitForSelector(".notes-toolbar:not([hidden])");
   await page.click(".notes-toolbar .notes-swatch--blue");
-  const point = async () =>
-    page.evaluate(() => {
-      const [range] = CSS.highlights.get("manual-hl-blue");
-      range.startContainer.parentElement.scrollIntoView({ block: "center", behavior: "instant" });
-      const rect = range.getClientRects()[0];
-      return { x: rect.left + Math.min(20, rect.width / 2), y: rect.top + rect.height / 2 };
-    });
-  const p = await point();
-  await page.touchscreen.tap(p.x, p.y);
-  await page.waitForSelector(".notes-pop:popover-open");
+  await reopen(page, at);
   if (note) {
     await page.fill(".notes-pop__field", note);
     await page.click(".notes-pop__act[data-action='save']");
@@ -56,7 +52,22 @@ async function openSheet(page, note) {
   }
 }
 
-/** Sizes of the open sheet: its box, its children's boxes, the swatch outline and the passage's position. */
+/** Taps (or clicks) the blue highlight with its passage centred at `at` of the window's height. */
+async function reopen(page, at = 0.5) {
+  const p = await page.evaluate((fraction) => {
+    const range = [...CSS.highlights.values()].flatMap((h) => [...h])[0];
+    range.startContainer.parentElement.scrollIntoView({ block: "center", behavior: "instant" });
+    const rect = range.getClientRects()[0];
+    scrollBy(0, rect.top + rect.height / 2 - fraction * innerHeight);
+    const moved = range.getClientRects()[0];
+    return { x: moved.left + Math.min(20, moved.width / 2), y: moved.top + moved.height / 2 };
+  }, at);
+  if (page.context()._options.hasTouch) await page.touchscreen.tap(p.x, p.y);
+  else await page.mouse.click(p.x, p.y);
+  await page.waitForSelector(".notes-pop:popover-open");
+}
+
+/** Sizes of the open popover: its box, its children's gaps, the swatch box, the passage's position and the overflow. */
 const measure = (page) =>
   page.evaluate(() => {
     const pop = document.querySelector(".notes-pop");
@@ -79,20 +90,22 @@ const measure = (page) =>
     return {
       top: r.top,
       bottom: r.bottom,
+      left: r.left,
+      right: r.right,
       h: r.height,
       vh: innerHeight,
+      vw: innerWidth,
       gaps,
       maxGap: Math.max(0, ...gaps.map((g) => g.gap)),
       passage: passage ? { top: passage.top, bottom: passage.bottom } : null,
       swatch: { w: sw.width, h: sw.height },
       field: field ? { top: field.top, bottom: field.bottom } : null,
       actions: { top: actions.top, bottom: actions.bottom },
-      scrolls: pop.scrollHeight > pop.clientHeight + 1,
       overflowY: getComputedStyle(pop).overflowY,
     };
   });
 
-/** The focused swatch's outline box: its element box grown by the outline's width and offset. */
+/** The focused element's outline box (its box grown by the outline's width and offset), and whether it is a swatch. */
 const focusRing = (page) =>
   page.evaluate(() => {
     const el = document.activeElement;
@@ -100,22 +113,41 @@ const focusRing = (page) =>
     const b = el.getBoundingClientRect();
     const ring = s.outlineStyle === "none" ? 0 : parseFloat(s.outlineWidth) + parseFloat(s.outlineOffset);
     return {
-      tag: el.className,
+      swatch: el.classList.contains("notes-swatch"),
       w: b.width + 2 * ring,
       h: b.height + 2 * ring,
       outline: `${s.outlineStyle} ${s.outlineWidth} offset ${s.outlineOffset}`,
     };
   });
 
-for (const scheme of ["dark", "light"]) {
+/** Whether the closed popover is gone: display none, and the page, not the popover, takes a tap where the sheet was. */
+const isGone = (page) =>
+  page.evaluate(() => {
+    const pop = document.querySelector(".notes-pop");
+    const hit = document.elementFromPoint(innerWidth / 2, innerHeight - 40);
+    return {
+      display: getComputedStyle(pop).display,
+      open: pop.matches(":popover-open"),
+      covered: !!hit?.closest(".notes-pop"),
+    };
+  });
+
+/** Moves keyboard focus onto the first swatch the way a keyboard does, so :focus-visible applies. */
+async function focusFirstSwatch(page) {
+  await page.focus(".notes-pop .notes-swatch");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+}
+
+async function runTouch(name, browser, scheme, shot) {
   const context = await browser.newContext({ ...phone, colorScheme: scheme });
   const page = await context.newPage();
-  const shot = (name) =>
-    shots && page.screenshot({ path: join(shots, `${prefix}-${scheme}-${name}.png`), scale: "css" });
+  const snap = (label) =>
+    shot && page.screenshot({ path: join(shots, `${prefix}-${scheme}-${label}.png`), scale: "css" });
   for (const state of ["add-note", "saved-note"]) {
-    const label = `${scheme} ${state}`;
+    const label = `${name} ${scheme} ${state}`;
     await openSheet(page, state === "saved-note" ? "A short note on this passage." : "");
-    await shot(state);
+    await snap(state);
     const m = await measure(page);
     console.log(`  ${label}: ${JSON.stringify(m)}`);
     check(
@@ -132,56 +164,162 @@ for (const scheme of ["dark", "light"]) {
       m.overflowY === "auto" || m.overflowY === "scroll",
       `${label}: the sheet scrolls inside itself (${m.overflowY})`,
     );
+    check(m.swatch.w === 44 && m.swatch.h === 44, `${label}: a swatch is a 44x44 target (${m.swatch.w}x${m.swatch.h})`);
 
-    // Keyboard focus on the first swatch: a ring that hugs a small target.
-    await page.keyboard.press("Tab");
-    await page.focus(".notes-pop .notes-swatch");
-    await page.keyboard.press("Shift+Tab");
-    await page.keyboard.press("Tab");
+    await focusFirstSwatch(page);
     const ring = await focusRing(page);
     console.log(`  ${label}: focus ring ${JSON.stringify(ring)}`);
+    check(ring.swatch, `${label}: the focused element is a swatch`);
     check(
       ring.w <= 56 && ring.h <= 56,
       `${label}: the focused swatch's outline box is at most 56x56 (${ring.w}x${ring.h})`,
     );
-    check(m.swatch.w === 44 && m.swatch.h === 44, `${label}: a swatch is a 44x44 target (${m.swatch.w}x${m.swatch.h})`);
-    if (state === "add-note") await shot("swatch-focus");
+    if (state === "add-note") await snap("swatch-focus");
 
     // The on-screen keyboard, stood in for by a short window.
     await page.focus(".notes-pop__field:not([hidden]), .notes-pop__act");
     await page.setViewportSize({ width, height: 420 });
     await page.waitForTimeout(300);
     const k = await measure(page);
-    await shot(`${state}-keyboard`);
+    await snap(`${state}-keyboard`);
     check(
       k.bottom <= k.vh + 1 && k.top >= 0,
       `${label}, 420px window: the sheet fits (${k.top}..${k.bottom} of ${k.vh})`,
     );
-    check(
-      k.actions.bottom <= k.vh + 1 && k.actions.top >= 0,
-      `${label}, 420px window: the actions are in view (${k.actions.top}..${k.actions.bottom})`,
-    );
+    check(k.actions.bottom <= k.vh + 1 && k.actions.top >= 0, `${label}, 420px window: the actions are in view`);
     if (k.field) check(k.field.top >= 0 && k.field.bottom <= k.vh + 1, `${label}, 420px window: the field is in view`);
     check(
       k.h <= 0.55 * k.vh + 1,
       `${label}, 420px window: the sheet is at most 55% of the window (${Math.round((100 * k.h) / k.vh)}%)`,
     );
+    check(
+      k.passage && k.passage.top >= 0 && k.passage.bottom <= k.top,
+      `${label}, 420px window: the passage still shows above the sheet`,
+    );
     await page.setViewportSize({ width, height });
     await page.keyboard.press("Escape");
   }
-  // A sheet that something stretches (a height of the whole window) must still be a compact one.
-  await openSheet(page, "A short note on this passage.");
-  await page.addStyleTag({ content: ".notes-pop[data-sheet] { height: 100dvh; top: 0; }" });
-  const s = await measure(page);
+
+  // A passage low on the page, then the keyboard: the page scrolls so the passage clears the lifted sheet.
+  await openSheet(page, "A short note on this passage.", 0.8);
+  await page.setViewportSize({ width, height: 420 });
+  await page.waitForTimeout(300);
+  const low = await measure(page);
   check(
-    s.h <= 0.55 * s.vh,
-    `${scheme}: a sheet given a full-window height stays at most 55% (${Math.round((100 * s.h) / s.vh)}%)`,
+    low.passage && low.passage.top >= 0 && low.passage.bottom <= low.top,
+    `${name} ${scheme}: a passage low on the page clears the sheet once the keyboard opens (${JSON.stringify(low.passage)} above ${low.top})`,
   );
-  check(s.maxGap <= 24, `${scheme}: a stretched sheet keeps no gap over 24px (largest ${Math.round(s.maxGap)}px)`);
+  await page.setViewportSize({ width, height });
+
+  // Closing: every way shuts the popover for good (display none, page tappable) and it opens again without a reload.
+  for (const how of ["Escape", "tap outside", "swipe"]) {
+    await openSheet(page, "A short note on this passage.");
+    for (let round = 0; round < 2; round++) {
+      if (how === "Escape") await page.keyboard.press("Escape");
+      else if (how === "tap outside") await page.touchscreen.tap(width / 2, 20);
+      else {
+        const grab = await page.evaluate(() => {
+          const r = document.querySelector(".notes-pop__grab").getBoundingClientRect();
+          return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        });
+        await page.mouse.move(grab.x, grab.y);
+        await page.mouse.down();
+        await page.mouse.move(grab.x, grab.y + 140, { steps: 6 });
+        await page.mouse.up();
+      }
+      await page.waitForTimeout(150);
+      const gone = await isGone(page);
+      check(
+        gone.display === "none" && !gone.open && !gone.covered,
+        `${name} ${scheme}: after ${how} (round ${round + 1}) the popover is display none and no longer covers the page (${JSON.stringify(gone)})`,
+      );
+      if (round === 0) await reopen(page);
+    }
+  }
+  await openSheet(page, "A short note on this passage.");
+  await page.click(".notes-pop__act[data-action='delete']");
+  await page.waitForTimeout(150);
+  const removed = await isGone(page);
+  check(
+    removed.display === "none" && !removed.covered,
+    `${name} ${scheme}: after Remove the popover is display none and uncovering (${JSON.stringify(removed)})`,
+  );
+
+  // A sheet that something stretches (a height of the whole window) must still be a compact one, on the bottom edge.
+  await openSheet(page, "A short note on this passage.");
+  await page.addStyleTag({ content: ".notes-pop[data-sheet] { height: 100dvh; }" });
+  const st = await measure(page);
+  check(
+    st.h <= 0.55 * st.vh,
+    `${name} ${scheme}: a sheet given a full-window height stays at most 55% (${Math.round((100 * st.h) / st.vh)}%)`,
+  );
+  check(
+    Math.abs(st.bottom - st.vh) <= 1,
+    `${name} ${scheme}: a stretched sheet stays on the bottom edge (${st.bottom} of ${st.vh})`,
+  );
+  check(
+    st.maxGap <= 24,
+    `${name} ${scheme}: a stretched sheet keeps no gap over 24px (largest ${Math.round(st.maxGap)}px)`,
+  );
   await context.close();
 }
 
-await browser.close();
+/** A desktop window with a mouse: the swatch is its small 24px target, and its focus ring hugs it, round. */
+async function runDesktop(name, browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: "dark" });
+  const page = await context.newPage();
+  await openSheet(page, "");
+  const m = await measure(page);
+  check(m.swatch.w === 24 && m.swatch.h === 24, `${name} desktop: a swatch is 24x24 (${m.swatch.w}x${m.swatch.h})`);
+  await focusFirstSwatch(page);
+  const ring = await focusRing(page);
+  check(
+    ring.swatch && ring.w === ring.h && ring.w <= 32,
+    `${name} desktop: the focus ring hugs the swatch, round (${ring.w}x${ring.h})`,
+  );
+  await context.close();
+}
+
+/** Forced colours (Chromium only): the pressed colour's ring and a focused swatch's ring are still drawn. */
+async function runForced(name, browser) {
+  const context = await browser.newContext({ ...phone, forcedColors: "active" });
+  const page = await context.newPage();
+  await openSheet(page, "");
+  const rings = await page.evaluate(() => {
+    const pressed = document.querySelector(".notes-pop .notes-swatch[aria-pressed='true']");
+    const s = getComputedStyle(pressed, "::before");
+    return { style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor };
+  });
+  check(
+    rings.style !== "none" && parseFloat(rings.width) >= 2,
+    `${name} forced colours: the pressed colour keeps a ring (${JSON.stringify(rings)})`,
+  );
+  await focusFirstSwatch(page);
+  const ring = await focusRing(page);
+  check(
+    ring.swatch && !ring.outline.startsWith("none"),
+    `${name} forced colours: a focused swatch has an outline (${ring.outline})`,
+  );
+  await context.close();
+}
+
+const engines = [["chromium", chromium]];
+const wk = await webkit
+  .launch({ env: browserEnv })
+  .then((b) => b)
+  .catch(() => undefined);
+if (wk) engines.push(["webkit", webkit]);
+else console.log("SKIPPED - WebKit is not installed (PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit)");
+await wk?.close();
+
+for (const [name, engine] of engines) {
+  const browser = await engine.launch({ env: browserEnv });
+  for (const scheme of ["dark", "light"]) await runTouch(name, browser, scheme, name === "chromium" && shots);
+  await runDesktop(name, browser);
+  if (name === "chromium") await runForced(name, browser);
+  await browser.close();
+}
+
 server.close();
 assert.equal(failures.length, 0, `${failures.length} checks failed:\n${failures.join("\n")}`);
 console.log("all note-sheet checks passed");

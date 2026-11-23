@@ -1696,11 +1696,11 @@ class Notes {
     }
     this.popOpen = true;
     this.popRange = entry.range;
+    this.sheetKey = undefined;
     if (sheet) {
       this.pop.style.top = "";
       this.pop.style.left = "";
       this.layoutSheet();
-      this.revealPassage();
     } else {
       const box = this.pop.getBoundingClientRect();
       const width = this.doc.documentElement.clientWidth || win.innerWidth;
@@ -1728,12 +1728,19 @@ class Notes {
     const { win } = this;
     if (!this.popOpen || !this.pop.hasAttribute("data-sheet")) return;
     const visual = win.visualViewport;
-    const height = visual?.height || win.innerHeight;
-    const lifted = visual ? Math.max(0, win.innerHeight - visual.height - visual.offsetTop) : 0;
+    const usable = visual && visual.height > 0;
+    const height = usable ? visual.height : win.innerHeight;
+    const lifted = usable ? Math.max(0, win.innerHeight - visual.height - visual.offsetTop) : 0;
     const compact = height < COMPACT_HEIGHT;
     this.pop.toggleAttribute("data-compact", compact);
     this.pop.style.setProperty("--notes-sheet-bottom", `${Math.round(lifted)}px`);
     this.pop.style.setProperty("--notes-sheet-max", `${Math.floor(height * (compact ? 0.55 : 0.5))}px`);
+    // A keyboard that opens or closes moves the sheet's top edge, so the passage is brought back above it.
+    const key = `${Math.round(lifted)}/${compact}/${Math.round(height)}`;
+    if (key !== this.sheetKey) {
+      this.sheetKey = key;
+      this.revealPassage();
+    }
   }
 
   /** Scrolls the page, when the sheet covers the highlighted passage, so the passage shows above the sheet. */

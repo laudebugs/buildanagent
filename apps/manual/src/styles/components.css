@@ -1424,6 +1424,7 @@
   justify-content: center;
   inline-size: 24px;
   block-size: 24px;
+  min-block-size: 0;
   flex: none;
   align-self: center;
   padding: 0;
@@ -1454,16 +1455,22 @@
 
 /* A pointer's hover rings the dot in the muted colour; the pressed colour keeps its solid ring. */
 @media (hover: hover) {
-  .notes-pop .notes-swatch:hover::before {
+  .notes-pop .notes-swatch:not([aria-pressed="true"]):hover::before {
     outline: 2px solid var(--color-text-muted);
     outline-offset: 2px;
   }
 }
 
-/* In forced colours the dots lose their fill, so the ring says which one is pressed and a system colour draws it. */
+/* In forced colours the dots keep their own fill, so a colour still shows, and the rings and borders are drawn in system
+   colours, which stay visible on the forced background. The pressed colour's ring is Highlight. */
 @media (forced-colors: active) {
   .notes-pop .notes-swatch::before {
+    border-color: CanvasText;
     forced-color-adjust: none;
+  }
+
+  .notes-pop .notes-swatch:not([aria-pressed="true"]):hover::before {
+    outline-color: CanvasText;
   }
 
   .notes-pop .notes-swatch[aria-pressed="true"]::before {
@@ -1581,6 +1588,7 @@
   .notes-pop .notes-swatch {
     inline-size: 44px;
     block-size: 44px;
+    min-block-size: 44px;
   }
 
   .notes-pop .notes-swatch::before {
@@ -1600,8 +1608,9 @@
 
 /* On a narrow window the popover is a bottom sheet: full width, rounded at the top, with a handle to swipe down. The
    quotation is cut to two lines. */
-.notes-pop[data-sheet] {
-  /* A flex column packed at the top, never a grid, so a sheet taller than its content cannot stretch its rows apart.
+.notes-pop[data-sheet]:popover-open {
+  /* The display is only for an open popover: a closed one keeps data-sheet, and display:flex would otherwise beat the
+     rule above that hides it. A flex column packed at the top, never a grid, so a sheet taller than its content cannot stretch its rows apart.
      The height is the content's up to half the visual viewport (the script sets both custom properties; 50dvh stands in
      without it), and the sheet scrolls inside itself past that. */
   inset: auto 0 var(--notes-sheet-bottom, 0);
