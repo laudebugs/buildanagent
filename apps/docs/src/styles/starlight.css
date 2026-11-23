@@ -77,14 +77,16 @@ h6,
   font-weight: 600;
 }
 
+/* A Starlight button (LinkButton) is itself a `.not-content` anchor, so the rules below skip it as well as anything inside
+   `.not-content`: otherwise hovering a primary button sets its text to the link colour, which is its fill. */
 /* Neither link colour is 3:1 apart from body text, so links are underlined in both modes (WCAG 1.4.1). */
-.sl-markdown-content a:not(:where(.not-content *)) {
+.sl-markdown-content a:not(.not-content, :where(.not-content *)) {
   text-decoration-line: underline;
   text-decoration-thickness: 0.07em;
   text-underline-offset: 0.18em;
 }
 
-.sl-markdown-content a:hover:not(:where(.not-content *)) {
+.sl-markdown-content a:hover:not(.not-content, :where(.not-content *)) {
   color: var(--color-link);
   text-decoration-thickness: 0.14em;
 }
@@ -228,58 +230,59 @@ starlight-theme-select label:hover select {
   }
 }
 
-/* The home page is the one page with a hero. Design A of the redesign: a centred welcome, then a grid of six package
+/* The home page is the one page with a hero and a card grid; Starlight's fallback 404 also sets data-has-hero, so the
+   `:has(.card-grid)` keeps these rules off it. Design A of the redesign: a centred welcome, then a grid of six package
    cards (a LinkCard in a CardGrid) and a short block that links the manual and the guides. The content is wider than
    the 42rem measure so three cards fit across; the lead keeps its own measure. Every colour is a token. */
-[data-has-hero] {
+[data-has-hero]:has(.card-grid) {
   --sl-content-width: 60rem;
 }
 
-[data-has-hero] .hero {
+[data-has-hero]:has(.card-grid) .hero {
   grid-template-columns: 100%;
   padding-block: clamp(1.5rem, calc(0.5rem + 6vmin), 4rem) 0;
 }
 
-[data-has-hero] .hero .stack,
-[data-has-hero] .hero .copy {
+[data-has-hero]:has(.card-grid) .hero .stack,
+[data-has-hero]:has(.card-grid) .hero .copy {
   align-items: center;
   text-align: center;
 }
 
-[data-has-hero] .hero h1 em {
+[data-has-hero]:has(.card-grid) .hero h1 em {
   font-style: italic;
   color: var(--color-link);
 }
 
-[data-has-hero] .hero .tagline {
+[data-has-hero]:has(.card-grid) .hero .tagline {
   max-width: 34rem;
   color: var(--color-text-soft);
 }
 
-[data-has-hero] .sl-markdown-content .sl-heading-wrapper {
+[data-has-hero]:has(.card-grid) .sl-markdown-content .sl-heading-wrapper {
   margin-top: 2.5rem;
 }
 
-[data-has-hero] .card-grid {
+[data-has-hero]:has(.card-grid) .card-grid {
   grid-template-columns: 100%;
   gap: 0.75rem;
 }
 
 @media (min-width: 40rem) {
-  [data-has-hero] .card-grid {
+  [data-has-hero]:has(.card-grid) .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 64rem) {
-  [data-has-hero] .card-grid {
+  [data-has-hero]:has(.card-grid) .card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 /* A card is a flat panel with a strong edge, as in the site's landing page. The whole card is the link (Starlight
    stretches the anchor over it), so its tap target is the card, at least 44px high. */
-[data-has-hero] .sl-link-card {
+[data-has-hero]:has(.card-grid) .sl-link-card {
   min-height: 2.75rem;
   align-content: start;
   border: 1px solid var(--color-text-muted);
@@ -289,16 +292,16 @@ starlight-theme-select label:hover select {
   padding: 1rem 1.125rem;
 }
 
-[data-has-hero] .sl-link-card:hover {
+[data-has-hero]:has(.card-grid) .sl-link-card:hover {
   border-color: var(--color-text);
   background: var(--panel-background);
 }
 
-[data-has-hero] .sl-link-card a {
+[data-has-hero]:has(.card-grid) .sl-link-card a {
   text-decoration: none;
 }
 
-[data-has-hero] .sl-link-card .title {
+[data-has-hero]:has(.card-grid) .sl-link-card .title {
   font-family: var(--font-display);
   font-weight: 400;
   font-size: 1.6rem;
@@ -306,15 +309,15 @@ starlight-theme-select label:hover select {
   color: var(--color-text);
 }
 
-[data-has-hero] .sl-link-card .description {
+[data-has-hero]:has(.card-grid) .sl-link-card .description {
   font-size: var(--size-note);
   color: var(--color-text-soft);
 }
 
-[data-has-hero] .sl-link-card .icon {
+[data-has-hero]:has(.card-grid) .sl-link-card .icon {
   color: var(--color-link);
 }
 
-[data-has-hero] .sl-markdown-content .sl-link-button {
+[data-has-hero]:has(.card-grid) .sl-markdown-content .sl-link-button {
   margin: 0.75rem 0.75rem 0.75rem 0;
 }

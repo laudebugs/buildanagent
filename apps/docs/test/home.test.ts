@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, test } from "vitest";
 import { DOCS_DIR } from "../src/plugins/pages.js";
+import { builtSite } from "./built.js";
 
 // The home page is design A, a grid of one card per package. These tests read its source and check that every card
 // leads somewhere real and that its install line is the Install page's. No build and no network.
@@ -71,6 +72,34 @@ describe("the home page", () => {
     assert.match(home, /href="https:\/\/manual\.buildanagent\.fyi"/);
     const guide = /href="(\/guides\/[^"]+)"/.exec(home)?.[1];
     assert.ok(guide, "a guide link");
-    assert.ok(existsSync(`${DOCS_DIR}${guide.replace(/^\/|\/$/g, "")}.md`), `${guide} has no page`);
+    const slug = guide.replace(/^\/|\/$/g, "");
+    assert.ok(existsSync(`${DOCS_DIR}${slug}.md`) || existsSync(`${DOCS_DIR}${slug}.mdx`), `${guide} has no page`);
+  });
+
+  test("writes each button's label inline, so MDX adds no paragraph inside the link", () => {
+    for (const label of ["Open the manual", "Read the guides"]) {
+      assert.match(home, new RegExp(`<LinkButton [^>]*>${label}</LinkButton>`));
+    }
+  });
+});
+
+describe("the home page's styles", () => {
+  const css = readFileSync(fileURLToPath(new URL("../src/styles/starlight.css", import.meta.url)), "utf8");
+
+  test("keep the docs' link underline and hover colour off a button, which is itself a .not-content anchor", () => {
+    assert.match(css, /\.sl-markdown-content a:not\(\.not-content, :where\(\.not-content \*\)\) \{/);
+    assert.match(css, /\.sl-markdown-content a:hover:not\(\.not-content, :where\(\.not-content \*\)\) \{/);
+    assert.doesNotMatch(css, /a(?::hover)?:not\(:where\(\.not-content \*\)\) \{/);
+  });
+
+  test("apply only where there is a card grid, because the fallback 404 page also sets data-has-hero", () => {
+    const uses = css.match(/\[data-has-hero\][^\s{,]*/g) ?? [];
+    assert.ok(uses.length > 5);
+    for (const use of uses) assert.equal(use, "[data-has-hero]:has(.card-grid)");
+    const site = builtSite();
+    const notFound = readFileSync(`${site}/404.html`, "utf8");
+    assert.match(notFound, /data-has-hero/, "the premise: the 404 page sets data-has-hero");
+    assert.doesNotMatch(notFound, /card-grid/);
+    assert.match(readFileSync(`${site}/index.html`, "utf8"), /card-grid/);
   });
 });
