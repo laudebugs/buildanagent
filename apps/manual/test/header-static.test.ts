@@ -51,7 +51,10 @@ test("choosing Notes from the phone menu moves focus to the menu button before t
 
 test("the progress measurements follow the page's layout: the body and a details toggle trigger a remeasure", () => {
   assert.match(script, /observer\.observe\(document\.body\)/);
-  assert.match(script, /"toggle",\s*\(event\) => \{\s*if \(event\.target instanceof HTMLDetailsElement\) refresh\(\);\s*\},\s*\{ capture: true \}/);
+  assert.match(
+    script,
+    /"toggle",\s*\(event\) => \{\s*if \(event\.target instanceof HTMLDetailsElement\) refresh\(\);\s*\},\s*\{ capture: true \}/,
+  );
 });
 
 test("the header is 56px on a desktop and 52px on a phone, and the page clears it", () => {
