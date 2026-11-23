@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "vitest";
-import { siteLinks } from "../src/chrome.js";
+import { mainDocsLink, mainDocsLinkFor, siteLinks } from "../src/chrome.js";
 
 const SITE_COPY_URL = new URL("../../site/src/landing/copy.ts", import.meta.url);
 
@@ -35,4 +35,15 @@ test("the docs header links to the same addresses as the site's header, and mark
     siteLinks.filter((link) => link.current).map((link) => link.label),
     ["Docs"],
   );
+});
+
+test("the 'Docs for main' link appears once the SDK is stable and not while only alphas exist", () => {
+  for (const alpha of ["0.1.0-alpha.0", "0.1.0-alpha.34"]) assert.equal(mainDocsLinkFor(alpha), undefined, alpha);
+  for (const stable of ["0.1.0", "1.0.0", "1.2.3"]) assert.equal(mainDocsLinkFor(stable), mainDocsLink, stable);
+  assert.equal(new URL(mainDocsLink.href).hostname, "next.docs.buildanagent.fyi");
+  assert.equal(mainDocsLink.label, "Docs for main");
+});
+
+test("a prerelease other than alpha has no rule, so the link decision throws instead of guessing", () => {
+  assert.throws(() => mainDocsLinkFor("0.2.0-beta.1"), /no install-line rule/);
 });

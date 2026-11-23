@@ -1,10 +1,21 @@
 ---
 import Default from "@astrojs/starlight/components/Footer.astro";
 
-// The `{" "}` keep the spaces around each link: Astro's HTML compression drops a line break next to an element.
+import { mainDocsLinkFor } from "../chrome.js";
+import { SDK_VERSION } from "../version/version.js";
+
+// The "Docs for main" line appears once the SDK is stable (src/chrome.ts says why), so no page links to a host that has
+// no deploy. The `{" "}` keep the spaces around each link: Astro's HTML compression drops a line break next to an element.
+const mainDocs = mainDocsLinkFor(SDK_VERSION);
 ---
 
 <Default {...Astro.props}><slot /></Default>
+{mainDocs && (
+  <p class="main-docs">
+    <a href={mainDocs.href}>{mainDocs.label}</a>{" "}
+    follow the main branch, so they can describe changes that no release has yet.
+  </p>
+)}
 <p class="license">
   These docs are licensed{" "}
   <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. The{" "}
@@ -13,6 +24,7 @@ import Default from "@astrojs/starlight/components/Footer.astro";
 </p>
 
 <style>
+  .main-docs,
   .license {
     margin-top: 1rem;
     color: var(--sl-color-gray-3);
@@ -20,6 +32,7 @@ import Default from "@astrojs/starlight/components/Footer.astro";
   }
 
   /* Starlight colours only the links inside a page's content, so the footer's take the link colour here. */
+  .main-docs a,
   .license a {
     color: var(--color-link);
   }

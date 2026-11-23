@@ -1,0 +1,65 @@
+---
+// Starlight's banner, which shows a page's `banner` front matter, then the "Unreleased docs for main" banner. The
+// banner is in the HTML of every page and hidden; a small script shows it when the page is served from a host that
+// begins with `next.` (src/version/banner.ts decides). The build cannot choose, because one build is deployed to both
+// docs.buildanagent.fyi and next.docs.buildanagent.fyi. Without JavaScript it stays hidden, which the README accepts.
+// Starlight scopes its banner rules to its own component, so the class `sl-banner` would give this element none of them.
+// The element is styled below from the same --sl-* variables, and its colours are the pair "a banner on the accent"
+// that test/contrast.test.ts measures. It also carries `sl-banner` for Starlight's print rule, and hides in print here.
+import Default from "@astrojs/starlight/components/Banner.astro";
+import { STABLE_DOCS_URL } from "../version/banner.js";
+---
+
+<Default {...Astro.props}><slot /></Default>
+<div class="sl-banner unreleased-banner not-content" role="note" aria-label="Unreleased docs" data-unreleased-banner hidden data-pagefind-ignore>
+  <strong>Unreleased docs for main.</strong> These pages follow the main branch, so they can describe changes that no
+  published version has yet. For the released version, read the{" "}
+  <a href={STABLE_DOCS_URL}>stable docs</a>.
+</div>
+
+<style>
+  /* Starlight's rule sets no `display`, and a rule that did would beat the attribute, so say it. */
+  .unreleased-banner[hidden] {
+    display: none;
+  }
+
+  .unreleased-banner {
+    padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+    background-color: var(--sl-color-bg-accent);
+    color: var(--sl-color-text-invert);
+    line-height: var(--sl-line-height-headings);
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  .unreleased-banner a {
+    color: var(--sl-color-text-invert);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  /* The ring is the text colour, which the banner's accent fill sets off (pairs.ts measures it at 3:1). */
+  .unreleased-banner a:focus-visible {
+    outline: 2px solid var(--sl-color-text-invert);
+    outline-offset: 2px;
+  }
+
+  /* Forced colours drop the background, so the banner keeps an edge. */
+  @media (forced-colors: active) {
+    .unreleased-banner {
+      border-bottom: 1px solid CanvasText;
+    }
+  }
+
+  @media print {
+    .unreleased-banner {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { revealUnreleasedBanner } from "../version/banner";
+
+  revealUnreleasedBanner(document.querySelectorAll<HTMLElement>("[data-unreleased-banner]"), location.hostname);
+</script>
