@@ -76,6 +76,8 @@ The first two tasks are done: the study is the plan, and the table below is the 
 
 **Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e, L12f and L12p. L12g, L12h and L12i run in sequence, with L12j, L12k and L12o beside them. L12l and L12m go last.
 
+L12o no longer depends on L12d: the owner chose package cards without an illustration for the docs home (2026-11-23).
+
 ## Acceptance criteria
 
 L12 is done when L12a to L12p are done and these hold on `main`:

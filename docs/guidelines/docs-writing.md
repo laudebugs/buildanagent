@@ -33,7 +33,7 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 
 ## Draw a diagram where a picture answers faster
 
-The docs' figure pipeline checks three of these rules: the build fails on a figure without alt text or a caption, and a test fails on a colour that isn't a theme token ([apps/docs/README.md](../../apps/docs/README.md#draw-a-figure-with-a-script-and-the-build-inlines-it)). A reviewer applies the others by hand.
+The docs' [figure pipeline](../../apps/docs/README.md#draw-a-figure-with-a-script-and-the-build-inlines-it) checks that every figure has alt text and a caption and that no colour falls outside the theme tokens. A reviewer applies the other rules, and reads the alt text for its point, by hand.
 
 - **MUST:** add a figure only where a picture answers the reader's question faster than prose, and give each figure one idea. A point that needs "and" means two figures.
 - **MUST:** write alt text that states the figure's point, such as "The loop calls tools until the model answers", never "Diagram of the loop". A reviewer reads the alt text alone.
