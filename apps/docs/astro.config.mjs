@@ -12,6 +12,7 @@ import { exampleFile } from "./src/plugins/example-file.js";
 import { figureDirective } from "./src/plugins/figure.js";
 import { renderInputFiles } from "./src/plugins/render-inputs.js";
 import { topics, unlistedPages } from "./src/topics.js";
+import { markdownTwins } from "./src/twins/integration.js";
 
 // Astro caches each page's rendered HTML until the page's own file changes. A page that shows an example file, or the
 // plugin that fills its fence, would therefore keep old code after an edit. When any of those files differs from the
@@ -69,6 +70,7 @@ export default defineConfig({
       components: {
         Footer: "./src/components/Footer.astro",
         Head: "./src/components/Head.astro",
+        PageTitle: "./src/components/PageTitle.astro",
         SiteTitle: "./src/components/SiteTitle.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
       },
@@ -93,6 +95,8 @@ export default defineConfig({
         // Before every TypeDoc plugin, because it writes the sidebar and each of them replaces its placeholder in it.
         starlightSidebarTopics(topics(api), { topics: unlistedPages(api) }),
         ...api.map((entry) => entry.plugin),
+        // Last: it reads the sidebar after the other plugins have changed it.
+        markdownTwins(),
       ],
     }),
   ],

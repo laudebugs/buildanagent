@@ -857,7 +857,21 @@ class Notes {
         "data-action": name,
         text,
       });
-    this.popGrab = element(doc, "div", { className: "notes-pop__grab", "aria-hidden": "true" }, [element(doc, "span")]);
+    // The header strip holds the swipe handle, which is decoration, and the Close button, which is not.
+    this.popClose = element(
+      doc,
+      "button",
+      {
+        type: "button",
+        className: "notes-pop__close",
+        "aria-label": "Close note",
+      },
+      [cross(doc)],
+    );
+    this.popGrab = element(doc, "div", { className: "notes-pop__grab" }, [
+      element(doc, "span", { "aria-hidden": "true" }),
+      this.popClose,
+    ]);
     this.popColors = element(doc, "div", {
       className: "notes-colors",
       role: "group",
@@ -1060,9 +1074,16 @@ class Notes {
       if (event.newState !== "closed") return;
       this.popOpen = false;
       this.popId = undefined;
+      // The sheet attributes are cleared as the popover closes, so a closed popover keeps no sheet or compact layout
+      // and nothing of it can cover the page; opening it sets them again.
+      this.pop.removeAttribute("data-sheet");
+      this.pop.removeAttribute("data-compact");
     });
     // A press on the toolbar keeps the selection the reader made.
-    this.toolbar.addEventListener("pointerdown", (event) => event.preventDefault());
+    // A finger's pointerdown is left alone: WebKit drops the tap's click when a touch pointerdown is cancelled.
+    this.toolbar.addEventListener("pointerdown", (event) => {
+      if (event.pointerType !== "touch") event.preventDefault();
+    });
     this.toolbar.addEventListener("mousedown", (event) => event.preventDefault());
     for (const swatch of this.swatches) {
       swatch.addEventListener("click", () => {
@@ -1090,10 +1111,22 @@ class Notes {
     sheetQuery?.addEventListener?.("change", () => {
       if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches) this.closePop();
     });
+    // The on-screen keyboard shrinks the visual viewport, and on iOS it leaves the layout viewport alone, so the sheet
+    // follows the visual one: it sits on its bottom edge and takes at most half its height.
+    const visual = win.visualViewport;
+    visual?.addEventListener?.("resize", () => {
+      this.layoutSheet();
+      this.showField();
+    });
+    visual?.addEventListener?.("scroll", () => this.layoutSheet());
+    win.addEventListener("resize", () => this.layoutSheet());
     this.popEdit.addEventListener("click", () => this.editPopped());
     this.popSave.addEventListener("click", () => this.savePopped());
     this.popCancel.addEventListener("click", () => this.cancelPopped());
-    this.popGrab.addEventListener("pointerdown", (event) => this.startSwipe(event));
+    this.popGrab.addEventListener("pointerdown", (event) => {
+      if (!event.target?.closest?.(".notes-pop__close")) this.startSwipe(event);
+    });
+    this.popClose.addEventListener("click", () => this.closeEditor());
     this.toolbar.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
@@ -1689,9 +1722,16 @@ class Notes {
       return;
     }
     this.popOpen = true;
+    this.popRange = entry.range;
+    this.sheetKey = undefined;
     if (sheet) {
       this.pop.style.top = "";
       this.pop.style.left = "";
+      this.layoutSheet();
+      // Fonts or the note's text may still change the sheet's height after the first frame.
+      win.requestAnimationFrame?.(() => {
+        if (this.popOpen && this.popId === item.id) this.revealPassage();
+      });
     } else {
       const box = this.pop.getBoundingClientRect();
       const width = this.doc.documentElement.clientWidth || win.innerWidth;
@@ -1707,7 +1747,71 @@ class Notes {
       this.pop.style.top = `${Math.round(Math.max(gap, Math.min(top, win.innerHeight - box.height - gap)))}px`;
       this.pop.style.left = `${Math.round(left)}px`;
     }
-    this.popColors.querySelector("button")?.focus({ preventScroll: true });
+    // iOS Safari opens the keyboard only for a focus() made inside the tap that asked for it, so the field takes focus
+    // here, synchronously, and never after a timer or a transition. A keyboard reader who opened the popover from a
+    // marker keeps focus on the first colour, as before.
+    const writing = this.popEditing || item.note === "";
+    if (writing && !this.popFromKey) this.focusField();
+    else this.popColors.querySelector("button")?.focus({ preventScroll: true });
+  }
+
+  /** Puts focus in the note field with the caret after its text, without scrolling the page. */
+  focusField() {
+    this.popField.focus({ preventScroll: true });
+    const end = this.popField.value.length;
+    this.popField.setSelectionRange?.(end, end);
+  }
+
+  /**
+   * Keeps the field in view inside the sheet. The on-screen keyboard shrinks the visual viewport after the field took
+   * focus, so this runs on that resize, not at the tap. It scrolls the sheet, never the page.
+   */
+  showField() {
+    if (!this.popOpen || !this.pop.hasAttribute("data-sheet") || this.doc.activeElement !== this.popField) return;
+    this.popField.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }
+
+  /**
+   * Sizes the bottom sheet to the visual viewport: its bottom edge is the viewport's, its height at most half of the
+   * viewport's (a little more when the viewport is as short as a phone with its keyboard open, where the quotation is
+   * hidden to make room), and it scrolls inside itself past that.
+   */
+  layoutSheet() {
+    const { win } = this;
+    if (!this.popOpen || !this.pop.hasAttribute("data-sheet")) return;
+    const visual = win.visualViewport;
+    const usable = visual && visual.height > 0;
+    const height = usable ? visual.height : win.innerHeight;
+    const lifted = usable ? Math.max(0, win.innerHeight - visual.height - visual.offsetTop) : 0;
+    const compact = height < COMPACT_HEIGHT;
+    this.pop.toggleAttribute("data-compact", compact);
+    this.pop.style.setProperty("--notes-sheet-bottom", `${Math.round(lifted)}px`);
+    this.pop.style.setProperty("--notes-sheet-max", `${Math.floor(height * (compact ? 0.55 : 0.5))}px`);
+    // A keyboard that opens or closes changes the viewport's height, and the passage is brought back above the sheet.
+    // The key leaves out the lift: it includes the visual viewport's offset, which iOS changes while it pans for the
+    // keyboard, and a reveal that scrolled the page would then change it and scroll again.
+    const key = `${Math.round(height)}/${compact}`;
+    if (key !== this.sheetKey) {
+      this.sheetKey = key;
+      this.revealPassage();
+    }
+  }
+
+  /**
+   * Scrolls the page, when the sheet covers the highlighted passage, so the passage shows above the sheet. A passage of
+   * several lines is judged by its last line, and the scroll stops short of pushing its first line off the window.
+   */
+  revealPassage() {
+    const { win } = this;
+    const rects = [...(this.popRange?.getClientRects?.() ?? [])];
+    if (rects.length === 0 || typeof win.scrollBy !== "function") return;
+    const first = rects[0];
+    const last = rects[rects.length - 1];
+    const sheetTop = this.pop.getBoundingClientRect().top;
+    const gap = 16;
+    const needed = last.bottom - (sheetTop - gap);
+    if (needed <= 0) return;
+    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap)));
   }
 
   /**
@@ -1739,7 +1843,7 @@ class Notes {
     this.popEditing = true;
     this.popField.value = item.note;
     this.renderPop();
-    this.popField.focus({ preventScroll: true });
+    this.focusField();
   }
 
   /** Cancel drops what was typed and shows the note again. */
@@ -1768,8 +1872,7 @@ class Notes {
     if (item) {
       // Nothing changes when the text is the same, so nothing is written or announced.
       if (note === item.note) {
-        this.popEditing = false;
-        this.renderPop();
+        this.closeEditor();
         return;
       }
       const current = item;
@@ -1791,13 +1894,9 @@ class Notes {
     }
     this.popId = item.id;
     this.popReturnId = item.id;
-    this.popItem = { ...item, note };
-    this.popEditing = false;
     this.popMessage.textContent = "";
+    this.closeEditor();
     this.say(note === "" && before !== "" ? "Note removed." : "Note saved.");
-    this.popField.value = note;
-    this.renderPop();
-    (note === "" ? this.popField : this.popEdit).focus({ preventScroll: true });
   }
 
   /**
@@ -1848,7 +1947,7 @@ class Notes {
       win.removeEventListener("pointerup", end);
       win.removeEventListener("pointercancel", end);
       this.pop.style.transform = "";
-      if (distance > SWIPE_CLOSE) this.closePop();
+      if (distance > SWIPE_CLOSE) this.closeEditor();
     };
     win.addEventListener("pointermove", move);
     win.addEventListener("pointerup", end);
@@ -1907,8 +2006,36 @@ class Notes {
       this.popMessage.textContent = problem;
       return;
     }
+    this.popReturnId = item.id;
+    this.closeEditor();
+    this.say(item.note === "" ? "Highlight removed." : "Note removed.");
+  }
+
+  /**
+   * The one way the editor closes by the reader's own act: Save, Remove, the Close button and a swipe down. It blurs the
+   * field, so the on-screen keyboard goes, and hides the popover. Focus then goes to the note's marker when the popover
+   * was opened from the keyboard or is a sheet (a touch reader's marker is a dot with no shade). After a mouse close it
+   * stays on the page, since a focused margin marker would keep its passage brightened; after Remove no marker is left
+   * to take it. Escape and a tap outside close the popover in the browser and reach `restoreDotFocus` through its
+   * toggle event instead. Nothing typed is kept: closing drops it, as those two do.
+   */
+  closeEditor() {
+    const id = this.popReturnId ?? this.popId;
+    const toMarker = this.popFromKey || this.pop.hasAttribute("data-sheet");
+    this.popReturnId = undefined;
+    this.popFromKey = false;
+    this.popEscaped = false;
+    const active = this.doc.activeElement;
+    if (active && this.pop.contains(active)) active.blur?.();
     this.closePop();
-    this.say(`Deleted the highlight on “${shorten(item.quote)}”.`);
+    if (toMarker) {
+      const control = id === undefined ? undefined : this.noteControl(id);
+      control?.focus({ preventScroll: true });
+      return;
+    }
+    // A pointer close leaves no marker focused, so no passage stays brightened by a focus that is gone.
+    this.hoverSources.focus = undefined;
+    this.hover(this.hoverSources.pointer);
   }
 
   closePop() {
@@ -2364,6 +2491,8 @@ const INLINE =
 
 // The popover is a bottom sheet in a window this narrow, and a swipe down of this many pixels closes it.
 const SHEET_QUERY = "(max-width: 40rem)";
+/** A visual viewport shorter than this, in pixels, is a phone with its keyboard open. */
+const COMPACT_HEIGHT = 520;
 const SWIPE_CLOSE = 80;
 
 // A margin marker is 28 pixels across and sits 8 pixels from the text column, so it needs this much free room beside the
@@ -2381,6 +2510,18 @@ function whenFontsLoad(doc, callback) {
   } catch {
     // A browser without font events keeps the markers where the layout placed them.
   }
+}
+
+/** The cross of the sheet's Close button, built as DOM nodes so the script writes no markup. */
+function cross(doc) {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = doc.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", "M4 4l8 8M12 4l-8 8");
+  svg.append(path);
+  return svg;
 }
 
 /** The speech-bubble icon of a margin marker, built as DOM nodes so the script writes no markup. */

@@ -62,7 +62,7 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Five tests read the built site: the figure build test, the favicon test, the API reference test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Six tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
 
 ## Sidebar topics keep each page small
 
@@ -90,6 +90,52 @@ TypeDoc 0.28 reads TypeScript only up to 6.0, so this app pins TypeScript 6.0.3 
 
 Each entry file names its module for its import path with an `@module` tag, so the reference shows `@buildanagent/gateway/anthropic`, not the path of a source file.
 
+## Every page has a Markdown twin
+
+Each page is also served as plain Markdown, so an agent or a reader can take its text without the HTML around it. The twin of `/start/install/` is `/start/install.md`, and the home page's is `/index.md`. The build also writes `/llms.txt`, a list of every twin that follows [llmstxt.org](https://llmstxt.org), and `/llms-full.txt`, every twin joined in reading order, each after a `Source:` line with its address. Both use absolute addresses taken from `site` in `astro.config.mjs`.
+
+One function decides which pages have a twin: `hasTwin()` in `src/twins/rule.ts`. The post-build step, `llms.txt`, `llms-full.txt`, the `<link rel="alternate" type="text/markdown">` that `Head.astro` adds and the button that `PageTitle.astro` adds all read it, so they cannot disagree. A page that `hasTwin()` rejects gets none of them.
+
+`rule.ts` imports nothing, because the two components render inside a bundle with no content folder beside it. It rejects one page, `404`. Starlight adds that page with no source file, so there is nothing to flatten and no twin to link.
+
+`src/twins/pages.ts` reads two facts that only the content folder shows. A page marked `draft: true` is left out, because Starlight leaves drafts out of a production build. A page's `slug` front matter replaces the slug its path would give. Front matter is read with LF or CRLF line ends, and the closing `---` must be a line of its own.
+
+`llms.txt` takes each page's description on one line and escapes brackets in its title. The sidebar places a page by its `slug` (`index` is the home page) or by an internal `link`. To exclude another page, add its path prefix and the reason to `EXCLUDED` in `rule.ts`, and record it in this section.
+
+### How a twin is made
+
+`markdownTwins()` in `src/twins/integration.ts` is a Starlight plugin listed last in `astro.config.mjs`. It adds an Astro integration whose `astro:build:done` hook reads each source file, flattens it and writes the twin into `dist/` as a file of its own. No page's HTML grows, so the page-size budget is untouched. The plugin takes the reading order from the sidebar, so the order has one copy.
+
+`src/twins/flatten.ts` parses a page to an mdast tree with `unified`, `remark-parse`, `remark-directive` and, for an `.mdx` page, `remark-mdx`. It keeps the page's own characters by position and replaces only what the rendered site needs:
+
+- A `file=` fence becomes the code it names, through `src/plugins/example-code.ts`, titled with the file's name.
+- A `::figure` becomes one line, `**Figure: caption.** alt text`. The drawing is not included.
+- Tabs become a bold label and the code. Asides, written as `<Aside>` or `:::note`, become blockquotes that open with their label. Link cards and buttons become list items.
+- Imports, exports, MDX comments and HTML comments disappear. An MDX expression that is a string literal, such as `{'{'}`, becomes the string's text with Markdown's special characters backslash-escaped, so `{'*'}` shows `*` in the twin as it does on the page. Any other expression, such as `{props.name}`, fails the build and names the file and line. Only the rendered page knows its value.
+- A root-relative link, image or reference definition changes only its address, in place, so the rest of the link keeps its own line breaks and indent. A link to a page with a twin gets the absolute address of that twin. Any other root-relative address, such as `/favicon.svg` or `/llms.txt`, gets the site's origin and nothing else. The build decides which addresses are pages by checking them against the pages `twinPages()` lists.
+
+A component the module does not know fails the build and names the file and line, so a new component cannot reach a twin as a raw tag. The file is its path under `src/content/docs/`, such as `start/install.mdx`, and the line is the line in that file, front matter included. Adding a component means adding its Markdown form to `Flattener.component`.
+
+The step fails the build, in the same hook, when a page `hasTwin()` names has no twin file or an empty one. It also fails when no built page sits at the slug the step computed, or the built head has no alternate link. `checkTwins()` in `src/twins/build.ts` runs the check, and `test/twins-pages.test.ts` runs it against fake built sites.
+
+### The API reference has twins too
+
+TypeDoc writes Markdown already, so its pages go through the same pipeline. Measured on 2026-11-23: 282 twins (13 written by hand and 269 generated), 515 KiB in all, written in about 0.5 s of a 14 s build. `llms-full.txt` is 558 KB, of which the generated pages are 492 KB. `llms.txt` lists the generated pages under `## Optional`, the section llmstxt.org marks as skippable, so an agent that wants a short list can stop before it. If the full file proves too large for agents, exclude the generated folders in `EXCLUDED` and the step, the tests and the links follow.
+
+### The "Copy as Markdown" button
+
+Under each page title, `PageTitle.astro` shows a "Copy as Markdown" button, a "View as Markdown" link and a status line that screen readers announce. The link works without JavaScript. The button is hidden until its script runs. The home page uses Starlight's splash template, which has a hero and no page title, so it has the head link and no button.
+
+Safari lets a page write to the clipboard only inside the click that asked for it. `src/components/copy-markdown.ts` therefore starts `navigator.clipboard.write()` inside the click handler, with a `ClipboardItem` that holds the unfinished fetch of the twin. The blob's type should equal its key, `text/plain`; no documentation says what a mismatch does. The handler therefore rebuilds the text as a new blob and does not pass on the `text/markdown` one the server sends.
+
+If the browser lacks `ClipboardItem`, or the write is refused, the handler calls `writeText` with the text that a hover or focus fetched ahead. A clipboard with no `writeText` counts as a failed copy. `test/copy-markdown.test.ts` drives the handler with fakes and reads the source to check that nothing waits before the write.
+
+The script is static: it splices no value from the build, and the twin's address comes from the button's `data-twin` attribute. Astro inlines it as one `<script type="module">` whose text is the same on every page, so the Content-Security-Policy work in the [L12 docs redesign todo](../../docs/todos/ongoing/L12-docs-redesign.md) can allow it by one hash. The button's styles use tokens only, take a larger touch target on coarse pointers, set `ButtonText` borders in forced-colours mode and hide in print.
+
+### Adding context7.json later
+
+The owner chose not to publish a `context7.json` (2026-11-23), so nothing writes one. `src/twins/integration.ts` says where to add it.
+
 ## The theme is the book's
 
 The docs look like the book because they read the book's design data instead of copying its CSS. Each piece has one home:
@@ -110,12 +156,13 @@ The page chrome differs from Starlight's defaults in two ways. The four componen
 
 ### Components the docs override
 
-The docs override four Starlight components and leave the rest as Starlight ships them. A fifth override needs a row here: `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
+The docs override five Starlight components and leave the rest as Starlight ships them. A sixth override needs a row here: `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
 
 | Component | File | Why |
 | --- | --- | --- |
 | `Footer` | `src/components/Footer.astro` | Adds the CC BY 4.0 licence line that every page carries, under Starlight's own footer. |
-| `Head` | `src/components/Head.astro` | Adds the preloads for the two fonts every page uses, so the first paint does not wait for them. |
+| `Head` | `src/components/Head.astro` | Adds the preloads for the two fonts every page uses, so the first paint does not wait for them, and the link to the page's Markdown twin. |
+| `PageTitle` | `src/components/PageTitle.astro` | Shows Starlight's title, then the "Copy as Markdown" button and the plain link to the twin. |
 | `SiteTitle` | `src/components/SiteTitle.astro` | Draws the mark and the wordmark "Build An Agent docs" in place of Starlight's text title. The mark is inline, so it takes its frame from the link colour and its caret from the accent token. Below 30rem only the mark shows, and the wordmark stays in the page for screen readers. |
 | `SocialIcons` | `src/components/SocialIcons.astro` | Puts Docs, Manual and Site before the GitHub icon, in the order of the site's header. Docs carries `aria-current="true"`, not `"page"`, because the link goes to the docs home, which is not always the page the reader is on. `src/chrome.ts` hard-codes the addresses until the shared header source (L12p) replaces that file. |
 
