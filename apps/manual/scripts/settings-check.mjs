@@ -331,44 +331,64 @@ async function desktopChecks(browser, origin) {
 }
 
 async function storageFailureChecks(browser, origin) {
-  label = "storage refuses writes";
   const NOTE = `${PANEL} .reading-panel__note`;
+  const UNSAVED = "Not saved: this browser blocked storage";
+
+  // Each half closes its context in a finally, so a thrown step cannot leak it or skip the checks after it.
+  label = "storage refuses writes";
   const blocked = await browser.newContext({ serviceWorkers: "block", ...desktop });
-  await blocked.addInitScript(() => {
-    Storage.prototype.setItem = () => {
-      throw new DOMException("full", "QuotaExceededError");
-    };
-  });
-  const page = await open(blocked, origin, CHAPTER);
-  await page.click(BUTTON);
-  await settle(page);
-  const note = () => page.locator(NOTE).textContent();
-  check((await note()) === "Not saved: this browser blocked storage", "the note is unsaved as soon as the panel opens");
-  await page.click(`${PANEL} input[name='reading-font'][value='sans'] + .reading-panel__dot`);
-  const sans = await families(page);
-  check(
-    first(sans.title) === first(pairings.find((pairing) => pairing.id === "sans").display) && sans.font === "sans",
-    `the pick applies to this view (${sans.title})`,
-  );
-  check((await note()) === "Not saved: this browser blocked storage", "the note stays unsaved after a pick");
-  await page.reload({ waitUntil: "load" });
-  await page.waitForSelector(`${BUTTON}:not([hidden])`);
-  const reloaded = await families(page);
-  check(reloaded.font === null && reloaded.stored.every((value) => value === null), "a reload is back at Book");
-  await blocked.close();
+  try {
+    await blocked.addInitScript(() => {
+      window.__probeWrites = 0;
+      const refuse = (key) => {
+        // Other scripts (the reading place) write on a page view; only the panel's probe key is counted.
+        if (key === "manual-reading-probe") window.__probeWrites += 1;
+        throw new DOMException("full", "QuotaExceededError");
+      };
+      Storage.prototype.setItem = refuse;
+    });
+    const page = await open(blocked, origin, CHAPTER);
+    await page.waitForSelector(`${BUTTON}:not([hidden])`);
+    check(
+      (await page.evaluate(() => window.__probeWrites)) === 0,
+      "a page view that never opens the panel makes no probe write",
+    );
+    await page.click(BUTTON);
+    await settle(page);
+    const note = () => page.locator(NOTE).textContent();
+    check((await note()) === UNSAVED, "the note is unsaved as soon as the panel opens");
+    await page.click(`${PANEL} input[name='reading-font'][value='sans'] + .reading-panel__dot`);
+    const sans = await families(page);
+    check(
+      first(sans.title) === first(pairings.find((pairing) => pairing.id === "sans").display) && sans.font === "sans",
+      `the pick applies to this view (${sans.title})`,
+    );
+    check((await note()) === UNSAVED, "the note stays unsaved after a pick");
+    await page.click("[data-reading-reset]");
+    check((await note()) === UNSAVED, "Reset, which only removes keys, keeps the unsaved note");
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(`${BUTTON}:not([hidden])`);
+    const reloaded = await families(page);
+    check(reloaded.font === null && reloaded.stored.every((value) => value === null), "a reload is back at Book");
+  } finally {
+    await blocked.close();
+  }
 
   label = "storage works";
   const normal = await context(browser, desktop);
-  const ok = await open(normal, origin, CHAPTER);
-  await ok.click(BUTTON);
-  await settle(ok);
-  await ok.click(`${PANEL} input[name='reading-size'][value='130'] + .reading-panel__stop`);
-  check((await ok.locator(NOTE).textContent()) === "Saved on this device", "a normal page says Saved after a pick");
-  check(
-    (await ok.evaluate(() => Object.keys(localStorage))).every((key) => key !== "manual-reading-probe"),
-    "the probe leaves no key behind",
-  );
-  await normal.close();
+  try {
+    const ok = await open(normal, origin, CHAPTER);
+    await ok.click(BUTTON);
+    await settle(ok);
+    await ok.click(`${PANEL} input[name='reading-size'][value='130'] + .reading-panel__stop`);
+    check((await ok.locator(NOTE).textContent()) === "Saved on this device", "a normal page says Saved after a pick");
+    check(
+      (await ok.evaluate(() => Object.keys(localStorage))).every((key) => key !== "manual-reading-probe"),
+      "the probe leaves no key behind",
+    );
+  } finally {
+    await normal.close();
+  }
 }
 
 async function phoneChecks(browser, origin) {

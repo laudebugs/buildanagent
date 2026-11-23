@@ -693,18 +693,75 @@ test("the probe writes and removes its own key, and only a refused write counts 
   assert.ok(!canWrite(null));
 });
 
-test("storage that exists but refuses writes shows the unsaved note on open, and the pick still applies", () => {
-  const { win, doc, storage } = panelWindow();
-  storage.throws = true;
+/** Makes only setItem throw, as a full quota or some private modes do. */
+function refuseWrites(storage: ReturnType<typeof memoryStorage>) {
+  storage.setItem = () => {
+    throw new DOMException("full", "QuotaExceededError");
+  };
+}
+
+test("storage that refuses only writes shows the unsaved note on open, and the pick still applies", () => {
+  const { win, doc, storage, panel } = panelWindow();
+  refuseWrites(storage);
   start(win as unknown as globalThis.Window);
   const note = () => doc.querySelector(".reading-panel__note")?.textContent?.trim();
+  assert.equal(note(), NOTE_SAVED, "nothing is probed or announced while the panel is hidden");
+  panel.showPopover();
   assert.equal(note(), NOTE_UNSAVED);
   pick(doc, "reading-font", "sans");
   assert.equal(doc.documentElement.getAttribute("data-reading-font"), "sans", "the choice applies to this view");
   assert.equal(note(), NOTE_UNSAVED);
+});
+
+test("Reset after a blocked probe keeps the unsaved note, though removeItem works", () => {
+  const { win, doc, storage, panel } = panelWindow();
+  refuseWrites(storage);
+  start(win as unknown as globalThis.Window);
+  const note = () => doc.querySelector(".reading-panel__note")?.textContent?.trim();
+  panel.showPopover();
+  pick(doc, "reading-font", "sans");
+  (doc.querySelector("[data-reading-reset]") as unknown as HTMLElement).click();
+  assert.equal(note(), NOTE_UNSAVED);
+  pick(doc, "reading-size", "100");
+  assert.equal(note(), NOTE_UNSAVED, "picking both defaults is still not a successful write");
+});
+
+test("storage that refuses writes recovers once a real write works", () => {
+  const { win, doc, storage, panel } = panelWindow();
+  const setItem = storage.setItem.bind(storage);
+  refuseWrites(storage);
+  start(win as unknown as globalThis.Window);
+  panel.showPopover();
+  storage.setItem = setItem;
+  pick(doc, "reading-size", "130");
+  assert.equal(doc.querySelector(".reading-panel__note")?.textContent?.trim(), NOTE_SAVED);
+});
+
+test("wholly-off storage (every call throws) shows the unsaved note on open", () => {
+  const { win, doc, storage, panel } = panelWindow();
+  storage.throws = true;
+  start(win as unknown as globalThis.Window);
+  panel.showPopover();
+  assert.equal(doc.querySelector(".reading-panel__note")?.textContent?.trim(), NOTE_UNSAVED);
   storage.throws = false;
   pick(doc, "reading-size", "130");
-  assert.equal(note(), NOTE_SAVED);
+  assert.equal(doc.querySelector(".reading-panel__note")?.textContent?.trim(), NOTE_SAVED);
+});
+
+test("a page view that never opens the panel makes no storage write, and the probe runs once", () => {
+  const { win, storage, panel } = panelWindow();
+  let writes = 0;
+  const setItem = storage.setItem.bind(storage);
+  storage.setItem = (key: string, value: string) => {
+    writes += 1;
+    setItem(key, value);
+  };
+  start(win as unknown as globalThis.Window);
+  assert.equal(writes, 0, "loading the page writes nothing");
+  panel.showPopover();
+  panel.hidePopover();
+  panel.showPopover();
+  assert.equal(writes, 1, "the first opening probes once and caches the result");
 });
 
 test("a storage event from another storage area is ignored", () => {

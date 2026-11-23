@@ -163,6 +163,13 @@ export function start(win) {
   const sheetQuery = typeof win.matchMedia === "function" ? win.matchMedia(SHEET_QUERY) : null;
   let settings = api.read(storage);
   let returnFocus = false;
+  // Whether storage accepts a write: unknown until the panel first opens, so a page view that never opens it writes
+  // nothing (the probe's write also fires a `storage` event in the book's other tabs).
+  let writable = null;
+  const probe = () => {
+    if (writable === null) writable = canWrite(storage);
+    return writable;
+  };
 
   const fontInput = (id) => fonts.find((input) => input.value === id);
   const sizeInput = (size) => sizes.find((input) => Number(input.value) === size);
@@ -203,8 +210,12 @@ export function start(win) {
     const changedFont = next.font !== settings.font;
     settings = { font: api.readFont(next.font), size: api.readSize(String(next.size)) };
     api.apply(root, settings);
+    probe();
     const stored = api.save(storage, settings);
-    if (note) note.textContent = stored ? NOTE_SAVED : NOTE_UNSAVED;
+    // Two defaults are stored as no key, so save() only removes: that works even where every write is refused. Only
+    // a non-default pick that really wrote proves storage accepts writes.
+    if (stored && (settings.font !== api.DEFAULT_FONT || settings.size !== api.DEFAULT_SIZE)) writable = true;
+    if (note) note.textContent = stored && writable ? NOTE_SAVED : NOTE_UNSAVED;
     sync();
     if (changedFont) fontChanged();
   };
@@ -257,6 +268,8 @@ export function start(win) {
     panel.toggleAttribute("data-sheet", sheet);
     if (sheet) panel.setAttribute("aria-modal", "true");
     else panel.removeAttribute("aria-modal");
+    // This runs before the panel shows, so the note is right the moment it is visible.
+    if (note && !probe()) note.textContent = NOTE_UNSAVED;
     sync();
     place();
   });
@@ -320,8 +333,9 @@ export function start(win) {
     if (changedFont) fontChanged();
   });
 
-  // Storage that is missing or refuses a write must not be called "Saved" before the first pick.
-  if (note && !canWrite(storage)) note.textContent = NOTE_UNSAVED;
+  // Missing storage needs no probe: the note says so from the start. Storage that refuses writes is found out on the
+  // panel's first opening, and nothing is announced while the panel is hidden.
+  if (note && !storage) note.textContent = NOTE_UNSAVED;
   sync();
   panel.hidden = false;
   button.hidden = false;

@@ -141,7 +141,7 @@ Opening the panel costs one download: each pairing's "Aa" sample loads its uprig
 - **The other checks.** `check:reading`, `check:header`, `check:offline`, `check:save-offline`, `check:note-sheet` and `check:touch-fields` still pass.
 - **Not checked.** WebKit is still not installed, so Safari's popover, its sheet under the toolbar and a real iPhone are unchecked.
 
-When storage is missing or refuses a write, the note under the choices reads "Not saved: this browser blocked storage". On start the panel probes storage by writing and removing the key `manual-reading-probe`, and shows the note at once when the write throws or storage is missing; a pick whose save fails shows it too, and the pick still applies to the page. A later successful save puts "Saved on this device" back. A `storage` event from another storage area is ignored.
+When storage is missing or refuses a write, the note under the choices reads "Not saved: this browser blocked storage". Missing storage shows the note from the start. Otherwise the panel probes storage once, the first time it opens, by writing and removing the key `manual-reading-probe`, so a page view that never opens the panel writes nothing; the note is right before the panel shows. A pick whose save fails shows it too, and the pick still applies to the page. Reset and two default picks only remove keys, so they never turn the note back to "Saved"; the next non-default pick whose write works does. A `storage` event from another storage area is ignored.
 
 ## Screenshots
 
