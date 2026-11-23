@@ -19,7 +19,7 @@ export interface TokenFile {
  */
 export function tokenFiles(): TokenFile[] {
   const tokens = readTokens();
-  const css = tokensCss(tokens, { header: SITE_HEADER, fontBase: "/fonts/" });
+  const css = tokensCss(tokens, { header: SITE_HEADER });
   const themeColors = { light: tokens.color.light.values.background, dark: tokens.color.dark.values.background };
   return [
     { path: "src/styles/tokens.css", content: css },
