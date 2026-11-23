@@ -3159,3 +3159,62 @@ test("the panel's widths are percentages of the window, never vw, which counts a
   for (const body of rules) assert.doesNotMatch(body ?? "", /\d+vw/);
   assert.match(css, /\.notes-dialog\[data-sheet\]\s*\{\s*inset-inline-start: 0;\s*inline-size: auto;/);
 });
+
+const UNREADABLE = '{"v":3,"chapters":{"tools":{"new":"shape"}}}';
+
+test("a colour picked in the menu on a stored value this page cannot read redraws the panel as no notes", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  win.localStorage.setItem(KEY, UNREADABLE);
+  menuAction(win, "one", "color-green").focus();
+  menuAction(win, "one", "color-green").click();
+  assert.equal(win.localStorage.getItem(KEY), UNREADABLE, "nothing is written");
+  assert.equal(cards(win).length, 0, "no stale card stays, so no Edit can silently do nothing");
+  assert.deepEqual([...painted(win, PLAIN), ...painted(win, NOTED)], [], "no stale highlight stays");
+  assert.equal(q<HTMLElement>(win, ".notes-dialog__flag")?.hidden, false, "the warning says why");
+  assert.match(q(win, ".notes-dialog__status")?.textContent ?? "", /Nothing was changed/);
+  assert.ok(win.document.activeElement === (q(win, ".notes-dialog__head [aria-label='Close']") as unknown), "focus");
+});
+
+test("Save note in the popover on a stored value this page cannot read redraws the page and keeps the popover", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popAction(win, "edit").click();
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  field.value = "Typed here.";
+  win.localStorage.setItem(KEY, UNREADABLE);
+  popAction(win, "save").click();
+  assert.equal(win.localStorage.getItem(KEY), UNREADABLE, "nothing is written");
+  assert.deepEqual([...painted(win, PLAIN), ...painted(win, NOTED)], [], "no stale highlight stays");
+  assert.equal(calls.at(-1), "show", "the popover stays open");
+  assert.match(q(win, ".notes-pop__message")?.textContent ?? "", /Nothing was changed/);
+  assert.equal(field.value, "Typed here.", "with what the reader typed");
+  assert.ok(win.document.activeElement === (field as unknown), "and focus where it was");
+});
+
+test("Remove in the popover on a stored value this page cannot read redraws the page as no notes", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  win.localStorage.setItem(KEY, UNREADABLE);
+  popAction(win, "delete").click();
+  assert.equal(win.localStorage.getItem(KEY), UNREADABLE);
+  assert.deepEqual([...painted(win, PLAIN), ...painted(win, NOTED)], []);
+});
+
+test("an open menu is placed again on a resize, since a card that rewraps moves its button", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const card = q<HTMLElement>(win, '.notes-card[data-id="two"]') as HTMLElement;
+  const more = card.querySelector<HTMLElement>(".notes-card__more") as HTMLElement;
+  const menu = card.querySelector<HTMLElement>(".notes-menu") as HTMLElement;
+  Object.defineProperty(more, "offsetTop", { configurable: true, value: 6 });
+  Object.defineProperty(more, "offsetHeight", { configurable: true, value: 36 });
+  Object.defineProperty(card, "clientHeight", { configurable: true, value: 100 });
+  more.click();
+  assert.equal(menu.style.getPropertyValue("--notes-menu-bottom"), "98px");
+  // The window narrows and the card rewraps to twice its height.
+  Object.defineProperty(card, "clientHeight", { configurable: true, value: 200 });
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(menu.style.getPropertyValue("--notes-menu-bottom"), "198px", "measured again from the button");
+  assert.equal(menu.hidden, false, "and still open");
+});

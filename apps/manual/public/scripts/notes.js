@@ -1092,6 +1092,7 @@ class Notes {
       this.refit();
       this.placePop();
       this.placePanel();
+      this.placeMenu();
     });
     // On iOS Safari a tap fires a click only when an element below the body listens, so the article listens itself.
     this.article.addEventListener("click", (event) => this.onClick(event));
@@ -2098,8 +2099,7 @@ class Notes {
   savePopped() {
     this.reload();
     if (this.foreign) {
-      this.say(MESSAGES.foreign);
-      this.popMessage.textContent = MESSAGES.foreign;
+      this.showForeign();
       return;
     }
     if (this.popId === undefined && this.draft) {
@@ -2291,8 +2291,7 @@ class Notes {
   setColor(id, color) {
     this.reload();
     if (this.foreign) {
-      this.say(MESSAGES.foreign);
-      this.popMessage.textContent = MESSAGES.foreign;
+      this.showForeign();
       return;
     }
     const target = this.items.find((item) => item.id === id);
@@ -2315,8 +2314,7 @@ class Notes {
   removePopped() {
     this.reload();
     if (this.foreign) {
-      this.say(MESSAGES.foreign);
-      this.popMessage.textContent = MESSAGES.foreign;
+      this.showForeign();
       return;
     }
     const item = this.items.find((other) => other.id === this.popId);
@@ -2737,9 +2735,24 @@ class Notes {
     this.menuId = id;
     menu.hidden = false;
     more.setAttribute("aria-expanded", "true");
-    // The menu hangs from the button's own box, 4px clear of it: under the button, or above it when the panel's body has
-    // no room below and room above. Both offsets are measured within the card, the menu's containing block, from the
-    // button, so the room checked is the room the menu takes. A menu that fits neither way is scrolled into view.
+    this.placeMenu();
+    const items = this.menuItems(menu);
+    if (focus === "first") items[0]?.focus();
+    else if (focus === "last") items[items.length - 1]?.focus();
+  }
+
+  /**
+   * Hangs the open menu from its button's own box, 4px clear of it: under the button, or above it when the panel's body
+   * has no room below and room above. Both offsets are measured within the card, the menu's containing block, from the
+   * button, so the room checked is the room the menu takes. A menu that fits neither way is scrolled into view. It runs
+   * when the menu opens and again on every resize, since a card that rewraps moves its button.
+   */
+  placeMenu() {
+    if (this.menuId === undefined) return;
+    const card = this.cardOf(this.menuId);
+    const menu = card?.querySelector(".notes-menu");
+    const more = card?.querySelector(".notes-card__more");
+    if (!card || !menu || !more) return;
     const gap = 4;
     menu.removeAttribute("data-above");
     menu.style.setProperty("--notes-menu-top", `${more.offsetTop + more.offsetHeight + gap}px`);
@@ -2751,9 +2764,23 @@ class Notes {
     if (room && box.bottom > room.bottom && button.top - gap - box.height >= room.top)
       menu.setAttribute("data-above", "");
     menu.scrollIntoView?.({ block: "nearest" });
-    const items = this.menuItems(menu);
-    if (focus === "first") items[0]?.focus();
-    else if (focus === "last") items[items.length - 1]?.focus();
+  }
+
+  /**
+   * Says that the stored value is one this page cannot read, after a reload found it, and redraws the page and the
+   * panel to match: this page reads such a value as no notes, so no highlight and no card stay drawn, and the panel
+   * shows its warning. Focus that was on a card, which is gone, goes to the panel's Close button. Focus anywhere else
+   * stays: in the popover, which stays open with its message and whatever the reader typed, or in the panel's form.
+   */
+  showForeign() {
+    const active = this.doc.activeElement;
+    const fromCard = this.dialog.open && this.list.contains(active);
+    this.say(MESSAGES.foreign);
+    this.popMessage.textContent = MESSAGES.foreign;
+    this.closeMenu(false);
+    this.paint();
+    if (this.dialog.open) this.renderList();
+    if (fromCard) this.closeButton.focus();
   }
 
   /** Closes the open menu; `refocus` gives focus back to its "More actions" button. */
@@ -2889,8 +2916,8 @@ class Notes {
     // Another tab may have changed this chapter's highlights since the form opened.
     this.reload();
     if (this.foreign) {
-      // The stored value is one this script cannot read, so every highlight reads as missing; say why instead.
-      this.say(MESSAGES.foreign);
+      // The form keeps the reader's text and focus; the page and the panel are redrawn as no notes.
+      this.showForeign();
       return;
     }
     if ("id" in target && !this.items.some((item) => item.id === target.id)) {
@@ -2959,13 +2986,7 @@ class Notes {
     const index = rows.findIndex((row) => row.getAttribute("data-id") === item.id);
     this.reload();
     if (this.foreign) {
-      // The stored value is one this page cannot read, which it reads as no notes: the page and the panel are drawn
-      // again to show that, with the warning, and focus goes to Close, since the card it was on is gone.
-      this.closeMenu(false);
-      this.paint();
-      this.renderList();
-      this.say(MESSAGES.foreign);
-      this.closeButton.focus();
+      this.showForeign();
       return;
     }
     const problem = this.commit(this.items.filter((other) => other.id !== item.id));

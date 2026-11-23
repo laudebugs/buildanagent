@@ -2052,7 +2052,8 @@ button.notes-card__go:hover .notes-card__quote {
 }
 
 /* The menu hangs just under the card's "More actions" button, or just above it near the panel's foot. The script sets
-   both offsets from the button's own box, so a menu that opens upward never covers the button, however tall the card. */
+   both offsets from the button's own box when the menu opens and again on every resize, so a menu that opens upward
+   never covers the button, however tall the card or however it rewraps. */
 .notes-menu {
   position: absolute;
   inset-block-start: var(--notes-menu-top, 44px);

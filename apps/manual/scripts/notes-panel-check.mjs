@@ -546,6 +546,52 @@ async function desktop(browser, name) {
   await tall.close();
 }
 
+/** An open menu is placed again when the window resizes and the cards rewrap, so it never comes to cover its button. */
+async function resized(browser, name) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 700 }, colorScheme: "light" });
+  const page = await context.newPage();
+  const long = "A long note that wraps onto several lines in the panel, so its card is far taller than its button. ";
+  await seeded(page, [long.repeat(3), long.repeat(3), "Short.", long]);
+  await page.click(".notes-open");
+  await page.waitForSelector(".notes-dialog[open]");
+  await page.evaluate(() => {
+    const body = document.querySelector(".notes-panel__body");
+    body.scrollTop = body.scrollHeight;
+  });
+  await page.click(".notes-card:last-child .notes-card__more");
+  const clear = () =>
+    page.evaluate(() => {
+      const card = document.querySelector(".notes-card:last-child");
+      const more = card.querySelector(".notes-card__more");
+      const menu = card.querySelector(".notes-menu");
+      const b = more.getBoundingClientRect();
+      const m = menu.getBoundingClientRect();
+      const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return {
+        open: !menu.hidden,
+        above: menu.hasAttribute("data-above"),
+        onButton: more.contains(hit),
+        clear: menu.hasAttribute("data-above") ? m.bottom <= b.top : m.top >= b.bottom,
+        card: Math.round(card.getBoundingClientRect().height),
+      };
+    });
+  const first = await clear();
+  check(
+    first.open && first.onButton && first.clear,
+    `${name} 390x700: the last card's menu leaves its button uncovered`,
+  );
+  for (const width of [360, 330, 390]) {
+    await page.setViewportSize({ width, height: 700 });
+    await page.waitForTimeout(300);
+    const after = await clear();
+    check(
+      after.open && after.onButton && after.clear,
+      `${name} resized to ${width}x700: the open menu (${after.above ? "above" : "below"}, card ${after.card}px) still leaves its button uncovered`,
+    );
+  }
+  await context.close();
+}
+
 async function phone(browser, name) {
   const { defaultBrowserType: _ignored, ...iphone } = playwright.devices["iPhone 14"];
   const context = await browser.newContext({ ...iphone, colorScheme: "light" });
@@ -628,6 +674,7 @@ async function launch(type, label) {
   try {
     await desktop(browser, `${label} desktop`);
     await phone(browser, `${label} iPhone 14`);
+    await resized(browser, label);
     if (label === "chromium") await forced(browser, label);
   } finally {
     await browser.close();
