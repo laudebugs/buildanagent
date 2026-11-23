@@ -1,0 +1,141 @@
+/* The frame around a figure that src/plugins/figure.ts inlines. The marks inside take the book's fig-* classes from
+   @buildanagent/manual/styles/figures.css; these rules are the book's figure panel from its components.css (which is
+   not exported, since the rest of it styles the book's own components), scoped to .docs-figure so Starlight's own
+   panels stay as they are. Every colour is a token.
+
+   Two layouts, without a second drawing or any script. Where the column is as wide as the drawing, the drawing is
+   centred at its natural size. Where it is narrower, as on a phone, the drawing keeps its natural size, so its labels
+   stay at 12 px, and the stage scrolls sideways under a hint. */
+
+.docs-figure {
+  margin: 1.75rem 0;
+}
+
+.docs-figure .panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background-color: var(--panel-background);
+  color: var(--panel-text);
+}
+
+/* Grid paper, the book's figure ground. The grid colour is decorative only. */
+.docs-figure .panel--grid {
+  background-image:
+    linear-gradient(var(--panel-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--panel-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: -1px -1px;
+}
+
+.docs-figure .figure__panel {
+  timeline-scope: --figure-scroll;
+}
+
+/* The stage is a block, not a centring grid: a drawing that fits is centred by its auto margins, and one that
+   overflows starts at the stage's edge, so a reader can scroll to both of its sides. */
+.docs-figure .figure__stage--scroll {
+  display: block;
+  overflow-x: auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  scroll-timeline: --figure-scroll inline;
+}
+
+.docs-figure .figure__stage--scroll svg.fig {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: auto;
+  margin-inline: auto;
+}
+
+.docs-figure .figure__stage--scroll:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* The hint shows exactly when the stage overflows: its animation runs on the stage's scroll timeline, which is
+   inactive while there is nothing to scroll, so the hint keeps the hidden base style. A browser without scroll-driven
+   animations never shows it, and the stage still scrolls. */
+.docs-figure .figure__scroll-hint {
+  visibility: hidden;
+  max-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: 0 1rem;
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  color: var(--panel-comment);
+}
+
+/* The timeline sits in its own rule after the animation, because the `animation` shorthand resets
+   `animation-timeline` (the book found that a minified single rule never shows the hint in Chrome). */
+@supports (animation-timeline: scroll()) {
+  .docs-figure .figure__scroll-hint {
+    animation: docs-figure-scroll-hint linear both;
+  }
+
+  .docs-figure .figure__panel .figure__scroll-hint {
+    animation-timeline: --figure-scroll;
+  }
+}
+
+@keyframes docs-figure-scroll-hint {
+  from,
+  to {
+    visibility: visible;
+    max-height: 4rem;
+    padding-block: 0.4rem 0.6rem;
+  }
+}
+
+.docs-figure .figure__caption {
+  margin-top: 0.75rem;
+  font-size: var(--size-note);
+  line-height: 1.5;
+  color: var(--color-text-soft);
+}
+
+/* A narrow column keeps the stage's padding small, so more of the drawing shows before the stage scrolls. */
+@media (max-width: 40rem) {
+  .docs-figure .figure__stage--scroll {
+    padding: 0.75rem;
+  }
+}
+
+/* With forced colours, the marks take the system colours themselves rather than rely on how a browser forces an
+   inline SVG's fill and stroke: text, lines and the filled tones in CanvasText, the accent and its terracotta in
+   Highlight, boxes on Canvas. Every book class that sets a fill or a stroke is named here, and a test keeps it so. */
+@media (forced-colors: active) {
+  .docs-figure .fig-text,
+  .docs-figure .fig-text--muted,
+  .docs-figure .fig-head,
+  .docs-figure .fig-head--muted,
+  .docs-figure .fig-amber,
+  .docs-figure .fig-olive,
+  .docs-figure .fig-shade,
+  .docs-figure .fig-shade-deep {
+    fill: CanvasText;
+  }
+
+  .docs-figure .fig-text--accent,
+  .docs-figure .fig-head--accent,
+  .docs-figure .fig-terracotta {
+    fill: Highlight;
+  }
+
+  .docs-figure .fig-line,
+  .docs-figure .fig-line--muted,
+  .docs-figure .fig-paper,
+  .docs-figure .fig-paper--muted {
+    stroke: CanvasText;
+  }
+
+  .docs-figure .fig-line--accent,
+  .docs-figure .fig-paper--accent {
+    stroke: Highlight;
+  }
+
+  .docs-figure .fig-paper {
+    fill: Canvas;
+  }
+}

@@ -214,6 +214,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12](../todos/ongoing/L12-docs-redesign.md) | Redesign `apps/docs` to match the book's theme, with diagrams, tested examples and the harness packages' pages | L5, L6, L8 | L |
 | [L12n](../todos/done/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
 | [L12a](../todos/done/L12a-docs-theme-foundation.md) | The docs app takes the book's theme: generated tokens, shared fonts, a Starlight mapping and contrast tests, first build step of the L12 docs redesign | None | M |
+| [L12d](../todos/done/L12d-docs-figure-pipeline.md) | The docs figure pipeline on the book's `svgkit`, with the `package-map` and `run-loop` figures | L12a | M |
 | [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
 | [L14](../todos/done/L14-favicons.md) | The site's favicon on the manual and the docs, with a test in each app | L13 | S |
 

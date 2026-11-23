@@ -27,5 +27,6 @@ test("the docs tokens are the book's, under the docs site's own header, then the
 
 test("Starlight loads the tokens before the stylesheet that maps them", () => {
   const config = readFileSync(new URL("../astro.config.mjs", import.meta.url), "utf8");
-  assert.match(config, /customCss: \["\.\/src\/styles\/tokens\.css", "\.\/src\/styles\/starlight\.css"\]/);
+  // Later entries, such as the figure stylesheets, may follow the two.
+  assert.match(config, /customCss: \[\s*"\.\/src\/styles\/tokens\.css",\s*"\.\/src\/styles\/starlight\.css"[,\]]/);
 });

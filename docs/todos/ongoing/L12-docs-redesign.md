@@ -60,7 +60,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12a | Manual `exports`, `tokensCss()`, the docs' tokens, fonts, `starlight.css`, code themes and their tests | This plan | M | Opus (design tooling) |
 | L12b | `SiteTitle` (mark plus wordmark) and favicon, restyled theme select, footer and asides, MDX, install tabs | L12a | M | Sonnet, with an Opus high review |
 | L12c | The sidebar topics plugin, the rewritten sidebar tests and the page-size measurement | L12a | S to M | Sonnet |
-| L12d | The figure pipeline and figures 1 and 2 | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
+| L12d | The figure pipeline and figures 1 and 2, `package-map` and `run-loop` | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
 | L12e | The version tag, the `next.` banner, the `@alpha` install-line test, the "Docs for main" link | L12b | S | Sonnet |
 | L12f | The API reference for the four packages and its measurements | L12c | S to M | Sonnet |
 | L12g | The protocol and CLI pages, their examples and figure 9 | L12d, L12f | M | Sonnet |
@@ -71,10 +71,12 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12l | Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if 9a is yes, `context7.json` | L12b | M | Sonnet |
 | L12m | The CSP `_headers` file with script hashes, and its test | L12b, L12l | S to M | Opus (security) |
 | L12n | The docs-writing.md rules for diagrams, callouts and tabs | None | S | Sonnet |
-| L12o | The docs home page redesign: it leads readers to the quick starts of the gateway, SDK, agent-safety, protocol, harness and CLI, in the figure style and tone of the `apps/site` landing page | L12a, L12b, L12d | M | Sonnet |
+| L12o | The docs home page redesign: it leads readers to the quick starts of the gateway, SDK, agent-safety, protocol, harness and CLI, in the figure style and tone of the `apps/site` landing page | L12a, L12b | M | Sonnet |
 | L12p | One shared header source for the book, the docs and the site: links Docs, Manual, Site and GitHub, plus each site's mark and wordmark ([DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22)) | L12b | S to M | Sonnet (Opus if it touches a shared package's build) |
 
 **Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e, L12f and L12p. L12g, L12h and L12i run in sequence, with L12j, L12k and L12o beside them. L12l and L12m go last.
+
+L12o no longer depends on L12d: the owner chose package cards without an illustration for the docs home (2026-11-23).
 
 **L12b progress (2026-11-23).** L12b has no todo file of its own, so this paragraph records its outcome. It shipped four changes in `apps/docs`: a `SiteTitle` override that draws logo 3 inline beside the wordmark "Build An Agent docs" (the mark alone below 30rem, with the wordmark kept for screen readers); a compact, rule-bordered theme select that adds no colour pair; MDX support in the content checks (`src/plugins/pages.ts`, `test/mdx.test.ts`) with package-manager tabs on the Install page; and the overrides table and the Starlight upgrade policy in `apps/docs/README.md`. The favicon is the one from the merged landing-page change. `test/logo.test.ts` checks its structure always and draws it at 16 px in headless Chromium where Playwright is installed, so the 16 px question under "Unverified items" is answered locally but not in CI, which has no Playwright. Screenshots at 1280 and 390 px in both modes showed that the footer and asides needed no change. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12b-1` to `L12b-15`.
 

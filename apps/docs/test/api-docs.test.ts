@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-import { afterAll, beforeAll, describe, test } from "vitest";
+import { describe, test } from "vitest";
 import { checkApiDocs, listExports } from "../src/api/check.js";
 import {
   API_PACKAGES,
@@ -14,6 +11,7 @@ import {
   typeDocOptions,
   VALIDATION,
 } from "../src/api/packages.js";
+import { builtSite } from "./built.js";
 
 const APP = fileURLToPath(new URL("..", import.meta.url));
 const fixture = (name: string) => join(APP, "test/fixtures/api", name);
@@ -45,31 +43,7 @@ function fixtureRules() {
 }
 
 describe("the built reference", { timeout: 180_000 }, () => {
-  const out = mkdtempSync(join(tmpdir(), "docs-build-"));
-
-  function nearestBin(name: string): string {
-    for (let dir = APP; dir !== dirname(dir); dir = dirname(dir)) {
-      const bin = join(dir, "node_modules", ".bin", name);
-      if (existsSync(bin)) return bin;
-    }
-    throw new Error(`no node_modules/.bin/${name} above ${APP}`);
-  }
-
-  beforeAll(async () => {
-    const home = mkdtempSync(join(tmpdir(), "docs-home-"));
-    // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
-    const env = {
-      PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-      HOME: home,
-      TMPDIR: tmpdir(),
-      LANG: process.env.LANG ?? "C.UTF-8",
-      ASTRO_TELEMETRY_DISABLED: "1",
-    };
-    await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: APP, env });
-    rmSync(home, { recursive: true, force: true });
-  }, 180_000);
-
-  afterAll(() => rmSync(out, { recursive: true, force: true }));
+  // test/built-site.ts builds the docs once for every file that reads built pages.
 
   const FOLDER: Record<string, string> = {
     Function: "functions",
@@ -91,7 +65,7 @@ describe("the built reference", { timeout: 180_000 }, () => {
         if (folder === undefined) return true;
         return !existsSync(
           join(
-            out,
+            builtSite(),
             pkg.output,
             entry.module.replace(/^@/, "").toLowerCase(),
             folder,
