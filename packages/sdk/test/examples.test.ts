@@ -96,6 +96,12 @@ test("the make-model example binds the Anthropic adapter to one model id", async
   assert.deepEqual(model.ref, { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" });
 });
 
+test("the make-model example binds the OpenAI adapter to one model id", async () => {
+  const { makeOpenAiModel } = await import("../examples/make-model.js");
+  const model = makeOpenAiModel("test-key");
+  assert.deepEqual(model.ref, { api: "openai-chat", provider: "openai", id: "gpt-5.4-mini" });
+});
+
 test("the offline-setup example turns real model requests off", async () => {
   const { OFFLINE } = await import("../examples/offline-setup.js");
   assert.equal(OFFLINE, true);

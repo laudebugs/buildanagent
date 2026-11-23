@@ -13,7 +13,9 @@ A `beforeToolCall` interceptor, called a gate, returns `allow`, `deny` or `ask` 
 
 When a gate asks, the run does not run the call and does not wait on a callback. It signs a pending request for the call, finishes the step's other calls and ends with the stop reason `awaiting_approval`. You store the context, show the person the request with the input it signs and pass their answer back later.
 
-The signature covers the request's id, kind, call id, tool, input hash and policy version. A stored pause whose call, tool or input changed no longer verifies.
+::figure[An approval pause, from the gate asking to the resumed run]{id="approval-pause" alt="A gate asks about a tool call, and the run ends with the stop reason awaiting_approval. After a person allows or denies the request, continueRun() resumes the run from the stored context."}
+
+The signed request and the stored context are what you keep while the person decides. The signature covers the request's id, kind, call id, tool, input hash and policy version. A stored pause whose call, tool or input changed no longer verifies.
 
 ## A resolution resumes the run
 

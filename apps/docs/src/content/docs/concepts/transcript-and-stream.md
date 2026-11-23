@@ -26,8 +26,14 @@ A provider adapter streams one model answer as a sequence of events. The sequenc
 
 An error terminal is how a failed model call ends: as an event with its partial content, never as a thrown exception. A `warning` event can come anywhere between `start` and the terminal, and reports something the call survived.
 
+## A stream ends in the message you keep
+
+The terminal event, `done` or `error`, carries the finished assistant message, with its content, stop reason, usage and cost. A run adds that message to the transcript. It adds each tool result and your own input beside it, so the transcript holds user messages, assistant messages and tool results in the order they happened.
+
+::figure[A model stream becomes one message of the transcript]{id="stream-and-transcript" alt="A model's answer streams as a start event, block events and one terminal event, done or error. The terminal event carries the assistant message, which joins the user messages and tool results in the transcript."}
+
 ## A run streams one closed set of events
 
 The SDK's run adds its own events on top, such as `text_delta`, `tool_call_end` and `run_end`. Every event carries the run's `runId`, a `seq` that counts events from 0, a `stepIndex` that counts model calls from 0 and a `timestamp`. The set of event types is closed, so a `switch` over `event.type` can be exhaustive.
 
-Next, see [why a run stops](/concepts/stop-reasons/).
+Next, see [what the gateway does](/concepts/the-gateway/).

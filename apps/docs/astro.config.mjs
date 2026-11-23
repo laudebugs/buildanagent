@@ -96,6 +96,7 @@ export default defineConfig({
           label: "Concepts",
           items: [
             { label: "The transcript and the stream", slug: "concepts/transcript-and-stream" },
+            { label: "The gateway", slug: "concepts/the-gateway" },
             { label: "Stop reasons", slug: "concepts/stop-reasons" },
             { label: "Tools", slug: "concepts/tools" },
             { label: "Approvals", slug: "concepts/approvals" },
