@@ -1645,10 +1645,44 @@
   position: sticky;
   inset-block-start: -8px;
   z-index: 1;
-  block-size: 20px;
+  /* Tall enough for the Close button, so the colours below never sit under it. */
+  block-size: 44px;
   margin-block: -8px -4px;
   background-color: var(--color-background);
   touch-action: none;
+}
+
+/* The cross sits at the strip's right end, 44px square, clear of the safe area; the colours start below the strip. */
+.notes-pop__close {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: calc(max(4px, env(safe-area-inset-right)) - 16px);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 44px;
+  block-size: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.notes-pop__close svg {
+  inline-size: 20px;
+  block-size: 20px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+/* The ring hugs the 44px target, as the colours' does theirs. */
+.notes-pop__close:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px;
 }
 
 .notes-pop[data-sheet] .notes-pop__grab span {
