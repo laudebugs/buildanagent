@@ -1,48 +1,16 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-import { afterAll, beforeAll, test } from "vitest";
+import { inject, test } from "vitest";
 
 // The docs show the same tab icon as the landing page, so public/favicon.svg must stay a byte-for-byte copy of the
-// site's, and every built page must link it. The check builds the docs into a temporary folder, because Starlight
-// writes the link at build time from its `favicon` option.
+// site's, and every built page must link it. The check reads the built docs, because Starlight writes the link at
+// build time from its `favicon` option.
 const app = fileURLToPath(new URL("..", import.meta.url));
 const siteIcon = fileURLToPath(new URL("../../site/public/favicon.svg", import.meta.url));
-let out = "";
-
-function nearestBin(name: string): string {
-  for (let dir = app; dir !== dirname(dir); dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", ".bin", name);
-    if (existsSync(bin)) return bin;
-  }
-  throw new Error(`no node_modules/.bin/${name} above ${app}`);
-}
-
-beforeAll(async () => {
-  out = mkdtempSync(join(tmpdir(), "docs-favicon-"));
-  const home = mkdtempSync(join(tmpdir(), "docs-home-"));
-  // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
-  const env = {
-    PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-    HOME: home,
-    TMPDIR: tmpdir(),
-    LANG: process.env.LANG ?? "C.UTF-8",
-    ASTRO_TELEMETRY_DISABLED: "1",
-  };
-  try {
-    await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: app, env });
-  } finally {
-    rmSync(home, { recursive: true, force: true });
-  }
-}, 300_000);
-
-afterAll(() => {
-  if (out) rmSync(out, { recursive: true, force: true });
-});
+// test/built-site.ts builds the docs once for every file that reads built pages.
+const out = inject("builtSite");
 
 test("public/favicon.svg is a byte-for-byte copy of the site's, and the build ships it", () => {
   assert.ok(existsSync(join(app, "public", "favicon.svg")), "public/favicon.svg is missing");

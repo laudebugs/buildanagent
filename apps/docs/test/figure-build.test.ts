@@ -1,47 +1,12 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-import { afterAll, beforeAll, describe, test } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, inject, test } from "vitest";
 import { readPages } from "../src/plugins/pages.js";
 
 // A built page that places a figure carries it inline, with its alt text and caption, and no page shows a directive
-// as text. The check builds the docs into a temporary folder, as the favicon check does.
-const app = fileURLToPath(new URL("..", import.meta.url));
-let out = "";
-
-function nearestBin(name: string): string {
-  for (let dir = app; dir !== dirname(dir); dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", ".bin", name);
-    if (existsSync(bin)) return bin;
-  }
-  throw new Error(`no node_modules/.bin/${name} above ${app}`);
-}
-
-beforeAll(async () => {
-  out = mkdtempSync(join(tmpdir(), "docs-figures-"));
-  const home = mkdtempSync(join(tmpdir(), "docs-home-"));
-  // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
-  const env = {
-    PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-    HOME: home,
-    TMPDIR: tmpdir(),
-    LANG: process.env.LANG ?? "C.UTF-8",
-    ASTRO_TELEMETRY_DISABLED: "1",
-  };
-  try {
-    await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: app, env });
-  } finally {
-    rmSync(home, { recursive: true, force: true });
-  }
-}, 300_000);
-
-afterAll(() => {
-  if (out) rmSync(out, { recursive: true, force: true });
-});
+// as text. It reads the docs that test/built-site.ts builds once for every file that reads built pages.
+const out = inject("builtSite");
 
 /** Every `::figure` a page places, with its caption and attributes as the page writes them. */
 const placed = readPages().flatMap((page) =>

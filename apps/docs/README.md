@@ -56,7 +56,9 @@ Four test files guard the figures:
 - `test/figures.test.ts` fails when a committed SVG differs from what its script draws, when the folder holds a file the registry doesn't name, or when a script, a drawing or the inlined markup writes a colour. It also fails when the standalone style holds a colour that isn't a panel token's value, or when the panel's scroll and forced-colour rules are missing.
 - `test/figure-svg.test.ts` plants each refused construct in a real committed SVG and requires the check to reject it.
 - `test/figure-directive.test.ts` renders the directive through Astro's Markdown processor and requires each broken form to fail.
-- `test/figure-build.test.ts` builds the site and requires each placed figure inline on its page, with its alt text, its caption and the scrolling stage.
+- `test/figure-build.test.ts` requires each placed figure inline on its page, with its alt text, its caption and the scrolling stage.
+
+The tests that read built pages, the figure build test, the favicon test and the API reference test, share one build. `test/built-site.ts`, a Vitest global setup, builds the site once per run into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build.
 
 ## The API reference is generated
 
