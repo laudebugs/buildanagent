@@ -82,6 +82,8 @@ L12o no longer depends on L12d: the owner chose package cards without an illustr
 
 **L12b progress (2026-11-23).** L12b has no todo file of its own, so this paragraph records its outcome. It shipped four changes in `apps/docs`: a `SiteTitle` override that draws logo 3 inline beside the wordmark "Build An Agent docs" (the mark alone below 30rem, with the wordmark kept for screen readers); a compact, rule-bordered theme select that adds no colour pair; MDX support in the content checks (`src/plugins/pages.ts`, `test/mdx.test.ts`) with package-manager tabs on the Install page; and the overrides table and the Starlight upgrade policy in `apps/docs/README.md`. The favicon is the one from the merged landing-page change. `test/logo.test.ts` checks its structure always and draws it at 16 px in headless Chromium where Playwright is installed, so the 16 px question under "Unverified items" is answered locally but not in CI, which has no Playwright. Screenshots at 1280 and 390 px in both modes showed that the footer and asides needed no change. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12b-1` to `L12b-15`.
 
+**L12l progress (2026-11-23).** L12l is done in [its own todo](done/L12l-docs-markdown-twins.md): every page, the generated API reference included, has a Markdown twin; `llms.txt` and `llms-full.txt` list and join them; each page's head links its twin, and the build fails when a page lacks the twin or the link; and a "Copy as Markdown" button sits under each title. The home page has the link and no button, because its splash template has no page title. `context7.json` stays unwritten, with its place documented in `apps/docs/README.md`.
+
 ## Acceptance criteria
 
 L12 is done when L12a to L12p are done and these hold on `main`:
@@ -92,7 +94,7 @@ L12 is done when L12a to L12p are done and these hold on `main`:
 - [ ] A contrast test recomputes every extra pair Starlight's roles create, from the shipped `tokens.css`, at 4.5:1 for text and 3:1 for other parts. These pairs stay out of `book-tokens.json`, whose manual test asserts exactly 38.
 - [ ] The font files in `apps/docs/public/fonts/` are byte-identical with the book's, and a test fails when one differs.
 - [ ] After L12c, no built page exceeds 200 KB of HTML (today `start/install/` is 103 KB). L12c may revise the budget with its measurement, and L12f re-measures it.
-- [ ] Every page has a Markdown twin at `/<page>.md`, and a test fails on a page without one.
+- [x] Every page has a Markdown twin at `/<page>.md`, and a test fails on a page without one (L12l).
 - [ ] Every install line names `@alpha`, a test checks it, and the header shows the shared version.
 - [ ] The header holds the mark and the wordmark "Build An Agent docs", and the favicon reads at 16 px.
 - [ ] The docs home links to the quick start of each of the six packages, and the book, the docs and the site read their header links from one source, with a test in each app.

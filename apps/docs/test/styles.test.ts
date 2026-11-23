@@ -146,3 +146,9 @@ test("the pagination links are compact: a rule border, no shadow, label and note
   assert.match(link, /min-height: 2\.75rem;/);
   assert.match(css, /\.pagination-links \.link-title \{[^}]*font-size: var\(--size-note\);/);
 });
+
+test("the Copy as Markdown button stays hidden until the script shows it, even where a rule sets its display", () => {
+  const css = files.find((file) => file.path === "components/PageTitle.astro")?.text ?? "";
+  assert.ok(css.includes("display: inline-flex"), "the coarse-pointer rule is still here, so the guard is needed");
+  assert.match(css, /\.twin-copy\[hidden\]\s*\{[^}]*display:\s*none/, "a [hidden] rule beats the display rules");
+});
