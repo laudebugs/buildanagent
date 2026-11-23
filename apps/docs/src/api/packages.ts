@@ -25,7 +25,7 @@ export interface CheckedPackage {
 
 /** A package the reference covers. */
 export interface ApiPackage extends CheckedPackage {
-  /** The title of the package's sidebar group. */
+  /** The text of the package's sidebar topic tab. The title of its sidebar group is the package's `name`. */
   readonly label: string;
   /** The path under `src/content/docs/` that the generated pages are written to. */
   readonly output: string;

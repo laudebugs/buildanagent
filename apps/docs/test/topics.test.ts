@@ -10,7 +10,7 @@ import { builtSite } from "./built.js";
 // budget, when a page shows another topic's links, or when a topic's first and last pages link outside it.
 
 /** The most HTML one built page may hold, in bytes. The measurement behind it is in the umbrella todo. */
-const BUDGET_BYTES = 200 * 1024;
+const BUDGET_BYTES = 200 * 1024; // 200 KiB, 204,800 bytes
 
 const SDK_TOPIC = "SDK & gateway";
 
@@ -32,21 +32,23 @@ function sidebarLinks(page: string): string[] {
   return [...afterTabs.matchAll(/href="([^"]+)"/g)].map((match) => match[1] ?? "");
 }
 
-/** The tabs a page shows, with the current one's label. */
-function topicTabs(page: string): { labels: string[]; current: string[] } {
+/** The tabs a page shows: every label, the labels marked current by class and the labels marked `aria-current`. */
+function topicTabs(page: string): { labels: string[]; current: string[]; ariaCurrent: string[] } {
   const tabs = /<ul class="starlight-sidebar-topics[\s\S]*?<\/ul>/.exec(page)?.[0] ?? "";
-  const items = [...tabs.matchAll(/<a href="[^"]*"([^>]*)>[\s\S]*?<div[^>]*>([^<]*)<\/div><\/a>/g)];
-  const decode = (text: string) => text.replace(/&amp;/g, "&");
+  const items = [...tabs.matchAll(/<a ([^>]*)>[\s\S]*?<div[^>]*>([^<]*)<\/div><\/a>/g)].map((item) => ({
+    attrs: item[1] ?? "",
+    label: (item[2] ?? "").replace(/&amp;/g, "&").trim(),
+  }));
+  const labelsWhere = (marker: string) => items.filter((item) => item.attrs.includes(marker)).map((item) => item.label);
   return {
-    labels: items.map((item) => decode(item[2] ?? "").trim()),
-    current: items
-      .filter((item) => item[1]?.includes("starlight-sidebar-topics-current"))
-      .map((item) => decode(item[2] ?? "")),
+    labels: items.map((item) => item.label),
+    current: labelsWhere("starlight-sidebar-topics-current"),
+    ariaCurrent: labelsWhere('aria-current="page"'),
   };
 }
 
 describe("the page budget", () => {
-  test(`keeps every built page under ${BUDGET_BYTES / 1024} KB of HTML`, () => {
+  test(`keeps every built page under ${BUDGET_BYTES / 1024} KiB of HTML`, () => {
     const pages = builtPages();
     assert.ok(pages.length > 250, `expected the whole site, found ${pages.length} pages`);
     const over = pages.filter((page) => page.bytes > BUDGET_BYTES).map((page) => `${page.path}: ${page.bytes} bytes`);
@@ -55,7 +57,7 @@ describe("the page budget", () => {
 });
 
 describe("the topics", () => {
-  test("shows both tabs on every sidebar page, with exactly one of them current", () => {
+  test("shows every topic's tab on every sidebar page, with exactly one of them current and marked aria-current", () => {
     const pages = readPages().filter((page) => page.path !== "index.mdx");
     assert.ok(pages.length > 0);
     for (const page of pages) {
@@ -66,6 +68,7 @@ describe("the topics", () => {
         `${page.path} shows the wrong tabs`,
       );
       assert.equal(tabs.current.length, 1, `${page.path} must have one current topic`);
+      assert.deepEqual(tabs.ariaCurrent, tabs.current, `${page.path} must mark its current tab with aria-current`);
     }
   });
 

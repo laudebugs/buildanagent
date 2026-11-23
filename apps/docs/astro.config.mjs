@@ -65,6 +65,7 @@ export default defineConfig({
       favicon: "/favicon.svg",
       description: "Docs for the buildanagent gateway and SDK: build an agent, test it offline, ship it.",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
+      routeMiddleware: "./src/route-data.ts",
       components: {
         Footer: "./src/components/Footer.astro",
         Head: "./src/components/Head.astro",
@@ -89,7 +90,7 @@ export default defineConfig({
       // The sidebar is the topics plugin's (src/topics.ts), not a `sidebar` option, which the plugin refuses.
       plugins: [
         starlightLinksValidator(),
-        // First of the three, because it writes the sidebar and each TypeDoc plugin replaces its placeholder in it.
+        // Before every TypeDoc plugin, because it writes the sidebar and each of them replaces its placeholder in it.
         starlightSidebarTopics(topics(api), { topics: unlistedPages(api) }),
         ...api.map((entry) => entry.plugin),
       ],

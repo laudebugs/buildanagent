@@ -5,7 +5,7 @@ import { describe, test } from "vitest";
 import { API_PACKAGES } from "../src/api/packages.js";
 import { exampleSource, parseExampleRef } from "../src/plugins/example-code.js";
 import { type Page, readPages } from "../src/plugins/pages.js";
-import { topics } from "../src/topics.js";
+import { type TopicItem, topics } from "../src/topics.js";
 
 // The rules of docs/guidelines/docs-writing.md that a program can check, run over every page.
 const pages = readPages();
@@ -110,16 +110,26 @@ describe.each(pages.map((page) => [page.path, page] as const))("%s", (_path, pag
 
 describe("the sidebar", () => {
   // The topic list with stand-ins for the generated API groups, which hold no slugs.
-  const topicList = topics(API_PACKAGES.map((pkg) => ({ label: pkg.label, output: pkg.output, group: { items: [] } })));
-  const slugsOf = (items: readonly object[]): string[] =>
-    items.flatMap((item) =>
-      "slug" in item ? [String(item.slug)] : "items" in item ? slugsOf(item.items as readonly object[]) : [],
-    );
+  const topicList = topics(
+    API_PACKAGES.map((pkg) => ({ label: pkg.label, output: pkg.output, group: { label: pkg.label, items: [] } })),
+  );
+  const slugsOf = (items: readonly TopicItem[]): string[] =>
+    items.flatMap((item) => {
+      if (typeof item === "string") return [item];
+      if ("slug" in item) return [item.slug];
+      return "items" in item ? slugsOf(item.items) : [];
+    });
   const slugs = topicList.flatMap((topic) => slugsOf(topic.items));
 
   test("names every page except the home page in exactly one topic, and no page that is missing", () => {
     const expected = pages.map((page) => page.path.replace(/\.mdx?$/, "")).filter((slug) => slug !== "index");
     assert.deepEqual([...slugs].sort(), expected.sort());
+  });
+
+  test("rejects a misspelled item key at type-check time", () => {
+    // @ts-expect-error `lable` is not a sidebar key, so this item must not type-check.
+    const typo: TopicItem = { lable: "Install", slug: "start/install" };
+    assert.ok(typo);
   });
 
   test("puts the topics in the order SDK & gateway, then one API topic for each package", () => {
@@ -137,12 +147,16 @@ describe("the sidebar", () => {
     );
   });
 
-  test("links each topic to a page of its own: a listed page or the generated API index", () => {
-    for (const topic of topicList) {
-      const listed = slugsOf(topic.items).includes(topic.link);
-      const generated = API_PACKAGES.some((pkg) => topic.link === pkg.output);
-      assert.ok(listed || generated, `${topic.label} links to ${topic.link}, which none of its pages is`);
-    }
+  test("links each topic to a page of its own: a listed page for the written docs, its package's index for an API tab", () => {
+    const [written, ...apiTopics] = topicList;
+    assert.ok(
+      written && slugsOf(written.items).includes(written.link),
+      "the SDK & gateway tab must link to its first page",
+    );
+    assert.deepEqual(
+      apiTopics.map((topic) => topic.link),
+      API_PACKAGES.map((pkg) => pkg.output),
+    );
   });
 
   test("ends every page with a link to the next page in the sidebar", () => {

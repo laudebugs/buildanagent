@@ -60,7 +60,7 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Four tests read the built site: the figure build test, the favicon test, the API reference test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Five tests read the built site: the figure build test, the favicon test, the API reference test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
 
 ## Sidebar topics keep each page small
 
@@ -68,11 +68,13 @@ A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar
 
 To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
 
-The plugin must come first in `plugins`. It writes the sidebar, and each TypeDoc plugin replaces its placeholder group in that sidebar, so a TypeDoc plugin that runs earlier finds no sidebar and generates an empty group. The plugin also refuses a `sidebar` option in the Starlight config.
+The plugin must come before every TypeDoc plugin in `plugins`. It writes the sidebar, and each TypeDoc plugin replaces its placeholder group in that sidebar, so a TypeDoc plugin that runs earlier finds no sidebar and generates an empty group. The plugin also refuses a `sidebar` option in the Starlight config.
+
+`src/route-data.ts`, a Starlight route middleware, adds `aria-current="page"` to the current tab. The plugin gives every page the same attributes for a tab, so the middleware replaces the current tab's `attrs` object for that page, and `test/topics.test.ts` requires the attribute on exactly the current tab of every page.
 
 Previous and next links stop at a topic's first and last page: the first page of "SDK & gateway" has no Previous link, and `reference/packages` has no Next link.
 
-`test/topics.test.ts` reads the built pages. It fails on a page over 200 KB of HTML, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic. The budget is 200 KB because the largest page is 141 KB after the split and 175 KB before it. Raise it only with a new measurement, recorded in the L12 todo. An API topic that comes near it needs smaller groups (collapse its modules) before the budget moves.
+`test/topics.test.ts` reads the built pages. It fails on a page over 200 KiB of HTML, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic. The budget is 200 KiB (204,800 bytes; every size in this app's docs is in bytes or KiB, 1 KiB being 1,024 bytes). The largest page is 141,164 bytes (137.9 KiB) after the split and 175,279 bytes (171.2 KiB) before it. Raise the budget only with a new measurement, recorded in the L12 todo. A collapsed group still holds every link in the HTML, so collapsing does not shrink a page: an API topic that nears the budget must be split into more topics or have modules dropped from its sidebar. Going from one shared API topic to one per package cut the largest page by 33,456 bytes, so splitting works.
 
 ## The API reference is generated
 
