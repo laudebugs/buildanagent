@@ -141,7 +141,13 @@ Opening the panel costs one download: each pairing's "Aa" sample loads its uprig
 - **The other checks.** `check:reading`, `check:header`, `check:offline`, `check:save-offline`, `check:note-sheet` and `check:touch-fields` still pass.
 - **Not checked.** WebKit is still not installed, so Safari's popover, its sheet under the toolbar and a real iPhone are unchecked.
 
-When storage is missing or refuses a write, the note under the choices reads "Not saved: this resets when you leave the page", from the moment the panel starts if storage is missing, and a `storage` event from another storage area is ignored.
+### The note under the choices says when storage fails
+
+When storage is missing or refuses a write, the note under the choices reads "Not saved: this browser blocked storage". Missing storage shows the note from the start. Otherwise the panel probes storage once, the first time it opens, by writing and removing the key `manual-reading-probe`, so a page view that never opens the panel writes nothing. The note is set before the panel shows, so a screen reader meets it on arrival and the note needs no `aria-live` region.
+
+A pick whose save fails shows the note too, and the pick still applies to the page. Reset and two default picks only remove keys, so they never turn the note back to "Saved". The next non-default pick whose write works does.
+
+The panel's `storage` listener ignores an event from any storage area other than the one the panel uses ([`reading-panel.js`](../../apps/manual/public/scripts/reading-panel.js)), so `sessionStorage` writes never change the note.
 
 ## Screenshots
 

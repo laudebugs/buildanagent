@@ -13,6 +13,9 @@
 //   inside itself on a short screen, and the header stays shown while it is open;
 // - at 150% with the panel open, no sampled page scrolls sideways on the phone in any pairing, the header is one 52px
 //   row, and the panel, the Notes button and the save control fit the window;
+// - when localStorage exists but every write throws, the note reads "Not saved: this browser blocked storage" as soon as
+//   the panel opens, a pick still applies to the page for that view, the note stays unsaved, and a reload is back at
+//   Book; on a normal page the note reads "Saved on this device" after a pick;
 // - opening the panel closes an open notes popover, since both are auto popovers;
 // - axe-core finds no violation with the panel open on a desktop and on the phone.
 //
@@ -327,6 +330,67 @@ async function desktopChecks(browser, origin) {
   await ctx.close();
 }
 
+async function storageFailureChecks(browser, origin) {
+  const NOTE = `${PANEL} .reading-panel__note`;
+  const UNSAVED = "Not saved: this browser blocked storage";
+
+  // Each half closes its context in a finally, so a thrown step cannot leak it or skip the checks after it.
+  label = "storage refuses writes";
+  const blocked = await browser.newContext({ serviceWorkers: "block", ...desktop });
+  try {
+    await blocked.addInitScript(() => {
+      window.__probeWrites = 0;
+      const refuse = (key) => {
+        // Other scripts (the reading place) write on a page view; only the panel's probe key is counted.
+        if (key === "manual-reading-probe") window.__probeWrites += 1;
+        throw new DOMException("full", "QuotaExceededError");
+      };
+      Storage.prototype.setItem = refuse;
+    });
+    const page = await open(blocked, origin, CHAPTER);
+    await page.waitForSelector(`${BUTTON}:not([hidden])`);
+    check(
+      (await page.evaluate(() => window.__probeWrites)) === 0,
+      "a page view that never opens the panel makes no probe write",
+    );
+    await page.click(BUTTON);
+    await settle(page);
+    const note = () => page.locator(NOTE).textContent();
+    check((await note()) === UNSAVED, "the note is unsaved as soon as the panel opens");
+    await page.click(`${PANEL} input[name='reading-font'][value='sans'] + .reading-panel__dot`);
+    const sans = await families(page);
+    check(
+      first(sans.title) === first(pairings.find((pairing) => pairing.id === "sans").display) && sans.font === "sans",
+      `the pick applies to this view (${sans.title})`,
+    );
+    check((await note()) === UNSAVED, "the note stays unsaved after a pick");
+    await page.click("[data-reading-reset]");
+    check((await note()) === UNSAVED, "Reset, which only removes keys, keeps the unsaved note");
+    await page.reload({ waitUntil: "load" });
+    await page.waitForSelector(`${BUTTON}:not([hidden])`);
+    const reloaded = await families(page);
+    check(reloaded.font === null && reloaded.stored.every((value) => value === null), "a reload is back at Book");
+  } finally {
+    await blocked.close();
+  }
+
+  label = "storage works";
+  const normal = await context(browser, desktop);
+  try {
+    const ok = await open(normal, origin, CHAPTER);
+    await ok.click(BUTTON);
+    await settle(ok);
+    await ok.click(`${PANEL} input[name='reading-size'][value='130'] + .reading-panel__stop`);
+    check((await ok.locator(NOTE).textContent()) === "Saved on this device", "a normal page says Saved after a pick");
+    check(
+      (await ok.evaluate(() => Object.keys(localStorage))).every((key) => key !== "manual-reading-probe"),
+      "the probe leaves no key behind",
+    );
+  } finally {
+    await normal.close();
+  }
+}
+
 async function phoneChecks(browser, origin) {
   label = "phone";
   const ctx = await context(browser, { ...iphone, deviceScaleFactor: 2 });
@@ -639,7 +703,7 @@ try {
 }
 console.log("SKIPPED - WebKit: the settings check runs in Chromium only");
 const { server, origin } = await serveDist();
-for (const run of [desktopChecks, phoneChecks, largeChecks]) {
+for (const run of [desktopChecks, storageFailureChecks, phoneChecks, largeChecks]) {
   try {
     await run(browser, origin);
   } catch (error) {

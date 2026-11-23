@@ -44,9 +44,9 @@ export function nextSize(sizes, current, key) {
 /** How long, in milliseconds, the panel waits after a pairing change before it saves the fonts, so arrowing through the radios saves only the pairing the reader stops on. */
 export const SAVE_DELAY_MS = 600;
 
-/** The note under the choices while the settings are stored, and while storage refused them. */
+/** The note under the choices while the settings are stored, and while storage refuses them. */
 export const NOTE_SAVED = "Saved on this device";
-export const NOTE_UNSAVED = "Not saved: this resets when you leave the page";
+export const NOTE_UNSAVED = "Not saved: this browser blocked storage";
 
 /**
  * A trailing-edge scheduler: `schedule()` restarts a timer that runs `task` once after `delay`, and `flush()` runs it at
@@ -106,6 +106,31 @@ export function tabEnds(panel) {
   return [stops[0], stops[stops.length - 1]];
 }
 
+/** The key the probe writes and removes at once; it never holds a setting. */
+export const PROBE_KEY = "manual-reading-probe";
+
+/**
+ * Whether a storage accepts a write: one setItem and one removeItem of a dedicated key. A storage can exist and still
+ * refuse every write (a full quota, some private modes), so reading it says nothing about whether a choice will stay.
+ * A removeItem that throws after the write worked leaves only that one key behind and does not make the storage
+ * unusable, so only the write decides.
+ * @param {Storage | null} storage
+ */
+export function canWrite(storage) {
+  if (!storage) return false;
+  try {
+    storage.setItem(PROBE_KEY, "1");
+  } catch {
+    return false;
+  }
+  try {
+    storage.removeItem(PROBE_KEY);
+  } catch {
+    // The write worked, which is what a choice needs.
+  }
+  return true;
+}
+
 /** Reads localStorage, which can be off or throw. */
 function storageOf(win) {
   try {
@@ -138,6 +163,13 @@ export function start(win) {
   const sheetQuery = typeof win.matchMedia === "function" ? win.matchMedia(SHEET_QUERY) : null;
   let settings = api.read(storage);
   let returnFocus = false;
+  // Whether storage accepts a write: unknown until the panel first opens, so a page view that never opens it writes
+  // nothing (the probe's write also fires a `storage` event in the book's other tabs).
+  let writable = null;
+  const probe = () => {
+    if (writable === null) writable = canWrite(storage);
+    return writable;
+  };
 
   const fontInput = (id) => fonts.find((input) => input.value === id);
   const sizeInput = (size) => sizes.find((input) => Number(input.value) === size);
@@ -178,8 +210,12 @@ export function start(win) {
     const changedFont = next.font !== settings.font;
     settings = { font: api.readFont(next.font), size: api.readSize(String(next.size)) };
     api.apply(root, settings);
+    probe();
     const stored = api.save(storage, settings);
-    if (note) note.textContent = stored ? NOTE_SAVED : NOTE_UNSAVED;
+    // Two defaults are stored as no key, so save() only removes: that works even where every write is refused. Only
+    // a non-default pick that really wrote proves storage accepts writes.
+    if (stored && (settings.font !== api.DEFAULT_FONT || settings.size !== api.DEFAULT_SIZE)) writable = true;
+    if (note) note.textContent = stored && writable ? NOTE_SAVED : NOTE_UNSAVED;
     sync();
     if (changedFont) fontChanged();
   };
@@ -232,6 +268,8 @@ export function start(win) {
     panel.toggleAttribute("data-sheet", sheet);
     if (sheet) panel.setAttribute("aria-modal", "true");
     else panel.removeAttribute("aria-modal");
+    // This runs before the panel shows, so the note is right the moment it is visible.
+    if (note && !probe()) note.textContent = NOTE_UNSAVED;
     sync();
     place();
   });
@@ -295,7 +333,8 @@ export function start(win) {
     if (changedFont) fontChanged();
   });
 
-  // With no usable storage the note must not claim "Saved" before the first pick.
+  // Missing storage needs no probe: the note says so from the start. Storage that refuses writes is found out on the
+  // panel's first opening, and nothing is announced while the panel is hidden.
   if (note && !storage) note.textContent = NOTE_UNSAVED;
   sync();
   panel.hidden = false;
