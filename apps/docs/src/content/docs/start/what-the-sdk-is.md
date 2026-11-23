@@ -11,6 +11,14 @@ The gateway, `@buildanagent/gateway`, talks to model providers. It has adapters 
 
 The SDK, `@buildanagent/sdk`, runs the loop over the gateway. Both packages always share one version.
 
+## A run repeats model calls and tool calls until it ends
+
+A run sends your input to the model. When the model's response asks for tools, the run calls them and sends their results back in the next model call. The run repeats that cycle until the model answers in text without calling a tool, and the run ends with the stop reason `done`.
+
+::figure[One run, from your input to its stop reason]{id="run-loop" alt="The run calls the model and runs the tools it asks for, then returns the results to the model. When the model answers in text, the run ends done; any other stop reason ends it early."}
+
+Five things can end a run sooner: a guard such as the step limit or the budget, a hook, a failed model call, an abort, or a tool call that waits for approval or asks you a question. [Stop reasons](/concepts/stop-reasons/) lists all nine.
+
 ## What a run gives you
 
 - **A stream of events.** You print the model's text as it arrives and log each tool call.

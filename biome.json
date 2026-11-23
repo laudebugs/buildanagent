@@ -18,6 +18,7 @@
       "!**/verify/*/extracted",
       "!**/verify/*/.tmp",
       "!apps/manual/**/figures/**/*.svg",
+      "!apps/docs/figures/*.svg",
       "!.agents/skills/anatomy",
       "!apps/manual/src/styles/anatomy.css",
       "!apps/manual/src/data/sources.json",
