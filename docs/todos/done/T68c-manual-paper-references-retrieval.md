@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T68c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build the book §2, BK6](../../plans/build-book.md#bk6-a-source-register-tied-to-our-fact-checks-with-citations-that-fail-the-build-proposed) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
 | Depends on | [T68a](../done/T68a-manual-paper-references-tooling.md) |
@@ -33,16 +33,16 @@ Apply the owner's rule that no research paper stays bare text to eight papers: C
 
 ## Tasks
 
-- [ ] Read each paper in full and log one fact-check row per blurb claim
-- [ ] Write the eight register entries and take them off `papers-pending.json`
-- [ ] Convert the chapter mentions
-- [ ] Run the checks and open the pull request
+- [x] Read each paper in full and log one fact-check row per blurb claim
+- [x] Write the eight register entries and take them off `papers-pending.json`
+- [x] Convert the chapter mentions
+- [x] Run the checks and open the pull request
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @buildanagent/manual check:book`, the manual's tests and the book build pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm fact-check-logs` pass
-- [ ] `audit:papers` shows no bare mention of the eight papers
+- [x] `pnpm --filter @buildanagent/manual check:book`, the manual's tests and the book build pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm fact-check-logs` pass
+- [x] `audit:papers` shows no bare mention of the eight papers
 
 ## Tests
 
@@ -59,8 +59,8 @@ A blurb that restates a chapter claim could disagree with it; any disagreement g
 ## Definition of done
 
 - [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained
 - [ ] Copy reviewed with `/anthropic-skills:writing-review`, with its findings fixed
