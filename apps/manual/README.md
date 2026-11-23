@@ -503,7 +503,7 @@ A reader can highlight a passage of a chapter and attach a short note to it, wit
 
 To run the browser check, build the book with `pnpm --filter @buildanagent/manual build`, then run `node scripts/notes-browser-check.mjs` from `apps/manual` (add `--shots <folder>` for screenshots).
 
-On a touch screen (`pointer: coarse`) every text field the book draws is at least 16px, so no field is smaller than 1rem there. `test/touch-fields.test.ts` fails when a stylesheet or script adds a field without that rule, and `pnpm --filter @buildanagent/manual check:touch-fields` measures the built book in an iPhone 14 context.
+Wherever any input is a finger (`any-pointer: coarse`), every text field the book draws is at least 16px. `test/touch-fields.test.ts` finds each field in `src/` (Astro, TypeScript and Markdown files) and `public/scripts/` and fails if the winning `font-size` rule on a touch screen can be below 16px. `pnpm --filter @buildanagent/manual check:touch-fields` measures the built book at an iPhone 14's size, so it needs a built book and Playwright.
 
 ## The book deploys from main's workflow, and a pull request only ever gets a preview
 

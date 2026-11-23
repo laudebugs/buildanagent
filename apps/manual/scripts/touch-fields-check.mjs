@@ -8,50 +8,14 @@
 //
 //   node scripts/touch-fields-check.mjs   (or: pnpm --filter @buildanagent/manual check:touch-fields)
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { createReadStream, existsSync, statSync } from "node:fs";
-import { createServer } from "node:http";
-import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
-import { extname, join, normalize } from "node:path";
-import { fileURLToPath } from "node:url";
+import { browserEnv, loadPlaywright, selectIn, serveDist } from "./lib/browser-check.mjs";
 
-const dist = fileURLToPath(new URL("../dist/", import.meta.url));
-const env = { PATH: process.env.PATH ?? "", HOME: tmpdir(), LANG: "C.UTF-8" };
-const require = createRequire(import.meta.url);
-function loadPlaywright() {
-  try {
-    return require("playwright");
-  } catch {
-    const global = execFileSync("npm", ["root", "-g"], { encoding: "utf8", env }).trim();
-    return createRequire(join(global, "x.js"))("playwright");
-  }
-}
 const { chromium, devices } = loadPlaywright();
+const { server, origin } = await serveDist();
 
-const TYPES = {
-  ".html": "text/html",
-  ".js": "text/javascript",
-  ".mjs": "text/javascript",
-  ".css": "text/css",
-  ".woff2": "font/woff2",
-  ".json": "application/json",
-  ".svg": "image/svg+xml",
-  ".wasm": "application/wasm",
-};
-const server = createServer((request, response) => {
-  const path = normalize(decodeURIComponent(new URL(request.url ?? "/", "http://x").pathname));
-  let file = join(dist, path);
-  if (!file.startsWith(dist) || !existsSync(file)) file = join(dist, "404.html");
-  else if (statSync(file).isDirectory()) file = join(file, "index.html");
-  response.setHeader("content-type", TYPES[extname(file)] ?? "application/octet-stream");
-  createReadStream(file).pipe(response);
-});
-await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const origin = `http://127.0.0.1:${server.address().port}`;
-
-const browser = await chromium.launch({ env });
+const browser = await chromium.launch({ env: browserEnv });
 const { defaultBrowserType: _ignored, ...phone } = devices["iPhone 14"];
+const { width, height } = phone.viewport;
 const context = await browser.newContext(phone);
 const page = await context.newPage();
 const failures = [];
@@ -60,19 +24,22 @@ const check = (condition, message) => {
   if (!condition) failures.push(message);
 };
 
-/** Every input, textarea and select on the page, shown or not, with its computed font size. */
+/**
+ * Every text-entry control on the page, shown or not: each textarea and select, each input except the types that take
+ * no typed text (hidden, checkbox, radio, button, submit, reset, image, range, color, file), and each element that is
+ * contenteditable unless it says contenteditable="false".
+ */
 const readFields = () =>
   page.evaluate(() =>
-    [...document.querySelectorAll("input, textarea, select, [contenteditable]")]
-      .filter(
-        (el) =>
-          !(el instanceof HTMLInputElement && ["hidden", "checkbox", "radio", "button", "submit"].includes(el.type)),
-      )
-      .map((el) => ({
-        name: `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(" ")[0]}` : ""}`,
-        shown: el.getClientRects().length > 0,
-        size: parseFloat(getComputedStyle(el).fontSize),
-      })),
+    [
+      ...document.querySelectorAll(
+        "input:not([type=hidden], [type=checkbox], [type=radio], [type=button], [type=submit], [type=reset], [type=image], [type=range], [type=color], [type=file]), textarea, select, [contenteditable]:not([contenteditable=false])",
+      ),
+    ].map((el) => ({
+      name: `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(" ")[0]}` : ""}`,
+      shown: el.getClientRects().length > 0,
+      size: parseFloat(getComputedStyle(el).fontSize),
+    })),
   );
 async function checkFields(where, expectShown = []) {
   const fields = await readFields();
@@ -87,31 +54,6 @@ async function checkFields(where, expectShown = []) {
   check(widths[0] <= widths[1], `${where}: the page does not scroll sideways (${widths[0]} <= ${widths[1]})`);
 }
 
-async function select(paragraph, from, length) {
-  await page.evaluate(
-    ([index, start, count]) => {
-      const p = [...document.querySelectorAll("article p")].filter((el) => el.textContent.trim().length > 200)[index];
-      const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
-      let node = walker.nextNode();
-      while (
-        node &&
-        !(
-          node.data.length >= start + count &&
-          !node.parentElement.closest("[aria-hidden='true'], [data-pagefind-ignore], code, a") &&
-          node.parentElement.getClientRects().length > 0
-        )
-      )
-        node = walker.nextNode();
-      const range = document.createRange();
-      range.setStart(node, start);
-      range.setEnd(node, start + count);
-      getSelection().removeAllRanges();
-      getSelection().addRange(range);
-    },
-    [paragraph, from, length],
-  );
-}
-
 // The viewport meta must not forbid zoom.
 await page.goto(`${origin}/tools/`);
 const meta = await page.getAttribute("meta[name='viewport']", "content");
@@ -120,7 +62,7 @@ await page.waitForSelector(".notes-open");
 await checkFields("chapter, nothing open");
 
 // The note editor in the dialog.
-await select(1, 20, 60);
+await selectIn(page, 1, 20, 60);
 await page.waitForSelector(".notes-toolbar:not([hidden])");
 await page.click(".notes-toolbar >> text=Add note");
 await page.waitForSelector("#notes-field", { state: "visible" });
@@ -135,7 +77,7 @@ await checkFields("export field", ["textarea.notes-dialog__field"]);
 await page.click(".notes-dialog__head button");
 
 // The note editor in the popover or sheet: a plain highlight's Add a note field.
-await select(2, 10, 70);
+await selectIn(page, 2, 10, 70);
 await page.waitForSelector(".notes-toolbar:not([hidden])");
 await page.click(".notes-toolbar .notes-swatch--blue");
 const point = await page.evaluate(() => {
@@ -151,7 +93,7 @@ await checkFields("popover sheet", ["textarea.notes-pop__field"]);
 // A short window stands in for the on-screen keyboard: the sheet must still sit inside it and the page must not jump.
 await page.focus(".notes-pop__field");
 const before = await page.evaluate(() => scrollY);
-await page.setViewportSize({ width: 390, height: 420 });
+await page.setViewportSize({ width, height: 420 });
 await page.waitForTimeout(300);
 const fit = await page.evaluate(() => {
   const r = document.querySelector(".notes-pop").getBoundingClientRect();
@@ -169,11 +111,11 @@ const fit = await page.evaluate(() => {
 });
 check(
   fit.left >= 0 && fit.right <= fit.w && fit.bottom <= fit.h + 1,
-  `the sheet fits a 390x420 window (${JSON.stringify(fit)})`,
+  `the sheet fits a ${width}x420 window (${JSON.stringify(fit)})`,
 );
 check(fit.actions <= fit.h + 1, "Save and Remove stay inside the short window");
 check(Math.abs(fit.y - before) < 2, `the page does not jump when the window shortens (scrollY ${before} -> ${fit.y})`);
-await page.setViewportSize({ width: 390, height: 844 });
+await page.setViewportSize({ width, height });
 await page.keyboard.press("Escape");
 
 // The search box on the contents page and the search page (Pagefind's own field).
