@@ -1,17 +1,72 @@
 ---
 import SearchBox from "./SearchBox.astro";
 import ThemeToggle from "./ThemeToggle.astro";
+
+// The site header, sticky on every page: 56 px on a desktop, one 52 px row on a phone (styles/header.css). On a phone the
+// three links move into a menu, with Notes on a chapter, and the search box moves into a panel under the row that a
+// search button opens. src/scripts/header.ts hides the phone header while a reader scrolls down and runs the menu and
+// the panel; without it the buttons stay hidden and the links and the search box show in a wrapped, shown header.
+//
+// The "settings" slot is for the reading-settings button (the "Aa" of design S1). Until that ships nothing fills it and
+// the empty wrapper takes no room. To add the button, render it into the slot where a layout uses this component:
+//   <SiteHeader><SettingsButton slot="settings" /></SiteHeader>
+// The button then sits between the search and the theme toggle on a desktop and a phone alike.
+const links = [
+  { label: "Contents", href: "/" },
+  { label: "Glossary", href: "/glossary/" },
+  { label: "Sources", href: "/sources/" },
+];
 ---
 
-<header class="site-header">
+<header class="site-header" data-site-header>
   <div class="page site-header__inner">
     <a class="site-header__title" href="/">Build an agent</a>
     <nav class="site-header__nav" aria-label="Site">
-      <a href="/">Contents</a>
-      <a href="/glossary/">Glossary</a>
-      <a href="/sources/">Sources</a>
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
     </nav>
-    <SearchBox />
-    <ThemeToggle />
+    <div class="site-header__search" id="site-header-search" data-header-search>
+      <SearchBox />
+    </div>
+    <div class="site-header__tools">
+      <button
+        type="button"
+        class="control site-header__icon-button site-header__search-toggle"
+        data-search-toggle
+        aria-expanded="false"
+        aria-controls="site-header-search"
+        aria-label="Search"
+        hidden
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+          <circle cx="11" cy="11" r="6.5"></circle>
+          <path d="M16 16l4.5 4.5"></path>
+        </svg>
+      </button>
+      <div class="site-header__slot" data-slot="settings"><slot name="settings" /></div>
+      <ThemeToggle />
+      <button
+        type="button"
+        class="control site-header__icon-button site-header__menu-button"
+        data-menu-button
+        aria-expanded="false"
+        aria-controls="site-menu"
+        aria-label="Menu"
+        hidden
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+          <path d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+      </button>
+    </div>
   </div>
+  <nav class="site-menu" id="site-menu" data-menu aria-label="Site" hidden>
+    <div class="page site-menu__inner">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+      <button type="button" data-menu-notes hidden>Notes</button>
+    </div>
+  </nav>
 </header>
+
+<script>
+  import "../scripts/header.ts";
+</script>

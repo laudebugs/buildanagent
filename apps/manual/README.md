@@ -22,6 +22,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual figures:audit` | Proves every isometric figure with the anatomy skill's geometry audit and its line check in both themes; needs Chrome |
 | `pnpm --filter @buildanagent/manual icons` | Draws the installed app's icons in `public/icons/` from `public/favicon.svg` in Chromium, and records the favicon's hash in `scripts/icons.json` |
 | `pnpm --filter @buildanagent/manual check:offline` | Builds the book with a loopback test host and drives the offline worker in Chromium, online and offline; needs Playwright |
+| `pnpm --filter @buildanagent/manual check:header` | Drives the sticky header in Chromium (and WebKit when installed), at desktop size and as an iPhone 14, against the built book; `--shots <folder>` saves screenshots; needs Playwright and a build |
 | `pnpm --filter @buildanagent/manual offline:verify <origin>` | Compares a deployed copy of the book with its own `/offline-manifest.json`, file by file, and reports rewritten and failed files |
 | `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
@@ -537,6 +538,45 @@ A reader can highlight a passage of a chapter and attach a short note to it, wit
 To run the browser check, build the book with `pnpm --filter @buildanagent/manual build`, then run `node scripts/notes-browser-check.mjs` from `apps/manual` (add `--shots <folder>` for screenshots).
 
 iOS Safari zooms the page when a text field under 16px takes focus, so on any device where a finger is an input (`any-pointer: coarse`), every text field the book draws is at least 16px. A device with only a mouse keeps the smaller size. `test/touch-fields.test.ts` finds each field in `src/` (Astro, TypeScript and Markdown files) and `public/scripts/`, and fails if any combination of rules that may apply on a touch device (a `:focus` rule, a `textarea` or `input[type=search]` selector, a `pointer: fine` or `hover: hover` query, a `font` shorthand after the size) can leave one below 16px. To measure the built book at an iPhone 14's size, build it, then run `pnpm --filter @buildanagent/manual check:touch-fields`; the check needs Playwright.
+
+## The header stays in reach, and a line shows how far the reader is through the chapter
+
+The header is sticky on every page, so Contents, Glossary, Sources, search and the theme toggle stay in reach. It is 56px tall on a desktop and one 52px row on a phone. A phone here means a window up to 760px wide or a touch screen, and `src/styles/header.css` holds every rule.
+
+- **One viewport query.** `header.css` is the one place the book uses a viewport-width media query, because the header's height sets the page's scroll padding, which a container query cannot reach. `test/styles.test.ts` allows the query in that file alone, and `test/header-static.test.ts` fails if the stylesheet and `src/scripts/header.ts` name different queries.
+- **One height variable.** `--header-height` carries the height (56px, or 52px on a phone) to everything that must clear the header. `html { scroll-padding-top }` is the height plus 12px, so a jumped-to heading, a footnote or a note's "go to passage" stops below it. The sticky offset of the chapter's left and right rails uses it too.
+
+On a phone the row holds the wordmark, a search button, the settings slot, the theme toggle and a menu button. The menu lists Contents, Glossary, Sources and Notes. The Notes entry shows on chapters only and presses the existing Notes button, so `public/scripts/notes.js` is unchanged. The search button opens the existing search box in a panel under the row.
+
+Both are buttons with `aria-expanded` and `aria-controls`. Escape closes them and returns focus to their button, and a tap outside, a link or tabbing out of the header closes them too.
+
+Without JavaScript the phone buttons stay hidden and the links and the search box show in a wrapped header (`@media (scripting: none)`). That header is static and scrolls away with the page, because a sticky header of unknown height would hide the scroll padding's room.
+
+**Hiding.** On a phone the header slides up while the reader scrolls down and returns on the first upward scroll. `src/scripts/header-state.ts` holds the decision as a pure function, `nextHeaderState(prev, scrollY, flags)`, tested over scroll traces in `test/header-state.test.ts`. A move under 8px changes nothing and keeps its starting point, so a slow scroll still adds up. The header stays shown on a desktop, within one header height of the top, while the menu or search is open and while keyboard focus is inside it.
+
+Only focus that matches `:focus-visible` counts, so a button a finger tapped does not pin the header. Focus moving into a hidden header shows it. A hidden header stays in the page's flow (it only translates), so nothing below it moves. With `prefers-reduced-motion: reduce` the header still hides and returns, with no transition. `header.ts` runs one passive scroll listener. Each animation frame reads the scroll position and the cached measurements, then writes the `data-header-hidden` attribute on `<html>` and one transform.
+
+**The progress line.** Chapter pages carry a fixed 3px `.reading-progress` element, which `ChapterLayout.astro` places outside the layout container because the container's layout containment would otherwise capture a fixed child. Its bar fills with `transform: scaleX()` in the accent colour, and `readingProgress(scrollY, start, end, viewportH)` gives the value: 0 at the top of the chapter, 1 when the end of the main text reaches the bottom of the window, clamped. The end is the top of the chapter's Sources section, so the sources, the previous and next links and the footer do not count.
+
+The script measures `start` and `end` on load, on resize, when fonts load, when the article's size changes, when the body resizes and when a `details` element toggles, never during a scroll. The line rides the header's bottom edge and, while a phone's header is hidden, moves to the very top of the window. It is `aria-hidden`, hidden in print and drawn with `--color-accent`, so it works in both themes. The home, glossary, sources and search pages have none.
+
+**The settings slot.** `SiteHeader.astro` holds `<div class="site-header__slot" data-slot="settings">` with a named Astro slot. While nothing fills it the wrapper is empty, `:empty` removes it from the layout and it takes no room. When S1 ships its "Aa" button, render it into the slot: `<SiteHeader><SettingsButton slot="settings" /></SiteHeader>` in `BaseLayout.astro`. The button then sits between the search and the theme toggle on a desktop and a phone. Give it a 44px target on a phone, as the other header buttons have (`.site-header .control`).
+
+**Checks.** `check:header` builds nothing: build first, then run it. It measures:
+
+- both heights and the sticky position;
+- hiding and returning, the threshold and focus;
+- the menu and search;
+- the progress at 0, 50% and 100%, and the line's position with the header hidden;
+- a hash jump down and up, with the heading 12px below the header;
+- the rails' offset at 1280 and 1600px;
+- the popover, toolbar and a glossary card against the header;
+- the progress line's end after opening "All chapters" on a phone;
+- reduced motion, on the header and the line;
+- one-row headers at 761, 800 and 1024px;
+- an axe-core run (`axe-core` is a pinned dev dependency, with no network use).
+
+It is not part of `pnpm test`, and `.github/workflows` does not run it yet. What it cannot show: Safari's collapsing toolbar, rubber-band scrolling and a real iPhone.
 
 ## The book installs as an app and opens offline
 
