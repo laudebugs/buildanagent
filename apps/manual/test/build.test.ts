@@ -1,46 +1,19 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-import { afterAll, beforeAll, test } from "vitest";
+import { beforeAll, test } from "vitest";
+import { builtBook } from "./built.js";
 
-// Builds the site into a temporary folder once, then checks the pages the build writes: the gallery renders every
-// component in both themes with its script-only controls hidden, and no page loads anything from another origin.
-// The build reads one fixture chapter, written as Chapter 1, through BOOK_FIXTURE_DIR, so the checks below stay
-// fixed while the book's own chapters change.
+// Reads the pages test/built-book.ts built once for the whole run: the gallery renders every component in both themes
+// with its script-only controls hidden, and no page loads anything from another origin. The build reads one fixture
+// chapter, written as Chapter 1, through BOOK_FIXTURE_DIR, so the checks below stay fixed while the book's own chapters
+// change. The tests only read the folder; the global setup removes it.
 const app = fileURLToPath(new URL("..", import.meta.url));
-const fixtureBook = fileURLToPath(new URL("./fixtures/site/", import.meta.url));
 let out = "";
 
-function nearestBin(name: string): string {
-  for (let dir = app; dir !== dirname(dir); dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", ".bin", name);
-    if (existsSync(bin)) return bin;
-  }
-  throw new Error(`no node_modules/.bin/${name} above ${app}`);
-}
-
-beforeAll(async () => {
-  out = mkdtempSync(join(tmpdir(), "manual-build-"));
-  const home = mkdtempSync(join(tmpdir(), "manual-home-"));
-  // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
-  const env = {
-    PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-    HOME: home,
-    TMPDIR: tmpdir(),
-    LANG: process.env.LANG ?? "C.UTF-8",
-    ASTRO_TELEMETRY_DISABLED: "1",
-    BOOK_FIXTURE_DIR: fixtureBook,
-  };
-  await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", out], { cwd: app, env });
-  rmSync(home, { recursive: true, force: true });
-}, 180_000);
-
-afterAll(() => {
-  if (out) rmSync(out, { recursive: true, force: true });
+beforeAll(() => {
+  out = builtBook();
 });
 
 function files(extension: string): string[] {
