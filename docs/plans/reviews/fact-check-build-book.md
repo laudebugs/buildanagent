@@ -1290,3 +1290,5 @@ Claims in [ADR 0059](../../decisions/0059-offline-manual-service-worker.md), the
 | fix/manual-note-editor-flow-2 | In Playwright's WebKit build 26.6, a touch tap on an element whose `pointerdown` handler calls `preventDefault()` fires no `click`, while the same tap on an element without that handler does | README, `notes.js` comment | ✅ | Measured on 2026-11-23: `tap()` on a toolbar swatch logged pointerdown, touchstart, pointerup and touchend but no click; the same tap on the Notes button logged a click; after the toolbar's handler skipped touch pointers the swatch tap logged its click. Playwright's WebKit, not a device, so whether iOS Safari does the same is unverified |
 | fix/manual-note-editor-flow-3 | The Chromium and WebKit checks prove the field has focus right after the tap that opens the editor, and that the editor closes and leaves focus outside itself; they cannot show the iOS keyboard opening | README | ✅ | `scripts/note-editor-flow-check.mjs` run on 2026-11-23 in desktop and iPhone 14 Chromium and in iPhone 14 WebKit, 107 checks; the scripts read `document.activeElement` only |
 
+
+**Totals:** 778 claims: 672 ✅, 95 ✏️, 11 ⚠️.
