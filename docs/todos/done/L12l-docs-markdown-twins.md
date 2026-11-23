@@ -6,7 +6,7 @@
 | Status | `done` |
 | Plan | [Publish and docs DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs) |
-| Depends on | [L12](L12-docs-redesign.md) (L12b has no todo file of its own) |
+| Depends on | [L12](../ongoing/L12-docs-redesign.md) (L12b has no todo file of its own) |
 | Size | M |
 
 ## Goal
@@ -15,7 +15,7 @@ Agents and readers get each docs page as plain Markdown, without the HTML around
 
 ## Context
 
-- [L12](L12-docs-redesign.md) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the feature table row "Markdown twins" and the Lamina digest item "Markdown twins, `llms.txt` and Copy as Markdown" (adopted).
+- [L12](../ongoing/L12-docs-redesign.md) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the feature table row "Markdown twins" and the Lamina digest item "Markdown twins, `llms.txt` and Copy as Markdown" (adopted).
 - [`apps/docs/README.md`](../../../apps/docs/README.md): how `file=` fences, figures and the shared build work, which the twin must resolve.
 - The owner answered no to question 9a (Context7) on 2026-11-23, so no `context7.json`; the code leaves one seam where it could be added.
 
@@ -48,7 +48,29 @@ Agents and readers get each docs page as plain Markdown, without the HTML around
 
 ## Outcome
 
-Every docs page, the generated API reference included, has a Markdown twin. `hasTwin()` in `apps/docs/src/twins/rule.ts` is the one decision; the post-build step, `llms.txt`, `llms-full.txt`, the head link and the button read it. The twins are 282 files (515 KiB), written in about 0.5 s, and the API reference stays in because TypeDoc already writes Markdown. The build fails on a page that lacks its twin or its head link. The "Copy as Markdown" button starts its clipboard write inside the click handler. The home page has the head link and no button, because Starlight's splash template has no page title. Three new direct dependencies, `unified` 11.0.5, `remark-parse` 11.0.0 and `remark-mdx` 3.1.1, were already in the tree. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12l-1` to `L12l-15`. The code review's findings changed it: `hasTwin()` rejects the 404 page; the twin step skips drafts, slugs files as github-slugger does and honours `slug`; links to assets keep their address; an MDX expression other than a string or a comment fails the build. A second review's fixes: a string literal is escaped so Markdown can't read it as syntax, a component that starts on its tag's line keeps its code's indent, front matter reads CRLF, an end-of-file fence and an empty block, `llms.txt` entries stay on one line, the sidebar places `slug: "index"` and `link:` entries, and a fence closes only on a line with no info string. `yaml` and `remark-directive` moved to `dependencies`, with the other packages the build imports.
+Every docs page, the generated API reference included, now has a Markdown twin: 282 files (515 KiB), written in about 0.5 s. `hasTwin()` in `apps/docs/src/twins/rule.ts` decides which pages get one, and the post-build step, `llms.txt`, `llms-full.txt`, the head link and the button all read it.
+
+The API reference stays in because TypeDoc already writes Markdown. The build fails on a page that lacks its twin or its head link. The "Copy as Markdown" button starts its clipboard write inside the click handler. The home page has the head link and no button, because Starlight's splash template has no page title. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12l-1` to `L12l-16`.
+
+First review:
+
+- `hasTwin()` rejects the 404 page.
+- The twin step skips drafts, slugs files as github-slugger does and honours `slug`.
+- Links to assets keep their address.
+- An MDX expression other than a string or a comment fails the build.
+
+Second review:
+
+- A string literal is escaped so Markdown can't read it as syntax.
+- A component that starts on its tag's line keeps its code's indent.
+- Front matter reads CRLF, an end-of-file fence and an empty block.
+- `llms.txt` entries stay on one line.
+- The sidebar places `slug: "index"` and `link:` entries.
+- A fence closes only on a line with no info string.
+
+After the reviews: a twin error names the file under `src/content/docs/` and the line in that file, front matter included.
+
+Dependencies: three new direct ones, `unified` 11.0.5, `remark-parse` 11.0.0 and `remark-mdx` 3.1.1. `yaml` and `remark-directive` moved to `dependencies`, beside the other packages the build imports.
 
 ## Tests
 

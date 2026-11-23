@@ -4,9 +4,10 @@
  * Safari lets a page write to the clipboard only inside the user's click, and the permission ends when the handler
  * yields to a network request. So the handler is not `async` and `await`s nothing: it starts the fetch and passes the
  * unfinished promise to `ClipboardItem`, which the clipboard API accepts in place of a blob and settles later while the
- * click's permission holds. The blob's type must be exactly the key's, `text/plain`, so the Markdown is rebuilt as text
- * and not passed through as the response's `text/markdown` blob. Where `ClipboardItem` is missing, or the write is
- * refused, the handler falls back to `writeText` with the text a hover or focus fetched ahead of the click.
+ * click's permission holds. The blob's type should be the key's, `text/plain`; no documentation says what a mismatch
+ * does. So the Markdown is rebuilt as text and not passed through as the response's `text/markdown` blob. Where
+ * `ClipboardItem` is missing, or the write is refused, the handler falls back to `writeText` with the text a hover or
+ * focus fetched ahead of the click.
  *
  * The script that calls this is static text with no values spliced in, so a Content-Security-Policy can allow it by
  * hash or as a same-origin file; the twin's address comes from the button's `data-twin` attribute.

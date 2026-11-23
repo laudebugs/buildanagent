@@ -11,7 +11,7 @@ import { readingOrder, type SidebarEntry, twinPages } from "./pages.js";
 /**
  * Where a `context7.json` could be added. Context7 reads a file of that name at the root of a site or repository to learn
  * which pages to index. The owner chose not to use it (2026-11-23), so nothing writes one. To add it, write the file
- * into `dist` in `astro:build:done` below, from `twinPages()`, with the site's `url` and these twins' addresses.
+ * into `dist` in `astro:build:done` below, from `twinPages()`.
  */
 function twinIntegration(summary: string, sidebar: readonly SidebarEntry[]): AstroIntegration {
   let origin = "";
