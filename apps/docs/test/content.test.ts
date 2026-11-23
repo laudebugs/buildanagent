@@ -123,7 +123,7 @@ describe("the sidebar", () => {
 
   test("ends every page with a link to the next page in the sidebar", () => {
     const order = [...slugs];
-    for (const page of pages.filter((candidate) => candidate.path !== "index.md")) {
+    for (const page of pages.filter((candidate) => !/^index\.mdx?$/.test(candidate.path))) {
       const slug = page.path.replace(/\.mdx?$/, "");
       const closer =
         page.body
