@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T68` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan](../../plans/build-book.md) (Round T, the manual's reading experience) |
 | Round / milestone | Round T (the manual) |
 | Depends on | [T67b](../done/T67b-manual-save-for-offline.md) |
@@ -35,18 +35,18 @@ The manual's header stays reachable while a reader scrolls, and a thin line alon
 
 ## Tasks
 
-- [ ] Build the sticky header and the phone menu.
-- [ ] Add the scroll-direction logic and the progress line.
-- [ ] Fix the anchor offsets and the overlaps.
-- [ ] Write the tests and take the screenshots.
+- [x] Build the sticky header and the phone menu.
+- [x] Add the scroll-direction logic and the progress line.
+- [x] Fix the anchor offsets and the overlaps.
+- [x] Write the tests and take the screenshots.
 
 ## Acceptance criteria
 
-- [ ] The header stays fixed on scroll at 56 px (desktop) and 52 px (phone).
-- [ ] The phone header hides on scroll down and returns on scroll up, and focus inside it reveals it.
-- [ ] The progress line is about 0 at the top, about 50% mid-chapter and 100% at the chapter end.
-- [ ] A jumped-to heading is visible below the header, and the pages pass axe.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
+- [x] The header stays fixed on scroll at 56 px (desktop) and 52 px (phone).
+- [x] The phone header hides on scroll down and returns on scroll up, and focus inside it reveals it.
+- [x] The progress line is about 0 at the top, about 50% mid-chapter and 100% at the chapter end.
+- [x] A jumped-to heading is visible below the header, and the pages pass axe.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
 
 ## Tests
 
@@ -55,3 +55,11 @@ The manual's header stays reachable while a reader scrolls, and a thin line alon
 ## Docs to update
 
 `apps/manual/README.md` and the book plan's todo table.
+
+## Outcome
+
+The header is sticky at 56 px on a desktop and one 52 px row on a phone, with a menu, a search panel, hide-on-scroll, a 3 px progress line, scroll padding, rail offsets and an empty settings slot. `check:header` (new, run by hand) passes in Chromium on both profiles; WebKit is not installed here, so it was not run. The measurements, the behaviour table and the limits are in [the report](../../research/book/sticky-header.md), and the README section "The header stays in reach" explains how to extend it.
+
+Follow-ups: run `check:header` in CI (`.github/` was off limits), run it in WebKit where installed, and clamp the note popover below the header in `notes.js` for very short windows.
+
+- [x] `pnpm check`, `pnpm typecheck`, `pnpm test`, `check:book`, the build and the four maintainability checks pass.
