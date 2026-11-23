@@ -48,6 +48,9 @@ async function openSheet(page, note, at = 0.5) {
   if (note) {
     await page.fill(".notes-pop__field", note);
     await page.click(".notes-pop__act[data-action='save']");
+    // Save closes the sheet; the saved-note view is what a tap on the highlight shows next.
+    await page.waitForSelector(".notes-pop:not(:popover-open)", { state: "attached" });
+    await reopen(page, at);
     await page.waitForSelector(".notes-pop__note:not([hidden])");
   }
 }
