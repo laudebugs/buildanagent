@@ -124,14 +124,13 @@ test("a save that loses the connection is partial, never saved, and the next one
 test("a refused quota stops the save, leaves the shell and a partial state with the failure, and never says saved", async () => {
   const { worker, network, cache } = await active();
   const store = await cache();
+  // A full disk refuses every write once it is full, the worker's own records included.
   let puts = 0;
-  store.refuse = (key) =>
-    key.includes("__manual-offline__") || ++puts <= 4
-      ? null
-      : new DOMException("The quota was exceeded.", "QuotaExceededError");
+  store.refuse = () => (++puts <= 6 ? null : new DOMException("The quota was exceeded.", "QuotaExceededError"));
   const before = network.requests.length;
   const done = await worker.saveAll();
   assert.equal(done.result, "partial");
+  assert.equal(done.reason, "quota");
   assert.equal(done.saved, null);
   assert.ok(done.failed.some((problem) => problem.reason === "quota"));
   assert.ok(
@@ -143,8 +142,35 @@ test("a refused quota stops the save, leaves the shell and a partial state with 
   assert.equal(status.shell.saved, SHELL.length, "the shell is intact, so the book still opens");
   assert.equal(status.saved, null);
   assert.deepEqual(status.partial, { at: 1_000 });
-  assert.ok(status.failed.some((problem) => problem.reason === "quota"));
-  assert.equal(status.stored.files, SHELL.length + 4);
+  assert.ok(status.stored.files < FILES);
+});
+
+test("a disk already full answers SAVE_ALL with a partial save and its reason, so the page is never left waiting", async () => {
+  const { worker, cache } = await active();
+  (await cache()).refuse = () => new DOMException("The quota was exceeded.", "QuotaExceededError");
+  const done = await worker.handleMessage({ type: "SAVE_ALL" });
+  assert.deepEqual(done, { type: "SAVE_DONE", result: "partial", reason: "quota", saved: null, failed: [] });
+  (await cache()).refuse = null;
+  assert.equal((await worker.saveAll()).result, "saved", "the next save works once there is room");
+});
+
+test("a file stored before the problems record is refused counts as saved, not as failed", async () => {
+  let down = true;
+  const { worker, cache } = await active({
+    "/chapter-1/": () => {
+      if (down) throw new TypeError("Failed to fetch");
+      return ok(TEXTS["/chapter-1/"] ?? "");
+    },
+  });
+  assert.equal((await worker.saveAll()).result, "partial", "chapter 1 failed, and the problems record holds it");
+  down = false;
+  // Storing chapter 1 now clears its problem, a write the full disk refuses.
+  (await cache()).refuse = (key) =>
+    key.endsWith("problems.json") ? new DOMException("The quota was exceeded.", "QuotaExceededError") : null;
+  const done = await worker.saveAll();
+  assert.equal(done.result, "saved");
+  assert.deepEqual(done.failed, []);
+  assert.deepEqual((await worker.status()).failed, [], "no quota failure is reported for a file that was stored");
 });
 
 test("another refused write is reported as a storage problem and the save goes on", async () => {
@@ -306,10 +332,28 @@ test("a saved page carries over through two updates, though the first update sta
     await next.activate();
     const glossary = await (await caches.open(`manual-${build}`)).match(`${ORIGIN}/glossary/`);
     assert.match((await glossary?.text()) ?? "", new RegExp(`content="${build}"`), `carried into ${build}`);
+    // The reader never pressed Update, so the copy saved under b1 is still offered after the second deploy.
+    assert.deepEqual((await next.status()).previous, { at: 1_000, build: "b1" }, `previous in ${build}`);
   }
 });
 
-test("an old worker whose cache a new build's activation deleted stops saving and does not bring the cache back", async () => {
+test("a worker whose cache the browser evicted saves again when the browser says it is the active one", async () => {
+  const { caches } = await active();
+  for (const name of await caches.keys()) await caches.delete(name);
+  const network = new FakeNetwork(served(TEXTS));
+  const deps = { origin: ORIGIN, caches, fetch: network.fetch };
+  const restarted = new OfflineWorker(buildOf("b1", TEXTS, SHELL), { ...deps, isActive: () => true });
+  await restarted.status();
+  assert.equal((await restarted.saveAll()).result, "saved");
+  // Without the browser's word the record is all it has, and an evicted cache holds none, so it refuses.
+  for (const name of await caches.keys()) await caches.delete(name);
+  const unsure = new OfflineWorker(buildOf("b1", TEXTS, SHELL), { ...deps, isActive: () => undefined });
+  assert.equal((await unsure.saveAll()).reason, "not-active");
+  const waiting = new OfflineWorker(buildOf("b1", TEXTS, SHELL), { ...deps, isActive: () => false });
+  assert.equal((await waiting.saveAll()).reason, "not-active", "the browser's no wins over a cleared mark");
+});
+
+test("an old worker whose cache a new build's activation deleted stops at the next file and writes no saved record", async () => {
   const caches = new FakeCaches();
   await active({}, { caches });
   const gate = gated();
@@ -320,16 +364,20 @@ test("an old worker whose cache a new build's activation deleted stops saving an
   for (let i = 0; i < 5; i++) await gate.release();
   const done = await saving;
   assert.equal(done.result, "partial");
-  // The files in flight when the cache went may have been written back, but never the saved record.
+  // The files in flight when the cache went may write it back, one file each at most, but never the saved record.
   const revived = caches.stores.get("manual-b1");
-  assert.ok(!revived || !(await revived.match(`${ORIGIN}/__manual-offline__/saved.json`))?.ok);
+  const files = [...(revived?.entries.keys() ?? [])].filter((key) => !key.includes("__manual-offline__"));
+  assert.ok(files.length <= SAVE_CONCURRENCY, `${files.length} files`);
+  assert.equal(await revived?.match(`${ORIGIN}/__manual-offline__/saved.json`), undefined);
 });
 
-test("REMOVE_ALL stops a save, keeps the shell, deletes every other file and the saved record, and older kept caches", async () => {
+test("REMOVE_ALL keeps the shell, deletes every other file and the saved record, and an older cache once its page closed", async () => {
   const caches = new FakeCaches();
   const older = await caches.open("manual-b0");
   await older.put(`${ORIGIN}/__manual-offline__/clients.json`, ok('["tab-old"]'));
-  const { worker } = await active({}, { caches, openClients: async () => ["tab-old"] });
+  await older.put(`${ORIGIN}/pagefind/pagefind.js`, ok("// pagefind, build b0"));
+  let open = ["tab-old"];
+  const { worker } = await active({}, { caches, openClients: async () => open });
   assert.ok(caches.stores.has("manual-b0"), "kept while its page is open");
   assert.equal((await worker.saveAll()).result, "saved");
   assert.deepEqual(await worker.handleMessage({ type: "REMOVE_ALL" }), { type: "REMOVED", removed: true });
@@ -338,8 +386,17 @@ test("REMOVE_ALL stops a save, keeps the shell, deletes every other file and the
   assert.equal(status.partial, null);
   assert.equal(status.stored.files, SHELL.length);
   assert.equal(status.shell.saved, SHELL.length, "the book still opens");
-  assert.ok(!caches.stores.has("manual-b0"), "the older kept cache is gone");
   assert.deepEqual(status.failed, []);
+  // The old tab still reads its own build's files from the kept cache.
+  assert.ok(caches.stores.has("manual-b0"), "kept while the old build's page is open");
+  const script = await worker.handleFetch({
+    request: new Request(`${ORIGIN}/pagefind/pagefind.js`),
+    clientId: "tab-old",
+  });
+  assert.equal(await script?.text(), "// pagefind, build b0");
+  open = [];
+  await worker.removeAll();
+  assert.ok(!caches.stores.has("manual-b0"), "and deleted once that page closed");
 });
 
 test("REMOVE_ALL during a save cancels it first, and a SAVE_ALL during the removal is refused as busy", async () => {

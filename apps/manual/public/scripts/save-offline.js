@@ -42,18 +42,13 @@ export const REASONS = {
  */
 export function formatSize(bytes) {
   if (!Number.isFinite(bytes) || bytes < 0) return "an unknown size";
-  const units = [
-    [1e9, "GB"],
-    [1e6, "MB"],
-    [1e3, "KB"],
-  ];
-  for (const [size, unit] of units) {
-    if (bytes >= size) {
-      const value = bytes / size;
-      return `about ${value >= 10 ? Math.round(value) : Number(value.toFixed(1))} ${unit}`;
-    }
-  }
-  return "less than 1 KB";
+  if (bytes < 1e3) return "less than 1 KB";
+  const units = ["KB", "MB", "GB"];
+  const shown = (value) => (value >= 10 ? Math.round(value) : Number(value.toFixed(1)));
+  let index = Math.min(units.length - 1, Math.floor(Math.log10(bytes) / 3) - 1);
+  // Rounding can reach the next unit, as 999,600 bytes would read "about 1000 KB", so the unit moves up after it.
+  while (index < units.length - 1 && shown(bytes / 1e3 ** (index + 1)) >= 1000) index++;
+  return `about ${shown(bytes / 1e3 ** (index + 1))} ${units[index]}`;
 }
 
 /**
@@ -187,9 +182,12 @@ function statusView(s) {
   if (saved) {
     return {
       state: savedLine,
-      detail: update
-        ? "A new version of the manual is ready. Reload the page, then save again to update your copy."
-        : `Every page opens without a connection. ${SAFARI_NOTE}`,
+      detail:
+        s.result?.result === "not-removed"
+          ? "The browser would not remove the saved copy. Try again."
+          : update
+            ? "A new version of the manual is ready. Reload the page, then save again to update your copy."
+            : `Every page opens without a connection. ${SAFARI_NOTE}`,
       primary: null,
       remove: true,
       progress: null,
@@ -206,8 +204,14 @@ function statusView(s) {
   }
   const room = roomText(total.bytes, status.stored.bytes, s.room);
   const failed = s.result?.failed ?? status.failed;
-  if (status.partial) {
-    const reason = s.result?.result === "cancelled" ? "You stopped the download." : reasonText(failed);
+  // A save whose first record the browser refused leaves no partial record, so its own answer counts too.
+  if (status.partial || s.result?.result === "partial" || s.result?.result === "stopped") {
+    const reason =
+      s.result?.result === "cancelled"
+        ? "You stopped the download."
+        : s.result?.result === "stopped"
+          ? "The download stopped before it finished."
+          : (REASONS[s.result?.reason] ?? reasonText(failed));
     return {
       state: `Partly saved: ${status.stored.files.toLocaleString("en")} of ${plural(total.files, "file", "files")}.`,
       detail: [reason, room].filter(Boolean).join(" "),
@@ -226,16 +230,19 @@ function statusView(s) {
       progress: null,
     };
   }
-  const refused = s.result?.result === "refused";
-  const removed = s.result?.result === "removed";
-  return {
-    state: refused
+  const result = s.result?.result;
+  const updating = result === "refused" && s.result.reason === "not-active";
+  const states = {
+    refused: updating
       ? "The offline copy is updating. Reload the page, then save."
-      : removed
-        ? "Removed the saved copy."
-        : "Not saved.",
+      : "The saved copy is being removed. Try again in a moment.",
+    removed: "Removed the saved copy.",
+    "not-removed": "The browser would not remove the saved copy. Try again.",
+  };
+  return {
+    state: states[result] ?? "Not saved.",
     detail: [`The whole manual is ${size}.`, room].filter(Boolean).join(" "),
-    primary: refused ? null : { label: "Save the manual for offline reading", action: "save" },
+    primary: updating ? null : { label: "Save the manual for offline reading", action: "save" },
     remove: false,
     progress: null,
   };
@@ -315,13 +322,22 @@ async function storageAllowed(win) {
   }
 }
 
+/** How long a save may go without progress before the control asks the worker whether it is still saving. */
+export const WATCHDOG_MS = 15000;
+
+/** How long the control waits for the worker to answer REMOVE_ALL. */
+export const REMOVE_TIMEOUT_MS = 30000;
+
 /**
  * Starts the control in the page's footer: works out what it can do, shows it, and wires the buttons. Resolves to an
  * object the tests drive, or null when the page has no control.
  * @param {Window} win
- * @param {{ statusTimeout?: number }} [options]
+ * @param {{ statusTimeout?: number, watchdog?: number, removeTimeout?: number }} [options]
  */
-export async function mount(win, { statusTimeout = STATUS_TIMEOUT_MS } = {}) {
+export async function mount(
+  win,
+  { statusTimeout = STATUS_TIMEOUT_MS, watchdog = WATCHDOG_MS, removeTimeout = REMOVE_TIMEOUT_MS } = {},
+) {
   const doc = win.document;
   const root = doc.querySelector("[data-save-offline]");
   if (!root) return null;
@@ -347,6 +363,8 @@ export async function mount(win, { statusTimeout = STATUS_TIMEOUT_MS } = {}) {
     parts.detail.textContent = shown.detail;
     parts.detail.hidden = shown.detail === "";
     parts.primary.hidden = !shown.primary;
+    // Cancel stays disabled once pressed; any other button the control shows can be pressed.
+    if (shown.primary?.action !== "cancel") parts.primary.disabled = false;
     if (shown.primary) {
       parts.primary.textContent = shown.primary.label;
       parts.primary.dataset.action = shown.primary.action;
@@ -388,11 +406,17 @@ export async function mount(win, { statusTimeout = STATUS_TIMEOUT_MS } = {}) {
   let result = null;
   let progress = null;
 
-  const refresh = async (announce = false) => {
+  // `keep` holds on to the last result for a refresh that follows the reader's own press; any other refresh clears it,
+  // so a message such as "Removed the saved copy." never outlives the moment it describes.
+  const refresh = async (announce = false, keep = false) => {
+    if (!keep) result = null;
     if (!(await storageAllowed(win))) return render({ kind: "denied" }, announce);
-    if (doc.documentElement.dataset.offline === "install-failed") return render({ kind: "install-failed" }, announce);
     const worker = container.controller;
-    if (!worker) return render({ kind: "not-controlled" }, announce);
+    // A failed install matters only while no worker controls the page: an older build's worker still saves.
+    if (!worker) {
+      const failed = doc.documentElement.dataset.offline === "install-failed";
+      return render({ kind: failed ? "install-failed" : "not-controlled" }, announce);
+    }
     const status = await ask(win, worker, { type: "STATUS" }, { timeout: statusTimeout });
     if (status?.type !== "STATUS") return render({ kind: "no-reply" }, announce);
     const [manifest, room, registration] = await Promise.all([
@@ -420,24 +444,38 @@ export async function mount(win, { statusTimeout = STATUS_TIMEOUT_MS } = {}) {
     if (status.saving && !progress) save(worker);
   };
 
+  const sleep = (ms) => new Promise((resolve) => win.setTimeout(resolve, ms));
+
   const save = async (worker) => {
     result = null;
     progress = { done: 0, total: 0, bytes: 0, failed: 0, ...(current.status?.saving ?? {}) };
     if (current.kind === "status") render({ ...current, progress }, true);
-    const done = await ask(
-      win,
-      worker,
-      { type: "SAVE_ALL" },
-      {
-        onProgress: (step) => {
-          progress = step;
-          if (current.kind === "status") render({ ...current, progress });
-        },
-      },
-    );
+    let lastStep = Date.now();
+    let finished = false;
+    const showStep = (step) => {
+      lastStep = Date.now();
+      progress = step;
+      if (current.kind === "status") render({ ...current, progress });
+    };
+    const asked = ask(win, worker, { type: "SAVE_ALL" }, { onProgress: showStep });
+    // A worker the browser stopped mid-save (a time limit, a phone suspending the tab, a crash or an update) never
+    // answers, so a save that goes quiet asks STATUS. A worker that reports no save running, or no answer, ends it.
+    const stalled = (async () => {
+      while (!finished) {
+        await sleep(watchdog);
+        if (finished || Date.now() - lastStep < watchdog) continue;
+        const status = await ask(win, container.controller ?? worker, { type: "STATUS" }, { timeout: statusTimeout });
+        if (finished) break;
+        if (status?.type === "STATUS" && status.saving) showStep(status.saving);
+        else return { type: "SAVE_DONE", result: "stopped", saved: null, failed: [] };
+      }
+      return new Promise(() => undefined);
+    })();
+    const done = await Promise.race([asked, stalled]);
+    finished = true;
     progress = null;
     result = done;
-    await refresh(true);
+    await refresh(true, true);
   };
 
   parts.primary.addEventListener("click", () => {
@@ -456,10 +494,10 @@ export async function mount(win, { statusTimeout = STATUS_TIMEOUT_MS } = {}) {
     const worker = container.controller;
     if (!worker) return;
     parts.remove.disabled = true;
-    const reply = await ask(win, worker, { type: "REMOVE_ALL" });
+    const reply = await ask(win, worker, { type: "REMOVE_ALL" }, { timeout: removeTimeout });
     parts.remove.disabled = false;
-    result = reply?.removed ? { result: "removed" } : null;
-    await refresh(true);
+    result = { result: reply?.removed ? "removed" : "not-removed" };
+    await refresh(true, true);
   });
   let watched = false;
   const watch = (registration) => {
@@ -479,6 +517,10 @@ export async function mount(win, { statusTimeout = STATUS_TIMEOUT_MS } = {}) {
     if (doc.visibilityState === "visible" && !progress) refresh();
   });
   container.addEventListener?.("controllerchange", () => refresh());
+  // offline.js marks a failed install or registration on the page whenever it happens, which may be after this ran.
+  new win.MutationObserver(() => {
+    if (!progress) refresh();
+  }).observe(doc.documentElement, { attributes: true, attributeFilter: ["data-offline"] });
 
   await refresh();
   return { refresh, state: () => current };
@@ -490,7 +532,7 @@ function stateName(s) {
   if (s.progress || s.status.saving) return "saving";
   if (s.status.saved) return "saved";
   if (s.waiting || s.newer) return "update-waiting";
-  if (s.status.partial) return "partial";
+  if (s.status.partial || s.result?.result === "partial" || s.result?.result === "stopped") return "partial";
   if (s.status.previous) return "outdated";
   return "not-saved";
 }

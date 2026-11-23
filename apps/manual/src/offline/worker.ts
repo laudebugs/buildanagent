@@ -106,6 +106,8 @@ export interface WorkerDeps {
   readonly openClients?: () => Promise<readonly string[]>;
   /** The time in milliseconds; tests pass a fixed clock. */
   readonly now?: () => number;
+  /** Whether this worker is the registration's active one, when the browser can say; undefined when it cannot. */
+  readonly isActive?: () => boolean | undefined;
 }
 
 /** The fields of a fetch event this module reads. `waitUntil` keeps the worker alive for a background write. */
@@ -160,12 +162,13 @@ export interface SaveProgress {
 /**
  * The end of a SAVE_ALL. `saved` holds every listed file; `partial` stopped with files missing, listed in `failed`;
  * `cancelled` stopped at CANCEL_SAVE or REMOVE_ALL; `refused` never started, because this worker is not the active
- * one (`not-active`) or the saved copy is being removed (`busy`).
+ * one (`not-active`) or the saved copy is being removed (`busy`). A `partial` save carries `quota` or `storage` when the
+ * browser refused a write.
  */
 export interface SaveDone {
   readonly type: "SAVE_DONE";
   readonly result: "saved" | "partial" | "cancelled" | "refused";
-  readonly reason?: "not-active" | "busy";
+  readonly reason?: "not-active" | "busy" | "quota" | "storage";
   readonly saved: SavedCopy | null;
   readonly failed: readonly SaveProblem[];
 }
@@ -457,7 +460,8 @@ export class OfflineWorker {
       return checked.reason;
     }
     await (await this.#cache()).put(key, checked.copy);
-    await this.#problem(path, checked.rewritten ? "rewritten" : null);
+    // The file is stored; a full disk that refuses the small problems record does not undo that.
+    await this.#problem(path, checked.rewritten ? "rewritten" : null).catch(() => undefined);
     return null;
   }
 
@@ -567,7 +571,7 @@ export class OfflineWorker {
     try {
       response = await this.#deps.fetch(request);
     } catch {
-      await this.#problem(new URL(key).pathname, "network");
+      await this.#problem(new URL(key).pathname, "network").catch(() => undefined);
       return "network";
     }
     return this.#put(key, response, true);
@@ -585,7 +589,11 @@ export class OfflineWorker {
         await readJson(await older.match(`${this.#deps.origin}${SAVED_RECORD}`)),
         name.slice(CACHE_PREFIX.length),
       );
-      if (copy?.complete && (!previous || copy.at > previous.at)) previous = { at: copy.at, build: copy.build };
+      // An older build may itself hold a carried-over copy that the reader never updated, after two deploys or more.
+      const carried = previousRecord(await readJson(await older.match(`${this.#deps.origin}${PREVIOUS_RECORD}`)));
+      for (const found of [copy?.complete ? { at: copy.at, build: copy.build } : null, carried]) {
+        if (found && (!previous || found.at > previous.at)) previous = found;
+      }
       for (const request of await older.keys()) {
         const key = this.keyFor(request.url);
         if (!key || (await cache.match(key))) continue;
@@ -625,13 +633,24 @@ export class OfflineWorker {
     this.#activated = true;
   }
 
-  // Whether this worker is the registration's active one: it activated in this instance, or its cache exists and
-  // holds a cleared pending mark, which install writes and activate clears.
+  // Whether this worker is the registration's active one: it activated in this instance, the browser says so, or its
+  // cache exists and holds a cleared pending mark, which install writes and activate clears. Without the browser's word,
+  // a worker whose cache the browser evicted has no mark to read, so it refuses until a later activation.
   async #isActive(): Promise<boolean> {
     if (this.#activated) return true;
+    const told = this.#deps.isActive?.();
+    if (told !== undefined) return told;
     if (!(await this.#cacheExists())) return false;
     const record = await this.#read<{ since?: unknown } | null>(PENDING_RECORD, null);
     return record !== null && typeof record === "object" && record.since === null;
+  }
+
+  // Whether this save's cache is still the one it started in. A later worker's activation may delete it, and a file in
+  // flight may then write it back, but never with the saved record this save wrote first.
+  // It opens the cache by name each time, because a Cache object a save already holds goes on naming the deleted one.
+  async #stillSaving(): Promise<boolean> {
+    if (!(await this.#cacheExists())) return false;
+    return (await (await this.#cache()).match(`${this.#deps.origin}${SAVED_RECORD}`)) !== undefined;
   }
 
   // Opening a cache creates it, so a save checks first that a later worker's activation has not deleted it.
@@ -858,7 +877,18 @@ export class OfflineWorker {
     if (this.#saving) this.#saving.cancelled = true;
   }
 
+  // Always resolves: a refused write anywhere, the records included, ends the save as partial with its reason, so the
+  // page that asked always gets an answer.
   async #runSave(run: SaveRun): Promise<SaveDone> {
+    try {
+      return await this.#saveFiles(run);
+    } catch (error) {
+      const reason = isQuotaError(error) ? "quota" : "storage";
+      return { type: "SAVE_DONE", result: "partial", reason, saved: null, failed: run.failed };
+    }
+  }
+
+  async #saveFiles(run: SaveRun): Promise<SaveDone> {
     if (!(await this.#isActive())) return refused("not-active");
     const started = this.#now();
     const cache = await this.#cache();
@@ -884,7 +914,7 @@ export class OfflineWorker {
     const next = async (): Promise<void> => {
       for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
         if (run.cancelled || stopped) return;
-        if (!(await this.#cacheExists())) {
+        if (!(await this.#stillSaving())) {
           stopped = "gone";
           return;
         }
@@ -905,11 +935,19 @@ export class OfflineWorker {
       }
     };
     await Promise.all(Array.from({ length: SAVE_CONCURRENCY }, next));
-    // A later worker's activation deleted this cache, and writing the record would bring it back.
+    // A later worker's activation deleted this cache. The files in flight may already have written it back with at
+    // most one file each; the saved record is never written, and the next activation deletes that orphan cache.
     if (stopped === "gone") return { type: "SAVE_DONE", result: "partial", saved: null, failed: run.failed };
     const complete = !run.cancelled && (await this.#storedPaths(cache)).size === this.#files.size;
     if (!complete) {
-      return { type: "SAVE_DONE", result: run.cancelled ? "cancelled" : "partial", saved: null, failed: run.failed };
+      const reason = stopped === "quota" ? "quota" : undefined;
+      return {
+        type: "SAVE_DONE",
+        result: run.cancelled ? "cancelled" : "partial",
+        ...(reason ? { reason } : {}),
+        saved: null,
+        failed: run.failed,
+      };
     }
     const at = this.#now();
     await this.#write(SAVED_RECORD, () => ({ at, build: this.#build.build, complete: true }));
@@ -940,7 +978,9 @@ export class OfflineWorker {
   /**
    * Removes the reader's saved copy. It stops a running save and deletes every file of this build's cache but the
    * shell, so the book still opens. It clears the saved record and the problems of the files it deleted, and deletes
-   * the older builds' caches that activate kept. Only the active worker removes anything.
+   * the older builds' caches that activate kept once no page of theirs is open; a cache an open page of an older build
+   * still reads stays until that page closes. Only the active worker removes anything, and a refused delete answers
+   * `removed: false`.
    */
   removeAll(): Promise<RemovedReply> {
     this.#removing ??= this.#remove().finally(() => {
@@ -950,6 +990,14 @@ export class OfflineWorker {
   }
 
   async #remove(): Promise<RemovedReply> {
+    try {
+      return await this.#removeFiles();
+    } catch {
+      return { type: "REMOVED", removed: false };
+    }
+  }
+
+  async #removeFiles(): Promise<RemovedReply> {
     if (!(await this.#isActive())) return { type: "REMOVED", removed: false };
     const running = this.#saving;
     if (running) {
@@ -967,15 +1015,7 @@ export class OfflineWorker {
     const before = problems.size;
     for (const path of [...problems.keys()]) if (!shell.has(path)) problems.delete(path);
     if (problems.size !== before) await this.#write(PROBLEMS_RECORD, () => Object.fromEntries(problems));
-    await this.#olderLoad;
-    const names = await this.#deps.caches.keys();
-    for (const name of new Set(this.#olderClients.values())) {
-      if (names.includes(name)) await this.#deleteUnlessPending(name);
-    }
-    if (this.#olderClients.size > 0) {
-      this.#olderClients = new Map();
-      await this.#write(OLDER_RECORD, () => ({}));
-    }
+    await this.pruneOlder();
     return { type: "REMOVED", removed: true };
   }
 

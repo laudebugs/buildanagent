@@ -29,6 +29,13 @@ interface ServiceWorkerScopeLike {
   readonly clients: {
     matchAll(options: { includeUncontrolled: boolean; type: "all" }): Promise<readonly { readonly id: string }[]>;
   };
+  // Both are missing in some browsers, so each is read with care.
+  readonly serviceWorker?: { readonly state: string };
+  readonly registration?: {
+    readonly active: { readonly state: string } | null;
+    readonly waiting: unknown;
+    readonly installing: unknown;
+  };
   fetch(request: Request): Promise<Response>;
   skipWaiting(): Promise<void>;
   addEventListener(type: "install" | "activate", listener: (event: ExtendableEventLike) => void): void;
@@ -43,7 +50,19 @@ const worker = new OfflineWorker(__MANUAL_OFFLINE__, {
   fetch: (request) => scope.fetch(request),
   openClients: async () =>
     (await scope.clients.matchAll({ includeUncontrolled: true, type: "all" })).map((client) => client.id),
+  isActive,
 });
+
+// Whether this worker is the active one, as far as the browser says: its own state where the browser exposes it, and
+// otherwise true when the registration has an activated worker and none installing or waiting, so the running worker
+// can only be that one. Undefined leaves the worker to its pending record.
+function isActive(): boolean | undefined {
+  if (scope.serviceWorker) return scope.serviceWorker.state === "activated";
+  const registration = scope.registration;
+  if (!registration) return undefined;
+  if (registration.active?.state === "activated" && !registration.waiting && !registration.installing) return true;
+  return undefined;
+}
 
 // No skipWaiting here: a new build waits until the reader presses Reload in the update notice, so an open page never
 // switches builds under the reader.

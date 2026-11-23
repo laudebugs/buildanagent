@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
 import { test } from "vitest";
-import { formatDate, formatSize, MANIFEST_URL, mount } from "../public/scripts/save-offline.js";
+import { formatDate, formatSize, MANIFEST_URL, mount, view } from "../public/scripts/save-offline.js";
 import { OfflineWorker } from "../src/offline/worker.js";
 import { buildOf, FakeCaches, FakeNetwork, ORIGIN, ok } from "./offline-fakes.js";
 
@@ -47,13 +47,16 @@ class FakeChannel {
 class PageWorker {
   readonly sent: unknown[] = [];
   readonly logic: OfflineWorker | null;
-  constructor(logic: OfflineWorker | null) {
+  /** Message types this worker never answers, as a worker the browser stopped would not. */
+  readonly drop: Set<string>;
+  constructor(logic: OfflineWorker | null, drop: string[] = []) {
     this.logic = logic;
+    this.drop = new Set(drop);
   }
   postMessage(message: unknown, ports: FakePort[] = []) {
     this.sent.push(message);
     const port = ports[0];
-    if (!this.logic) return;
+    if (!this.logic || this.drop.has((message as { type: string }).type)) return;
     this.logic
       .handleMessage(message, { post: (progress) => port?.postMessage(progress) })
       .then((outcome) => outcome && port?.postMessage(outcome));
@@ -159,6 +162,9 @@ test("sizes read as the reader expects, and a date as day, month and year", () =
   assert.equal(formatSize(640_000), "about 640 KB");
   assert.equal(formatSize(1_234_000_000), "about 1.2 GB");
   assert.equal(formatSize(12), "less than 1 KB");
+  assert.equal(formatSize(999_600), "about 1 MB", "rounding to 1000 KB moves up a unit");
+  assert.equal(formatSize(999_960_000), "about 1 GB");
+  assert.equal(formatSize(999_400), "about 999 KB");
   assert.equal(formatDate(NOW), "23 November 2026");
 });
 
@@ -188,7 +194,7 @@ test("storage turned off, a worker that failed to install, an uncontrolled page 
   await mount(denied.win);
   assert.equal(denied.ui.state(), "This browser blocks storage for this site, so the manual can't be saved.");
 
-  const failed = page({ worker: new PageWorker(null) });
+  const failed = page({ worker: null });
   failed.doc.documentElement.dataset.offline = "install-failed";
   await mount(failed.win);
   assert.equal(failed.ui.state(), "The offline copy could not be set up in this browser.");
@@ -294,14 +300,15 @@ test("Remove clears the copy and offers Save again; offline, a saved copy says s
 
 test("a refused quota shows a partial save with the reason and Try again, never Saved", async () => {
   const { logic, caches } = await readyWorker();
+  // Once full, the disk refuses every write, the worker's own records included.
   let puts = 0;
-  (await caches.open(logic.cacheName)).refuse = (key) =>
-    key.includes("__manual-offline__") || ++puts <= 3 ? null : new DOMException("Full.", "QuotaExceededError");
+  (await caches.open(logic.cacheName)).refuse = () =>
+    ++puts <= 5 ? null : new DOMException("Full.", "QuotaExceededError");
   const { win, ui } = page({ worker: new PageWorker(logic) });
   await mount(win);
   ui.primary().click();
   await settle();
-  assert.equal(ui.state(), `Partly saved: ${SHELL.length + 3} of ${FILES} files.`);
+  assert.match(ui.state(), new RegExp(`^Partly saved: \\d+ of ${FILES} files\\.$`));
   assert.match(ui.detail(), /^The browser ran out of room for the manual\./);
   assert.equal(ui.primary().textContent, "Try again");
   assert.equal(ui.remove().hidden, false);
@@ -353,4 +360,120 @@ test("after an update, an older saved copy offers Update the saved copy, with wh
   ui.primary().click();
   await settle();
   assert.equal(ui.state(), "Saved on 24 November 2026, version 11111111.");
+});
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** A worker over the shared caches whose downloads wait until the test releases them. */
+async function gatedWorker() {
+  const { caches } = await readyWorker();
+  let release: () => void = () => undefined;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const network = new FakeNetwork(
+    Object.fromEntries(Object.entries(TEXTS).map(([path, text]) => [path, () => ok(text)])),
+  );
+  const logic = new OfflineWorker(buildOf(BUILD, TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: async (request) => {
+      await gate;
+      return network.fetch(request);
+    },
+    now: () => NOW,
+  });
+  return { logic, release: () => release() };
+}
+
+test("a save whose worker stops answering ends as partial once STATUS shows no save running", async () => {
+  // The worker the browser stopped never answers SAVE_ALL; the one it starts next reports no save.
+  const { logic } = await readyWorker();
+  const { win, ui } = page({ worker: new PageWorker(logic, ["SAVE_ALL"]) });
+  await mount(win, { watchdog: 50, statusTimeout: 10 });
+  ui.primary().click();
+  await Promise.resolve();
+  assert.equal(ui.root().dataset.state, "saving");
+  await wait(150);
+  await settle();
+  assert.equal(ui.root().dataset.state, "partial");
+  assert.equal(ui.state(), `Partly saved: ${SHELL.length} of ${FILES} files.`);
+  assert.equal(ui.detail().split(". ")[0], "The download stopped before it finished");
+  assert.equal(ui.primary().textContent, "Try again");
+});
+
+test("a slow save that STATUS still reports as running keeps its progress bar until it finishes", async () => {
+  const { logic, release } = await gatedWorker();
+  const { win, ui } = page({ worker: new PageWorker(logic) });
+  await mount(win, { watchdog: 10, statusTimeout: 10 });
+  ui.primary().click();
+  await wait(60);
+  await settle();
+  assert.equal(ui.root().dataset.state, "saving", "the watchdog asked and found the save running");
+  release();
+  await settle();
+  assert.match(ui.state(), /^Saved on /);
+});
+
+test("Cancel on a save this tab joined leaves a pressable Try again, not a disabled button", async () => {
+  const { logic, release } = await gatedWorker();
+  const running = logic.saveAll();
+  const { win, ui } = page({ worker: new PageWorker(logic) });
+  await mount(win);
+  await settle();
+  assert.equal(ui.primary().textContent, "Cancel", "the page joined the save another tab started");
+  ui.primary().click();
+  assert.equal(ui.primary().disabled, true);
+  release();
+  await running;
+  await settle();
+  assert.equal(ui.primary().textContent, "Try again");
+  assert.equal(ui.primary().disabled, false);
+});
+
+test("a Remove the worker never answers gives up after its timeout and says the copy was not removed", async () => {
+  const { logic } = await readyWorker();
+  await logic.saveAll();
+  const { win, ui } = page({ worker: new PageWorker(logic, ["REMOVE_ALL"]) });
+  await mount(win, { removeTimeout: 10 });
+  ui.remove().click();
+  await wait(30);
+  await settle();
+  assert.match(ui.state(), /^Saved on /);
+  assert.equal(ui.detail(), "The browser would not remove the saved copy. Try again.");
+  assert.equal(ui.remove().disabled, false);
+});
+
+test("a result shows only until a refresh the reader did not cause, and a busy refusal says the copy is being removed", async () => {
+  const { logic } = await readyWorker();
+  await logic.saveAll();
+  const { win, ui } = page({ worker: new PageWorker(logic) });
+  const control = await mount(win);
+  ui.remove().click();
+  await settle();
+  assert.equal(ui.state(), "Removed the saved copy.");
+  await control?.refresh();
+  assert.equal(ui.state(), "Not saved.");
+
+  const status = await logic.status();
+  const busy = view({ kind: "status", status, result: { result: "refused", reason: "busy" } });
+  assert.equal(busy.state, "The saved copy is being removed. Try again in a moment.");
+  assert.equal(busy.primary?.action, "save");
+  const updating = view({ kind: "status", status, result: { result: "refused", reason: "not-active" } });
+  assert.equal(updating.state, "The offline copy is updating. Reload the page, then save.");
+  assert.equal(updating.primary, null);
+});
+
+test("an install that fails after the control loaded shows at once, and an older worker that still controls wins", async () => {
+  const uncontrolled = page({ worker: null });
+  await mount(uncontrolled.win);
+  assert.equal(uncontrolled.ui.root().dataset.state, "not-controlled");
+  uncontrolled.doc.documentElement.dataset.offline = "install-failed";
+  await settle();
+  assert.equal(uncontrolled.ui.state(), "The offline copy could not be set up in this browser.");
+
+  const controlled = page({ worker: new PageWorker((await readyWorker()).logic) });
+  controlled.doc.documentElement.dataset.offline = "install-failed";
+  await mount(controlled.win);
+  assert.equal(controlled.ui.state(), "Not saved.", "an update that failed leaves the working worker in charge");
 });
