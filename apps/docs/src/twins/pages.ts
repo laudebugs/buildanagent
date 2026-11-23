@@ -65,9 +65,12 @@ function markdownFiles(dir: string): string[] {
 
 /** The front matter of a page's text and the text after it. */
 export function splitFrontmatter(text: string): { data: Record<string, unknown>; body: string } {
-  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  // The closing fence is a line of exactly `---`, so `----` in a body line never closes the block. A file may use CRLF,
+  // end at the closing fence, or hold an empty block.
+  const match = /^---\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/.exec(text);
   if (match === null) return { data: {}, body: text };
-  return { data: (parse(match[1] ?? "") ?? {}) as Record<string, unknown>, body: text.slice(match[0].length) };
+  const yaml = (match[1] ?? "").replace(/\r/g, "");
+  return { data: (parse(yaml) ?? {}) as Record<string, unknown>, body: text.slice(match[0].length) };
 }
 
 /**
@@ -137,13 +140,19 @@ export const OPTIONAL_SECTION = "Optional";
 const HOME_SECTION = "Overview";
 const LEFTOVER_SECTION = "More";
 
+/** The slug of an internal sidebar link such as `/reference/packages/#top`, or `undefined` for an outside address. */
+function internalSlug(link: string): string | undefined {
+  if (!link.startsWith("/") || link.startsWith("//")) return undefined;
+  return normalizeSlug(link.split(/[?#]/)[0] ?? "");
+}
+
 /**
  * The twin pages in reading order: the home page, then the sidebar's order, each group's label as its section, with
  * the generated reference under `Optional`, and any page the sidebar leaves out last. An `autogenerate` group lists its
  * folder's pages in slug order.
  */
 export function readingOrder(pages: readonly TwinPage[], sidebar: readonly SidebarEntry[]): PlacedPage[] {
-  const bySlug = new Map(pages.map((page) => [page.slug, page]));
+  const bySlug = new Map(pages.map((page) => [normalizeSlug(page.slug), page]));
   const placed: PlacedPage[] = [];
   const seen = new Set<string>();
   const place = (page: TwinPage | undefined, section: string): void => {
@@ -155,7 +164,10 @@ export function readingOrder(pages: readonly TwinPage[], sidebar: readonly Sideb
   const walk = (entries: readonly SidebarEntry[], section: string): void => {
     for (const entry of entries) {
       const name = section === "" ? (entry.label ?? "") : section;
-      if (entry.slug !== undefined) place(bySlug.get(entry.slug.replace(/^\/+|\/+$/g, "")), name);
+      if (entry.slug !== undefined) place(bySlug.get(normalizeSlug(entry.slug)), name);
+      // An internal link names a page by its address, so it places that page as a slug does; an outside link names none.
+      const target = entry.link === undefined ? undefined : internalSlug(entry.link);
+      if (target !== undefined) place(bySlug.get(target), name);
       if (entry.autogenerate !== undefined) {
         const dir = entry.autogenerate.directory.replace(/^\/+|\/+$/g, "");
         for (const page of pages) if (page.slug === dir || page.slug.startsWith(`${dir}/`)) place(page, name);

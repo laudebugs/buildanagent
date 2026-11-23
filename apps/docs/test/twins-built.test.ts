@@ -53,16 +53,31 @@ test("twins are separate files: no page's HTML holds a twin's text, only its add
   const dist = builtSite();
   const sample = pages.find((page) => page.slug === "concepts/stop-reasons");
   assert.ok(sample !== undefined);
-  const html = readFileSync(htmlOf(dist, sample), "utf8");
-  const firstParagraph =
-    read(sample.url)
-      .split("\n")
-      .find((line) => line.length > 60 && !line.startsWith("#")) ?? "";
-  assert.ok(firstParagraph !== "");
-  // The page shows the same sentence as HTML, so compare a fragment that Markdown syntax would break in HTML.
-  assert.ok(!html.includes("# Stop reasons\n"), "the twin's heading line is not in the page");
-  assert.equal(html.split(sample.url).length - 1 >= 2, true, "the page names its twin in the link and the button");
-  assert.ok(!html.includes("Source: "), "no llms-full.txt text in a page");
+  assert.equal(
+    readFileSync(htmlOf(dist, sample), "utf8").split(sample.url).length - 1 >= 2,
+    true,
+    "the page names its twin in the link and the button",
+  );
+  // Markdown-only text: a fence line of code, a Markdown link to a twin, the "Source:" line of llms-full.txt, and the
+  // twin's own heading line. HTML writes each of these with tags and entities, so one in a page means a twin was
+  // inlined, for instance in a <script type="text/markdown">.
+  for (const page of pages) {
+    const html = readFileSync(htmlOf(dist, page), "utf8");
+    const twin = read(page.url);
+    assert.doesNotMatch(html, /<script[^>]*type="text\/markdown"/, `${page.url}: a twin in a script tag`);
+    assert.doesNotMatch(
+      html,
+      /\]\((?:https:\/\/docs\.buildanagent\.fyi)?\/[^)\s]*\.md\)/,
+      `${page.url}: a Markdown link`,
+    );
+    assert.ok(!html.includes("Source: https://"), `${page.url}: llms-full.txt text`);
+    assert.ok(!html.includes(`${twin.split("\n")[0]}\n\n`), `${page.url}: the twin's heading line`);
+    const fenced = twin.split("\n").find((line, i, all) => line.length > 30 && all[i - 1]?.startsWith("```"));
+    if (fenced !== undefined) assert.ok(!html.includes(`\n${fenced}\n`), `${page.url}: a code line of the twin, raw`);
+    // A long line with Markdown syntax (a link or bold text) is in the page as tags, never as the twin's raw line.
+    const long = twin.split("\n").filter((line) => line.length > 60 && /\]\(|^> \*\*|^\*\*/.test(line));
+    for (const line of long.slice(0, 3)) assert.ok(!html.includes(line), `${page.url}: twin text inline`);
+  }
 });
 
 test("no twin keeps a file= fence, a ::figure, an MDX tag, an import or a comment, and example code is in", () => {

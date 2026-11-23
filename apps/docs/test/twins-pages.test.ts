@@ -4,7 +4,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "vitest";
 import { checkTwins, hasAlternateLink, llmsFullTxt, llmsTxt, writeTwins } from "../src/twins/build.js";
-import { OPTIONAL_SECTION, readingOrder, readPages, slugOf, type TwinPage, twinSlugs } from "../src/twins/pages.js";
+import {
+  OPTIONAL_SECTION,
+  readingOrder,
+  readPages,
+  slugOf,
+  splitFrontmatter,
+  type TwinPage,
+  twinSlugs,
+} from "../src/twins/pages.js";
 import { hasTwin, normalizeSlug, twinHref, twinUrl } from "../src/twins/rule.js";
 
 const page = (slug: string, extra: Partial<TwinPage> = {}): TwinPage => ({
@@ -224,4 +232,52 @@ test("the head link is found whatever order its attributes come in, and only for
   assert.ok(hasAlternateLink('<link href="/a.md" type="text/markdown" rel="alternate"/>', "/a.md"));
   assert.ok(!hasAlternateLink(linkTag("/b.md"), "/a.md"));
   assert.ok(!hasAlternateLink('<link rel="alternate" type="application/rss+xml" href="/a.md">', "/a.md"));
+});
+
+test("front matter is read with CRLF line ends, a closing fence at the end of the file and an empty block", () => {
+  assert.deepEqual(splitFrontmatter("---\r\ntitle: A\r\ndraft: true\r\n---\r\nBody\r\n"), {
+    data: { title: "A", draft: true },
+    body: "Body\r\n",
+  });
+  assert.deepEqual(splitFrontmatter("---\ntitle: A\n---"), { data: { title: "A" }, body: "" });
+  assert.deepEqual(splitFrontmatter("---\n---\nBody\n"), { data: {}, body: "Body\n" });
+  // Four dashes is not a closing fence: the block runs to the line of exactly three.
+  assert.deepEqual(splitFrontmatter("---\ntitle: A\nnote: x ----\n---\n----\nB\n"), {
+    data: { title: "A", note: "x ----" },
+    body: "----\nB\n",
+  });
+  assert.deepEqual(splitFrontmatter("Body\n---\nx\n---\n"), { data: {}, body: "Body\n---\nx\n---\n" });
+});
+
+test("the sidebar places a page by slug `index` and by an internal link, and leaves an outside link alone", () => {
+  const pages = [page(""), page("reference/packages"), page("other"), page("loose")];
+  const placed = readingOrder(pages, [
+    { label: "Home", slug: "index" },
+    { label: "Packages", link: "/reference/packages/" },
+    { label: "Outside", link: "https://example.com/other" },
+    { label: "Other", link: "/other/#top" },
+  ]);
+  assert.deepEqual(
+    placed.map(({ section, page: p }) => `${section}:${p.slug}`),
+    ["Overview:", "Packages:reference/packages", "Other:other", "More:loose"],
+  );
+});
+
+test("llms.txt keeps each entry on one line and escapes brackets in a title", () => {
+  const placed = readingOrder(
+    [
+      page("a", {
+        title: "Use [brackets] and Array<T>",
+        description: "A folded\n  description\nthat ends in a newline.\n",
+      }),
+    ],
+    [{ label: "G", items: [{ slug: "a" }] }],
+  );
+  const text = llmsTxt(placed, { origin: "https://docs.test", title: "Docs", summary: "S." });
+  assert.ok(
+    text.includes(
+      "- [Use \\[brackets\\] and Array<T>](https://docs.test/a.md): A folded description that ends in a newline.\n",
+    ),
+    text,
+  );
 });

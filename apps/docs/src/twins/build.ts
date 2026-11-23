@@ -44,8 +44,11 @@ export function llmsTxt(placed: readonly PlacedPage[], site: TwinSite): string {
   for (const name of names) {
     lines.push("", `## ${name}`, "");
     for (const { page } of sections.get(name) ?? []) {
-      const description = page.description === undefined ? "" : `: ${page.description}`;
-      lines.push(`- [${page.title}](${absolute(site, page)})${description}`);
+      // One list item is one line: a folded YAML description ends in a newline, and a title's brackets would end the link.
+      const text = page.description?.replace(/\s+/g, " ").trim();
+      const description = text === undefined || text === "" ? "" : `: ${text}`;
+      const title = page.title.replace(/\s+/g, " ").trim().replace(/[[\]]/g, "\\$&");
+      lines.push(`- [${title}](${absolute(site, page)})${description}`);
     }
   }
   return `${lines.join("\n")}\n`;

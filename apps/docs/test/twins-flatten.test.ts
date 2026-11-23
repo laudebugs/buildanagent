@@ -219,3 +219,25 @@ test("a twin opens with the title and the description, and leaves the descriptio
   );
   assert.equal(twinMarkdown({ title: "Foo", description: undefined }, "Body.\n", false, ctx), "# Foo\n\nBody.\n");
 });
+
+test("a component whose content starts on the tag's own line is dedented by the tag's indent, not by its column", () => {
+  // The first child starts at column 19, after the tag; removing 18 spaces would flatten the lines below it.
+  const out = mdx('<Aside type="tip">Try this:\n      keep these six spaces</Aside>');
+  assert.equal(out, "> **Tip**\n>\n> Try this:\n>       keep these six spaces\n");
+  // Children on their own lines are still dedented by the tag's indent.
+  assert.equal(mdx("  <Aside>\n  Text.\n\n      code\n  </Aside>"), "> **Note**\n>\n> Text.\n>\n>     code\n");
+});
+
+test("a string-literal expression keeps its characters literal in the twin", () => {
+  assert.equal(
+    mdx("Type {'*'} and {'_'} and {'<'} and {`#`} and {'[x]'}.\n"),
+    "Type \\* and \\_ and \\< and \\# and \\[x\\].\n",
+  );
+});
+
+test("a line with an info string never closes a fence, so blank lines after it stay", () => {
+  const body = "````md\n````ts\n\n\n\nconst a = 1;\n````\n\n\n\nEnd.\n";
+  assert.equal(flattenBody(body, false, ctx), "````md\n````ts\n\n\n\nconst a = 1;\n````\n\nEnd.\n");
+  const tilde = "~~~~md\n~~~~ts\n\n\n\nx\n~~~~\n\n\n\nEnd.\n";
+  assert.equal(flattenBody(tilde, false, ctx), "~~~~md\n~~~~ts\n\n\n\nx\n~~~~\n\nEnd.\n");
+});

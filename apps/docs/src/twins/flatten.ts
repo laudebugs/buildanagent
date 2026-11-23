@@ -107,6 +107,14 @@ function textOf(node: AnyNode): string {
   return "children" in node ? (node.children as AnyNode[]).map(textOf).join("") : "";
 }
 
+/**
+ * Backslash-escapes the characters Markdown reads as syntax, so a string literal in an MDX expression, which the page
+ * shows as plain characters, stays plain characters in the twin.
+ */
+function escapeMarkdown(text: string): string {
+  return text.replace(/[\\`*_[\]<>#|~]/g, "\\$&");
+}
+
 /** One replacement of a span of the source. */
 interface Edit {
   readonly start: number;
@@ -237,10 +245,11 @@ class Flattener {
     } else if (body.length === 0) return "";
     else if (body.length === 1 && body[0]?.type === "ExpressionStatement") {
       const expression = body[0].expression;
-      if (expression.type === "Literal" && typeof expression.value === "string") return expression.value;
+      if (expression.type === "Literal" && typeof expression.value === "string")
+        return escapeMarkdown(expression.value);
       const [only] = expression.quasis ?? [];
       if (expression.type === "TemplateLiteral" && expression.expressions?.length === 0 && only?.value.cooked != null)
-        return only.value.cooked;
+        return escapeMarkdown(only.value.cooked);
     }
     return fail(
       this.ctx,
@@ -364,7 +373,12 @@ class Flattener {
       cursor = edit.end;
     }
     out += this.source.slice(cursor, to.end);
-    return dedent(out, from.column - 1);
+    // The indent to remove is the one of the line the first node starts on. When the node starts on the tag's own line
+    // (`<Aside>Try this:`), its column counts the tag too, and removing that many spaces would eat the indent of code
+    // further down.
+    const lineStart = this.source.lastIndexOf("\n", from.start - 1) + 1;
+    const lead = /^ */.exec(this.source.slice(lineStart, from.start))?.[0].length ?? 0;
+    return dedent(out, Math.min(lead, from.column - 1));
   }
 }
 
@@ -374,11 +388,12 @@ function tidy(text: string): string {
   let fence: string | undefined;
   let blank = 0;
   for (const line of text.split("\n")) {
-    const mark = /^\s*(`{3,}|~{3,})/.exec(line)?.[1] ?? "";
     if (fence === undefined) {
-      if (mark !== "") fence = mark;
-    } else if (mark.startsWith(fence.charAt(0)) && mark.length >= fence.length) {
-      fence = undefined;
+      fence = /^\s*(`{3,}|~{3,})/.exec(line)?.[1];
+    } else {
+      // A closing fence has no info string, so a nested "```ts" line inside a longer fence doesn't close it.
+      const close = /^\s*(`{3,}|~{3,})\s*$/.exec(line)?.[1] ?? "";
+      if (close.startsWith(fence.charAt(0)) && close.length >= fence.length) fence = undefined;
     }
     if (fence === undefined && line.trim() === "") {
       blank += 1;
