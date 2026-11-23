@@ -52,7 +52,7 @@ The page chrome differs from Starlight's defaults in the places the next section
 
 ### Components the docs override
 
-The docs override four Starlight components, each for one reason, and every other component is Starlight's own. A fifth override needs a row here and a test that fails when it drifts from its reason.
+The docs override four Starlight components, each for one reason, and every other component is Starlight's own. A fifth override needs a row here, and `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
 
 | Component | File | Why |
 | --- | --- | --- |
@@ -65,7 +65,7 @@ The docs override four Starlight components, each for one reason, and every othe
 
 ### Tabs and MDX
 
-A page that needs Starlight's `<Tabs>` is an `.mdx` file that imports `Tabs` and `TabItem` from `@astrojs/starlight/components`. Give every group of tabs a `syncKey`, so a reader's choice of package manager carries to the next page: the Install page does this with pnpm, npm and yarn. The content tests read an `.mdx` page as they read Markdown, except that a line holding only an import or one component tag is blank to them, so the paragraph, sentence and heading rules count the same words. Fences in sibling tabs take the sentence before the first tab as their introduction. A component tag that carries words on its own line stays in the body and is counted. `test/mdx.test.ts` pins both rules.
+A page that needs Starlight's `<Tabs>` is an `.mdx` file that imports `Tabs` and `TabItem` from `@astrojs/starlight/components`. Give every group of tabs a `syncKey`, so a reader's choice of package manager carries to the next page: the Install page does this with pnpm, npm and yarn. The content tests read an `.mdx` page as they read Markdown, except that a line holding only an import or one component tag is blank to them, so the paragraph, sentence and heading rules count the same words. Fences in sibling tabs take the sentence before the first tab as their introduction. A component tag that carries words on its own line stays in the body and is counted, and so do the `title`, `label` and `description` values of a one-line tag. Imports, exports and `{/* */}` comments outside a code block are blank too, and a code block's own lines are never changed. `test/mdx.test.ts` pins these rules.
 
 Five test files guard the theme and the header, and `test/logo.test.ts` and `test/mdx.test.ts` guard the logo and MDX support described above:
 

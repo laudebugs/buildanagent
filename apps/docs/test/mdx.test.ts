@@ -120,3 +120,31 @@ test("imports, exports and comments outside a fence leave no words in the body",
   );
   assert.equal(body.replace(/\s+/g, " ").trim(), "Real words.");
 });
+
+test("prose that starts with the letters 'import' is not an import, and no statement runs through a fence", () => {
+  const page = [
+    "Importantly, this stays.",
+    "Imported words stay too, and so do imports of any kind.",
+    "",
+    "import data from the start of a sentence",
+    "",
+    "```ts",
+    "const a = 1;",
+    "```",
+    "",
+    'import { x } from "y";',
+  ].join("\n");
+  const { body, fences } = splitFences(page, true);
+  assert.match(body, /Importantly, this stays\./);
+  assert.match(body, /Imported words stay too/);
+  assert.match(body, /import data from the start/);
+  assert.equal(fences.length, 1);
+  assert.equal(fences[0]?.code, "const a = 1;");
+  assert.doesNotMatch(body, /import \{ x \}/);
+});
+
+test("an export with a bracket inside a string still ends where its statement ends", () => {
+  const { body } = splitFences(['export const note = "(see below";', "", "Real words."].join("\n"), true);
+  assert.match(body, /Real words\./);
+  assert.doesNotMatch(body, /export/);
+});

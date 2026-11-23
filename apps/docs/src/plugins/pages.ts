@@ -76,20 +76,31 @@ const VISIBLE_ATTRIBUTE = /\b(?:title|label|description)=(?:"([^"]*)"|'([^']*)')
 /** A one-line `{/* ... *\/}` comment, a side-effect import or a one-line import: code, not prose. */
 const MDX_CODE_LINE = /^\s*(?:\{\/\*.*\*\/\}|import\s+["'][^"']+["'];?|import\s.+\sfrom\s+["'][^"']+["'];?)\s*$/;
 
+/** A line that opens a fenced code block. */
+const FENCE_OPEN = /^\s*(?:`{3,}|~{3,})/;
+
+/** A string or template literal on one line, which the export scan drops before it counts brackets. */
+const STRING_LITERAL = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
+
 /** How many lines from `start` an MDX import, export or comment spans, or 0 when the line starts none of them. */
 function codeSpan(lines: readonly string[], start: number): number {
   const first = lines[start] ?? "";
   if (MDX_CODE_LINE.test(first)) return 1;
-  const opens = /^\s*(import\s*[{*\w]|export\s+(?:const|let|var|function)\b|\{\/\*)/.test(first);
-  if (!opens) return 0;
+  // `import` must be followed by a space and a name, or by `{` or `*`, so prose such as "Importantly, ..." is not one.
+  const kind = /^\s*(?:(import)(?:\s+[\w{*]|\s*[{*])|(export)\s+(?:const|let|var|function)\b|(\{\/\*))/.exec(first);
+  if (kind === null) return 0;
+  const isComment = kind[3] !== undefined;
   // A multi-line import ends on its `from` line, a comment on `*/}`, and an export once its brackets balance.
   let depth = 0;
   for (let j = start; j < lines.length; j += 1) {
     const line = lines[j] ?? "";
-    if (/^\s*import/.test(first) && /\sfrom\s+["'][^"']+["'];?\s*$/.test(line)) return j - start + 1;
-    if (/^\s*\{\/\*/.test(first) && /\*\/\}\s*$/.test(line)) return j - start + 1;
-    if (/^\s*export/.test(first)) {
-      for (const ch of line) depth += "({[".includes(ch) ? 1 : ")}]".includes(ch) ? -1 : 0;
+    // No statement spans a fence, and an import or export does not span a blank line; a comment may.
+    if (j > start && (FENCE_OPEN.test(line) || (!isComment && line.trim() === ""))) return 0;
+    if (kind[1] !== undefined && /\sfrom\s+["'][^"']+["'];?\s*$/.test(line)) return j - start + 1;
+    if (isComment && /\*\/\}\s*$/.test(line)) return j - start + 1;
+    if (kind[2] !== undefined) {
+      // Brackets inside string and template literals do not count.
+      for (const ch of line.replace(STRING_LITERAL, "")) depth += "({[".includes(ch) ? 1 : ")}]".includes(ch) ? -1 : 0;
       if (depth <= 0) return j - start + 1;
     }
   }

@@ -72,7 +72,7 @@ test("every built page has the header title with the mark, the wordmark and the 
   const pages = readdirSync(out, { recursive: true, encoding: "utf8" }).filter((path) => path.endsWith(".html"));
   for (const path of pages) {
     const html = readFileSync(join(out, path), "utf8");
-    const link = /<a href="\/" class="site-title[^"]*">(.*?)<\/a>/.exec(html)?.[1] ?? "";
+    const link = /<a href="\/"[^>]*class="site-title[^"]*"[^>]*>([\s\S]*?)<\/a>/.exec(html)?.[1] ?? "";
     assert.match(link, /<svg[^>]*aria-hidden="true"/, `${path}: no mark in the header title`);
     assert.match(link, /Build An Agent<\/span> <span class="kind[^"]*">docs<\/span>/, `${path}: no wordmark`);
     assert.match(

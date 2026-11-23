@@ -62,6 +62,13 @@ async function launch(): Promise<Browser | undefined> {
   }
 }
 
+/**
+ * A pixel inside the frame, derived from the 64-unit viewBox at a 16-pixel render (4 units per pixel). The frame's inner
+ * edge is 9.5 units from the box edge, so it is pixels 3 to 12; the chevron spans x 18.5 to 36.5 and y 20.5 to 43.5 and the
+ * caret sits at y 40.5 to 45.5. The point (46, 18), which is pixel (11, 4), is at least 1.5 pixels from each stroke.
+ */
+const WINDOW = { x: Math.floor(46 / 4), y: Math.floor(18 / 4) };
+
 /** The luminance of a pixel from 0 to 1, from its red, green and blue bytes. */
 const luminance = (r: number, g: number, b: number) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
@@ -99,7 +106,7 @@ test("the favicon stays legible at 16 pixels in light and dark (renders in headl
       assert.ok(ink.length >= 40 && ink.length <= 160, `${scheme}: ${ink.length} of 256 pixels are ink`);
       // Inside the frame and beside the chevron, the drawing leaves the ground showing, so the window reads as a window.
       assert.ok(
-        Math.abs(luminance(...(pixels[4 * 16 + 11] as Rgb)) - background) < 0.1,
+        Math.abs(luminance(...(pixels[WINDOW.y * 16 + WINDOW.x] as Rgb)) - background) < 0.1,
         `${scheme}: the window is filled`,
       );
       // The caret's own colour, not the frame's: its red exceeds its blue by more than the frame's does.
