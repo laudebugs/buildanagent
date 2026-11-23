@@ -1,10 +1,16 @@
 ---
 import Default from "@astrojs/starlight/components/Footer.astro";
 
+import { mainDocsLink } from "../chrome.js";
+
 // The `{" "}` keep the spaces around each link: Astro's HTML compression drops a line break next to an element.
 ---
 
 <Default {...Astro.props}><slot /></Default>
+<p class="main-docs">
+  <a href={mainDocsLink.href}>{mainDocsLink.label}</a>{" "}
+  describe the unreleased code on the main branch.
+</p>
 <p class="license">
   These docs are licensed{" "}
   <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. The{" "}
@@ -13,6 +19,7 @@ import Default from "@astrojs/starlight/components/Footer.astro";
 </p>
 
 <style>
+  .main-docs,
   .license {
     margin-top: 1rem;
     color: var(--sl-color-gray-3);
@@ -20,6 +27,7 @@ import Default from "@astrojs/starlight/components/Footer.astro";
   }
 
   /* Starlight colours only the links inside a page's content, so the footer's take the link colour here. */
+  .main-docs a,
   .license a {
     color: var(--color-link);
   }

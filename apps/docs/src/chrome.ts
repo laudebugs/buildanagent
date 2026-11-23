@@ -17,3 +17,9 @@ export const siteLinks: readonly ChromeLink[] = [
   { label: "Manual", href: "https://manual.buildanagent.fyi" },
   { label: "Site", href: "https://buildanagent.fyi" },
 ];
+
+/**
+ * The docs for the code on `main`, which the footer links to in place of a version switcher. Until the first stable
+ * release, docs.buildanagent.fyi serves main and this host is unused, so the link works from the switch onward.
+ */
+export const mainDocsLink: ChromeLink = { label: "Docs for main", href: "https://next.docs.buildanagent.fyi/" };
