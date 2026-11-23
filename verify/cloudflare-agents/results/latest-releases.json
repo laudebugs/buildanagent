@@ -1,9 +1,9 @@
 {
-  "checkedAt": "2026-11-18T12:37:38.586Z",
+  "checkedAt": "2026-11-23T01:16:40.815Z",
   "latest": {
-    "agents": "0.33.0",
-    "@cloudflare/think": "0.23.0",
-    "@cloudflare/ai-chat": "0.12.2"
+    "agents": "0.34.0",
+    "@cloudflare/think": "0.24.0",
+    "@cloudflare/ai-chat": "0.12.3"
   },
-  "main": "1a450e71325c25ca1ec8b0013d756fe0c733b6f3"
+  "main": "f070719721ec25d95bf46ba1884699b3f151db55"
 }

@@ -61,7 +61,11 @@ export default defineConfig({
       favicon: "/favicon.svg",
       description: "Docs for the buildanagent gateway and SDK: build an agent, test it offline, ship it.",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
-      components: { Footer: "./src/components/Footer.astro", Head: "./src/components/Head.astro" },
+      components: {
+        Footer: "./src/components/Footer.astro",
+        Head: "./src/components/Head.astro",
+        SocialIcons: "./src/components/SocialIcons.astro",
+      },
       // The book's theme: its tokens, mapped onto Starlight's variables, and its code panels in both modes. The
       // panel colours are measured at 4.5:1 or more, so Expressive Code must not shift them to its own minimum. That
       // also turns off its correction on marked, inserted and deleted lines, so the markers take measured panel colours
