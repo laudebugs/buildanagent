@@ -97,6 +97,10 @@ await checkFields("popover sheet", ["textarea.notes-pop__field"]);
 // A short window stands in for the on-screen keyboard: the sheet must still sit inside it and the page must not jump.
 await page.focus(".notes-pop__field");
 const before = await page.evaluate(() => scrollY);
+const passageBottom = await page.evaluate(() => {
+  const lines = [...CSS.highlights.get("manual-hl-blue")][0].getClientRects();
+  return lines[lines.length - 1].bottom;
+});
 await page.setViewportSize({ width, height: 420 });
 await page.waitForTimeout(300);
 const fit = await page.evaluate(() => {
@@ -118,10 +122,11 @@ check(
   `the sheet fits a ${width}x420 window (${JSON.stringify(fit)})`,
 );
 check(fit.actions <= fit.h + 1, "Save and Remove stay inside the short window");
-// The page may scroll a few pixels, only so far as the passage needs to stay above the lifted sheet.
+// The page scrolls only as far as the passage needs to stay 16px above the lifted sheet, and no farther.
+const needed = Math.max(0, passageBottom - (fit.top - 16));
 check(
-  Math.abs(fit.y - before) <= 60,
-  `the page does not jump when the window shortens (scrollY ${before} -> ${fit.y})`,
+  fit.y - before >= 0 && fit.y - before <= needed + 2,
+  `the page scrolls no more than the passage needs when the window shortens (scrollY ${before} -> ${fit.y}, needs ${Math.round(needed)})`,
 );
 await page.setViewportSize({ width, height });
 await page.keyboard.press("Escape");
