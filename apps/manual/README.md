@@ -81,17 +81,18 @@ Name a research paper with `[[paper:id]]`, never as bare text. The rule covers p
 
 The blurb shows in parentheses after the name, so it has no parentheses of its own and no closing full stop. The `url` must be the paper's own page: its arXiv abstract, its DOI, or its page at a venue that `src/book/papers.ts` lists.
 
-A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. When your sentence already says what the paper is and who wrote it, write the first one as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence. A `[@id]` citation of a paper is still how you cite it, and it counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. The id must be in the chapter's `sources`, as for a citation.
+A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. So does one in a heading or a box title, which never counts as the first mention, because the blurb would land in the heading's link and the contents; name the paper in the text as well. When your sentence already says what the paper is and who wrote it, write the first one as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence. A `[@id]` citation of a paper is still how you cite it, and it counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. The id must be in the chapter's `sources`, as for a citation.
 
 `check:book` fails when a chapter:
 
 - writes a paper's `short` name or an alias as bare text outside code and links (the match is case-sensitive and whole-word);
 - first mentions a paper with a `[@id]` citation, or marks a later mention `described`;
-- writes `[[paper:id]]` for an id that is not a paper, for a paper still pending, or for a paper missing from its `sources`.
+- writes `[[paper:id]]` for an id that is not a paper, for a paper still pending, or for a paper missing from its `sources`;
+- writes `[[paper:id]]` inside a link's text, or names a paper only in a heading.
 
-It also fails on a paper entry without `short`, `blurb` or a paper-page `url`, unless the paper is pending. [`src/data/papers-pending.json`](src/data/papers-pending.json) lists the papers whose `short` and `blurb` are not written yet. They are exempt until the content todos write and fact-check each blurb, add the paper's names and empty the list. An id on the list must be a paper with no `short` or `blurb`, so the list can only shrink. `check:book` prints how many remain.
+It also fails on a paper entry without `short`, `blurb` or a paper-page `url`, unless the paper is pending, and on an entry of another kind that links an arXiv abstract or a DOI. [`src/data/papers-pending.json`](src/data/papers-pending.json) lists the papers whose `short` and `blurb` are not written yet. They are exempt until the content todos write and fact-check each blurb, add the paper's names and empty the list. An id on the list must be a paper with no `short` or `blurb`, so the list can only shrink. `check:book` prints how many remain.
 
-The sources page shows each paper's name and blurb, and under "Cited in" links each chapter that mentions the paper to its first mention there. `audit:papers` reports every paper's mentions in each chapter, which first mentions lack a description, and capitalised names near "paper", "arXiv" or "et al." that no register paper uses.
+The sources page shows each paper's name and blurb, and under "Cited in" links each chapter that mentions the paper to its first `[[paper:id]]` there, or to the top of the chapter when only a `[@id]` citation names it. `audit:papers` reports every paper's mentions in each chapter, which first mentions lack a description, and capitalised names near "paper", "arXiv" or "et al." that no register paper uses.
 
 ## References name an id, and the build writes the number
 

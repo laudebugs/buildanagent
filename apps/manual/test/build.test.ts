@@ -208,7 +208,7 @@ test("a chapter's first [[paper:id]] links the name and shows its blurb, and a l
   const html = chapter();
   assert.match(
     html,
-    /<a href="\/sources\/#wang-voyager" title="Voyager: [^"]*" class="paper-ref" id="paper-wang-voyager">Voyager<\/a> \(a May 2023 arXiv paper by Wang et al\. [^)]*\) kept each skill/,
+    /<a href="\/sources\/#wang-voyager" title="Voyager: [^"]*" class="paper-ref" id="paper-wang-voyager">Voyager<\/a><span class="paper-ref__blurb"> \(a May 2023 arXiv paper by Wang et al\. [^)]*\)<\/span> kept each skill/,
   );
   assert.match(html, /and <a href="\/sources\/#wang-voyager" title="[^"]*" class="paper-ref">Voyager<\/a> reused them/);
 });

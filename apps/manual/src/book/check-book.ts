@@ -60,18 +60,20 @@ export function paperNotes(book: Book): string[] {
     return url !== undefined && !isPaperUrl(url);
   });
   if (badUrls.length > 0) notes.push(`pending papers whose url is not a paper's own page yet: ${badUrls.join(", ")}`);
-  const described: string[] = [];
+  const described: { file: string; line: number; id: string }[] = [];
   for (const [id, uses] of paperUses(book.index.written.values(), book.papers, book.sources)) {
     for (const { chapter, mentions } of uses) {
       for (const mention of mentions) {
         if (mention.kind !== "described") continue;
         const file = relative(book.inputs.repoRoot, book.index.written.get(chapter.slug)?.file ?? chapter.slug);
-        described.push(`${file}:${mentionLine(mention) ?? "?"}: [[paper:${id} described]]`);
+        described.push({ file, line: mentionLine(mention) ?? 0, id });
       }
     }
   }
   notes.push(`${described.length} paper mention(s) marked described, whose sentence must describe the paper:`);
-  notes.push(...described.sort().map((line) => `  ${line}`));
+  // By file, then by line as a number, so line 9 comes before line 120.
+  described.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line));
+  notes.push(...described.map(({ file, line, id }) => `  ${file}:${line}: [[paper:${id} described]]`));
   return notes;
 }
 

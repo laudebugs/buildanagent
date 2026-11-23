@@ -10,9 +10,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import type { Root, RootContent, Text } from "mdast";
 import remarkDirective from "remark-directive";
+import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
+import type { Node } from "unist";
 import { SKIP, visit } from "unist-util-visit";
+import { visitParents } from "unist-util-visit-parents";
 import { chapterBody } from "./book-index.js";
 import { CITE } from "./citations.js";
 import type { NumberedChapter } from "./outline-rules.js";
@@ -37,12 +40,17 @@ export const paperAnchor = (id: string): string => `paper-${id}`;
  */
 export const PAPER_URL_SHAPES: readonly { readonly pattern: RegExp; readonly reason: string }[] = [
   {
-    pattern: /^https:\/\/arxiv\.org\/abs\/\d{4}\.\d{4,5}$/,
+    // A new-style id (2305.16291) or an old-style one (cs/0603015); no vN, because the abstract page lists every version.
+    pattern: /^https:\/\/arxiv\.org\/abs\/(?:\d{4}\.\d{4,5}|[a-z-]+(?:\.[A-Z]{2})?\/\d{7})$/,
     reason: "an arXiv abstract page, which links every version",
   },
   { pattern: /^https:\/\/doi\.org\/10\.\d{4,9}\/\S+$/, reason: "a DOI, which resolves to the publisher's page" },
   { pattern: /^https:\/\/dl\.acm\.org\/doi\/10\.\d{4,9}\/\S+$/, reason: "the ACM Digital Library's page for a DOI" },
-  { pattern: /^https:\/\/aclanthology\.org\/[\w.-]+\/?$/, reason: "an ACL Anthology paper page" },
+  {
+    // A paper id, new style (2023.acl-long.1) or old (P19-1001), never an event or volume page.
+    pattern: /^https:\/\/aclanthology\.org\/(?:\d{4}\.[a-z0-9]+(?:-[a-z0-9]+)*\.\d+|[A-Z]\d{2}-\d{4})\/?$/,
+    reason: "an ACL Anthology paper page",
+  },
   { pattern: /^https:\/\/openreview\.net\/forum\?id=[\w-]+$/, reason: "an OpenReview forum, a venue's review page" },
   { pattern: /^https:\/\/proceedings\.mlr\.press\/v\d+\/[\w.-]+\.html$/, reason: "a PMLR proceedings page" },
   {
@@ -54,6 +62,9 @@ export const PAPER_URL_SHAPES: readonly { readonly pattern: RegExp; readonly rea
 
 /** Whether a URL has one of the shapes a paper's entry may link to. */
 export const isPaperUrl = (url: string): boolean => PAPER_URL_SHAPES.some(({ pattern }) => pattern.test(url));
+
+/** A URL that only ever names a paper: an arXiv abstract or a DOI. An entry linking one must have kind "paper". */
+const ONLY_PAPERS = /^https:\/\/(?:arxiv\.org\/abs\/|doi\.org\/10\.)/;
 
 /** A paper whose entry has its `short` name and `blurb`, so chapters must name it through `[[paper:id]]`. */
 export interface NamedPaper {
@@ -95,6 +106,12 @@ export function checkPapers(
   const named = new Map<string, NamedPaper>();
   const spellings = new Map<string, string>();
   for (const source of sources) {
+    if (source.kind !== "paper" && ONLY_PAPERS.test(source.url)) {
+      problems.add(
+        files.sources,
+        `${source.id}: ${source.url} is a paper's arXiv abstract or DOI, so the entry's kind must be "paper"`,
+      );
+    }
     if (source.kind !== "paper" || pending.has(source.id)) continue;
     const missing = (["short", "blurb"] as const).filter((key) => source[key] === undefined);
     if (missing.length > 0) {
@@ -154,6 +171,11 @@ export interface Mention {
   readonly node: Text;
   readonly index: number;
   readonly text: string;
+  /**
+   * True in a heading, a box's title or a tab's title. A heading shows the name alone and never counts as the chapter's
+   * first mention, because a blurb or an anchor there would land in the heading's slug and the table of contents.
+   */
+  readonly inHeading: boolean;
 }
 
 /**
@@ -163,7 +185,8 @@ export interface Mention {
  */
 export const NOT_PROSE: ReadonlySet<string> = new Set(["link", "linkReference"]);
 
-const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** Escapes a string for use inside a regular expression. */
+export const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * One expression for every bare spelling of every named paper, longest first, matched with its exact case. A match
@@ -192,6 +215,18 @@ export const maskRefs = (value: string): string =>
   value.replace(/\[\[[^\]]*\]\]|\[@[^\]]*\]/g, (m) => " ".repeat(m.length));
 
 /**
+ * Whether a node is a heading: a Markdown heading, a node a plugin renders as h1 to h6 (a box's or a tab's title once
+ * the directives plugin has run), or, before it has, the label of a box, whose title it becomes.
+ */
+function isHeading(node: Node, index: number, ancestors: readonly Node[]): boolean {
+  if (node.type === "heading") return true;
+  const data = (node as { data?: { hName?: unknown; directiveLabel?: unknown } }).data;
+  if (/^h[1-6]$/.test(String(data?.hName))) return true;
+  const parent = ancestors[index - 1] as { type: string; name?: string } | undefined;
+  return data?.directiveLabel === true && parent?.type === "containerDirective" && parent.name === "box";
+}
+
+/**
  * Every mention of a paper in a chapter's tree, in reading order: `[[paper:…]]` references, `[@…]` citations of
  * papers, and bare spellings, by default those of the named papers. A reference names any id, so the caller can
  * reject one that is not a paper; a citation counts only when its id is a paper.
@@ -204,21 +239,24 @@ export function paperMentions(
 ): Mention[] {
   const { re, owners } = bareMatcher(spellings);
   const mentions: Mention[] = [];
-  visit(tree, (node) => {
+  visitParents(tree, (node, ancestors) => {
     if (NOT_PROSE.has(node.type)) return SKIP;
     if (node.type !== "text") return undefined;
     const value = node.value;
+    const inHeading = ancestors.some(isHeading);
     const found: Mention[] = [];
     for (const m of value.matchAll(PAPER_REF)) {
       const id = m[1] ?? "";
-      found.push({ id, kind: m[2] ? "described" : "ref", node, index: m.index, text: m[0] });
+      found.push({ id, kind: m[2] ? "described" : "ref", node, index: m.index, text: m[0], inHeading });
     }
     for (const m of value.matchAll(CITE)) {
       let offset = 1;
       for (const part of (m[1] ?? "").split(";")) {
-        const id = part.trim().slice(1);
+        const lead = part.length - part.trimStart().length;
+        const text = part.trim();
+        const id = text.slice(1);
         if (sources.get(id)?.kind === "paper") {
-          found.push({ id, kind: "cite", node, index: m.index + offset, text: m[0] });
+          found.push({ id, kind: "cite", node, index: m.index + offset + lead, text, inHeading });
         }
         offset += part.length + 1;
       }
@@ -226,7 +264,7 @@ export function paperMentions(
     for (const m of maskRefs(value).matchAll(re)) {
       const key = Object.keys(m.groups ?? {}).find((name) => m.groups?.[name] !== undefined);
       const id = key === undefined ? undefined : owners[Number(key.slice(1))];
-      if (id !== undefined) found.push({ id, kind: "bare", node, index: m.index, text: m[0] });
+      if (id !== undefined) found.push({ id, kind: "bare", node, index: m.index, text: m[0], inHeading });
     }
     mentions.push(...found.sort((a, b) => a.index - b.index));
     return undefined;
@@ -235,7 +273,7 @@ export function paperMentions(
 }
 
 /**
- * A chapter's tree as the book's plugins see it before they change it: parsed with directives, with each bare text
+ * A chapter's tree as the book's plugins see it before they change it: parsed with GFM and directives, with each bare text
  * directive, such as the `:ruan-skillcfi` inside `[[paper:ruan-skillcfi]]`, put back as text and joined to the text
  * around it. Positions are the file's own lines.
  */
@@ -243,6 +281,8 @@ export function chapterTree(file: string): Root {
   const tree = unified()
     .use(remarkParse)
     .use(remarkDirective)
+    // GFM as Astro renders it, so a bare URL is a link here too, and a name inside one is no mention.
+    .use(remarkGfm)
     .parse(chapterBody(readFileSync(file, "utf8")));
   visit(tree, (node, index, parent) => {
     if (node.type !== "textDirective" || parent === undefined || index === undefined) return undefined;
@@ -331,7 +371,7 @@ export function paperCitations(book: {
     citations.set(
       id,
       uses.map(({ chapter, mentions }) => {
-        const first = mentions[0];
+        const first = mentions.find((mention) => !mention.inHeading);
         const anchored = first !== undefined && (first.kind === "ref" || first.kind === "described");
         return {
           number: chapter.number,

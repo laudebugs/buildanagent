@@ -9,7 +9,9 @@
 //
 // The first `[[paper:id]]` of each paper in a chapter shows the name, then the register's blurb in parentheses, and
 // carries the id the sources page's "Cited in" links to. `[[paper:id described]]` shows the name alone with that id.
-// Every later `[[paper:id]]` shows the name alone. It runs before the citations plugin, so a `[@id]` is still text
+// Every later `[[paper:id]]` shows the name alone, and so does one in a heading, which never counts as the first
+// mention: a blurb or an anchor there would land in the heading's slug and the table of contents. A reference inside a
+// link's text fails, because links cannot nest. It runs before the citations plugin, so a `[@id]` is still text
 // that counts as a mention, and after the directives plugin, which puts the `:id` inside `[[paper:id]]` back as text.
 
 import type { PhrasingContent, Root, Text } from "mdast";
@@ -37,6 +39,17 @@ export function remarkPapers(options: { readonly book: Book }) {
   return (tree: Root, file: VFile): void => {
     const { frontmatter } = checkedChapter(file);
     const skip = textInside(tree, NOT_PROSE);
+    // Links cannot nest, so a reference in a link's text could only stay literal text.
+    for (const node of skip) {
+      const m = node.value.match(/\[\[paper:[^\]]{0,200}\]\]/);
+      if (m?.index !== undefined) {
+        failAt(
+          file,
+          `${m[0]} is inside a link's text, and links cannot nest; move it out of the link`,
+          placeAt(node.position, node.value, m.index, m.index + m[0].length),
+        );
+      }
+    }
     // A malformed reference fails here, with its own message, before the numbering plugin's general one.
     for (const node of textNodes(tree, skip)) {
       const valid = new Set([...node.value.matchAll(PAPER_REF)].map((m) => m.index));
@@ -54,6 +67,8 @@ export function remarkPapers(options: { readonly book: Book }) {
     const seen = new Set<string>();
     // The references that are their paper's first mention in the chapter, by text node and offset.
     const firsts = new Map<Text, Set<number>>();
+    // Papers a heading names, which the chapter's text must then describe.
+    const inHeadings = new Map<string, Mention>();
     for (const mention of mentions) {
       const { id, kind } = mention;
       const paper = book.papers.named.get(id);
@@ -82,6 +97,17 @@ export function remarkPapers(options: { readonly book: Book }) {
           at(mention),
         );
       }
+      if (mention.inHeading) {
+        if (kind === "described") {
+          failAt(
+            file,
+            `${mention.text} is in a heading, which shows the name alone; describe the paper in the text, not here`,
+            at(mention),
+          );
+        }
+        if (!seen.has(id) && !inHeadings.has(id)) inHeadings.set(id, mention);
+        continue;
+      }
       const first = !seen.has(id);
       seen.add(id);
       if (first && kind === "cite") {
@@ -102,6 +128,16 @@ export function remarkPapers(options: { readonly book: Book }) {
       }
       if (first) firsts.set(mention.node, (firsts.get(mention.node) ?? new Set()).add(mention.index));
     }
+    for (const [id, mention] of inHeadings) {
+      if (!seen.has(id)) {
+        failAt(
+          file,
+          `${mention.text} names ${id} only in a heading; name it in the chapter's text too, where its first mention ` +
+            "describes it",
+          at(mention),
+        );
+      }
+    }
     splitText(tree, skip, (value, node) =>
       [...value.matchAll(PAPER_REF)].map((m) => {
         const id = m[1] ?? "";
@@ -119,12 +155,19 @@ export function remarkPapers(options: { readonly book: Book }) {
         return {
           index: m.index,
           length: m[0].length,
-          node: expanded ? [link, { type: "text", value: ` (${paper.blurb})` }] : link,
+          // The blurb is its own span, so later plugins that split text, such as the glossary's, leave it whole.
+          node: expanded ? [link, blurbSpan(paper.blurb)] : link,
         };
       }),
     );
   };
 }
+
+const blurbSpan = (blurb: string): PhrasingContent => ({
+  type: "text",
+  value: ` (${blurb})`,
+  data: { hName: "span", hProperties: { className: ["paper-ref__blurb"] } },
+});
 
 function textNodes(tree: Root, skip: ReadonlySet<Text>): Text[] {
   const nodes: Text[] = [];

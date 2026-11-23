@@ -853,6 +853,70 @@ const cases: readonly Case[] = [
     file: `${FIRST}:12`,
     message: /\[\[paper:Gamma\]\] is not a paper reference/,
   },
+  {
+    rule: "a paper reference inside a link's text fails",
+    change: firstChapter((t) =>
+      t
+        .replace("sources: [alpha-docs, beta-paper]", "sources: [alpha-docs, beta-paper, gamma-paper]")
+        .replace("Lowercase mcp", "[See [[paper:gamma-paper]]](https://example.com/). Lowercase mcp"),
+    ),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:gamma-paper\]\] is inside a link's text, and links cannot nest/,
+  },
+  {
+    rule: "a malformed paper reference inside a link's text fails",
+    change: firstChapter((t) =>
+      t.replace("Lowercase mcp", "[See [[paper:Gamma]]](https://example.com/). Lowercase mcp"),
+    ),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:Gamma\]\] is inside a link's text/,
+  },
+  {
+    rule: "a paper named only in a heading fails",
+    change: firstChapter((t) =>
+      t
+        .replace("sources: [alpha-docs, beta-paper]", "sources: [alpha-docs, beta-paper, gamma-paper]")
+        .replace("## Exercises", "## What [[paper:gamma-paper]] measured\n\nIt measured the loop.\n\n## Exercises"),
+    ),
+    file: FIRST,
+    message: /\[\[paper:gamma-paper\]\] names gamma-paper only in a heading/,
+  },
+  {
+    rule: "a described paper reference in a heading fails",
+    change: firstChapter((t) =>
+      t
+        .replace("sources: [alpha-docs, beta-paper]", "sources: [alpha-docs, beta-paper, gamma-paper]")
+        .replace(
+          "## Exercises",
+          "## What [[paper:gamma-paper described]] measured\n\n[[paper:gamma-paper]] measured it.\n\n## Exercises",
+        ),
+    ),
+    file: FIRST,
+    message: /\[\[paper:gamma-paper described\]\] is in a heading/,
+  },
+  {
+    rule: "a source of another kind that links an arXiv abstract fails",
+    change: (dir) =>
+      editJson(dir, "sources.json", (s) => [
+        ...s,
+        { ...s[0], id: "alpha-two", url: "https://arxiv.org/abs/2601.00001" },
+      ]),
+    file: "sources.json",
+    message:
+      /alpha-two: https:\/\/arxiv\.org\/abs\/2601\.00001 is a paper's arXiv abstract or DOI, so the entry's kind must be "paper"/,
+  },
+  {
+    rule: "a bare name matches the longest spelling, so it names the right paper",
+    change: (dir) => {
+      editJson(dir, "sources.json", (s) => [
+        ...s,
+        { ...s[2], id: "gamma-two", short: "Gamma Two", aliases: undefined },
+      ]);
+      edit(dir, FIRST, (t) => t.replace("Lowercase mcp", "Gamma Two ran. Lowercase mcp"));
+    },
+    file: `${FIRST}:12`,
+    message: /"Gamma Two" names the paper gamma-two as bare text/,
+  },
   // Citations (BK6).
   {
     rule: "a citation of an unknown id fails with its line",

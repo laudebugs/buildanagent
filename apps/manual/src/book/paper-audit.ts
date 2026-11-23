@@ -6,6 +6,7 @@ import { SKIP, visit } from "unist-util-visit";
 import type { Book } from "./load.js";
 import {
   chapterTree,
+  escapeRegExp,
   isPaperUrl,
   type MentionKind,
   maskRefs,
@@ -32,6 +33,8 @@ export interface ChapterAudit {
 export interface PaperAudit {
   readonly id: string;
   readonly pending: boolean;
+  /** Whether the entry has its short name and blurb, so the chapters' naming rules apply to it. */
+  readonly named: boolean;
   /** The spellings searched as bare text: the short name and aliases, or, for a pending paper, a guess from its title. */
   readonly names: readonly string[];
   readonly guessed: boolean;
@@ -134,7 +137,9 @@ function candidatesIn(text: string, known: ReadonlySet<string>): string[] {
 function probablePaper(name: string, papers: readonly { readonly id: string; readonly publisher: string }[]) {
   const word = name.replace(/ et al\.$/, "");
   return papers.find(
-    (paper) => paper.id.split("-").includes(word.toLowerCase()) || new RegExp(`\\b${word}\\b`).test(paper.publisher),
+    (paper) =>
+      paper.id.split("-").includes(word.toLowerCase()) ||
+      new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(word)}(?![\\p{L}\\p{N}_])`, "u").test(paper.publisher),
   )?.id;
 }
 
@@ -158,20 +163,22 @@ export function auditPapers(book: Book): Audit {
     return {
       id: paper.id,
       pending: book.papers.pending.has(paper.id),
+      named: named !== undefined,
       names: named?.names ?? (guess === undefined ? [] : [guess]),
       guessed: named === undefined && guess !== undefined,
       urlIsPaper: isPaperUrl(paper.url),
       chapters: (uses.get(paper.id) ?? []).map(({ chapter, mentions }) => {
         const counts = Object.fromEntries(KINDS.map((kind) => [kind, 0])) as Record<MentionKind, number>;
         for (const mention of mentions) counts[mention.kind] += 1;
-        const first = mentions[0]?.kind ?? "bare";
+        const firstMention = mentions.find((mention) => !mention.inHeading) ?? mentions[0];
+        const first = firstMention?.kind ?? "bare";
         return {
           slug: chapter.slug,
           number: chapter.number,
           counts,
           first,
           firstDescribed: first === "ref" || first === "described",
-          laterUnlinked: mentions.slice(1).filter((mention) => mention.kind === "bare").length,
+          laterUnlinked: mentions.filter((mention) => mention !== firstMention && mention.kind === "bare").length,
         };
       }),
     };
@@ -201,15 +208,16 @@ const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" 
 /** The report as the script prints it. */
 export function formatAudit(audit: Audit): string {
   const lines: string[] = [];
-  const named = audit.papers.filter((paper) => !paper.pending).length;
+  const named = audit.papers.filter((paper) => paper.named).length;
+  const pending = audit.papers.filter((paper) => paper.pending).length;
   lines.push(
-    `audit:papers: ${plural(audit.papers.length, "paper")} in the register, ${named} named, ${audit.papers.length - named} pending`,
+    `audit:papers: ${plural(audit.papers.length, "paper")} in the register, ${named} named, ${pending} pending`,
   );
   lines.push("");
   const perChapter = new Map<string, { number: number; counts: Record<MentionKind, number> }>();
   let undescribed = 0;
   for (const paper of audit.papers) {
-    const label = paper.pending ? "pending" : "named";
+    const label = paper.named ? "named" : paper.pending ? "pending" : "neither named nor pending";
     const names =
       paper.names.length === 0
         ? "no name to search"
