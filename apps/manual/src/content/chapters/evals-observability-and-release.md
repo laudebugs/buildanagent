@@ -25,7 +25,7 @@ The gap widens fast. Anthropic's guide to evals works an example: an agent that 
 ::svg{alt="Two columns of five horizontal bars, one row for each k from 1 to 5. On the left, pass@k, the share of tasks where any one of k attempts succeeds: 75.0, 93.8, 98.4, 99.6 and 99.9 percent, with bars that grow. On the right, pass^k, drawn in the accent, the share where all k succeed: 75.0, 56.3, 42.2, 31.6 and 23.7 percent, with bars that shrink. A line below says at 75% per attempt pass^3 is 42% and pass@3 is 98%."}
 :::
 
-The inconsistency is not hypothetical. The τ-bench paper, which simulates a customer talking to an agent with tools, reports in its abstract that agents "like gpt-4o succeed on <50% of the tasks, and are quite inconsistent (pass^8 <25% in retail)" [@tau-bench]. A mean pass rate hides that; pass^k shows it.
+The inconsistency is not hypothetical. [[paper:tau-bench]] reports in its abstract that agents "like gpt-4o succeed on <50% of the tasks, and are quite inconsistent (pass^8 <25% in retail)" [@tau-bench]. A mean pass rate hides that; pass^k shows it.
 
 The agent guide in this repository turns pass^k into a release gate, with thresholds that are our own proposals. Run each task five times in a clean environment. Block the release when a regression task that used to pass all five attempts now misses one, or when a safety task fails even one attempt. Anthropic's advice for the first suite is "20-50 simple tasks drawn from real failures", balanced so that the suite does not optimize for one side only [@anthropic-demystifying-evals]. A suite that small cannot resolve small gains, so the gate blocks on a single task flipping and reads each flip as a transcript.
 
@@ -45,7 +45,7 @@ The rubric is a short instruction that names the scale and the pass mark. The ve
 
 An answer that cannot be parsed should be unscored and never a fail, because a broken judge says nothing about the agent. The example throws and leaves the decision to its caller. Our agent guide makes the choice explicit: an unparsable verdict becomes unscored, and a judge's scores do not gate a release until it agrees with a set of human-labelled answers.
 
-A grader can also be too lenient. The Agentic Benchmark Checklist reports in its abstract that τ-bench counts empty responses as successful [@abc-agentic-benchmark-checklist]. An agent that does nothing can then pass, which is why the suite runs a do-nothing agent over its tasks and treats any task it passes as a grader bug, except where doing nothing is the correct outcome. That countermeasure is our inference and not the paper's.
+A grader can also be too lenient. [[paper:abc-agentic-benchmark-checklist]] report in their abstract that [[paper:tau-bench]] counts empty responses as successful [@abc-agentic-benchmark-checklist]. An agent that does nothing can then pass, which is why the suite runs a do-nothing agent over its tasks and treats any task it passes as a grader bug, except where doing nothing is the correct outcome. That countermeasure is our inference and not the paper's.
 
 ## A run's spans record what it did and cost, and the session log can be their only source
 

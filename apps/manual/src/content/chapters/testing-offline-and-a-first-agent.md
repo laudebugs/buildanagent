@@ -2,7 +2,7 @@
 title: "Testing offline, and a first complete agent"
 summary: A mock model replaces the provider so a test needs no key and gives the same answer every run. This chapter shows where each of eight SDKs lets a mock in, what a check() on a mocked run can and cannot prove, and one small support-triage agent written eight ways, with a ninth version on our own SDK.
 opening: scenario
-sources: [ai-sdk-testing, openai-agents-testing, langchain-unit-testing, pi-ai-readme, abc-agentic-benchmark-checklist, buildanagent-sdk-readme]
+sources: [ai-sdk-testing, openai-agents-testing, langchain-unit-testing, pi-ai-readme, abc-agentic-benchmark-checklist, tau-bench, buildanagent-sdk-readme]
 glossary: [mock-model]
 switchTo: [B18, B19]
 ---
@@ -66,7 +66,7 @@ A football referee blows :analogy[a whistle]{#referee-whistle} at each broken ru
 :::
 ::::
 
-What a check can show is how your code behaves when the model answers as scripted: which tools it offered, which calls it ran and in what order, whether a gated call waited, and how many model calls the loop made. It cannot show that a real model would give those answers. It also cannot show what its author forgot to ask, and that gap hides the worst bugs, because a check that holds for the right behaviour may hold for no behaviour as well. The Agentic Benchmark Checklist paper found this in a published benchmark. τ-bench grades an agent by whether the database ends in the right state and, optionally, whether the reply holds required text. Some of its tasks are intentionally unsolvable, so the right end state is no change, and an agent that does nothing passes them. The authors report that these tasks make up 38% of the airline subset and 6% of the retail subset, and that a do-nothing agent therefore passes that share of each, a result that holds as of the paper's August 2025 version [@abc-agentic-benchmark-checklist].
+What a check can show is how your code behaves when the model answers as scripted: which tools it offered, which calls it ran and in what order, whether a gated call waited, and how many model calls the loop made. It cannot show that a real model would give those answers. It also cannot show what its author forgot to ask, and that gap hides the worst bugs, because a check that holds for the right behaviour may hold for no behaviour as well. [[paper:abc-agentic-benchmark-checklist]] found this in a published benchmark. [[paper:tau-bench]] grades an agent by whether the database ends in the right state and, optionally, whether the reply holds required text. Some of its tasks are intentionally unsolvable, so the right end state is no change, and an agent that does nothing passes them. The authors report that these tasks make up 38% of the airline subset and 6% of the retail subset, and that a do-nothing agent therefore passes that share of each, a result that holds as of the paper's August 2025 version [@abc-agentic-benchmark-checklist].
 
 [[lst:weak-check-ours]] and [[lst:weak-check]] reproduce the mistake at small scale, on our SDK's `run()` and on the AI SDK's `generateText`. The scripted agent answers with an empty string. One check asks whether the agent answered, and it passes. The other asks whether the answer names the city, and it fails.
 
