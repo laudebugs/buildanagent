@@ -523,7 +523,7 @@ test("the content security policy allows only the book's own origin, with no inl
   assert.deepEqual(csp.get("script-src"), ["'self'", "'wasm-unsafe-eval'"]);
   // Pagefind's stylesheet draws its search icon as a data: SVG.
   assert.deepEqual(csp.get("img-src"), ["'self'", "data:"]);
-  for (const name of ["style-src", "font-src", "connect-src", "worker-src", "form-action"]) {
+  for (const name of ["style-src", "font-src", "connect-src", "worker-src", "manifest-src", "form-action"]) {
     assert.deepEqual(csp.get(name), ["'self'"], name);
   }
   assert.deepEqual(csp.get("base-uri"), ["'none'"]);
