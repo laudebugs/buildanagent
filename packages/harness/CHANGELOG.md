@@ -1,5 +1,15 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.34
+
+### Patch Changes
+
+- Updated dependencies [be43a99]
+  - @buildanagent/agent-safety@0.1.0-alpha.34
+  - @buildanagent/sdk@0.1.0-alpha.34
+  - @buildanagent/gateway@0.1.0-alpha.34
+  - @buildanagent/protocol@0.1.0-alpha.34
+
 ## 0.1.0-alpha.33
 
 ### Minor Changes
