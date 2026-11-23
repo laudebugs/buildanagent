@@ -1,0 +1,121 @@
+---
+// Starlight's title, then a row that offers the page as Markdown: a button that copies the twin and a link that opens it.
+// The row exists only on a page with a twin (src/twins/rule.ts). The link works without JavaScript; the button is
+// hidden until the script has run, so a reader without scripts never sees a control that does nothing.
+import Default from "@astrojs/starlight/components/PageTitle.astro";
+import { twinHref } from "../twins/rule.js";
+
+const twin = twinHref(Astro.locals.starlightRoute.id);
+---
+
+<Default {...Astro.props}><slot /></Default>
+{
+  twin !== undefined && (
+    <div class="twin-actions not-content">
+      <button type="button" class="twin-copy" data-twin={twin} hidden>
+        Copy as Markdown
+      </button>
+      <a class="twin-link" href={twin} type="text/markdown">
+        View as Markdown
+      </a>
+      <span class="twin-status" role="status" aria-live="polite"></span>
+    </div>
+  )
+}
+
+<style>
+  .twin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-top: 0.5rem;
+    font-family: var(--sl-font);
+    font-size: var(--size-label);
+  }
+
+  .twin-copy {
+    min-height: 1.75rem;
+    padding: 0.125rem 0.75rem;
+    border: 1px solid var(--color-text-muted);
+    border-radius: 0.25rem;
+    background: transparent;
+    color: var(--sl-color-text-accent);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .twin-copy:hover {
+    color: var(--sl-color-white);
+    border-color: var(--sl-color-white);
+  }
+
+  .twin-copy:focus-visible,
+  .twin-link:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+
+  .twin-link {
+    color: var(--sl-color-text-accent);
+  }
+
+  .twin-status {
+    min-width: 5rem;
+    color: var(--color-text-soft);
+  }
+
+  /* Display set below must not show a button the script has not revealed yet. */
+  .twin-copy[hidden] {
+    display: none;
+  }
+
+  /* A finger needs a bigger target than a pointer does. */
+  @media (pointer: coarse) {
+    .twin-copy,
+    .twin-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+    }
+  }
+
+  /* In forced colours the system sets the border and text colours; keep the button's edge visible. */
+  @media (forced-colors: active) {
+    .twin-copy {
+      border-color: ButtonText;
+      color: ButtonText;
+    }
+  }
+
+  @media print {
+    .twin-actions {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import { wireCopyButton } from "./copy-markdown";
+
+  for (const button of document.querySelectorAll<HTMLButtonElement>(".twin-copy")) {
+    const status = button.parentElement?.querySelector<HTMLElement>(".twin-status");
+    let timer: number | undefined;
+    button.hidden = false;
+    wireCopyButton(
+      {
+        dataset: button.dataset,
+        addEventListener: (type, listener) => button.addEventListener(type, listener),
+        announce: (message) => {
+          if (status === null || status === undefined) return;
+          status.textContent = message;
+          clearTimeout(timer);
+          timer = window.setTimeout(() => {
+            status.textContent = "";
+          }, 3000);
+        },
+      },
+      { fetch: (url) => fetch(url), clipboard: navigator.clipboard, ClipboardItem: window.ClipboardItem, Blob },
+    );
+  }
+</script>
