@@ -147,7 +147,8 @@ button {
   position: absolute;
   top: 0.5rem;
   left: 0.5rem;
-  z-index: 10;
+  /* Above the sticky header (header.css), or the focused link would hide behind it. */
+  z-index: 40;
   padding: 0.5rem 0.75rem;
   background-color: var(--color-background);
   transform: translateY(-200%);

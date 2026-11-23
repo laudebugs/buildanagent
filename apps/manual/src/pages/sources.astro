@@ -1,15 +1,18 @@
 ---
 import { getBook } from "../book/load.js";
+import { blurbSentence, paperCitations } from "../book/papers.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const book = getBook();
 
 // Every register entry, by title, so the page's order doesn't depend on the register file's. Each anchor is the id
-// chapters cite with [@id].
+// chapters cite with [@id] and name with [[paper:id]].
 const sources = [...book.sources.values()].sort(
   (a, b) => a.title.localeCompare(b.title, "en") || a.id.localeCompare(b.id, "en"),
 );
+// For each paper, the chapters that mention it, each linking to its first mention there.
+const citedIn = paperCitations(book);
 ---
 
 <BaseLayout title="Sources" description="Every source the book cites, and the fact-check log that verified it.">
@@ -18,21 +21,45 @@ const sources = [...book.sources.values()].sort(
     <div class="article">
       <p>
         One of the repository's fact-check logs checked every source below, and each entry names its log. Versions and
-        pages change, so each entry also says when it was read.
+        pages change, so each entry also says when it was read. A research paper also says what it is and which
+        chapters cite it.
       </p>
       <ul>
         {
-          sources.map((source) => (
-            <li id={source.id}>
-              <a href={source.url}>{source.title}</a>, {source.publisher} ({source.kind}
-              {source.version ? `, ${source.version}` : ""}), as of {source.asOf}. Checked in <code>{source.verifiedIn}</code>.
-              {source.secondary && (
-                <p class="secondary-note">
-                  That check rests on a search summary or a secondary write-up, not on the source itself.
-                </p>
-              )}
-            </li>
-          ))
+          sources.map((source) => {
+            const paper = book.papers.named.get(source.id);
+            const chapters = citedIn.get(source.id) ?? [];
+            return (
+              <li id={source.id}>
+                <a href={source.url}>{source.title}</a>, {source.publisher} ({source.kind}
+                {source.version ? `, ${source.version}` : ""}), as of {source.asOf}. Checked in <code>{source.verifiedIn}</code>.
+                {paper && (
+                  <p class="paper-blurb">
+                    <strong>{paper.short}</strong>: {blurbSentence(paper.blurb)}
+                  </p>
+                )}
+                {chapters.length > 0 && (
+                  <div class="cited-in">
+                    <span class="cited-in__label">Cited in</span>
+                    <ul class="cited-in__list">
+                      {chapters.map((chapter) => (
+                        <li>
+                          <a class="cited-in__link" href={chapter.href}>
+                            Chapter {chapter.number}, {chapter.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {source.secondary && (
+                  <p class="secondary-note">
+                    That check rests on a search summary or a secondary write-up, not on the source itself.
+                  </p>
+                )}
+              </li>
+            );
+          })
         }
       </ul>
     </div>

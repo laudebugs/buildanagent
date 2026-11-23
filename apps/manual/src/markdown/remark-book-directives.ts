@@ -1,4 +1,5 @@
 import type { Code, Html, List, ListItem, Paragraph, Parent, PhrasingContent, Root, RootContent } from "mdast";
+import type { Position } from "unist";
 import { visit } from "unist-util-visit";
 import type { VFile } from "vfile";
 import { isFileListing, isNumberedKind, NUMBERED_KINDS, type NumberedKind } from "../book/book-index.js";
@@ -376,14 +377,30 @@ function box(node: ContainerDirective, file: VFile, depth: number, topLevel: boo
 /** Listings inside `:::tabs`, whose tab heading shows their caption, so their own caption leaves it out. */
 const tabbed = new WeakSet<object>();
 
-/** The plain text of a caption, for a tab's heading. */
+/**
+ * The plain text of a caption, for a tab's heading. A bare text directive, such as the `:gamma-paper` inside
+ * `[[paper:gamma-paper]]`, is put back as the text it was, so a reference in the caption stays whole in the heading.
+ */
 function plainText(nodes: readonly PhrasingContent[]): string {
   return nodes
-    .map((node) =>
-      "value" in node ? node.value : "children" in node ? plainText(node.children as PhrasingContent[]) : "",
+    .map((node): string =>
+      node.type === "textDirective" && isBare(node)
+        ? `:${node.name}`
+        : "value" in node
+          ? node.value
+          : "children" in node
+            ? plainText(node.children as PhrasingContent[])
+            : "",
     )
     .join("")
     .trim();
+}
+
+/** The span of a caption's nodes, so an error in a tab's heading names the caption's line. */
+function spanOf(nodes: readonly PhrasingContent[]): { position?: Position } {
+  const start = nodes[0]?.position?.start;
+  const end = nodes.at(-1)?.position?.end;
+  return start && end ? { position: { start, end } } : {};
 }
 
 /** A file listing's caption: a leaf directive's children, or a container's label paragraph. */
@@ -434,7 +451,7 @@ function tabs(node: ContainerDirective, file: VFile, depth: number): ContainerDi
         {
           type: "paragraph",
           data: { hName: `h${depth}`, hProperties: { className: ["tabs__heading"], id: `${listingId}-heading` } },
-          children: [{ type: "text", value: plainText(captionOf(listing)) }],
+          children: [{ type: "text", value: plainText(captionOf(listing)), ...spanOf(captionOf(listing)) }],
         },
         listing,
       ],

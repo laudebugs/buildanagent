@@ -13,6 +13,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
+| `pnpm --filter @buildanagent/manual audit:papers` | Reports how the chapters name each research paper in the register, and lists research names the register lacks; it writes nothing and never fails |
 | `pnpm --filter @buildanagent/manual registers:format` | Rewrites the three registers in their canonical layout: one entry per line, sorted by id |
 | `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
@@ -21,6 +22,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual figures:audit` | Proves every isometric figure with the anatomy skill's geometry audit and its line check in both themes; needs Chrome |
 | `pnpm --filter @buildanagent/manual icons` | Draws the installed app's icons in `public/icons/` from `public/favicon.svg` in Chromium, and records the favicon's hash in `scripts/icons.json` |
 | `pnpm --filter @buildanagent/manual check:offline` | Builds the book with a loopback test host and drives the offline worker in Chromium, online and offline; needs Playwright |
+| `pnpm --filter @buildanagent/manual check:header` | Drives the sticky header in Chromium (and WebKit when installed), at desktop size and as an iPhone 14, against the built book; `--shots <folder>` saves screenshots; needs Playwright and a build |
 | `pnpm --filter @buildanagent/manual offline:verify <origin>` | Compares a deployed copy of the book with its own `/offline-manifest.json`, file by file, and reports rewritten and failed files |
 | `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
@@ -69,6 +71,35 @@ Each register entry names the fact-check log that verified it:
 ```
 
 `kind` is `docs`, `repo`, `paper`, `spec` or `post`, and an optional `version` holds a tag or commit. `verifiedIn` is a path from the repository root, and it must name a fact-check log. Four kinds count: a `fact-check*.md` file under `docs/research/` or in `docs/plans/reviews/`, a `docs/reference/<sdk>/fact-check.md`, and a chapter's own log in `apps/manual/fact-checks/`. That log must contain the URL, whether as an inline link, a bare URL or a reference-style definition. To cite a new source, first add its row to the chapter's fact-check log, `apps/manual/fact-checks/<slug>.md`, then add the entry with that log as `verifiedIn`. Set `"secondary": true` when the check rests on a search summary or a secondary write-up; the sources page then says so.
+
+## How to cite a research paper
+
+Name a research paper with `[[paper:id]]`, never as bare text. The rule covers papers and named research systems, such as ReAct or SkillCFI, but not specs, standards or vendor docs. Its register entry has `"kind":"paper"` and three more fields:
+
+- `short`, the name the page shows, such as `"SkillCFI"`;
+- `blurb`, one clause that says who wrote the paper, where and when it appeared, and what it does or found, such as `"a November 2026 arXiv paper by Ruan et al. on control-flow integrity for agent skills"`;
+- `aliases`, optional, for other spellings, such as `["τ-bench"]`.
+
+The blurb shows in parentheses after the name, so it has no parentheses of its own and no closing full stop, except the one in a closing "et al.". The `url` must be the paper's own page: its arXiv abstract, its DOI, or its page at a venue that `src/book/papers.ts` lists.
+
+A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. So does one in a heading, a box title or a tab's caption, and it never counts as the first mention: the blurb would end up inside the heading's link and the contents. Name the paper in the text as well.
+
+When the sentence already says what the paper is and who wrote it, write the first mention as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence.
+
+A `[@id]` citation of a paper still cites it and counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. As for any citation, the id must be in the chapter's `sources`.
+
+`check:book` fails when a chapter:
+
+- writes a paper's `short` name or an alias as bare text outside code and links, raw HTML's text included (the match is case-sensitive and whole-word). If the word means something else, reword it;
+- first mentions a paper with a `[@id]` citation, or marks a later mention `described`;
+- writes `[[paper:id]]` for an id that is not a paper, for a paper still pending, or for a paper missing from its `sources`;
+- writes `[[paper:id]]` inside a link's text, writes it with one bracket too few, such as `[paper:id]`, or names a paper only in a heading.
+
+A footnote renders after the chapter's text, so a mention in one counts after every mention in the text. The front matter's `summary` is not checked, so keep paper names out of it.
+
+It also fails on a paper entry without `short`, `blurb` or a paper-page `url`, unless the paper is pending, and on an entry of another kind that links an arXiv abstract or a DOI. [`src/data/papers-pending.json`](src/data/papers-pending.json) lists the papers whose `short` and `blurb` are not written yet. They are exempt until the content todos write and fact-check each blurb, add the paper's names and empty the list. An id on the list must be a paper with no `short` or `blurb`, so the list can only shrink. `check:book` prints how many remain.
+
+The sources page shows each paper's name and blurb, and under "Cited in" links each chapter that mentions the paper to its first `[[paper:id]]` there, or to the top of the chapter when only a `[@id]` citation names it. `audit:papers` reports every paper's mentions in each chapter, which first mentions lack a description, and capitalised names near "paper", "arXiv" or "et al." that no register paper uses.
 
 ## References name an id, and the build writes the number
 
@@ -508,6 +539,45 @@ A reader can highlight a passage of a chapter and attach a short note to it, wit
 To run the browser check, build the book with `pnpm --filter @buildanagent/manual build`, then run `node scripts/notes-browser-check.mjs` from `apps/manual` (add `--shots <folder>` for screenshots).
 
 iOS Safari zooms the page when a text field under 16px takes focus, so on any device where a finger is an input (`any-pointer: coarse`), every text field the book draws is at least 16px. A device with only a mouse keeps the smaller size. `test/touch-fields.test.ts` finds each field in `src/` (Astro, TypeScript and Markdown files) and `public/scripts/`, and fails if any combination of rules that may apply on a touch device (a `:focus` rule, a `textarea` or `input[type=search]` selector, a `pointer: fine` or `hover: hover` query, a `font` shorthand after the size) can leave one below 16px. To measure the built book at an iPhone 14's size, build it, then run `pnpm --filter @buildanagent/manual check:touch-fields`; the check needs Playwright.
+
+## The header stays in reach, and a line shows how far the reader is through the chapter
+
+The header is sticky on every page, so Contents, Glossary, Sources, search and the theme toggle stay in reach. It is 56px tall on a desktop and one 52px row on a phone. A phone here means a window up to 760px wide or a touch screen, and `src/styles/header.css` holds every rule.
+
+- **One viewport query.** `header.css` is the one place the book uses a viewport-width media query, because the header's height sets the page's scroll padding, which a container query cannot reach. `test/styles.test.ts` allows the query in that file alone, and `test/header-static.test.ts` fails if the stylesheet and `src/scripts/header.ts` name different queries.
+- **One height variable.** `--header-height` carries the height (56px, or 52px on a phone) to everything that must clear the header. `html { scroll-padding-top }` is the height plus 12px, so a jumped-to heading, a footnote or a note's "go to passage" stops below it. The sticky offset of the chapter's left and right rails uses it too.
+
+On a phone the row holds the wordmark, a search button, the settings slot, the theme toggle and a menu button. The menu lists Contents, Glossary, Sources and Notes. The Notes entry shows on chapters only and presses the existing Notes button, so `public/scripts/notes.js` is unchanged. The search button opens the existing search box in a panel under the row.
+
+Both are buttons with `aria-expanded` and `aria-controls`. Escape closes them and returns focus to their button, and a tap outside, a link or tabbing out of the header closes them too.
+
+Without JavaScript the phone buttons stay hidden and the links and the search box show in a wrapped header (`@media (scripting: none)`). That header is static and scrolls away with the page, because a sticky header of unknown height would hide the scroll padding's room.
+
+**Hiding.** On a phone the header slides up while the reader scrolls down and returns on the first upward scroll. `src/scripts/header-state.ts` holds the decision as a pure function, `nextHeaderState(prev, scrollY, flags)`, tested over scroll traces in `test/header-state.test.ts`. A move under 8px changes nothing and keeps its starting point, so a slow scroll still adds up. The header stays shown on a desktop, within one header height of the top, while the menu or search is open and while keyboard focus is inside it.
+
+Only focus that matches `:focus-visible` counts, so a button a finger tapped does not pin the header. Focus moving into a hidden header shows it. A hidden header stays in the page's flow (it only translates), so nothing below it moves. With `prefers-reduced-motion: reduce` the header still hides and returns, with no transition. `header.ts` runs one passive scroll listener. Each animation frame reads the scroll position and the cached measurements, then writes the `data-header-hidden` attribute on `<html>` and one transform.
+
+**The progress line.** Chapter pages carry a fixed 3px `.reading-progress` element, which `ChapterLayout.astro` places outside the layout container because the container's layout containment would otherwise capture a fixed child. Its bar fills with `transform: scaleX()` in the accent colour, and `readingProgress(scrollY, start, end, viewportH)` gives the value: 0 at the top of the chapter, 1 when the end of the main text reaches the bottom of the window, clamped. The end is the top of the chapter's Sources section, so the sources, the previous and next links and the footer do not count.
+
+The script measures `start` and `end` on load, on resize, when fonts load, when the article's size changes, when the body resizes and when a `details` element toggles, never during a scroll. The line rides the header's bottom edge and, while a phone's header is hidden, moves to the very top of the window. It is `aria-hidden`, hidden in print and drawn with `--color-accent`, so it works in both themes. The home, glossary, sources and search pages have none.
+
+**The settings slot.** `SiteHeader.astro` holds `<div class="site-header__slot" data-slot="settings">` with a named Astro slot. While nothing fills it the wrapper is empty, `:empty` removes it from the layout and it takes no room. When S1 ships its "Aa" button, render it into the slot: `<SiteHeader><SettingsButton slot="settings" /></SiteHeader>` in `BaseLayout.astro`. The button then sits between the search and the theme toggle on a desktop and a phone. Give it a 44px target on a phone, as the other header buttons have (`.site-header .control`).
+
+**Checks.** `check:header` builds nothing: build first, then run it. It measures:
+
+- both heights and the sticky position;
+- hiding and returning, the threshold and focus;
+- the menu and search;
+- the progress at 0, 50% and 100%, and the line's position with the header hidden;
+- a hash jump down and up, with the heading 12px below the header;
+- the rails' offset at 1280 and 1600px;
+- the popover, toolbar and a glossary card against the header;
+- the progress line's end after opening "All chapters" on a phone;
+- reduced motion, on the header and the line;
+- one-row headers at 761, 800 and 1024px;
+- an axe-core run (`axe-core` is a pinned dev dependency, with no network use).
+
+It is not part of `pnpm test`, and `.github/workflows` does not run it yet. What it cannot show: Safari's collapsing toolbar, rubber-band scrolling and a real iPhone.
 
 ## The book installs as an app and opens offline
 
