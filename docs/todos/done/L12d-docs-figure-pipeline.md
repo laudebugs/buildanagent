@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs, added 2026-11-23) |
 | Depends on | [L12a](../done/L12a-docs-theme-foundation.md) |
@@ -51,7 +51,7 @@ Let `apps/docs` draw flat SVG figures the way the book does: a figure is a scrip
 - [x] The directive fails the build for a figure with no alt text, no caption or an unsafe SVG
 - [x] No figure holds a colour value that isn't a theme token
 - [x] The built page that shows a figure inlines it with its alt text and caption
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -68,12 +68,12 @@ Let `apps/docs` draw flat SVG figures the way the book does: a figure is a scrip
 
 ## Definition of done
 
-- [ ] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+- [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
 
 ## Outcome
 
