@@ -503,7 +503,7 @@ A reader can highlight a passage of a chapter and attach a short note to it, wit
 
 To run the browser check, build the book with `pnpm --filter @buildanagent/manual build`, then run `node scripts/notes-browser-check.mjs` from `apps/manual` (add `--shots <folder>` for screenshots).
 
-iOS Safari zooms the page when a text field under 16px takes focus, so on any device where a finger is an input (`any-pointer: coarse`), every text field the book draws is at least 16px. A device with only a mouse keeps the smaller size. `test/touch-fields.test.ts` finds each field in `src/` (Astro, TypeScript and Markdown files) and `public/scripts/`, and fails if the winning `font-size` rule on a touch screen can be below 16px. To measure the built book at an iPhone 14's size, build it, then run `pnpm --filter @buildanagent/manual check:touch-fields`; the check needs Playwright.
+iOS Safari zooms the page when a text field under 16px takes focus, so on any device where a finger is an input (`any-pointer: coarse`), every text field the book draws is at least 16px. A device with only a mouse keeps the smaller size. `test/touch-fields.test.ts` finds each field in `src/` (Astro, TypeScript and Markdown files) and `public/scripts/`, and fails if any combination of rules that may apply on a touch device (a `:focus` rule, a `textarea` or `input[type=search]` selector, a `pointer: fine` or `hover: hover` query, a `font` shorthand after the size) can leave one below 16px. To measure the built book at an iPhone 14's size, build it, then run `pnpm --filter @buildanagent/manual check:touch-fields`; the check needs Playwright.
 
 ## The book deploys from main's workflow, and a pull request only ever gets a preview
 
