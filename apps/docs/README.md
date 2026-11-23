@@ -4,12 +4,12 @@ The docs for `@buildanagent/gateway` and `@buildanagent/sdk`, built with Astro a
 
 ## Write a page that passes the tests
 
-Pages live in `src/content/docs/`, and the explicit sidebar in `astro.config.mjs` names each one, in the order start, concepts, guides, testing, reference. `pnpm --filter @buildanagent/docs test` checks every page against [docs-writing.md](../../docs/guidelines/docs-writing.md):
+Pages live in `src/content/docs/`, and the explicit sidebar in `src/topics.ts` names each one, in the order start, concepts, guides, testing, reference. `pnpm --filter @buildanagent/docs test` checks every page against [docs-writing.md](../../docs/guidelines/docs-writing.md):
 
 - The first paragraph has 50 words or fewer, a sentence has 40 or fewer, and a paragraph has 100 or fewer.
 - No todo, decision or round id, repository path or banned word appears, and headings are in sentence case.
 - Each code block follows a sentence that introduces it. A block of more than five lines comes from a tested example, and a shorter inline block must type-check against the packages.
-- Every page except the home page is in the sidebar and ends with a link to the next page.
+- Every page except the home page is in exactly one sidebar topic and ends with a link to the next page.
 
 ## Show an example file
 
@@ -60,7 +60,19 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Three tests read the built site: the figure build test, the favicon test and the API reference test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Four tests read the built site: the figure build test, the favicon test, the API reference test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+
+## Sidebar topics keep each page small
+
+A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway" holds the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
+
+To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
+
+The plugin must come first in `plugins`. It writes the sidebar, and each TypeDoc plugin replaces its placeholder group in that sidebar, so a TypeDoc plugin that runs earlier finds no sidebar and generates an empty group. The plugin also refuses a `sidebar` option in the Starlight config.
+
+Previous and next links stop at a topic's first and last page: the first page of "SDK & gateway" has no Previous link, and `reference/packages` has no Next link.
+
+`test/topics.test.ts` reads the built pages. It fails on a page over 200 KB of HTML, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic. The budget is 200 KB because the largest page is 141 KB after the split and 175 KB before it. Raise it only with a new measurement, recorded in the L12 todo. An API topic that comes near it needs smaller groups (collapse its modules) before the budget moves.
 
 ## The API reference is generated
 
@@ -141,6 +153,7 @@ The mapping is written for Starlight 0.42.10, the exact version in `package.json
 - the accent set `--sl-color-accent-low`, `--sl-color-accent` and `--sl-color-accent-high`, and `--sl-color-text`, `-text-accent`, `-text-invert`, `-bg`, `-bg-nav`, `-bg-sidebar`, `-bg-inline-code` and `-bg-accent`;
 - the three hairline variables and the low, base and high shades of the blue, green, purple, orange and red families, which carry the asides;
 - `--sl-font`, `--sl-font-mono`, `--sl-line-height` and `--sl-content-width`;
+- the topic tabs' `ul.starlight-sidebar-topics` and `a.starlight-sidebar-topics-current`, which one rule restyles;
 - the aside classes `.starlight-aside--note`, `--tip`, `--caution` and `--danger`, with `--sl-color-asides-border` and `--sl-color-asides-text-accent`.
 
 Expressive Code takes `themes` from `codeThemes()` and `styleOverrides` from `CODE_STYLE_OVERRIDES`, whose values name `var(--panel-*)` and `var(--font-code)` so a code block follows the page's theme. It also takes `minSyntaxHighlightingColorContrast: 0`. Expressive Code's default of 5.5 makes it shift any syntax colour that falls short, but the book's panel colours are already measured at 4.5:1 or more, so the shift would only replace measured colours with unmeasured ones. One setting controls the plain panel and the markers, so zero also turns off correction on markers. The theme replaces that correction with the measured colours above, and the contrast test checks them. A test requires the setting.

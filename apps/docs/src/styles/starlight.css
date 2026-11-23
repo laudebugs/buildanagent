@@ -321,3 +321,11 @@ starlight-theme-select label:hover select {
 [data-has-hero]:has(.card-grid) .sl-markdown-content .sl-link-button {
   margin: 0.75rem 0.75rem 0.75rem 0;
 }
+
+/* The topic tabs above the sidebar (starlight-sidebar-topics). The plugin draws the current tab's text in the accent in
+   light mode, and the accent reaches only 3:1 there, which is enough for an edge but not for text. The link colour is
+   the measured text colour on the page, and the plugin's own dark rule already uses it. The selector is longer than the
+   plugin's scoped one so that this rule wins. */
+:root[data-theme="light"] ul.starlight-sidebar-topics a.starlight-sidebar-topics-current {
+  color: var(--color-link);
+}
