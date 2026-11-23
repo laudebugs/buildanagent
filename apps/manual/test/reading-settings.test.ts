@@ -40,7 +40,7 @@ function storage(values: Record<string, string> | "throws") {
 }
 
 /** Runs the script once, as a page's <head> would, and returns the root's attributes, the preloads and the API. */
-function run(values: Record<string, string> | "throws" | "no-storage" | "getter-throws" = {}) {
+function run(values: Record<string, string> | "throws" | "no-storage" | "getter-throws" = {}, oldBrowser = false) {
   const win = new Window({ url: "https://manual.buildanagent.fyi/" });
   const document = win.document as unknown as Document;
   const context: Record<string, unknown> = { document };
@@ -54,7 +54,10 @@ function run(values: Record<string, string> | "throws" | "no-storage" | "getter-
   } else if (values !== "no-storage") {
     context.localStorage = storage(values);
   }
-  runInContext(SOURCE, createContext(context));
+  const sandbox = createContext(context);
+  // Safari before 15.4 has no Object.hasOwn; the script must not need it.
+  if (oldBrowser) runInContext("delete Object.hasOwn", sandbox);
+  runInContext(SOURCE, sandbox);
   const root = document.documentElement;
   const preloads = [...document.head.querySelectorAll("link")].map((link) => ({
     rel: link.getAttribute("rel"),
@@ -156,6 +159,32 @@ test("storage that is missing, whose getter throws or whose every read throws le
     assert.equal(page.preloads.length, 2, values);
     assert.ok(page.api, `${values}: the API is still there for the settings panel`);
   }
+});
+
+test("a browser without Object.hasOwn still applies the stored choice and defines the API", () => {
+  const page = run({ "manual-reading-font": "slab", "manual-reading-size": "130" }, true);
+  assert.equal(page.font, "slab");
+  assert.equal(page.size, "130");
+  assert.deepEqual(
+    page.preloads.map((link) => link.href),
+    ["/fonts/bitter/bitter-roman.woff2"],
+  );
+  assert.equal(page.api.readFont("sans"), "sans");
+  assert.equal(page.api.readFont("toString"), "book");
+});
+
+test("a failure while the page starts up leaves the API defined and the page at its defaults", () => {
+  const win = new Window({ url: "https://manual.buildanagent.fyi/" });
+  const document = win.document as unknown as Document;
+  Object.defineProperty(document, "head", {
+    get() {
+      throw new Error("no head");
+    },
+  });
+  const context: Record<string, unknown> = { document, localStorage: storage({ "manual-reading-font": "slab" }) };
+  context.window = context;
+  runInContext(SOURCE, createContext(context));
+  assert.equal((context.manualReadingSettings as Api).DEFAULT_FONT, "book");
 });
 
 test("the API reads and applies settings, and a default removes its attribute again", () => {

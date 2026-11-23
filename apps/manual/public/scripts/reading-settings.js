@@ -3,14 +3,14 @@
 // then another: data-reading-font names the pairing and data-reading-size the size step, and src/styles/reading.css
 // reads both. It also preloads the chosen pairing's upright files, so only that pairing's fonts are requested.
 //
-// The choice lives in this browser's localStorage under two keys. Every read sits in try/catch and every value is
-// checked against the lists below, so blocked storage or a damaged value leaves the default: Book at 100%, with no
-// attribute. Without JavaScript the page shows the default and preloads nothing; the stylesheet still loads Book's
+// The choice lives in this browser's localStorage under two keys. Every read sits in try/catch, the whole start-up does
+// too, and every value is checked against the lists below, so blocked storage, a damaged value or a browser that lacks
+// a feature leaves the default: Book at 100%, with no attribute. Without JavaScript the page shows the default and preloads nothing; the stylesheet still loads Book's
 // fonts.
 //
 // The file is served as-is from public/, not bundled, so it stays a same-origin script that the content security policy
 // allows by path. A blocking script cannot be a module, so it cannot export: it puts its functions on
-// window.manualReadingSettings for the settings panel to share, and the tests run it in a sandbox to read them. The
+// window.manualReadingSettings, which it sets before it reads anything, for the settings panel to share, and the tests run it in a sandbox to read them. The
 // lists below are checked against docs/design/book-tokens.json by test/reading-settings.test.ts.
 (() => {
   /** The localStorage key that holds the pairing's id. */
@@ -32,11 +32,13 @@
     sans: Object.freeze(["/fonts/inter/inter-roman.woff2", "/fonts/space-grotesk/space-grotesk-roman.woff2"]),
     slab: Object.freeze(["/fonts/bitter/bitter-roman.woff2"]),
   });
+  /** The pairings' ids; Object.keys and includes work in every browser, where Object.hasOwn needs Safari 15.4. */
+  const FONT_IDS = Object.keys(PAIRINGS);
   /** The text-size steps, in percent of the browser's default font size. */
   const SIZES = Object.freeze([90, 100, 115, 130, 150]);
 
   /** The pairing a stored value names, or the default for anything that is not one of the pairings' ids. */
-  const readFont = (raw) => (typeof raw === "string" && Object.hasOwn(PAIRINGS, raw) ? raw : DEFAULT_FONT);
+  const readFont = (raw) => (typeof raw === "string" && FONT_IDS.includes(raw) ? raw : DEFAULT_FONT);
 
   /** The size step a stored value names, or the default for anything that is not exactly one of the steps. */
   const readSize = (raw) => {
@@ -82,16 +84,7 @@
     }
   };
 
-  let storage = null;
-  try {
-    storage = window.localStorage;
-  } catch {
-    // Storage can be off; the page then shows the defaults.
-  }
-  const settings = read(storage);
-  apply(document.documentElement, settings);
-  preload(document, settings.font);
-
+  // The API goes up first, so a failure below never leaves the settings panel without it.
   window.manualReadingSettings = Object.freeze({
     FONT_KEY,
     SIZE_KEY,
@@ -104,4 +97,18 @@
     read,
     apply,
   });
+
+  try {
+    let storage = null;
+    try {
+      storage = window.localStorage;
+    } catch {
+      // Storage can be off; the page then shows the defaults.
+    }
+    const settings = read(storage);
+    apply(document.documentElement, settings);
+    preload(document, settings.font);
+  } catch {
+    // A browser that lacks something this file uses leaves the page at its defaults rather than stopping the script.
+  }
 })();
