@@ -8,7 +8,7 @@ Run each from the repo root.
 
 | Command | What it does |
 | --- | --- |
-| `pnpm --filter @buildanagent/manual build` | Builds the site into `apps/manual/dist/` and indexes the chapters with Pagefind |
+| `pnpm --filter @buildanagent/manual build` | Builds the site into `apps/manual/dist/`, indexes the chapters with Pagefind, then writes the offline worker `sw.js` and its file list `offline-manifest.json` |
 | `pnpm --filter @buildanagent/manual dev` | Serves the site locally while you edit |
 | `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
@@ -19,6 +19,9 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual anatomy:css` | Regenerates `src/styles/anatomy.css` from the vendored anatomy kit's `iso.css` |
 | `pnpm --filter @buildanagent/manual figures:build` | Runs every figure script, the book's and the two fixture books', and writes its SVG or fragment beside it |
 | `pnpm --filter @buildanagent/manual figures:audit` | Proves every isometric figure with the anatomy skill's geometry audit and its line check in both themes; needs Chrome |
+| `pnpm --filter @buildanagent/manual icons` | Draws the installed app's icons in `public/icons/` from `public/favicon.svg` in Chromium, and records the favicon's hash in `scripts/icons.json` |
+| `pnpm --filter @buildanagent/manual check:offline` | Builds the book with a loopback test host and drives the offline worker in Chromium, online and offline; needs Playwright |
+| `pnpm --filter @buildanagent/manual offline:verify <origin>` | Compares a deployed copy of the book with its own `/offline-manifest.json`, file by file, and reports rewritten and failed files |
 | `pnpm --filter @buildanagent/manual exec wrangler dev` | Serves the built `dist/` locally as Cloudflare would, with the `_headers` rules and the 404 page; it needs no Cloudflare login |
 
 ## The outline places the chapter and gives it its number
@@ -504,6 +507,38 @@ A reader can highlight a passage of a chapter and attach a short note to it, wit
 To run the browser check, build the book with `pnpm --filter @buildanagent/manual build`, then run `node scripts/notes-browser-check.mjs` from `apps/manual` (add `--shots <folder>` for screenshots).
 
 iOS Safari zooms the page when a text field under 16px takes focus, so on any device where a finger is an input (`any-pointer: coarse`), every text field the book draws is at least 16px. A device with only a mouse keeps the smaller size. `test/touch-fields.test.ts` finds each field in `src/` (Astro, TypeScript and Markdown files) and `public/scripts/`, and fails if any combination of rules that may apply on a touch device (a `:focus` rule, a `textarea` or `input[type=search]` selector, a `pointer: fine` or `hover: hover` query, a `font` shorthand after the size) can leave one below 16px. To measure the built book at an iPhone 14's size, build it, then run `pnpm --filter @buildanagent/manual check:touch-fields`; the check needs Playwright.
+
+## The book installs as an app and opens offline
+
+A reader can install the manual from the browser's address bar and open the contents, the search and every page they have read with no connection ([ADR 0059](../../docs/decisions/0059-offline-manual-service-worker.md)). A service worker at `/sw.js` does the work, and it stores only the files of the build it came with. That rule keeps an old build from mixing with a new one, and a deploy needs nothing beyond the usual build.
+
+- **What the build adds.** `scripts/offline-build.mjs` runs after Pagefind. It lists every file of `dist/` with its size and SHA-256 in `dist/offline-manifest.json`, a page as it is with the placeholder still in its mark, leaving out `_headers`, `sw.js`, the list itself and `404.html`. It then writes the build id into every page's `<meta name="manual-build">`, which the layout renders with the placeholder `__MANUAL_BUILD__`, and bundles `src/offline/sw.ts` and `src/offline/worker.ts` with esbuild into `dist/sw.js`, a classic script with the id and the list stamped at its top. The id hashes a format version, the worker's code, the files and the shell, so any change gives a new worker, and a browser installs a new worker only when its bytes differ.
+- **What the worker saves.** On install it saves the application shell: the contents, the offline page (`src/pages/offline.astro`, at `/offline/`) and the search page, with every stylesheet, script, font, icon and manifest they link, and every Pagefind file a search needs. In the build of 2026-11-23 that came to 56 files and 1.62 MB, of which Pagefind was about 1.07 MB; the build prints the current figures on its `Offline:` line. It also copies every file an older build's cache holds with unchanged content. The worker compares a page with its mark set back to the placeholder, so a saved chapter carries over when only its mark changed, and is stored with the new build's mark.
+- **What it saves after install.** The page a reader lands on loads before the worker controls it, so `offline.js` asks the worker to save it and the files it loaded. A page the reader opens later is saved when its bytes match the list. Saving the whole book, about 5 MB as of 2026-11-23, waits for T67b's "Save the manual for offline reading" control.
+- **What a reader gets.** A page comes from the network, and from the saved copy when the network fails or takes more than 3 seconds. A page that is not saved shows the offline page, and a page asked for without its slash redirects to it, as Cloudflare does online. Hashed files, under `/_astro/` and Pagefind's `index/` and `fragment/`, come from the cache first. For a page that came from the cache or matched the list, every other asset comes from the cache first too, and from the network only when its bytes are this build's. The worker keeps that record in its cache, so it survives a restart of the worker.
+- **What the worker refuses.** It answers only same-origin GET requests for listed paths, and leaves everything else, `/sw.js` and `/offline-manifest.json` included, to the browser. A path is decoded segment by segment before the lookup. An encoded dot segment, slash or control character matches nothing. A response is stored only when it is a plain 200 with the listed size and hash, no `Set-Cookie`, no `Vary: *` and no `no-store` or `private`. A 404 or an error page is shown, never saved.
+- **A page a CDN rewrote.** A page whose bytes differ from the list, for example because Cloudflare obfuscated an email address in it, is stored only while it keeps this build's mark, and STATUS reports it under `rewritten`. Any other changed file is refused. Every file the worker fails to save while installing, or when a page asks it to, is reported under `failed` with the reason.
+- **How an update reaches the reader.** The new build's worker installs in the background and waits. `public/scripts/offline.js` shows "A new version of the manual is ready" with Reload and Not now. Only Reload asks the waiting worker to take over and reloads the page. Another open tab offers the same Reload. Until it is pressed, that tab's page keeps getting its own build's files from the older cache, which the new worker keeps while such a page is open and deletes once none is.
+- **Where the worker runs.** `offline.js` registers the worker only on a host that the page's `<meta name="manual-offline-hosts">` names, and the build writes only the `site` host from `astro.config.mjs` there. A preview at `pr-<n>.manual.buildanagent.fyi` registers nothing, and it unregisters any worker and deletes any `manual-` cache an earlier visit left. `MANUAL_OFFLINE_TEST_HOST` adds `127.0.0.1` or `localhost` for the browser check, and the build refuses any other value.
+- **Its headers and icons.** `public/_headers` sends `/sw.js` and `/offline-manifest.json` with `Cache-Control: no-cache` and the manifest as `application/manifest+json`. The policy's `manifest-src 'self'` lets the browser read the manifest. `public/manifest.webmanifest` lists a 192 and a 512 pixel icon and a maskable 512 pixel one, and every page links a 180 pixel apple-touch icon. `pnpm --filter @buildanagent/manual icons` draws them from `public/favicon.svg` and records the favicon's hash, so an edit to the favicon fails `test/offline-assets.test.ts` until the icons are drawn again.
+
+The page and the worker exchange five messages, which the ADR lists with their replies. `STATUS` reports the build, how much of it is saved, and the rewritten and failed files. `SKIP_WAITING` comes from the notice's Reload, and `SAVE_PAGE` from a page the worker did not control. `SAVE_ALL` and `REMOVE_ALL` answer `UNSUPPORTED` until T67b builds the control.
+
+### Check a deploy once it is live
+
+After a deploy, run `pnpm --filter @buildanagent/manual offline:verify https://manual.buildanagent.fyi`. It fetches the deployed `/offline-manifest.json` and every file it lists, and compares each with its recorded size and SHA-256, a page with its mark set back to the placeholder. A page that a Cloudflare feature such as Email Address Obfuscation rewrote but that keeps the build's mark is listed as rewritten. The worker still saves that page, but the feature should be turned off for the host. Any other difference, a missing file or a `/sw.js` of another build makes the command fail, because the worker would refuse that file. To clear readers' saved copies after a bad deploy, ship a new build: its worker replaces the old one and deletes the old cache. To withdraw the feature, ship a `/sw.js` that deletes every `manual-` cache and unregisters itself, because deleting `/sw.js` leaves installed workers in place.
+
+### Tests
+
+Five test files cover the offline work:
+
+- `test/offline-worker.test.ts` runs the worker's logic against a fake Cache API, fetch and timer, including a restart between a page and its script and a page rewritten like Email Address Obfuscation does.
+- `test/offline-register.test.ts` runs `offline.js` in happy-dom with a fake service worker container.
+- `test/offline-assets.test.ts` checks the manifest against the tokens, the icons' sizes and maskable safe zone, the favicon's hash and the headers.
+- `test/offline-build.test.ts` builds the fixture book through Pagefind and the offline step. It checks the list against `dist/` byte for byte, the build marks, the id, the shell, the stamped worker, the pages' head links and the deploy scripts' rules. A test on two fixture builds that differ in one stylesheet checks that saved pages carry over while a changed chapter does not.
+- `scripts/offline-verify-deployed.test.mjs` runs the post-deploy check against a local server.
+
+`pnpm --filter @buildanagent/manual check:offline` drives the worker in Chromium against a server that rewrites addresses as Cloudflare would. It lands on a chapter, checks that the worker saves it and the shell, and asks Chromium whether the book is installable. Offline, it opens the landing chapter, a rewritten chapter, a deep link, a page without its slash and an unsaved page, and runs two searches never run online. It saves a highlight and finally serves a changed build to check the update notice. It needs Playwright, so `pnpm test` does not run it.
 
 ## The book deploys from main's workflow, and a pull request only ever gets a preview
 
