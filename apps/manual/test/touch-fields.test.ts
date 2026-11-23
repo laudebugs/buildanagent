@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { test } from "vitest";
 
-// iOS Safari zooms the page when a text field under 16px takes focus. The book keeps its smaller field text for a
-// mouse and raises every field it draws to 16px or more inside `@media (any-pointer: coarse)`. This reads the source:
-// it finds every field the book's own files create, works out which font-size rule wins on a touch screen (specificity,
-// then source order) and requires its smallest possible value to be at least 16px. scripts/touch-fields-check.mjs
-// measures the built book in a browser.
+// iOS Safari zooms the page when a text field under 16px takes focus. The book keeps smaller field text for a mouse and
+// raises every field it draws to 16px or more inside `@media (any-pointer: coarse)`. This test reads the source in
+// three steps. It finds every field the book's own files create. For each, it works out which font-size rule wins on a
+// touch screen (specificity, then source order). It then requires that rule's smallest possible value to be at least
+// 16px. scripts/touch-fields-check.mjs measures the built book in a browser instead.
 const root = new URL("../", import.meta.url);
 const componentsCss = readFileSync(new URL("src/styles/components.css", root), "utf8");
 const tokensCss = readFileSync(new URL("src/styles/tokens.css", root), "utf8");

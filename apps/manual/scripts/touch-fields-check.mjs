@@ -1,10 +1,12 @@
 // Checks, in a touch-emulated Chromium at an iPhone 14's size, that every text-entry control the manual shows has a
-// computed font size of at least 16px. iOS Safari zooms the page when a field under 16px takes focus. It opens the
+// computed font size of at least 16px, because iOS Safari zooms the page when a smaller field takes focus. It opens the
 // note editor in the dialog and in the popover, the Notes dialog's export and share fields, the contents page's search
-// box and the search page, and also checks that no page scrolls sideways, that the sheet fits above a short window (a
-// stand-in for the on-screen keyboard) and that the viewport meta forbids no zoom. It needs Playwright and a Chromium
-// and a built book (`pnpm --filter @buildanagent/manual build`), so it is not part of `pnpm test`; the static
-// test/touch-fields.test.ts guards the stylesheet in `pnpm test`. It cannot show what a real iOS Safari does.
+// box and the search page. It also checks that no page scrolls sideways, that the sheet fits above a short window (a
+// stand-in for the on-screen keyboard) and that the viewport meta forbids no zoom.
+//
+// It needs Playwright, a Chromium and a built book (`pnpm --filter @buildanagent/manual build`), so it is not part of
+// `pnpm test`; the static test/touch-fields.test.ts guards the stylesheet there. It cannot show what a real iOS Safari
+// does.
 //
 //   node scripts/touch-fields-check.mjs   (or: pnpm --filter @buildanagent/manual check:touch-fields)
 import assert from "node:assert/strict";
