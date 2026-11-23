@@ -103,17 +103,23 @@
 }
 
 /* With forced colours, the marks take the system colours themselves rather than rely on how a browser forces an
-   inline SVG's fill and stroke: text and lines in CanvasText, the accent in Highlight, boxes on Canvas. */
+   inline SVG's fill and stroke: text, lines and the filled tones in CanvasText, the accent and its terracotta in
+   Highlight, boxes on Canvas. Every book class that sets a fill or a stroke is named here, and a test keeps it so. */
 @media (forced-colors: active) {
   .docs-figure .fig-text,
   .docs-figure .fig-text--muted,
   .docs-figure .fig-head,
-  .docs-figure .fig-head--muted {
+  .docs-figure .fig-head--muted,
+  .docs-figure .fig-amber,
+  .docs-figure .fig-olive,
+  .docs-figure .fig-shade,
+  .docs-figure .fig-shade-deep {
     fill: CanvasText;
   }
 
   .docs-figure .fig-text--accent,
-  .docs-figure .fig-head--accent {
+  .docs-figure .fig-head--accent,
+  .docs-figure .fig-terracotta {
     fill: Highlight;
   }
 

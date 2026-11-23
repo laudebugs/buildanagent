@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, inject, test } from "vitest";
+import { describe, test } from "vitest";
 import { readPages } from "../src/plugins/pages.js";
+import { builtSite } from "./built.js";
 
 // A built page that places a figure carries it inline, with its alt text and caption, and no page shows a directive
 // as text. It reads the docs that test/built-site.ts builds once for every file that reads built pages.
-const out = inject("builtSite");
 
 /** Every `::figure` a page places, with its caption and attributes as the page writes them. */
 const placed = readPages().flatMap((page) =>
@@ -19,7 +19,7 @@ const placed = readPages().flatMap((page) =>
 );
 
 const htmlOf = (page: string): string =>
-  readFileSync(join(out, page.replace(/(?:index)?\.mdx?$/, ""), "index.html"), "utf8");
+  readFileSync(join(builtSite(), page.replace(/(?:index)?\.mdx?$/, ""), "index.html"), "utf8");
 
 test("the pages place the two figures", () => {
   assert.deepEqual(placed.map(({ id }) => id).sort(), ["package-map", "run-loop"]);

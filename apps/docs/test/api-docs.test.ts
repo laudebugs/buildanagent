@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, inject, test } from "vitest";
+import { describe, test } from "vitest";
 import { checkApiDocs, listExports } from "../src/api/check.js";
 import {
   API_PACKAGES,
@@ -11,6 +11,7 @@ import {
   typeDocOptions,
   VALIDATION,
 } from "../src/api/packages.js";
+import { builtSite } from "./built.js";
 
 const APP = fileURLToPath(new URL("..", import.meta.url));
 const fixture = (name: string) => join(APP, "test/fixtures/api", name);
@@ -43,7 +44,6 @@ function fixtureRules() {
 
 describe("the built reference", { timeout: 180_000 }, () => {
   // test/built-site.ts builds the docs once for every file that reads built pages.
-  const out = inject("builtSite");
 
   const FOLDER: Record<string, string> = {
     Function: "functions",
@@ -65,7 +65,7 @@ describe("the built reference", { timeout: 180_000 }, () => {
         if (folder === undefined) return true;
         return !existsSync(
           join(
-            out,
+            builtSite(),
             pkg.output,
             entry.module.replace(/^@/, "").toLowerCase(),
             folder,

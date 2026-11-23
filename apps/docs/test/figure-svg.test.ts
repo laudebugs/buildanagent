@@ -150,4 +150,15 @@ describe("refuses markup the kit never writes", () => {
   test("a header that names another script", () =>
     refuses(committed.replace("figures/run-loop.ts", "figures/package-map.ts"), /header names/));
   test("a file svgkit did not write", () => refuses('<svg xmlns="http://www.w3.org/2000/svg"></svg>', /svgkit/));
+  // XML forbids "--" inside a comment, so a header with one is not well-formed and an XML parser refuses the file.
+  test("a header that holds --", () =>
+    refuses(
+      committed.replace(
+        "run the figures:build script of @buildanagent/docs",
+        "run pnpm --filter @buildanagent/docs figures:build",
+      ),
+      /not a file that figures:build wrote/,
+    ));
+  test("a figure id that holds --", () =>
+    refuses(committed.replaceAll("run-loop", "run--loop"), /not a file that figures:build wrote/));
 });

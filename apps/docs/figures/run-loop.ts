@@ -1,6 +1,6 @@
 // One run of the SDK's loop (packages/sdk/src/loop.ts): the model is called, the tools it asks for run, their results
-// go back to the next model call, and the run ends when the model answers without a tool call (`done`) or when a guard
-// or hook ends it with another stop reason, such as `max_steps` or `budget`. The page beside the figure names every
+// go back to the next model call, and the run ends when the model answers without a tool call (`done`) or with another
+// stop reason, such as `max_steps`, `budget`, `error` or `awaiting_approval`. The page beside the figure names every
 // stop reason, so the figure keeps to the one cycle. It is drawn in two columns, 320 wide, so it fits a 390 px phone
 // whole: the run on the left, the tools on the right.
 import { Figure, type Rect } from "@buildanagent/manual/figures/svgkit";
@@ -42,8 +42,9 @@ export default function draw(): Figure {
   figure.arrow({ x: 40, y: bottom }, { x: 40, y: done.y });
   figure.text({ x: 48, y: 204 }, "text answer", { anchor: "start" });
 
-  // Between steps, a guard or a hook can end the run instead of the next model call.
+  // Anything else that ends the run: a guard or a hook, a failed model call, an abort, or a tool call that waits for
+  // approval or asks the user a question. The label names none of them, because the page lists all nine reasons.
   figure.arrow({ x: 280, y: bottom }, { x: 280, y: stop.y }, { tone: "muted", dashed: true });
-  figure.text({ x: 272, y: 204 }, "guard or hook", { anchor: "end", tone: "muted" });
+  figure.text({ x: 272, y: 204 }, "another stop", { anchor: "end", tone: "muted" });
   return figure;
 }

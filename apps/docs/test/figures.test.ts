@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { readTokens } from "@buildanagent/manual/design/tokens";
 import { toHtml } from "hast-util-to-html";
 import { describe, test } from "vitest";
@@ -23,7 +24,50 @@ test("the folder holds the pipeline and the registered figures, and nothing else
   }
 });
 
+/**
+ * The ways a file breaks XML well-formedness that the sanitiser's element check does not already cover, since it reads
+ * only the drawing: a comment holding `--` or ending in `-`, a `<` or a bare `&` inside the style, or a tag outside the
+ * header, the root, the style and the drawing. A browser forgives each of them inline, but an XML parser refuses the
+ * standalone file.
+ */
+function notWellFormed(svg: string): string | undefined {
+  for (const [, body = ""] of svg.matchAll(/<!--([\s\S]*?)-->/g)) {
+    if (body.includes("--") || body.endsWith("-")) return `the comment <!--${body.slice(0, 60)}--> holds --`;
+  }
+  const [, style] = /<style>\n([\s\S]*?)\n<\/style>/.exec(svg) ?? [];
+  if (style === undefined) return "it has no <style>";
+  if (style.includes("<")) return "its style holds a <";
+  if (/&(?!(?:amp|lt|gt|quot|apos);)/.test(style)) return "its style holds a bare &";
+  const tags =
+    svg
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(/<style>[\s\S]*?<\/style>/, "")
+      .match(/<[^>]*>/g) ?? [];
+  const open: string[] = [];
+  for (const tag of tags) {
+    const closing = /^<\/([a-z]+)>$/.exec(tag);
+    if (closing !== null) {
+      if (open.pop() !== closing[1]) return `its ${tag} closes no open element`;
+    } else {
+      const start = /^<([a-z]+)(?: [^<>]*?)?(\/?)>$/.exec(tag);
+      if (start === null) return `it holds ${tag.slice(0, 40)}, which is not a tag`;
+      if (start[2] === "") open.push(start[1] ?? "");
+    }
+  }
+  return open.length > 0 ? `its <${open.at(-1)}> is never closed` : undefined;
+}
+
+test("the well-formedness check finds a -- in a comment", () => {
+  const svg = readFileSync(svgOf("run-loop"), "utf8");
+  assert.match(notWellFormed(svg.replace("Do not edit:", "Do not edit -- ")) ?? "", /holds --/);
+  assert.match(notWellFormed(svg.replace(" -->\n", " --->\n")) ?? "", /holds --/);
+});
+
 describe.each(FIGURE_IDS.map((id) => [id] as const))("%s", (id) => {
+  test("its committed SVG is well-formed XML", () => {
+    assert.equal(notWellFormed(readFileSync(svgOf(id), "utf8")), undefined, `figures/${id}.svg is not well-formed`);
+  });
+
   test("its committed SVG is what its script draws now", async () => {
     const committed = readFileSync(svgOf(id), "utf8");
     assert.ok(committed === (await drawFigure(id)), `figures/${id}.svg is stale: run ${FIGURES_BUILD}`);
@@ -78,6 +122,20 @@ describe("the figure frame's stylesheet", () => {
 
   test("gives the marks system colours under forced colours", () => {
     assert.match(css, /@media \(forced-colors: active\) \{[\s\S]*fill: CanvasText;[\s\S]*stroke: CanvasText;/);
+  });
+
+  test("names under forced colours every book class that sets a fill or a stroke", () => {
+    const book = readFileSync(
+      createRequire(import.meta.url).resolve("@buildanagent/manual/styles/figures.css"),
+      "utf8",
+    );
+    const coloured = [...book.matchAll(/\.(fig-[a-z0-9-]+) \{([^}]*)\}/g)]
+      .filter(([, , body = ""]) => /(?:^|\s)(?:fill|stroke):\s*var\(/.test(body))
+      .map(([, name = ""]) => name);
+    assert.ok(coloured.includes("fig-amber") && coloured.includes("fig-paper"), "the book's coloured classes are read");
+    const forced = css.slice(css.indexOf("@media (forced-colors: active)"));
+    const missing = coloured.filter((name) => !new RegExp(`\\.docs-figure \\.${name}[,\\s]`).test(forced));
+    assert.deepEqual(missing, [], "add these classes to the forced-colours block of src/styles/figures.css");
   });
 
   test("is loaded after the book's figure marks", () => {
