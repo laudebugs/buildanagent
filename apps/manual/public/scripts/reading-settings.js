@@ -71,6 +71,31 @@
     else root.setAttribute("data-reading-size", String(size));
   };
 
+  /**
+   * Writes the settings to a storage, for the settings panel; the start-up below never writes. Each value goes through
+   * readFont and readSize first, so only an allowed value is ever stored. A default deletes its key rather than storing
+   * the default, so storage holds only what differs from the default and `read` of an empty key gives the same answer
+   * as `apply`. Returns whether both writes succeeded: a missing storage, a full one or one that throws returns false
+   * and changes nothing on the page.
+   */
+  const save = (storage, settings) => {
+    const font = readFont(settings?.font);
+    const size = readSize(String(settings?.size));
+    if (!storage) return false;
+    let saved = true;
+    const write = (key, value, isDefault) => {
+      try {
+        if (isDefault) storage.removeItem(key);
+        else storage.setItem(key, value);
+      } catch {
+        saved = false;
+      }
+    };
+    write(FONT_KEY, font, font === DEFAULT_FONT);
+    write(SIZE_KEY, String(size), size === DEFAULT_SIZE);
+    return saved;
+  };
+
   /** Adds a preload link to `head` for each upright file the pairing's text starts with. */
   const preload = (doc, font) => {
     for (const href of PAIRINGS[readFont(font)]) {
@@ -96,6 +121,7 @@
     readSize,
     read,
     apply,
+    save,
   });
 
   try {

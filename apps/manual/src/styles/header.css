@@ -87,7 +87,12 @@ html {
   gap: 0.5rem;
 }
 
-/* The settings button's slot: with nothing in it the wrapper is not drawn, so it takes no room and no gap. */
+/* The settings button's slot: its contents are the tools' own flex items, so a hidden button takes no room and no gap,
+   and with nothing in it the wrapper is not drawn. */
+.site-header__slot {
+  display: contents;
+}
+
 .site-header__slot:empty {
   display: none;
 }
@@ -226,6 +231,18 @@ html {
   );
 }
 
+/* The page's side gutter, --gutter, is clamp(1rem, 0.413rem + 2.6087vw, 2.5rem); the header divides its rem parts in the
+   same way, so a larger text size does not narrow the row. test/reading-settings.test.ts fails when these numbers differ
+   from the token's. */
+.site-header__inner {
+  padding-inline: clamp(
+    calc(1rem / var(--reading-scale)),
+    calc(0.413rem / var(--reading-scale)) +
+    2.6087vw,
+    calc(2.5rem / var(--reading-scale))
+  );
+}
+
 .site-header__nav {
   gap: calc(0.5rem / var(--reading-scale)) calc(1.25rem / var(--reading-scale));
 }
@@ -271,6 +288,11 @@ html {
 
 @media (max-width: 760px), (pointer: coarse) {
   .site-header__inner {
+    gap: calc(0.25rem / var(--reading-scale));
+  }
+
+  /* Four 44px buttons share the row with the wordmark, so they sit 4px apart, as the row's items do. */
+  .site-header__tools {
     gap: calc(0.25rem / var(--reading-scale));
   }
 

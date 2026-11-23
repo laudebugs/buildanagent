@@ -102,6 +102,11 @@ export interface ContentDirs {
   readonly analogiesFile: string;
 }
 
+/** The app's `public/` folder, which the build copies to the site's root as it is: the fonts and the page scripts. */
+export function bookPublicDir(app: string = appRoot()): string {
+  return join(app, "public");
+}
+
 /** The book's own figures, `figures/<chapter>/<id>.ts` and the SVG each writes, whatever `BOOK_FIXTURE_DIR` says. */
 export function bookFiguresDir(app: string = appRoot()): string {
   return join(app, "figures");
