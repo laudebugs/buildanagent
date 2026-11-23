@@ -2014,10 +2014,10 @@ class Notes {
   /**
    * The one way the editor closes by the reader's own act: Save, Remove, the Close button and a swipe down. It blurs the
    * field, so the on-screen keyboard goes, and hides the popover. Focus then goes to the note's marker when the popover
-   * was opened from the keyboard or is a sheet (a touch reader's marker is a dot with no shade); after a mouse it
-   * stays on the page, since a focused margin marker would keep its passage brightened. Escape and a tap outside close
-   * the popover in the browser and reach `restoreDotFocus` through its toggle event instead. Nothing typed is kept:
-   * closing drops it, as those two do.
+   * was opened from the keyboard or is a sheet (a touch reader's marker is a dot with no shade). After a mouse close it
+   * stays on the page, since a focused margin marker would keep its passage brightened; after Remove no marker is left
+   * to take it. Escape and a tap outside close the popover in the browser and reach `restoreDotFocus` through its
+   * toggle event instead. Nothing typed is kept: closing drops it, as those two do.
    */
   closeEditor() {
     const id = this.popReturnId ?? this.popId;
