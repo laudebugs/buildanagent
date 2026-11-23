@@ -40,28 +40,44 @@ export async function clearLeftovers(win) {
   }
 }
 
+/** The notice's text when another tab of the book already switched to the new version. */
+export const SWITCHED_TEXT = "The manual was updated in another tab.";
+
 /**
- * Shows the update notice once; Reload asks `waiting` to take over, and the reload follows when it has.
+ * Shows the update notice once. Reload asks the worker that is waiting when the reader presses it, which may be a
+ * newer one than the worker that first raised the notice, and the reload follows once it has taken over. With no
+ * worker waiting any more, because another tab already switched, Reload reloads at once.
  * @param {Window} win
- * @param {ServiceWorker} waiting
+ * @param {ServiceWorkerRegistration} registration
  * @param {{ reloading: boolean }} state
+ * @param {string} [message]
  */
-export function showNotice(win, waiting, state) {
+export function showNotice(win, registration, state, message = NOTICE_TEXT) {
   const doc = win.document;
-  if (doc.querySelector(".update-notice")) return;
+  const shown = doc.querySelector(".update-notice");
+  if (shown) {
+    const text = shown.querySelector(".update-notice__text");
+    if (text) text.textContent = message;
+    return;
+  }
   const notice = doc.createElement("div");
   notice.className = "update-notice";
   notice.setAttribute("role", "status");
   const text = doc.createElement("p");
   text.className = "update-notice__text";
-  text.textContent = NOTICE_TEXT;
+  text.textContent = message;
   const reload = doc.createElement("button");
   reload.type = "button";
   reload.className = "update-notice__button";
   reload.textContent = "Reload";
   reload.addEventListener("click", () => {
-    state.reloading = true;
     reload.disabled = true;
+    const waiting = registration.waiting;
+    if (!waiting) {
+      win.location.reload();
+      return;
+    }
+    state.reloading = true;
     waiting.postMessage({ type: "SKIP_WAITING" });
   });
   const later = doc.createElement("button");
@@ -74,27 +90,58 @@ export function showNotice(win, waiting, state) {
 }
 
 /**
- * Watches a registration for a new build's worker that has installed while an older one controls the page.
+ * Watches a registration for a new build's worker that has installed while an older one controls the page, and for
+ * a worker that fails to install, which it marks on the page for the save control (T67b) and the console.
  * @param {Window} win
  * @param {ServiceWorkerRegistration} registration
  */
 export function watchForUpdate(win, registration) {
   const container = win.navigator.serviceWorker;
   const state = { reloading: false };
-  // The reload happens only after the reader pressed Reload, never because another tab's press changed the worker.
+  // This tab reloads only after its reader pressed Reload. A switch that another tab's press caused leaves this page
+  // on the old build, so the notice offers a reload instead of taking one. The first install of all also changes
+  // the controller when nothing controlled the page before, and that needs no notice.
+  let hadController = Boolean(container.controller);
   container.addEventListener("controllerchange", () => {
     if (state.reloading) win.location.reload();
+    else if (hadController) showNotice(win, registration, state, SWITCHED_TEXT);
+    hadController = true;
   });
-  const offer = (worker) => {
-    if (worker && container.controller) showNotice(win, worker, state);
+  const offer = () => {
+    if (registration.waiting && container.controller) showNotice(win, registration, state);
   };
-  offer(registration.waiting);
+  offer();
   registration.addEventListener("updatefound", () => {
     const installing = registration.installing;
     installing?.addEventListener("statechange", () => {
-      if (installing.state === "installed") offer(installing);
+      if (installing.state === "installed") offer();
+      if (installing.state === "redundant" && registration.active !== installing) {
+        win.document.documentElement.dataset.offline = "install-failed";
+        win.console?.warn("The manual's offline worker failed to install; the book reads online as before.");
+      }
     });
   });
+}
+
+/**
+ * Asks the active worker to save the page the reader landed on, and the same-origin files it loaded, when the worker
+ * did not yet control the page: the first visit, or a reload that bypassed the worker. The worker saves only files on
+ * its build's list whose bytes match, so this can never put anything else in its cache.
+ * @param {Window} win
+ * @returns {Promise<boolean>} whether it asked
+ */
+export async function saveLandingPage(win) {
+  const container = win.navigator.serviceWorker;
+  if (container.controller) return false;
+  const worker = (await container.ready).active;
+  if (!worker) return false;
+  const origin = win.location.origin;
+  const loaded = (win.performance?.getEntriesByType?.("resource") ?? [])
+    .map((entry) => entry.name)
+    .filter((url) => url.startsWith(`${origin}/`));
+  const paths = [win.location.pathname, ...loaded.map((url) => new URL(url).pathname)];
+  worker.postMessage({ type: "SAVE_PAGE", paths: [...new Set(paths)].slice(0, 100) });
+  return true;
 }
 
 /**
@@ -113,6 +160,8 @@ export async function start(win) {
     // updateViaCache "none" makes every update check fetch sw.js from the network, never from the HTTP cache.
     const registration = await win.navigator.serviceWorker.register(WORKER_URL, { scope: "/", updateViaCache: "none" });
     watchForUpdate(win, registration);
+    // Not awaited: `ready` settles only once a worker activates, which may take a while or never happen.
+    saveLandingPage(win).catch(() => undefined);
     return "registered";
   } catch {
     // Storage can be off or the browser can refuse the worker; the book then reads online as before.

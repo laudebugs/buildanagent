@@ -5,6 +5,8 @@ import {
   allowedHosts,
   CACHE_PREFIX,
   NOTICE_TEXT,
+  SWITCHED_TEXT,
+  saveLandingPage,
   start,
   WORKER_URL,
   watchForUpdate,
@@ -24,6 +26,7 @@ class FakeWorker extends EventTarget {
 }
 
 class FakeRegistration extends EventTarget {
+  active: FakeWorker | null = null;
   waiting: FakeWorker | null = null;
   installing: FakeWorker | null = null;
   unregistered = false;
@@ -38,6 +41,10 @@ class FakeContainer extends EventTarget {
   readonly registered: { url: string; options: unknown }[] = [];
   readonly registration = new FakeRegistration();
   readonly leftovers = [new FakeRegistration()];
+  readonly active = new FakeWorker();
+  get ready() {
+    return Promise.resolve({ active: this.active });
+  }
   async register(url: string, options: unknown) {
     this.registered.push({ url, options });
     return this.registration;
@@ -59,7 +66,12 @@ function page(url: string, hosts: string | null, withWorker = true) {
   let reloads = 0;
   Object.defineProperty(win, "location", {
     configurable: true,
-    value: { hostname: new URL(url).hostname, reload: () => reloads++ },
+    value: {
+      hostname: new URL(url).hostname,
+      origin: new URL(url).origin,
+      pathname: new URL(url).pathname,
+      reload: () => reloads++,
+    },
   });
   return { win: win as unknown as globalThis.Window, doc, container, names, reloads: () => reloads };
 }
@@ -148,6 +160,7 @@ test("a worker that installs later shows the notice once, and the first install 
   first.container.registration.installing = installing;
   first.container.registration.dispatchEvent(new Event("updatefound"));
   installing.state = "installed";
+  first.container.registration.waiting = installing;
   installing.dispatchEvent(new Event("statechange"));
   assert.equal(first.doc.querySelector(".update-notice"), null, "no controller yet: this is the first install");
 
@@ -158,10 +171,79 @@ test("a worker that installs later shows the notice once, and the first install 
   later.container.registration.installing = next;
   later.container.registration.dispatchEvent(new Event("updatefound"));
   next.state = "installed";
+  later.container.registration.waiting = next;
   next.dispatchEvent(new Event("statechange"));
   next.dispatchEvent(new Event("statechange"));
   assert.equal(later.doc.querySelectorAll(".update-notice").length, 1);
   (later.doc.querySelector(".update-notice__button--quiet") as unknown as HTMLButtonElement).click();
   assert.equal(later.doc.querySelector(".update-notice"), null, "Not now hides the notice");
   assert.equal(later.reloads(), 0);
+});
+
+test("Reload asks the worker waiting at the press, even when a newer build replaced the one that raised the notice", () => {
+  const { win, doc, container, reloads } = page("https://manual.buildanagent.fyi/", "manual.buildanagent.fyi");
+  container.controller = new FakeWorker();
+  const b = new FakeWorker();
+  container.registration.waiting = b;
+  watchForUpdate(win, container.registration as unknown as ServiceWorkerRegistration);
+  const c = new FakeWorker();
+  container.registration.waiting = c;
+  (doc.querySelector(".update-notice__button") as unknown as HTMLButtonElement).click();
+  assert.deepEqual(b.messages, [], "the replaced worker is redundant");
+  assert.deepEqual(c.messages, [{ type: "SKIP_WAITING" }]);
+  container.dispatchEvent(new Event("controllerchange"));
+  assert.equal(reloads(), 1);
+});
+
+test("with no worker waiting any more, Reload reloads at once, and another tab's switch offers a reload", () => {
+  const { win, doc, container, reloads } = page("https://manual.buildanagent.fyi/", "manual.buildanagent.fyi");
+  container.controller = new FakeWorker();
+  container.registration.waiting = new FakeWorker();
+  watchForUpdate(win, container.registration as unknown as ServiceWorkerRegistration);
+  container.registration.waiting = null;
+  container.dispatchEvent(new Event("controllerchange"));
+  assert.equal(reloads(), 0, "another tab's switch does not reload this tab");
+  assert.equal(doc.querySelector(".update-notice__text")?.textContent, SWITCHED_TEXT);
+  (doc.querySelector(".update-notice__button") as unknown as HTMLButtonElement).click();
+  assert.equal(reloads(), 1);
+});
+
+test("a worker that fails to install marks the page for the save control and the console", () => {
+  const { win, doc, container } = page("https://manual.buildanagent.fyi/", "manual.buildanagent.fyi");
+  const warnings: unknown[] = [];
+  Object.defineProperty(win, "console", {
+    configurable: true,
+    value: { warn: (text: unknown) => warnings.push(text) },
+  });
+  watchForUpdate(win, container.registration as unknown as ServiceWorkerRegistration);
+  const installing = new FakeWorker();
+  container.registration.installing = installing;
+  container.registration.dispatchEvent(new Event("updatefound"));
+  installing.state = "redundant";
+  installing.dispatchEvent(new Event("statechange"));
+  assert.equal(doc.documentElement.dataset.offline, "install-failed");
+  assert.equal(warnings.length, 1);
+});
+
+test("an uncontrolled page asks the worker to save it and its same-origin files; a controlled page asks nothing", async () => {
+  const landing = page("https://manual.buildanagent.fyi/tools/", "manual.buildanagent.fyi");
+  Object.defineProperty(landing.win, "performance", {
+    configurable: true,
+    value: {
+      getEntriesByType: () => [
+        { name: "https://manual.buildanagent.fyi/scripts/notes.js" },
+        { name: "https://manual.buildanagent.fyi/_astro/BaseLayout.abc.css" },
+        { name: "https://evil.example/tracker.js" },
+        { name: "https://manual.buildanagent.fyi.evil.example/x.js" },
+      ],
+    },
+  });
+  assert.equal(await saveLandingPage(landing.win), true);
+  assert.deepEqual(landing.container.active.messages, [
+    { type: "SAVE_PAGE", paths: ["/tools/", "/scripts/notes.js", "/_astro/BaseLayout.abc.css"] },
+  ]);
+  const controlled = page("https://manual.buildanagent.fyi/tools/", "manual.buildanagent.fyi");
+  controlled.container.controller = new FakeWorker();
+  assert.equal(await saveLandingPage(controlled.win), false);
+  assert.deepEqual(controlled.container.active.messages, []);
 });
