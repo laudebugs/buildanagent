@@ -8,6 +8,9 @@
 //    is stored until Save note;
 //  - Save note, Cancel, Escape and a click outside all close it, focus is never left inside it, a keyboard reader's
 //    focus goes back to the note's marker or the passage, and only Save keeps anything ("Note saved.");
+//  - a resize across the sheet's width keeps the new note, its text and focus; the popover hides while its passage is
+//    scrolled away and returns with it; a marker opened meanwhile drops the new note; and an empty Save note keeps a
+//    note another tab put on the same passage;
 //  - a highlight's own popover is the same component, and every action is reachable from the keyboard alone;
 //  - the popover's roles, names and states, read from the browser's accessibility tree.
 // The repo has no axe-core, so the last item is a targeted check of roles, names, labels and states, not an axe run.
@@ -60,6 +63,12 @@ async function selectAt(page, index, at, from = 10, length = 40) {
   return text;
 }
 
+/** Selects the same passage again and presses Add note, which opens the popover of the highlight already on it. */
+async function addNoteOn(page) {
+  await selectAt(page, 3, 0.3);
+  await addNote(page);
+}
+
 async function addNote(page, how = "click") {
   if (how === "click") await page.click(".notes-toolbar >> text=Add note");
   await page.waitForSelector(".notes-pop:popover-open");
@@ -90,6 +99,9 @@ const read = (page) =>
       );
     return {
       open: pop.matches(":popover-open"),
+      hidden: getComputedStyle(pop).visibility === "hidden",
+      sheet: pop.hasAttribute("data-sheet"),
+      fieldValue: pop.querySelector(".notes-pop__field")?.value ?? "",
       display: getComputedStyle(pop).display,
       label: pop.getAttribute("aria-label"),
       side: pop.getAttribute("data-side"),
@@ -280,6 +292,44 @@ async function run(name, context) {
   checkPlaced(s, `${name} after a resize`, "below");
   check(s.open && s.activeInPop, `${name}: a resize keeps the popover open and focus in it`);
   await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(250);
+
+  // 4b. A resize across the sheet's width, with text typed, turns the popover into the sheet and back, keeping the new
+  //     note, its text, its colour and focus.
+  for (const [width, sheet] of [
+    [600, true],
+    [1280, false],
+  ]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForTimeout(300);
+    s = await read(page);
+    check(
+      s.open && s.sheet === sheet,
+      `${name} at ${width}px: the new note is ${sheet ? "a sheet" : "a popover"}, still open`,
+    );
+    check(s.fieldValue === NOTE, `${name} at ${width}px: the typed text is kept`);
+    check(s.activeTag.startsWith("textarea#notes-pop-field"), `${name} at ${width}px: focus stays in the field`);
+    check(
+      (s.painted["manual-hl-blue"] ?? []).includes(quote.trim()) && s.stored === null,
+      `${name} at ${width}px: the blue draft is still drawn and nothing is stored`,
+    );
+  }
+  checkPlaced(s, `${name} back from the sheet`, "below");
+
+  // 4c. With the passage scrolled out of the window the popover hides, still open; it returns with the passage.
+  await page.evaluate(() => scrollBy({ top: 2500, behavior: "instant" }));
+  await page.waitForTimeout(250);
+  s = await read(page);
+  check(s.open && s.hidden, `${name}: with the passage scrolled away the popover is hidden but open`);
+  await page.evaluate(() => scrollBy({ top: -2500, behavior: "instant" }));
+  await page.waitForTimeout(250);
+  s = await read(page);
+  check(s.open && !s.hidden, `${name}: it shows again when the passage returns`);
+  checkPlaced(s, `${name} after the passage returns`, "below");
+  check(
+    s.fieldValue === NOTE && s.activeTag.startsWith("textarea#notes-pop-field"),
+    `${name}: with its text and focus`,
+  );
 
   // 5. Escape drops the new note: nothing stored, no highlight, focus back at the passage.
   await page.keyboard.press("Escape");
@@ -389,6 +439,43 @@ async function run(name, context) {
     `${name}: Escape gives focus to the marker`,
   );
 
+  // 11b. Opening a marker while a new note is open drops the new note and opens the highlight.
+  await selectAt(page, 3, 0.3);
+  await addNote(page);
+  await page.fill(".notes-pop__field", "Typed, then left.");
+  await page.focus(".notes-marker, .notes-dot");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(150);
+  s = await read(page);
+  check(s.open && s.label === "Highlight", `${name}: Enter on a marker opens that highlight instead`);
+  check(
+    paintedCount(s) === 1 && s.fieldValue !== "Typed, then left.",
+    `${name}: the new note's draft and text are gone`,
+  );
+  await page.keyboard.press("Escape");
+
+  // 11c. Another tab notes the same passage while this one has a new note open with an empty field: Save note keeps the
+  //      other tab's note and colour.
+  const passage = await selectAt(page, 3, 0.3);
+  await addNote(page);
+  const other = await page.context().newPage();
+  await other.goto(`${origin}/tools/`);
+  await other.waitForSelector(".notes-open");
+  await selectAt(other, 3, 0.3);
+  await other.click(".notes-toolbar .notes-swatch--pink");
+  await addNoteOn(other);
+  await other.fill(".notes-pop__field", "important");
+  await other.click(".notes-pop__act[data-action='save']");
+  await other.close();
+  await page.click(".notes-pop__act[data-action='save']");
+  await page.waitForTimeout(150);
+  s = await read(page);
+  const both = storedNotes(s).filter((item) => item.quote === passage.trim());
+  check(
+    both.length === 1 && both[0].note === "important" && both[0].color === "pink",
+    `${name}: an empty Save note keeps the other tab's note and colour (${JSON.stringify(both.map((i) => [i.note, i.color]))})`,
+  );
+
   // 12. From the keyboard alone: select, Alt+Shift+N, Tab to Add note, write, choose a colour, Tab to Save note.
   await fresh(page);
   await selectAt(page, 2, 0.3);
@@ -445,7 +532,9 @@ try {
     const probe = await playwright.webkit.launch({ env: browserEnv });
     await probe.close();
     webkitReady = true;
-  } catch {
+  } catch (error) {
+    // Only a missing build is a skip; any other launch failure fails the run.
+    if (!/Executable doesn't exist/.test(String(error?.message))) throw error;
     console.log(
       "SKIPPED - webkit desktop: no WebKit build is installed (PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit)",
     );

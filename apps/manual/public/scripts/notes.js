@@ -1119,11 +1119,12 @@ class Notes {
     this.popRemove.addEventListener("click", () => this.removePopped());
     this.popColors.addEventListener("keydown", (event) => this.onColorKey(event));
     this.popField.addEventListener("input", () => this.updatePopCount());
-    // A rotation or a resize across the sheet's width while the popover is open closes it, since a popover placed
-    // beside a passage and a full-width sheet are laid out differently; opening it again lays it out afresh.
+    // A rotation or a resize across the sheet's width while the popover is open lays it out again in the other mode,
+    // a popover under the passage or a full-width sheet, keeping what it holds: a new note, the typed text and focus.
     const sheetQuery = typeof win.matchMedia === "function" ? win.matchMedia(SHEET_QUERY) : undefined;
     sheetQuery?.addEventListener?.("change", () => {
-      if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches) this.closeEditor("resize");
+      if (this.popOpen && this.pop.hasAttribute("data-sheet") !== sheetQuery.matches)
+        this.relayoutPop(sheetQuery.matches);
     });
     // The on-screen keyboard shrinks the visual viewport, and on iOS it leaves the layout viewport alone, so the sheet
     // follows the visual one: it sits on its bottom edge and takes at most half its height.
@@ -1198,7 +1199,8 @@ class Notes {
     }
     // Escape on an open popover, wherever focus is, closes it through closeEditor before the browser's own light
     // dismiss can, so a new highlight that was never saved is dropped and focus goes back to the passage.
-    if (event.key === "Escape" && this.popOpen) {
+    // An Escape that ends an input method's composition belongs to the field, not to the popover.
+    if (event.key === "Escape" && this.popOpen && !event.isComposing && event.keyCode !== 229) {
       event.preventDefault();
       this.closeEditor("escape");
       return;
@@ -1737,8 +1739,16 @@ class Notes {
    * as a bottom sheet on a narrow one. Focus goes to the note field when the popover is for writing, and otherwise to
    * the checked colour. `editing` opens a saved note's field at once, as Add note on its passage does.
    */
-  openPop(entry, editing = false) {
+  openPop(target, editing = false) {
     const { win } = this;
+    let entry = target;
+    // A highlight opened while a new note is being written replaces the new note, which is dropped as Cancel drops it.
+    if (entry && this.draft) {
+      this.draft = undefined;
+      this.paint();
+      entry = this.drawn.find((drawn) => drawn.item.id === target.item.id);
+      if (!entry) return;
+    }
     const item = entry?.item;
     const range = entry ? entry.range : this.draftRange;
     if ((!item && !this.draft) || !range) return;
@@ -1773,6 +1783,11 @@ class Notes {
         if (this.popOpen && this.popRange === range) this.revealPassage();
       });
     } else {
+      // A passage the reader cannot see, such as one selected and then scrolled away, is brought into view first, so
+      // the popover opens beside it rather than hidden.
+      const lines = [...range.getClientRects()];
+      const away = lines.length > 0 && (lines[lines.length - 1].bottom < 0 || lines[0].top > win.innerHeight);
+      if (away) this.popBlock?.scrollIntoView?.({ block: "nearest" });
       this.placePop();
     }
     // iOS Safari opens the keyboard only for a focus() made inside the tap that asked for it, so the field takes focus
@@ -1781,6 +1796,25 @@ class Notes {
     const writing = this.popEditing || item === undefined || item.note === "";
     if (writing && (!this.popFromKey || editing)) this.focusField();
     else this.focusColor();
+  }
+
+  /** Switches an open popover between the sheet and the popover under the passage, leaving its content alone. */
+  relayoutPop(sheet) {
+    this.pop.toggleAttribute("data-sheet", sheet);
+    this.pop.style.transform = "";
+    this.sheetKey = undefined;
+    if (sheet) {
+      this.pop.removeAttribute("data-side");
+      this.pop.removeAttribute("data-offscreen");
+      this.pop.style.top = "";
+      this.pop.style.left = "";
+      this.layoutSheet();
+    } else {
+      this.pop.removeAttribute("data-compact");
+      this.pop.style.removeProperty("--notes-sheet-bottom");
+      this.pop.style.removeProperty("--notes-sheet-max");
+      this.placePop();
+    }
   }
 
   /**
@@ -1795,9 +1829,23 @@ class Notes {
     const first = rects[0];
     const last = rects[rects.length - 1];
     if (!first || !last) return;
+    const height = win.innerHeight;
+    // While the passage is scrolled out of the window the popover is hidden, still open and holding what the reader
+    // wrote, so it never sits over unrelated text; it shows again, with focus back in it, when the passage returns.
+    const away = last.bottom < 0 || first.top > height;
+    if (away !== this.pop.hasAttribute("data-offscreen")) {
+      const active = this.doc.activeElement;
+      if (away) this.hiddenFocus = this.pop.contains(active) ? active : undefined;
+      this.pop.toggleAttribute("data-offscreen", away);
+      const back = this.hiddenFocus;
+      if (!away && back?.isConnected && this.pop.contains(back) && this.isFocusOnPage()) {
+        back.focus({ preventScroll: true });
+      }
+      if (!away) this.hiddenFocus = undefined;
+    }
+    if (away) return;
     const box = this.pop.getBoundingClientRect();
     const width = doc.documentElement.clientWidth || win.innerWidth;
-    const height = win.innerHeight;
     const gap = 8;
     const below = last.bottom + gap;
     const above = first.top - gap - box.height;
@@ -1813,6 +1861,12 @@ class Notes {
     // Set through the CSSOM, which the content security policy allows; a style attribute in markup it would block.
     this.pop.style.top = `${Math.round(top)}px`;
     this.pop.style.left = `${Math.round(left)}px`;
+  }
+
+  /** Whether focus rests on the page itself rather than on a control. */
+  isFocusOnPage() {
+    const active = this.doc.activeElement;
+    return !active || active === this.doc.body || active === this.doc.documentElement;
   }
 
   /** Gives focus to the checked colour, the one stop the colour group has in the tab order. */
@@ -1999,10 +2053,10 @@ class Notes {
     let items;
     let id;
     if (same) {
+      // An empty field never wipes the other tab's note, and its colour stays unless the reader picked one here.
       id = same.id;
-      items = this.items.map((other) =>
-        other.id === same.id ? { ...other, note, color: draft.color, at: Date.now() } : other,
-      );
+      const kept = { note: note || same.note, color: draft.picked ? draft.color : same.color };
+      items = this.items.map((other) => (other.id === same.id ? { ...other, ...kept, at: Date.now() } : other));
     } else if (this.items.length >= MAX_HIGHLIGHTS) {
       this.say(MESSAGES.full);
       this.popMessage.textContent = MESSAGES.full;
@@ -2022,11 +2076,12 @@ class Notes {
       this.popMessage.textContent = problem;
       return;
     }
-    this.color = draft.color;
+    const saved = items.find((other) => other.id === id);
+    this.color = saved?.color ?? draft.color;
     this.popReturnId = id;
     this.popMessage.textContent = "";
     this.closeEditor("save");
-    this.say(note === "" ? "Highlight saved without a note." : "Note saved.");
+    this.say(saved?.note ? "Note saved." : "Highlight saved without a note.");
   }
 
   /**
@@ -2120,7 +2175,7 @@ class Notes {
       return;
     }
     if (!this.draft) return;
-    this.draft = { ...this.draft, color };
+    this.draft = { ...this.draft, color, picked: true };
     this.paint();
     this.renderPop();
     this.focusColor(color);
@@ -2221,7 +2276,7 @@ class Notes {
     const active = this.doc.activeElement;
     const onPage = !active || active === this.doc.body || active === this.doc.documentElement;
     const keyboard = closed.fromKey || how === "escape";
-    const outside = how === "outside" || how === "resize";
+    const outside = how === "outside";
     const toMarker = outside ? keyboard && onPage : keyboard || closed.sheet;
     const control = closed.id === undefined ? undefined : this.noteControl(closed.id);
     if (toMarker && control) {
@@ -2259,6 +2314,8 @@ class Notes {
     // and nothing of it can cover the page; opening it sets them again.
     this.pop.removeAttribute("data-sheet");
     this.pop.removeAttribute("data-compact");
+    this.pop.removeAttribute("data-offscreen");
+    this.hiddenFocus = undefined;
     if (this.draft) {
       this.draft = undefined;
       this.paint();
@@ -2563,7 +2620,11 @@ class Notes {
       const item = this.makeItem(target.anchor, note);
       items = [...this.items, item];
     } else {
-      items = this.items.map((item) => (item.id === id ? { ...item, note, at: Date.now() } : item));
+      // A new note with an empty field, on a passage another tab highlighted and noted meanwhile, keeps that note.
+      const keep = !("id" in target) && note === "";
+      items = this.items.map((item) =>
+        item.id === id ? { ...item, note: keep ? item.note : note, at: Date.now() } : item,
+      );
     }
     const problem = this.commit(items);
     if (problem) {
@@ -2577,7 +2638,7 @@ class Notes {
     this.selectionBlock.hidden = true;
     this.pending = undefined;
     this.renderList();
-    this.say(note ? "Note saved." : "Highlight saved without a note.");
+    this.say(items.find((item) => item.id === savedId)?.note ? "Note saved." : "Highlight saved without a note.");
     this.focusItem(savedId);
   }
 

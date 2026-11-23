@@ -1366,6 +1366,11 @@
   display: none;
 }
 
+/* While its passage is scrolled out of the window, an open popover is hidden rather than left over other text. */
+.notes-pop[data-offscreen] {
+  visibility: hidden;
+}
+
 .notes-pop__grab {
   display: none;
 }

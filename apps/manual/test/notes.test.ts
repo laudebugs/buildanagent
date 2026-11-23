@@ -1485,6 +1485,181 @@ test("Add note on a passage already highlighted opens that highlight's own popov
   );
 });
 
+/** Stores, as "another tab" would, a highlight on the same passage as `addNote` with the given note and colour. */
+function otherTabNotes(win: Window, note: string, color: string) {
+  const other = page();
+  start(other as unknown as globalThis.Window);
+  const paragraph = q(other, "article p:last-of-type")?.firstChild as Node;
+  select(other, paragraph, 2, paragraph, 13);
+  shortcut(other);
+  toolbarButton(other, "Amber").click();
+  const theirs = parseStored(other.localStorage.getItem(KEY)).get("tools") ?? [];
+  const mine = parseStored(win.localStorage.getItem(KEY)).get("tools") ?? [];
+  const added = theirs.map((found) => ({ ...found, note, color }));
+  win.localStorage.setItem(KEY, stored({ tools: [...mine, ...added] }));
+  return added[0]?.id;
+}
+
+test("a new note saved on a passage another tab noted meanwhile keeps that note, and its colour unless one was picked", () => {
+  for (const [typed, pick, note, color] of [
+    ["", undefined, "important", "green"],
+    ["", "Pink", "important", "pink"],
+    ["Mine instead.", undefined, "Mine instead.", "green"],
+  ] as const) {
+    const { win } = stage([CONTRACT]);
+    addNote(win);
+    if (pick) popButton(win, pick).click();
+    (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = typed;
+    const id = otherTabNotes(win, "important", "green");
+    popAction(win, "save").click();
+    const saved = storedItems(win).filter((found) => found.quote === SELECTED);
+    assert.deepEqual(
+      saved.map((found) => [found.id, found.note, found.color]),
+      [[id, note, color]],
+      `typed "${typed}", picked ${pick ?? "nothing"}: one highlight, the other tab's note kept unless replaced`,
+    );
+    assert.equal(liveText(win), "Note saved.");
+  }
+});
+
+test("the panel's form saving an empty note on a passage another tab noted meanwhile keeps that note", () => {
+  const win = page();
+  start(win as unknown as globalThis.Window);
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  toolbarButton(win, "Add note").click();
+  assert.equal(noteForm(win).open(), true, "without the Popover API, Add note opens the panel's form");
+  const id = otherTabNotes(win, "important", "green");
+  noteForm(win).save();
+  assert.deepEqual(
+    storedItems(win).map((found) => [found.id, found.note, found.color]),
+    [[id, "important", "green"]],
+  );
+});
+
+test("a new note whose save the browser refuses stays open with the draft, the text and the reason", () => {
+  const { win, calls } = stage([CONTRACT]);
+  addNote(win);
+  popButton(win, "Green").click();
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Keep me.";
+  const before = win.localStorage.getItem(KEY);
+  const refuse = vi.spyOn(win.localStorage, "setItem").mockImplementation(() => {
+    throw new win.DOMException("full", "QuotaExceededError");
+  });
+  popAction(win, "save").click();
+  assert.deepEqual(calls, ["show"], "the popover stays open");
+  assert.match(q(win, ".notes-pop__message")?.textContent ?? "", /would not save the change/);
+  assert.equal((q(win, ".notes-pop__field") as HTMLTextAreaElement).value, "Keep me.");
+  assert.deepEqual(painted(win, highlightName("green", false)), [SELECTED], "the draft is still drawn");
+  assert.equal(win.localStorage.getItem(KEY), before);
+  refuse.mockRestore();
+  popAction(win, "save").click();
+  assert.equal(storedItems(win).find((found) => found.quote === SELECTED)?.note, "Keep me.", "a retry saves it");
+});
+
+test("on a phone a new note opens in the sheet, and crossing the sheet's width keeps the draft, the text and focus", () => {
+  const win = page({ items: [CONTRACT] });
+  layout(win, { ...RECTS, [SELECTED]: [rect(20, 300, 120, 320)] });
+  const calls = withPopover(win);
+  const listeners: ((event: unknown) => void)[] = [];
+  const query = {
+    matches: true,
+    media: "(max-width: 40rem)",
+    addEventListener: (_type: string, listener: (event: unknown) => void) => listeners.push(listener),
+  };
+  Object.defineProperty(win, "matchMedia", { configurable: true, value: () => query });
+  start(win as unknown as globalThis.Window);
+  addNote(win);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  assert.equal(pop.hasAttribute("data-sheet"), true, "a sheet");
+  assert.equal(pop.getAttribute("aria-label"), "New note");
+  assert.equal(radios(win).length, 4, "with the colour dots");
+  assert.ok((win.document.activeElement as unknown) === field, "and focus in the field");
+  field.value = "Typed on the phone.";
+  popButton(win, "Blue").click();
+  field.focus();
+  for (const wide of [true, false]) {
+    query.matches = !wide;
+    for (const listener of listeners) listener({});
+    assert.deepEqual(calls, ["show"], "the popover never closes");
+    assert.equal(pop.hasAttribute("data-sheet"), !wide, wide ? "now under the passage" : "a sheet again");
+    assert.equal(field.value, "Typed on the phone.", "the text is kept");
+    assert.ok((win.document.activeElement as unknown) === field, "and focus with it");
+    assert.deepEqual(painted(win, highlightName("blue", false)), [SELECTED], "and the blue draft");
+  }
+  assert.equal(win.localStorage.getItem(KEY), stored({ tools: [CONTRACT] }), "nothing was stored");
+});
+
+test("opening a highlight's marker while a new note is open drops the new note", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  addNote(win);
+  (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Typed, then left.";
+  (markers(win)[0] as HTMLElement).dispatchEvent(
+    new win.MouseEvent("click", { bubbles: true, cancelable: true, detail: 0 }) as unknown as Event,
+  );
+  assert.deepEqual(calls, ["show"], "one popover, now on the highlight");
+  assert.equal(q(win, ".notes-pop")?.getAttribute("aria-label"), "Highlight");
+  assert.equal(q(win, ".notes-pop__quote")?.textContent, "A failed call comes back again");
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model"], "the new note's draft is gone");
+  assert.notEqual((q(win, ".notes-pop__field") as HTMLTextAreaElement).value, "Typed, then left.");
+});
+
+test("an Escape that ends an input method's composition leaves the new note open", () => {
+  const { win, calls } = stage([CONTRACT]);
+  addNote(win);
+  const composing = new win.KeyboardEvent("keydown", {
+    key: "Escape",
+    bubbles: true,
+    cancelable: true,
+    isComposing: true,
+  });
+  (q(win, ".notes-pop__field") as Element).dispatchEvent(composing as unknown as Event);
+  assert.equal(composing.defaultPrevented, false);
+  assert.deepEqual(calls, ["show"], "still open");
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model", SELECTED]);
+});
+
+test("Add note on a passage below the window scrolls it into view, so the popover opens beside it, not hidden", () => {
+  const { win } = stage([CONTRACT]);
+  layout(win, { ...RECTS, [SELECTED]: [rect(20, 1300, 120, 1320)] });
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+  const paragraph = q<HTMLElement>(win, "article p:last-of-type") as HTMLElement;
+  const scrolled = vi.fn();
+  Object.defineProperty(paragraph, "scrollIntoView", { configurable: true, value: scrolled });
+  addNote(win);
+  assert.deepEqual(scrolled.mock.calls, [[{ block: "nearest" }]]);
+});
+
+test("a popover whose passage scrolls out of the window hides, still open, and comes back with focus in its field", () => {
+  const { win, calls } = stage([CONTRACT]);
+  const at: { rects: Rect[] } = { rects: [rect(20, 300, 120, 320)] };
+  vi.spyOn(win.Range.prototype, "getClientRects").mockImplementation(function (this: Range) {
+    const text = this.toString().replace(/\s+/g, " ");
+    return (text === SELECTED ? at.rects : ((RECTS as Record<string, Rect[]>)[text] ?? [])) as never;
+  } as never);
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+  addNote(win);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  field.value = "Half written.";
+  assert.equal(pop.hasAttribute("data-offscreen"), false);
+  for (const away of [rect(20, -400, 120, -380), rect(20, 1200, 120, 1220)]) {
+    at.rects = [away];
+    win.dispatchEvent(new win.Event("scroll"));
+    assert.equal(pop.hasAttribute("data-offscreen"), true, "hidden while the passage is away");
+    assert.deepEqual(calls, ["show"], "but still open");
+    field.blur();
+    at.rects = [rect(20, 300, 120, 320)];
+    win.dispatchEvent(new win.Event("scroll"));
+    assert.equal(pop.hasAttribute("data-offscreen"), false, "shown when the passage returns");
+    assert.ok((win.document.activeElement as unknown) === field, "with focus back in the field");
+    assert.equal(field.value, "Half written.");
+  }
+  assert.deepEqual(painted(win, PLAIN), ["a contract with a model", SELECTED], "the draft stays drawn throughout");
+});
+
 test("a new note's popover sits under the passage, flips above near the window's foot, and stays within the column", () => {
   const { win } = stage([CONTRACT]);
   const at: { rects: Rect[] } = { rects: [rect(120, 300, 220, 320)] };
@@ -1658,7 +1833,7 @@ test("a change in another tab updates an open popover, and closes it when the hi
   assert.equal(hide.mock.calls.length > 0, true, "the popover closes on a highlight another tab deleted");
 });
 
-test("only the pointer that grabbed the sheet's handle moves it, and a layout change while open closes it", () => {
+test("only the pointer that grabbed the sheet's handle moves it, and a layout change while open lays it out again", () => {
   const win = page({ items: [CONTRACT, FAILED] });
   layout(win, RECTS);
   const calls = withPopover(win);
@@ -1685,10 +1860,12 @@ test("only the pointer that grabbed the sheet's handle moves it, and a layout ch
   win.dispatchEvent(pointer("pointermove", 1, 130) as never);
   assert.equal(pop.style.transform, "translateY(30px)");
   win.dispatchEvent(pointer("pointerup", 1, 130) as never);
-  // Rotating to a wide window while the sheet is open closes it.
+  // Rotating to a wide window while the sheet is open turns it into the popover under the passage, still open.
   query.matches = false;
   for (const listener of listeners) listener({});
-  assert.equal(calls.includes("hide"), true);
+  assert.equal(calls.includes("hide"), false, "the popover stays open");
+  assert.equal(pop.hasAttribute("data-sheet"), false);
+  assert.equal(pop.getAttribute("data-side"), "below", "placed under its passage");
 });
 
 /** A phone-sized window for the bottom sheet: a visual viewport a test can resize, a scroll spy and a sheet at `top`. */
