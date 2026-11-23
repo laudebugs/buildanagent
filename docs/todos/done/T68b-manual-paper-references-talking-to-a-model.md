@@ -1,9 +1,9 @@
-# T68b: Name the research papers of Chapters 3 and 5 with a link and a description
+# T68b: Name the research papers of Chapters 2 and 4 with a link and a description
 
 | Field | Value |
 | --- | --- |
 | ID | `T68b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build the book §2, BK6](../../plans/build-book.md#bk6-a-source-register-tied-to-our-fact-checks-with-citations-that-fail-the-build-proposed) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
 | Depends on | [T68a](../done/T68a-manual-paper-references-tooling.md) |
@@ -32,14 +32,14 @@ Apply the owner's rule on research papers to the nine papers of the model-talkin
 ## Tasks
 
 - [x] Claim: this file in `ongoing/` and a plan row
-- [ ] Read each paper in full and log one row per claim in the build-book fact-check log
-- [ ] Write the nine register entries and empty their pending ids
-- [ ] Convert the chapter mentions
+- [x] Read each paper in full and log one row per claim in the build-book fact-check log
+- [x] Write the nine register entries and empty their pending ids
+- [x] Convert the chapter mentions
 
 ## Acceptance criteria
 
-- [ ] `check:book`, the manual's tests and the book build pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm fact-check-logs` pass
+- [x] `check:book`, the manual's tests and the book build pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm fact-check-logs` pass
 
 ## Tests
 
@@ -56,8 +56,8 @@ A blurb restating a chapter's number must agree with the paper; a disagreement i
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes
