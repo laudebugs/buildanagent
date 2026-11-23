@@ -2767,10 +2767,10 @@ class Notes {
   }
 
   /**
-   * Says that the stored value is one this page cannot read, after a reload found it, and redraws the page and the
-   * panel to match: this page reads such a value as no notes, so no highlight and no card stay drawn, and the panel
-   * shows its warning. Focus that was on a card, which is gone, goes to the panel's Close button. Focus anywhere else
-   * stays: in the popover, which stays open with its message and whatever the reader typed, or in the panel's form.
+   * Reports a stored value this page cannot read, which a reload just found. This page reads such a value as no notes,
+   * so it redraws the page and the panel to match: no highlight and no card stay drawn, and the panel shows its warning.
+   * Focus that was on a card, which is gone, goes to the panel's Close button. Focus elsewhere stays: in the popover,
+   * which stays open with its message and the reader's text, or in the panel's form.
    */
   showForeign() {
     const active = this.doc.activeElement;
