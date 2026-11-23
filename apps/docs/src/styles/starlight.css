@@ -154,7 +154,8 @@ h6,
 /* The Previous and Next links are one compact row each: a 12px label over a title at the note size, a light rule
    border and no shadow, with the arrow beside the text. Starlight sizes the title as a heading and pads the link at
    1rem with a heavy shadow, which made them the largest thing at the foot of a page. The min-height keeps a 44px tap
-   target on phones (WCAG 2.5.8). Printed, Starlight hides the links (print:hidden). */
+   target on phones (WCAG 2.5.5 asks 44px at AAA; 2.5.8 at AA asks only 24px). Printed, Starlight hides the links
+   (print:hidden). */
 .pagination-links {
   gap: 0.75rem;
 }

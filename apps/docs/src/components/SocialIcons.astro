@@ -6,7 +6,7 @@ import { siteLinks } from "../chrome.js";
 <nav class="site-links" aria-label="buildanagent sites">
   {
     siteLinks.map((link) => (
-      <a href={link.href} aria-current={link.current ? "page" : undefined}>
+      <a href={link.href} aria-current={link.current ? "true" : undefined}>
         {link.label}
       </a>
     ))
@@ -24,18 +24,20 @@ import { siteLinks } from "../chrome.js";
 
   .site-links a {
     color: var(--sl-color-text-accent);
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
     padding-block: 0.5rem;
   }
 
   .site-links a:hover {
     color: var(--sl-color-white);
-    text-decoration: underline;
   }
 
-  /* The current site reads as plain text, and the underline marks the others as links. */
+  /* The current site and the others differ in colour by less than 3:1, so colour alone cannot tell them apart (WCAG
+     1.4.1). The others keep their underline at rest, and the current site, in plain text, has none. */
   .site-links a[aria-current] {
     color: var(--sl-color-white);
+    text-decoration: none;
   }
 
   @media (max-width: 49.99rem) {
