@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
-import { mainDocsLink } from "../src/chrome.js";
+import { mainDocsLinkFor } from "../src/chrome.js";
+import { STARLIGHT_PAIRS } from "../src/design/pairs.js";
 import { STABLE_DOCS_URL } from "../src/version/banner.js";
 import { SDK_VERSION } from "../src/version/version.js";
 import { builtSite } from "./built.js";
@@ -18,7 +19,7 @@ const pages = (): { path: string; html: string }[] =>
 function bannerScripts(html: string): string[] {
   const scripts: string[] = [];
   for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
-    const src = /\bsrc="([^"]+)"/.exec(match[1] ?? "")?.[1];
+    const src = /(?:^|\s)src="([^"]+)"/.exec(match[1] ?? "")?.[1];
     const text = src === undefined ? (match[2] ?? "") : readFileSync(join(builtSite(), src), "utf8");
     if (text.includes("data-unreleased-banner")) scripts.push(text);
   }
@@ -72,11 +73,73 @@ test("no page adds a robots meta tag, which would also reach the production host
   }
 });
 
-test("every page links 'Docs for main' to the next. host, from the footer", () => {
+// Escapes a string for use inside a regular expression.
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+test("the footer links 'Docs for main' on every page exactly when the SDK is stable, and on no page before", () => {
+  const link = mainDocsLinkFor(SDK_VERSION);
   for (const { path, html } of pages()) {
-    // Astro adds a scoping class to the anchor, so the match allows other attributes after the address.
-    const link = new RegExp(`<a href="${mainDocsLink.href}"[^>]*>${mainDocsLink.label}</a>`);
-    assert.match(html, link, `${path}: no ${mainDocsLink.label} link`);
+    // Our paragraphs follow Starlight's footer element, not sit inside it. Astro adds a scoping class to each element.
+    const footerEnd = html.lastIndexOf("</footer>");
+    assert.ok(footerEnd !== -1, `${path}: no footer`);
+    const region = html.slice(footerEnd);
+    assert.ok(
+      region.includes('class="license'),
+      `${path}: the licence line follows the footer, so this finds the region`,
+    );
+    const paragraph = /<p class="main-docs[^"]*"[^>]*>[\s\S]*?<\/p>/.exec(region)?.[0];
+    if (link === undefined) {
+      assert.equal(paragraph, undefined, `${path}: the SDK is not stable, so next.docs has no deploy to link to`);
+      assert.ok(!region.includes("next.docs.buildanagent.fyi"), `${path}: nothing in the footer names the unused host`);
+    } else {
+      const anchor = new RegExp(`<a href="${escapeRegExp(link.href)}"[^>]*>${escapeRegExp(link.label)}</a>`);
+      assert.match(paragraph ?? "", anchor, `${path}: no ${link.label} link in the footer`);
+    }
   }
-  assert.equal(new URL(mainDocsLink.href).hostname, "next.docs.buildanagent.fyi");
+});
+
+/** Every rule in the built CSS whose selector names `.unreleased-banner`: its selector and its declarations. */
+function bannerRules(): { selector: string; body: string }[] {
+  const css = readdirSync(builtSite(), { recursive: true, encoding: "utf8" })
+    .filter((path) => path.endsWith(".css"))
+    .map((path) => readFileSync(join(builtSite(), path), "utf8"))
+    .join("\n");
+  return [...css.matchAll(/([^{}]*\.unreleased-banner[^{}]*)\{([^{}]*)\}/g)].map((match) => ({
+    selector: (match[1] ?? "").trim(),
+    body: match[2] ?? "",
+  }));
+}
+
+test("the built CSS styles the banner itself: Starlight's own rules are scoped to its component and miss our element", () => {
+  const rules = bannerRules();
+  const own = rules.find(
+    ({ selector }) =>
+      !selector.includes("[hidden]") && /\.unreleased-banner(?:\[[^\]]*\]|:where\([^)]*\))*$/.test(selector),
+  );
+  assert.ok(own, "no built rule styles .unreleased-banner itself");
+  assert.match(own.body, /background-color:var\(--sl-color-bg-accent\)/);
+  assert.match(own.body, /(?:^|;)color:var\(--sl-color-text-invert\)/);
+  assert.match(own.body, /padding:var\(--sl-nav-pad-y\) var\(--sl-nav-pad-x\)/);
+  const link = rules.find(({ selector }) => /\.unreleased-banner\S* a(?::where\([^)]*\))*$/.test(selector));
+  assert.match(
+    link?.body ?? "",
+    /(?:^|;)color:var\(--sl-color-text-invert\)/,
+    "the link takes the banner's text colour",
+  );
+  const focus = rules.find(({ selector }) => selector.includes(":focus-visible"));
+  assert.match(
+    focus?.body ?? "",
+    /outline:2px solid var\(--sl-color-text-invert\)/,
+    "the focus ring is visible on the fill",
+  );
+});
+
+test("the banner's colours are the measured pair: the text token is the page background and the fill is the accent", () => {
+  const mapping = readFileSync(new URL("../src/styles/starlight.css", import.meta.url), "utf8");
+  assert.match(mapping, /--sl-color-text-invert:\s*var\(--color-background\)/);
+  assert.match(mapping, /--sl-color-bg-accent:\s*var\(--color-accent\)/);
+  const pair = STARLIGHT_PAIRS.find((entry) => entry.role === "a banner on the accent");
+  assert.deepEqual([pair?.color, pair?.on, pair?.kind], ["page.background", "page.accent", "text"]);
+  const ring = STARLIGHT_PAIRS.find((entry) => entry.role === "the focus ring on a banner");
+  assert.deepEqual([ring?.color, ring?.on, ring?.kind], ["page.background", "page.accent", "nonText"]);
 });

@@ -1,16 +1,21 @@
 ---
 import Default from "@astrojs/starlight/components/Footer.astro";
 
-import { mainDocsLink } from "../chrome.js";
+import { mainDocsLinkFor } from "../chrome.js";
+import { SDK_VERSION } from "../version/version.js";
 
-// The `{" "}` keep the spaces around each link: Astro's HTML compression drops a line break next to an element.
+// The "Docs for main" line appears once the SDK is stable (src/chrome.ts says why), so no page links to a host that has
+// no deploy. The `{" "}` keep the spaces around each link: Astro's HTML compression drops a line break next to an element.
+const mainDocs = mainDocsLinkFor(SDK_VERSION);
 ---
 
 <Default {...Astro.props}><slot /></Default>
-<p class="main-docs">
-  <a href={mainDocsLink.href}>{mainDocsLink.label}</a>{" "}
-  describe the unreleased code on the main branch.
-</p>
+{mainDocs && (
+  <p class="main-docs">
+    <a href={mainDocs.href}>{mainDocs.label}</a>{" "}
+    follow the main branch, so they can describe changes that no release has yet.
+  </p>
+)}
 <p class="license">
   These docs are licensed{" "}
   <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. The{" "}

@@ -40,6 +40,7 @@ export const STARLIGHT_PAIRS: readonly StarlightPair[] = [
   { role: "the sidebar's current page", color: "page.background", on: "page.link", kind: "text" },
   { role: "a primary link button", color: "page.background", on: "page.link", kind: "text" },
   { role: "a banner on the accent", color: "page.background", on: "page.accent", kind: "text" },
+  { role: "the focus ring on a banner", color: "page.background", on: "page.accent", kind: "nonText" },
   { role: "selected text", color: "page.background", on: "page.accent", kind: "text" },
   { role: "the copy button's tooltip", color: "page.background", on: "page.accent", kind: "text" },
   { role: "a focused search result", color: "page.link", on: "page.highlight", kind: "text" },

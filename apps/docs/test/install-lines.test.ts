@@ -22,11 +22,14 @@ describe("the rule follows the SDK's version", () => {
     assert.equal(installRuleFor("0.1.0-alpha.34"), "alpha");
     assert.equal(installRuleFor("0.1.0-alpha.0"), "alpha");
   });
-  test("a stable version, a beta and a release candidate switch to the stable rule", () => {
+  test("a version with no prerelease part switches to the stable rule", () => {
     assert.equal(installRuleFor("0.1.0"), "stable");
     assert.equal(installRuleFor("1.0.0"), "stable");
-    assert.equal(installRuleFor("0.2.0-beta.1"), "stable");
-    assert.equal(installRuleFor("1.0.0-rc.1"), "stable");
+  });
+  test("a beta or a release candidate throws, because no tag rule exists for it and a guess would pass wrong lines", () => {
+    for (const version of ["0.2.0-beta.1", "1.0.0-rc.1", "0.1.0-next.3", "0.1.0-alphabet.1"]) {
+      assert.throws(() => installRuleFor(version), /no install-line rule is defined for the prerelease/, version);
+    }
   });
 });
 
@@ -59,6 +62,14 @@ describe("in the alpha state", () => {
 
   test("catches every package manager and a wrong tag or a pinned version", () => {
     for (const line of [
+      "pnpm i @buildanagent/sdk",
+      "pnpm install @buildanagent/sdk",
+      "npm add @buildanagent/sdk",
+      "yarn dlx @buildanagent/cli init",
+      "bun add @buildanagent/sdk",
+      "bunx @buildanagent/cli init",
+      "pnpm add -D @buildanagent/sdk",
+      "npm i -g @buildanagent/cli",
       "npm install @buildanagent/sdk",
       "npm i @buildanagent/sdk",
       "yarn add @buildanagent/sdk",
@@ -86,6 +97,77 @@ describe("in the alpha state", () => {
       installProblems(mdx, "alpha").map((problem) => problem.token),
       ["@buildanagent/sdk", "@buildanagent/gateway"],
     );
+  });
+
+  test("accepts each added command with @alpha, flags and a trailing full stop included", () => {
+    const text = [
+      "pnpm i @buildanagent/sdk@alpha",
+      "pnpm install @buildanagent/sdk@alpha",
+      "npm add @buildanagent/sdk@alpha",
+      "yarn dlx @buildanagent/cli@alpha init",
+      "bun add @buildanagent/sdk@alpha",
+      "bunx @buildanagent/cli@alpha init",
+      "pnpm add -D @buildanagent/sdk@alpha",
+      "npm i -g @buildanagent/cli@alpha",
+      "Install it with `pnpm add @buildanagent/sdk@alpha`.",
+      "Install it with pnpm add @buildanagent/sdk@alpha.",
+    ].join("\n");
+    assert.equal(installLines(text).length, 10);
+    assert.deepEqual(installProblems(text, "alpha"), []);
+  });
+
+  test("a trailing full stop is not part of the tag, under both rules", () => {
+    assert.deepEqual(installProblems("Run pnpm add @buildanagent/sdk@alpha.", "alpha"), []);
+    assert.deepEqual(installProblems("Run pnpm add @buildanagent/sdk.", "stable"), []);
+    assert.equal(
+      installProblems("Run pnpm add @buildanagent/sdk@alpha.", "stable")[0]?.token,
+      "@buildanagent/sdk@alpha",
+    );
+    assert.equal(installProblems("Run pnpm add @buildanagent/sdk.", "alpha")[0]?.token, "@buildanagent/sdk");
+    assert.deepEqual(installProblems("(pnpm add @buildanagent/sdk@0.1.0-alpha.3.)", "stable"), []);
+  });
+
+  test("counts only the command's own arguments: a later mention in the same line is prose", () => {
+    const prose = "Run `npx tsx agent.ts`; it imports `@buildanagent/gateway/testing`";
+    assert.deepEqual(installProblems(prose, "alpha"), []);
+    assert.deepEqual(installProblems("Run npx tsx agent.ts; it imports @buildanagent/gateway", "alpha"), []);
+    assert.deepEqual(installProblems("Run `pnpm add zod` and read @buildanagent/sdk", "alpha"), []);
+    assert.deepEqual(installProblems("| pnpm | `pnpm add zod` | wraps @buildanagent/sdk |", "alpha"), []);
+  });
+
+  test("stops at a shell separator, so the second command's packages are not the first's", () => {
+    const line = "pnpm add @buildanagent/sdk@alpha && pnpm add zod";
+    assert.deepEqual(installProblems(line, "alpha"), []);
+    assert.deepEqual(
+      installProblems("pnpm add zod && pnpm add @buildanagent/sdk", "alpha").map((problem) => problem.token),
+      ["@buildanagent/sdk"],
+    );
+    assert.deepEqual(installProblems("pnpm add zod ; echo @buildanagent/sdk", "alpha"), []);
+    assert.deepEqual(installProblems("pnpm add zod | tee @buildanagent/sdk", "alpha"), []);
+  });
+
+  test("a subpath is an import specifier, not an install target, and a subpath stays whole", () => {
+    assert.deepEqual(installProblems("npx tsx agent.ts @buildanagent/gateway/testing", "alpha"), []);
+    assert.deepEqual(installProblems("pnpm add @buildanagent/sdk@alpha @buildanagent/gateway/testing", "alpha"), []);
+    // `/testing` is not cut off, so the bare package `@buildanagent/gateway` is never read from it.
+    assert.deepEqual(installProblems("pnpm add @buildanagent/gateway/testing", "stable"), []);
+  });
+
+  test("a Markdown table row names each command in its own cell", () => {
+    const row = "| pnpm | pnpm add @buildanagent/sdk@alpha | zod |";
+    assert.equal(installLines(row).length, 1);
+    assert.deepEqual(installProblems(row, "alpha"), []);
+    assert.equal(
+      installProblems("| pnpm | pnpm add @buildanagent/sdk | zod |", "alpha")[0]?.token,
+      "@buildanagent/sdk",
+    );
+  });
+
+  test("a line ending in a backslash continues on the next, as a shell reads it", () => {
+    const text = "pnpm add \\\n  @buildanagent/sdk \\\n  zod";
+    assert.equal(installLines(text).length, 1);
+    assert.equal(installProblems(text, "alpha")[0]?.token, "@buildanagent/sdk");
+    assert.deepEqual(installProblems("pnpm add \\\n  @buildanagent/sdk@alpha \\\n  zod", "alpha"), []);
   });
 
   test("ignores a package named in prose, an import and a subpath, because none installs anything", () => {
@@ -116,6 +198,19 @@ describe("built HTML", () => {
 
   test("textOfHtml turns each rendered line into one text line, drops scripts and decodes entities", () => {
     assert.deepEqual(installLines(textOfHtml(html)), ["pnpm add @buildanagent/sdk@alpha @buildanagent/gateway && zod"]);
+  });
+
+  test("a table's cells and an inline code span end the command's arguments", () => {
+    const table =
+      "<tr><td>pnpm</td><td><code>pnpm add @buildanagent/sdk@alpha</code></td><td>@buildanagent/gateway</td></tr><tr><th>x</th><th>pnpm add zod</th><th>@buildanagent/sdk</th></tr>";
+    assert.deepEqual(installProblems(textOfHtml(table), "alpha"), []);
+    const prose =
+      "<p>Run <code>npx tsx agent.ts</code>; it imports <code>@buildanagent/gateway/testing</code> and <code>pnpm add @buildanagent/sdk</code>.</p>";
+    assert.deepEqual(
+      installProblems(textOfHtml(prose), "alpha").map((problem) => problem.token),
+      ["@buildanagent/sdk"],
+    );
+    assert.deepEqual(installProblems(textOfHtml("<p><code>pnpm add @buildanagent/sdk@alpha</code>.</p>"), "alpha"), []);
   });
 
   test("a rendered line lacking @alpha on one package is caught", () => {

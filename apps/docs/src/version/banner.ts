@@ -12,7 +12,7 @@
 /** The label of the first part of a host that marks a page as the docs for main. */
 export const NEXT_PREFIX = "next.";
 
-/** Where the stable docs are, which the banner's link and the footer's link name. */
+/** Where the stable docs are, which the banner's link names. */
 export const STABLE_DOCS_URL = "https://docs.buildanagent.fyi/";
 
 /** Whether a page served from `hostname` shows the banner. Case and one trailing dot (a fully qualified name) are ignored. */
