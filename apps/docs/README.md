@@ -48,9 +48,26 @@ The docs look like the book because they read the book's design data instead of 
 
 Run `pnpm --filter @buildanagent/docs tokens` after changing `book-tokens.json`. It rewrites `tokens.css` and replaces `public/fonts/` with a fresh copy of the book's folder, so a font the book drops leaves the docs too. Starlight loads `tokens.css` before `starlight.css`, and `astro.config.mjs` lists them in that order.
 
-Two parts of the page chrome differ from Starlight's defaults. `src/components/SocialIcons.astro` overrides the header links and puts Docs, Manual and Site before the GitHub icon, in the order of the site's header; on a phone they sit in the menu beside the theme select. Docs carries `aria-current="true"`, not `"page"`, because the link goes to the docs home, which is not always the page the reader is on. `src/chrome.ts` hard-codes the addresses until the shared header source (L12p) replaces that file. The Previous and Next links at the foot of a page are one compact row each, set in `starlight.css`: a rule border, no shadow, a 12px label, a title at the note size and a 44px minimum height.
+The page chrome differs from Starlight's defaults in the places the next section lists. Two more rules in `starlight.css` restyle Starlight's own parts without replacing them. The Previous and Next links at the foot of a page are one compact row each: a rule border, no shadow, a 12px label, a title at the note size and a 44px minimum height. The theme select is a compact box with a rule border and a small radius, its text at the label size in the soft text colour. That colour is a pair `pairs.ts` already measures, so the select adds none.
 
-Five test files guard the theme and the header:
+### Components the docs override
+
+The docs override four Starlight components, each for one reason, and every other component is Starlight's own. A fifth override needs a row here and a test that fails when it drifts from its reason.
+
+| Component | File | Why |
+| --- | --- | --- |
+| `Footer` | `src/components/Footer.astro` | Adds the CC BY 4.0 licence line that every page carries, under Starlight's own footer. |
+| `Head` | `src/components/Head.astro` | Adds the preloads for the two fonts every page uses, so the first paint does not wait for them. |
+| `SiteTitle` | `src/components/SiteTitle.astro` | Draws the mark and the wordmark "Build An Agent docs" in place of Starlight's text title. The mark is inline, so it takes its frame from the link colour and its caret from the accent token. Below 30rem only the mark shows, and the wordmark stays in the page for screen readers. |
+| `SocialIcons` | `src/components/SocialIcons.astro` | Puts Docs, Manual and Site before the GitHub icon, in the order of the site's header. Docs carries `aria-current="true"`, not `"page"`, because the link goes to the docs home, which is not always the page the reader is on. `src/chrome.ts` hard-codes the addresses until the shared header source (L12p) replaces that file. |
+
+`test/logo.test.ts` guards the mark: it requires the favicon's strokes to be at least 2px wide at 16px, requires both colour schemes, and requires `SiteTitle` to draw logo 3 with colours from the tokens. It also draws the favicon at 16px in light and dark in headless Chromium and fails when the drawing is blank, when its window fills in or when the caret loses its own colour. Playwright is not a dependency of the repo, so that last test skips where Playwright and a browser are missing, which includes CI today. `test/favicon.test.ts` builds the site and requires the title, the wordmark, the licence line and the favicon link on every page.
+
+### Tabs and MDX
+
+A page that needs Starlight's `<Tabs>` is an `.mdx` file that imports `Tabs` and `TabItem` from `@astrojs/starlight/components`. Give every group of tabs a `syncKey`, so a reader's choice of package manager carries to the next page: the Install page does this with pnpm, npm and yarn. The content tests read an `.mdx` page as they read Markdown, except that a line holding only an import or one component tag is blank to them, so the paragraph, sentence and heading rules count the same words. Fences in sibling tabs take the sentence before the first tab as their introduction. A component tag that carries words on its own line stays in the body and is counted. `test/mdx.test.ts` pins both rules.
+
+Five test files guard the theme and the header, and `test/logo.test.ts` and `test/mdx.test.ts` guard the logo and MDX support described above:
 
 - `test/tokens.test.ts` fails when `tokens.css` differs from what the generator writes, when the docs tokens differ from the book's anywhere between the header comment and the print block, or when `customCss` stops loading the tokens first.
 - `test/fonts.test.ts` fails when `public/fonts/` has a file the book lacks, lacks one the book has, or differs from the book's copy by a byte, and when `Head.astro` preloads anything but the Literata and Instrument Serif roman files.
@@ -86,7 +103,7 @@ The docs serve their own copy of the book's six WOFF2 subsets, with each family'
 
 ### Upgrading Starlight
 
-Pin Starlight exactly and move one minor release in each pull request, so a visual change has one cause. Read the changelog for renamed or removed `--sl-*` variables and for Expressive Code changes, update the version named in `starlight.css` and in this README, and run `pnpm --filter @buildanagent/docs build`. Then open the built site in light and dark, and look at a page with an aside, a code block, a table and the search dialog. Finally rerun the four tests: they catch a wrong colour, not a missing variable, so the look is the check for that.
+Starlight stays pinned to one exact version, and each pull request moves it one minor release, so a visual change has one cause. The author reads the changelog for renamed or removed `--sl-*` variables, changed component props and Expressive Code changes, and updates the version named in `starlight.css` and in this README. Then `pnpm --filter @buildanagent/docs build` and `test` run: the build fails on a broken link or an override whose import has moved, and the tests catch a wrong colour, but not a renamed variable. The look is the check for that, so the author opens the built site in light and dark and looks at a page with an aside, a code block, a table, a set of tabs and the search dialog, and at each override in the table above.
 
 ## Licence
 
