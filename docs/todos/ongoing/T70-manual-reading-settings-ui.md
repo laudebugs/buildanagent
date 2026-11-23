@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T70` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan](../../plans/build-book.md) (Round T, the manual's reading experience) |
 | Round / milestone | Round T (the manual) |
 | Depends on | [T69](../done/T69-manual-reading-fonts-and-early-script.md), [T68](../done/T68-manual-sticky-header.md) |
@@ -67,7 +67,7 @@ A reader can choose a typeface pairing and a text size from the header and see t
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` to `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` to `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` to `done/` (Status `done`) in the last work commit, and the plan's todo table updated

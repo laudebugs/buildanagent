@@ -498,7 +498,7 @@ Literata stays variable on both its axes, optical size (7â€“72) and weight (200â
 
 ## A reader chooses a typeface pairing and a text size
 
-A reader can set the book in one of four typeface pairings and at one of five text sizes; the owner chose both lists on 2026-11-23 (design S1). The choice lives in the reader's own browser and applies before the first paint. This part ships the fonts, the early script and the CSS; the settings panel that writes the choice is [T70](../../docs/todos/ready/T70-manual-reading-settings-ui.md).
+A reader can set the book in one of four typeface pairings and at one of five text sizes; the owner chose both lists on 2026-11-23 (design S1). The choice lives in the reader's own browser and applies before the first paint. This part ships the fonts, the early script and the CSS; the settings panel that writes the choice is [T70](../../docs/todos/ongoing/T70-manual-reading-settings-ui.md).
 
 | Pairing | `data-reading-font` | Headings | Body |
 | --- | --- | --- | --- |
