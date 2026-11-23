@@ -1,6 +1,6 @@
 ---
 import { getBook } from "../book/load.js";
-import { paperCitations } from "../book/papers.js";
+import { blurbSentence, paperCitations } from "../book/papers.js";
 import ChapterHead from "../components/ChapterHead.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
@@ -35,7 +35,7 @@ const citedIn = paperCitations(book);
                 {source.version ? `, ${source.version}` : ""}), as of {source.asOf}. Checked in <code>{source.verifiedIn}</code>.
                 {paper && (
                   <p class="paper-blurb">
-                    <strong>{paper.short}</strong>: {paper.blurb}.
+                    <strong>{paper.short}</strong>: {blurbSentence(paper.blurb)}
                   </p>
                 )}
                 {chapters.length > 0 && (

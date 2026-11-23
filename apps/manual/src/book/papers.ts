@@ -63,6 +63,9 @@ export const PAPER_URL_SHAPES: readonly { readonly pattern: RegExp; readonly rea
   { pattern: /^https:\/\/pmc\.ncbi\.nlm\.nih\.gov\/articles\/PMC\d+\/?$/, reason: "a PubMed Central article" },
 ];
 
+/** A blurb as a sentence on the sources page: a closing full stop, unless it already ends in one, as "et al." does. */
+export const blurbSentence = (blurb: string): string => (blurb.endsWith(".") ? blurb : `${blurb}.`);
+
 /** Whether a URL has one of the shapes a paper's entry may link to. */
 export const isPaperUrl = (url: string): boolean => PAPER_URL_SHAPES.some(({ pattern }) => pattern.test(url));
 

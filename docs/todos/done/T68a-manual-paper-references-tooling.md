@@ -64,6 +64,13 @@ Fixture tests in `apps/manual/test/` over `test/fixtures/book/`.
 - `papers-pending.json` holds the other 32 papers. One of them, `cormack-rrf`, links an author's PDF rather than a paper page, so its content todo also needs its DOI.
 - The URL rule and the bare-name rule apply only to papers off the pending list, which the README and BK6 record.
 
+## Review outcome
+
+- **First round, Opus high:** 11 findings (1 low-medium, 4 low, 6 nits), all fixed in `a9f8a3a1`.
+- **Second round, Sonnet medium:** 5 low findings, all fixed in `95fe81eb`.
+- **Second round, Sonnet low:** 1 nit, fixed. The sources page printed two full stops after a blurb that ends in "et al.".
+- **Writing review:** the rubric rose from 19 to 22 of 25 after the fixes in `6b45a394`.
+
 ## Risks and open questions
 
 The bare-name rule would fail on every paper the chapters already name, so it applies only to entries with a `short`; the pending list keeps the others exempt until the content todos empty it.
@@ -74,5 +81,5 @@ The bare-name rule would fail on every paper the chapters already name, so it ap
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

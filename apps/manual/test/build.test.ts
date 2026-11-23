@@ -216,7 +216,10 @@ test("a chapter's first [[paper:id]] links the name and shows its blurb, and a l
 test("the sources page shows a paper's blurb and links each chapter that cites it to its first mention there", () => {
   const html = readFileSync(join(out, "sources", "index.html"), "utf8");
   const entry = html.match(/<li id="wang-voyager">[\s\S]*?<\/li><\/ul><\/div>/)?.[0] ?? "";
-  assert.match(entry, /<p class="paper-blurb"[^>]*><strong>Voyager<\/strong>: a May 2023 arXiv paper by Wang et al\./);
+  assert.match(
+    entry,
+    /<p class="paper-blurb"[^>]*><strong>Voyager<\/strong>: a May 2023 arXiv paper by Wang et al\. [^<]*GPT-4\.\s*<\/p>/,
+  );
   assert.match(
     entry,
     /<span class="cited-in__label"[^>]*>Cited in<\/span>[\s\S]*<a class="cited-in__link" href="\/call-workflow-loop\/#paper-wang-voyager"[^>]*>\s*Chapter 1, [^<]+<\/a>/,

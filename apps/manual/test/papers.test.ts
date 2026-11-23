@@ -4,7 +4,7 @@ import { afterAll, test } from "vitest";
 import { checkBook, paperNotes } from "../src/book/check-book.js";
 import { loadBook } from "../src/book/load.js";
 import { auditPapers, formatAudit, guessName } from "../src/book/paper-audit.js";
-import { isPaperUrl, paperCitations, paperUses } from "../src/book/papers.js";
+import { blurbSentence, isPaperUrl, paperCitations, paperUses } from "../src/book/papers.js";
 import {
   edit,
   editJson,
@@ -450,4 +450,9 @@ test("a blurb may end with the full stop of 'et al.'; any other closing full sto
       removeFixture(copy);
     }
   }
+});
+
+test("the sources page ends a blurb with one full stop, even when it ends in 'et al.'", () => {
+  assert.equal(blurbSentence("a May 2023 arXiv paper by Wang et al."), "a May 2023 arXiv paper by Wang et al.");
+  assert.equal(blurbSentence("a May 2023 arXiv paper on Minecraft"), "a May 2023 arXiv paper on Minecraft.");
 });
