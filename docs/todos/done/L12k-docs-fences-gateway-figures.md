@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12k` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs, added 2026-11-23) |
 | Depends on | [L12d](../done/L12d-docs-figure-pipeline.md) |
@@ -38,19 +38,19 @@ Make every code block on the docs' existing pages come from a tested example fil
 
 ## Tasks
 
-- [ ] Add `file=` fences to the inline blocks, with an example file where none exists.
-- [ ] Write the gateway page and check every claim against the gateway's README and source.
-- [ ] Draw the four figures and put each on its page, with the page text stating every fact it shows.
-- [ ] Add the MDX test for `::figure`.
-- [ ] Add fact-check rows for the gateway page and the figure labels.
+- [x] Add `file=` fences to the inline blocks, with an example file where none exists.
+- [x] Write the gateway page and check every claim against the gateway's README and source.
+- [x] Draw the four figures and put each on its page, with the page text stating every fact it shows.
+- [x] Add the MDX test for `::figure`.
+- [x] Add fact-check rows for the gateway page and the figure labels.
 
 ## Acceptance criteria
 
-- [ ] No `ts` block on a docs page lacks a `file=` fence, and a test fails if one appears
-- [ ] The gateway page and each figure's claims are in the fact-check log
-- [ ] The four figures build, pass the stale and sanitiser tests, and show whole at 390 pixels
-- [ ] A test builds an MDX page with a `::figure` and checks the inlined figure
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] No `ts` block on a docs page lacks a `file=` fence, and a test fails if one appears
+- [x] The gateway page and each figure's claims are in the fact-check log
+- [x] The four figures build, pass the stale and sanitiser tests, and show whole at 390 pixels
+- [x] A test builds an MDX page with a `::figure` and checks the inlined figure
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -67,9 +67,18 @@ Make every code block on the docs' existing pages come from a tested example fil
 
 ## Definition of done
 
-- [ ] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+- [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+
+## Outcome
+
+- The two inline `ts` blocks now come from tested example files (`packages/sdk/examples/make-model.ts` and `offline-setup.ts`), and `apps/docs/test/fences.test.ts` fails on any `ts` block without a `file=` fence (its exceptions map is empty, and each entry needs a reason).
+- The gateway page is `concepts/the-gateway.mdx` (MDX because it uses tabs for the Anthropic and OpenAI adapters), with five sections and examples from `packages/gateway/examples/`; every claim is in the fact-check log.
+- Four figures, each on the page that explains it: `stream-and-transcript`, `stop-reasons`, `approval-pause` and `gateway-adapters`. The gateway's third adapter is labelled `scripted`, because the gateway has no testing adapter of its own.
+- Checking `loop.ts` corrected the stop-reasons page: `error` also covers a hook that throws while the run fails closed and a budget that cannot price a call (fact-check row L12k-22).
+- `::figure` works in MDX with no change to the plugin, and a test requires a figure on an `.mdx` page. Starlight's typographic quotes turn an apostrophe in a caption into a curly one, so captions must not contain apostrophes (the README says so).
+- Open: the OpenAI example names a model that the examples don't pin to a catalog date, so a retirement shows up as a failing test of `makeOpenAiModel`.
