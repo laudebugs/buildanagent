@@ -22,6 +22,8 @@ export interface TwinPage {
   readonly url: string;
   /** The page's source file. */
   readonly source: string;
+  /** The source's path under the content folder, such as `start/install.mdx`, which error messages name. */
+  readonly file: string;
   /** Whether the source is MDX, which the twin step parses with MDX syntax. */
   readonly mdx: boolean;
   /** Whether TypeDoc wrote the page during this build. */
@@ -63,14 +65,19 @@ function markdownFiles(dir: string): string[] {
     .sort();
 }
 
-/** The front matter of a page's text and the text after it. */
-export function splitFrontmatter(text: string): { data: Record<string, unknown>; body: string } {
+/**
+ * The front matter of a page's text, the text after it and the number of lines the front matter took, so a line of the
+ * body plus `lines` is the line in the file.
+ */
+export function splitFrontmatter(text: string): { data: Record<string, unknown>; body: string; lines: number } {
   // The closing fence is a line of exactly `---`, so `----` in a body line never closes the block. A file may use CRLF,
   // end at the closing fence, or hold an empty block.
   const match = /^---\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/.exec(text);
-  if (match === null) return { data: {}, body: text };
+  if (match === null) return { data: {}, body: text, lines: 0 };
   const yaml = (match[1] ?? "").replace(/\r/g, "");
-  return { data: (parse(yaml) ?? {}) as Record<string, unknown>, body: text.slice(match[0].length) };
+  // The last fence line counts even when the file ends there with no newline.
+  const lines = match[0].split("\n").length - (match[0].endsWith("\n") ? 1 : 0);
+  return { data: (parse(yaml) ?? {}) as Record<string, unknown>, body: text.slice(match[0].length), lines };
 }
 
 /**
@@ -90,6 +97,7 @@ export function readPages(contentDir: string, generatedDirs: readonly string[]):
         slug,
         url: twinUrl(slug),
         source,
+        file: relative(contentDir, source),
         mdx: source.endsWith(".mdx"),
         generated: generatedDirs.some((dir) => source.startsWith(dir)),
         title: typeof data.title === "string" ? data.title : slug,

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "vitest";
-import { checkTwins, hasAlternateLink, llmsFullTxt, llmsTxt, writeTwins } from "../src/twins/build.js";
+import { checkTwins, hasAlternateLink, llmsFullTxt, llmsTxt, renderTwin, writeTwins } from "../src/twins/build.js";
 import {
   OPTIONAL_SECTION,
   readingOrder,
@@ -20,6 +20,7 @@ const page = (slug: string, extra: Partial<TwinPage> = {}): TwinPage => ({
   url: twinUrl(slug),
   source: `/x/${slug}.md`,
   mdx: false,
+  file: `${slug}.md`,
   generated: false,
   title: `Title of ${slug || "home"}`,
   description: `About ${slug || "home"}.`,
@@ -67,6 +68,24 @@ function withContent(files: Record<string, string>, check: (dir: string) => void
     rmSync(dir, { recursive: true, force: true });
   }
 }
+
+test("a twin error names the source path under the content folder and the line in the file", () => {
+  // Front matter takes lines 1-4, so the unknown component on body line 3 is on line 7 of the file.
+  const source = "---\ntitle: Install\ndescription: How.\n---\nIntro.\n\n<Mystery>hi</Mystery>\n";
+  withContent({ "start/install.mdx": source }, (dir) => {
+    const [page] = readPages(dir, []);
+    assert.ok(page !== undefined);
+    const site = { origin: "https://docs.test", title: "T", summary: "S." };
+    assert.throws(
+      () => renderTwin(page, site, () => true),
+      (error: unknown) => {
+        assert.ok(error instanceof Error);
+        assert.match(error.message, /^start\/install\.mdx:7: no Markdown form for <Mystery>/);
+        return true;
+      },
+    );
+  });
+});
 
 test("the page list skips a draft, slugs a file as Starlight does and honours a slug override", () => {
   withContent(
@@ -238,15 +257,17 @@ test("front matter is read with CRLF line ends, a closing fence at the end of th
   assert.deepEqual(splitFrontmatter("---\r\ntitle: A\r\ndraft: true\r\n---\r\nBody\r\n"), {
     data: { title: "A", draft: true },
     body: "Body\r\n",
+    lines: 4,
   });
-  assert.deepEqual(splitFrontmatter("---\ntitle: A\n---"), { data: { title: "A" }, body: "" });
-  assert.deepEqual(splitFrontmatter("---\n---\nBody\n"), { data: {}, body: "Body\n" });
+  assert.deepEqual(splitFrontmatter("---\ntitle: A\n---"), { data: { title: "A" }, body: "", lines: 3 });
+  assert.deepEqual(splitFrontmatter("---\n---\nBody\n"), { data: {}, body: "Body\n", lines: 2 });
   // Four dashes is not a closing fence: the block runs to the line of exactly three.
   assert.deepEqual(splitFrontmatter("---\ntitle: A\nnote: x ----\n---\n----\nB\n"), {
     data: { title: "A", note: "x ----" },
     body: "----\nB\n",
+    lines: 4,
   });
-  assert.deepEqual(splitFrontmatter("Body\n---\nx\n---\n"), { data: {}, body: "Body\n---\nx\n---\n" });
+  assert.deepEqual(splitFrontmatter("Body\n---\nx\n---\n"), { data: {}, body: "Body\n---\nx\n---\n", lines: 0 });
 });
 
 test("the sidebar places a page by slug `index` and by an internal link, and leaves an outside link alone", () => {

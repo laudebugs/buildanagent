@@ -21,12 +21,8 @@ export interface TwinSite {
  * passes `twinSlugs(pages)`, so an asset or an unknown address in a link stays an address on the site.
  */
 export function renderTwin(page: TwinPage, site: TwinSite, hasTwin: (slug: string) => boolean): string {
-  const { body } = splitFrontmatter(readFileSync(page.source, "utf8"));
-  return twinMarkdown(page, body, page.mdx, {
-    site: site.origin,
-    hasTwin,
-    page: page.slug === "" ? "index" : page.slug,
-  });
+  const { body, lines } = splitFrontmatter(readFileSync(page.source, "utf8"));
+  return twinMarkdown(page, body, page.mdx, { site: site.origin, hasTwin, page: page.file, lineOffset: lines });
 }
 
 const absolute = (site: TwinSite, page: TwinPage) => `${site.origin}${page.url}`;

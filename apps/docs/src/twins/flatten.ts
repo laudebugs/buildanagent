@@ -37,11 +37,13 @@ export interface FlattenContext {
    * to an asset or an unknown address stays an address on the site; `hasTwin()` in rule.ts is the rule for the pages.
    */
   readonly hasTwin: (slug: string) => boolean;
-  /** The page's path, for error messages. */
+  /** The page's source path under the content folder, for error messages. */
   readonly page: string;
+  /** The number of lines before the body in the file, so an error names the line in the file, not in the body. */
+  readonly lineOffset?: number;
 }
 
-/** A page the twin step can't flatten, with the page and line in the message. */
+/** A page the twin step can't flatten, with the source path and file line in the message. */
 export class TwinError extends Error {
   override readonly name = "TwinError";
 }
@@ -49,7 +51,8 @@ export class TwinError extends Error {
 const ASIDE_NAMES = new Set(["note", "tip", "caution", "danger"]);
 
 function fail(ctx: FlattenContext, node: AnyNode, message: string): never {
-  throw new TwinError(`${ctx.page}:${node.position?.start.line ?? "?"}: ${message}`);
+  const line = node.position?.start.line;
+  throw new TwinError(`${ctx.page}:${line === undefined ? "?" : line + (ctx.lineOffset ?? 0)}: ${message}`);
 }
 
 /** The text of a JSX attribute with a string value, or `undefined`. */
