@@ -1,9 +1,10 @@
 // `pnpm --filter @buildanagent/manual check:book`: every content rule the build applies, run before the build. It
-// prints each problem as file:line: message and exits 1 when there is any.
-import { checkBook } from "../src/book/check-book.js";
+// prints its notes on the register's papers, then each problem as file:line: message, and exits 1 when there is any.
+import { checkBookReport } from "../src/book/check-book.js";
 import { formatProblem } from "../src/book/problems.js";
 
-const problems = await checkBook();
+const { problems, notes } = await checkBookReport();
+for (const note of notes) console.log(note.startsWith("  ") ? note : `check:book: ${note}`);
 for (const problem of problems) console.error(formatProblem(problem));
 if (problems.length > 0) {
   console.error(`check:book: ${problems.length} problem(s)`);

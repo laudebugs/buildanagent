@@ -2,12 +2,12 @@
 title: A fixture chapter for the site's build test
 summary: Stands in for Chapter 1, so the build test can check a real chapter page.
 opening: scenario
-sources: [anthropic-building-effective-agents]
+sources: [anthropic-building-effective-agents, wang-voyager]
 glossary: [agent-loop]
 switchTo: []
 ---
 
-An agent loop calls a model and runs its tools until a stop condition holds [@anthropic-building-effective-agents]. [[fig:who-decides]] compares it with a call and a workflow, and [[ch:tools]] comes later.
+An agent loop calls a model and runs its tools until a stop condition holds [@anthropic-building-effective-agents]. [[fig:who-decides]] compares it with a call and a workflow, and [[ch:tools]] comes later. [[paper:wang-voyager]] kept each skill it learned as code, and [[paper:wang-voyager]] reused them [@wang-voyager].
 
 :::figure[A call, a workflow and a loop differ in who decides the next step]{#who-decides}
 ::svg{alt="Three columns of boxes joined by arrows. A call runs your code, then the model, then an answer. A workflow runs two model calls in an order your code fixed: a writer model, then a reviewer model, then an answer. A loop sends the model's request to a tool and the result back to the model, which ends with an answer when it is done. Under each column, a note says who decides the next step: your code, your code, and the model."}

@@ -200,8 +200,33 @@ test("a chapter page shows its number from the outline and its numbered source l
   assert.match(html, /\[<a href="\/sources\/#anthropic-building-effective-agents"[^>]*class="cite">1<\/a>\]/);
   assert.match(
     html,
-    /<section class="chapter-sources"[^>]*><h2 id="sources">Sources<\/h2><ol><li><a href="\/sources\/#anthropic-building-effective-agents">Building effective agents<\/a>, Anthropic<\/li><\/ol><\/section>/,
+    /<section class="chapter-sources"[^>]*><h2 id="sources">Sources<\/h2><ol><li><a href="\/sources\/#anthropic-building-effective-agents">Building effective agents<\/a>, Anthropic<\/li><li><a href="\/sources\/#wang-voyager">Voyager: An Open-Ended Embodied Agent with Large Language Models<\/a>, Guanzhi Wang et al\. \(arXiv:2305\.16291\)<\/li><\/ol><\/section>/,
   );
+});
+
+test("a chapter's first [[paper:id]] links the name and shows its blurb, and a later one links the name alone", () => {
+  const html = chapter();
+  assert.match(
+    html,
+    /<a href="\/sources\/#wang-voyager" title="Voyager: [^"]*" class="paper-ref" id="paper-wang-voyager">Voyager<\/a><span class="paper-ref__blurb"> \(a May 2023 arXiv paper by Wang et al\. [^)]*\)<\/span> kept each skill/,
+  );
+  assert.match(html, /and <a href="\/sources\/#wang-voyager" title="[^"]*" class="paper-ref">Voyager<\/a> reused them/);
+});
+
+test("the sources page shows a paper's blurb and links each chapter that cites it to its first mention there", () => {
+  const html = readFileSync(join(out, "sources", "index.html"), "utf8");
+  const entry = html.match(/<li id="wang-voyager">[\s\S]*?<\/li><\/ul><\/div>/)?.[0] ?? "";
+  assert.match(
+    entry,
+    /<p class="paper-blurb"[^>]*><strong>Voyager<\/strong>: a May 2023 arXiv paper by Wang et al\. [^<]*GPT-4\.\s*<\/p>/,
+  );
+  assert.match(
+    entry,
+    /<span class="cited-in__label"[^>]*>Cited in<\/span>[\s\S]*<a class="cited-in__link" href="\/call-workflow-loop\/#paper-wang-voyager"[^>]*>\s*Chapter 1, [^<]+<\/a>/,
+  );
+  // A source no fixture chapter names has no "Cited in".
+  const other = html.match(/<li id="anthropic-building-effective-agents">[\s\S]*?<\/li>/)?.[0] ?? "";
+  assert.doesNotMatch(other, /cited-in/);
 });
 
 test("a chapter page shows a listing cut from a verify/ example, with the pin its harness's package.json holds", () => {

@@ -23,6 +23,7 @@
     "check:save-offline": "node scripts/save-offline-check.mjs",
     "offline:verify": "node scripts/offline-verify-deployed.mjs",
     "check:book": "tsx scripts/check-book.ts",
+    "audit:papers": "tsx scripts/audit-papers.ts",
     "check:touch-fields": "node scripts/touch-fields-check.mjs",
     "check:note-sheet": "node scripts/note-sheet-check.mjs",
     "check:note-editor": "node scripts/note-editor-flow-check.mjs",
@@ -41,11 +42,13 @@
     "esbuild": "0.28.2",
     "pagefind": "1.6.0",
     "remark-directive": "4.0.0",
+    "remark-gfm": "4.0.1",
     "remark-parse": "11.0.0",
     "shiki": "4.6.0",
     "typescript-api": "npm:typescript@6.0.3",
     "unified": "11.0.5",
     "unist-util-visit": "5.2.0",
+    "unist-util-visit-parents": "6.1.0",
     "yaml": "2.9.1"
   },
   "devDependencies": {

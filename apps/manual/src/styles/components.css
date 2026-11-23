@@ -2050,3 +2050,35 @@
     display: none;
   }
 }
+
+/* The sources page: a paper's blurb, and the chapters that cite it as a row of links, each a 44px target. */
+.paper-blurb {
+  margin-block: 0.25rem 0;
+}
+
+.cited-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+}
+
+.cited-in__label {
+  color: var(--color-text-soft);
+}
+
+.cited-in__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cited-in__link {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+}
