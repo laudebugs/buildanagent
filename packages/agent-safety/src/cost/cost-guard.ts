@@ -1,6 +1,6 @@
 /**
  * `costGuard()`: an AI SDK language-model middleware that refuses a call before it is sent when the spend so far plus
- * the call's projected cost would pass a USD cap, the rule our SDK's loop applies too. In `ai` 7.0.162 each
+ * the call's projected cost would pass a USD cap, the rule our SDK's loop applies too. In `ai` 7.0.173 each
  * step and each retry calls the step model's `doGenerate` or `doStream`, so a wrapped model's middleware sees every
  * provider request. The projection is the gateway's `projectCost()` over the gateway's `estimateInputTokens()`, the
  * formula the SDK's loop uses, so both caps agree on what a call can cost.
