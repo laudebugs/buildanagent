@@ -1443,6 +1443,90 @@ test("only the pointer that grabbed the sheet's handle moves it, and a layout ch
   assert.equal(calls.includes("hide"), true);
 });
 
+/** A phone-sized window for the bottom sheet: a visual viewport a test can resize, a scroll spy and a sheet at `top`. */
+function sheetWindow(top: number) {
+  const win = page({ items: [CONTRACT, FAILED] });
+  layout(win, RECTS);
+  withPopover(win);
+  Object.defineProperty(win, "matchMedia", {
+    configurable: true,
+    value: () => ({ matches: true, media: "(max-width: 40rem)", addEventListener: () => undefined }),
+  });
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 664 });
+  const listeners: Record<string, (() => void)[]> = {};
+  const visual = {
+    height: 664,
+    offsetTop: 0,
+    addEventListener: (type: string, listener: () => void) => {
+      listeners[type] = [...(listeners[type] ?? []), listener];
+    },
+  };
+  Object.defineProperty(win, "visualViewport", { configurable: true, value: visual });
+  const scrolls: number[] = [];
+  Object.defineProperty(win, "scrollBy", { configurable: true, value: (_x: number, y: number) => scrolls.push(y) });
+  start(win as unknown as globalThis.Window);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  const edge = { top };
+  vi.spyOn(pop, "getBoundingClientRect").mockImplementation(() => rect(0, edge.top, 390, 664) as unknown as DOMRect);
+  const fire = (type: string) => {
+    for (const listener of listeners[type] ?? []) listener();
+  };
+  return { win, pop, visual, scrolls, fire, edge };
+}
+
+test("the sheet follows the visual viewport: its bottom lift, its height cap and compact mode", () => {
+  const { win, pop, visual, fire } = sheetWindow(400);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  assert.equal(pop.style.getPropertyValue("--notes-sheet-bottom"), "0px");
+  assert.equal(pop.style.getPropertyValue("--notes-sheet-max"), "332px", "half of 664");
+  assert.equal(pop.hasAttribute("data-compact"), false);
+  // The keyboard opens: the visual viewport shrinks to 400px and the layout viewport keeps its height.
+  visual.height = 400;
+  fire("resize");
+  assert.equal(pop.style.getPropertyValue("--notes-sheet-bottom"), "264px");
+  assert.equal(pop.style.getPropertyValue("--notes-sheet-max"), "220px", "55% of 400");
+  assert.equal(pop.hasAttribute("data-compact"), true, "the quotation goes");
+  // A viewport with no height reading falls back to the window's, with no lift.
+  visual.height = 0;
+  fire("resize");
+  assert.equal(pop.style.getPropertyValue("--notes-sheet-bottom"), "0px");
+});
+
+test("a passage under the sheet scrolls into view by its last line, and its first line stays on screen", () => {
+  // CONTRACT's passage is one line at 100..120; FAILED's two lines are at 300..340.
+  const covered = sheetWindow(300);
+  click(covered.win, q(covered.win, "article p:nth-of-type(2)"), 50, 110);
+  assert.deepEqual(covered.scrolls, [], "a passage above the sheet does not scroll the page");
+
+  const lines = sheetWindow(310);
+  click(lines.win, q(lines.win, "article p:last-of-type"), 50, 310);
+  // The first line (300..320) is above the sheet's top at 310 but the last (320..340) is under it: 340 - (310 - 16).
+  assert.deepEqual(lines.scrolls, [46], "the page scrolls by the last line's overlap");
+
+  const tall = sheetWindow(200);
+  click(tall.win, q(tall.win, "article p:last-of-type"), 50, 310);
+  // The overlap would be 156px, but the first line's top (300) allows 284; here it is not the cap that binds.
+  assert.deepEqual(tall.scrolls, [156]);
+
+  const capped = sheetWindow(40);
+  click(capped.win, q(capped.win, "article p:last-of-type"), 50, 310);
+  // The overlap is 316px, and the first line's top at 300 stops the scroll at 284 so it stays visible.
+  assert.deepEqual(capped.scrolls, [284]);
+});
+
+test("a viewport scroll that moves only the visual viewport's offset does not scroll the page again", () => {
+  const { win, visual, scrolls, fire } = sheetWindow(310);
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  const opened = scrolls.length;
+  visual.offsetTop = 60;
+  fire("scroll");
+  fire("scroll");
+  assert.equal(scrolls.length, opened, "no further scroll");
+  visual.height = 400;
+  fire("resize");
+  assert.equal(scrolls.length, opened + 1, "a height change reveals the passage again");
+});
+
 test("a refresh keeps what a reader typed in a plain highlight's field, and a saved note is what a later delete is judged against", () => {
   const { win } = stage([CONTRACT, FAILED]);
   const storage = () => {

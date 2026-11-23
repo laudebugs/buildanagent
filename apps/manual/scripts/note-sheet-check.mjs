@@ -36,15 +36,15 @@ const check = (condition, message) => {
  * Opens the popover on a fresh highlight, its passage centred at `at` of the window's height; `note` saves a note first
  * so the popover shows the saved-note view. A mouse clicks and a touch screen taps.
  */
-async function openSheet(page, note, at = 0.5) {
+async function openSheet(page, note, at = 0.5, { touch = true, length = 70 } = {}) {
   await page.goto(`${origin}/tools/`);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForSelector(".notes-open");
-  await selectIn(page, 2, 10, 70);
+  await selectIn(page, 2, 10, length);
   await page.waitForSelector(".notes-toolbar:not([hidden])");
   await page.click(".notes-toolbar .notes-swatch--blue");
-  await reopen(page, at);
+  await reopen(page, at, touch);
   if (note) {
     await page.fill(".notes-pop__field", note);
     await page.click(".notes-pop__act[data-action='save']");
@@ -56,7 +56,7 @@ async function openSheet(page, note, at = 0.5) {
 }
 
 /** Taps (or clicks) the blue highlight with its passage centred at `at` of the window's height. */
-async function reopen(page, at = 0.5) {
+async function reopen(page, at = 0.5, touch = true) {
   const p = await page.evaluate((fraction) => {
     const range = [...CSS.highlights.values()].flatMap((h) => [...h])[0];
     range.startContainer.parentElement.scrollIntoView({ block: "center", behavior: "instant" });
@@ -65,7 +65,7 @@ async function reopen(page, at = 0.5) {
     const moved = range.getClientRects()[0];
     return { x: moved.left + Math.min(20, moved.width / 2), y: moved.top + moved.height / 2 };
   }, at);
-  if (page.context()._options.hasTouch) await page.touchscreen.tap(p.x, p.y);
+  if (touch) await page.touchscreen.tap(p.x, p.y);
   else await page.mouse.click(p.x, p.y);
   await page.waitForSelector(".notes-pop:popover-open");
 }
@@ -100,7 +100,7 @@ const measure = (page) =>
       vw: innerWidth,
       gaps,
       maxGap: Math.max(0, ...gaps.map((g) => g.gap)),
-      passage: passage ? { top: passage.top, bottom: passage.bottom } : null,
+      passage: passage ?? null,
       swatch: { w: sw.width, h: sw.height },
       field: field ? { top: field.top, bottom: field.bottom } : null,
       actions: { top: actions.top, bottom: actions.bottom },
@@ -214,6 +214,24 @@ async function runTouch(name, browser, scheme, shot) {
   );
   await page.setViewportSize({ width, height });
 
+  // A passage of several lines, low on the page: the page scrolls so its last line clears the sheet, its first line stays
+  // on the screen, and it scrolls once, on open, not again on later frames.
+  await openSheet(page, "A short note on this passage.", 0.63, { length: 230 });
+  await page.waitForTimeout(250);
+  const multi = await measure(page);
+  const lineCount = await page.evaluate(() => {
+    const range = [...CSS.highlights.values()].flatMap((h) => [...h])[0];
+    return range.getClientRects().length;
+  });
+  check(lineCount >= 3, `${name} ${scheme}: the test passage has at least three lines (${lineCount})`);
+  check(
+    multi.passage && multi.passage.top >= 0 && multi.passage.bottom <= multi.top,
+    `${name} ${scheme}: a multi-line passage shows whole above the sheet (${JSON.stringify(multi.passage)} above ${multi.top})`,
+  );
+  const settled = await page.evaluate(() => scrollY);
+  await page.waitForTimeout(300);
+  check((await page.evaluate(() => scrollY)) === settled, `${name} ${scheme}: the page stops scrolling after it opens`);
+
   // Closing: every way shuts the popover for good (display none, page tappable) and it opens again without a reload.
   for (const how of ["Escape", "tap outside", "swipe"]) {
     await openSheet(page, "A short note on this passage.");
@@ -271,7 +289,7 @@ async function runTouch(name, browser, scheme, shot) {
 async function runDesktop(name, browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, colorScheme: "dark" });
   const page = await context.newPage();
-  await openSheet(page, "");
+  await openSheet(page, "", 0.5, { touch: false });
   const m = await measure(page);
   check(m.swatch.w === 24 && m.swatch.h === 24, `${name} desktop: a swatch is 24x24 (${m.swatch.w}x${m.swatch.h})`);
   await focusFirstSwatch(page);

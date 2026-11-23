@@ -1728,6 +1728,10 @@ class Notes {
       this.pop.style.top = "";
       this.pop.style.left = "";
       this.layoutSheet();
+      // Fonts or the note's text may still change the sheet's height after the first frame.
+      win.requestAnimationFrame?.(() => {
+        if (this.popOpen && this.popId === item.id) this.revealPassage();
+      });
     } else {
       const box = this.pop.getBoundingClientRect();
       const width = this.doc.documentElement.clientWidth || win.innerWidth;
@@ -1783,24 +1787,31 @@ class Notes {
     this.pop.toggleAttribute("data-compact", compact);
     this.pop.style.setProperty("--notes-sheet-bottom", `${Math.round(lifted)}px`);
     this.pop.style.setProperty("--notes-sheet-max", `${Math.floor(height * (compact ? 0.55 : 0.5))}px`);
-    // A keyboard that opens or closes moves the sheet's top edge, so the passage is brought back above it.
-    const key = `${Math.round(lifted)}/${compact}/${Math.round(height)}`;
+    // A keyboard that opens or closes changes the viewport's height, and the passage is brought back above the sheet.
+    // The key leaves out the lift: it includes the visual viewport's offset, which iOS changes while it pans for the
+    // keyboard, and a reveal that scrolled the page would then change it and scroll again.
+    const key = `${Math.round(height)}/${compact}`;
     if (key !== this.sheetKey) {
       this.sheetKey = key;
       this.revealPassage();
     }
   }
 
-  /** Scrolls the page, when the sheet covers the highlighted passage, so the passage shows above the sheet. */
+  /**
+   * Scrolls the page, when the sheet covers the highlighted passage, so the passage shows above the sheet. A passage of
+   * several lines is judged by its last line, and the scroll stops short of pushing its first line off the window.
+   */
   revealPassage() {
     const { win } = this;
-    const rect = this.popRange?.getClientRects?.()[0];
-    if (!rect || typeof win.scrollBy !== "function") return;
+    const rects = [...(this.popRange?.getClientRects?.() ?? [])];
+    if (rects.length === 0 || typeof win.scrollBy !== "function") return;
+    const first = rects[0];
+    const last = rects[rects.length - 1];
     const sheetTop = this.pop.getBoundingClientRect().top;
     const gap = 16;
-    if (rect.bottom <= sheetTop - gap) return;
-    // Move the passage up to just above the sheet, but never so far that its top leaves the window.
-    win.scrollBy(0, Math.max(0, Math.min(rect.bottom - sheetTop + gap, rect.top - gap)));
+    const needed = last.bottom - (sheetTop - gap);
+    if (needed <= 0) return;
+    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap)));
   }
 
   /**
