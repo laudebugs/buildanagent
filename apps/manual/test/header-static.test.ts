@@ -13,12 +13,45 @@ const layoutCss = strip(read("src/styles/layout.css"));
 const script = read("src/scripts/header.ts");
 const component = read("src/components/SiteHeader.astro");
 
-test("the script and the stylesheet name the same phone query", () => {
+test("the script and the stylesheet name the same phone query, and every width media query is that query", () => {
   const query = /const PHONE = "([^"]+)"/.exec(script)?.[1];
   assert.ok(query, "header.ts defines PHONE");
-  const media = [...headerCss.matchAll(/@media \(max-width[^{]*\{/g)].map((m) => m[0].slice(7, -2));
-  assert.ok(media.length >= 2, "the root height and the phone rules both use the query");
-  for (const text of media) assert.equal(text, query);
+  const media = [...headerCss.matchAll(/@media ([^{]*)\{/g)].map((m) => (m[1] ?? "").trim());
+  const widthBased = media.filter((text) => /width|height/.test(text) && !/^print$/.test(text));
+  assert.ok(widthBased.length >= 2, "the root height and the phone rules both use the query");
+  // Every media query on the viewport's size, in any syntax (min-width, max-width, a range such as width > 40rem), is the one query.
+  for (const text of widthBased) assert.equal(text, query);
+  assert.ok(
+    media.every(
+      (text) =>
+        widthBased.includes(text) || /^(print|\(prefers-reduced-motion: reduce\)|\(scripting: none\))$/.test(text),
+    ),
+    `an unexpected media query: ${media}`,
+  );
+});
+
+test("the reduced-motion rule comes after the rules that set the transitions, so it wins the tie", () => {
+  const reduced = headerCss.indexOf("@media (prefers-reduced-motion: reduce)");
+  assert.ok(reduced > 0);
+  for (const rule of [/\.site-header\s*\{[^}]*transition:/, /\.reading-progress\s*\{[^}]*transition:/]) {
+    const at = headerCss.search(rule);
+    assert.ok(at >= 0 && at < reduced, `${rule} sets a transition before the reduced-motion rule`);
+  }
+});
+
+test("a header without JavaScript is static, because its wrapped height is not the one the page's scroll padding clears", () => {
+  const block = /@media \(scripting: none\)\s*\{\s*\.site-header\s*\{([^}]*)\}/.exec(headerCss)?.[1] ?? "";
+  assert.match(block, /position: static;/);
+  assert.match(block, /height: auto;/);
+});
+
+test("choosing Notes from the phone menu moves focus to the menu button before the menu hides", () => {
+  assert.match(script, /setMenu\(false, target === notesEntry\);\s*if \(target === notesEntry\)/);
+});
+
+test("the progress measurements follow the page's layout: the body and a details toggle trigger a remeasure", () => {
+  assert.match(script, /observer\.observe\(document\.body\)/);
+  assert.match(script, /addEventListener\("toggle", refresh, \{ capture: true \}\)/);
 });
 
 test("the header is 56px on a desktop and 52px on a phone, and the page clears it", () => {

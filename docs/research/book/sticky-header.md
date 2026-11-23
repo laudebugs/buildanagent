@@ -1,6 +1,6 @@
 # The sticky header: what changed and how it was checked
 
-The manual's header is now sticky, with a phone menu and a reading progress line along its bottom edge (todo [T68](../../todos/done/T68-manual-sticky-header.md), the owner's pick H2 of 2026-11-23). This report records the measured sizes, the behaviour and what the checks could not run. All numbers come from `apps/manual/scripts/header-check.mjs` against a production build, in Chromium 1243 (Playwright), as of 2026-11-23.
+The manual's header is now sticky, with a phone menu and a reading progress line along its bottom edge (todo [T68](../../todos/done/T68-manual-sticky-header.md), the owner's pick H2 of 2026-11-23). This report records the measured sizes, the behaviour and what the checks could not run. All numbers come from `apps/manual/scripts/header-check.mjs` against a production build, in Chromium (Playwright's build 1243, Chromium 153.0.8010.12 by Playwright's `browsers.json`), as of 2026-11-23.
 
 ## What changed
 
@@ -22,6 +22,7 @@ The manual's header is now sticky, with a phone menu and a reading progress line
 | Menu or search open | not applicable | shown |
 | Keyboard focus inside, or moving in | shown | shown |
 | Reduced motion | no transition | no transition, still hides and returns |
+| Without JavaScript | static, wraps to as many rows as it needs | static, wraps; the phone buttons stay hidden |
 | Progress line | rides the header's bottom edge | rides the bottom edge; at the top of the window while the header is hidden |
 
 ## Measurements
@@ -53,6 +54,7 @@ Screenshots, before (main) and after, are in [header-screenshots/](header-screen
 
 ## Notes and limits
 
+- **The notes toolbar and popover can still sit under the header.** Glossary cards now count their room from the header's bottom edge (`scripts/glossary.ts`, checked by `check:header`), but the selection toolbar and the note popover are placed by `position()` in `public/scripts/notes.js`, which this work does not edit. It needs the same top limit, `--header-height` plus its margin; that is the existing follow-up for the file's owner.
 - A note popover opens above a passage only when there is no room below, so it can reach the header only in a window under about 400 px tall (a phone in landscape). The popover is a top-layer element, so no z-index stops it. Keeping it clear needs a clamp in `notes.js`, left to that file's owner.
 - The saved-highlight name of the Notes button ("Notes, 1 saved") makes axe-core's `label-content-name-mismatch` rule fire. It comes from `notes.js` and predates the header, so the check runs axe before it creates a highlight.
 - The offline-save control sits in the footer, in the page's flow, so the header cannot cover it. That control stays hidden on a loopback host without the offline test host, so the check does not measure it.

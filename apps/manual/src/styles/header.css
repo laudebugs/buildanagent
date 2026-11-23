@@ -39,13 +39,6 @@ html {
   transform: translateY(-100%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .site-header,
-  .reading-progress {
-    transition: none;
-  }
-}
-
 .site-header__inner {
   display: flex;
   align-items: center;
@@ -212,9 +205,11 @@ html {
 }
 
 /* Without JavaScript the phone buttons stay hidden, so the links and the search box show in a header that wraps and may
-   be taller than its height; it stays in the page's flow and the page's scroll padding still clears it. */
+   be taller than its height. Such a header is static: a sticky header of unknown height would cover the page's scroll
+   padding, which is sized for the one-row header. It scrolls away with the page. */
 @media (scripting: none) {
   .site-header {
+    position: static;
     height: auto;
     min-height: var(--header-height);
   }
@@ -262,6 +257,14 @@ html {
   background-color: var(--color-accent);
   transform: scaleX(0);
   transform-origin: left;
+}
+
+/* After the rules that set the transitions: the two selectors tie on specificity, so the later rule wins. */
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .reading-progress {
+    transition: none;
+  }
 }
 
 @media print {

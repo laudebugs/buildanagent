@@ -62,7 +62,7 @@ test("the chapter layout switches its columns with container queries, not viewpo
   const all = css.map(({ text }) => text).join("\n");
   assert.match(all, /\.layout\s*\{\s*container:\s*layout\s*\/\s*inline-size;/);
   for (const { path, text } of css) {
-    // The sticky header answers to the window, not to a container (see the header test below).
+    // The sticky header answers to the window, not to a container (test/header-static.test.ts checks its queries).
     if (path === "styles/header.css") continue;
     assert.doesNotMatch(text, /@media[^{]*width/, `${path} switches on the viewport's width`);
   }

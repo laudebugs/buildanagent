@@ -14,7 +14,8 @@
 // - a heading a link jumps to, down or up, shows fully below the header, and the chapter rails stick below it;
 // - the phone menu opens, lists Contents, Glossary, Sources and Notes, closes on Escape, on a tap outside and on a
 //   link, returns focus, and its Notes entry opens the notes panel; the search button opens the search field;
-// - the note popover and the Notes button never sit under the header;
+// - the note popover and the Notes button never sit under the header, and a glossary card opens below it;
+// - opening the "All chapters" list on a phone moves the progress line's end with the article;
 // - a chapter page has no axe-core violation, with the header in both modes of the phone.
 //
 // It needs Playwright, a browser and a built book (`pnpm --filter @buildanagent/manual build`), so it is not part of
@@ -167,6 +168,47 @@ async function overlaps(page, bottom, touch) {
   await page.keyboard.press("Escape");
 }
 
+/** A glossary term scrolled just under the header: its card must open fully below the header, not beneath it. */
+async function glossaryCard(page, bottom) {
+  await page.evaluate(() => localStorage.clear());
+  await scrollTo(page, 0);
+  const linkAt = (top) =>
+    page.evaluate((offset) => {
+      const link = document.querySelector(".article .glossary-term__link");
+      if (!link) return null;
+      link.scrollIntoView({ block: "start", behavior: "instant" });
+      scrollBy(0, link.getBoundingClientRect().top - offset);
+      return true;
+    }, top);
+  const hover = async () => {
+    await settle(page);
+    const point = await page.evaluate(() => {
+      const r = document.querySelector(".article .glossary-term__link").getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    await page.mouse.move(0, 400);
+    await page.mouse.move(point.x, point.y);
+    await settle(page);
+    return page.evaluate(() => {
+      const open = [...document.querySelectorAll(".glossary-term")].find((t) => t.matches(":hover"));
+      const r = open?.querySelector(".glossary-term__card")?.getBoundingClientRect();
+      return r && { top: r.top, height: r.height };
+    });
+  };
+  const found = await linkAt(bottom + 200);
+  check(!!found, "the chapter has a glossary term to hover");
+  if (!found) return;
+  const first = await hover();
+  // Room above the term is 30px: inside the window, but under the header, so the card must go below the term.
+  await linkAt(first.height + 0.4 * 16 + 30);
+  const card = await hover();
+  check(
+    !!card && card.height > 0 && card.top >= bottom,
+    `a glossary card near the top opens fully below the header (top ${card?.top.toFixed(0)})`,
+  );
+  await page.mouse.move(0, 400);
+}
+
 async function axe(page, name) {
   await page.addScriptTag({ content: axeSource });
   const result = await page.evaluate(() =>
@@ -202,6 +244,7 @@ async function desktop(browser) {
   // label-content-name-mismatch flags; that name is public/scripts/notes.js's, not the header's.
   await axe(page, "desktop");
   await overlaps(page, 56, false);
+  await glossaryCard(page, 56);
   await context.close();
 
   const wide = await open(browser, { viewport: { width: 1600, height: 900 } });
@@ -230,7 +273,37 @@ async function desktop(browser) {
     () => getComputedStyle(document.querySelector(".site-header")).transitionDuration,
   );
   check(durations === "0s", `with reduced motion the header has no transition (${durations})`);
+  const barMotion = await still.page.evaluate(
+    () => getComputedStyle(document.querySelector("[data-reading-progress]")).transitionDuration,
+  );
+  check(barMotion === "0s", `with reduced motion the progress line has no transition (${barMotion})`);
   await still.context.close();
+}
+
+/** Below 64rem the sidebar sits above the article: opening "All chapters" must move the progress line's end with it. */
+async function allChapters(browser) {
+  const { context, page } = await open(browser, iphone);
+  const closed = await span(page);
+  const opened = await page.evaluate(() => {
+    const details = document.querySelector(".sidebar__chapters details, details.sidebar__chapters");
+    if (!details) return false;
+    details.open = true;
+    return true;
+  });
+  check(opened, "the phone page has an All chapters list to open");
+  await settle(page);
+  const { start, last } = await span(page);
+  check(last > closed.last + 50, `opening the list moves the end of the main text down (${closed.last} to ${last})`);
+  await scrollTo(page, closed.last);
+  check(
+    (await progress(page)) < 0.98,
+    `before the new end the line is not full (${(await progress(page)).toFixed(3)})`,
+  );
+  await scrollTo(page, last);
+  check(near(await progress(page), 1, 0.005), "at the main text's end, with the list open, the line is full");
+  await scrollTo(page, start);
+  check(near(await progress(page), 0, 0.005), "at the chapter's top, with the list open, the line is empty");
+  await context.close();
 }
 
 async function phone(browser) {
@@ -390,6 +463,7 @@ async function phone(browser) {
   );
   await context.close();
 
+  await allChapters(browser);
   const chapter = await open(browser, iphone);
   await axe(chapter.page, "phone");
   await chapter.page.click("[data-menu-button]");

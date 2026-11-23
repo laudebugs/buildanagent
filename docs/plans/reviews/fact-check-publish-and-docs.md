@@ -990,3 +990,23 @@ Read on 2026-11-23 from llmstxt.org, MDN, the WebKit blog, the Astro and Starlig
 | L12e-24 | The banner's text is in the HTML of every page on every host, hidden by the `hidden` attribute and `data-pagefind-ignore` | ✅ | Read in `Banner.astro` and checked by `test/version-built.test.ts`; a crawler or reader without JavaScript can see the text on docs. and next., and Pagefind skips it |
 | L12e-25 | A custom-domain Worker such as next.docs gets no `X-Robots-Tag` header from Cloudflare | ⚠️ | Not verified at a Cloudflare page: Previews documents `workers.dev` only. The claim is read from the stage script's own comment (`scripts/ci/site-stage-dist.mjs`; see also row L8-7) |
 | L12e-26 | While only alphas exist, npm's `latest` tag serves a placeholder, not a release | ✅ | `npm view @buildanagent/sdk dist-tags`, run 2026-11-23: `latest: '0.0.0-bootstrap.0'`, `bootstrap: '0.0.0-bootstrap.0'`, `alpha: '0.1.0-alpha.34'`; `apps/docs/src/content/docs/start/install.mdx` says the same |
+
+## T68: the sticky header report (branch `todo/T68-manual-sticky-header`, 2026-11-23)
+
+Claims of [the report](../../research/book/sticky-header.md). Measured rows cite `pnpm --filter @buildanagent/manual check:header` against a production build, Chromium, 2026-11-23.
+
+| # | Claim | Verdict | Source and reason |
+|---|---|---|---|
+| T68-1 | The checks ran in "Chromium 1243 (Playwright)" | ✏️ | 1243 is Playwright's Chromium build revision, not a version. Playwright's `browsers.json` pairs it with Chromium 153.0.8010.12; the report now says both |
+| T68-2 | `axe-core` 4.14.1 was released 2026-11-16 | ✅ | `npm view axe-core time --json`: `"4.14.1": "2026-11-16T11:56:28.504Z"`; `apps/manual/package.json` pins `"axe-core": "4.14.1"` |
+| T68-3 | The header is 56.0 px on a desktop and 52.0 px on a phone | ✅ | `check:header`, "the header is 56px tall" and "52px tall" within 0.5 px; `src/styles/header.css` `--header-height` |
+| T68-4 | The old header was 66 px on a desktop and about 100 px on a phone | ⚠️ | Taken from the before-screenshots measured at the start of T68; not re-measured on this branch. The old rules (`padding-block: 0.9rem`, wrapping nav) are in `git show 611d0c2b~3:apps/manual/src/styles/layout.css` |
+| T68-5 | One 56 px row at 761, 800 and 1024 px with no sideways scroll | ✅ | `check:header`, "at 761px the header is one 56px row" (and 800, 1024) |
+| T68-6 | Progress is 0 at the top, 0.500 in the middle and 1 at the end of the main text and through the sources | ✅ | `check:header`: empty at the top, within 0.02 of 0.5 in the middle (the report's 0.500 is the printed value, tolerance 0.02), within 0.005 of 1 at the end and 0.001 past it |
+| T68-7 | A heading after a hash jump has its top at 68 px (desktop) and 64 px (phone) | ✅ | `scroll-padding-top` is `--header-height + 12px`, so 56 + 12 and 52 + 12; `check:header` asserts the heading is at or below the header's bottom edge |
+| T68-8 | The chapter rails sit 80 px from the top at 1280 and 1600 px | ✅ | `check:header`: rail top within 1 px of 56 + 24 at 1280 and both rails within 1 px of 80 at 1600 |
+| T68-9 | axe-core finds no violation on a chapter page on a desktop, a phone and a phone with the menu open | ✅ | `check:header` axe cases, rule sets wcag2a, wcag2aa, wcag21a, wcag21aa and best-practice |
+| T68-10 | With reduced motion the header's transition is 0 s and the phone header still hides and returns | ✅ | `check:header`; the progress line's transition was 0.2 s under reduced motion until the rule moved after it (review finding), and a new case asserts 0 s |
+| T68-11 | The note popover can reach the header only in a window under about 400 px tall | ⚠️ | Reasoned from the popover's placement rule in `notes.js` (above only without room below), not measured at that height |
+| T68-12 | The saved-highlight name "Notes, 1 saved" makes axe's `label-content-name-mismatch` fire, and it predates the header | ⚠️ | Reported from the T68 run that first hit the rule, not reproduced on this branch; the check keeps the axe case ahead of any highlight to avoid it. The name is set in `public/scripts/notes.js`, unchanged by T68 |
+| T68-13 | WebKit is not installed here, so its run is skipped | ✅ | `check:header` prints `SKIPPED - webkit is not installed here (... /opt/pw-browsers/webkit-2359/pw_run.sh)` |

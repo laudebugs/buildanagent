@@ -59,6 +59,18 @@ test("a card near the top of the viewport opens below its term", () => {
   assert.ok(Number.parseFloat(card.style.getPropertyValue("--card-y")) > 20);
 });
 
+test("a card never opens under the sticky header: its room above is counted from the header's bottom edge", () => {
+  const header = document.createElement("header");
+  header.setAttribute("data-site-header", "");
+  header.getBoundingClientRect = () => ({ bottom: 56 }) as DOMRect;
+  document.body.prepend(header);
+  // 180 - gap - 120 leaves about 54px above the term: room in the window, but under the 56px header and its margin.
+  const { term: node, card } = term(320, 100, 180);
+  enter(node);
+  assert.equal(node.dataset.below, "");
+  assert.ok(Number.parseFloat(card.style.getPropertyValue("--card-y")) > 180);
+});
+
 test("leaving a term clears its card's place, so the next opening never starts from stale coordinates", () => {
   const { term: node, card } = term(320);
   enter(node);

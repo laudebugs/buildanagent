@@ -102,7 +102,9 @@ if (searchToggle) searchToggle.hidden = false;
 menu?.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target.closest("a, button") : null;
   if (!target) return;
-  setMenu(false);
+  // The Notes entry is about to be hidden with the menu, so focus moves to the menu button first; when the notes close,
+  // focus returns to a visible control and not to the page.
+  setMenu(false, target === notesEntry);
   if (target === notesEntry) document.querySelector<HTMLElement>(".notes-open")?.click();
 });
 
@@ -171,7 +173,14 @@ function refresh(): void {
   schedule();
 }
 
-if (chapter && typeof ResizeObserver === "function") new ResizeObserver(refresh).observe(chapter);
+// Below 64rem the sidebar sits above the article, so opening its "All chapters" list moves the article without resizing
+// it: the body is observed as well, and a details element's toggle (which does not bubble) is caught while capturing.
+if (typeof ResizeObserver === "function") {
+  const observer = new ResizeObserver(refresh);
+  if (chapter) observer.observe(chapter);
+  observer.observe(document.body);
+}
+document.addEventListener("toggle", refresh, { capture: true });
 window.addEventListener("load", refresh);
 document.fonts?.ready.then(refresh);
 refresh();

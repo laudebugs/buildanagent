@@ -56,10 +56,11 @@ export function nextHeaderState(
  * How far through the chapter's main text a reader is, from 0 to 1. `start` and `end` are the document positions, in
  * pixels, of the top of the chapter and the end of its main text (before its sources, the previous and next links and
  * the footer). The value is 0 at the top of the chapter and 1 when the end of the main text reaches the bottom of the
- * window, and it is clamped between. A chapter that fits in the window is 0 until the reader scrolls, then 1.
+ * window, and it is clamped between. A chapter that fits in the window is 0 until the reader scrolls at all, then 1, so a
+ * page whose whole scroll is shorter than `start` still reaches 1 at its end.
  */
 export function readingProgress(scrollY: number, start: number, end: number, viewportH: number): number {
   const span = end - viewportH - start;
-  if (!(span > 0)) return scrollY > start ? 1 : 0;
+  if (!(span > 0)) return scrollY > 0 ? 1 : 0;
   return Math.min(1, Math.max(0, (scrollY - start) / span));
 }

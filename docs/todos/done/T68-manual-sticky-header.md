@@ -60,6 +60,8 @@ The manual's header stays reachable while a reader scrolls, and a thin line alon
 
 The header is sticky at 56 px on a desktop and one 52 px row on a phone, with a menu, a search panel, hide-on-scroll, a 3 px progress line, scroll padding, rail offsets and an empty settings slot. `check:header` (new, run by hand) passes in Chromium on both profiles; WebKit is not installed here, so it was not run. The measurements, the behaviour table and the limits are in [the report](../../research/book/sticky-header.md), and the README section "The header stays in reach" explains how to extend it.
 
-Follow-ups: run `check:header` in CI (`.github/` was off limits), run it in WebKit where installed, and clamp the note popover below the header in `notes.js` for very short windows.
+Follow-ups: run `check:header` in CI (`.github/` was off limits), run it in WebKit where installed, and clamp the note popover and the selection toolbar below the header in `position()` in `public/scripts/notes.js`, using `--header-height` plus the function's margin, which another pull request is editing. Glossary cards already clamp below the header.
+
+Review fixes: the reduced-motion rule moved after the progress line's transition; the progress line remeasures when the body resizes or a `details` toggles; glossary cards open below the header; a header without JavaScript is static; the progress of a short page reaches 1 at its end; choosing Notes from the phone menu keeps focus; every width query in `header.css` must equal the phone query; the report's claims are in the fact-check log.
 
 - [x] `pnpm check`, `pnpm typecheck`, `pnpm test`, `check:book`, the build and the four maintainability checks pass.

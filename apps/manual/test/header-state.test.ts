@@ -98,3 +98,9 @@ test("a chapter that fits in the window is 0 until the reader scrolls, then 1", 
   assert.equal(readingProgress(0, 80, 600, 900), 0);
   assert.equal(readingProgress(1, 0, 600, 900), 1);
 });
+
+test("a short page reaches 1 at its end even when its whole scroll is shorter than the chapter's start", () => {
+  // The chapter starts 56px down and the window is 40px short of showing it all.
+  assert.equal(readingProgress(0, 56, 700, 900), 0);
+  assert.equal(readingProgress(40, 56, 700, 900), 1);
+});
