@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T68d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build the book §2, BK6](../../plans/build-book.md#bk6-a-source-register-tied-to-our-fact-checks-with-citations-that-fail-the-build-proposed) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
 | Depends on | [T68a](../done/T68a-manual-paper-references-tooling.md) |
@@ -33,15 +33,15 @@ Apply the owner's rule on research papers to eleven papers that the tools, permi
 
 ## Tasks
 
-- [ ] Read each paper in full and log its blurb claims
-- [ ] Fill the register entries and empty their pending ids
-- [ ] Convert the mentions in the chapters
-- [ ] Run the checks and open the pull request
+- [x] Read each paper in full and log its blurb claims
+- [x] Fill the register entries and empty their pending ids
+- [x] Convert the mentions in the chapters
+- [x] Run the checks and open the pull request
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @buildanagent/manual check:book`, the manual's tests and the book build pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm fact-check-logs` pass
+- [x] `pnpm --filter @buildanagent/manual check:book`, the manual's tests and the book build pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm fact-check-logs` pass
 
 ## Tests
 
@@ -53,12 +53,16 @@ The book plan's todo table and its fact-check log.
 
 ## Outcome
 
-To fill in when the work is done.
+- All eleven papers have a short name and a blurb checked against the whole paper (rows T68d-1 to T68d-33 of the book plan's fact-check log) and are off `papers-pending.json`.
+- `τ-bench` and `tau-bench` name the paper of Yao et al. (arXiv:2406.12045). `τ²-bench` is a different paper that no chapter names, and `τ-Voice` is the separate `tau-voice` entry.
+- Every mention of ReAct in Chapter 8 and in Chapter 12 is `[[paper:yao-react]]`, because the pattern and the paper share one name. Chapter 8 no longer tags the `react` glossary term, since a paper link covers it.
+- No first mention is marked `described`: each first mention shows its blurb.
+- One chapter claim is not stated by its paper: Chapter 11's "each cell is one run" (row T68d-18).
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
