@@ -3,7 +3,7 @@ name: cloudflare-agents
 description: Use when writing, reviewing or testing TypeScript that imports the Cloudflare `agents` package, `@cloudflare/think` or `@cloudflare/ai-chat` (Agent, AIChatAgent, Think, getAgentByName, routeAgentRequest, state/setState, this.sql, schedule, createMcpHandler, addMcpServer, needsApproval, runTurn, beforeTurn, hibernation). Gives the verified 0.33.0 setup, the approval flow, the gotchas from our fact-check, and how to test offline in workerd with a mock model.
 ---
 
-# Cloudflare Agents (`agents@0.33.0`, `@cloudflare/think@0.23.0`, `@cloudflare/ai-chat@0.12.2`, on `ai@7.0.162`)
+# Cloudflare Agents (`agents@0.33.0`, `@cloudflare/think@0.23.0`, `@cloudflare/ai-chat@0.12.2`, on `ai@7.0.173`)
 
 Every agent is a Durable Object: a named, single-threaded instance with its own SQLite database, WebSockets and alarms, which Cloudflare wakes on demand and evicts when idle. The model loop is the Vercel AI SDK's. `AIChatAgent` hands you `streamText` to call yourself, while Think calls it for you. Full reference: [`docs/reference/cloudflare-agents/guide.md`](../../../docs/reference/cloudflare-agents/guide.md); verified examples: [`verify/cloudflare-agents/examples/`](../../../verify/cloudflare-agents/examples/).
 

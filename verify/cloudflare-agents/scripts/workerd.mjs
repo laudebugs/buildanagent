@@ -21,7 +21,7 @@ import { MOCK_MARKER } from "./mock-model.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const PKG = resolve(here, "..");
-export const COMPAT_DATE = "2026-11-03"; // the pinned workerd's release date
+export const COMPAT_DATE = "2026-11-03"; // kept at the date the harness first ran on: workerd accepts any date up to its own release, and workers-types may run a few days ahead of workerd
 const SHIMS = {
   "@ai-sdk/openai": join(PKG, "shims/openai.mjs"),
   "@ai-sdk/anthropic": join(PKG, "shims/anthropic.mjs"),

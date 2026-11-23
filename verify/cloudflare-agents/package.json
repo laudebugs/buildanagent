@@ -15,22 +15,22 @@
     "triage:docs": "node scripts/ahead-of-release.mjs && node scripts/mismatch-causes.mjs"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.96",
-    "@ai-sdk/openai": "4.0.108",
-    "@ai-sdk/provider": "4.0.35",
+    "@ai-sdk/anthropic": "4.0.105",
+    "@ai-sdk/openai": "4.0.118",
+    "@ai-sdk/provider": "4.0.38",
     "@cloudflare/ai-chat": "0.12.2",
     "@cloudflare/codemode": "0.5.6",
     "@cloudflare/computer": "0.8.0",
     "@cloudflare/think": "0.23.0",
-    "@cloudflare/workers-types": "5.20261103.1",
+    "@cloudflare/workers-types": "5.20261116.1",
     "@modelcontextprotocol/client": "2.4.0",
     "@modelcontextprotocol/sdk": "1.32.2",
     "@modelcontextprotocol/server": "2.4.0",
     "agents": "0.33.0",
-    "ai": "7.0.162",
+    "ai": "7.0.173",
     "esbuild": "0.28.2",
     "just-bash": "3.6.0",
-    "miniflare": "5.20261103.0-beta",
+    "miniflare": "5.20261113.0-beta",
     "workers-ai-provider": "4.0.1",
     "zod": "4.6.7"
   }

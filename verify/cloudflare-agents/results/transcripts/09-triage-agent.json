@@ -4,7 +4,7 @@
   "file": "verify/cloudflare-agents/examples/09-triage-agent.ts",
   "harness": "verify/cloudflare-agents",
   "pin": "agents@0.33.0",
-  "mock": "ai@7.0.162",
+  "mock": "ai@7.0.173",
   "events": [
     {
       "kind": "request",
