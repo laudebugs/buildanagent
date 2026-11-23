@@ -8,7 +8,7 @@
 // rules until the content todos fill them in and empty the list.
 
 import { existsSync, readFileSync } from "node:fs";
-import type { Root, RootContent, Text } from "mdast";
+import type { FootnoteDefinition, Html, Root, RootContent, Text } from "mdast";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -25,8 +25,11 @@ import type { Source } from "./sources.js";
 /** A `[[paper:id]]` or `[[paper:id described]]` reference as written. */
 export const PAPER_REF = /\[\[paper:([a-z0-9]+(?:-[a-z0-9]+)*)( described)?\]\]/g;
 
-/** Anything that starts like a paper reference, so a malformed one fails instead of staying text. */
-export const PAPER_REF_LIKE = /\[\[paper:[^\]]{0,200}\]\]/g;
+/**
+ * Anything that looks like a paper reference, with any number of brackets on either side, so a malformed one, such
+ * as `[[paper:id]` or `[paper:id]`, fails instead of staying text.
+ */
+export const PAPER_REF_LIKE = /\[+paper:[^\]]{0,200}\]+/g;
 
 /** Where a paper's name links: its entry on the sources page. */
 export const paperHref = (id: string): string => `/sources/#${id}`;
@@ -168,7 +171,8 @@ export type MentionKind =
 export interface Mention {
   readonly id: string;
   readonly kind: MentionKind;
-  readonly node: Text;
+  /** The text node, or the raw HTML node a bare name sits in. */
+  readonly node: Text | Html;
   readonly index: number;
   readonly text: string;
   /**
@@ -223,7 +227,12 @@ function isHeading(node: Node, index: number, ancestors: readonly Node[]): boole
   const data = (node as { data?: { hName?: unknown; directiveLabel?: unknown } }).data;
   if (/^h[1-6]$/.test(String(data?.hName))) return true;
   const parent = ancestors[index - 1] as { type: string; name?: string } | undefined;
-  return data?.directiveLabel === true && parent?.type === "containerDirective" && parent.name === "box";
+  const grandparent = ancestors[index - 2] as { type: string; name?: string } | undefined;
+  if (data?.directiveLabel === true && parent?.type === "containerDirective" && parent.name === "box") return true;
+  // A listing in :::tabs gives its caption to the tab's heading: a leaf's text, or a container's label.
+  const directive = node as { type: string; name?: string };
+  if (directive.type === "leafDirective" && directive.name === "listing" && parent?.name === "tabs") return true;
+  return data?.directiveLabel === true && parent?.name === "listing" && grandparent?.name === "tabs";
 }
 
 /**
@@ -238,12 +247,28 @@ export function paperMentions(
   spellings: readonly Spelling[] = namedSpellings(papers),
 ): Mention[] {
   const { re, owners } = bareMatcher(spellings);
-  const mentions: Mention[] = [];
+  const body: Mention[] = [];
+  const notes = new Map<string, Mention[]>();
+  const referenced: string[] = [];
   visitParents(tree, (node, ancestors) => {
     if (NOT_PROSE.has(node.type)) return SKIP;
-    if (node.type !== "text") return undefined;
-    const value = node.value;
+    if (node.type === "footnoteReference" && !referenced.includes(node.identifier)) referenced.push(node.identifier);
+    if (node.type !== "text" && node.type !== "html") return undefined;
+    const definition = ancestors.find((a): a is FootnoteDefinition => a.type === "footnoteDefinition");
+    const into = definition === undefined ? body : (notes.get(definition.identifier) ?? []);
+    if (definition !== undefined) notes.set(definition.identifier, into);
     const inHeading = ancestors.some(isHeading);
+    if (node.type === "html") {
+      // Raw HTML's text, outside its tags, is prose a reader sees, so a bare name there counts too.
+      const text = node.value.replace(/<[^>]*>/g, (tag) => " ".repeat(tag.length));
+      for (const m of text.matchAll(re)) {
+        const key = Object.keys(m.groups ?? {}).find((name) => m.groups?.[name] !== undefined);
+        const id = key === undefined ? undefined : owners[Number(key.slice(1))];
+        if (id !== undefined) into.push({ id, kind: "bare", node, index: m.index, text: m[0], inHeading });
+      }
+      return undefined;
+    }
+    const value = node.value;
     const found: Mention[] = [];
     for (const m of value.matchAll(PAPER_REF)) {
       const id = m[1] ?? "";
@@ -266,10 +291,12 @@ export function paperMentions(
       const id = key === undefined ? undefined : owners[Number(key.slice(1))];
       if (id !== undefined) found.push({ id, kind: "bare", node, index: m.index, text: m[0], inHeading });
     }
-    mentions.push(...found.sort((a, b) => a.index - b.index));
+    into.push(...found.sort((a, b) => a.index - b.index));
     return undefined;
   });
-  return mentions;
+  // A footnote renders after the body, in the order of its first reference, so its mentions come last in that order.
+  const order = [...referenced, ...[...notes.keys()].filter((id) => !referenced.includes(id))];
+  return [...body, ...order.flatMap((id) => notes.get(id) ?? [])];
 }
 
 /**

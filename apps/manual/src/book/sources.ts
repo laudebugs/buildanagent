@@ -60,7 +60,11 @@ const sourceFields = z.strictObject({
     .max(MAX_BLURB, `a blurb is one clause; keep it under ${MAX_BLURB} characters`)
     .refine((text) => !MARKUP.test(text), "the blurb must be plain text, with no Markdown")
     .refine((text) => !/[()]/.test(text), "the blurb shows inside parentheses, so it holds none of its own")
-    .refine((text) => !/[.!?]$/.test(text), "the blurb shows mid-sentence, so it ends without a full stop")
+    // An abbreviation's own full stop, as in "by Wang et al.", may end it.
+    .refine(
+      (text) => !/[.!?]$/.test(text) || /(?<![\p{L}\p{N}])et al\.$/u.test(text),
+      "the blurb shows mid-sentence, so it ends without a full stop",
+    )
     .optional(),
   /** Other spellings of a paper's name that chapters must not write bare either, such as "τ-bench" for "tau-bench". */
   aliases: z.array(paperName).min(1).optional(),

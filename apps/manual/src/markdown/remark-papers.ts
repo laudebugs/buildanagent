@@ -14,7 +14,7 @@
 // link's text fails, because links cannot nest. It runs before the citations plugin, so a `[@id]` is still text
 // that counts as a mention, and after the directives plugin, which puts the `:id` inside `[[paper:id]]` back as text.
 
-import type { PhrasingContent, Root, Text } from "mdast";
+import type { Html, PhrasingContent, Root, Text } from "mdast";
 import type { VFile } from "vfile";
 import type { Book } from "../book/load.js";
 import {
@@ -41,7 +41,7 @@ export function remarkPapers(options: { readonly book: Book }) {
     const skip = textInside(tree, NOT_PROSE);
     // Links cannot nest, so a reference in a link's text could only stay literal text.
     for (const node of skip) {
-      const m = node.value.match(/\[\[paper:[^\]]{0,200}\]\]/);
+      const m = node.value.match(/\[+paper:[^\]]{0,200}\]+/);
       if (m?.index !== undefined) {
         failAt(
           file,
@@ -52,9 +52,9 @@ export function remarkPapers(options: { readonly book: Book }) {
     }
     // A malformed reference fails here, with its own message, before the numbering plugin's general one.
     for (const node of textNodes(tree, skip)) {
-      const valid = new Set([...node.value.matchAll(PAPER_REF)].map((m) => m.index));
+      const valid = new Set([...node.value.matchAll(PAPER_REF)].map((m) => `${m.index}:${m[0].length}`));
       for (const m of node.value.matchAll(PAPER_REF_LIKE)) {
-        if (!valid.has(m.index)) {
+        if (!valid.has(`${m.index}:${m[0].length}`)) {
           failAt(
             file,
             `${m[0]} is not a paper reference; write [[paper:id]] or [[paper:id described]] with a kebab-case id`,
@@ -66,7 +66,7 @@ export function remarkPapers(options: { readonly book: Book }) {
     const mentions = paperMentions(tree, book.papers, book.sources);
     const seen = new Set<string>();
     // The references that are their paper's first mention in the chapter, by text node and offset.
-    const firsts = new Map<Text, Set<number>>();
+    const firsts = new Map<Text | Html, Set<number>>();
     // Papers a heading names, which the chapter's text must then describe.
     const inHeadings = new Map<string, Mention>();
     for (const mention of mentions) {
@@ -93,7 +93,8 @@ export function remarkPapers(options: { readonly book: Book }) {
       if (kind === "bare") {
         failAt(
           file,
-          `"${mention.text}" names the paper ${id} as bare text; write [[paper:${id}]] so it links to the sources page`,
+          `"${mention.text}" names the paper ${id} as bare text. If it means the paper, cite it with [[paper:${id}]] ` +
+            `and add ${id} to this chapter's \`sources\`; if it does not, reword it`,
           at(mention),
         );
       }

@@ -5,7 +5,15 @@ import { checkBook, paperNotes } from "../src/book/check-book.js";
 import { loadBook } from "../src/book/load.js";
 import { auditPapers, formatAudit, guessName } from "../src/book/paper-audit.js";
 import { isPaperUrl, paperCitations, paperUses } from "../src/book/papers.js";
-import { edit, editJson, fixtureInputs, mutatedFixture, removeFixture, renderLikeAstro } from "./book-fixture.js";
+import {
+  edit,
+  editJson,
+  fixtureInputs,
+  mutatedFixture,
+  removeFixture,
+  renderLikeAstro,
+  withInteractive,
+} from "./book-fixture.js";
 
 // How chapters name the register's research papers: `[[paper:id]]` renders and links, the sources page lists where
 // each paper is cited, check:book prints the described mentions, and the audit counts every mention. check-book.test.ts
@@ -374,4 +382,72 @@ test("paper URL shapes: arXiv old-style ids, ACL Anthology paper ids only", () =
   assert.ok(isPaperUrl("https://aclanthology.org/P19-1001"));
   assert.ok(!isPaperUrl("https://aclanthology.org/events/acl-2023/"));
   assert.ok(!isPaperUrl("https://aclanthology.org/volumes/2023.acl-long/"));
+});
+
+test("a paper in a tab's caption shows the linked name in the tab's heading, and the text's first mention carries the blurb", async () => {
+  const copy = mutatedFixture((d) => {
+    withInteractive(d);
+    edit(d, "chapters/second.md", (text) =>
+      text
+        .replace("sources: [alpha-docs]", "sources: [alpha-docs, gamma-paper]")
+        .replace("::listing[demo-sdk]", "::listing[demo [[paper:gamma-paper]]]")
+        .replace("## Exercises", "[[paper:gamma-paper]] ran.\n\n## Exercises"),
+    );
+  });
+  try {
+    assert.deepEqual(await checkBook(fixtureInputs(copy)), []);
+    const loaded = loadBook(fixtureInputs(copy));
+    const html = await renderLikeAstro(loaded, "second");
+    assert.match(
+      html,
+      /<h2 class="tabs__heading" id="lst-hello-demo-heading">demo <a href="\/sources\/#gamma-paper" title="[^"]*" class="paper-ref">Gamma<\/a><\/h2>/,
+    );
+    assert.match(html, /<p><a [^>]*id="paper-gamma-paper">Gamma<\/a><span class="paper-ref__blurb">/);
+    const first = paperUses(loaded.index.written.values(), loaded.papers, loaded.sources).get("gamma-paper")?.[0];
+    assert.equal(first?.mentions.find((mention) => !mention.inHeading)?.text, "[[paper:gamma-paper]]");
+    assert.equal(first?.mentions[0]?.inHeading, true, "the tab's caption counts as a heading before the render too");
+  } finally {
+    removeFixture(copy);
+  }
+});
+
+test("a footnote renders after the body, so the body's mention is the first, whatever the source order", async () => {
+  await withPaperChapter(
+    (d) =>
+      edit(d, "chapters/first.md", (text) =>
+        text.replace(
+          "## Exercises",
+          "Measured once.[^m]\n\n[^m]: [[paper:gamma-paper]] measured it.\n\n[[paper:gamma-paper]] ran in the body.\n\n## Exercises",
+        ),
+      ),
+    async (copy) => {
+      assert.deepEqual(await checkBook(fixtureInputs(copy)), []);
+      const html = await renderLikeAstro(loadBook(fixtureInputs(copy)), "first");
+      assert.match(
+        html,
+        /<p><a [^>]*id="paper-gamma-paper">Gamma<\/a><span class="paper-ref__blurb">[^<]*<\/span> ran in the body\.<\/p>/,
+      );
+      assert.match(
+        html,
+        /<li id="user-content-fn-m">\s*<p><a href="\/sources\/#gamma-paper" title="[^"]*" class="paper-ref">Gamma<\/a> measured it\./,
+      );
+    },
+  );
+});
+
+test("a blurb may end with the full stop of 'et al.'; any other closing full stop still fails", async () => {
+  const ending = (blurb: string) => (d: string) =>
+    editJson(d, "sources.json", (s) => s.map((e) => (e.id === "gamma-paper" ? { ...e, blurb } : e)));
+  for (const [blurb, passes] of [
+    ["a January 2026 arXiv paper on the loop by Gamma et al.", true],
+    ["a January 2026 arXiv paper on the loop.", false],
+  ] as const) {
+    const copy = mutatedFixture(ending(blurb));
+    try {
+      const problems = await checkBook(fixtureInputs(copy));
+      assert.equal(problems.length === 0, passes, `${blurb}: ${problems.map((p) => p.message).join("; ")}`);
+    } finally {
+      removeFixture(copy);
+    }
+  }
 });

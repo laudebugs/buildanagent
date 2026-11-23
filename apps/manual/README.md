@@ -79,16 +79,18 @@ Name a research paper with `[[paper:id]]`, never as bare text. The rule covers p
 - `blurb`, one clause that says who wrote the paper, where and when it appeared, and what it does or found, such as `"a November 2026 arXiv paper by Ruan et al. on control-flow integrity for agent skills"`;
 - `aliases`, optional, for other spellings, such as `["τ-bench"]`.
 
-The blurb shows in parentheses after the name, so it has no parentheses of its own and no closing full stop. The `url` must be the paper's own page: its arXiv abstract, its DOI, or its page at a venue that `src/book/papers.ts` lists.
+The blurb shows in parentheses after the name, so it has no parentheses of its own and no closing full stop, except the one in a closing "et al.". The `url` must be the paper's own page: its arXiv abstract, its DOI, or its page at a venue that `src/book/papers.ts` lists.
 
-A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. So does one in a heading or a box title, which never counts as the first mention, because the blurb would land in the heading's link and the contents; name the paper in the text as well. When your sentence already says what the paper is and who wrote it, write the first one as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence. A `[@id]` citation of a paper is still how you cite it, and it counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. The id must be in the chapter's `sources`, as for a citation.
+A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. So does one in a heading, a box title or a tab's caption, which never counts as the first mention, because the blurb would land in the heading's link and the contents; name the paper in the text as well. When your sentence already says what the paper is and who wrote it, write the first one as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence. A `[@id]` citation of a paper is still how you cite it, and it counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. The id must be in the chapter's `sources`, as for a citation.
 
 `check:book` fails when a chapter:
 
-- writes a paper's `short` name or an alias as bare text outside code and links (the match is case-sensitive and whole-word);
+- writes a paper's `short` name or an alias as bare text outside code and links, raw HTML's text included (the match is case-sensitive and whole-word). If the word means something else, reword it;
 - first mentions a paper with a `[@id]` citation, or marks a later mention `described`;
 - writes `[[paper:id]]` for an id that is not a paper, for a paper still pending, or for a paper missing from its `sources`;
-- writes `[[paper:id]]` inside a link's text, or names a paper only in a heading.
+- writes `[[paper:id]]` inside a link's text, writes it with one bracket too few, such as `[paper:id]`, or names a paper only in a heading.
+
+A footnote renders after the chapter's text, so a mention in one counts after every mention in the text. The front matter's `summary` is not checked, so keep paper names out of it.
 
 It also fails on a paper entry without `short`, `blurb` or a paper-page `url`, unless the paper is pending, and on an entry of another kind that links an arXiv abstract or a DOI. [`src/data/papers-pending.json`](src/data/papers-pending.json) lists the papers whose `short` and `blurb` are not written yet. They are exempt until the content todos write and fact-check each blurb, add the paper's names and empty the list. An id on the list must be a paper with no `short` or `blurb`, so the list can only shrink. `check:book` prints how many remain.
 

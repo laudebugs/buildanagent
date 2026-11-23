@@ -786,7 +786,8 @@ const cases: readonly Case[] = [
     rule: "a paper's short name as bare text fails with its line",
     change: firstChapter((t) => t.replace("Lowercase mcp", "Gamma measured it. Lowercase mcp")),
     file: `${FIRST}:12`,
-    message: /"Gamma" names the paper gamma-paper as bare text; write \[\[paper:gamma-paper\]\]/,
+    message:
+      /"Gamma" names the paper gamma-paper as bare text\. If it means the paper, cite it with \[\[paper:gamma-paper\]\] and add gamma-paper to this chapter's `sources`; if it does not, reword it/,
   },
   {
     rule: "a paper's alias as bare text fails",
@@ -852,6 +853,38 @@ const cases: readonly Case[] = [
     change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:Gamma]] ran. Lowercase mcp")),
     file: `${FIRST}:12`,
     message: /\[\[paper:Gamma\]\] is not a paper reference/,
+  },
+  {
+    rule: "a paper reference with one closing bracket fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:gamma-paper] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:gamma-paper\] is not a paper reference/,
+  },
+  {
+    rule: "a paper reference with single brackets fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[paper:gamma-paper] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[paper:gamma-paper\] is not a paper reference/,
+  },
+  {
+    rule: "a paper's name as bare text in raw HTML fails",
+    change: firstChapter((t) =>
+      t.replace("## Exercises", "<details>\n<summary>Gamma measured it</summary>\n</details>\n\n## Exercises"),
+    ),
+    file: FIRST,
+    message: /"Gamma" names the paper gamma-paper as bare text/,
+  },
+  {
+    rule: "a paper named only in a tab's caption fails at the caption's line",
+    change: interactive((dir) =>
+      edit(dir, SECOND, (t) =>
+        t
+          .replace("sources: [alpha-docs]", "sources: [alpha-docs, gamma-paper]")
+          .replace("::listing[demo-sdk]", "::listing[demo [[paper:gamma-paper]]]"),
+      ),
+    ),
+    file: `${SECOND}:27`,
+    message: /\[\[paper:gamma-paper\]\] names gamma-paper only in a heading/,
   },
   {
     rule: "a paper reference inside a link's text fails",
