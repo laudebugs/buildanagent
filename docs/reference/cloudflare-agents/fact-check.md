@@ -171,14 +171,16 @@ The S6a harness produced 18 draft findings (`verify/cloudflare-agents/results/fi
 
 The weekly SDK sweep left `agents@0.33.0`, `@cloudflare/think@0.23.0` and `@cloudflare/ai-chat@0.12.2` where they were. It moved the dependencies around them: `ai` from 7.0.162 to 7.0.173, `@ai-sdk/anthropic` from 4.0.96 to 4.0.105, `@ai-sdk/openai` from 4.0.108 to 4.0.118, `@ai-sdk/provider` from 4.0.35 to 4.0.38, `@cloudflare/workers-types` from 5.20261103.1 to 5.20261116.1 and `miniflare` from 5.20261103.0-beta to 5.20261113.0-beta, which runs `workerd@1.20261113.1` instead of `1.20261103.1`. Newer SDK releases exist (`agents@0.34.0`, `@cloudflare/think@0.24.0` and `@cloudflare/ai-chat@0.12.3`, listed by `results/latest-releases.json` on 2026-11-23), but the sweep did not propose them, so the docs mirror at tag `agents@0.33.0` stays as fetched.
 
-I reran `pnpm run verify` and compared every result with the committed ones by id, ignoring timings. The comparison found no regression:
+I reran `pnpm run verify` and compared every result by id, ignoring timings, with the results committed on `main`. The comparison found no regression:
 
 | Check | Entries | Result against the committed run |
 |---|---|---|
-| `typecheck-docs.json` | 1,961 | identical |
+| `typecheck-docs.json` | 1,961 | no status changed; five entries changed in their error text (below) |
 | `run-docs.json` | 223 | identical |
 | `run-examples.json` | 13 of 13 ran | identical except one generated MCP tool id in the `07-mcp` log |
 | `pnpm test` (our examples and behavioral tests) | all | passing |
+
+Five `typecheck-docs.json` entries changed in text but not in status. In `repo__agents__routing__03`, `repo__agents__sub-agents__17` and `cf__agent-class__sub-agents__12`, `Cannot find name 'chatId'` (TS2304) became TS2552 with the suggestion "Did you mean 'Chai'?". In `cf__getting-started__testing-your-agent__01` and `__02`, the `Cannot find module 'vitest/config'` and `'vitest'` errors disappeared, so the next error, `'../src'`, now comes first. The cause is the harness's type-check step (`scripts/typecheck-examples.mjs`): it resolves modules by walking up to the repository root, which has `vitest@5.1.0` and its Chai types. Doc type-check results therefore depend on the root's dev dependencies as well as the harness pins, and the five entries are not a doc or SDK change.
 
 The moved packages touch three claims and the runtime. I re-read each against the installed packages, and F9 needed a correction:
 
