@@ -46,7 +46,7 @@ export const SAVE_DELAY_MS = 600;
 
 /** The note under the choices while the settings are stored, and while storage refused them. */
 export const NOTE_SAVED = "Saved on this device";
-export const NOTE_UNSAVED = "Not saved: this resets when you leave the page";
+export const NOTE_UNSAVED = "Not saved: this browser blocked storage";
 
 /**
  * A trailing-edge scheduler: `schedule()` restarts a timer that runs `task` once after `delay`, and `flush()` runs it at
@@ -104,6 +104,31 @@ export function tabEnds(panel) {
     (element) => !element.disabled && (element.type !== "radio" || element.checked),
   );
   return [stops[0], stops[stops.length - 1]];
+}
+
+/** The key the start-up probe writes and removes at once; it never holds a setting. */
+export const PROBE_KEY = "manual-reading-probe";
+
+/**
+ * Whether a storage accepts a write: one setItem and one removeItem of a dedicated key. A storage can exist and still
+ * refuse every write (a full quota, some private modes), so reading it says nothing about whether a choice will stay.
+ * A removeItem that throws after the write worked leaves only that one key behind and does not make the storage
+ * unusable, so only the write decides.
+ * @param {Storage | null} storage
+ */
+export function canWrite(storage) {
+  if (!storage) return false;
+  try {
+    storage.setItem(PROBE_KEY, "1");
+  } catch {
+    return false;
+  }
+  try {
+    storage.removeItem(PROBE_KEY);
+  } catch {
+    // The write worked, which is what a choice needs.
+  }
+  return true;
 }
 
 /** Reads localStorage, which can be off or throw. */
@@ -295,8 +320,8 @@ export function start(win) {
     if (changedFont) fontChanged();
   });
 
-  // With no usable storage the note must not claim "Saved" before the first pick.
-  if (note && !storage) note.textContent = NOTE_UNSAVED;
+  // Storage that is missing or refuses a write must not be called "Saved" before the first pick.
+  if (note && !canWrite(storage)) note.textContent = NOTE_UNSAVED;
   sync();
   panel.hidden = false;
   button.hidden = false;

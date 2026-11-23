@@ -13,12 +13,14 @@ import {
   saveFilesInChunks,
 } from "../public/scripts/reading-offline.js";
 import {
+  canWrite,
   createTrailing,
   isPlainKey,
   NOTE_SAVED,
   NOTE_UNSAVED,
   nextSize,
   offlineStatus,
+  PROBE_KEY,
   SAVE_DELAY_MS,
   SHEET_QUERY,
   start,
@@ -673,6 +675,36 @@ test("with no usable storage the note says so from the first paint, before any c
   const ok = panelWindow();
   start(ok.win as unknown as globalThis.Window);
   assert.equal(ok.doc.querySelector(".reading-panel__note")?.textContent?.trim(), NOTE_SAVED);
+});
+
+test("the probe writes and removes its own key, and only a refused write counts as unusable", () => {
+  const working = memoryStorage({ "manual-reading-font": "sans" });
+  assert.ok(canWrite(working as unknown as Storage));
+  assert.deepEqual([...working.map.keys()], ["manual-reading-font"], "the probe leaves no key behind");
+  const full = memoryStorage();
+  full.throws = true;
+  assert.ok(!canWrite(full as unknown as Storage));
+  const stuck = memoryStorage();
+  stuck.removeItem = () => {
+    throw new Error("remove is off");
+  };
+  assert.ok(canWrite(stuck as unknown as Storage), "a write that worked is enough");
+  assert.equal(stuck.map.has(PROBE_KEY), true);
+  assert.ok(!canWrite(null));
+});
+
+test("storage that exists but refuses writes shows the unsaved note on open, and the pick still applies", () => {
+  const { win, doc, storage } = panelWindow();
+  storage.throws = true;
+  start(win as unknown as globalThis.Window);
+  const note = () => doc.querySelector(".reading-panel__note")?.textContent?.trim();
+  assert.equal(note(), NOTE_UNSAVED);
+  pick(doc, "reading-font", "sans");
+  assert.equal(doc.documentElement.getAttribute("data-reading-font"), "sans", "the choice applies to this view");
+  assert.equal(note(), NOTE_UNSAVED);
+  storage.throws = false;
+  pick(doc, "reading-size", "130");
+  assert.equal(note(), NOTE_SAVED);
 });
 
 test("a storage event from another storage area is ignored", () => {
