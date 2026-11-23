@@ -64,11 +64,23 @@ function frontmatterOf(text: string): { frontmatter: Record<string, string>; tex
   return { frontmatter, texts, rest: text.slice(match[0].length) };
 }
 
-/** Splits the body into prose lines and fenced blocks. */
-function splitFences(rest: string): { body: string; fences: Fence[] } {
-  const lines = rest.split("\n");
+/**
+ * An MDX line that only imports a component or opens or closes one, such as `<Tabs syncKey="pm">` or `</TabItem>`. It
+ * holds no words a reader sees, so the prose rules skip it. A component tag that carries text on its own line is not
+ * matched and stays in the body, so its words are still counted.
+ */
+const MDX_ONLY = /^\s*(?:import\s.+\sfrom\s.+|<\/?[A-Z][\w.]*(?:\s[^<>]*)?\/?>)\s*$/;
+
+/** Splits a page body into prose lines and fenced blocks; `mdx` also skips component lines (see `MDX_ONLY`). */
+export function splitFences(rest: string, mdx: boolean): { body: string; fences: Fence[] } {
+  const raw = rest.split("\n");
+  // An MDX component line becomes a blank line, so it still separates two paragraphs.
+  const isComponent = (index: number) => mdx && MDX_ONLY.test(raw[index] ?? "");
+  const lines = raw.map((line, index) => (isComponent(index) ? "" : line));
   const prose: string[] = [];
   const fences: Fence[] = [];
+  // The line that closed the previous fence, so tabs that follow each other can share one introduction.
+  let previousClose = -1;
   for (let i = 0; i < lines.length; i += 1) {
     // A fence may be indented, as in a list item, and use backticks or tildes; it closes on a line of the same
     // character that is at least as long.
@@ -82,7 +94,12 @@ function splitFences(rest: string): { body: string; fences: Fence[] } {
     const end = lines.findIndex((line, j) => j > i && new RegExp(`^\\s*\\${mark}{${length},}\\s*$`).test(line));
     const close = end === -1 ? lines.length : end;
     let before = "";
-    for (let k = i - 1; k >= 0 && before === ""; k -= 1) before = (lines[k] ?? "").trim();
+    let k = i - 1;
+    for (; k >= 0 && before === ""; k -= 1) before = (lines[k] ?? "").trim();
+    // Reaching the previous fence's closing line means the two sit in sibling tabs, with only component lines
+    // between them, so the second takes the first's introduction. Plain Markdown fences keep the strict rule.
+    const between = Array.from({ length: Math.max(0, i - previousClose - 1) }, (_, n) => previousClose + 1 + n);
+    if (k + 1 === previousClose && between.some(isComponent)) before = fences.at(-1)?.before ?? before;
     fences.push({
       line: i + 1,
       lang: open[2] ?? "",
@@ -90,6 +107,7 @@ function splitFences(rest: string): { body: string; fences: Fence[] } {
       code: lines.slice(i + 1, close).join("\n"),
       before,
     });
+    previousClose = close;
     i = close;
   }
   return { body: prose.join("\n"), fences };
@@ -99,6 +117,6 @@ function splitFences(rest: string): { body: string; fences: Fence[] } {
 export function readPages(): Page[] {
   return pagePaths().map((file) => {
     const { frontmatter, texts, rest } = frontmatterOf(readFileSync(file, "utf8"));
-    return { path: relative(DOCS_DIR, file), frontmatter, texts, ...splitFences(rest) };
+    return { path: relative(DOCS_DIR, file), frontmatter, texts, ...splitFences(rest, file.endsWith(".mdx")) };
   });
 }

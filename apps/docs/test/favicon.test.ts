@@ -67,3 +67,22 @@ test("every built page links /favicon.svg as its icon", () => {
     );
   }
 });
+
+test("every built page has the header title with the mark, the wordmark and the licence line, and the install tabs sync", () => {
+  const pages = readdirSync(out, { recursive: true, encoding: "utf8" }).filter((path) => path.endsWith(".html"));
+  for (const path of pages) {
+    const html = readFileSync(join(out, path), "utf8");
+    const link = /<a href="\/" class="site-title[^"]*">(.*?)<\/a>/.exec(html)?.[1] ?? "";
+    assert.match(link, /<svg[^>]*aria-hidden="true"/, `${path}: no mark in the header title`);
+    assert.match(link, /Build An Agent<\/span> <span class="kind[^"]*">docs<\/span>/, `${path}: no wordmark`);
+    assert.match(
+      html,
+      /<a href="https:\/\/creativecommons\.org\/licenses\/by\/4\.0\/"[^>]*>CC BY 4\.0<\/a>/,
+      `${path}: no licence`,
+    );
+  }
+  // The Install page is MDX with package-manager tabs, so Starlight's synced tabs are on the page.
+  const install = readFileSync(join(out, "start", "install", "index.html"), "utf8");
+  assert.match(install, /data-sync-key="package-manager"/);
+  for (const label of ["pnpm", "npm", "yarn"]) assert.match(install, new RegExp(`role="tab"[^>]*>[^<]*${label}`));
+});
