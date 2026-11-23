@@ -1,5 +1,31 @@
 # @buildanagent/protocol
 
+## 0.1.0-alpha.33
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.33
+  - @buildanagent/sdk@0.1.0-alpha.33
+
+## 0.1.0-alpha.32
+
+### Patch Changes
+
+- Updated dependencies [ec8a6e0]
+  - @buildanagent/sdk@0.1.0-alpha.32
+  - @buildanagent/gateway@0.1.0-alpha.32
+
+## 0.1.0-alpha.31
+
+### Minor Changes
+
+- 06f0cc5: Add remote MCP servers, background connect and tool pins. A server config takes `transport: { kind: "http", url, headers?, proxy?, allowAddresses?, unsafeAllowLoopback?, resolve?, ... }` for streamable HTTP, typed `McpRemoteSettings` and with the bounds the README lists, or `kind: "sse"` for a legacy HTTP+SSE server. Every request is HTTPS to a checked public address, follows no redirect and is bounded in bytes and time. `createMcpManager()` gains `start()`, `beginTurn()`, `statuses()`, `pending()`, `approve()` and `permissionHook()`, and the options `pins`, `directWaitMs`, `relistIntervalMs` and `timers`. `HarnessOptions` gains `turnBoundaries`, which a turn runs before it builds its tools. A tool whose definition has no matching pin starts disabled until a person approves it, and a changed tool list applies at the next turn. `memoryMcpPinStore()` keeps the pins in memory, and `fileMcpPinStore()`, `readMcpPins()` and `writeMcpPins()` from `@buildanagent/harness/extensions/node` keep them in `extensions.lock.json`. The new types are `McpPinStore`, `McpPendingTool`, `McpEgressFetch` and `McpTimers`. `McpCallFailure` gains `disabled`, and the protocol's `McpServerRecord` gains the `http` and `sse` transports and `urlHash`. `TurnBoundary` gives a component `commitNotices()`, called once a turn has written its notices. The egress proxy's `fetch()` now rejects an upstream status outside 200 to 599 with `egress_denied`, where it used to throw inside a socket handler. The proxy's log records a refused status with the reason `bad_status`.
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.31
+  - @buildanagent/sdk@0.1.0-alpha.31
+
 ## 0.1.0-alpha.30
 
 ### Patch Changes

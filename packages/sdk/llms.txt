@@ -164,12 +164,17 @@ The sections of README.md and every public export, generated from this package's
 - `GEN_AI_ATTRIBUTES`: The `gen_ai.*` and `error.*` attribute names the observer writes, keyed by what each holds.
 - `GEN_AI_CONTENT_ATTRIBUTES`: The names of the attributes that hold content: what the model and the tools read and wrote.
 - `GEN_AI_OPERATIONS`: The `gen_ai.operation.name` values the observer writes.
+- `inputMessagesJson()`: `gen_ai.input.messages` for a call's messages, as a JSON string.
+- `jsonValue()`: A tool's arguments or result as a JSON string; a value JSON cannot hold becomes its string form.
 - `otelObserver()`: Creates an observer that projects a run's events onto OpenTelemetry GenAI spans.
 - `type OtelObserver`: The observer `otelObserver()` returns: an `Observer` that can also flush its exporter and end a run that threw.
 - `interface OtelObserverOptions`: Options for `otelObserver()`.
+- `outputMessagesJson()`: `gen_ai.output.messages` for the model's answer, as a JSON string.
+- `resultParts()`: The parts of a result's content, as the conventions' `gen_ai.tool.call.result` or a tool message holds them.
 - `SEMCONV_GENAI_COMMIT`: The commit of `open-telemetry/semantic-conventions-genai` whose attribute and span names this module follows.
 - `interface SpanLike`: The span methods the observer calls.
 - `interface SpanOptionsLike`: What `startSpan` takes: the fields of `@opentelemetry/api`'s `SpanOptions` that the observer sets.
+- `systemInstructionsJson()`: `gen_ai.system_instructions`: the system prompt as one text part.
 - `interface TracerLike`: The tracer method the observer calls.
 
 ## Exports from `@buildanagent/sdk/testing`

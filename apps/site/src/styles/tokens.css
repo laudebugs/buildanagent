@@ -1,0 +1,169 @@
+/* Generated from docs/design/book-tokens.json by apps/site/scripts/generate-tokens.ts. Do not edit: change the
+   JSON file and run `pnpm --filter @buildanagent/site tokens`. */
+
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif/instrument-serif-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif/instrument-serif-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/literata/literata-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Literata";
+  src: url("/fonts/literata/literata-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Manual Code";
+  src: url("/fonts/manual-code/manual-code-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Manual Code";
+  src: url("/fonts/manual-code/manual-code-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 300 800;
+  font-display: swap;
+}
+
+:root {
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Literata", Georgia, "Times New Roman", serif;
+  --font-code: "Manual Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --size-title: clamp(2.75rem, 1.8696rem + 3.913vw, 5rem);
+  --size-section: clamp(1.875rem, 1.6304rem + 1.087vw, 2.5rem);
+  --size-chapter-link: clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem);
+  --size-lede: clamp(1.1875rem, 1.1386rem + 0.2174vw, 1.3125rem);
+  --size-text: clamp(1.0625rem, 1.0136rem + 0.2174vw, 1.1875rem);
+  --size-note: clamp(0.875rem, 0.8505rem + 0.1087vw, 0.9375rem);
+  --size-listing: clamp(0.8125rem, 0.8003rem + 0.0543vw, 0.8438rem);
+  --size-label: 0.75rem;
+  --line-height-body: 1.7;
+  --page-width: 100rem;
+  --measure: 42rem;
+  --article-max: 59.5rem;
+  --side-note-width: 15rem;
+  --gutter: clamp(1rem, 0.413rem + 2.6087vw, 2.5rem);
+}
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --color-background: #faf3e8;
+  --color-text: #2a1e16;
+  --color-text-soft: #4a3b2f;
+  --color-text-muted: #5e4e40;
+  --color-rule: #e4d6c2;
+  --color-accent: #b04e29;
+  --color-link: #8a3519;
+  --color-highlight: #f5df9e;
+  --color-highlight-green: #cfe3b4;
+  --color-highlight-blue: #bfdcef;
+  --color-highlight-pink: #f4c9d2;
+  --color-highlight-edge: #96740f;
+  --color-highlight-hover: #d7a716;
+  --color-highlight-edge-green: #608331;
+  --color-highlight-hover-green: #8bbc4b;
+  --color-highlight-edge-blue: #2d7fb4;
+  --color-highlight-hover-blue: #77b5dd;
+  --color-highlight-edge-pink: #d83f5f;
+  --color-highlight-hover-pink: #ea96a7;
+  --color-danger: #a3401c;
+  --panel-background: #f3eadb;
+  --panel-text: #2a1e16;
+  --panel-comment: #6b5b4d;
+  --panel-amber: #8a4f00;
+  --panel-olive: #4b5e1f;
+  --panel-terracotta: #a3401c;
+  --panel-grid: #eadfcc;
+  --panel-border: #e4d6c2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-background: #2a1e16;
+    --color-text: #f4eadc;
+    --color-text-soft: #d9c9b6;
+    --color-text-muted: #b8a794;
+    --color-rule: #45352a;
+    --color-accent: #e8a27c;
+    --color-link: #f2c2a4;
+    --color-highlight: #4f3b1c;
+    --color-highlight-green: #34472b;
+    --color-highlight-blue: #2b4559;
+    --color-highlight-pink: #5c3441;
+    --color-highlight-edge: #aa7f3c;
+    --color-highlight-hover: #6e5227;
+    --color-highlight-edge-green: #6a9158;
+    --color-highlight-hover-green: #455e39;
+    --color-highlight-edge-blue: #5c8bb0;
+    --color-highlight-hover-blue: #385a75;
+    --color-highlight-edge-pink: #b17689;
+    --color-highlight-hover-pink: #7d4758;
+    --color-danger: #e2704b;
+    --panel-background: #17110d;
+    --panel-text: #f2e8dc;
+    --panel-comment: #a8968a;
+    --panel-amber: #f2a541;
+    --panel-terracotta: #e2704b;
+    --panel-olive: #c9d68e;
+    --panel-grid: #251b14;
+    --panel-border: #45352a;
+  }
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-background: #2a1e16;
+  --color-text: #f4eadc;
+  --color-text-soft: #d9c9b6;
+  --color-text-muted: #b8a794;
+  --color-rule: #45352a;
+  --color-accent: #e8a27c;
+  --color-link: #f2c2a4;
+  --color-highlight: #4f3b1c;
+  --color-highlight-green: #34472b;
+  --color-highlight-blue: #2b4559;
+  --color-highlight-pink: #5c3441;
+  --color-highlight-edge: #aa7f3c;
+  --color-highlight-hover: #6e5227;
+  --color-highlight-edge-green: #6a9158;
+  --color-highlight-hover-green: #455e39;
+  --color-highlight-edge-blue: #5c8bb0;
+  --color-highlight-hover-blue: #385a75;
+  --color-highlight-edge-pink: #b17689;
+  --color-highlight-hover-pink: #7d4758;
+  --color-danger: #e2704b;
+  --panel-background: #17110d;
+  --panel-text: #f2e8dc;
+  --panel-comment: #a8968a;
+  --panel-amber: #f2a541;
+  --panel-terracotta: #e2704b;
+  --panel-olive: #c9d68e;
+  --panel-grid: #251b14;
+  --panel-border: #45352a;
+}
