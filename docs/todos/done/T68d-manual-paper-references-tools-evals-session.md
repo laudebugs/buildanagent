@@ -53,11 +53,19 @@ The book plan's todo table and its fact-check log.
 
 ## Outcome
 
-- All eleven papers have a short name and a blurb checked against the whole paper (rows T68d-1 to T68d-33 of the book plan's fact-check log) and are off `papers-pending.json`.
+- All eleven papers have a short name and a blurb checked against the whole paper (rows T68d-1 to T68d-39 of the book plan's fact-check log) and are off `papers-pending.json`.
 - `τ-bench` and `tau-bench` name the paper of Yao et al. (arXiv:2406.12045). `τ²-bench` is a different paper that no chapter names, and `τ-Voice` is the separate `tau-voice` entry.
-- Chapter 8 calls the pattern "the reason-act loop", which is now the `react` glossary term (shown as "Reason-act loop"), and names the ReAct paper once as the pattern's source and where it cites the paper's results (`[[paper:yao-react]]`). Chapter 12 says "reason-act agent" in plain words and no longer lists the paper. The chapter 8 summary and the analogy `hiker-signs-or-route` use the plain name too.
+- Chapter 8 calls the pattern "the reason-act loop", which is now the `react` glossary term (shown as "Reason-act loop"), and names the ReAct paper once as the pattern's source and where it cites the paper's results (`[[paper:yao-react]]`). Chapter 12 says "reason-act agent" in plain words and does not name the paper. The chapter 8 summary and the analogy `hiker-signs-or-route` use the plain name too.
+- The Hou et al. blurb dates the paper from its arXiv page (submitted August 2026) and says it was posted in November, which rests on the id prefix and is logged as ⚠️ (rows T68d-36 and T68d-38); it names no venue (row T68d-39).
 - No first mention is marked `described`: each first mention shows its blurb.
 - One chapter claim was not stated by its paper: Chapter 11's "each cell is one run" (row T68d-19). The sentence now says "each cell covers 500 tasks" (row T68d-35).
+
+## Review outcome
+
+- **First round, Opus high:** 11 findings, all fixed in `9a3a0e78`.
+- **Second round, Sonnet medium:** 4 findings, all fixed in `cc19ab61`.
+- **Second round, Sonnet low:** 2 findings, both fixed: this file's stale row range and "no longer lists", and the fact-check section's overstated "full PDF" claim.
+- **Writing review:** the rubric rose from 21 to 23 of 25 after the fixes.
 
 ## Definition of done
 
