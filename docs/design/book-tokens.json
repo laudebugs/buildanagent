@@ -578,6 +578,116 @@
         }
       ]
     },
+    "reading": {
+      "$comment": "The reader's typeface pairings (T69, from the owner's choice on 2026-11-23 in docs/design/reading/README.md). Book is the default and uses display and body above; each other pairing names its display and body faces from faces below and the weight its headings take. apps/manual/scripts/generate-tokens.ts writes src/styles/reading.css from this block: every face's @font-face, and each pairing's font families only under :root[data-reading-font=\"<id>\"], so a browser downloads only the chosen pairing's files. sizes are the text-size steps in percent of the browser's default, 100 being the default",
+      "default": "book",
+      "pairings": [
+        {
+          "id": "book",
+          "label": "Book",
+          "display": "display",
+          "body": "body",
+          "displayWeight": 400
+        },
+        {
+          "id": "readable",
+          "label": "Readable",
+          "display": "atkinsonHyperlegible",
+          "body": "atkinsonHyperlegible",
+          "displayWeight": 700
+        },
+        {
+          "id": "sans",
+          "label": "Sans",
+          "display": "spaceGrotesk",
+          "body": "inter",
+          "displayWeight": 600
+        },
+        {
+          "id": "slab",
+          "label": "Slab",
+          "display": "bitter",
+          "body": "bitter",
+          "displayWeight": 700
+        }
+      ],
+      "faces": {
+        "atkinsonHyperlegible": {
+          "family": "Atkinson Hyperlegible",
+          "licence": "OFL-1.1",
+          "cssFamily": "Atkinson Hyperlegible",
+          "fallback": "\"Helvetica Neue\", Arial, sans-serif",
+          "files": [
+            {
+              "src": "/fonts/atkinson-hyperlegible/atkinson-hyperlegible-regular.woff2",
+              "style": "normal",
+              "weight": "400"
+            },
+            {
+              "src": "/fonts/atkinson-hyperlegible/atkinson-hyperlegible-italic.woff2",
+              "style": "italic",
+              "weight": "400"
+            },
+            {
+              "src": "/fonts/atkinson-hyperlegible/atkinson-hyperlegible-bold.woff2",
+              "style": "normal",
+              "weight": "700"
+            }
+          ]
+        },
+        "spaceGrotesk": {
+          "family": "Space Grotesk",
+          "licence": "OFL-1.1",
+          "cssFamily": "Space Grotesk",
+          "fallback": "\"Helvetica Neue\", Arial, sans-serif",
+          "files": [
+            {
+              "src": "/fonts/space-grotesk/space-grotesk-roman.woff2",
+              "style": "normal",
+              "weight": "300 700"
+            }
+          ]
+        },
+        "inter": {
+          "family": "Inter",
+          "licence": "OFL-1.1",
+          "cssFamily": "Inter",
+          "fallback": "\"Helvetica Neue\", Arial, sans-serif",
+          "files": [
+            {
+              "src": "/fonts/inter/inter-roman.woff2",
+              "style": "normal",
+              "weight": "100 900"
+            },
+            {
+              "src": "/fonts/inter/inter-italic.woff2",
+              "style": "italic",
+              "weight": "100 900"
+            }
+          ]
+        },
+        "bitter": {
+          "family": "Bitter",
+          "licence": "OFL-1.1",
+          "cssFamily": "Bitter",
+          "fallback": "Georgia, \"Times New Roman\", serif",
+          "files": [
+            {
+              "src": "/fonts/bitter/bitter-roman.woff2",
+              "style": "normal",
+              "weight": "100 900"
+            },
+            {
+              "src": "/fonts/bitter/bitter-italic.woff2",
+              "style": "italic",
+              "weight": "100 900"
+            }
+          ]
+        }
+      },
+      "sizes": [90, 100, 115, 130, 150],
+      "defaultSize": 100
+    },
     "selfHosted": true
   },
   "size": {

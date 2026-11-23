@@ -14,6 +14,7 @@ import {
   buildId,
   EXCLUDED,
   FORMAT_VERSION,
+  OPTIONAL_FONTS,
   SHELL_PAGES,
   urlFor,
   writeOffline,
@@ -141,6 +142,7 @@ test("the shell is the three shell pages and the stylesheet, scripts, fonts, man
     "/icons/apple-touch-icon.png",
     "/favicon.svg",
     "/scripts/theme.js",
+    "/scripts/reading-settings.js",
     "/scripts/reading.js",
     "/scripts/offline.js",
     "/pagefind/pagefind-component-ui.js",
@@ -153,6 +155,37 @@ test("the shell is the three shell pages and the stylesheet, scripts, fonts, man
     "the stylesheet",
   );
   assert.ok(!manifest.shell.includes("/gallery/"), "a page outside the shell");
+});
+
+test("the shell holds Book's and Manual Code's fonts and none of the optional pairings', which the list still holds", () => {
+  const listed = new Set(manifest.files.map((file) => file.url));
+  assert.deepEqual(
+    [...OPTIONAL_FONTS.keys()].map((url) => url.split("/")[2]).sort(),
+    [
+      "atkinson-hyperlegible",
+      "atkinson-hyperlegible",
+      "atkinson-hyperlegible",
+      "bitter",
+      "bitter",
+      "inter",
+      "inter",
+      "space-grotesk",
+    ],
+    "the optional fonts are the readable, sans and slab pairings' files",
+  );
+  for (const url of OPTIONAL_FONTS.keys()) {
+    assert.ok(listed.has(url), `${url} stays on the list`);
+    assert.ok(!manifest.shell.includes(url), `${url} stays out of the shell`);
+  }
+  const shellFonts = manifest.shell.filter((url) => url.startsWith("/fonts/") && url.endsWith(".woff2"));
+  assert.deepEqual(shellFonts.map((url) => url.split("/")[2]).sort(), [
+    "instrument-serif",
+    "instrument-serif",
+    "literata",
+    "literata",
+    "manual-code",
+    "manual-code",
+  ]);
 });
 
 test("the build's id is stamped into sw.js with the whole list, and the worker never calls skipWaiting itself", () => {

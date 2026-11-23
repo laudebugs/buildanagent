@@ -2,6 +2,7 @@
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import "../styles/tokens.css";
+import "../styles/reading.css";
 import "../styles/base.css";
 import "../styles/layout.css";
 import "../styles/components.css";
@@ -42,14 +43,15 @@ const hosts = offlineHosts(Astro.site, process.env.MANUAL_OFFLINE_TEST_HOST).joi
     <meta name="manual-build" content="__MANUAL_BUILD__" />
     <!-- Blocking on purpose: it applies a stored theme before the first paint. -->
     <script is:inline src="/scripts/theme.js"></script>
+    <!-- Blocking too: it puts a stored typeface pairing and text size on <html> before the first paint, and preloads
+         that pairing's upright fonts, so a reader's choice never flashes the default and no other pairing loads. -->
+    <script is:inline src="/scripts/reading-settings.js"></script>
     <!-- A module, so it runs once the page is parsed: it records the reader's place and shows the resume link. -->
     <script is:inline type="module" src="/scripts/reading.js"></script>
     <!-- A module too: it registers the offline worker on the book's own host and shows the update notice. -->
     <script is:inline type="module" src="/scripts/offline.js"></script>
     <!-- The footer's "Save the manual for offline reading" control; it talks to the worker offline.js registers. -->
     <script is:inline type="module" src="/scripts/save-offline.js"></script>
-    <link rel="preload" href="/fonts/literata/literata-roman.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/instrument-serif/instrument-serif-regular.woff2" as="font" type="font/woff2" crossorigin />
     <slot name="head" />
   </head>
   <body>

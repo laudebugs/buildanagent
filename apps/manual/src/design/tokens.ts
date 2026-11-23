@@ -10,6 +10,9 @@ export const TOKENS_URL = new URL("../../../../docs/design/book-tokens.json", im
 /** Where the generated CSS lives, relative to this module. */
 export const TOKENS_CSS_URL = new URL("../styles/tokens.css", import.meta.url);
 
+/** Where the generated reading-settings CSS lives: the pairings' faces and the text-size steps. */
+export const READING_CSS_URL = new URL("../styles/reading.css", import.meta.url);
+
 /** The four colour sets: the page and the code or figure panel, each in a light and a dark mode. */
 export const COLOR_SETS = ["light", "dark", "panelLight", "panelDark"] as const;
 export type ColorSet = (typeof COLOR_SETS)[number];
@@ -45,6 +48,28 @@ export interface FontToken {
   readonly files: readonly FontFile[];
 }
 
+/**
+ * One typeface pairing a reader can choose. `display` and `body` name a face: `"display"` or `"body"` for the book's
+ * own fonts, or a key of {@link ReadingTokens.faces}. `displayWeight` is the weight its headings take.
+ */
+export interface Pairing {
+  readonly id: string;
+  readonly label: string;
+  readonly display: string;
+  readonly body: string;
+  readonly displayWeight: number;
+}
+
+/** The reader's typeface pairings and text sizes, and the faces only those pairings use. */
+export interface ReadingTokens {
+  readonly default: string;
+  readonly pairings: readonly Pairing[];
+  readonly faces: Readonly<Record<string, FontToken>>;
+  /** The text-size steps, in percent of the browser's default font size. */
+  readonly sizes: readonly number[];
+  readonly defaultSize: number;
+}
+
 /** A size in px at the phone and desktop widths. */
 export interface FluidSize {
   readonly phone: number;
@@ -56,7 +81,12 @@ export interface BookTokens {
     readonly nonText: { readonly contrast: readonly ColorPair[] };
     readonly decorativeOnly: { readonly contrast: readonly ColorPair[] };
   };
-  readonly font: { readonly display: FontToken; readonly body: FontToken; readonly code: FontToken };
+  readonly font: {
+    readonly display: FontToken;
+    readonly body: FontToken;
+    readonly code: FontToken;
+    readonly reading: ReadingTokens;
+  };
   readonly size: {
     readonly viewport: FluidSize;
     readonly display: Readonly<Record<"title" | "section" | "chapterLink", FluidSize>>;
@@ -168,9 +198,9 @@ function comment(lines: readonly string[]): string[] {
   return lines.map((line, index) => `${index === 0 ? "/* " : "   "}${line}${index === lines.length - 1 ? " */" : ""}`);
 }
 
-function fontFaces(tokens: BookTokens, fontBase: string): string[] {
+function fontFaces(fonts: readonly FontToken[], fontBase: string): string[] {
   const lines: string[] = [];
-  for (const font of [tokens.font.display, tokens.font.body, tokens.font.code]) {
+  for (const font of fonts) {
     for (const file of font.files) {
       lines.push(
         "@font-face {",
@@ -228,7 +258,7 @@ export function tokensCss(tokens: BookTokens, options: TokensCssOptions = {}): s
   return [
     ...comment(options.header ?? BOOK_HEADER),
     "",
-    ...fontFaces(tokens, options.fontBase ?? FONT_BASE),
+    ...fontFaces([tokens.font.display, tokens.font.body, tokens.font.code], options.fontBase ?? FONT_BASE),
     ...sharedDeclarations(tokens),
     "",
     ":root,",
@@ -247,4 +277,115 @@ export function tokensCss(tokens: BookTokens, options: TokensCssOptions = {}): s
     "}",
     "",
   ].join("\n");
+}
+
+/** The face a pairing names: the book's own display or body font, or one of the reading faces. */
+export function pairingFace(tokens: BookTokens, name: string): FontToken {
+  if (name === "display" || name === "body") return tokens.font[name];
+  const face = Object.hasOwn(tokens.font.reading.faces, name) ? tokens.font.reading.faces[name] : undefined;
+  if (face === undefined) throw new Error(`a pairing names the face ${name}, which book-tokens.json lacks`);
+  return face;
+}
+
+/**
+ * The file a pairing's text starts with: the upright file of its body face and the upright file of its display face
+ * nearest its heading weight. The page preloads these for the chosen pairing (public/scripts/reading-settings.js).
+ */
+export function pairingPreloads(tokens: BookTokens, pairing: Pairing): string[] {
+  const upright = (face: FontToken, weight: number): string => {
+    const covers = (file: FontFile): boolean => {
+      const [low = 0, high = low] = file.weight.split(" ").map(Number);
+      return weight >= low && weight <= high;
+    };
+    const romans = face.files.filter((file) => file.style === "normal");
+    const file = romans.find(covers) ?? romans[0];
+    if (file === undefined) throw new Error(`${face.cssFamily} has no upright file`);
+    return file.src;
+  };
+  const files = [
+    upright(pairingFace(tokens, pairing.body), 400),
+    upright(pairingFace(tokens, pairing.display), pairing.displayWeight),
+  ];
+  return [...new Set(files)];
+}
+
+const READING_HEADER = [
+  "Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the",
+  "JSON file's font.reading block and run `pnpm --filter @buildanagent/manual tokens`.",
+];
+
+/**
+ * Problems with the reading block that would let the page reach a face or a size nobody declared: a pairing naming a
+ * missing face, a repeated id, an id that is not lower-case letters, a default that is no pairing or that does not use
+ * the book's own display and body faces, or a size list without its default.
+ */
+export function readingProblems(tokens: BookTokens): string[] {
+  const reading = tokens.font.reading;
+  const problems: string[] = [];
+  const ids = reading.pairings.map((pairing) => pairing.id);
+  if (new Set(ids).size !== ids.length) problems.push("two pairings share an id");
+  if (!ids.includes(reading.default)) problems.push(`the default pairing ${reading.default} is not a pairing`);
+  const book = reading.pairings.find((pairing) => pairing.id === reading.default);
+  if (book !== undefined && (book.display !== "display" || book.body !== "body")) {
+    // readingCss writes no family rule for the default pairing, so the page shows tokens.css's own faces.
+    problems.push(`the default pairing ${book.id} must use the book's own display and body faces`);
+  }
+  for (const pairing of reading.pairings) {
+    if (!/^[a-z]+$/.test(pairing.id)) problems.push(`pairing id ${pairing.id} is not lower-case letters`);
+    for (const name of [pairing.display, pairing.body]) {
+      if (name !== "display" && name !== "body" && !Object.hasOwn(reading.faces, name)) {
+        problems.push(`pairing ${pairing.id} names the face ${name}, which font.reading.faces lacks`);
+      }
+    }
+  }
+  if (!reading.sizes.includes(reading.defaultSize)) problems.push(`the default size ${reading.defaultSize} is no step`);
+  if (reading.sizes.some((size) => !Number.isInteger(size) || size <= 0))
+    problems.push("a size is not a whole percent");
+  return problems;
+}
+
+/**
+ * The reading settings' CSS. Every reading face gets its @font-face rule, which a browser downloads only once an
+ * element uses that family, and a pairing's families are named only under `:root[data-reading-font="<id>"]`. With no
+ * attribute, or the default pairing's, the page keeps tokens.css's families. The default pairing sets the heading
+ * weight on `:root`. A size step other than the default sets the root font size, which every rem follows, and
+ * `--reading-scale`, which the header divides by to keep its own size.
+ */
+export function readingCss(tokens: BookTokens, fontBase: string = FONT_BASE): string {
+  const problems = readingProblems(tokens);
+  if (problems.length > 0) throw new Error(`book-tokens.json cannot generate reading.css:\n${problems.join("\n")}`);
+  const reading = tokens.font.reading;
+  const fallback = reading.pairings.find((pairing) => pairing.id === reading.default) as Pairing;
+  const lines = [
+    ...comment(READING_HEADER),
+    "",
+    ...fontFaces(Object.values(reading.faces), fontBase),
+    ":root {",
+    `  --weight-display: ${fallback.displayWeight};`,
+    "  --reading-scale: 1;",
+    "}",
+    "",
+  ];
+  for (const pairing of reading.pairings) {
+    if (pairing.id === reading.default) continue;
+    lines.push(
+      `:root[data-reading-font="${pairing.id}"] {`,
+      `  --font-display: ${family(pairingFace(tokens, pairing.display))};`,
+      `  --font-body: ${family(pairingFace(tokens, pairing.body))};`,
+      `  --weight-display: ${pairing.displayWeight};`,
+      "}",
+      "",
+    );
+  }
+  for (const size of reading.sizes) {
+    if (size === reading.defaultSize) continue;
+    lines.push(
+      `:root[data-reading-size="${size}"] {`,
+      `  --reading-scale: ${number(size / 100)};`,
+      `  font-size: ${size}%;`,
+      "}",
+      "",
+    );
+  }
+  return lines.join("\n");
 }
