@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (owner, 2026-11-23, on [issue #175](https://github.com/laudebugs/buildanagent/issues/175))
 - **Date:** 2026-11-23
-- **Plan:** [Book plan §1](../plans/build-book.md#1-goal-and-non-goals) (the reversed non-goal); todos [T67a](../todos/done/T67a-manual-offline-pwa.md) and [T67b](../todos/ongoing/T67b-manual-save-for-offline.md)
+- **Plan:** [Book plan §1](../plans/build-book.md#1-goal-and-non-goals) (the reversed non-goal); todos [T67a](../todos/done/T67a-manual-offline-pwa.md) and [T67b](../todos/done/T67b-manual-save-for-offline.md)
+- **Addendum:** 2026-11-23, T67b: the message protocol in its final form and the partial-save rule ([Saving the whole book](#saving-the-whole-book-addendum-2026-11-23))
 
 ## Context
 
@@ -26,17 +27,31 @@ The manual gets a web app manifest, icons drawn from the favicon, an offline pag
 - **Production host only.** The layout writes the hosts that may register the worker into `<meta name="manual-offline-hosts">`, from the Astro config's `site`. Any other host, a preview at `pr-<n>.manual.buildanagent.fyi` included, registers nothing and removes a worker and `manual-` caches that an earlier visit left. A build may add one host through `MANUAL_OFFLINE_TEST_HOST`, which accepts only `127.0.0.1` or `localhost`, so the browser check can run on loopback and no setting can add a host that serves readers.
 - **Headers.** `_headers` adds `manifest-src 'self'` to the policy, because `default-src 'none'` would block the manifest. It sends `/sw.js` and `/offline-manifest.json` with `Cache-Control: no-cache`, and the manifest as `application/manifest+json`. The worker sits at the root, so it needs no `Service-Worker-Allowed` header. The policy's `worker-src 'self'` already covers it, and every script stays a same-origin file.
 
-The page and the worker speak a small message protocol. A reply goes to the message's `MessagePort` when the page sends one, and otherwise to the sending page:
+The page and the worker speak a small message protocol. A reply goes to the message's `MessagePort` when the page sends one, and otherwise to the sending page. The worker answers only a message whose origin is its own and whose sender is a tab or window of that origin (a `window` client whose `frameType` is `top-level` or `auxiliary`), so a frame or a worker is ignored. The book's policy already sends `frame-ancestors 'none'`, so the frame check is a second guard. The table gives the protocol in its final form, after T67b:
 
 | Message | Sent by | Reply |
 | --- | --- | --- |
-| `{ type: "STATUS" }` | any page | `{ type: "STATUS", build, total: { files, bytes }, saved: { files, bytes }, shell: { files, saved }, rewritten: [path], failed: [{ path, reason }] }` |
+| `{ type: "STATUS" }` | any page | `{ type: "STATUS", build, total: { files, bytes }, stored: { files, bytes }, shell: { files, saved }, saved: { at, build, files, bytes } \| null, partial: { at } \| null, previous: { at, build } \| null, saving: { done, total, bytes, failed } \| null, rewritten: [path], failed: [{ path, reason }] }` |
 | `{ type: "SKIP_WAITING" }` | the update notice's Reload | none; the waiting worker activates and the page reloads on `controllerchange` |
 | `{ type: "SAVE_PAGE", paths: [path] }` | a page the worker did not control when it loaded | `{ type: "SAVED", saved: [path], failed: [{ path, reason }] }`; at most 100 paths, listed same-origin ones only |
-| `{ type: "SAVE_ALL" }` | T67b's control | `{ type: "UNSUPPORTED", request: "SAVE_ALL" }` until T67b saves every listed file and reports progress |
-| `{ type: "REMOVE_ALL" }` | T67b's control | `{ type: "UNSUPPORTED", request: "REMOVE_ALL" }` until T67b deletes the saved copy |
+| `{ type: "SAVE_ALL" }` | the save control | `{ type: "SAVE_PROGRESS", done, total, bytes, failed }` after each file, then `{ type: "SAVE_DONE", result, reason?, saved, failed: [{ path, reason }] }`, where `result` is `saved`, `partial`, `cancelled` or `refused` (`not-active` or `busy`) |
+| `{ type: "CANCEL_SAVE" }` | the save control | none; the running `SAVE_ALL` answers with `cancelled` |
+| `{ type: "REMOVE_ALL" }` | the save control | `{ type: "REMOVED", removed }` |
 
-A failure's reason is `different-bytes`, `no-build-mark`, `not-storable` or `network`. The worker ignores any other message and any message from another origin.
+A failure's reason is `different-bytes`, `no-build-mark`, `not-storable`, `network`, `quota` or `storage`, and `SAVE_DONE` may also give `other-build` for a file a newer deploy replaced. The worker ignores any other message.
+
+## Saving the whole book (addendum, 2026-11-23)
+
+T67b added the reader's control, in the footer of every page, and the worker's side of `SAVE_ALL`, `CANCEL_SAVE` and `REMOVE_ALL`. Four rules keep a saved copy honest.
+
+- **A saved copy is complete or it is partial.** `SAVE_ALL` writes a saved record, `{ at, build, complete }`, into the build's own cache. It writes `complete: false` when it starts and `complete: true` only once the cache holds every listed file. STATUS reports `saved` only while the record is complete and every listed file is still there, and `partial` otherwise. A full quota stops the save at once, because every later write would fail too. A dropped connection, a file from a newer deploy or `CANCEL_SAVE` also leaves the copy partial, and the control offers Try again. The next `SAVE_ALL` skips the files already stored, so a save survives the browser stopping the worker. The date lives beside the files, so a browser that evicts the cache evicts the record with it, and the control shows "Not saved".
+- **The page names no URL.** `SAVE_ALL` takes no paths. It downloads the build's own list, six files at a time, and checks each file by the store rules above. A reader therefore cannot make the worker fetch anything the build did not write. A second `SAVE_ALL` while one runs joins it, so two tabs never download the book twice.
+- **Only the active worker saves or removes.** A worker is active once it has activated, which it records by clearing its pending mark. A waiting worker answers `SAVE_ALL` with `refused` and `not-active`, so an update never downloads the next build before the reader presses Reload. After the Reload, STATUS reports the older build's complete copy under `previous`, which install carried over. The control then offers "Update the saved copy", and the save downloads only the changed files. An old worker that finds its cache deleted by a newer activation stops and writes no record, so it never brings the cache back.
+- **Removing keeps the book usable.** `REMOVE_ALL` stops a running save, keeps the shell, so the book still opens, and deletes every other listed file, the saved record and the problems of the deleted files. It also deletes the older caches that activate kept. Pages the reader opens afterwards are saved as they arrive, as before.
+
+The control does not call `navigator.storage.persist()`. Firefox answers that call with a permission prompt, and Safari grants it mainly to Home Screen web apps, so the call would add a prompt for little gain ([MDN, storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria); [WebKit, updates to storage policy](https://webkit.org/blog/14403/updates-to-storage-policy/)). Instead, the control tells the reader that a browser may still clear the copy, and that Safari may clear it after seven days of Safari use without a visit to the manual.
+
+While building T67b, a gap in T67a came to light. A page an older worker stamped with its own mark is a response the worker built, of type `default`, which the store rules refused. A saved page therefore carried over through one update but not two. A copy read back from the worker's own cache may now be of type `default`. Its bytes are still checked against the list.
 
 ## What can rewrite the book on its way
 
@@ -46,6 +61,6 @@ As of November 2026, Cloudflare documents several zone features that change HTML
 
 - **Cost.** The build gains a step, and `esbuild` 0.28.2, already in the lockfile through `packages/agent-safety`, becomes a dependency of the manual. Tests cover the worker's rules, the registration script, the icons and manifest, a fixture build through the offline step and the post-deploy check. `scripts/offline-browser-check.mjs` drives the worker in Chromium offline. It is not part of `pnpm test`, because it needs a browser.
 - **Stale caches.** A reader who never presses Reload keeps reading the old build until every tab of the book closes, which is how a waiting worker behaves. A saved page that a deploy changed is gone from the new cache until the reader opens it again or saves the book in T67b.
-- **Storage.** Browsers may evict a site's storage under pressure, and Safari may evict it after a period without use, so an offline copy is a convenience, not an archive. T67b tells the reader so.
+- **Storage.** Browsers may evict a site's storage under pressure, and Safari may evict it after a period without use, so an offline copy is a convenience, not an archive. The save control tells the reader so, and shows "Not saved" once a copy is gone.
 - **Changing the icons.** An edit to `public/favicon.svg` fails the icon test until `pnpm --filter @buildanagent/manual icons` draws the icons again.
 - **Rollback.** To withdraw the feature, ship a `/sw.js` that deletes every `manual-` cache and unregisters itself on activate, and remove the registration from the layout. Browsers check `/sw.js` for updates on every navigation to the book, so returning readers pick it up on their next visit. Deleting `/sw.js` alone is not enough, because a browser keeps an installed worker when its update check fails.

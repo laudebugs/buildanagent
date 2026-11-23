@@ -22,7 +22,7 @@ export const STATUS_TIMEOUT_MS = 5000;
 export const MANIFEST_URL = "/offline-manifest.json";
 
 const SAFARI_NOTE =
-  "Your browser may still clear it when the device needs space, and Safari may clear it if you don't open the manual for a week.";
+  "Your browser may still clear it when the device needs space, and Safari may clear it if you use Safari for a week without opening the manual.";
 
 /** The reader-facing text for each reason a file was not saved, most telling first. */
 export const REASONS = {
