@@ -21,6 +21,11 @@ export function readStream(chunks: Iterable<Uint8Array>): StreamReading {
         reading.refused.push(result.error.code);
         continue;
       }
+      // decode() reads a string as JSON text, so a line that parsed to a string would be parsed a second time.
+      if (typeof result.value === "string") {
+        reading.refused.push("invalid_request");
+        continue;
+      }
       try {
         reading.messages.push(decode(result.value));
       } catch (error) {

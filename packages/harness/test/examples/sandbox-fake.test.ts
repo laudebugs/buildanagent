@@ -1,10 +1,17 @@
 // Runs the sandbox example on the fake: the command's output comes back, the write out of the workspace is denied, and
 // the sandbox reports the policy it was asked for. The example must touch nothing on the host, so the test also checks
-// that no file appeared and that nothing loaded Node's process or file modules.
+// that no file appeared, that `process.getBuiltinModule()` was never called and that nothing imports
+// `node:child_process`, whose mock below throws when anything in this file's module graph loads it. The example's
+// paths are also checked on the host with `existsSync`; this test file itself reads `node:fs`, so that module isn't mocked.
 import assert from "node:assert/strict";
 import { existsSync, readdirSync } from "node:fs";
 import { afterEach, test, vi } from "vitest";
 import { runInFakeSandbox } from "../../examples/sandbox-fake.js";
+
+// A static import of the process module, anywhere the example reaches, fails the whole file.
+vi.mock("node:child_process", () => {
+  throw new Error("the sandbox example must not load node:child_process");
+});
 
 afterEach(() => vi.restoreAllMocks());
 

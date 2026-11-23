@@ -22,6 +22,13 @@ test("a stream cut mid-line and mid-character reads whole, and each bad line is 
   assert.deepEqual(reading.refused, ["invalid_json", "invalid_request", "unterminated_line"]);
 });
 
+test("a line that is a JSON string holding an envelope is refused, not read a second time", () => {
+  const envelope = JSON.stringify({ jsonrpc: "2.0", method: "event", params: {} });
+  const reading = readStream([bytes(`${JSON.stringify(envelope)}\n`)]);
+  assert.deepEqual(reading.messages, []);
+  assert.deepEqual(reading.refused, ["invalid_request"]);
+});
+
 const toFile = (entries: readonly unknown[]) => entries.map((entry) => JSON.stringify(entry)).join("\n");
 
 test("a session file's entries are counted by type, and a line that is not an entry is reported by number", () => {

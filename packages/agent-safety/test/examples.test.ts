@@ -8,7 +8,7 @@ import { customProvider } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { test } from "vitest";
 import { cappedAnswer } from "../examples/capped-answer.js";
-import { answerOnUserKey } from "../examples/own-key-capped.js";
+import { answererForKey } from "../examples/own-key-capped.js";
 import { type Payments, type RefundInput, refundOnce } from "../examples/refund-once.js";
 import { refundPlan } from "../examples/refund-plan.js";
 
@@ -88,7 +88,7 @@ test("a call whose projection fits the cap runs, and one that could pass it is n
   assert.equal(dear.requests.length, 0);
 });
 
-function anthropicAnswer(text: string): Response {
+function anthropicAnswer(text: string, outputTokens = 10): Response {
   return Response.json({
     id: "msg_1",
     type: "message",
@@ -97,35 +97,49 @@ function anthropicAnswer(text: string): Response {
     content: [{ type: "text", text }],
     stop_reason: "end_turn",
     stop_sequence: null,
-    usage: { input_tokens: 100, output_tokens: 10 },
+    usage: { input_tokens: 100, output_tokens: outputTokens },
   });
 }
 
-/** A transport that records the address and key of every request and answers like the API, so nothing leaves the process. */
-function recordingTransport() {
+/**
+ * A transport that records the address and key of every request and answers like the API, reporting `outputTokens` of
+ * usage, so nothing leaves the process.
+ */
+function recordingTransport(outputTokens?: number) {
   const sent: { url: string; key: string | null }[] = [];
   const send = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     const request = new Request(input, init);
     sent.push({ url: request.url, key: request.headers.get("x-api-key") });
-    return anthropicAnswer("Your refund is on its way.");
+    return anthropicAnswer("Your refund is on its way.", outputTokens);
   }) as typeof fetch;
   return { send, sent };
 }
 
 test("a cheap call goes out with only the user's key to the one address, and a call that could pass the cap is never sent", async () => {
   const transport = recordingTransport();
-  assert.equal(
-    await answerOnUserKey("sk-user-1", "claude-haiku-5-5", "Where is my refund?", transport.send),
-    "Your refund is on its way.",
-  );
+  const answer = answererForKey("sk-user-1", transport.send);
+  assert.equal(await answer("claude-haiku-5-5", "Where is my refund?"), "Your refund is on its way.");
   assert.deepEqual(transport.sent, [{ url: "https://api.anthropic.com/v1/messages", key: "sk-user-1" }]);
-  const refused = await answerOnUserKey("sk-user-1", "claude-sonnet-5-5", "Where is my refund?", transport.send);
-  assert.match(refused, /^Stopped at the cap of 0\.5 USD: 0 spent/);
+  const refused = await answer("claude-sonnet-5-5", "Where is my refund?");
+  assert.match(refused, /^Stopped at the cap of 0\.5 USD: 0\.0000\d* spent/);
   assert.equal(transport.sent.length, 1, "the refused call sent nothing");
+});
+
+test("what one call spent counts against the next call on the same key, and a new key starts at zero", async () => {
+  // 900,000 output tokens cost 0.45 USD at Haiku's catalog price, so the first call fits and the second could pass 0.5.
+  const transport = recordingTransport(900_000);
+  const answer = answererForKey("sk-user-1", transport.send);
+  assert.equal(await answer("claude-haiku-5-5", "Where is my refund?"), "Your refund is on its way.");
+  const refused = await answer("claude-haiku-5-5", "And the second?");
+  assert.match(refused, /^Stopped at the cap of 0\.5 USD: 0\.4500\d* spent/);
+  assert.equal(transport.sent.length, 1, "the second call was refused before it was sent");
+  const other = answererForKey("sk-user-2", transport.send);
+  assert.equal(await other("claude-haiku-5-5", "Hi"), "Your refund is on its way.");
+  assert.equal(transport.sent.length, 2);
 });
 
 test("a missing key is refused before any request", async () => {
   const transport = recordingTransport();
-  await assert.rejects(answerOnUserKey("", "claude-haiku-5-5", "Hi", transport.send), { code: "invalid_byok_config" });
+  assert.throws(() => answererForKey("", transport.send), { code: "invalid_byok_config" });
   assert.equal(transport.sent.length, 0);
 });

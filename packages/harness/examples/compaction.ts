@@ -26,7 +26,10 @@ export interface Log {
   readonly lock: SessionLock;
 }
 
-/** What the summary replaced. `replacedEntries` stay in the log, but the next request no longer reads them. */
+/**
+ * What the summary replaced. `replacedEntries` counts the log entries of every type (headers, turn starts, messages,
+ * usage records) that come before the first kept one; they stay in the log, but the next request no longer reads them.
+ */
 export interface CompactionReport {
   readonly summary: string;
   readonly tokensBefore: number;

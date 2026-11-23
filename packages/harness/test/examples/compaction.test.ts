@@ -29,9 +29,15 @@ test("a chat past its budget gets a summary, the next request reads it, and the 
   assert.ok(report !== undefined);
   assert.equal(report.summary, SUMMARY);
   assert.ok(report.tokensBefore > 2_000 && report.tokensAfter < report.tokensBefore);
-  assert.ok(report.replacedEntries > 0 && report.replacedEntries < report.logEntries);
+  // The entries before the kept tail (the header and the first turn) are 5 of the log's 23; the log keeps all of them.
+  assert.equal(report.replacedEntries, 5);
+  assert.equal(report.logEntries, 23);
   const request = adapter.calls.at(-1)?.context.messages ?? [];
-  assert.ok(textOf(request[0]).includes("src/billing/invoice.ts"), "the summary stands first");
+  // The summary text stands before the kept questions, and the first question is gone.
+  assert.ok(textOf(request[0]).includes("## Goal\nFix E_INVOICE_TOTAL"), "the summary stands first");
+  const summaryAt = request.findIndex((message) => textOf(message).includes(SUMMARY));
+  const keptAt = request.findIndex((message) => textOf(message).includes("Later detail."));
+  assert.ok(summaryAt === 0 && summaryAt < keptAt, "the summary stands before the kept questions");
   // The summary replaced the first question; the newest messages stay word for word, starting at an answer.
   assert.ok(!request.some((message) => textOf(message).includes("Early detail.")));
   assert.deepEqual(
