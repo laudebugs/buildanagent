@@ -46,7 +46,7 @@ Give the manual (manual.buildanagent.fyi) and the docs (docs.buildanagent.fyi) t
 ## Acceptance criteria
 
 - [x] Both built sites contain `/favicon.svg`, identical to the site's, and every built HTML page links it
-- [x] The test in each app fails when the file or the link is removed
+- [x] The manual's test fails when the file or the link is removed, and the docs test fails when the file is missing or differs from the site's (the docs link comes from Starlight's default, so it can't be removed on its own)
 - [x] The stage and guard scripts pass on both builds with no `.github/` change
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
@@ -73,7 +73,10 @@ The plan's todo table, and the manual's and the docs' READMEs if they list their
 
 ## Outcome
 
-- Both apps ship `favicon.svg`, byte for byte the site's, and the manual's layout links it; each app has a test that fails when the file is missing or differs from the site's, and the manual's also fails when a built page lacks the link.
-- Starlight already uses `/favicon.svg` as its default `favicon` and links it as `rel="shortcut icon"`, so the docs need only the file in `public/`; the explicit `favicon` setting is harmless but redundant, and the docs test cannot tell it from the default. The manual links it as `rel="icon"`, so the two sites use different `rel` spellings.
-- The stage and guard scripts of both sites have no file-type allowlist and accepted real builds containing the file (manual: 92 files, docs: 595 files), so no script or workflow changed.
-- At 16 pixels the outline and chevron stay legible and the underscore shrinks to a small dash in both colour schemes; the one risk is a tab strip that doesn't pass its colour scheme to the icon, which shows the light colours on a dark strip.
+- Both apps ship `favicon.svg`, byte for byte the site's, and the manual's layout links it. Each app has a test that fails when the file is missing or differs from the site's, and the manual's also fails when a built page lacks the link.
+- Starlight defaults `favicon` to `/favicon.svg` and links it as `rel="shortcut icon"`, so the docs need only the file in `public/`. The explicit `favicon` setting stays to state the intent, but it is redundant, so the docs test can't tell it from the default.
+- The manual links the file as `rel="icon"`, so the two sites use different `rel` spellings.
+- The stage and guard scripts of both sites have no file-type allowlist, and they accepted real builds containing the file (as of this build: manual 92 files, docs 595 files). No script or workflow changed.
+- Neither the manual's nor the docs' README lists its `public/` files, so neither README changed.
+- Rendered with Playwright at 16, 32 and 64 pixels in a light and a dark colour scheme, the outline and chevron stay legible at 16 pixels and the underscore shrinks to a small dash; at 32 pixels all three shapes are crisp.
+- One risk remains: a tab strip that doesn't pass its colour scheme to the icon shows the light colours on a dark strip.
