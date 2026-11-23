@@ -316,9 +316,8 @@ const READING_HEADER = [
 
 /**
  * Problems with the reading block that would let the page reach a face or a size nobody declared: a pairing naming a
- * missing face, a repeated id, an id that is not lower-case letters, a default that is no pairing or that does not use the book's own
- * display and body faces, or a size list
- * without its default.
+ * missing face, a repeated id, an id that is not lower-case letters, a default that is no pairing or that does not use
+ * the book's own display and body faces, or a size list without its default.
  */
 export function readingProblems(tokens: BookTokens): string[] {
   const reading = tokens.font.reading;
