@@ -274,6 +274,14 @@ test("each pairing's Aa sample is drawn in its heading face and weight, whatever
 
 test("the layout loads the panel's script as a same-origin module and its stylesheet with the rest", () => {
   assert.match(page, /<script type="module" src="\/scripts\/reading-panel\.js"><\/script>/);
+  // reading-panel.js imports these two; the shell holds only what a page links, so the layout links both.
+  assert.match(page, /<link rel="modulepreload" href="\/scripts\/reading-offline\.js">/);
+  assert.match(page, /<script type="module" src="\/scripts\/save-offline\.js"><\/script>/);
+  const panelSource = readFileSync(new URL("../public/scripts/reading-panel.js", import.meta.url), "utf8");
+  assert.deepEqual(
+    [...panelSource.matchAll(/^import .* from "\.\/([\w-]+\.js)";$/gm)].map((match) => match[1]).sort(),
+    ["reading-offline.js", "save-offline.js"],
+  );
   const css = readFileSync(new URL("../src/styles/reading-panel.css", import.meta.url), "utf8");
   assert.match(css, /font-size: calc\(1rem \/ var\(--reading-scale\)\);/, "the panel keeps its size at every step");
   assert.match(css, /\.reading-panel\[data-sheet\]::backdrop/);

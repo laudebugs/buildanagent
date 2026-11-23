@@ -54,8 +54,10 @@ const hosts = offlineHosts(Astro.site, process.env.MANUAL_OFFLINE_TEST_HOST).joi
     <script is:inline type="module" src="/scripts/offline.js"></script>
     <!-- The footer's "Save the manual for offline reading" control; it talks to the worker offline.js registers. -->
     <script is:inline type="module" src="/scripts/save-offline.js"></script>
-    <!-- The header's reading settings panel; it writes the choice through reading-settings.js's API. -->
+    <!-- The header's reading settings panel; it writes the choice through reading-settings.js's API. The module it
+         imports is linked too, so the offline worker's install-time shell holds it and the panel works offline. -->
     <script is:inline type="module" src="/scripts/reading-panel.js"></script>
+    <link rel="modulepreload" href="/scripts/reading-offline.js" />
     <slot name="head" />
   </head>
   <body>
