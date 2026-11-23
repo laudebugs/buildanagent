@@ -1,6 +1,6 @@
 # Cloudflare Agents docs: the SDK behaves as described, but its two doc sites drift from the 0.33.0 release
 
-A developer who copies an example from the Cloudflare Agents docs needs it to compile and run against the release npm installed. To test that promise, I checked two doc sources against `agents@0.33.0`, `@cloudflare/think@0.23.0` and `@cloudflare/ai-chat@0.12.2`, the latest npm releases as of November 2026, on `ai@7.0.173`. The first source is the `cloudflare/agents` repo's own docs, READMEs and 19 linked examples at the release tags. The second is `developers.cloudflare.com/agents/`, which renders `cloudflare/cloudflare-docs` from a branch, mirrored at commit `6897a9f` (2026-11-18). Together they hold 188 pages and 1,927 TypeScript blocks. Agents are Durable Objects, so every run happened inside Cloudflare's local runtime, `workerd@1.20261113.1`, through `miniflare@5.20261113.0-beta`. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/cloudflare-agents/`](../../../verify/cloudflare-agents/), with raw output in `verify/cloudflare-agents/results/`. The SDK held up well: 18 of 20 documented behaviors worked as written, no probed doc block failed in workerd, and every SDK member the docs call exists. The docs fared worse. Fifty-eight blocks disagree with the release, several pages use APIs that no release or branch contains, and five behaviors of the SDK and its types surprised us, two of them defaults.
+A developer who copies an example from the Cloudflare Agents docs needs it to compile and run against the release npm installed. To test that promise, I checked two doc sources against `agents@0.33.0`, `@cloudflare/think@0.23.0` and `@cloudflare/ai-chat@0.12.2`, the latest npm releases at the 2026-11-04 cutoff, on `ai@7.0.173`. The first source is the `cloudflare/agents` repo's own docs, READMEs and 19 linked examples at the release tags. The second is `developers.cloudflare.com/agents/`, which renders `cloudflare/cloudflare-docs` from a branch, mirrored at commit `6897a9f` (2026-11-18). Together they hold 188 pages and 1,927 TypeScript blocks. Agents are Durable Objects, so every run happened inside Cloudflare's local runtime, `workerd@1.20261113.1`, through `miniflare@5.20261113.0-beta`. Four automated tiers did the checking: type-checks, offline runs, an API-surface diff and behavioral tests. All of them live in [`verify/cloudflare-agents/`](../../../verify/cloudflare-agents/), with raw output in `verify/cloudflare-agents/results/`. The SDK held up well: 18 of 20 documented behaviors worked as written, no probed doc block failed in workerd, and every SDK member the docs call exists. The docs fared worse. Fifty-eight blocks disagree with the release, several pages use APIs that no release or branch contains, and five behaviors of the SDK and its types surprised us, two of them defaults.
 
 ## Reproduce the checks in three commands
 
@@ -11,7 +11,7 @@ pnpm run fetch-docs       # mirror both doc sources (committed; MIT, and CC-BY-4
 pnpm run verify           # extract -> type-check -> triage -> run docs examples in workerd -> API diff -> our tests
 ```
 
-The harness uses a miniflare beta on purpose. The newest stable miniflare before the cutoff, 4.20260730.0, predates the workerd that `agents@0.33.0` needs, and the newest stable wrangler, 4.157.0, itself depends on `miniflare@5.20261103.0-beta` ([harness README](../../../verify/cloudflare-agents/README.md)). The triage step needs network to compare names with the `cloudflare/agents` main branch, and it leaves statuses unchanged when offline.
+The harness uses a miniflare beta on purpose. The newest stable miniflare before the cutoff, 4.20260730.0, predates the workerd that `agents@0.33.0` needs, and `wrangler@4.157.0`, the newest stable wrangler then, depended on `miniflare@5.20261103.0-beta` ([harness README](../../../verify/cloudflare-agents/README.md)). The triage step needs network to compare names with the `cloudflare/agents` main branch, and it leaves statuses unchanged when offline.
 
 ## Tier 1: 331 of 1,927 blocks compile as written, and 58 disagree with the package
 
@@ -173,20 +173,21 @@ The weekly SDK sweep left `agents@0.33.0`, `@cloudflare/think@0.23.0` and `@clou
 
 I reran `pnpm run verify` and compared every result with the committed ones by id, ignoring timings. The comparison found no regression:
 
-| Check | Before | After |
+| Check | Entries | Result against the committed run |
 |---|---|---|
-| `typecheck-docs.json` (1,961 entries) | 188 pages, 1,927 blocks | identical |
-| `run-docs.json` (223 entries) | 204 blocks ran | identical |
-| `run-examples.json` (13 entries) | 13 ran | identical except one generated MCP tool id in the `07-mcp` log |
-| `pnpm test` (our examples and behavioral tests) | passing | passing |
+| `typecheck-docs.json` | 1,961 | identical |
+| `run-docs.json` | 223 | identical |
+| `run-examples.json` | 13 of 13 ran | identical except one generated MCP tool id in the `07-mcp` log |
+| `pnpm test` (our examples and behavioral tests) | all | passing |
 
-Three claims cite the moved packages. I re-read each against the installed packages, and one needed a correction:
+The moved packages touch three claims and the runtime. I re-read each against the installed packages, and F9 needed a correction:
 
 - **F16** (`needsApproval` is deprecated): `@ai-sdk/provider-utils@5.0.81`, the copy `ai@7.0.173` installs, still carries `@deprecated Tool approval is handled on a generateText / streamText level now.` at `dist/index.d.ts:2233` and `:2337`. The claim holds, and examples 06 and 09 still show approval running the tool once.
 - **F5** (RPC stubs type some results as `never`): a probe with `@cloudflare/workers-types@5.20261116.1` and TypeScript 7.0.2 still fails with TS2339, "Property 'x' does not exist on type 'never'", on a stub method that returns `{ x: unknown }`. The claim holds on the new types.
-- **F9** (guardrail middleware uses AI SDK v3 types), corrected in place: the first round named the replacement type `LanguageModelMiddleware` with a required `specificationVersion`. The required field belongs to `LanguageModelV4Middleware` (`@ai-sdk/provider@4.0.38`, `dist/index.d.ts:3690-3694`, `specificationVersion: 'v4'`), and `ai`'s `LanguageModelMiddleware` (`dist/index.d.ts:166-168`) makes the field optional, in 7.0.162 and 7.0.173 alike. The block's TS2741 comes from `LanguageModelV3Middleware` (`:4796-4800`), which still requires `'v3'`, so the finding stands. `agents@0.33.0` still peers on `@ai-sdk/provider` `^4.0.0`.
+- **F9** (guardrail middleware uses AI SDK v3 types), corrected in place: the first round named the replacement type `LanguageModelMiddleware` and said it requires `specificationVersion`. The required field belongs to `LanguageModelV4Middleware` (`@ai-sdk/provider@4.0.38`, `dist/index.d.ts:3690-3694`, `specificationVersion: 'v4'`). The `ai` package's `LanguageModelMiddleware` makes the field optional (`dist/index.d.ts:167-169` in 7.0.173, `:166-168` in 7.0.162). The block's TS2741 comes from `LanguageModelV3Middleware` (`:4796-4800`), which still requires `'v3'`, so the finding stands. `agents@0.33.0` still peers on `@ai-sdk/provider` `^4.0.0`.
+- **Runtime** (the harness runs on `miniflare@5.20261113.0-beta`): that miniflare's `package.json` pins `workerd@1.20261113.1`, the `workerd` the harness installs. `wrangler@4.160.1` in the workspace's lockfile depends on the older `miniflare@5.20261110.1-beta`, so the harness runs a runtime three days newer than the one Cloudflare's stable CLI ships.
 
-The `streamText` default that the book's chapter on stopping cites, `stopWhen = isStepCount(1)`, sits at `dist/index.d.ts:4024` and `dist/index.js:9355` in this harness's copy of `ai@7.0.173`, the lines the vercel-ai-sdk update recorded. `COMPAT_DATE` in `scripts/workerd.mjs` stays `2026-11-03`: workerd accepts any date up to its own release, and every result above came from that setting, so I left it alone rather than change what the harness tests.
+The `streamText` default `stopWhen = isStepCount(1)`, sits at `dist/index.d.ts:4024` and `dist/index.js:9355` in this harness's copy of `ai@7.0.173`. `COMPAT_DATE` in `scripts/workerd.mjs` stays `2026-11-03`: workerd accepts any date up to its own release, and every result above came from that setting, so I did not change what the harness tests.
 
 ## What we could not verify
 
