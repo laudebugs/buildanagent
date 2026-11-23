@@ -1,6 +1,6 @@
-# Reading settings, part 1: four pairings and five sizes reach the page before its first paint
+# Reading settings: four pairings, five sizes and a header panel
 
-The owner approved design S1 on 2026-11-23: a reader of the manual chooses one of four typeface pairings and one of five text sizes, saved on the device. Before the settings panel can exist, the book needs the pairings' fonts, a way to apply a stored choice before the first paint, and CSS that changes the type without loading fonts the reader did not choose. This report covers [T69](../../todos/done/T69-manual-reading-fonts-and-early-script.md): what changed, what each pairing costs in bytes, which px sizes became rem, and what the browser checks measured. **In every pairing a page requests only the chosen pairing's fonts and the code face. The choice is on `<html>` in the first animation frame. At 150% on a 390 px phone, no checked page scrolls sideways and the header stays one 52 px row.**
+The owner approved design S1 on 2026-11-23: a reader of the manual chooses one of four typeface pairings and one of five text sizes, saved on the device. Part 1 gave the book what a settings panel needs: the pairings' fonts, a way to apply a stored choice before the first paint, and CSS that changes the type without loading fonts the reader did not choose. This report covers part 1, [T69](../../todos/done/T69-manual-reading-fonts-and-early-script.md): what changed, what each pairing costs in bytes, which px sizes became rem, and what the browser checks measured. It then covers part 2, [T70](../../todos/done/T70-manual-reading-settings-ui.md): the header's panel that writes the choice, and how a chosen pairing's fonts reach the offline copy. **In every pairing a page requests only the chosen pairing's fonts and the code face. The choice is on `<html>` in the first animation frame. At 150% on a 390 px phone, no checked page scrolls sideways and the header stays one 52 px row, with the panel open too. A chosen pairing's fonts work offline after one visit with a worker in control.**
 
 ## Four pairings come from google/fonts at the book's pinned commit
 
@@ -98,7 +98,50 @@ The default look did not change. Screenshots of the model gateway chapter in Boo
 
 The offline shell would have grown, so the build now keeps the optional fonts out of it. The worker's install-time shell holds every font a linked stylesheet names, and `reading.css` names all four new families. That took the shell from 58 files and 1,622 KiB to 67 files and 1,981 KiB, 359,320 bytes (351 KiB) of it fonts that only readers who pick Readable, Sans or Slab ever use. `scripts/offline-build.mjs` now derives those files from `font.reading` in `book-tokens.json` (every pairing's files but the default pairing's and the code font's) and exports them as `OPTIONAL_FONTS`. The shell leaves them out and the list keeps them, byte-checked, for a later save. The shell is now 59 files and 1,632 KiB, against 58 files and 1,622 KiB before this change. It holds Book's and Manual Code's fonts only. The extra file is the early script, `reading-settings.js` (5,251 bytes), and most of the other 4 KiB or so is the bundled stylesheet, which `BaseLayout` imports `reading.css` into and which grew from 50,449 to 54,965 bytes. A first visit therefore costs 1,632 KiB of shell, and a reader who picks a pairing fetches its fonts (Readable 59 KiB, Slab 77 KiB, Sans 215 KiB; 351 KiB for all eight files) once, from the network, when the page first needs them. Saving them for offline use is part 2's job.
 
-WebKit was not run. It is not installed in the cloud sessions, so Safari's engine and a real iPhone's toolbar and zoom are unchecked. Part 2 adds the settings button, the popover and the phone sheet, which write the two keys through `window.manualReadingSettings`.
+WebKit was not run. It is not installed in the cloud sessions, so Safari's engine and a real iPhone's toolbar and zoom are unchecked.
+
+## Part 2: the panel writes the choice, and the worker saves the chosen fonts
+
+The header's "Aa" button opens a panel with the four pairings and the five size steps; a choice applies at once, survives a reload with no flash, and its fonts are saved for offline reading when a worker controls the page. The panel builds on part 1 without changing the fonts or the early script's start-up.
+
+### The panel follows the notes sheet's shape on a phone and the popover's on a desktop
+
+The button carries icon I1, a big A and a small a drawn as strokes on one baseline, centred in the header's 36 px button (44 px on a phone). It opens a native `popover="auto"` through `popovertarget`, so the browser closes the panel on Escape and on a click outside, and closes a notes popover when the panel opens. The Notes panel is a modal dialog, so opening it closes the settings panel and the page behind it is inert. On a desktop the panel hangs 6 px under the button, right-aligned with it. On the phone header's windows it is a bottom sheet inside the safe areas, never taller than the window below the header, scrolling inside itself past that. The sheet is modal, with `aria-modal="true"` and Tab kept inside it. The notes sheet is neither, so the panel departs from it there: a sheet that dims the page with a backdrop should say so to a screen reader.
+
+Both groups are native radio buttons, which gives each choice a name and the arrow keys for free. The size steps are named Small (90%), Default (100%), Large (115%), Larger (130%) and Largest (150%), and the label under them reads "115% · Large". Their arrow keys stop at the ends instead of wrapping, so the largest size is never one key press from the smallest. A pairing whose heading and body faces are the same shows one name ("Bitter"), where the owner's mock showed it twice.
+
+The panel keeps its size at every text size, as the header does: its font size is 1rem divided by `--reading-scale`, and its lengths are in em. The phone header now holds four buttons, so two header rules changed with it. The row's side padding divides the rem parts of `--gutter`, and the phone's buttons sit 4 px apart instead of 8 px. Without the change, `check:reading` found the wordmark cut to an ellipsis at 150% in Readable, Sans and Slab: Sans's wordmark needs 155 px and had 152 px even at 100%.
+
+`save(storage, settings)` joins the early script's API. It checks each value through `readFont` and `readSize`, writes a non-default value, and deletes the key of a default, so `read` of an empty storage and `apply` of the defaults agree. A storage that is missing or throws returns false. The start-up still only reads.
+
+### SAVE_FILES saves a pairing's fonts after one visit
+
+Part 1 left the optional fonts out of the install shell, so a reader who picked Sans saw a fallback face offline unless they had saved the whole book. The panel now sends `SAVE_FILES` with the chosen pairing's files whenever a worker controls the page: on a page load with a stored pairing, and 600 ms after the last pick (or when the panel closes), because the native radios fire a change on every arrow press and each pairing passed would otherwise be saved. A pairing of more than 16 files is sent in chunks of 16, and the status waits for all of them. The worker accepts only plain paths under `/fonts/` on its build's list, at most 16, checks each by size and SHA-256, and never downloads a file twice, even while `SAVE_ALL` runs ([ADR 0059](../../decisions/0059-offline-manual-service-worker.md#saving-a-reading-pairings-fonts-addendum-2026-11-23)).
+
+| Pairing | Files saved on first use | Bytes |
+| --- | --- | --- |
+| Book | none: the shell holds them | 0 |
+| Readable | Atkinson Hyperlegible regular, italic and bold | 60,228 |
+| Sans | Space Grotesk roman, Inter roman and italic | 219,948 |
+| Slab | Bitter roman and italic | 79,144 |
+
+The panel's status line then says, for example, "Sans's fonts are saved for offline reading (about 220 KB)." Saving the whole book needs nothing new: `SAVE_ALL` saves the build's whole list, and the list always held every pairing's fonts. A test build measured that list at 114 files and 5,639,802 bytes on 2026-11-23, and the footer's control shows it as "about 5.6 MB". The control already read that total from the manifest, so its copy did not change. The install-time shell grew from 59 files to 61, and to 1,669 KiB: the panel's script and the module it imports, which the layout links with `modulepreload` so that the shell holds it and the panel works offline from the first install.
+
+Opening the panel costs one download: each pairing's "Aa" sample loads its upright heading file, 89,920 bytes for Atkinson Hyperlegible Bold, Space Grotesk and Bitter's roman together. A page whose panel stays closed requests only its own pairing's fonts, as part 1 measured.
+
+### The checks pass on a desktop, a phone and offline
+
+`check:settings` ran in Chromium 157.0.8103.78 (Playwright 1.63.0) on 2026-11-23 against a production build, then against a test build whose worker registers on loopback, and passed 115 checks:
+
+- **The panel.** The button's size and centred icon, opening by click and keyboard, focus on the checked pairing, Escape, a click outside and the notes popover closing.
+- **The choices.** Every pairing's title and body fonts, every size's root font size and label, the arrow keys, a reload with the attributes in the first frame, and Reset leaving nothing stored.
+- **The phone.** On the iPhone 14 profile, the sheet's place, its Tab loop and its scroll on a 480 px tall screen, and the header staying shown while the panel is open. At 150% with the sheet open, the three most crowded chapters scroll sideways in no pairing, the header is one 52 px row, and the Notes button and the save control fit.
+- **Accessibility.** axe-core 4.14.1 finds no violation with the panel open on the desktop, in the dark theme, on the phone and at 150% in Readable.
+- **Offline.** The check picks Sans, finds its three files in Cache Storage and no other pairing's files but the samples' faces, and reloads with the network off: Inter and Space Grotesk load and no font fails. It then saves the whole book and switches through all four pairings offline, each rendering in its own faces.
+- **The other checks.** `check:reading`, `check:header`, `check:offline`, `check:save-offline`, `check:note-sheet` and `check:touch-fields` still pass.
+- **Not checked.** WebKit is still not installed, so Safari's popover, its sheet under the toolbar and a real iPhone are unchecked.
+
+When storage is missing or refuses a write, the note under the choices reads "Not saved: this resets when you leave the page", from the moment the panel starts if storage is missing, and a `storage` event from another storage area is ignored.
 
 ## Screenshots
 
@@ -106,5 +149,7 @@ Screenshots are in [`reading-screenshots/`](reading-screenshots/), each under 30
 
 - `after-book-desktop.png`, `after-readable-desktop.png`, `after-sans-desktop.png`, `after-slab-desktop.png`: the model gateway chapter in each pairing at 100%. Book's shot also stands for the chapter before this change, which looks the same.
 - `after-readable-150-phone.png`: Readable at 150% on the phone, with the header still one row.
+- `settings-desktop-popover.png` and `settings-desktop-dark.png`: the panel open on the model gateway chapter, in the light theme and in the dark theme with Sans chosen.
+- `settings-phone-sheet.png` and `settings-phone-sheet-150-readable.png`: the phone sheet at 100% in Book and at 150% in Readable, at 2× scale.
 
-The fonts, the early script and the CSS are in place. Part 2 can build the panel on `window.manualReadingSettings` and the two attributes without touching the fonts or the CSS again.
+A reader can now pick a pairing and a size from any page, see it at once, keep it across visits and read it offline. The fonts, the early script and the CSS from part 1 carry the choice; the panel and `SAVE_FILES` only write it and save its files.
