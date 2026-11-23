@@ -149,7 +149,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader'
 
 | Feature | What Starlight gives | What we build | Recommendation |
 | --- | --- | --- | --- |
-| Navigation | An explicit sidebar, previous and next links, a mobile menu and a table of contents | `starlight-sidebar-topics` with "SDK & gateway", "Harness", "Agent safety" and "API reference", so a page carries only its topic's links; the sidebar tests rewritten | Adopt topics |
+| Navigation | An explicit sidebar, previous and next links, a mobile menu and a table of contents | `starlight-sidebar-topics` with "SDK & gateway", "Harness", "Agent safety" and one API topic for each package, so a page carries only its topic's links; the sidebar tests rewritten | Adopt topics |
 | Page anatomy | Title, description, table of contents | A `PageTitle` override with a package badge, "Copy as Markdown" and a version tag | Override `PageTitle` only |
 | Code tabs | `<Tabs syncKey>` in MDX only | MDX where needed, with install tabs | No tabs plugin; `syncKey` is native |
 | Callouts | `:::note`, `:::tip`, `:::caution` and `:::danger` | Token styling, at most two per page | Adopt |

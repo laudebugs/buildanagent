@@ -17,6 +17,12 @@ The owner's part: Q1, Q3 and Q5 are answered (2026-11-22), the manager set the d
 
 Status of L12o (2026-11-23): the docs home page is rebuilt as design A, a centred welcome with the install line and a grid of six package cards (`index.mdx`, `starlight.css`, `test/home.test.ts`). The gateway and SDK cards lead to the Install and first-agent pages; the harness, agent-safety, protocol and CLI cards lead to their READMEs on GitHub, because the docs have no quick start for them until L12g to L12i land, and then those four cards move to the new pages. L12o depends only on L12a and L12b: the owner chose a design with no illustration (manager's message, 2026-11-23), so it needs no figure from L12d.
 
+Status of L12c (2026-11-23): done on `todo/L12c-sidebar-topics`. `starlight-sidebar-topics` 0.9.0 (released 2026-09-03; peers `@astrojs/starlight >=0.42.0` and `astro ^7.2.10`) splits the sidebar into "SDK & gateway" and one topic per package's generated reference, "Gateway API" and "SDK API". The plan names a single "API reference" topic, but a shared API topic still put all 253 reference links on every reference page, and the largest page stayed at 174,620 bytes. One topic per package is what keeps L12f's four packages inside the budget.
+
+Measurements are bytes of HTML (1 KiB is 1,024 bytes), over the same 282 pages on `main` at `25cdbd41` and after the split: `start/install/` 114,268 to 43,915, `concepts/tools/` 107,491 to 39,462, `guides/add-a-tool/` 108,219 to 40,190, the home page 30,369 to 30,339 (it has no sidebar), the largest page (`reference/sdk/.../continueoptions/`) 175,279 to 141,164, the mean page 107,276 to 70,132, and `dist/` 34 MB to 24 MB. The Pagefind index stays 2.0 MB over the same 282 pages, and a warm build takes about 15 seconds. The before and after builds differ in cache state, so they say nothing about whether the split changes build time.
+
+The current tab carries `aria-current="page"`, added by a route middleware (`apps/docs/src/route-data.ts`) because the plugin's tab attributes are the same on every page. Adding a topic is one entry in `apps/docs/src/topics.ts`, or one line in `API_PACKAGES` for a package's reference; `apps/docs/README.md` has the steps.
+
 ## Context
 
 - The owner's request, relayed by the manager session on 2026-11-22: study the Lamina PDF docs site's features, match the book's theme from `docs/design/book-tokens.json` through a generated tokens file, include diagrams and tested examples, keep the docs checks passing, add harness-package pages, and leave a header slot for the logo files the manager will hand over (the owner has since chosen logo 3 and answered questions 1, 3 and 5; see Out of scope and Owner questions).
@@ -95,7 +101,7 @@ L12 is done when L12a to L12p are done and these hold on `main`:
 - [ ] `apps/docs/src/styles/starlight.css` holds no hex colour, and a test fails on one.
 - [ ] A contrast test recomputes every extra pair Starlight's roles create, from the shipped `tokens.css`, at 4.5:1 for text and 3:1 for other parts. These pairs stay out of `book-tokens.json`, whose manual test asserts exactly 38.
 - [ ] The font files in `apps/docs/public/fonts/` are byte-identical with the book's, and a test fails when one differs.
-- [ ] After L12c, no built page exceeds 200 KB of HTML (today `start/install/` is 103 KB). L12c may revise the budget with its measurement, and L12f re-measures it.
+- [x] After L12c, no built page exceeds 200 KiB (204,800 bytes) of HTML (`start/install/` was 114,268 bytes at `25cdbd41` and is 43,915 after L12c; the largest page is 141,164 bytes, 137.9 KiB). L12c keeps the 200 KiB budget, `apps/docs/test/topics.test.ts` enforces it, and L12f re-measures it.
 - [x] Every page has a Markdown twin at `/<page>.md`, and a test fails on a page without one (L12l).
 - [x] Every install line names `@alpha`, a test checks it, and the header shows the shared version (L12e).
 - [ ] The header holds the mark and the wordmark "Build An Agent docs", and the favicon reads at 16 px.
