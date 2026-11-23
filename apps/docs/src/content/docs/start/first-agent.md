@@ -16,14 +16,9 @@ The schema checks the model's arguments before your function runs, so a bad orde
 
 ## Make a model
 
-The loop needs a model, which binds one adapter to one model id. You make the adapter with your own key, so the gateway never guesses a provider:
+The loop needs a model, which binds one adapter to one model id. You make the adapter with a key from your secret store, so the gateway never guesses a provider:
 
-```ts
-import { createModel } from "@buildanagent/gateway";
-import { anthropic } from "@buildanagent/gateway/anthropic";
-
-declare const apiKey: string; // from your secret store
-const model = createModel({ adapter: anthropic({ apiKey }), id: "claude-opus-5-5" });
+```ts file="packages/sdk/examples/make-model.ts" region="model"
 ```
 
 ## Run the agent

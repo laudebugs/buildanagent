@@ -24,7 +24,8 @@ test("every inline TypeScript block type-checks against the packages", { timeout
       .filter((fence) => ["ts", "typescript"].includes(fence.lang) && parseExampleRef(fence.meta) === undefined)
       .map((fence) => ({ where: `${page.path}:${fence.line}`, code: fence.code })),
   );
-  assert.ok(blocks.length > 0, "the pages have inline TypeScript blocks");
+  // The fence rule (fences.test.ts) leaves no inline block today, so this check guards one a page lists as an exception.
+  if (blocks.length === 0) return;
   const folder = mkdtempSync(join(APP, ".snippets-"));
   try {
     for (const [index, block] of blocks.entries()) {

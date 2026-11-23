@@ -89,3 +89,15 @@ test("the refund approval example pauses a refund and runs it after the person a
   assert.equal(done.result.stopReason, "done");
   assert.deepEqual(refunds, [42]);
 });
+
+test("the make-model example binds the Anthropic adapter to one model id", async () => {
+  const { makeModel } = await import("../examples/make-model.js");
+  const model = makeModel("test-key");
+  assert.deepEqual(model.ref, { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" });
+});
+
+test("the offline-setup example turns real model requests off", async () => {
+  const { OFFLINE } = await import("../examples/offline-setup.js");
+  assert.equal(OFFLINE, true);
+  await assert.rejects(() => fetch("https://api.anthropic.com/v1/messages"), /blocked|disabled|loopback|not allowed/i);
+});
