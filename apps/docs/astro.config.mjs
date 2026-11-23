@@ -63,6 +63,7 @@ export default defineConfig({
       components: {
         Footer: "./src/components/Footer.astro",
         Head: "./src/components/Head.astro",
+        SiteTitle: "./src/components/SiteTitle.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
       },
       // The book's theme: its tokens, mapped onto Starlight's variables, and its code panels in both modes. The
