@@ -7,7 +7,7 @@
       "Researcher": "Researcher",
       "Assistant": "Assistant"
     },
-    "ms": 2043,
+    "ms": 3016,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -35,7 +35,7 @@
     "durableObjects": {
       "CounterAgent": "CounterAgent"
     },
-    "ms": 1649,
+    "ms": 1895,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -56,7 +56,7 @@
     "durableObjects": {
       "WriterAgent": "WriterAgent"
     },
-    "ms": 1942,
+    "ms": 2285,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -77,7 +77,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1836,
+    "ms": 2594,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -127,7 +127,7 @@
     "durableObjects": {
       "DeviceAgent": "DeviceAgent"
     },
-    "ms": 1381,
+    "ms": 1759,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -148,7 +148,7 @@
     "durableObjects": {
       "DocAgent": "DocAgent"
     },
-    "ms": 1401,
+    "ms": 2029,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -169,7 +169,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1712,
+    "ms": 2007,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -190,7 +190,7 @@
     "durableObjects": {
       "Profile": "Profile"
     },
-    "ms": 1606,
+    "ms": 1841,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -211,7 +211,7 @@
     "durableObjects": {
       "MY_AGENT": "MyAgent"
     },
-    "ms": 1612,
+    "ms": 2034,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -232,7 +232,7 @@
     "durableObjects": {
       "ReminderAgent": "ReminderAgent"
     },
-    "ms": 1692,
+    "ms": 1947,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -253,7 +253,7 @@
     "durableObjects": {
       "ReportAgent": "ReportAgent"
     },
-    "ms": 1546,
+    "ms": 2015,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -274,7 +274,7 @@
     "durableObjects": {
       "GameAgent": "GameAgent"
     },
-    "ms": 1556,
+    "ms": 1866,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -296,7 +296,7 @@
       "Orchestrator": "Orchestrator",
       "Researcher": "Researcher"
     },
-    "ms": 1702,
+    "ms": 2059,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -322,7 +322,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/agent-class/sub-agents.mdx",
     "line": 349,
     "durableObjects": {},
-    "ms": 1472,
+    "ms": 2147,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -337,7 +337,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1903,
+    "ms": 2004,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -358,7 +358,7 @@
     "durableObjects": {
       "EXPENSE_AGENT": "ExpenseAgent"
     },
-    "ms": 1818,
+    "ms": 1912,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -379,7 +379,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1840,
+    "ms": 1549,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -414,7 +414,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1942,
+    "ms": 2478,
     "modelCalls": 2,
     "outcome": "ran",
     "report": [
@@ -445,7 +445,7 @@
     "durableObjects": {
       "NOTES": "Notes"
     },
-    "ms": 1694,
+    "ms": 2041,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -466,7 +466,7 @@
     "durableObjects": {
       "NOTES": "Notes"
     },
-    "ms": 1640,
+    "ms": 2230,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -487,7 +487,7 @@
     "durableObjects": {
       "Counter": "Counter"
     },
-    "ms": 1459,
+    "ms": 1810,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -517,7 +517,7 @@
     "durableObjects": {
       "RemoteAgent": "RemoteAgent"
     },
-    "ms": 1417,
+    "ms": 1931,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -538,7 +538,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2473,
+    "ms": 3459,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -561,7 +561,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 3376,
+    "ms": 3621,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -584,7 +584,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2851,
+    "ms": 3448,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -605,7 +605,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2937,
+    "ms": 2414,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -626,7 +626,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2386,
+    "ms": 2924,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -647,7 +647,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2710,
+    "ms": 3281,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -669,7 +669,7 @@
       "MyMCP": "MyMCP",
       "MCP_OBJECT": "MyMCP"
     },
-    "ms": 1889,
+    "ms": 2420,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -702,7 +702,7 @@
       "MyMCP": "MyMCP",
       "MCP_OBJECT": "MyMCP"
     },
-    "ms": 2178,
+    "ms": 2457,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -737,7 +737,7 @@
       "MyMCP": "MyMCP",
       "MCP_OBJECT": "MyMCP"
     },
-    "ms": 1870,
+    "ms": 2200,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -770,7 +770,7 @@
       "MyMCP": "MyMCP",
       "MCP_OBJECT": "MyMCP"
     },
-    "ms": 2163,
+    "ms": 2036,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -802,7 +802,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2038,
+    "ms": 2010,
     "modelCalls": 0,
     "blockedHost": "mcp.github.com",
     "outcome": "needs-network",
@@ -828,7 +828,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1684,
+    "ms": 1884,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -847,7 +847,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
     "line": 64,
     "durableObjects": {},
-    "ms": 1920,
+    "ms": 2214,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -860,7 +860,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
     "line": 145,
     "durableObjects": {},
-    "ms": 1642,
+    "ms": 2068,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -873,7 +873,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
     "line": 225,
     "durableObjects": {},
-    "ms": 1711,
+    "ms": 2122,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -886,7 +886,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
     "line": 250,
     "durableObjects": {},
-    "ms": 1696,
+    "ms": 1749,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -906,7 +906,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/apis/handler-api.mdx",
     "line": 411,
     "durableObjects": {},
-    "ms": 1602,
+    "ms": 1975,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -935,7 +935,7 @@
     "durableObjects": {
       "HelloAgent": "HelloAgent"
     },
-    "ms": 1422,
+    "ms": 2059,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -956,7 +956,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/guides/migrate-to-mcp-sdk-v2.mdx",
     "line": 94,
     "durableObjects": {},
-    "ms": 1604,
+    "ms": 1901,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -971,7 +971,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1629,
+    "ms": 2017,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -990,7 +990,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
     "line": 37,
     "durableObjects": {},
-    "ms": 1573,
+    "ms": 2067,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -1003,7 +1003,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
     "line": 83,
     "durableObjects": {},
-    "ms": 1673,
+    "ms": 2037,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -1016,7 +1016,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
     "line": 144,
     "durableObjects": {},
-    "ms": 1902,
+    "ms": 1955,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -1029,7 +1029,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/tools.mdx",
     "line": 209,
     "durableObjects": {},
-    "ms": 1739,
+    "ms": 1968,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -1049,7 +1049,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/model-context-protocol/protocol/transport.mdx",
     "line": 42,
     "durableObjects": {},
-    "ms": 1775,
+    "ms": 2091,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -1062,7 +1062,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
     "line": 81,
     "durableObjects": {},
-    "ms": 1850,
+    "ms": 2121,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [],
@@ -1075,7 +1075,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
     "line": 109,
     "durableObjects": {},
-    "ms": 1959,
+    "ms": 1995,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [],
@@ -1088,7 +1088,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
     "line": 159,
     "durableObjects": {},
-    "ms": 2041,
+    "ms": 1951,
     "modelCalls": 2,
     "outcome": "ran",
     "report": [],
@@ -1101,7 +1101,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/models/ai-sdk.mdx",
     "line": 236,
     "durableObjects": {},
-    "ms": 1726,
+    "ms": 2054,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [],
@@ -1116,7 +1116,7 @@
     "durableObjects": {
       "Assistant": "Assistant"
     },
-    "ms": 2567,
+    "ms": 3173,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1135,7 +1135,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/models/index.mdx",
     "line": 95,
     "durableObjects": {},
-    "ms": 1607,
+    "ms": 2031,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -1150,7 +1150,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2194,
+    "ms": 2463,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1178,7 +1178,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1995,
+    "ms": 2213,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1199,7 +1199,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1485,
+    "ms": 2172,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1220,7 +1220,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1445,
+    "ms": 1728,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1239,7 +1239,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/models/pi-ai.mdx",
     "line": 59,
     "durableObjects": {},
-    "ms": 1959,
+    "ms": 2092,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [],
@@ -1254,7 +1254,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1709,
+    "ms": 1892,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1273,7 +1273,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/capabilities/build-a-capability.mdx",
     "line": 87,
     "durableObjects": {},
-    "ms": 1625,
+    "ms": 2010,
     "modelCalls": 0,
     "outcome": "loaded",
     "report": [],
@@ -1286,7 +1286,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1458,
+    "ms": 2016,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1307,7 +1307,7 @@
     "durableObjects": {
       "ToolAgent": "ToolAgent"
     },
-    "ms": 1553,
+    "ms": 1826,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1330,7 +1330,7 @@
     "durableObjects": {
       "ToolAgent": "ToolAgent"
     },
-    "ms": 1565,
+    "ms": 1937,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1358,7 +1358,7 @@
     "durableObjects": {
       "ToolAgent": "ToolAgent"
     },
-    "ms": 1614,
+    "ms": 1872,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1379,7 +1379,7 @@
     "durableObjects": {
       "ToolAgent": "ToolAgent"
     },
-    "ms": 1789,
+    "ms": 2106,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1400,7 +1400,7 @@
     "durableObjects": {
       "ReminderAgent": "ReminderAgent"
     },
-    "ms": 1579,
+    "ms": 2029,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1421,7 +1421,7 @@
     "durableObjects": {
       "ReminderAgent": "ReminderAgent"
     },
-    "ms": 1416,
+    "ms": 2242,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1442,7 +1442,7 @@
     "durableObjects": {
       "ConversationAgent": "ConversationAgent"
     },
-    "ms": 1658,
+    "ms": 1877,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1463,7 +1463,7 @@
     "durableObjects": {
       "ConversationAgent": "ConversationAgent"
     },
-    "ms": 1576,
+    "ms": 1917,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1484,7 +1484,7 @@
     "durableObjects": {
       "ConversationAgent": "ConversationAgent"
     },
-    "ms": 1426,
+    "ms": 2061,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1505,7 +1505,7 @@
     "durableObjects": {
       "SettingsAgent": "SettingsAgent"
     },
-    "ms": 1637,
+    "ms": 2105,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1526,7 +1526,7 @@
     "durableObjects": {
       "DocAgent": "DocAgent"
     },
-    "ms": 1443,
+    "ms": 2020,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1547,7 +1547,7 @@
     "durableObjects": {
       "CounterAgent": "CounterAgent"
     },
-    "ms": 1713,
+    "ms": 2000,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1570,7 +1570,7 @@
     "durableObjects": {
       "ReportAgent": "ReportAgent"
     },
-    "ms": 1723,
+    "ms": 2052,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1591,7 +1591,7 @@
     "durableObjects": {
       "RoomAgent": "RoomAgent"
     },
-    "ms": 1469,
+    "ms": 1903,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1614,7 +1614,7 @@
     "durableObjects": {
       "LobbyAgent": "LobbyAgent"
     },
-    "ms": 1570,
+    "ms": 1945,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1635,7 +1635,7 @@
     "durableObjects": {
       "ChatRoom": "ChatRoom"
     },
-    "ms": 1507,
+    "ms": 2013,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1656,7 +1656,7 @@
     "durableObjects": {
       "EchoAgent": "EchoAgent"
     },
-    "ms": 1715,
+    "ms": 1864,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1677,7 +1677,7 @@
     "durableObjects": {
       "Room": "Room"
     },
-    "ms": 1872,
+    "ms": 1927,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1698,7 +1698,7 @@
     "durableObjects": {
       "BoardAgent": "BoardAgent"
     },
-    "ms": 1557,
+    "ms": 2159,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1719,7 +1719,7 @@
     "durableObjects": {
       "PresenceAgent": "PresenceAgent"
     },
-    "ms": 1567,
+    "ms": 1914,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1740,7 +1740,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1581,
+    "ms": 1872,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1761,7 +1761,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/lifecycle/api-reference.mdx",
     "line": 218,
     "durableObjects": {},
-    "ms": 1795,
+    "ms": 1991,
     "modelCalls": 0,
     "outcome": "loaded",
     "report": [],
@@ -1774,7 +1774,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1684,
+    "ms": 1996,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1795,7 +1795,7 @@
     "durableObjects": {
       "Reminders": "Reminders"
     },
-    "ms": 1732,
+    "ms": 1762,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1816,7 +1816,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1641,
+    "ms": 2037,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1837,7 +1837,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1828,
+    "ms": 1847,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1858,7 +1858,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1559,
+    "ms": 1913,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1879,7 +1879,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1818,
+    "ms": 1902,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1900,7 +1900,7 @@
     "durableObjects": {
       "NotesAgent": "NotesAgent"
     },
-    "ms": 1436,
+    "ms": 1942,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1921,7 +1921,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1576,
+    "ms": 1921,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1942,7 +1942,7 @@
     "durableObjects": {
       "CleanupAgent": "CleanupAgent"
     },
-    "ms": 1680,
+    "ms": 2069,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1963,7 +1963,7 @@
     "durableObjects": {
       "ImportAgent": "ImportAgent"
     },
-    "ms": 1571,
+    "ms": 2192,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -1984,7 +1984,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1534,
+    "ms": 1879,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2005,7 +2005,7 @@
     "durableObjects": {
       "Shop": "Shop"
     },
-    "ms": 1354,
+    "ms": 2001,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2026,7 +2026,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2856,
+    "ms": 3106,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2045,7 +2045,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/authentication.mdx",
     "line": 27,
     "durableObjects": {},
-    "ms": 1937,
+    "ms": 2026,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2058,7 +2058,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/authentication.mdx",
     "line": 76,
     "durableObjects": {},
-    "ms": 1679,
+    "ms": 2041,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2071,7 +2071,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/custom-routing.mdx",
     "line": 63,
     "durableObjects": {},
-    "ms": 1750,
+    "ms": 2073,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2086,7 +2086,7 @@
     "durableObjects": {
       "UserAgent": "UserAgent"
     },
-    "ms": 1597,
+    "ms": 2006,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2109,7 +2109,7 @@
     "durableObjects": {
       "ApiAgent": "ApiAgent"
     },
-    "ms": 1648,
+    "ms": 2053,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2130,7 +2130,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1666,
+    "ms": 2254,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2151,7 +2151,7 @@
     "durableObjects": {
       "ReportAgent": "ReportAgent"
     },
-    "ms": 1865,
+    "ms": 1833,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2172,7 +2172,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1655,
+    "ms": 1965,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2195,7 +2195,7 @@
     "durableObjects": {
       "UserProfile": "UserProfile"
     },
-    "ms": 1751,
+    "ms": 1960,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2214,7 +2214,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
     "line": 34,
     "durableObjects": {},
-    "ms": 1652,
+    "ms": 2112,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2227,7 +2227,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
     "line": 65,
     "durableObjects": {},
-    "ms": 1583,
+    "ms": 2301,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2240,7 +2240,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
     "line": 94,
     "durableObjects": {},
-    "ms": 1697,
+    "ms": 1976,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2255,7 +2255,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1741,
+    "ms": 1977,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2276,7 +2276,7 @@
     "page": "cloudflare-docs/src/content/docs/agents/runtime/routing/options.mdx",
     "line": 170,
     "durableObjects": {},
-    "ms": 1731,
+    "ms": 1863,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2305,7 +2305,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2767,
+    "ms": 3223,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2326,7 +2326,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 3025,
+    "ms": 3404,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2347,7 +2347,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 3329,
+    "ms": 3503,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2375,7 +2375,7 @@
     "durableObjects": {
       "SearchAgent": "SearchAgent"
     },
-    "ms": 2143,
+    "ms": 2335,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2403,7 +2403,7 @@
     "durableObjects": {
       "BrowserCodemode": "BrowserCodemode"
     },
-    "ms": 1742,
+    "ms": 1978,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -2425,7 +2425,7 @@
     "durableObjects": {
       "Chat": "Chat"
     },
-    "ms": 2503,
+    "ms": 3036,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2446,7 +2446,7 @@
     "durableObjects": {
       "NotesAgent": "NotesAgent"
     },
-    "ms": 1875,
+    "ms": 2175,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2469,7 +2469,7 @@
     "durableObjects": {
       "WriterAgent": "WriterAgent"
     },
-    "ms": 2064,
+    "ms": 2400,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2490,7 +2490,7 @@
     "durableObjects": {
       "ToolAgent": "ToolAgent"
     },
-    "ms": 2061,
+    "ms": 2026,
     "modelCalls": 0,
     "blockedHost": "mcp.github.com",
     "outcome": "needs-network",
@@ -2522,7 +2522,7 @@
     "durableObjects": {
       "CodeAgent": "CodeAgent"
     },
-    "ms": 2796,
+    "ms": 2757,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2545,7 +2545,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2968,
+    "ms": 3665,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2569,7 +2569,7 @@
       "Planner": "Planner"
     },
     "note": "wrangler bindings not configured: ai (AI is mocked)",
-    "ms": 3329,
+    "ms": 3889,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2607,7 +2607,7 @@
       "ChatAgent": "ChatAgent"
     },
     "note": "wrangler bindings not configured: ai, browser, worker_loaders (AI is mocked)",
-    "ms": 2813,
+    "ms": 3287,
     "modelCalls": 0,
     "outcome": "needs-binding",
     "report": [
@@ -2645,7 +2645,7 @@
       "Codemode": "Codemode"
     },
     "note": "wrangler bindings not configured: ai, worker_loaders (AI is mocked)",
-    "ms": 2103,
+    "ms": 1985,
     "modelCalls": 2,
     "outcome": "ran",
     "report": [
@@ -2670,7 +2670,7 @@
       "SkillsAgent": "SkillsAgent"
     },
     "note": "wrangler bindings not configured: ai, worker_loaders (AI is mocked)",
-    "ms": 3180,
+    "ms": 3437,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2694,7 +2694,7 @@
       "ContextOverflowAgent": "ContextOverflowAgent"
     },
     "note": "wrangler bindings not configured: ai (AI is mocked)",
-    "ms": 2896,
+    "ms": 2922,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2718,7 +2718,7 @@
       "DynamicToolsAgent": "DynamicToolsAgent"
     },
     "note": "wrangler bindings not configured: ai (AI is mocked)",
-    "ms": 2609,
+    "ms": 2402,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -2742,7 +2742,7 @@
     "durableObjects": {
       "RepoAgent": "RepoAgent"
     },
-    "ms": 1411,
+    "ms": 1984,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2765,7 +2765,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1711,
+    "ms": 2136,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2786,7 +2786,7 @@
     "page": "agents/examples/mcp-elicitation-mrtr/src/index.ts",
     "line": 1,
     "durableObjects": {},
-    "ms": 1872,
+    "ms": 2357,
     "modelCalls": 0,
     "outcome": "needs-binding",
     "report": [],
@@ -2802,7 +2802,7 @@
     "page": "agents/examples/mcp-worker/src/server.ts",
     "line": 1,
     "durableObjects": {},
-    "ms": 1777,
+    "ms": 2062,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -2848,7 +2848,7 @@
       "SkillsAgent": "SkillsAgent"
     },
     "note": "wrangler bindings not configured: ai, worker_loaders, r2_buckets (AI is mocked)",
-    "ms": 2820,
+    "ms": 3243,
     "modelCalls": 0,
     "outcome": "needs-binding",
     "report": [
@@ -2875,7 +2875,7 @@
       "ResumableStreamingChat": "ResumableStreamingChat"
     },
     "note": "wrangler bindings not configured: ai (AI is mocked)",
-    "ms": 3151,
+    "ms": 3710,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -2900,7 +2900,7 @@
       "TaskAgent": "TaskAgent"
     },
     "note": "wrangler bindings not configured: ai (AI is mocked)",
-    "ms": 2486,
+    "ms": 2678,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2924,7 +2924,7 @@
       "MyMCP": "MyMCP",
       "MCP_OBJECT": "MyMCP"
     },
-    "ms": 2079,
+    "ms": 2283,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2959,7 +2959,7 @@
       "TaskAgent": "TaskAgent"
     },
     "note": "wrangler bindings not configured: workflows (AI is mocked)",
-    "ms": 1126,
+    "ms": 965,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -2982,7 +2982,7 @@
     "durableObjects": {
       "Counter": "Counter"
     },
-    "ms": 2114,
+    "ms": 2199,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3004,7 +3004,7 @@
       "Researcher": "Researcher",
       "Assistant": "Assistant"
     },
-    "ms": 2834,
+    "ms": 2763,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3039,7 +3039,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2140,
+    "ms": 2228,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3060,7 +3060,7 @@
     "durableObjects": {
       "CounterAgent": "CounterAgent"
     },
-    "ms": 1489,
+    "ms": 1941,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3081,7 +3081,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1937,
+    "ms": 2456,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -3103,7 +3103,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 2003,
+    "ms": 2504,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3125,7 +3125,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1952,
+    "ms": 2119,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3147,7 +3147,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1857,
+    "ms": 2199,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3169,7 +3169,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1830,
+    "ms": 2302,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3191,7 +3191,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1664,
+    "ms": 1864,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3212,7 +3212,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1664,
+    "ms": 2259,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3234,7 +3234,7 @@
     "durableObjects": {
       "Counter": "Counter"
     },
-    "ms": 1499,
+    "ms": 2222,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3257,7 +3257,7 @@
     "durableObjects": {
       "Assistant": "Assistant"
     },
-    "ms": 1785,
+    "ms": 2125,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3276,7 +3276,7 @@
     "page": "agents/docs/agents/human-in-the-loop.md",
     "line": 464,
     "durableObjects": {},
-    "ms": 1862,
+    "ms": 3269,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -3291,7 +3291,7 @@
     "durableObjects": {
       "Assistant": "Assistant"
     },
-    "ms": 1491,
+    "ms": 3083,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3312,7 +3312,7 @@
     "durableObjects": {
       "MyObject": "MyObject"
     },
-    "ms": 1530,
+    "ms": 1682,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3331,7 +3331,7 @@
     "page": "agents/docs/agents/lifecycle.md",
     "line": 51,
     "durableObjects": {},
-    "ms": 1453,
+    "ms": 1502,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -3346,7 +3346,7 @@
     "durableObjects": {
       "MyObject": "MyObject"
     },
-    "ms": 1515,
+    "ms": 1826,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3367,7 +3367,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1828,
+    "ms": 1920,
     "modelCalls": 0,
     "blockedHost": "mcp.github.com",
     "outcome": "needs-network",
@@ -3391,7 +3391,7 @@
     "page": "agents/docs/agents/mcp-servers.md",
     "line": 17,
     "durableObjects": {},
-    "ms": 1854,
+    "ms": 1818,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -3404,7 +3404,7 @@
     "page": "agents/docs/agents/mcp-servers.md",
     "line": 211,
     "durableObjects": {},
-    "ms": 1817,
+    "ms": 2024,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -3417,7 +3417,7 @@
     "page": "agents/docs/agents/models.md",
     "line": 52,
     "durableObjects": {},
-    "ms": 1821,
+    "ms": 2233,
     "modelCalls": 2,
     "outcome": "ran",
     "report": [],
@@ -3430,7 +3430,7 @@
     "page": "agents/docs/agents/models-pi-ai.md",
     "line": 62,
     "durableObjects": {},
-    "ms": 1957,
+    "ms": 2173,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [],
@@ -3445,7 +3445,7 @@
     "durableObjects": {
       "UploadObject": "UploadObject"
     },
-    "ms": 1377,
+    "ms": 1986,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3466,7 +3466,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1845,
+    "ms": 2338,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -3488,7 +3488,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1485,
+    "ms": 1949,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3507,7 +3507,7 @@
     "page": "agents/docs/agents/routing.md",
     "line": 52,
     "durableObjects": {},
-    "ms": 1518,
+    "ms": 1737,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -3523,7 +3523,7 @@
       "ChatAgent": "ChatAgent",
       "UserAgent": "UserAgent"
     },
-    "ms": 1522,
+    "ms": 1938,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3553,7 +3553,7 @@
     "durableObjects": {
       "ReminderObject": "ReminderObject"
     },
-    "ms": 1393,
+    "ms": 1757,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3574,7 +3574,7 @@
     "durableObjects": {
       "ReminderAgent": "ReminderAgent"
     },
-    "ms": 1491,
+    "ms": 2196,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3595,7 +3595,7 @@
     "durableObjects": {
       "ConversationObject": "ConversationObject"
     },
-    "ms": 1739,
+    "ms": 1997,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3616,7 +3616,7 @@
     "durableObjects": {
       "ConversationAgent": "ConversationAgent"
     },
-    "ms": 1593,
+    "ms": 1751,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3637,7 +3637,7 @@
     "durableObjects": {
       "ReportObject": "ReportObject"
     },
-    "ms": 1746,
+    "ms": 1893,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3659,7 +3659,7 @@
       "Supervisor": "Supervisor",
       "JobRunner": "JobRunner"
     },
-    "ms": 1721,
+    "ms": 2117,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3701,7 +3701,7 @@
     "durableObjects": {
       "MY_AGENT": "MyAgent"
     },
-    "ms": 1937,
+    "ms": 2263,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3722,7 +3722,7 @@
     "durableObjects": {
       "CounterAgent": "CounterAgent"
     },
-    "ms": 1618,
+    "ms": 2007,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3743,7 +3743,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 1400,
+    "ms": 2048,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3765,7 +3765,7 @@
       "Researcher": "Researcher",
       "Assistant": "Assistant"
     },
-    "ms": 2625,
+    "ms": 3100,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3793,7 +3793,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1799,
+    "ms": 2414,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -3813,7 +3813,7 @@
     "page": "agents/packages/agents/README.md",
     "line": 554,
     "durableObjects": {},
-    "ms": 1623,
+    "ms": 1867,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [],
@@ -3828,7 +3828,7 @@
     "durableObjects": {
       "ChatAgent": "ChatAgent"
     },
-    "ms": 1831,
+    "ms": 2112,
     "modelCalls": 1,
     "outcome": "ran",
     "report": [
@@ -3850,7 +3850,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2608,
+    "ms": 3065,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3881,7 +3881,7 @@
       "Researcher": "Researcher",
       "Assistant": "Assistant"
     },
-    "ms": 3020,
+    "ms": 3567,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3916,7 +3916,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2879,
+    "ms": 3545,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3944,7 +3944,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2985,
+    "ms": 3251,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3965,7 +3965,7 @@
     "durableObjects": {
       "CounterAgent": "CounterAgent"
     },
-    "ms": 2036,
+    "ms": 2194,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -3988,7 +3988,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2584,
+    "ms": 3239,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4011,7 +4011,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 3244,
+    "ms": 3538,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4041,7 +4041,7 @@
     "durableObjects": {
       "SupportAgent": "SupportAgent"
     },
-    "ms": 2946,
+    "ms": 2922,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4062,7 +4062,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 3314,
+    "ms": 3463,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4083,7 +4083,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 3085,
+    "ms": 3308,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4104,7 +4104,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2811,
+    "ms": 3246,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4132,7 +4132,7 @@
     "durableObjects": {
       "SmallModelAgent": "SmallModelAgent"
     },
-    "ms": 2882,
+    "ms": 2998,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4153,7 +4153,7 @@
     "durableObjects": {
       "MyAgent": "MyAgent"
     },
-    "ms": 2618,
+    "ms": 2895,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [
@@ -4181,7 +4181,7 @@
     "durableObjects": {
       "SupportAgent": "SupportAgent"
     },
-    "ms": 2655,
+    "ms": 2860,
     "modelCalls": 0,
     "outcome": "ran-no-model",
     "report": [

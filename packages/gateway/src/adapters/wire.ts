@@ -156,8 +156,8 @@ function httpDate(value: string | null): number {
 
 /**
  * How long a failed response asks the caller to wait before retrying, in milliseconds, or `undefined` when it gives
- * no valid delay. `retry-after-ms` wins over `retry-after`, as in the official TypeScript SDKs (openai-node v7.49.0
- * and anthropic-sdk-typescript v0.129.0, `src/client.ts`, as of November 2026). `retry-after` holds seconds, as
+ * no valid delay. `retry-after-ms` wins over `retry-after`, as in the official TypeScript SDKs (openai-node v7.57.0
+ * and anthropic-sdk-typescript v1.8.0, `src/client.ts`, as of November 2026). `retry-after` holds seconds, as
  * Anthropic's and OpenAI's rate-limit pages say (https://platform.claude.com/docs/en/api/rate-limits and
  * https://developers.openai.com/api/docs/guides/rate-limits, as of November 2026), or an HTTP date (RFC 9110,
  * section 10.2.3). A date counts from the response's own `date` header, so the delay depends on no local clock, and

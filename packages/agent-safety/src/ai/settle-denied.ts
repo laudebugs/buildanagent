@@ -27,7 +27,7 @@ export function settleDeniedApprovals<MESSAGE extends UIMessage>(
         return part;
       }
       changed = true;
-      // `ai` 7.0.162 validates an `output-denied` part's approval with `approved: z.literal(false)`.
+      // `ai` 7.0.173 validates an `output-denied` part's approval with `approved: z.literal(false)`.
       return { ...part, state: "output-denied", approval: { ...tool.approval, approved: false } };
     });
     // The new part keeps its tool type, input and approval id; only its state and the approval's verdict change.

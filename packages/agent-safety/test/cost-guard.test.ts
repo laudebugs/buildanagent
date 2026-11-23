@@ -246,7 +246,7 @@ const retryable = () =>
     isRetryable: true,
   });
 
-test("in ai 7.0.162 a wrapLanguageModel middleware sees every step and every retry of generateText", async () => {
+test("in ai 7.0.173 a wrapLanguageModel middleware sees every step and every retry of generateText", async () => {
   const { model, requests } = scripted({ steps: 3, failFirst: retryable() });
   const { middleware, seen } = counting();
   const result = await generateText({
@@ -261,7 +261,7 @@ test("in ai 7.0.162 a wrapLanguageModel middleware sees every step and every ret
   assert.deepEqual(seen, ["generate", "generate", "generate", "generate"], "three steps plus the retried attempt");
 });
 
-test("in ai 7.0.162 a wrapLanguageModel middleware sees every step and every retry of streamText", async () => {
+test("in ai 7.0.173 a wrapLanguageModel middleware sees every step and every retry of streamText", async () => {
   const { model, requests } = scripted({ steps: 3, failFirst: retryable() });
   const { middleware, seen } = counting();
   const result = streamText({

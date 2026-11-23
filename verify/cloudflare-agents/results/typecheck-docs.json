@@ -19452,9 +19452,9 @@
       },
       {
         "line": 6,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -25576,9 +25576,9 @@
       },
       {
         "line": 8,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       },
       {
         "line": 8,
@@ -49526,9 +49526,9 @@
       },
       {
         "line": 7,
-        "code": 2304,
+        "code": 2552,
         "kind": "context",
-        "message": "Cannot find name 'chatId'."
+        "message": "Cannot find name 'chatId'. Did you mean 'Chai'?"
       }
     ],
     "status": "fragment"
@@ -54592,12 +54592,6 @@
         "code": 2307,
         "kind": "context",
         "message": "Cannot find module '@cloudflare/vitest-plugin' or its corresponding type declarations."
-      },
-      {
-        "line": 3,
-        "code": 2307,
-        "kind": "context",
-        "message": "Cannot find module 'vitest/config' or its corresponding type declarations."
       }
     ],
     "status": "fragment"
@@ -54620,12 +54614,6 @@
         "code": 2307,
         "kind": "context",
         "message": "Cannot find module 'cloudflare:test' or its corresponding type declarations."
-      },
-      {
-        "line": 7,
-        "code": 2307,
-        "kind": "context",
-        "message": "Cannot find module 'vitest' or its corresponding type declarations."
       },
       {
         "line": 8,

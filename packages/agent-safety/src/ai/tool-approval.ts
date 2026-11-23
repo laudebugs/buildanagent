@@ -1,5 +1,5 @@
 /**
- * `signedToolApproval()`: signed, fail-closed approvals over the AI SDK's call-level `toolApproval`. In `ai` 7.0.162,
+ * `signedToolApproval()`: signed, fail-closed approvals over the AI SDK's call-level `toolApproval`. In `ai` 7.0.173,
  * `generateText` and `streamText` call `toolApproval` once when a call is first seen, and again, inside
  * `validateApprovedToolApprovals`, for every approved call in the incoming history before its `execute` runs. The
  * adapter signs a pending request on the first call and verifies it on the second, then re-runs current policy, so a
@@ -91,7 +91,7 @@ type Validated = { readonly ok: true; readonly value: unknown } | { readonly ok:
 const AI_SCHEMA = Symbol.for("vercel.ai.schema");
 
 /**
- * Validates `value` against a tool's `contextSchema` the way `ai` 7.0.162's `asSchema` reads one: an `ai` schema
+ * Validates `value` against a tool's `contextSchema` the way `ai` 7.0.173's `asSchema` reads one: an `ai` schema
  * object, a Standard Schema such as Zod's, or a function that returns either. Parsing can apply defaults and
  * transforms, so the policy must see the parsed value, as it would without the adapter.
  */

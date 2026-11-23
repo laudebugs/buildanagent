@@ -1,6 +1,6 @@
 # Fact-check: gateway follow-ups on unreported usage and retry-after
 
-This log checks the new factual claims in the gateway's README, the SDK's README, the changeset and the source comments of the pull request that prices unreported usage as unknown and honours retry-after hints. Both follow-ups came out of the review of the OpenAI adapter (#49). Every claim was read on 2026-11-19 from the official docs pages as Markdown (each URL with `.md` appended), from RFC 9110, and from the SDK sources installed in the workspace: openai-node v7.49.0 and anthropic-sdk-typescript v0.129.0.
+This log checks the new factual claims in the gateway's README, the SDK's README, the changeset and the source comments of the pull request that prices unreported usage as unknown and honours retry-after hints. Both follow-ups came out of the review of the OpenAI adapter (#49). Every claim in the original rows was read on 2026-11-19 from the official docs pages as Markdown (each URL with `.md` appended), from RFC 9110, and from the SDK sources installed in the workspace: openai-node v7.49.0 and anthropic-sdk-typescript v0.129.0.
 
 ## Retry-after headers
 
@@ -25,3 +25,12 @@ This log checks the new factual claims in the gateway's README, the SDK's README
 | 9 | Anthropic's `message_start` reports only the first few output tokens, and the final, cumulative count arrives on `message_delta` | README Anthropic "Usage", `anthropic/response.ts` | ✅ | [Streaming messages](https://platform.claude.com/docs/en/build-with-claude/streaming), as of November 2026: the examples show `message_start` with `output_tokens` of 1 to 3 and `message_delta` with the final count, and "The token counts shown in the `usage` field of the `message_delta` event are *cumulative*" |
 | 10 | A Chat Completions stream reports usage only in a final chunk, which `stream_options.include_usage` asks for | README OpenAI "Usage" | ✅ | Unchanged claim from the adapter's response module, which cites openai-node v7.49.0 `ChatCompletionChunk` |
 | 11 | An HTTP error response bills no tokens, so it counts as zero tokens rather than unreported usage | README "Every message carries its cost", `wire.ts` | ⚠️ | Neither provider's errors page says whether a failed request is billed. The rule keeps the gateway's earlier behaviour, so a retried 429 still has a known cost; the error body carries no usage to read |
+
+## The cites move to openai-node v7.57.0 and anthropic-sdk-typescript v1.8.0 (2026-11-23)
+
+The rows in this section were read on 2026-11-23 from the `src/client.ts` files that the `openai@7.57.0` and `@anthropic-ai/sdk@1.8.0` packages ship; the rows above were read on 2026-11-19 from the versions they name.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| docs/gateway-wire-sdk-cite-1 | Anthropic's official TypeScript SDK still reads `retry-after-ms` before `retry-after`, and the comment now cites v1.8.0, not v0.129.0 | `wire.ts` `retryAfterMs` TSDoc | ✅ | `@anthropic-ai/sdk@1.8.0` `src/client.ts`, `retryRequest` from line 1963 (compiled: `client.js` lines 881 to 907): it reads `retry-after-ms` first and takes `retry-after` only when no millisecond delay is set, as seconds or else as an HTTP date. It also falls back to its default backoff for a delay at or below zero or above 2^31 - 1; the comment makes no claim about that, and our function returns the hint for the caller to bound. The upstream tag is `sdk-v1.8.0`; the comment, like row 6, writes the version alone |
+| docs/gateway-wire-sdk-cite-2 | openai-node reads `retry-after-ms` before `retry-after` the same way, and the comment now cites v7.57.0, not v7.49.0 | `wire.ts` `retryAfterMs` TSDoc | ✅ | `openai@7.57.0` `src/client.ts`, `retryRequest` lines 2176 to 2194: `retry-after-ms` is read first, and `retry-after` only while `timeoutMillis` is still undefined, as seconds or else as an HTTP date. The same lines held in v7.49.0 (row 6), so only the cite moves |

@@ -1,6 +1,6 @@
 # Claude Agent SDK reference
 
-TypeScript reference for `@anthropic-ai/claude-agent-sdk`, pinned to **0.3.327**, which includes the bundled Claude Code CLI. Docs were fetched 2026-11-18.
+TypeScript reference for `@anthropic-ai/claude-agent-sdk`, pinned to **0.3.327**, which includes the bundled Claude Code CLI. Docs were fetched 2026-11-18. Its peer dependency `@anthropic-ai/sdk` (`>=0.93.0`) is pinned to 1.8.0 in the harness, as of 2026-11-23; see [the update note](fact-check.md#update-to-anthropic-aisdk-180-2026-11-23).
 
 | File | What it is |
 |---|---|

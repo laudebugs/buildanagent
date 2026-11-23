@@ -53,7 +53,7 @@ export function repairInterruptedWrite<PART extends Part>(part: PART, writes: Re
   // ran; the default repair, which reports a failure the model may retry, is the honest one for it.
   const state = (part as { state?: unknown }).state;
   if (state === "input-streaming" || state === "approval-requested") return undefined;
-  // `ai` 7.0.162's UI message validator takes an `output-available` tool part with any output and no error text; an
+  // `ai` 7.0.173's UI message validator takes an `output-available` tool part with any output and no error text; an
   // approval the part keeps is a granted one, because the agent settles a denied part as `output-denied` first.
   const { errorText: _dropped, ...rest } = part as Part & { errorText?: unknown };
   return { ...rest, state: "output-available", output: interrupted(name) } as unknown as PART;

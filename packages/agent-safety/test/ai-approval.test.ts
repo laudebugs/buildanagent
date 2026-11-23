@@ -195,7 +195,7 @@ test("a pause stores a signed request, and an approval runs the call once after 
   await agent.store.put(request);
   const result = await resume(agent, model, history);
   assert.deepEqual(agent.executed, [REFUND]);
-  // `ai` 7.0.162 calls toolApproval again before execute: the pin this adapter rests on.
+  // `ai` 7.0.173 calls toolApproval again before execute: the pin this adapter rests on.
   assert.deepEqual(agent.order, ["policy", "policy", "recheck", "execute"]);
   assert.equal(result.text, "Refunded.");
   assert.equal(toolResults(requests, 1)[0]?.output.type, "json");

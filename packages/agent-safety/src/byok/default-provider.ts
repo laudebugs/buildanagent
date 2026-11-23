@@ -1,5 +1,5 @@
 /**
- * `assertNoDefaultProvider()`: makes a string model id fail. In `ai` 7.0.162, `generateText`, `streamText` and the
+ * `assertNoDefaultProvider()`: makes a string model id fail. In `ai` 7.0.173, `generateText`, `streamText` and the
  * other calls resolve a string model id through `globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway`, and the gateway is
  * Vercel AI Gateway, which authenticates with `AI_GATEWAY_API_KEY` or a Vercel OIDC token from the environment. Setting
  * the global to a provider that refuses every model closes that path before any request is built.
@@ -9,7 +9,7 @@ import { SafetyError } from "../errors.js";
 // A registered symbol, so a second copy of the package recognises the refusing provider as its own.
 const REFUSING_PROVIDER = Symbol.for("buildanagent.agent-safety.RefusingDefaultProvider");
 
-// Every model factory `ai` 7.0.162 looks up on the default provider, in resolve-model.ts and batch.ts.
+// Every model factory `ai` 7.0.173 looks up on the default provider, in resolve-model.ts and batch.ts.
 const MODEL_FACTORIES = [
   "languageModel",
   "embeddingModel",

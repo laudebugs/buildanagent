@@ -1,6 +1,6 @@
 # verify/cloudflare-agents
 
-Offline verification harness for the Cloudflare Agents docs and our examples, pinned to `agents@0.33.0`, `@cloudflare/think@0.23.0` and `@cloudflare/ai-chat@0.12.2` (the latest npm releases as of November 2026), on `ai@7.0.162`. Everything runs in Cloudflare's local Workers runtime, `workerd@1.20261103.1`, through `miniflare@5.20261103.0-beta`. No API key or Cloudflare account is needed.
+Offline verification harness for the Cloudflare Agents docs and our examples, pinned to `agents@0.33.0`, `@cloudflare/think@0.23.0` and `@cloudflare/ai-chat@0.12.2` (the latest npm releases at the 2026-11-04 cutoff), on `ai@7.0.173`. Everything runs in Cloudflare's local Workers runtime, `workerd@1.20261113.1`, through `miniflare@5.20261113.0-beta`. No API key or Cloudflare account is needed.
 
 ## How it works
 
@@ -94,7 +94,7 @@ Think adds its workspace tools (`read`, `ls`, `find`, `grep`, `write`, `edit` an
 
 ## Why the local runtime is a miniflare beta
 
-`miniflare@5.20261103.0-beta` breaks the repo's "stable releases only" habit on purpose. The newest stable miniflare before the 2026-11-04 cutoff is 4.20260730.0, from July, which predates the `workerd` that `agents@0.33.0` needs. The newest stable wrangler, `wrangler@4.157.0` (published 2026-11-03), itself depends on `miniflare@5.20261103.0-beta`, so this harness uses the runtime that Cloudflare's own stable CLI ships.
+`miniflare@5.20261113.0-beta` (the harness began on `5.20261103.0-beta`) breaks the repo's "stable releases only" habit on purpose. The newest stable miniflare before the 2026-11-04 cutoff is 4.20260730.0, from July, which predates the `workerd` that `agents@0.33.0` needs. `wrangler@4.157.0` (published 2026-11-03), the newest stable wrangler then, depended on `miniflare@5.20261103.0-beta`, so the harness began on the runtime that Cloudflare's own stable CLI shipped. The sweep has since moved it three days past `wrangler@4.160.1`, which depends on `miniflare@5.20261110.1-beta`.
 
 ## Security alerts: one override, one accepted (2026-11-18, todo X2)
 
