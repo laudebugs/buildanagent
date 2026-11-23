@@ -31,6 +31,9 @@ const menu = header?.querySelector<HTMLElement>("[data-menu]") ?? null;
 const notesEntry = header?.querySelector<HTMLButtonElement>("[data-menu-notes]") ?? null;
 const searchToggle = header?.querySelector<HTMLButtonElement>("[data-search-toggle]") ?? null;
 const searchPanel = header?.querySelector<HTMLElement>("[data-header-search]") ?? null;
+// The reading settings' button and panel (public/scripts/reading-panel.js runs them); the slot holds them on every page.
+const settingsButton = header?.querySelector<HTMLButtonElement>("[data-reading-button]") ?? null;
+const settingsPanel = header?.querySelector<HTMLElement>("[data-reading-panel]") ?? null;
 
 const isOpen = (button: HTMLElement | null) => button?.getAttribute("aria-expanded") === "true";
 
@@ -40,6 +43,7 @@ function flags(): HeaderFlags {
     phone: phone.matches,
     menuOpen: isOpen(menuButton),
     searchOpen: isOpen(searchToggle),
+    settingsOpen: isOpen(settingsButton),
     // A tap leaves focus on a button in some browsers; only focus a keyboard or a typing reader put there counts.
     focusInside: !!header && !!active && header.contains(active) && active.matches(":focus-visible"),
     headerHeight,
@@ -94,6 +98,11 @@ function closeAll(): void {
 }
 
 menuButton?.addEventListener("click", () => setMenu(!isOpen(menuButton)));
+// Opening the reading settings closes the menu and the search panel, so only one thing hangs under the header. The
+// settings panel is a popover, which a click on the menu or search button closes in turn. Its open state pins the
+// header, as the menu's does, so the next frame reads it.
+settingsButton?.addEventListener("click", closeAll);
+settingsPanel?.addEventListener("toggle", schedule);
 searchToggle?.addEventListener("click", () => setSearch(!isOpen(searchToggle)));
 if (menuButton) menuButton.hidden = false;
 if (searchToggle) searchToggle.hidden = false;

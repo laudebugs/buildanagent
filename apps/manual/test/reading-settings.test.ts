@@ -219,8 +219,11 @@ test("the script's pairings, sizes and preloads are the ones book-tokens.json na
   );
 });
 
-test("the script never writes storage, touches the network or reads anything but its two keys", () => {
-  assert.doesNotMatch(SOURCE, /setItem|removeItem|fetch\(|XMLHttpRequest|sendBeacon|import\(|\beval\(|innerHTML/);
+test("the script's start-up never writes storage, and the script never touches the network", () => {
+  // save() writes, for the settings panel; the start-up after the API only reads (test/reading-panel.test.ts).
+  const startUp = SOURCE.slice(SOURCE.indexOf("window.manualReadingSettings = "));
+  assert.doesNotMatch(startUp, /setItem|removeItem|\bsave\(/);
+  assert.doesNotMatch(SOURCE, /fetch\(|XMLHttpRequest|sendBeacon|import\(|\beval\(|innerHTML/);
   assert.doesNotMatch(SOURCE, /^\s*(export|import)\b/m, "a blocking classic script cannot be a module");
 });
 
@@ -252,6 +255,18 @@ test("the header's wordmark divides only the rem parts of --size-chapter-link, n
   assert.ok(flat(header).includes(flat(expected)), `header.css sets the wordmark as ${expected}`);
 });
 
+test("the header's side padding divides only the rem parts of --gutter, so four buttons and the wordmark fit at 150%", () => {
+  const tokensCss = readFileSync(new URL("../src/styles/tokens.css", import.meta.url), "utf8");
+  const token = /--gutter:\s*clamp\(([\d.]+)rem,\s*([\d.]+)rem \+ ([\d.]+vw),\s*([\d.]+)rem\)/.exec(tokensCss);
+  assert.ok(token, "tokens.css defines --gutter as clamp(rem, rem + vw, rem)");
+  const [low = "", base = "", vw = "", high = ""] = token.slice(1);
+  const header = readFileSync(new URL("../src/styles/header.css", import.meta.url), "utf8");
+  const scaled = (rem: string) => `calc(${rem}rem / var(--reading-scale))`;
+  const expected = `padding-inline: clamp(\n    ${scaled(low)},\n    ${scaled(base)} + ${vw},\n    ${scaled(high)}\n  );`;
+  const flat = (text: string) => text.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")");
+  assert.ok(flat(header).includes(flat(expected)), `header.css sets the row's padding as ${expected}`);
+});
+
 test("the header's search field divides its height and padding by the text size, as the buttons do", () => {
   const header = readFileSync(new URL("../src/styles/header.css", import.meta.url), "utf8");
   const rule = [...header.matchAll(/\.site-header \.search-box__input \{([^}]*)\}/g)]
@@ -279,10 +294,17 @@ test("the CSS names a pairing's families only under that pairing's attribute", (
     const users = reading.pairings
       .filter((pairing) => pairing.display === key || pairing.body === key)
       .map((pairing) => `:root[data-reading-font="${pairing.id}"]`);
+    // The settings panel's "Aa" sample of a pairing whose headings use the face, drawn only while the panel is open.
+    const samples = reading.pairings
+      .filter((pairing) => pairing.display === key)
+      .map((pairing) => `[data-reading-sample="${pairing.id}"]`);
     assert.ok(users.length > 0, `${key} is used by a pairing`);
     for (const { selector, body } of blocks) {
       if (!body.includes(`"${face.cssFamily}"`)) continue;
-      assert.ok(selector === "@font-face" || users.includes(selector), `${face.cssFamily} is named under ${selector}`);
+      assert.ok(
+        selector === "@font-face" || users.includes(selector) || samples.includes(selector),
+        `${face.cssFamily} is named under ${selector}`,
+      );
     }
     for (const name of sheets.filter((sheet) => sheet !== "reading.css")) {
       const text = readFileSync(new URL(name, styles), "utf8");

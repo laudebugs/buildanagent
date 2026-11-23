@@ -88,6 +88,26 @@
   --weight-display: 700;
 }
 
+[data-reading-sample="book"] {
+  font-family: "Instrument Serif", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+[data-reading-sample="readable"] {
+  font-family: "Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+}
+
+[data-reading-sample="sans"] {
+  font-family: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
+}
+
+[data-reading-sample="slab"] {
+  font-family: "Bitter", Georgia, "Times New Roman", serif;
+  font-weight: 700;
+}
+
 :root[data-reading-size="90"] {
   --reading-scale: 0.9;
   font-size: 90%;
