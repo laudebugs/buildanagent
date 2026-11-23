@@ -664,3 +664,23 @@ test("a pairing with more files than one message may carry is sent in chunks and
   assert.equal(await saveFilesInChunks(win as unknown as globalThis.Window, paths, 5), null);
   assert.equal(await saveFilesInChunks(win as unknown as globalThis.Window, []), null);
 });
+
+test("with no usable storage the note says so from the first paint, before any choice", () => {
+  const { win, doc } = panelWindow();
+  Object.defineProperty(win, "localStorage", { get: () => null, configurable: true });
+  start(win as unknown as globalThis.Window);
+  assert.equal(doc.querySelector(".reading-panel__note")?.textContent?.trim(), NOTE_UNSAVED);
+  const ok = panelWindow();
+  start(ok.win as unknown as globalThis.Window);
+  assert.equal(ok.doc.querySelector(".reading-panel__note")?.textContent?.trim(), NOTE_SAVED);
+});
+
+test("a storage event from another storage area is ignored", () => {
+  const { win, root, storage } = panelWindow();
+  start(win as unknown as globalThis.Window);
+  storage.map.set("manual-reading-font", "slab");
+  win.dispatchEvent(new win.StorageEvent("storage", { key: "manual-reading-font", storageArea: {} as never }));
+  assert.equal(root.getAttribute("data-reading-font"), null, "a sessionStorage event changes nothing");
+  win.dispatchEvent(new win.StorageEvent("storage", { key: "manual-reading-font", storageArea: storage as never }));
+  assert.equal(root.getAttribute("data-reading-font"), "slab");
+});

@@ -46,7 +46,7 @@ export const SAVE_DELAY_MS = 600;
 
 /** The note under the choices while the settings are stored, and while storage refused them. */
 export const NOTE_SAVED = "Saved on this device";
-export const NOTE_UNSAVED = "Not saved: this lasts until you leave the page";
+export const NOTE_UNSAVED = "Not saved: this resets when you leave the page";
 
 /**
  * A trailing-edge scheduler: `schedule()` restarts a timer that runs `task` once after `delay`, and `flush()` runs it at
@@ -284,6 +284,7 @@ export function start(win) {
 
   // Another tab of the book changed the settings: this page follows.
   win.addEventListener("storage", (event) => {
+    if (event.storageArea && event.storageArea !== storage) return;
     if (event.key !== null && event.key !== api.FONT_KEY && event.key !== api.SIZE_KEY) return;
     const next = api.read(storage);
     if (next.font === settings.font && next.size === settings.size) return;
@@ -294,6 +295,8 @@ export function start(win) {
     if (changedFont) fontChanged();
   });
 
+  // With no usable storage the note must not claim "Saved" before the first pick.
+  if (note && !storage) note.textContent = NOTE_UNSAVED;
   sync();
   panel.hidden = false;
   button.hidden = false;
