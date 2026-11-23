@@ -48,6 +48,8 @@ The docs look like the book because they read the book's design data instead of 
 
 Run `pnpm --filter @buildanagent/docs tokens` after changing `book-tokens.json`. It rewrites `tokens.css` and replaces `public/fonts/` with a fresh copy of the book's folder, so a font the book drops leaves the docs too. Starlight loads `tokens.css` before `starlight.css`, and `astro.config.mjs` lists them in that order.
 
+The page chrome follows the same rule. `src/components/SocialIcons.astro` overrides Starlight's header links and puts Docs, Manual and Site before the GitHub icon, in the order of the site's header, with Docs marked `aria-current`; on a phone they sit in the menu beside the theme select. Their addresses are hard-coded in `src/chrome.ts` until the shared header source replaces that file. The Previous and Next links at the foot of a page are one compact row each, with a rule border, no shadow, a 12px label, a title at the note size and a 44px minimum height, set in `starlight.css`.
+
 Four test files guard the theme:
 
 - `test/tokens.test.ts` fails when `tokens.css` differs from what the generator writes, when the docs tokens differ from the book's anywhere between the header comment and the print block, or when `customCss` stops loading the tokens first.

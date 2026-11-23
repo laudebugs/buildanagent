@@ -1,0 +1,51 @@
+---
+import Default from "@astrojs/starlight/components/SocialIcons.astro";
+import { siteLinks } from "../chrome.js";
+---
+
+<nav class="site-links" aria-label="buildanagent sites">
+  {
+    siteLinks.map((link) => (
+      <a href={link.href} aria-current={link.current ? "page" : undefined}>
+        {link.label}
+      </a>
+    ))
+  }
+</nav>
+<Default {...Astro.props} />
+
+<style>
+  .site-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: var(--sl-text-sm);
+  }
+
+  .site-links a {
+    color: var(--sl-color-text-accent);
+    text-decoration: none;
+    padding-block: 0.5rem;
+  }
+
+  .site-links a:hover {
+    color: var(--sl-color-white);
+    text-decoration: underline;
+  }
+
+  /* The current site reads as plain text, and the underline marks the others as links. */
+  .site-links a[aria-current] {
+    color: var(--sl-color-white);
+  }
+
+  @media (max-width: 49.99rem) {
+    .site-links {
+      flex-wrap: wrap;
+      padding-block: 0.5rem;
+    }
+
+    .site-links a {
+      padding-block: 0.75rem;
+    }
+  }
+</style>
