@@ -38,16 +38,16 @@ Give the manual (manual.buildanagent.fyi) and the docs (docs.buildanagent.fyi) t
 
 ## Tasks
 
-- [ ] Add the file and the link to the manual, with its test.
-- [ ] Add the file and the Starlight setting to the docs, with its test.
-- [ ] Check that the manual's and the docs' stage and guard scripts accept the file, and that `_headers` needs no change.
-- [ ] Check the icon at 16 and 32 pixels in a light and a dark colour scheme, and record how in the pull request.
+- [x] Add the file and the link to the manual, with its test.
+- [x] Add the file and the Starlight setting to the docs, with its test.
+- [x] Check that the manual's and the docs' stage and guard scripts accept the file, and that `_headers` needs no change.
+- [x] Check the icon at 16 and 32 pixels in a light and a dark colour scheme, and record how in the pull request.
 
 ## Acceptance criteria
 
-- [ ] Both built sites contain `/favicon.svg`, identical to the site's, and every built HTML page links it
-- [ ] The test in each app fails when the file or the link is removed
-- [ ] The stage and guard scripts pass on both builds with no `.github/` change
+- [x] Both built sites contain `/favicon.svg`, identical to the site's, and every built HTML page links it
+- [x] The test in each app fails when the file or the link is removed
+- [x] The stage and guard scripts pass on both builds with no `.github/` change
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
