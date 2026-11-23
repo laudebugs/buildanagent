@@ -9,8 +9,7 @@ A test should never reach a real provider by accident. You need this to turn rea
 
 Start each test file with one import. It blocks every request to a host other than your own machine, stops the run if a provider API key is set and turns real model requests off:
 
-```ts
-import "@buildanagent/gateway/testing/setup";
+```ts file="packages/sdk/examples/offline-setup.ts" region="setup"
 ```
 
 An adapter that tries to send a request anyway throws an error with the code `model_requests_disabled` before it sends anything.

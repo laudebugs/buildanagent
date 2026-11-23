@@ -6,7 +6,14 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Every figure the docs draw, by id. A page places one with `::figure[caption]{id="<id>" alt="…"}`. */
-export const FIGURE_IDS = ["package-map", "run-loop"] as const;
+export const FIGURE_IDS = [
+  "approval-pause",
+  "gateway-adapters",
+  "package-map",
+  "run-loop",
+  "stop-reasons",
+  "stream-and-transcript",
+] as const;
 
 export type FigureId = (typeof FIGURE_IDS)[number];
 

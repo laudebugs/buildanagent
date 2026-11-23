@@ -8,7 +8,7 @@ Pages live in `src/content/docs/`, and the explicit sidebar in `astro.config.mjs
 
 - The first paragraph has 50 words or fewer, a sentence has 40 or fewer, and a paragraph has 100 or fewer.
 - No todo, decision or round id, repository path or banned word appears, and headings are in sentence case.
-- Each code block follows a sentence that introduces it. A block of more than five lines comes from a tested example, and a shorter inline block must type-check against the packages.
+- Each code block follows a sentence that introduces it, and every TypeScript block comes from a tested example file (see the next section).
 - Every page except the home page is in the sidebar and ends with a link to the next page.
 
 ## Show an example file
@@ -20,7 +20,7 @@ A fence with a `file` attribute takes its code from a file under a package's `ex
 ```
 ````
 
-The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build.
+The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import. `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
 
 ## Draw a figure with a script, and the build inlines it
 
@@ -40,6 +40,8 @@ A figure is a script that draws an SVG with the book's kit, and a page places th
 Draw a figure 320 units wide or less where you can. At that width it fits a 390 px phone whole. A wider figure keeps its natural size, so its labels stay at 12 px, and its panel scrolls sideways under a hint on a narrower screen. The kit allows up to 520.
 
 The build fails, naming the page and line, when a figure has no alt text, no caption or an id the registry lacks. It also fails when the directive carries any other attribute, when a page shows one figure twice or when the caption holds more than text and inline code. `src/plugins/figure.ts` implements the directive. Starlight's remark-directive parses it, and the plugin runs before Starlight puts unknown directives back as text.
+
+The directive works in `.md` and `.mdx` pages alike: `concepts/the-gateway.mdx` places one, and `test/figure-build.test.ts` requires that an MDX page carries a figure. A caption holds no apostrophe, because Starlight's typographic quotes change it and the test compares the text as written.
 
 Each committed SVG starts with a `<style>` that embeds the code font and the panel tokens, so the file renders on its own, for example in a pull request. The page inlines the drawing without that standalone `<style>`. `src/plugins/figure-svg.ts` reads the rest of the file tag by tag, repairs nothing and refuses:
 
@@ -117,7 +119,13 @@ Five more test files guard the theme and the header:
 - `test/chrome.test.ts` reads `apps/site/src/landing/copy.ts` and fails when `chrome.ts` lists the site links under other labels or in another order, when an address differs, or when the links marked current are not exactly Docs.
 - `test/styles.test.ts` fails when a docs stylesheet or component writes a hex colour or loads from another origin, when a `--sl-color-*` variable is set to anything but a colour token, when a decorative token (rules, highlights, panel border and grid) colours text, when inline code in a link stops inheriting the link's colour, and when headings leave the display face at weight 400. To judge a decorative token, the test follows a variable through every custom property that names it, to the declarations that finally paint it, in Starlight's files, Pagefind's `css/ui.css` (which paints the `--pagefind-ui-*` variables) and the docs' own. A chain that ends in anything but a border, a background or a box shadow, a cycle, and a variable nothing reads all count as not decorative. It also fails when the Previous and Next links gain a shadow or lose their rule border, their label and note sizes or their 44px minimum height.
 
-The file `pairs.ts` holds 47 pairs: 34 text pairs and 13 non-text pairs. To add a colour pair, append an entry to `STARLIGHT_PAIRS` in `src/design/pairs.ts` with its role, the two tokens as `page.<key>` or `panel.<key>`, and `text` or `nonText`. The test reads both tokens in each mode, so a failure names the role, the mode and the ratio. The book's own pairs stay in `book-tokens.json`, whose test counts them, so the docs keep theirs apart.
+The file `pairs.ts` holds 52 pairs: 38 text pairs and 14 non-text pairs. To add a colour pair, append an entry to `STARLIGHT_PAIRS` in `src/design/pairs.ts` with its role, the two tokens as `page.<key>` or `panel.<key>`, and `text` or `nonText`. The test reads both tokens in each mode, so a failure names the role, the mode and the ratio. The book's own pairs stay in `book-tokens.json`, whose test counts them, so the docs keep theirs apart.
+
+### The home page
+
+`src/content/docs/index.mdx` is the owner's chosen "package cards" design. It uses Starlight's `splash` template and has four parts: a hero with a title and tagline but no buttons, the alpha install command in the Install page's pnpm, npm and yarn tabs, a `CardGrid` with one `LinkCard` for each of the six packages, and a "Learn the ideas" block with two `LinkButton`s. The gateway and SDK cards open the Install and first-agent pages. The other four open the package's README on GitHub, because the docs have no page for them yet; move a card to its quick start when one exists. Keep each `LinkCard` on one line and separate the cards with blank lines, so the content tests count each card's words as their own paragraph.
+
+`starlight.css` styles the page through `[data-has-hero]:has(.card-grid)`, because Starlight's fallback 404 also sets `data-has-hero` and only the home page holds a card grid: a 60rem content width, a centred hero, and cards in three columns from 64rem, two from 40rem and one below, each card a flat panel whose whole area is the link. The card's colours are tokens, and the five pairs they create are in `pairs.ts`. `test/home.test.ts` reads the page source and requires six cards in the design's order, a target for each (a docs page, or a package README in the repository), install commands equal to the Install page's, and links to the manual and a guide. It also requires three guards: no home rule applies without the card grid, the global link rules skip a button, and the built 404 page has no card grid.
 
 ### Printing, code markers and linked code
 

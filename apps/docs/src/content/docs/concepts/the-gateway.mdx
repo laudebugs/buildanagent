@@ -1,0 +1,102 @@
+---
+title: The gateway
+description: The gateway calls a model through one adapter, streams every answer as the same events, retries failed calls, caches prompts and prices each answer.
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+The gateway makes every model call for your agent, whichever provider answers. It streams one set of events, retries a failed call, caches your prompt and prices each answer. You need this to know what happens between your agent and a provider.
+
+## An adapter reaches each provider
+
+An adapter is an object that talks to one provider, and you make it with your own API key. `createModel()` binds one adapter to one model id, and the result is the model your code calls. The gateway ships two adapters. `anthropic()` speaks Anthropic's Messages API, and `openaiChat()` (shown as `openai-chat`) speaks OpenAI's Chat Completions API and the servers that copy it. A scripted adapter plays answers from memory and sends no request, so a test needs no key.
+
+::figure[A call goes from your code through the gateway to one adapter]{id="gateway-adapters" alt="Your code calls one model, and the gateway passes each call to an adapter. The anthropic and openai-chat adapters reach a provider's API, and a scripted adapter sends no request."}
+
+Make a model with the adapter for your provider. Each adapter takes the key you pass it and never reads one from the environment:
+
+<Tabs syncKey="adapter">
+  <TabItem label="Anthropic">
+  ```ts file="packages/sdk/examples/make-model.ts" region="model"
+  ```
+  </TabItem>
+  <TabItem label="OpenAI">
+  ```ts file="packages/sdk/examples/make-openai-model.ts" region="model"
+  ```
+  </TabItem>
+</Tabs>
+
+The gateway streams, retries, caches and prices every call, whichever adapter you pass. An adapter implements one method, `stream()`, and `createModel()` adds `complete()`, retries, caching and pricing around it. The scripted adapter below is that method and nothing more:
+
+```ts file="packages/gateway/examples/03-scripted-adapter.ts" region="scripted"
+```
+
+The SDK's `ScriptedModel` is a scripted adapter that plays the answers you list, one for each call. [Your first agent](/start/first-agent/) runs a model with the Anthropic adapter.
+
+## Every adapter streams the same events
+
+`model.stream()` yields one event sequence for every adapter: a `start` event, each content block's start, deltas and end, and one terminal event, `done` or `error`. The terminal event carries the finished assistant message. `model.complete()` folds the stream into that message for you.
+
+Two more events can appear. A `retry` event comes after `start` and before any content when the gateway retries a failed call. A `warning` event reports something the call survived, such as an option the provider would reject, and can come anywhere between `start` and the terminal event. [The transcript and the stream](/concepts/transcript-and-stream/) states the four rules of the sequence.
+
+This code reads a stream's text as it arrives and keeps the closing message:
+
+```ts file="packages/gateway/examples/01-text-stream.ts" region="text-stream"
+```
+
+## A retry happens only before output
+
+A call that fails before the model has streamed any content is retried twice by default. The first retry waits 2 seconds and the second waits 4. Each wait doubles and never passes 60 seconds. Set `retries` in `createModel()` to change the count, or to 0 to turn retries off.
+
+Four rules keep a retry from doing harm:
+
+1. Once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen.
+2. Only an error of kind `retryable`, such as a rate limit or an overloaded server, is retried. A `quota`, `overflow` or `fatal` error ends the call at once.
+3. When the provider says how long to wait, the gateway waits at least that long, up to the 60-second cap.
+4. A provider that asks for more than 60 seconds ends the call at once, with no retry. The error keeps its `retryAfterMs`, so your code can wait that long and call again.
+
+The examples below share a small setup. This is a long system prompt, called `policy`:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="policy"
+```
+
+This code makes a model over `stub`, a test double for Anthropic's Messages API that answers the HTTP statuses you queue:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="wire"
+```
+
+This helper asks one question with `cacheRetention` set to `"short"`, which the caching section explains:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="ask"
+```
+
+In this code the provider answers HTTP 529 once. The gateway retries, and the caller sees only the answer:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="retry"
+```
+
+A failed attempt still costs tokens, so the final message's usage and cost add up every attempt.
+
+## One option sets prompt caching
+
+The `cacheRetention` option takes `"none"`, `"short"` or `"long"`. Each adapter maps it to its provider's cache controls, and leaving it out means `"short"`. The Anthropic adapter puts up to three cache breakpoints, on the system prompt, the last tool and the last block of the last user message. `"short"` asks for the 5-minute cache, `"long"` asks for the 1-hour cache and `"none"` sends no breakpoint. OpenAI caches prompts on its own, so the OpenAI-compatible adapter acts on the option only for a model the gateway marks as taking explicit cache breakpoints or extended retention.
+
+The first call with a long system prompt writes the prompt to the cache. The next call with the same prompt reports the tokens it read from the cache:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="cache"
+```
+
+## Every answer carries its cost
+
+Every assistant message arrives with its usage and its cost. Usage counts four classes of token: `uncachedInput`, `cacheRead`, `cacheWrite`, which is split by lifetime into `5m` and `1h`, and `output`. Reasoning tokens count as output. The cost is in US dollars, in `cost.total`. The gateway multiplies each class by its rate in a price catalog, which lists rates per million tokens, and you can replace the catalog.
+
+The cost's `basis` says where the number came from. `"provider"` means the adapter reported a total that the provider billed. `"catalog"` means the gateway multiplied your usage by the catalog's rates. `"unknown"` means the catalog lacks the model, or the provider never reported usage, and `total` is `null`. The gateway never guesses a zero, because a budget that counts an unknown price as free never stops.
+
+This code reads a closing message's usage and cost, priced at Claude Sonnet 5.5's rates:
+
+```ts file="packages/gateway/examples/02-stream-usage.ts" region="stream-usage"
+```
+
+The [gateway's API reference](/reference/gateway/) lists every export of the package.
+
+Next, see [why a run stops](/concepts/stop-reasons/).

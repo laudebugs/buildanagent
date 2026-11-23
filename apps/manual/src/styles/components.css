@@ -1718,6 +1718,19 @@
   resize: vertical;
 }
 
+/* iOS Safari zooms the page when a field under 16px takes focus. Wherever a finger is one of the inputs, every text
+   field the book draws is at least 16px; with only a mouse it keeps its smaller size. The query is any-pointer, not
+   pointer: an iPad with a mouse attached may report a fine primary pointer, yet a finger can still focus a field there.
+   Pagefind's own search field already sets 16px. Add a new field's selector to this list. test/touch-fields.test.ts
+   fails when a selector is missing or a later or more specific rule overrides it. */
+@media (any-pointer: coarse) {
+  .search-box__input,
+  .notes-pop__field,
+  .notes-dialog__field {
+    font-size: max(1rem, var(--size-note));
+  }
+}
+
 .notes-dialog__list {
   margin: 0;
   padding: 0;
