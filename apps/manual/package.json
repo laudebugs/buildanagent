@@ -23,6 +23,7 @@
     "check:save-offline": "node scripts/save-offline-check.mjs",
     "offline:verify": "node scripts/offline-verify-deployed.mjs",
     "check:book": "tsx scripts/check-book.ts",
+    "audit:papers": "tsx scripts/audit-papers.ts",
     "check:touch-fields": "node scripts/touch-fields-check.mjs",
     "check:note-sheet": "node scripts/note-sheet-check.mjs",
     "check:note-editor": "node scripts/note-editor-flow-check.mjs",

@@ -13,6 +13,7 @@ Run each from the repo root.
 | `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including a full build into a temporary folder |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
+| `pnpm --filter @buildanagent/manual audit:papers` | Reports how the chapters name each research paper in the register, and lists research names the register lacks; it writes nothing and never fails |
 | `pnpm --filter @buildanagent/manual registers:format` | Rewrites the three registers in their canonical layout: one entry per line, sorted by id |
 | `pnpm --filter @buildanagent/manual book:switch-report` | Lists each written chapter's `switchTo` todos and which are done; `test` runs it too, and it never fails |
 | `pnpm --filter @buildanagent/manual tokens` | Regenerates `src/styles/tokens.css` from `book-tokens.json` |
@@ -69,6 +70,28 @@ Each register entry names the fact-check log that verified it:
 ```
 
 `kind` is `docs`, `repo`, `paper`, `spec` or `post`, and an optional `version` holds a tag or commit. `verifiedIn` is a path from the repository root, and it must name a fact-check log. Four kinds count: a `fact-check*.md` file under `docs/research/` or in `docs/plans/reviews/`, a `docs/reference/<sdk>/fact-check.md`, and a chapter's own log in `apps/manual/fact-checks/`. That log must contain the URL, whether as an inline link, a bare URL or a reference-style definition. To cite a new source, first add its row to the chapter's fact-check log, `apps/manual/fact-checks/<slug>.md`, then add the entry with that log as `verifiedIn`. Set `"secondary": true` when the check rests on a search summary or a secondary write-up; the sources page then says so.
+
+## How to cite a research paper
+
+Name a research paper with `[[paper:id]]`, never as bare text. The rule covers papers and named research systems, such as ReAct or SkillCFI, but not specs, standards or vendor docs. Its register entry has `"kind":"paper"` and three more fields:
+
+- `short`, the name the page shows, such as `"SkillCFI"`;
+- `blurb`, one clause that says who wrote the paper, where and when it appeared, and what it does or found, such as `"a November 2026 arXiv paper by Ruan et al. on control-flow integrity for agent skills"`;
+- `aliases`, optional, for other spellings, such as `["τ-bench"]`.
+
+The blurb shows in parentheses after the name, so it has no parentheses of its own and no closing full stop. The `url` must be the paper's own page: its arXiv abstract, its DOI, or its page at a venue that `src/book/papers.ts` lists.
+
+A chapter's first `[[paper:id]]` of a paper shows the name as a link to `/sources/#<id>`, then the blurb. Every later one shows the linked name alone. When your sentence already says what the paper is and who wrote it, write the first one as `[[paper:id described]]`, and no blurb is added. `check:book` lists every `described` mention, so a reviewer can read each sentence. A `[@id]` citation of a paper is still how you cite it, and it counts as a linked mention, but it cannot be the chapter's first mention, because a number says nothing about the paper. The id must be in the chapter's `sources`, as for a citation.
+
+`check:book` fails when a chapter:
+
+- writes a paper's `short` name or an alias as bare text outside code and links (the match is case-sensitive and whole-word);
+- first mentions a paper with a `[@id]` citation, or marks a later mention `described`;
+- writes `[[paper:id]]` for an id that is not a paper, for a paper still pending, or for a paper missing from its `sources`.
+
+It also fails on a paper entry without `short`, `blurb` or a paper-page `url`, unless the paper is pending. [`src/data/papers-pending.json`](src/data/papers-pending.json) lists the papers whose `short` and `blurb` are not written yet. They are exempt until the content todos write and fact-check each blurb, add the paper's names and empty the list. An id on the list must be a paper with no `short` or `blurb`, so the list can only shrink. `check:book` prints how many remain.
+
+The sources page shows each paper's name and blurb, and under "Cited in" links each chapter that mentions the paper to its first mention there. `audit:papers` reports every paper's mentions in each chapter, which first mentions lack a description, and capitalised names near "paper", "arXiv" or "et al." that no register paper uses.
 
 ## References name an id, and the build writes the number
 

@@ -11,8 +11,26 @@ export const SOURCE_KINDS = ["docs", "repo", "paper", "spec", "post"] as const;
 const MONTH_YEAR =
   /^(January|February|March|April|May|June|July|August|September|October|November|December) (19|20)\d{2}$/;
 
+/** Markdown a short name or a blurb must not hold: they render as plain text inside a sentence. */
+const MARKUP = /`|\[|\]|\*\*|__/;
+
+/** The longest blurb: a clause inside a sentence, not a paragraph. */
+const MAX_BLURB = 240;
+
+/**
+ * A paper's display name, as chapters write it: `SkillCFI`, `ReAct`. The bare-name rule matches it with its exact
+ * case, so it must hold a letter.
+ */
+const paperName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(60)
+  .refine((text) => !MARKUP.test(text), "a paper's name must be plain text, with no Markdown")
+  .refine((text) => /\p{L}/u.test(text), "a paper's name must hold a letter");
+
 /** One entry in the source register, `src/data/sources.json`. */
-export const sourceSchema = z.strictObject({
+const sourceFields = z.strictObject({
   /** The id chapters cite with `[@id]`, and the anchor on the sources page. */
   id: z.string().regex(KEBAB_ID, "id must be kebab-case"),
   title: z.string().trim().min(1),
@@ -28,6 +46,36 @@ export const sourceSchema = z.strictObject({
   verifiedIn: z.string().trim().min(1),
   /** True when that check rests on a search summary or a secondary write-up. */
   secondary: z.boolean().optional(),
+  /** A paper's display name, which a chapter's `[[paper:id]]` shows as a link and which no chapter writes bare. */
+  short: paperName.optional(),
+  /**
+   * A paper's description: who wrote it, where and when it appeared, and in one clause what it does or found. A
+   * chapter's first `[[paper:id]]` shows it in parentheses after the name, so it is plain text with no parentheses and
+   * no closing full stop: "a November 2026 arXiv paper by Ruan et al. on control-flow integrity for agent skills".
+   */
+  blurb: z
+    .string()
+    .trim()
+    .min(1)
+    .max(MAX_BLURB, `a blurb is one clause; keep it under ${MAX_BLURB} characters`)
+    .refine((text) => !MARKUP.test(text), "the blurb must be plain text, with no Markdown")
+    .refine((text) => !/[()]/.test(text), "the blurb shows inside parentheses, so it holds none of its own")
+    .refine((text) => !/[.!?]$/.test(text), "the blurb shows mid-sentence, so it ends without a full stop")
+    .optional(),
+  /** Other spellings of a paper's name that chapters must not write bare either, such as "τ-bench" for "tau-bench". */
+  aliases: z.array(paperName).min(1).optional(),
+});
+
+/**
+ * One entry in the source register, `src/data/sources.json`. Only a paper takes `short`, `blurb` and `aliases`. A
+ * paper needs `short` and `blurb` unless `src/data/papers-pending.json` lists it; `checkPapers` applies that rule,
+ * because the schema cannot see the list.
+ */
+export const sourceSchema = sourceFields.superRefine((entry, ctx) => {
+  if (entry.kind === "paper") return;
+  for (const key of ["short", "blurb", "aliases"] as const) {
+    if (entry[key] !== undefined) ctx.addIssue({ code: "custom", path: [key], message: `only a paper takes ${key}` });
+  }
 });
 
 /** One entry in the source register. */

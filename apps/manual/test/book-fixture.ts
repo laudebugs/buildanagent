@@ -34,6 +34,7 @@ export function fixtureInputs(dir: string = FIXTURE_DIR, outline: Outline = FIXT
     factChecksDir: join(dir, "apps/manual/fact-checks"),
     figuresDir: join(dir, "figures"),
     sourcesFile: join(dir, "sources.json"),
+    papersPendingFile: join(dir, "papers-pending.json"),
     glossaryFile: join(dir, "glossary.json"),
     analogiesFile: join(dir, "analogies.json"),
     harnessesFile: join(dir, "harnesses.json"),

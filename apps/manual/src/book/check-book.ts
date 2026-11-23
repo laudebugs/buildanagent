@@ -4,7 +4,8 @@ import { pathToFileURL } from "node:url";
 import { markdownConfigDefaults, parseFrontmatter, unified } from "@astrojs/markdown-remark";
 import { markdownOptionsFor } from "../markdown/options.js";
 import { renderedBody } from "./book-index.js";
-import { type BookInputs, loadBook } from "./load.js";
+import { type Book, type BookInputs, loadBook } from "./load.js";
+import { isPaperUrl, mentionLine, paperUses } from "./papers.js";
 import { BookError, type Problem } from "./problems.js";
 
 interface VFileMessageLike {
@@ -26,13 +27,55 @@ function renderProblem(error: unknown, file: string): Problem {
  * plugins the build uses. It returns every problem found; an empty list means the build's content rules pass.
  */
 export async function checkBook(inputs?: BookInputs): Promise<readonly Problem[]> {
-  let book: ReturnType<typeof loadBook>;
+  return (await checkBookReport(inputs)).problems;
+}
+
+/** What `check:book` finds: the problems that fail it, and the notes it prints for reviewers whether or not it fails. */
+export interface BookReport {
+  readonly problems: readonly Problem[];
+  readonly notes: readonly string[];
+}
+
+/** `checkBook`, plus the notes `check:book` prints: the papers still pending and every `[[paper:id described]]`. */
+export async function checkBookReport(inputs?: BookInputs): Promise<BookReport> {
+  let book: Book;
   try {
     book = loadBook(inputs);
   } catch (error) {
-    if (error instanceof BookError) return error.problems;
+    if (error instanceof BookError) return { problems: error.problems, notes: [] };
     throw error;
   }
+  return { problems: await renderProblems(book), notes: paperNotes(book) };
+}
+
+/**
+ * The paper notes a reviewer reads: how many papers still wait for a short name and blurb, which of them link no
+ * paper page yet, and each `[[paper:id described]]`, whose sentence must describe the paper because no blurb is shown.
+ */
+export function paperNotes(book: Book): string[] {
+  const pending = [...book.papers.pending].sort();
+  const notes = [`${pending.length} paper(s) pending a short name and blurb in ${book.names.papersPending}`];
+  const badUrls = pending.filter((id) => {
+    const url = book.sources.get(id)?.url;
+    return url !== undefined && !isPaperUrl(url);
+  });
+  if (badUrls.length > 0) notes.push(`pending papers whose url is not a paper's own page yet: ${badUrls.join(", ")}`);
+  const described: string[] = [];
+  for (const [id, uses] of paperUses(book.index.written.values(), book.papers, book.sources)) {
+    for (const { chapter, mentions } of uses) {
+      for (const mention of mentions) {
+        if (mention.kind !== "described") continue;
+        const file = relative(book.inputs.repoRoot, book.index.written.get(chapter.slug)?.file ?? chapter.slug);
+        described.push(`${file}:${mentionLine(mention) ?? "?"}: [[paper:${id} described]]`);
+      }
+    }
+  }
+  notes.push(`${described.length} paper mention(s) marked described, whose sentence must describe the paper:`);
+  notes.push(...described.sort().map((line) => `  ${line}`));
+  return notes;
+}
+
+async function renderProblems(book: Book): Promise<Problem[]> {
   const { syntaxHighlight, shikiConfig } = markdownConfigDefaults;
   const renderer = await unified(markdownOptionsFor(book)).createRenderer({ syntaxHighlight, shikiConfig });
   const problems: Problem[] = [];

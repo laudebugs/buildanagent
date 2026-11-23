@@ -115,7 +115,7 @@ const cases: readonly Case[] = [
     rule: "a register entry that breaks the schema fails",
     change: (dir) => editJson(dir, "sources.json", (s) => [...s, { ...s[0], id: "gamma-docs", asOf: "2026" }]),
     file: "sources.json",
-    message: /entry 3: asOf: asOf must be a month and year/,
+    message: /entry 4: asOf: asOf must be a month and year/,
   },
   // The glossary (BK7).
   {
@@ -727,6 +727,131 @@ const cases: readonly Case[] = [
     change: listingLine((l) => l.replace("[Greeting the reader]", "")),
     file: LISTING,
     message: /a listing needs a caption, written ::listing\[Caption\]\{#greet file="…"\}/,
+  },
+  // Research papers: the register's fields, the pending list and how chapters name a paper.
+  {
+    rule: "a paper neither pending nor given a short name and blurb fails",
+    change: (dir) =>
+      editJson(dir, "sources.json", (s) => s.map((e) => (e.id === "gamma-paper" ? { ...e, blurb: undefined } : e))),
+    file: "sources.json",
+    message: /gamma-paper: a paper needs blurb; fill it in, or list the id in papers-pending\.json/,
+  },
+  {
+    rule: "a paper whose url is not a paper's own page fails",
+    change: (dir) =>
+      editJson(dir, "sources.json", (s) =>
+        s.map((e) => (e.id === "gamma-paper" ? { ...e, url: "https://example.org/beta" } : e)),
+      ),
+    file: "sources.json",
+    message: /gamma-paper: https:\/\/example\.org\/beta is not a paper's own page/,
+  },
+  {
+    rule: "a pending id that is not a paper fails",
+    change: (dir) => edit(dir, "papers-pending.json", () => '["beta-paper", "alpha-docs"]'),
+    file: "papers-pending.json",
+    message: /alpha-docs is not a paper in the register/,
+  },
+  {
+    rule: "a pending id whose paper already has a blurb fails",
+    change: (dir) => edit(dir, "papers-pending.json", () => '["beta-paper", "gamma-paper"]'),
+    file: "papers-pending.json",
+    message: /gamma-paper already has a short name or a blurb/,
+  },
+  {
+    rule: "a short name on a source that is not a paper fails",
+    change: (dir) => editJson(dir, "sources.json", (s) => [...s, { ...s[0], id: "alpha-two", short: "Alpha" }]),
+    file: "sources.json",
+    message: /entry 4: short: only a paper takes short/,
+  },
+  {
+    rule: "a blurb that ends with a full stop fails",
+    change: (dir) =>
+      editJson(dir, "sources.json", (s) =>
+        s.map((e) => (e.id === "gamma-paper" ? { ...e, blurb: `${String(e.blurb)}.` } : e)),
+      ),
+    file: "sources.json",
+    message: /entry 3: blurb: the blurb shows mid-sentence/,
+  },
+  {
+    rule: "a spelling two papers share fails",
+    change: (dir) =>
+      editJson(dir, "sources.json", (s) => [
+        ...s,
+        { ...s[2], id: "gamma-two", aliases: ["Gamma"], short: "Gamma Two" },
+      ]),
+    file: "sources.json",
+    message: /gamma-two: "Gamma" already names gamma-paper/,
+  },
+  {
+    rule: "a paper's short name as bare text fails with its line",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "Gamma measured it. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /"Gamma" names the paper gamma-paper as bare text; write \[\[paper:gamma-paper\]\]/,
+  },
+  {
+    rule: "a paper's alias as bare text fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "GammaNet's run. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /"GammaNet" names the paper gamma-paper as bare text/,
+  },
+  {
+    rule: "a paper's name as bare text in a table cell fails",
+    change: firstChapter((t) => t.replace("| Answer | The model replies", "| Answer | Gamma replies")),
+    file: `${FIRST}:21`,
+    message: /"Gamma" names the paper gamma-paper as bare text/,
+  },
+  {
+    rule: "a citation as a chapter's first mention of a paper fails",
+    change: firstChapter((t) =>
+      t
+        .replace("sources: [alpha-docs, beta-paper]", "sources: [alpha-docs, beta-paper, gamma-paper]")
+        .replace("Lowercase mcp", "It was measured [@gamma-paper], as [[paper:gamma-paper]] shows. Lowercase mcp"),
+    ),
+    file: `${FIRST}:12`,
+    message: /\[@gamma-paper\] is this chapter's first mention of Gamma, and a citation does not describe the paper/,
+  },
+  {
+    rule: "a described mention after the first fails",
+    change: firstChapter((t) =>
+      t
+        .replace("sources: [alpha-docs, beta-paper]", "sources: [alpha-docs, beta-paper, gamma-paper]")
+        .replace(
+          "Lowercase mcp",
+          "[[paper:gamma-paper]] ran; [[paper:gamma-paper described]] ran again. Lowercase mcp",
+        ),
+    ),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:gamma-paper described\]\] is not the chapter's first mention of Gamma/,
+  },
+  {
+    rule: "a paper reference to a source that is not a paper fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:alpha-docs]] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:alpha-docs\]\] names no paper in the source register/,
+  },
+  {
+    rule: "a paper reference to an unknown id fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:delta-paper]] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:delta-paper\]\] names no paper in the source register/,
+  },
+  {
+    rule: "a paper reference to a pending paper fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:beta-paper]] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:beta-paper\]\] names a paper that has no short name and blurb yet/,
+  },
+  {
+    rule: "a paper reference missing from the chapter's sources fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:gamma-paper]] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:gamma-paper\]\] names a paper not in this chapter's `sources`/,
+  },
+  {
+    rule: "a malformed paper reference fails",
+    change: firstChapter((t) => t.replace("Lowercase mcp", "[[paper:Gamma]] ran. Lowercase mcp")),
+    file: `${FIRST}:12`,
+    message: /\[\[paper:Gamma\]\] is not a paper reference/,
   },
   // Citations (BK6).
   {
