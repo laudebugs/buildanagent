@@ -1,21 +1,13 @@
 [
   "abc-agentic-benchmark-checklist",
-  "cormack-rrf",
   "del-rosario-plan-then-execute",
-  "dong-minja",
   "guirao-agent-cards",
   "hou-messy-middle",
   "kumar-name-collision",
   "liu-what-does-a-harness-buy",
-  "modarressi-nolima",
   "santra-acam",
-  "shinn-reflexion",
   "swe-agent-observation-masking",
   "tau-bench",
-  "thakur-beir",
-  "weller-limit",
   "wong-governed-ml",
-  "xue-badrag",
-  "yao-react",
-  "zou-poisonedrag"
+  "yao-react"
 ]
