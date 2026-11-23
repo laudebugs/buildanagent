@@ -4,8 +4,26 @@ import { join } from "node:path";
 import { createContext, runInContext } from "node:vm";
 import { Window as HappyWindow } from "happy-dom";
 import { beforeAll, test } from "vitest";
-import { filesToSave, SAVE_FILES_LIMIT, savedAll, saveFiles } from "../public/scripts/reading-offline.js";
-import { nextSize, offlineStatus, SHEET_QUERY, start, tabEnds } from "../public/scripts/reading-panel.js";
+import {
+  chunkPaths,
+  filesToSave,
+  SAVE_FILES_LIMIT,
+  savedAll,
+  saveFiles,
+  saveFilesInChunks,
+} from "../public/scripts/reading-offline.js";
+import {
+  createTrailing,
+  isPlainKey,
+  NOTE_SAVED,
+  NOTE_UNSAVED,
+  nextSize,
+  offlineStatus,
+  SAVE_DELAY_MS,
+  SHEET_QUERY,
+  start,
+  tabEnds,
+} from "../public/scripts/reading-panel.js";
 import { pairingOptions, SIZE_NAMES, sizeLabel, sizeOptions } from "../src/components/reading-options.js";
 import { pairingFiles, readTokens } from "../src/design/tokens.js";
 import { builtBook } from "./built.js";
@@ -119,14 +137,19 @@ test("each pairing lists its faces, every file its text can use and their size o
   ]);
 });
 
-test("the default pairing saves nothing offline, and another saves its own fonts, once each, at most the limit", () => {
+test("the default pairing saves nothing offline, and another saves its own fonts, once each, none dropped", () => {
   assert.deepEqual(filesToSave("book", "book", ["/fonts/literata/literata-roman.woff2"]), []);
   assert.deepEqual(
     filesToSave("slab", "book", ["/fonts/a.woff2", "/fonts/a.woff2", "/scripts/x.js", "/fonts/b.woff2"]),
     ["/fonts/a.woff2", "/fonts/b.woff2"],
   );
   const many = Array.from({ length: 40 }, (_, i) => `/fonts/${i}.woff2`);
-  assert.equal(filesToSave("sans", "book", many).length, SAVE_FILES_LIMIT);
+  assert.equal(filesToSave("sans", "book", many).length, 40, "a long list is kept whole and sent in chunks");
+  assert.deepEqual(
+    chunkPaths(many).map((chunk) => chunk.length),
+    [16, 16, 8],
+  );
+  assert.deepEqual(chunkPaths([]), []);
   assert.ok(savedAll({ saved: ["/a", "/b"] }, ["/a", "/b"]));
   assert.ok(!savedAll({ saved: ["/a"] }, ["/a", "/b"]));
   assert.ok(!savedAll(null, ["/a"]));
@@ -459,12 +482,13 @@ function controller(answer: (paths: string[]) => unknown) {
 }
 
 test("picking a pairing asks the worker to save its fonts and says so once every file is saved", async () => {
-  const { win, doc } = panelWindow();
+  const { win, doc, panel } = panelWindow();
   const worker = controller((paths) => ({ type: "SAVED_FILES", saved: paths, failed: [] }));
   Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: worker }, configurable: true });
   start(win as unknown as globalThis.Window);
   assert.equal(worker.sent.length, 0, "the default pairing saves nothing: the shell holds its fonts");
   pick(doc, "reading-font", "readable");
+  (panel as unknown as { hidePopover(): void }).hidePopover();
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.deepEqual(worker.sent, [
     { type: "SAVE_FILES", paths: input(doc, "reading-font", "readable").dataset.files?.split(" ") ?? [] },
@@ -502,4 +526,141 @@ test("saveFiles gives up after its timeout and ignores an answer that is not SAV
   Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: wrong }, configurable: true });
   assert.equal(await saveFiles(win as unknown as globalThis.Window, ["/fonts/a.woff2"]), null);
   assert.equal(await saveFiles(win as unknown as globalThis.Window, []), null, "nothing to save sends nothing");
+});
+
+test("the trailing scheduler runs its task once after the delay, restarts on each call and flushes at once", () => {
+  const timers = new Map<number, { handler: () => void; delay: number }>();
+  let next = 1;
+  const setTimer = (handler: () => void, delay: number) => {
+    timers.set(next, { handler, delay });
+    return next++;
+  };
+  const clearTimer = (handle: unknown) => void timers.delete(handle as number);
+  let runs = 0;
+  const trailing = createTrailing(setTimer, clearTimer, () => runs++, 600);
+  trailing.flush();
+  assert.equal(runs, 0, "nothing pending, nothing to flush");
+  trailing.schedule();
+  trailing.schedule();
+  trailing.schedule();
+  assert.equal(timers.size, 1, "each call replaces the pending timer");
+  assert.equal([...timers.values()][0]?.delay, 600);
+  const [id, pending] = [...timers.entries()][0] as [number, { handler: () => void }];
+  timers.delete(id);
+  pending.handler();
+  assert.equal(runs, 1);
+  trailing.schedule();
+  trailing.flush();
+  assert.equal(runs, 2);
+  assert.equal(timers.size, 0, "a flush cancels the timer");
+  trailing.flush();
+  assert.equal(runs, 2);
+});
+
+test("arrowing through the typefaces saves only the pairing the reader stops on, after a pause or when the panel closes", async () => {
+  const { win, doc, panel } = panelWindow();
+  const worker = controller((paths) => ({ type: "SAVED_FILES", saved: paths, failed: [] }));
+  Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: worker }, configurable: true });
+  start(win as unknown as globalThis.Window);
+  pick(doc, "reading-font", "readable");
+  pick(doc, "reading-font", "sans");
+  pick(doc, "reading-font", "slab");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(worker.sent.length, 0, "nothing is sent while the reader is still choosing");
+  assert.equal(doc.querySelector("[data-reading-status]")?.textContent, "");
+  (panel as unknown as { hidePopover(): void }).hidePopover();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(worker.sent.length, 1, "one message for the last pairing");
+  assert.deepEqual(worker.sent[0]?.paths, input(doc, "reading-font", "slab").dataset.files?.split(" "));
+  assert.match(doc.querySelector("[data-reading-status]")?.textContent ?? "", /^Slab's fonts are saved/);
+  assert.ok(SAVE_DELAY_MS >= 300 && SAVE_DELAY_MS <= 1000);
+});
+
+test("a pause after the last choice saves it without the panel closing", async () => {
+  const { win, doc } = panelWindow();
+  const worker = controller((paths) => ({ type: "SAVED_FILES", saved: paths, failed: [] }));
+  Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: worker }, configurable: true });
+  start(win as unknown as globalThis.Window);
+  pick(doc, "reading-font", "sans");
+  await new Promise((resolve) => setTimeout(resolve, SAVE_DELAY_MS + 200));
+  assert.equal(worker.sent.length, 1);
+});
+
+test("the note says so when storage refuses a choice, and says it is saved again once a save works", () => {
+  const { win, doc, storage } = panelWindow();
+  start(win as unknown as globalThis.Window);
+  const note = () => doc.querySelector(".reading-panel__note")?.textContent?.trim();
+  assert.equal(note(), NOTE_SAVED);
+  storage.throws = true;
+  pick(doc, "reading-size", "130");
+  assert.equal(note(), NOTE_UNSAVED);
+  assert.equal(doc.documentElement.getAttribute("data-reading-size"), "130", "the choice still applies to this page");
+  storage.throws = false;
+  pick(doc, "reading-size", "115");
+  assert.equal(note(), NOTE_SAVED);
+});
+
+test("a key with Alt, Ctrl or Meta is the browser's: the size steps leave it alone", () => {
+  assert.ok(isPlainKey({}));
+  assert.ok(isPlainKey({ altKey: false }));
+  assert.ok(!isPlainKey({ altKey: true }));
+  assert.ok(!isPlainKey({ ctrlKey: true }));
+  assert.ok(!isPlainKey({ metaKey: true }));
+  const { win, doc } = panelWindow();
+  start(win as unknown as globalThis.Window);
+  const radio = input(doc, "reading-size", "100");
+  const press = (init: Record<string, unknown>) => {
+    const event = new win.KeyboardEvent("keydown", { key: "ArrowLeft", cancelable: true, bubbles: true, ...init });
+    radio.dispatchEvent(event as unknown as Event);
+    return event.defaultPrevented;
+  };
+  assert.equal(press({ altKey: true }), false, "Alt+Left stays Back");
+  assert.equal(press({ metaKey: true }), false);
+  assert.equal(press({ ctrlKey: true }), false);
+  assert.equal(doc.documentElement.getAttribute("data-reading-size"), null, "no step was taken");
+  assert.equal(press({}), true, "a plain arrow still moves the step");
+  assert.equal(press({ shiftKey: true }), true, "Shift is unchanged");
+});
+
+test("a pairing changed in another tab clears the old status and saves the new pairing's fonts", async () => {
+  const { win, doc, storage } = panelWindow({ "manual-reading-font": "sans" });
+  const worker = controller((paths) => ({ type: "SAVED_FILES", saved: paths, failed: [] }));
+  Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: worker }, configurable: true });
+  start(win as unknown as globalThis.Window);
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  const status = () => doc.querySelector("[data-reading-status]")?.textContent ?? "";
+  assert.match(status(), /^Sans's fonts are saved/);
+  storage.map.set("manual-reading-font", "slab");
+  win.dispatchEvent(new win.StorageEvent("storage", { key: "manual-reading-font" }));
+  assert.equal(status(), "", "the old pairing's status is gone");
+  await new Promise((resolve) => setTimeout(resolve, SAVE_DELAY_MS + 200));
+  assert.equal(worker.sent.length, 2);
+  assert.deepEqual(worker.sent[1]?.paths, input(doc, "reading-font", "slab").dataset.files?.split(" "));
+  assert.match(status(), /^Slab's fonts are saved/);
+});
+
+test("a pairing with more files than one message may carry is sent in chunks and is saved only when every chunk is", async () => {
+  const { win } = panelWindow();
+  const paths = Array.from({ length: 18 }, (_, i) => `/fonts/f${i}.woff2`);
+  const worker = controller((asked) => ({ type: "SAVED_FILES", saved: asked, failed: [] }));
+  Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: worker }, configurable: true });
+  const answer = await saveFilesInChunks(win as unknown as globalThis.Window, paths);
+  assert.deepEqual(
+    worker.sent.map((message) => message.paths.length),
+    [SAVE_FILES_LIMIT, 2],
+  );
+  assert.ok(savedAll(answer, paths));
+  const partial = controller((asked) => ({
+    type: "SAVED_FILES",
+    saved: asked.length === SAVE_FILES_LIMIT ? asked : [],
+    failed: [],
+  }));
+  Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: partial }, configurable: true });
+  assert.ok(!savedAll(await saveFilesInChunks(win as unknown as globalThis.Window, paths), paths));
+  const silentSecond = controller((asked) =>
+    asked.length === SAVE_FILES_LIMIT ? { type: "SAVED_FILES", saved: asked, failed: [] } : undefined,
+  );
+  Object.defineProperty(win.navigator, "serviceWorker", { value: { controller: silentSecond }, configurable: true });
+  assert.equal(await saveFilesInChunks(win as unknown as globalThis.Window, paths, 5), null);
+  assert.equal(await saveFilesInChunks(win as unknown as globalThis.Window, []), null);
 });

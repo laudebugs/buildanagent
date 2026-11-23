@@ -14,7 +14,8 @@ export const SAVE_FILES_LIMIT = 16;
 
 /**
  * The font files to save for a pairing: none for the default pairing, whose files the shell already holds, and
- * otherwise the pairing's own files that are under /fonts/, without repeats, at most SAVE_FILES_LIMIT of them.
+ * otherwise the pairing's own files that are under /fonts/, without repeats. A pairing with more files than one
+ * message may carry is saved in several (saveFilesInChunks), so none is dropped.
  * @param {string} id the pairing's id
  * @param {string} defaultId the default pairing's id
  * @param {readonly string[]} files every file the pairing can use
@@ -23,7 +24,19 @@ export const SAVE_FILES_LIMIT = 16;
 export function filesToSave(id, defaultId, files) {
   if (id === defaultId) return [];
   const paths = files.filter((path) => typeof path === "string" && path.startsWith("/fonts/"));
-  return [...new Set(paths)].slice(0, SAVE_FILES_LIMIT);
+  return [...new Set(paths)];
+}
+
+/**
+ * Splits paths into groups of at most `limit`, in order, for messages the worker will accept.
+ * @param {readonly string[]} paths
+ * @param {number} [limit]
+ * @returns {string[][]}
+ */
+export function chunkPaths(paths, limit = SAVE_FILES_LIMIT) {
+  const chunks = [];
+  for (let at = 0; at < paths.length; at += limit) chunks.push(paths.slice(at, at + limit));
+  return chunks;
 }
 
 /**
@@ -72,4 +85,24 @@ export function savedAll(answer, paths) {
   if (!answer || paths.length === 0) return false;
   const saved = new Set(answer.saved);
   return paths.every((path) => saved.has(path));
+}
+
+/**
+ * Saves `paths` in as many messages as the worker's limit needs, one after another, and resolves with one answer that
+ * joins theirs, or with null as soon as any message gets no valid answer, so savedAll never says "saved" for a pairing
+ * whose later files were not asked for.
+ * @param {Window} win
+ * @param {readonly string[]} paths
+ * @param {number} [timeout]
+ * @returns {Promise<{ saved: string[], failed: { path: string, reason: string }[] } | null>}
+ */
+export async function saveFilesInChunks(win, paths, timeout = SAVE_TIMEOUT_MS) {
+  const joined = { saved: [], failed: [] };
+  for (const chunk of chunkPaths(paths)) {
+    const answer = await saveFiles(win, chunk, timeout);
+    if (!answer) return null;
+    joined.saved.push(...answer.saved);
+    joined.failed.push(...answer.failed);
+  }
+  return paths.length === 0 ? null : joined;
 }

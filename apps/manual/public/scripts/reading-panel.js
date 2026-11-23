@@ -12,7 +12,7 @@
 //
 // The file is served as-is from public/, not bundled, like notes.js; the page loads it as a module and the tests import
 // its functions.
-import { filesToSave, savedAll, saveFiles } from "./reading-offline.js";
+import { filesToSave, savedAll, saveFilesInChunks } from "./reading-offline.js";
 import { formatSize } from "./save-offline.js";
 
 /** The windows where the panel is a bottom sheet: the phone header's query (src/scripts/header.ts), kept equal by a test. */
@@ -39,6 +39,49 @@ export function nextSize(sizes, current, key) {
   if (key === "Home") return sizes[0] ?? null;
   if (key === "End") return sizes[sizes.length - 1] ?? null;
   return null;
+}
+
+/** How long, in milliseconds, the panel waits after a pairing change before it saves the fonts, so arrowing through the radios saves only the pairing the reader stops on. */
+export const SAVE_DELAY_MS = 600;
+
+/** The note under the choices while the settings are stored, and while storage refused them. */
+export const NOTE_SAVED = "Saved on this device";
+export const NOTE_UNSAVED = "Not saved: this lasts until you leave the page";
+
+/**
+ * A trailing-edge scheduler: `schedule()` restarts a timer that runs `task` once after `delay`, and `flush()` runs it at
+ * once when one is pending, so a pending save is not lost when the panel closes.
+ * @param {(handler: () => void, delay: number) => unknown} setTimer
+ * @param {(handle: unknown) => void} clearTimer
+ * @param {() => void} task
+ * @param {number} delay
+ */
+export function createTrailing(setTimer, clearTimer, task, delay) {
+  let handle = null;
+  const run = () => {
+    handle = null;
+    task();
+  };
+  return {
+    schedule() {
+      if (handle !== null) clearTimer(handle);
+      handle = setTimer(run, delay);
+    },
+    flush() {
+      if (handle === null) return;
+      clearTimer(handle);
+      run();
+    },
+  };
+}
+
+/**
+ * Whether a key press is the plain arrow, Home or End the size steps handle: with Alt, Ctrl or Meta held it belongs to
+ * the browser (Alt+Left is Back), so the panel leaves it alone. Shift is allowed.
+ * @param {{ altKey?: boolean, ctrlKey?: boolean, metaKey?: boolean }} event
+ */
+export function isPlainKey(event) {
+  return !event.altKey && !event.ctrlKey && !event.metaKey;
 }
 
 /**
@@ -91,6 +134,7 @@ export function start(win) {
   const steps = sizes.map((input) => Number(input.value));
   const sizeLabel = panel.querySelector("[data-reading-size-label]");
   const status = panel.querySelector("[data-reading-status]");
+  const note = panel.querySelector(".reading-panel__note");
   const sheetQuery = typeof win.matchMedia === "function" ? win.matchMedia(SHEET_QUERY) : null;
   let settings = api.read(storage);
   let returnFocus = false;
@@ -108,24 +152,36 @@ export function start(win) {
   // Asks the worker to save the pairing's fonts, and says so in the status line once every file is saved. A failure
   // says nothing: the fonts still load from the network, and the save is asked again on the next page.
   const saveOffline = async () => {
-    if (status) status.textContent = "";
     const font = settings.font;
     const input = fontInput(font);
     const paths = filesToSave(font, api.DEFAULT_FONT, (input?.dataset.files ?? "").split(" ").filter(Boolean));
     if (paths.length === 0) return;
-    const answer = await saveFiles(win, paths);
+    const answer = await saveFilesInChunks(win, paths);
     if (settings.font !== font || !status || !savedAll(answer, paths)) return;
     const label = input?.closest("label")?.querySelector(".reading-panel__name")?.textContent?.trim() ?? font;
     status.textContent = offlineStatus(label, Number(input?.dataset.bytes ?? 0));
+  };
+
+  // A font change clears the old pairing's status and waits for the reader to stop before it saves.
+  const saveLater = createTrailing(
+    (handler, delay) => win.setTimeout(handler, delay),
+    (handle) => win.clearTimeout(handle),
+    () => void saveOffline().catch(() => undefined),
+    SAVE_DELAY_MS,
+  );
+  const fontChanged = () => {
+    if (status) status.textContent = "";
+    saveLater.schedule();
   };
 
   const choose = (next) => {
     const changedFont = next.font !== settings.font;
     settings = { font: api.readFont(next.font), size: api.readSize(String(next.size)) };
     api.apply(root, settings);
-    api.save(storage, settings);
+    const stored = api.save(storage, settings);
+    if (note) note.textContent = stored ? NOTE_SAVED : NOTE_UNSAVED;
     sync();
-    if (changedFont) saveOffline().catch(() => undefined);
+    if (changedFont) fontChanged();
   };
 
   for (const input of fonts) {
@@ -138,6 +194,7 @@ export function start(win) {
       if (input.checked) choose({ ...settings, size: Number(input.value) });
     });
     input.addEventListener("keydown", (event) => {
+      if (!isPlainKey(event)) return;
       const size = nextSize(steps, settings.size, event.key);
       if (size === null) return;
       event.preventDefault();
@@ -182,6 +239,7 @@ export function start(win) {
   panel.addEventListener("toggle", (event) => {
     const open = event.newState === "open";
     button.setAttribute("aria-expanded", String(open));
+    if (!open) saveLater.flush();
     if (open) {
       returnFocus = false;
       (fontInput(settings.font) ?? fonts[0])?.focus();
@@ -229,9 +287,11 @@ export function start(win) {
     if (event.key !== null && event.key !== api.FONT_KEY && event.key !== api.SIZE_KEY) return;
     const next = api.read(storage);
     if (next.font === settings.font && next.size === settings.size) return;
+    const changedFont = next.font !== settings.font;
     settings = next;
     api.apply(root, settings);
     sync();
+    if (changedFont) fontChanged();
   });
 
   sync();

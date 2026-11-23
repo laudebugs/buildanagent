@@ -116,7 +116,7 @@ The panel keeps its size at every text size, as the header does: its font size i
 
 ### SAVE_FILES saves a pairing's fonts after one visit
 
-Part 1 left the optional fonts out of the install shell, so a reader who picked Sans saw a fallback face offline unless they had saved the whole book. The panel now sends `SAVE_FILES` with the chosen pairing's files whenever a worker controls the page: on a page load with a stored pairing, and on each pick. The worker accepts only plain paths under `/fonts/` on its build's list, at most 16, checks each by size and SHA-256, and never downloads a file twice, even while `SAVE_ALL` runs ([ADR 0059](../../decisions/0059-offline-manual-service-worker.md#saving-a-reading-pairings-fonts-addendum-2026-11-23)).
+Part 1 left the optional fonts out of the install shell, so a reader who picked Sans saw a fallback face offline unless they had saved the whole book. The panel now sends `SAVE_FILES` with the chosen pairing's files whenever a worker controls the page: on a page load with a stored pairing, and 600 ms after the last pick (or when the panel closes), because the native radios fire a change on every arrow press and each pairing passed would otherwise be saved. A pairing of more than 16 files is sent in chunks of 16, and the status waits for all of them. The worker accepts only plain paths under `/fonts/` on its build's list, at most 16, checks each by size and SHA-256, and never downloads a file twice, even while `SAVE_ALL` runs ([ADR 0059](../../decisions/0059-offline-manual-service-worker.md#saving-a-reading-pairings-fonts-addendum-2026-11-23)).
 
 | Pairing | Files saved on first use | Bytes |
 | --- | --- | --- |
