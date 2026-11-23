@@ -87,12 +87,18 @@ export function buildId(files, workerCode = "", shell = []) {
 
 // Writes `value` into every page's build mark. Each page must hold exactly one mark, so a page the layout did not
 // render, or one with a second mark, fails the build.
-function stampPages(dist, files, value) {
-  for (const file of files.filter((entry) => entry.path.endsWith(".html"))) {
-    const path = join(dist, file.path);
+// The excluded 404.html is stamped too, so no served page carries the placeholder; it never affects the id, because
+// the id is taken over the listed files.
+function stampPages(dist, value) {
+  const root = resolve(dist);
+  const pages = readdirSync(root, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".html"))
+    .map((entry) => relative(root, join(entry.parentPath, entry.name)));
+  for (const page of pages) {
+    const path = join(root, page);
     const html = readFileSync(path, "utf8");
     const marks = [...html.matchAll(MARK)];
-    if (marks.length !== 1) throw new Error(`${file.path} holds ${marks.length} build marks, not one`);
+    if (marks.length !== 1) throw new Error(`${page} holds ${marks.length} build marks, not one`);
     writeFileSync(path, html.replace(MARK, `<meta name="manual-build" content="${value}">`));
   }
 }
@@ -148,10 +154,10 @@ async function bundleWorker() {
  */
 export async function writeOffline(dist) {
   const code = await bundleWorker();
-  stampPages(dist, listFiles(dist), BUILD_PLACEHOLDER);
+  stampPages(dist, BUILD_PLACEHOLDER);
   const unstamped = listFiles(dist);
   const id = buildId(unstamped, code, shellUrls(dist, unstamped));
-  stampPages(dist, listFiles(dist), id);
+  stampPages(dist, id);
   const files = listFiles(dist);
   const shell = shellUrls(dist, files);
   const manifest = {
@@ -189,7 +195,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   }
   const manifest = await writeOffline(dist);
   const kb = Math.round(manifest.total.bytes / 1024);
+  const shell = new Set(manifest.shell);
+  const shellKb = Math.round(
+    manifest.files.filter((file) => shell.has(file.url)).reduce((sum, f) => sum + f.size, 0) / 1024,
+  );
   console.log(
-    `Offline: build ${manifest.build}, ${manifest.files.length} files (${kb} KiB), a shell of ${manifest.shell.length}.`,
+    `Offline: build ${manifest.build}, ${manifest.files.length} files (${kb} KiB), a shell of ${manifest.shell.length} ` +
+      `(${shellKb} KiB).`,
   );
 }

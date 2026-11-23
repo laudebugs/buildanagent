@@ -397,3 +397,62 @@ test("SAVE_PAGE saves the page a reader landed on and its files, only listed sam
   assert.equal(await worker.handleMessage({ type: "SAVE_PAGE", paths: "/tools/" }), null);
   assert.equal(await worker.handleMessage({ type: "SAVE_PAGE", paths: Array(SAVE_PAGE_LIMIT + 1).fill("/") }), null);
 });
+
+const json = (value: unknown) =>
+  new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
+
+test("activate keeps an older build's cache while a page of it is open, serves that page from it, and drops it later", async () => {
+  const { worker, caches, event } = setup();
+  const older = await caches.open("manual-b0");
+  await older.put(`${ORIGIN}/__manual-offline__/clients.json`, json(["tab-old"]));
+  await older.put(`${ORIGIN}/_astro/BaseLayout.old.css`, ok("body{color:old}"));
+  await older.put(`${ORIGIN}/scripts/notes.js`, ok("// notes, build b0"));
+  const gone = await caches.open("manual-bx");
+  await gone.put(`${ORIGIN}/__manual-offline__/clients.json`, json(["tab-closed"]));
+  await worker.install();
+  const open = new OfflineWorker(buildOf("b1", TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: new FakeNetwork({ "/_astro/BaseLayout.old.css": "offline" }).fetch,
+    openClients: async () => ["tab-old", "tab-new"],
+  });
+  await open.activate();
+  assert.deepEqual([...caches.stores.keys()].sort(), ["manual-b0", "manual-b1"], "only the open page's build stays");
+  const css = await open.handleFetch(event(request("/_astro/BaseLayout.old.css"), { clientId: "tab-old" }));
+  assert.equal(await css?.text(), "body{color:old}", "an old build's hashed file the server no longer has");
+  const script = await open.handleFetch(event(request("/scripts/notes.js"), { clientId: "tab-old" }));
+  assert.equal(await script?.text(), "// notes, build b0", "the old page keeps its own build's script");
+
+  // After a restart the worker reads which pages are on the older build from its cache.
+  const restarted = new OfflineWorker(buildOf("b1", TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: new FakeNetwork({}).fetch,
+  });
+  const again = await restarted.handleFetch(event(request("/_astro/BaseLayout.old.css"), { clientId: "tab-old" }));
+  assert.equal(await again?.text(), "body{color:old}");
+
+  // At the next activation the old page has closed, so its cache goes.
+  const closed = new OfflineWorker(buildOf("b1", TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: new FakeNetwork({}).fetch,
+    openClients: async () => [],
+  });
+  await closed.activate();
+  assert.deepEqual([...caches.stores.keys()], ["manual-b1"]);
+});
+
+test("carrying over many files reads the problems record once and writes it never", async () => {
+  const { worker, caches } = setup();
+  const older = await caches.open("manual-b0");
+  for (const path of ["/", "/offline/", "/tools/", "/glossary/", "/_astro/BaseLayout.abc.css", "/scripts/notes.js"]) {
+    await older.put(`${ORIGIN}${path}`, ok(TEXTS[path as keyof typeof TEXTS]));
+  }
+  await worker.install();
+  const cache = caches.stores.get("manual-b1");
+  const record = `${ORIGIN}/__manual-offline__/problems.json`;
+  assert.equal(cache?.reads.get(record), 1);
+  assert.equal(cache?.writes.get(record) ?? 0, 0);
+  assert.equal(cache?.entries.size, 6, "every unchanged file carried over");
+});

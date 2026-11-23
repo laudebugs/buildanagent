@@ -203,13 +203,15 @@ test("the build's id is stamped into sw.js with the whole list, and the worker n
   })();
 });
 
-test("every listed page carries this build's mark once, and the 404 page, which is never listed, the placeholder", () => {
+test("every page carries this build's mark once, the 404 page included, which is never listed", () => {
   for (const file of manifest.files.filter((entry) => entry.path.endsWith(".html"))) {
     const html = readFileSync(join(out, file.path), "utf8");
     assert.equal(html.split('<meta name="manual-build"').length - 1, 1, file.path);
     assert.ok(html.includes(`<meta name="manual-build" content="${manifest.build}">`), file.path);
   }
-  assert.ok(readFileSync(join(out, "404.html"), "utf8").includes(`content="${BUILD_PLACEHOLDER}"`));
+  const notFound = readFileSync(join(out, "404.html"), "utf8");
+  assert.ok(notFound.includes(`<meta name="manual-build" content="${manifest.build}">`));
+  assert.ok(!notFound.includes(BUILD_PLACEHOLDER), "no served page keeps the placeholder");
 });
 
 test("the id changes with the worker's code or the shell, so a worker-only deploy gets a new cache", () => {

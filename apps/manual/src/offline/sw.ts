@@ -26,6 +26,9 @@ interface MessageEventLike extends ExtendableEventLike {
 interface ServiceWorkerScopeLike {
   readonly location: Location;
   readonly caches: CacheStorage;
+  readonly clients: {
+    matchAll(options: { includeUncontrolled: boolean; type: "all" }): Promise<readonly { readonly id: string }[]>;
+  };
   fetch(request: Request): Promise<Response>;
   skipWaiting(): Promise<void>;
   addEventListener(type: "install" | "activate", listener: (event: ExtendableEventLike) => void): void;
@@ -38,6 +41,8 @@ const worker = new OfflineWorker(__MANUAL_OFFLINE__, {
   origin: scope.location.origin,
   caches: scope.caches,
   fetch: (request) => scope.fetch(request),
+  openClients: async () =>
+    (await scope.clients.matchAll({ includeUncontrolled: true, type: "all" })).map((client) => client.id),
 });
 
 // No skipWaiting here: a new build waits until the reader presses Reload in the update notice, so an open page never

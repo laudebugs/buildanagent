@@ -32,6 +32,7 @@ export const SAVE_PAGE_LIMIT = 100;
 const RECORD_PREFIX = "/__manual-offline__/";
 const CLIENTS_RECORD = `${RECORD_PREFIX}clients.json`;
 const PROBLEMS_RECORD = `${RECORD_PREFIX}problems.json`;
+const OLDER_RECORD = `${RECORD_PREFIX}older.json`;
 // Pages kept in the clients record; the oldest go first, since a page that long ago has closed.
 const MAX_CLIENTS = 200;
 
@@ -78,6 +79,8 @@ export interface WorkerDeps {
   readonly fetch: (request: Request) => Promise<Response>;
   /** Resolves after `ms` milliseconds; tests resolve it by hand. */
   readonly delay?: (ms: number) => Promise<void>;
+  /** The ids of the pages and workers open now (`clients.matchAll()`); without it, no page counts as open. */
+  readonly openClients?: () => Promise<readonly string[]>;
 }
 
 /** The fields of a fetch event this module reads. `waitUntil` keeps the worker alive for a background write. */
@@ -209,6 +212,16 @@ export class OfflineWorker {
   // Pages whose document is exactly this build's, kept in memory and in the clients record, so the rule survives the
   // browser stopping and restarting the worker.
   readonly #buildClients = new Set<string>();
+  #clientsLoaded: Promise<void> | null = null;
+  // The problems record, read from the cache once and then kept in memory, so a store reads nothing and writes only
+  // when a path's state changes.
+  #problems: Promise<Map<string, string>> | null = null;
+  // Pages still open on an older build whose cache activate kept, by client id, with that cache's name.
+  #olderClients = new Map<string, string>();
+  // Read once when the worker starts, so the map survives a restart; until it has been read, a request from a page
+  // is answered asynchronously.
+  #olderLoaded = false;
+  readonly #olderLoad: Promise<void>;
   #records: Promise<unknown> = Promise.resolve();
 
   constructor(build: OfflineBuild, deps: WorkerDeps) {
@@ -220,6 +233,24 @@ export class OfflineWorker {
     this.#delay = deps.delay ?? defaultDelay;
     this.#mark = buildMark(build.build);
     this.cacheName = cacheName(build.build);
+    this.#olderLoad = this.#loadOlder()
+      .catch(() => undefined)
+      .finally(() => {
+        this.#olderLoaded = true;
+      });
+  }
+
+  async #loadOlder(): Promise<void> {
+    // Opening a cache creates it, so a worker that never installed reads nothing.
+    const names = await this.#deps.caches.keys().catch(() => [] as string[]);
+    if (!names.includes(this.cacheName)) return;
+    const record = await this.#read<unknown>(OLDER_RECORD, {}).catch(() => ({}));
+    if (!record || typeof record !== "object" || Array.isArray(record)) return;
+    for (const [id, name] of Object.entries(record)) {
+      if (typeof name === "string" && name.startsWith(CACHE_PREFIX) && names.includes(name)) {
+        this.#olderClients.set(id, name);
+      }
+    }
   }
 
   #path(url: string): string | null {
@@ -295,47 +326,63 @@ export class OfflineWorker {
     }
   }
 
-  // Changes a JSON record in this build's cache, one change at a time.
-  #update<T>(path: string, empty: T, change: (value: T) => T): Promise<void> {
+  // Writes a JSON record to this build's cache, one write at a time; `value` is read when the write runs, so the
+  // last write always holds the latest state.
+  #write(path: string, value: () => unknown): Promise<void> {
     const next = this.#records.then(async () => {
-      const before = await this.#read(path, empty);
-      const body = JSON.stringify(change(before));
-      // Most stores change nothing in the record, so most stores write nothing.
-      if (body === JSON.stringify(before)) return;
       await (await this.#cache()).put(
         `${this.#deps.origin}${path}`,
-        new Response(body, { headers: { "content-type": "application/json" } }),
+        new Response(JSON.stringify(value()), { headers: { "content-type": "application/json" } }),
       );
     });
     this.#records = next.catch(() => undefined);
     return next;
   }
 
-  // Records a path's state: a problem, "rewritten", or null to clear it.
-  #problem(path: string, state: Problem["reason"] | "rewritten" | null): Promise<void> {
-    return this.#update<Record<string, string>>(PROBLEMS_RECORD, {}, (record) => {
-      const next = { ...record };
-      if (state === null) delete next[path];
-      else next[path] = state;
-      return next;
+  #loadProblems(): Promise<Map<string, string>> {
+    this.#problems ??= this.#read<Record<string, string>>(PROBLEMS_RECORD, {}).then(
+      (record) =>
+        new Map(
+          Object.entries(record && typeof record === "object" ? record : {}).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        ),
+    );
+    return this.#problems;
+  }
+
+  // Records a path's state: a problem, "rewritten", or null to clear it. A state that is already recorded writes
+  // nothing, so a store of a file with no problem costs no cache access once the record is loaded.
+  async #problem(path: string, state: Problem["reason"] | "rewritten" | null): Promise<void> {
+    const record = await this.#loadProblems();
+    if ((record.get(path) ?? null) === state) return;
+    if (state === null) record.delete(path);
+    else record.set(path, state);
+    await this.#write(PROBLEMS_RECORD, () => Object.fromEntries(record));
+  }
+
+  #loadClients(): Promise<void> {
+    this.#clientsLoaded ??= this.#read<unknown>(CLIENTS_RECORD, []).then((ids) => {
+      if (Array.isArray(ids)) for (const id of ids) if (typeof id === "string") this.#buildClients.add(id);
     });
+    return this.#clientsLoaded;
   }
 
   async #markBuildClient(client: string): Promise<void> {
-    if (!client || this.#buildClients.has(client)) return;
+    if (!client) return;
+    await this.#loadClients();
+    if (this.#buildClients.has(client)) return;
     this.#buildClients.add(client);
-    await this.#update<string[]>(CLIENTS_RECORD, [], (ids) =>
-      [...ids.filter((id) => id !== client), client].slice(-MAX_CLIENTS),
-    );
+    // A Set keeps insertion order, so the oldest pages are the first to go.
+    while (this.#buildClients.size > MAX_CLIENTS)
+      this.#buildClients.delete(this.#buildClients.values().next().value ?? "");
+    await this.#write(CLIENTS_RECORD, () => [...this.#buildClients]);
   }
 
   async #isBuildClient(client: string | undefined): Promise<boolean> {
     if (!client) return false;
-    if (this.#buildClients.has(client)) return true;
-    const ids = await this.#read<string[]>(CLIENTS_RECORD, []);
-    if (!Array.isArray(ids) || !ids.includes(client)) return false;
-    this.#buildClients.add(client);
-    return true;
+    await this.#loadClients();
+    return this.#buildClients.has(client);
   }
 
   /**
@@ -384,11 +431,29 @@ export class OfflineWorker {
     }
   }
 
-  /** Deletes every older build's cache. Runs at activate, once this build's cache is complete. */
+  /**
+   * Runs at activate, once this build's cache is complete. Deletes every older build's cache, except one that a page
+   * still open was served from: that page keeps its own build's files, which a deploy has removed from the server, and
+   * the cache goes at a later activation once no such page is open.
+   */
   async activate(): Promise<void> {
+    const open = new Set(this.#deps.openClients ? await this.#deps.openClients() : []);
+    this.#olderClients = new Map();
     for (const name of await this.#deps.caches.keys()) {
-      if (name.startsWith(CACHE_PREFIX) && name !== this.cacheName) await this.#deps.caches.delete(name);
+      if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
+      const response = await (await this.#deps.caches.open(name)).match(`${this.#deps.origin}${CLIENTS_RECORD}`);
+      let ids: unknown = [];
+      try {
+        ids = response ? await response.json() : [];
+      } catch {
+        ids = [];
+      }
+      const kept = Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string" && open.has(id)) : [];
+      if (kept.length === 0) await this.#deps.caches.delete(name);
+      else for (const id of kept) this.#olderClients.set(id, name);
     }
+    this.#olderLoaded = true;
+    await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
   }
 
   /**
@@ -403,11 +468,31 @@ export class OfflineWorker {
     if (path === null || NEVER_CACHED.has(path)) return null;
     if (request.mode === "navigate") return this.#navigate(event, path);
     const key = this.keyFor(request.url);
+    const client = event.clientId ?? "";
+    if (client && !this.#olderLoaded) {
+      return this.#olderLoad.then(() => {
+        const older = this.#olderClients.get(client);
+        if (older) return this.#fromOlder(event, older, path);
+        return key ? this.#subresource(event, key, path) : this.#deps.fetch(request);
+      });
+    }
+    const older = this.#olderClients.get(client);
+    if (older) return this.#fromOlder(event, older, path);
     if (!key) return null;
+    return this.#subresource(event, key, path);
+  }
+
+  #subresource(event: FetchLike, key: string, path: string): Promise<Response> {
     if (isContentAddressed(path)) return this.#cacheFirst(event, key, false);
     return this.#isBuildClient(event.clientId).then((pinned) =>
       pinned ? this.#cacheFirst(event, key, true) : this.#networkFirst(event, key),
     );
+  }
+
+  // A page still open on an older build gets that build's files from its cache, and anything else from the network.
+  async #fromOlder(event: FetchLike, name: string, path: string): Promise<Response> {
+    const saved = await (await this.#deps.caches.open(name)).match(`${this.#deps.origin}${path}`);
+    return saved ?? this.#deps.fetch(event.request);
   }
 
   async #cached(key: string): Promise<Response | undefined> {
@@ -523,7 +608,7 @@ export class OfflineWorker {
       const path = new URL(key).pathname;
       if ((await cache.match(key)) || (await this.#saveFromNetwork(key))) saved.push(path);
       else {
-        const reason = (await this.#read<Record<string, string>>(PROBLEMS_RECORD, {}))[path];
+        const reason = (await this.#loadProblems()).get(path);
         if (reason && reason !== "rewritten") failed.push({ path, reason: reason as Problem["reason"] });
       }
     }
@@ -544,8 +629,7 @@ export class OfflineWorker {
       totalBytes += file.size;
       if (saved.has(path)) savedBytes += file.size;
     }
-    const record = await this.#read<Record<string, string>>(PROBLEMS_RECORD, {});
-    const entries = Object.entries(record).filter(([path]) => this.#files.has(path));
+    const entries = [...(await this.#loadProblems())].filter(([path]) => this.#files.has(path));
     return {
       type: "STATUS",
       build: this.#build.build,

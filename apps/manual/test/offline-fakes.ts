@@ -19,10 +19,15 @@ export const ok = (text: string, headers: Record<string, string> = {}) =>
 
 export class FakeCache implements CacheLike {
   readonly entries = new Map<string, Response>();
+  /** How many times each key was read and written, for the tests that count record accesses. */
+  readonly reads = new Map<string, number>();
+  readonly writes = new Map<string, number>();
   async match(key: string): Promise<Response | undefined> {
+    this.reads.set(key, (this.reads.get(key) ?? 0) + 1);
     return this.entries.get(key)?.clone();
   }
   async put(key: string, response: Response): Promise<void> {
+    this.writes.set(key, (this.writes.get(key) ?? 0) + 1);
     this.entries.set(key, response);
   }
   async keys(): Promise<readonly { url: string }[]> {
