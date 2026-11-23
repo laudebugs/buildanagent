@@ -562,3 +562,18 @@ test("every script the pages load is a same-origin file", () => {
     }
   }
 });
+
+// The manual shows the same tab icon as the landing page, so the file must stay a byte-for-byte copy of the site's.
+// The policy's img-src 'self' covers it, because the page and the icon share an origin.
+test("every built page links the favicon, and the build ships the site's file unchanged", () => {
+  const site = readFileSync(fileURLToPath(new URL("../../site/public/favicon.svg", import.meta.url)));
+  assert.ok(existsSync(join(app, "public", "favicon.svg")), "public/favicon.svg is missing");
+  assert.ok(
+    readFileSync(join(app, "public", "favicon.svg")).equals(site),
+    "public/favicon.svg differs from the site's",
+  );
+  assert.ok(readFileSync(join(out, "favicon.svg")).equals(site), "the build's favicon.svg differs from the site's");
+  for (const { path, html } of pages()) {
+    assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"\s*\/?>/, `${path}: no icon link`);
+  }
+});

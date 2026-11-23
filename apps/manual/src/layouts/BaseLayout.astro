@@ -25,6 +25,7 @@ const { title, description, noindex = false } = Astro.props;
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex" />}
     <title>{title}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!-- Blocking on purpose: it applies a stored theme before the first paint. -->
     <script is:inline src="/scripts/theme.js"></script>
     <!-- A module, so it runs once the page is parsed: it records the reader's place and shows the resume link. -->
