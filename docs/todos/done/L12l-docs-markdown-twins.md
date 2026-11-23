@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12l` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs) |
-| Depends on | [L12b](../done/L12b-docs-logo-header-mdx.md) |
+| Depends on | [L12](L12-docs-redesign.md) (L12b has no todo file of its own) |
 | Size | M |
 
 ## Goal
@@ -33,18 +33,22 @@ Agents and readers get each docs page as plain Markdown, without the HTML around
 
 ## Tasks
 
-- [ ] Decide which pages get twins, and the generated API reference pages' case.
-- [ ] Write the twin step, `llms.txt` and `llms-full.txt`.
-- [ ] Add the head link and the "Copy as Markdown" button.
-- [ ] Write the tests and the README section.
+- [x] Decide which pages get twins, and the generated API reference pages' case.
+- [x] Write the twin step, `llms.txt` and `llms-full.txt`.
+- [x] Add the head link and the "Copy as Markdown" button.
+- [x] Write the tests and the README section.
 
 ## Acceptance criteria
 
-- [ ] Every page the function names has `/<page>.md`, and a test fails on one without it.
-- [ ] Every page's head links its twin, and the build fails on a page that does not.
-- [ ] `llms.txt` and `llms-full.txt` list and join the twins.
-- [ ] The button writes to the clipboard inside the click handler.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
+- [x] Every page the function names has `/<page>.md`, and a test fails on one without it.
+- [x] Every page's head links its twin, and the build fails on a page that does not.
+- [x] `llms.txt` and `llms-full.txt` list and join the twins.
+- [x] The button writes to the clipboard inside the click handler.
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
+
+## Outcome
+
+Every docs page, the generated API reference included, has a Markdown twin. `hasTwin()` in `apps/docs/src/twins/rule.ts` is the one decision; the post-build step, `llms.txt`, `llms-full.txt`, the head link and the button read it. The twins are 282 files (515 KiB), written in about 0.5 s, and the API reference stays in because TypeDoc already writes Markdown. The build fails on a page that lacks its twin or its head link. The "Copy as Markdown" button starts its clipboard write inside the click handler. The home page has the head link and no button, because Starlight's splash template has no page title. Three new direct dependencies, `unified` 11.0.5, `remark-parse` 11.0.0 and `remark-mdx` 3.1.1, were already in the tree. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12l-1` to `L12l-11`.
 
 ## Tests
 
