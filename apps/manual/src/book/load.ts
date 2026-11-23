@@ -11,6 +11,7 @@ import { listingContext } from "./listings.js";
 import { type LiveRuns, readLiveRuns } from "./live-runs.js";
 import { checkOutline, type NumberedChapter, numberChapters } from "./outline-rules.js";
 import type { Outline } from "./outline-types.js";
+import { checkPapers, type Papers } from "./papers.js";
 import { ProblemList } from "./problems.js";
 import { checkSources, type Source } from "./sources.js";
 import { nearestTsconfig } from "./standard-library.js";
@@ -28,6 +29,8 @@ export interface BookInputs {
   /** The directory that holds each generated figure, `<slug>/<figure id>.svg`, beside the script that draws it. */
   readonly figuresDir: string;
   readonly sourcesFile: string;
+  /** The papers that have no short name and blurb yet, exempt from the paper rules until a content todo fills them. */
+  readonly papersPendingFile: string;
   readonly glossaryFile: string;
   readonly analogiesFile: string;
   /** The table of each `verify/` harness's main package, whose pin a listing's caption shows. */
@@ -44,6 +47,7 @@ export interface BookInputs {
 export interface BookFileNames {
   readonly outline: string;
   readonly sources: string;
+  readonly papersPending: string;
   readonly glossary: string;
   readonly analogies: string;
   readonly harnesses: string;
@@ -58,6 +62,8 @@ export interface Book {
   readonly chapters: readonly NumberedChapter[];
   readonly bySlug: ReadonlyMap<string, NumberedChapter>;
   readonly sources: ReadonlyMap<string, Source>;
+  /** The register's papers: those chapters must name through `[[paper:id]]`, and those still pending. */
+  readonly papers: Papers;
   readonly glossary: ReadonlyMap<string, GlossaryEntry>;
   readonly analogies: ReadonlyMap<string, Analogy>;
   readonly index: BookIndex;
@@ -139,6 +145,7 @@ export function bookInputs(): BookInputs {
     outlineFile: join(app, "src/outline.ts"),
     ...contentDirs(app),
     sourcesFile: join(app, "src/data/sources.json"),
+    papersPendingFile: join(app, "src/data/papers-pending.json"),
     glossaryFile: join(app, "src/data/glossary.json"),
     harnessesFile: join(app, "src/data/harnesses.json"),
     liveExamplesFile: join(app, "src/data/live-examples.json"),
@@ -180,6 +187,7 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
   const names: BookFileNames = {
     outline: name(inputs.outlineFile),
     sources: name(inputs.sourcesFile),
+    papersPending: name(inputs.papersPendingFile),
     glossary: name(inputs.glossaryFile),
     analogies: name(inputs.analogiesFile),
     harnesses: name(inputs.harnessesFile),
@@ -193,6 +201,12 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     readJson(inputs.sourcesFile, names.sources, problems),
     names.sources,
     inputs.repoRoot,
+    problems,
+  );
+  const papers = checkPapers(
+    sources,
+    readJson(inputs.papersPendingFile, names.papersPending, problems),
+    { sources: names.sources, pending: names.papersPending },
     problems,
   );
   const sourceIds = new Set(sources.map((source) => source.id));
@@ -227,6 +241,7 @@ export function loadBook(inputs: BookInputs = bookInputs()): Book {
     chapters,
     bySlug,
     sources: new Map(sources.map((source) => [source.id, source])),
+    papers,
     glossary: new Map(glossary.map((entry) => [entry.id, entry])),
     analogies: new Map(analogies.map((entry) => [entry.id, entry])),
     index,

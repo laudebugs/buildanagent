@@ -18,5 +18,17 @@
     "asOf": "October 2026",
     "verifiedIn": "apps/manual/fact-checks/first.md",
     "secondary": true
+  },
+  {
+    "id": "gamma-paper",
+    "title": "Gamma: a fixture paper",
+    "publisher": "Gamma et al. (arXiv:2601.00001)",
+    "url": "https://arxiv.org/abs/2601.00001",
+    "kind": "paper",
+    "asOf": "November 2026",
+    "verifiedIn": "apps/manual/fact-checks/first.md",
+    "short": "Gamma",
+    "blurb": "a January 2026 arXiv paper by Gamma et al. that measures the loop",
+    "aliases": ["GammaNet"]
   }
 ]

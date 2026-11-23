@@ -1316,4 +1316,13 @@ Claims in the save control's reader-facing copy (`apps/manual/public/scripts/sav
 | T67b-18 | A partial save names `storage` as its reason when the browser refused a write for a reason other than quota | `src/offline/worker.ts` (`SaveDone`); ADR 0059 protocol table | ✏️ | The TSDoc and the table said so, but the worker set a reason only for quota, which the medium review found. `test/offline-save.test.ts`, "another refused write", now checks the reason and fails without the fix |
 | T67b-19 | A copy the reader saves again after Remove, while a new build waits, survives that build's activation and is offered as the copy to update | ADR 0059 addendum; README | ✅ | `test/offline-save.test.ts` on 2026-11-23, "a save made after Remove, while a new build waits, survives that build's activation"; it fails when the activation ignores the mark's time. The low review found the gap |
 
-**Totals:** 797 claims: 687 ✅, 98 ✏️, 12 ⚠️.
+## T68a: research papers in the manual are named with a link and a description
+
+The two blurbs the register's worked examples carry, checked on 2026-11-23 against each paper's arXiv abstract page and its full PDF (title page, abstract, Section 1 and Section 2). The other papers stay on `apps/manual/src/data/papers-pending.json` until the content todos write and check their blurbs.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| T68a-1 | SkillCFI is a November 2026 arXiv paper by Ruan et al. on control-flow integrity for agent skills | `apps/manual/src/data/sources.json` (`ruan-skillcfi` blurb); shown in Chapters 3 and 13 | ✅ | [arXiv:2611.24185](https://arxiv.org/abs/2611.24185), read 2026-11-23: v1 submitted 18 November 2026; authors Bonan Ruan, Yuhao Sun, Jiahao Liu, Qixiao Lin, Jian Mao and Zhenkai Liang; title "… Control-Flow Integrity for Agent Skills". Section 1 of the PDF: "We present SkillCFI, which carries CFI over to skill-based agents" |
+| T68a-2 | Voyager is a May 2023 arXiv paper by Wang et al. on an agent that plays Minecraft through GPT-4 | `apps/manual/src/data/sources.json` (`wang-voyager` blurb); shown in Chapters 12 and 13 | ✅ | [arXiv:2305.16291](https://arxiv.org/abs/2305.16291), read 2026-11-23: v1 submitted 25 May 2023 (the register pins v2, 19 October 2023); first author Guanzhi Wang. Abstract: "the first LLM-powered embodied lifelong learning agent in Minecraft"; Section 1: Voyager works "with a blackbox LLM (GPT-4) through prompting and in-context learning"; Section 2 (Method) has GPT-4 propose tasks and write each skill's program |
+
+**Totals:** 799 claims: 689 ✅, 98 ✏️, 12 ⚠️.
