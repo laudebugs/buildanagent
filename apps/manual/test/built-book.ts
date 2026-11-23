@@ -1,9 +1,9 @@
-// Builds the fixture book once per test run, into a temporary folder that every test file which reads built pages gets
-// with `builtBook()` from test/built.ts. One build, not one per file: `astro build` writes its prerender bundle to
-// <app>/.astro/.prerender whatever --outDir says, so two builds that run at once delete the chunks the other is
-// importing and fail with ERR_MODULE_NOT_FOUND, which skips every test behind them. A failed build is provided as its
-// error rather than thrown, because a global setup that throws stops every test file, the ones that never read the
-// built site included. The same pattern as apps/docs/test/built-site.ts.
+// Builds the fixture book once per test run, into a temporary folder that test files read with `builtBook()` from
+// test/built.ts. It is one build, not one per file, because `astro build` writes its prerender bundle to
+// <app>/.astro/.prerender whatever --outDir says: two builds at once delete each other's chunks, fail with
+// ERR_MODULE_NOT_FOUND and skip every test behind them. A failed build is provided as its error, not thrown, because a
+// global setup that throws stops every test file, including the ones that never read the built site. This is the same
+// pattern as apps/docs/test/built-site.ts.
 import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

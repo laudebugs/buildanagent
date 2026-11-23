@@ -11,7 +11,7 @@
 
 ## Goal
 
-The manual's `pnpm test` intermittently skips 15 to 40 tests. Several test files (`test/build.test.ts`, `test/offline-build.test.ts` and others) each run `astro build` in `apps/manual` in parallel, and the builds share one `.astro/.prerender` directory. One build deletes chunks another is importing, so a test fails with `ERR_MODULE_NOT_FOUND` under `.astro/.prerender/chunks/` and the suite skips the tests behind it. `main` has the same exposure: CI can go red or silently skip tests. This todo gives each build its own directory, or shares one build through a global setup, and adds a test that fails if the sharing returns.
+The manual's `pnpm test` intermittently skips 15 to 40 tests. Several test files (`test/build.test.ts`, `test/offline-build.test.ts` and others) each run `astro build` in `apps/manual` in parallel, and the builds share one `.astro/.prerender` directory. One build deletes chunks another is importing, so a test fails with `ERR_MODULE_NOT_FOUND` under `.astro/.prerender/chunks/` and the suite skips the tests behind it. `main` has the same exposure: CI can go red or silently skip tests. This todo replaces the parallel builds with one shared build and adds a test that fails if a second build returns.
 
 ## Context
 

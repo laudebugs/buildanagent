@@ -10,7 +10,7 @@ Run each from the repo root.
 | --- | --- |
 | `pnpm --filter @buildanagent/manual build` | Builds the site into `apps/manual/dist/`, indexes the chapters with Pagefind, then writes the offline worker `sw.js` and its file list `offline-manifest.json` |
 | `pnpm --filter @buildanagent/manual dev` | Serves the site locally while you edit |
-| `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including one full build into a temporary folder that `test/build.test.ts` and `test/offline-build.test.ts` share (`test/built-book.ts`, a Vitest global setup) |
+| `pnpm --filter @buildanagent/manual test` | Runs the offline tests, including one full build into a temporary folder, made by the Vitest global setup `test/built-book.ts` and shared by `test/build.test.ts` and `test/offline-build.test.ts` |
 | `pnpm --filter @buildanagent/manual typecheck` | Type-checks the app's TypeScript with the root `tsc` setup |
 | `pnpm --filter @buildanagent/manual check:book` | Checks the outline, the three registers and every chapter against the build's own rules, without building |
 | `pnpm --filter @buildanagent/manual audit:papers` | Reports how the chapters name each research paper in the register, and lists research names the register lacks; it writes nothing and never fails |
