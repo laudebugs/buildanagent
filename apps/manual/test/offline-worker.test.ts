@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import {
+  buildMark,
   CACHE_PREFIX,
   cacheName,
   type FetchLike,
   NAVIGATION_TIMEOUT_MS,
+  normalisePath,
   OfflineWorker,
+  SAVE_PAGE_LIMIT,
   storable,
 } from "../src/offline/worker.js";
 import { basic, buildOf, FakeCaches, FakeNetwork, FakeTimer, ORIGIN, ok, request } from "./offline-fakes.js";
@@ -14,7 +17,7 @@ import { basic, buildOf, FakeCaches, FakeNetwork, FakeTimer, ORIGIN, ok, request
 // it refuses, what each kind of request gets online, offline and on a slow network, and its messages.
 
 const TEXTS = {
-  "/": "<h1>Contents</h1>",
+  "/": '<meta name="manual-build" content="b1"><h1>Contents</h1><p>bob@example.com</p>',
   "/offline/": "<h1>You're offline</h1>",
   "/tools/": "<h1>Tools</h1>",
   "/glossary/": "<h1>Glossary</h1>",
@@ -274,6 +277,8 @@ test("STATUS counts what this build's cache holds, SKIP_WAITING asks to take ove
       bytes: SHELL.reduce((sum, path) => sum + Buffer.byteLength(TEXTS[path as keyof typeof TEXTS]), 0),
     },
     shell: { files: SHELL.length, saved: SHELL.length },
+    rewritten: [],
+    failed: [],
   });
   assert.deepEqual(await worker.handleMessage({ type: "SKIP_WAITING" }), { type: "SKIP_WAITING" });
   assert.deepEqual(await worker.handleMessage({ type: "SAVE_ALL" }), { type: "UNSUPPORTED", request: "SAVE_ALL" });
@@ -281,4 +286,114 @@ test("STATUS counts what this build's cache holds, SKIP_WAITING asks to take ove
   for (const junk of [null, undefined, "SKIP_WAITING", 1, {}, { type: "skip_waiting" }, { type: "__proto__" }]) {
     assert.equal(await worker.handleMessage(junk), null, JSON.stringify(junk));
   }
+});
+
+test("a path is decoded segment by segment, doubled slashes collapse, and a dot segment or encoded slash maps nowhere", () => {
+  assert.equal(normalisePath("/"), "/");
+  assert.equal(normalisePath("//tools//"), "/tools/");
+  assert.equal(normalisePath("/scripts/not%65s.js"), "/scripts/notes.js");
+  assert.equal(normalisePath("/tools/%2e%2e/sw.js"), null, "an encoded dot segment");
+  assert.equal(normalisePath("/tools%2Fsw.js"), null, "an encoded slash");
+  assert.equal(normalisePath("/tools%5Csw.js"), null, "an encoded backslash");
+  assert.equal(normalisePath("/%E0%A4%A"), null, "a broken escape");
+  assert.equal(normalisePath("/tools%00/"), null, "a control character");
+  const { worker } = setup();
+  assert.equal(worker.keyFor(`${ORIGIN}//tools//?x`), `${ORIGIN}/tools/`);
+  assert.equal(worker.keyFor(`${ORIGIN}/scripts/not%65s.js`), `${ORIGIN}/scripts/notes.js`);
+  assert.equal(worker.keyFor(`${ORIGIN}/tools`), null, "a page without its slash is not a file");
+  assert.equal(worker.keyFor(`${ORIGIN}/%73w.js`), null, "the worker script, however it is spelled");
+  assert.equal(worker.keyFor(`${ORIGIN}/__manual-offline__/clients.json`), null, "the worker's own records");
+});
+
+test("offline, a page asked for without its slash redirects to the saved page, as the server does", async () => {
+  const { worker, event, caches } = setup({ "/tools": "offline", "/nowhere": "offline" });
+  await worker.install();
+  await saveTools(caches);
+  const response = await worker.handleFetch(event(request("/tools?from=x", { navigate: true })));
+  assert.equal(response?.status, 307);
+  assert.equal(response?.headers.get("location"), `${ORIGIN}/tools/?from=x`);
+  const other = await worker.handleFetch(event(request("/nowhere", { navigate: true })));
+  assert.equal(await other?.text(), TEXTS["/offline/"], "a path that is no page gets the offline page");
+});
+
+test("a page a CDN rewrote installs when it keeps the build's mark, and STATUS reports it as rewritten", async () => {
+  const rewritten = TEXTS["/"].replace(
+    "bob@example.com",
+    '<a href="/cdn-cgi/l/email-protection#1">[email&#160;protected]</a><script src="/cdn-cgi/scripts/email-decode.min.js"></script>',
+  );
+  const { worker, cached } = setup({ "/": () => ok(rewritten) });
+  await worker.install();
+  assert.equal(await (await cached("/"))?.text(), rewritten);
+  const status = await worker.status();
+  assert.deepEqual(status.rewritten, ["/"]);
+  assert.deepEqual(status.failed, []);
+  assert.ok(TEXTS["/"].includes(buildMark("b1")));
+});
+
+test("a rewritten page without the build's mark, or with another build's, fails the install, and a script never passes rewritten", async () => {
+  const noMark = setup({ "/": () => ok("<h1>Contents</h1><script>beacon()</script>") });
+  await assert.rejects(noMark.worker.install(), /is not this build's file/);
+  assert.deepEqual((await noMark.worker.status()).failed, [{ path: "/", reason: "no-build-mark" }]);
+  const newer = setup({ "/": () => ok('<meta name="manual-build" content="b2"><h1>Contents</h1>') });
+  await assert.rejects(newer.worker.install());
+  assert.deepEqual((await newer.worker.status()).failed, [], "a newer deploy's page is not this build's fault");
+  const script = setup({ "/_astro/BaseLayout.abc.css": () => ok(`body{}${buildMark("b1")}`) });
+  await assert.rejects(script.worker.install());
+  assert.deepEqual((await script.worker.status()).failed, [
+    { path: "/_astro/BaseLayout.abc.css", reason: "different-bytes" },
+  ]);
+});
+
+test("after a restart, a page served from the cache still gets only this build's assets, and fails rather than mix", async () => {
+  const { worker, event, caches } = setup({ "/tools/": "offline" });
+  await worker.install();
+  await saveTools(caches);
+  const pending: Promise<unknown>[] = [];
+  const page = await worker.handleFetch({
+    request: request("/tools/", { navigate: true }),
+    resultingClientId: "tab-1",
+    waitUntil: (promise) => pending.push(promise),
+  });
+  assert.equal(await page?.text(), TEXTS["/tools/"]);
+  await Promise.all(pending);
+
+  // The browser stops the worker and starts it again: a new instance over the same caches, with a newer deploy online.
+  const newer = new FakeNetwork({ "/scripts/notes.js": () => ok("// notes, from a newer build") });
+  const restarted = new OfflineWorker(buildOf("b1", TEXTS, SHELL), { origin: ORIGIN, caches, fetch: newer.fetch });
+  const script = await restarted.handleFetch(event(request("/scripts/notes.js"), { clientId: "tab-1" }));
+  assert.equal(script?.type, "error", "the newer build's script is refused for the older page");
+  const same = new FakeNetwork({ "/scripts/notes.js": () => ok(TEXTS["/scripts/notes.js"]) });
+  const again = new OfflineWorker(buildOf("b1", TEXTS, SHELL), { origin: ORIGIN, caches, fetch: same.fetch });
+  assert.equal(
+    await (await again.handleFetch(event(request("/scripts/notes.js"), { clientId: "tab-1" })))?.text(),
+    TEXTS["/scripts/notes.js"],
+  );
+  const fresh = await again.handleFetch(event(request("/scripts/notes.js"), { clientId: "tab-9" }));
+  assert.equal(await fresh?.text(), TEXTS["/scripts/notes.js"], "a page the worker never served asks the network");
+});
+
+test("SAVE_PAGE saves the page a reader landed on and its files, only listed same-origin paths, and reports failures", async () => {
+  const { worker, cached } = setup({ "/scripts/notes.js": () => ok("// a changed script") });
+  const reply = await worker.handleMessage({
+    type: "SAVE_PAGE",
+    paths: [
+      "/tools/",
+      `${ORIGIN}/glossary/?q=1`,
+      "https://evil.example/tools/",
+      "/unlisted/",
+      "/sw.js",
+      "/scripts/notes.js",
+      7,
+    ],
+  });
+  assert.deepEqual(reply, {
+    type: "SAVED",
+    saved: ["/tools/", "/glossary/"],
+    failed: [{ path: "/scripts/notes.js", reason: "different-bytes" }],
+  });
+  assert.ok(await cached("/tools/"));
+  assert.equal(await cached("/scripts/notes.js"), undefined);
+  assert.deepEqual((await worker.status()).failed, [{ path: "/scripts/notes.js", reason: "different-bytes" }]);
+  assert.equal(await worker.handleMessage({ type: "SAVE_PAGE", paths: "/tools/" }), null);
+  assert.equal(await worker.handleMessage({ type: "SAVE_PAGE", paths: Array(SAVE_PAGE_LIMIT + 1).fill("/") }), null);
 });

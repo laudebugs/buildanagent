@@ -5,7 +5,11 @@
 // changes, so do the worker's bytes, which is what makes a browser install the new build's worker.
 //
 // The application shell, which the worker saves when it installs, is the home page, the offline page and the search
-// page, with every same-origin stylesheet, script, icon and manifest they link and every font the stylesheets name.
+// page, with every same-origin stylesheet, script, icon and manifest they link, every font the stylesheets name, and
+// the Pagefind files a search needs.
+//
+// Every page carries <meta name="manual-build" content="__MANUAL_BUILD__">; this step writes the build id into it, so
+// the worker can still recognise one of its pages after a CDN rewrote a few of its bytes.
 //
 // Usage: node scripts/offline-build.mjs <dist directory>
 import { createHash } from "node:crypto";
@@ -24,6 +28,19 @@ export const EXCLUDED = new Map([
 
 /** The pages of the application shell, which the worker saves when it installs. */
 export const SHELL_PAGES = ["/", "/offline/", "/search/"];
+
+// Pagefind's files the search page needs to answer any query: its module, web worker, WebAssembly, entry and meta
+// files, and the index chunks and result fragments. The shell holds them so search works offline from the first visit;
+// Pagefind's other UI bundles, which no page loads, stay out.
+const PAGEFIND_SHELL = [
+  /^\/pagefind\/pagefind\.js$/,
+  /^\/pagefind\/pagefind-worker\.js$/,
+  /^\/pagefind\/pagefind-entry\.json$/,
+  /^\/pagefind\/[^/]+\.pf_meta$/,
+  /^\/pagefind\/wasm\.[^/]+\.pagefind$/,
+  /^\/pagefind\/index\/[^/]+\.pf_index$/,
+  /^\/pagefind\/fragment\/[^/]+\.pf_fragment$/,
+];
 
 /** Returns the URL path a file is served at: a directory's index.html is served at the directory, with a slash. */
 export function urlFor(path) {
@@ -47,11 +64,37 @@ export function listFiles(dist) {
     .sort((a, b) => (a.url < b.url ? -1 : a.url > b.url ? 1 : 0));
 }
 
-/** The build's id: the first 16 hex digits of a SHA-256 over every listed file's URL, size and hash. */
-export function buildId(files) {
+/** Bumped when the worker's rules change in a way that must not trust caches an earlier worker filled. */
+export const FORMAT_VERSION = 2;
+
+/** The placeholder every page's <meta name="manual-build"> carries until this step writes the build id into it. */
+export const BUILD_PLACEHOLDER = "__MANUAL_BUILD__";
+const MARK = /<meta name="manual-build" content="([^"]*)">/g;
+
+/**
+ * The build's id: the first 16 hex digits of a SHA-256 over the format version, the worker's code, every listed
+ * file's URL, size and hash, taken while the pages still carry the placeholder, and the shell's URLs. A deploy that changes only the worker
+ * therefore gets a new id and a new cache, so a fixed worker never trusts entries an older one stored.
+ */
+export function buildId(files, workerCode = "", shell = []) {
   const hash = createHash("sha256");
+  hash.update(`format ${FORMAT_VERSION}\n`);
+  hash.update(createHash("sha256").update(workerCode).digest("hex")).update("\n");
   for (const file of files) hash.update(`${file.url} ${file.size} ${file.sha256}\n`);
+  for (const url of shell) hash.update(`shell ${url}\n`);
   return hash.digest("hex").slice(0, 16);
+}
+
+// Writes `value` into every page's build mark. Each page must hold exactly one mark, so a page the layout did not
+// render, or one with a second mark, fails the build.
+function stampPages(dist, files, value) {
+  for (const file of files.filter((entry) => entry.path.endsWith(".html"))) {
+    const path = join(dist, file.path);
+    const html = readFileSync(path, "utf8");
+    const marks = [...html.matchAll(MARK)];
+    if (marks.length !== 1) throw new Error(`${file.path} holds ${marks.length} build marks, not one`);
+    writeFileSync(path, html.replace(MARK, `<meta name="manual-build" content="${value}">`));
+  }
 }
 
 // Same-origin paths a page links with <link href> or <script src>, and fonts a stylesheet names with url().
@@ -68,6 +111,7 @@ export function shellUrls(dist, files) {
     if (!byUrl.has(path)) throw new Error(`${from} links ${path}, which is not a listed file of the build`);
     shell.add(path);
   };
+  for (const file of files) if (PAGEFIND_SHELL.some((pattern) => pattern.test(file.url))) add(file.url, "Pagefind");
   for (const page of SHELL_PAGES) {
     add(page, "the shell");
     const html = readFileSync(join(dist, byUrl.get(page).path), "utf8");
@@ -82,13 +126,36 @@ export function shellUrls(dist, files) {
   return [...shell].sort();
 }
 
-/** Writes dist/offline-manifest.json and dist/sw.js; returns the manifest. */
+/** Bundles the worker's code, without the build's list, as one classic script. */
+async function bundleWorker() {
+  const result = await build({
+    entryPoints: [fileURLToPath(new URL("../src/offline/sw.ts", import.meta.url))],
+    write: false,
+    bundle: true,
+    format: "iife",
+    platform: "browser",
+    target: "es2022",
+    charset: "utf8",
+    legalComments: "none",
+    logLevel: "warning",
+  });
+  return result.outputFiles[0].text;
+}
+
+/**
+ * Writes the build id into every page, then dist/offline-manifest.json and dist/sw.js; returns the manifest. Running
+ * it again on the same dist/ gives the same id and the same files.
+ */
 export async function writeOffline(dist) {
+  const code = await bundleWorker();
+  stampPages(dist, listFiles(dist), BUILD_PLACEHOLDER);
+  const unstamped = listFiles(dist);
+  const id = buildId(unstamped, code, shellUrls(dist, unstamped));
+  stampPages(dist, listFiles(dist), id);
   const files = listFiles(dist);
-  const id = buildId(files);
   const shell = shellUrls(dist, files);
   const manifest = {
-    version: 1,
+    version: FORMAT_VERSION,
     build: id,
     total: { files: files.length, bytes: files.reduce((sum, file) => sum + file.size, 0) },
     shell,
@@ -99,23 +166,18 @@ export async function writeOffline(dist) {
   const stamped = {
     build: id,
     shell,
-    files: Object.fromEntries(files.map((file) => [file.url, { size: file.size, sha256: file.sha256 }])),
+    files: Object.fromEntries(
+      files.map((file) => [
+        file.url,
+        file.path.endsWith(".html")
+          ? { size: file.size, sha256: file.sha256, html: true }
+          : { size: file.size, sha256: file.sha256 },
+      ]),
+    ),
   };
-  await build({
-    entryPoints: [fileURLToPath(new URL("../src/offline/sw.ts", import.meta.url))],
-    outfile: join(dist, "sw.js"),
-    bundle: true,
-    format: "iife",
-    platform: "browser",
-    target: "es2022",
-    charset: "utf8",
-    legalComments: "none",
-    logLevel: "warning",
-    // A classic script's top-level const is visible inside the bundle's function, so the list needs no import.
-    banner: {
-      js: `// The book's service worker for build ${id}, generated by scripts/offline-build.mjs (ADR 0059).\nconst __MANUAL_OFFLINE__ = ${JSON.stringify(stamped)};`,
-    },
-  });
+  // A classic script's top-level const is visible inside the bundle's function, so the list needs no import.
+  const banner = `// The book's service worker for build ${id}, generated by scripts/offline-build.mjs (ADR 0059).\nconst __MANUAL_OFFLINE__ = ${JSON.stringify(stamped)};\n`;
+  writeFileSync(join(dist, "sw.js"), banner + code);
   return manifest;
 }
 

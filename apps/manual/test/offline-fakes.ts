@@ -85,7 +85,12 @@ export function buildOf(id: string, texts: Record<string, string>, shell: string
     build: id,
     shell,
     files: Object.fromEntries(
-      Object.entries(texts).map(([path, text]) => [path, { size: Buffer.byteLength(text), sha256: sha(text) }]),
+      Object.entries(texts).map(([path, text]) => [
+        path,
+        path.endsWith("/")
+          ? { size: Buffer.byteLength(text), sha256: sha(text), html: true }
+          : { size: Buffer.byteLength(text), sha256: sha(text) },
+      ]),
     ),
   };
 }

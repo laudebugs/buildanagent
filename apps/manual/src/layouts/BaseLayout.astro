@@ -37,6 +37,8 @@ const hosts = offlineHosts(Astro.site, process.env.MANUAL_OFFLINE_TEST_HOST).joi
     <meta name="theme-color" media="(prefers-color-scheme: light)" content={pageColor.light} />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content={pageColor.dark} />
     <meta name="manual-offline-hosts" content={hosts} />
+    <!-- scripts/offline-build.mjs writes the build id here, so the offline worker knows this page's build. -->
+    <meta name="manual-build" content="__MANUAL_BUILD__" />
     <!-- Blocking on purpose: it applies a stored theme before the first paint. -->
     <script is:inline src="/scripts/theme.js"></script>
     <!-- A module, so it runs once the page is parsed: it records the reader's place and shows the resume link. -->

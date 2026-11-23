@@ -9,7 +9,15 @@ import { promisify } from "node:util";
 import { createContext, runInContext } from "node:vm";
 import { afterAll, beforeAll, test } from "vitest";
 import { problemsIn } from "../scripts/guard-deploy.mjs";
-import { EXCLUDED, SHELL_PAGES, urlFor, writeOffline } from "../scripts/offline-build.mjs";
+import {
+  BUILD_PLACEHOLDER,
+  buildId,
+  EXCLUDED,
+  FORMAT_VERSION,
+  SHELL_PAGES,
+  urlFor,
+  writeOffline,
+} from "../scripts/offline-build.mjs";
 import { checkName, LIMITS, previewHeaders } from "../scripts/stage-dist.mjs";
 import { offlineHosts } from "../src/offline/hosts.js";
 
@@ -81,7 +89,7 @@ test("a page's URL is its directory with a slash, and any other file's URL is it
 });
 
 test("every listed file exists with the size and SHA-256 the list records, and the totals add up", () => {
-  assert.equal(manifest.version, 1);
+  assert.equal(manifest.version, FORMAT_VERSION);
   for (const file of manifest.files) {
     const bytes = readFileSync(join(out, file.path));
     assert.equal(bytes.length, file.size, file.path);
@@ -193,6 +201,31 @@ test("the build's id is stamped into sw.js with the whole list, and the worker n
     await message({ type: "SKIP_WAITING" }, "https://manual.buildanagent.fyi");
     assert.equal(skipped, 1, "the page's Reload asks the waiting worker to take over");
   })();
+});
+
+test("every listed page carries this build's mark once, and the 404 page, which is never listed, the placeholder", () => {
+  for (const file of manifest.files.filter((entry) => entry.path.endsWith(".html"))) {
+    const html = readFileSync(join(out, file.path), "utf8");
+    assert.equal(html.split('<meta name="manual-build"').length - 1, 1, file.path);
+    assert.ok(html.includes(`<meta name="manual-build" content="${manifest.build}">`), file.path);
+  }
+  assert.ok(readFileSync(join(out, "404.html"), "utf8").includes(`content="${BUILD_PLACEHOLDER}"`));
+});
+
+test("the id changes with the worker's code or the shell, so a worker-only deploy gets a new cache", () => {
+  const files = manifest.files;
+  const base = buildId(files, "worker A", manifest.shell);
+  assert.notEqual(buildId(files, "worker B", manifest.shell), base);
+  assert.notEqual(buildId(files, "worker A", manifest.shell.slice(1)), base);
+  assert.equal(buildId(files, "worker A", manifest.shell), base);
+});
+
+test("the shell holds every Pagefind file a search needs, and none of Pagefind's unused bundles", () => {
+  const pagefind = manifest.files.filter((file) => file.url.startsWith("/pagefind/")).map((file) => file.url);
+  for (const url of pagefind) {
+    const unused = /pagefind-(ui|modular-ui|highlight)\.(js|css)$/.test(url);
+    assert.equal(manifest.shell.includes(url), !unused, url);
+  }
 });
 
 test("a second build of the same files gives the same id and the same worker", async () => {
