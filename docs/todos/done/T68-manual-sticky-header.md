@@ -26,7 +26,7 @@ The manual's header stays reachable while a reader scrolls, and a thin line alon
 - A sticky header: 56 px on desktop, one 52 px row on a phone with the wordmark, a search icon, the hidden settings slot, the theme toggle and a menu button (Contents, Glossary, Sources, Notes).
 - Hide on scroll down and return on the first upward scroll on a phone, with focus and reduced-motion rules.
 - A 3 px reading progress line on chapter pages.
-- `scroll-padding-top`, the rail offset and no overlap with the notes controls, search results or the offline-save control.
+- `scroll-padding-top`, the rail offset and no overlap with the Notes button (the toolbar and popover are checked in one desktop case; see the report's limits), search results or the offline-save control.
 - Playwright tests and before and after screenshots.
 
 **Out of scope**

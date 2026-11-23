@@ -164,6 +164,7 @@ async function overlaps(page, bottom, touch) {
   else await page.mouse.click(spot.x, spot.y);
   await page.waitForSelector(".notes-pop:popover-open");
   const pop = await rect(page, ".notes-pop");
+  // On a touch screen the popover is a full-width bottom sheet (notes.js SHEET_QUERY), so it cannot reach the header.
   check(pop.top >= bottom - 0.5 || touch, `the note popover is below the header (top ${pop.top.toFixed(0)})`);
   await page.keyboard.press("Escape");
 }

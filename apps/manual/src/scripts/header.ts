@@ -180,7 +180,13 @@ if (typeof ResizeObserver === "function") {
   if (chapter) observer.observe(chapter);
   observer.observe(document.body);
 }
-document.addEventListener("toggle", refresh, { capture: true });
+document.addEventListener(
+  "toggle",
+  (event) => {
+    if (event.target instanceof HTMLDetailsElement) refresh();
+  },
+  { capture: true },
+);
 window.addEventListener("load", refresh);
 document.fonts?.ready.then(refresh);
 refresh();
