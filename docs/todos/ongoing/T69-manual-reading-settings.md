@@ -35,8 +35,8 @@ A reader can choose how the manual looks to them: one of four typeface pairings 
 
 ## Tasks
 
-- [ ] Add the four font families to the pipeline.
-- [ ] Write the early script and the CSS variables.
+- [x] Add the four font families to the pipeline.
+- [x] Write the early script and the CSS variables.
 - [ ] Handle the optional fonts offline.
 - [ ] Build the settings button, popover and sheet.
 - [ ] Write the tests and take the screenshots.

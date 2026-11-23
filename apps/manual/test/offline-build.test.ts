@@ -146,6 +146,7 @@ test("the shell is the three shell pages and the stylesheet, scripts, fonts, man
     "/icons/apple-touch-icon.png",
     "/favicon.svg",
     "/scripts/theme.js",
+    "/scripts/reading-settings.js",
     "/scripts/reading.js",
     "/scripts/offline.js",
     "/pagefind/pagefind-component-ui.js",

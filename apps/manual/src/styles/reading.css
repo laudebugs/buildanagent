@@ -1,0 +1,109 @@
+/* Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the
+   JSON file's font.reading block and run `pnpm --filter @buildanagent/manual tokens`. */
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible/atkinson-hyperlegible-regular.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible/atkinson-hyperlegible-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible";
+  src: url("/fonts/atkinson-hyperlegible/atkinson-hyperlegible-bold.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/fonts/space-grotesk/space-grotesk-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter/inter-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter/inter-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bitter";
+  src: url("/fonts/bitter/bitter-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bitter";
+  src: url("/fonts/bitter/bitter-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --weight-display: 400;
+  --reading-scale: 1;
+}
+
+:root[data-reading-font="readable"] {
+  --font-display: "Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+  --weight-display: 700;
+}
+
+:root[data-reading-font="sans"] {
+  --font-display: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --weight-display: 600;
+}
+
+:root[data-reading-font="slab"] {
+  --font-display: "Bitter", Georgia, "Times New Roman", serif;
+  --font-body: "Bitter", Georgia, "Times New Roman", serif;
+  --weight-display: 700;
+}
+
+:root[data-reading-size="90"] {
+  --reading-scale: 0.9;
+  font-size: 90%;
+}
+
+:root[data-reading-size="115"] {
+  --reading-scale: 1.15;
+  font-size: 115%;
+}
+
+:root[data-reading-size="130"] {
+  --reading-scale: 1.3;
+  font-size: 130%;
+}
+
+:root[data-reading-size="150"] {
+  --reading-scale: 1.5;
+  font-size: 150%;
+}

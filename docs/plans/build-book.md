@@ -622,6 +622,7 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T67b](../todos/done/T67b-manual-save-for-offline.md) | A "Save the manual for offline reading" control: progress, size, saved date and build, remove, and the offline state | T67a | M |
 | [T68](../todos/done/T68-manual-sticky-header.md) | A sticky header (56 px on a desktop, one 52 px row on a phone with a menu, hiding on a scroll down), a reading progress line, a slot for the settings button and the scroll offsets that go with them (owner's pick H2, 2026-11-23) | T67b | M |
 | [T68a](../todos/done/T68a-manual-paper-references-tooling.md) | Tooling for research-paper references: `[[paper:id]]`, a described first mention and linked later ones, `check:book` rules, the Sources page's "Cited in" and an audit script | None | M |
+| [T69](../todos/ongoing/T69-manual-reading-settings.md) | Reading settings: four typeface pairings (Book, Readable, Sans, Slab) and five text sizes (90–150%), saved on the device and applied before the first paint, with the fonts, early script and CSS first and the settings panel second (owner's pick S1, 2026-11-23) | T68 | L |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |

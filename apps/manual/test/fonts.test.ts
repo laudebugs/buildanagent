@@ -23,7 +23,8 @@ const sources = JSON.parse(readFileSync(new URL("../fonts/sources.json", import.
   files: { path: string; sha256: string }[];
 };
 const tokens = readTokens();
-const fonts = [tokens.font.display, tokens.font.body, tokens.font.code];
+// The book's own fonts and the faces only the reader's pairings use (font.reading.faces).
+const fonts = [tokens.font.display, tokens.font.body, tokens.font.code, ...Object.values(tokens.font.reading.faces)];
 
 function sha256(url: URL): string {
   return createHash("sha256").update(readFileSync(url)).digest("hex");
@@ -96,17 +97,40 @@ test("the Google Sans Code subsets drop the manufacturer records and keep the co
   }
 });
 
-test("Instrument Serif and Literata keep their own names, which their OFL reserves for no one", () => {
+// A variable font's name 1 can name its default instance ("Bitter Thin"), so the typographic family, name 16, wins
+// where the font has one.
+test("every family but Manual Code keeps its own upstream name, which no OFL reserves", () => {
   for (const family of sources.families.filter((entry) => entry.neutralName === null)) {
     const token = fonts.find((font) => font.files.some((file) => file.src.startsWith(`/fonts/${family.folder}/`)));
     for (const font of family.fonts) {
-      assert.equal(
-        names(family, font.served)
-          .get(1)
-          ?.replace(/ Italic$/, ""),
-        token?.cssFamily,
-        font.served,
-      );
+      const records = names(family, font.served);
+      assert.equal((records.get(16) ?? records.get(1))?.replace(/ Italic$/, ""), token?.cssFamily, font.served);
+    }
+  }
+});
+
+// A Reserved Font Name keeps a modified version, such as a subset, from using that name. Only Bitter's OFL reserves one,
+// "Bitter Pro", which the served family, "Bitter", is not; the name appears in the subsets only inside the copyright
+// notice's URL, which the OFL requires them to keep.
+test("only Bitter's licence reserves a font name, Bitter Pro, and no served subset is named with it", () => {
+  const reserved = sources.families.flatMap((family) => {
+    const header = readFileSync(new URL(`${family.folder}/OFL.txt`, fontsDir), "utf8").split("PREAMBLE")[0] ?? "";
+    return [...header.matchAll(/Reserved Font Names? "([^"]+)"/g)].map((match) => ({ family, name: match[1] ?? "" }));
+  });
+  assert.deepEqual(
+    reserved.map(({ family, name }) => [family.folder, name]),
+    [["bitter", "Bitter Pro"]],
+  );
+  for (const { family, name } of reserved) {
+    for (const font of family.fonts) {
+      for (const [id, text] of names(family, font.served)) {
+        if (id === 0) continue;
+        assert.doesNotMatch(
+          text,
+          new RegExp(`${name.replace(" ", " ?")}\\b`),
+          `${font.served}: name ${id} reads ${text}`,
+        );
+      }
     }
   }
 });
