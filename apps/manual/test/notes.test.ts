@@ -1232,7 +1232,7 @@ test("a note and the passage are text, never markup, and a long passage keeps it
 });
 
 test("a plain highlight shows the quotation and an Add-a-note field, and Save writes the note", () => {
-  const { win } = stage([CONTRACT]);
+  const { win, calls } = stage([CONTRACT]);
   click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
   assert.deepEqual(popChildren(win), [
     "notes-pop__grab",
@@ -1251,10 +1251,15 @@ test("a plain highlight shows the quotation and an Add-a-note field, and Save wr
   field.value = "  Mine, <i>not</i> markup.  ";
   popAction(win, "save").click();
   assert.equal(storedItems(win).find((found) => found.id === "one")?.note, "Mine, <i>not</i> markup.");
-  assert.equal(q(win, ".notes-pop__note")?.textContent, "Mine, <i>not</i> markup.");
+  assert.deepEqual(calls, ["show", "hide"], "Save closes the popover");
   assert.equal(q(win, ".notes-pop i"), null);
+  assert.equal(q(win, "[role='status'].visually-hidden")?.textContent, "Note saved.", "and says so in the live region");
+  const active = win.document.activeElement;
+  assert.equal(active?.closest(".notes-pop") ?? null, null, "focus is not left in the closed popover");
+  // Opening it again shows the saved note with its Edit.
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  assert.equal(q(win, ".notes-pop__note")?.textContent, "Mine, <i>not</i> markup.");
   assert.equal(popAction(win, "edit").hidden, false, "now it has an Edit");
-  assert.equal(win.document.activeElement, popAction(win, "edit"));
 });
 
 test("Edit turns the note into a field, Cancel drops the change, and Save keeps the typed text", () => {
@@ -1273,6 +1278,7 @@ test("Edit turns the note into a field, Cancel drops the change, and Save keeps 
   (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Changed my mind";
   popAction(win, "save").click();
   assert.equal(storedItems(win).find((found) => found.id === "two")?.note, "Changed my mind");
+  click(win, q(win, "article p:last-of-type"), 50, 310);
   assert.equal(q(win, ".notes-pop__note")?.textContent, "Changed my mind");
 });
 
@@ -1290,6 +1296,7 @@ test("Save works from the stored list, so another tab's change is kept, and adds
       .sort(),
     ["one", "three", "two"],
   );
+  click(win, q(win, "article p:last-of-type"), 50, 310);
   popAction(win, "edit").click();
   win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, other] }));
   (q(win, ".notes-pop__field") as HTMLTextAreaElement).value = "Typed after the delete";
@@ -1533,6 +1540,7 @@ test("a refresh keeps what a reader typed in a plain highlight's field, and a sa
   popAction(win, "save").click();
   assert.equal(storedItems(win).find((found) => found.id === "one")?.note, "Half typed");
   // After a save the stored note is the saved one, so another tab's delete closes the popover.
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
   const hide = vi.fn();
   Object.defineProperty(win.HTMLElement.prototype, "hidePopover", { configurable: true, value: hide });
   win.localStorage.setItem(KEY, stored({ tools: [FAILED] }));
@@ -1572,6 +1580,33 @@ test("Remove in the popover deletes the highlight and closes the popover", () =>
   );
   assert.deepEqual(painted(win, PLAIN), []);
   assert.deepEqual(calls, ["show", "hide"]);
+});
+
+test("a plain highlight opens with focus in the note field, and Edit puts the caret at the end of the note", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  assert.equal(win.document.activeElement, field);
+  popAction(win, "save").click();
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popAction(win, "edit").click();
+  assert.equal(win.document.activeElement, field);
+  assert.equal(field.selectionStart, "Remember the retry.".length);
+  assert.equal(field.selectionEnd, "Remember the retry.".length);
+});
+
+test("Remove and Close shut the popover through one routine and say what happened", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  const live = () => q(win, "[role='status'].visually-hidden")?.textContent;
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  (q(win, ".notes-pop__close") as HTMLElement).click();
+  assert.deepEqual(calls, ["show", "hide"]);
+  assert.equal(storedItems(win).length, 2, "Close removes nothing");
+  assert.equal(q(win, ".notes-pop__close")?.getAttribute("aria-label"), "Close note");
+  click(win, q(win, "article p:last-of-type"), 50, 310);
+  popButton(win, "Remove").click();
+  assert.equal(live(), "Note removed.");
+  assert.deepEqual(calls, ["show", "hide", "show", "hide"]);
 });
 
 test("a click on a link, with text selected, outside any highlight or in a browser without popovers opens nothing", () => {
