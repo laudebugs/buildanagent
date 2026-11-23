@@ -42,15 +42,17 @@ export interface CompactionReport {
 async function reportOn(session: Session): Promise<CompactionReport | undefined> {
   const entries = [];
   for await (const entry of session.playback()) entries.push(entry);
-  const compaction = entries.find((entry) => entry.type === "compaction");
+  // The latest compaction is the one the next request reads; an earlier one is already folded into its summary.
+  const compaction = entries.findLast((entry) => entry.type === "compaction");
   if (compaction === undefined) return undefined;
   const { summary, tokensBefore, tokensAfter, firstKeptEntryId } = compaction;
   const replacedEntries = entries.findIndex((entry) => entry.id === firstKeptEntryId);
+  if (replacedEntries === -1) throw new Error(`The compaction keeps entry ${firstKeptEntryId}, which the log lacks.`);
   return { summary, tokensBefore, tokensAfter, replacedEntries, logEntries: entries.length };
 }
 // #endregion
 
-/** Asks each question in one session, and reports the compaction that the longer chat caused, if one happened. */
+/** Asks each question in one session, and reports the latest compaction that the longer chat caused, if one happened. */
 export async function chatWithCompaction(
   log: Log,
   model: Model,

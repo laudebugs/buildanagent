@@ -88,6 +88,13 @@ test("a call whose projection fits the cap runs, and one that could pass it is n
   assert.equal(dear.requests.length, 0);
 });
 
+/** The USD a refusal message says were spent, read as a number so the test doesn't depend on how many digits print. */
+function spentIn(message: string): number {
+  const spent = /^Stopped at the cap of 0\.5 USD: (\S+) spent/.exec(message)?.[1];
+  assert.ok(spent !== undefined, `not a cap refusal: ${message}`);
+  return Number(spent);
+}
+
 function anthropicAnswer(text: string, outputTokens = 10): Response {
   return Response.json({
     id: "msg_1",
@@ -121,7 +128,7 @@ test("a cheap call goes out with only the user's key to the one address, and a c
   assert.equal(await answer("claude-haiku-5-5", "Where is my refund?"), "Your refund is on its way.");
   assert.deepEqual(transport.sent, [{ url: "https://api.anthropic.com/v1/messages", key: "sk-user-1" }]);
   const refused = await answer("claude-sonnet-5-5", "Where is my refund?");
-  assert.match(refused, /^Stopped at the cap of 0\.5 USD: 0\.0000\d* spent/);
+  assert.ok(spentIn(refused) < 0.001, "nothing had been spent on the key but the first cheap call");
   assert.equal(transport.sent.length, 1, "the refused call sent nothing");
 });
 
@@ -131,7 +138,7 @@ test("what one call spent counts against the next call on the same key, and a ne
   const answer = answererForKey("sk-user-1", transport.send);
   assert.equal(await answer("claude-haiku-5-5", "Where is my refund?"), "Your refund is on its way.");
   const refused = await answer("claude-haiku-5-5", "And the second?");
-  assert.match(refused, /^Stopped at the cap of 0\.5 USD: 0\.4500\d* spent/);
+  assert.ok(Math.abs(spentIn(refused) - 0.45) < 0.001, "the first call's 0.45 USD counted");
   assert.equal(transport.sent.length, 1, "the second call was refused before it was sent");
   const other = answererForKey("sk-user-2", transport.send);
   assert.equal(await other("claude-haiku-5-5", "Hi"), "Your refund is on its way.");

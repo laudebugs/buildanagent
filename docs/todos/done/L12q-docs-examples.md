@@ -74,7 +74,7 @@ The plan's todo table, and the L12 todo if its example list changes.
 
 ## Outcome
 
-All four example sets are in. No `src/`, `package.json` or `tsconfig.build.json` file changed, so no changeset. The protocol's `tsconfig.json` now includes `examples/`, so `pnpm typecheck` checks them, and none ships in a tarball (row L12q-10). Claims are in the fact-check log, rows L12q-1 to L12q-10.
+All four example sets are in. No `src/`, `package.json` or `tsconfig.build.json` file changed, so no changeset. The protocol's `tsconfig.json` now includes `examples/`, so `pnpm typecheck` checks them, and none ships in a tarball (row L12q-10). Claims are in the fact-check log, rows L12q-1 to L12q-22.
 
 - **Protocol** (`packages/protocol/examples/`, test `test/examples.test.ts`):
   - `read-stream.ts`: `readStream()` frames a chunked JSONL stream and decodes each message, and refuses a line that parsed to a string, because `decode()` would parse that string a second time. A page can quote the region `read`.

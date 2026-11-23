@@ -10,33 +10,40 @@ const BASE_URL = "https://api.anthropic.com/v1";
 const CAP_USD = 0.5;
 
 // #region provider
-// Once, at startup: from here a string model id throws instead of reaching a key nobody chose.
-assertNoDefaultProvider();
-
-/**
- * Builds the answerer for one user's key. Make it once per key and keep it, because its spend is what the cap counts.
- * `send` replaces the network fetch; leave it out to call Anthropic.
- */
-export function answererForKey(userKey: string, send?: typeof fetch) {
+/** The provider for one user's key: it reaches only `BASE_URL` with that key, and its calls count against one cap. */
+function guardedModels(userKey: string, send?: typeof fetch) {
   const anthropic = explicitProvider({
     provider: "anthropic",
     apiKey: userKey,
     baseURL: BASE_URL,
     ...(send === undefined ? {} : { fetch: send }),
   });
-  const models = guardedProvider(anthropic, costGuard({ capUsd: CAP_USD, spend: memorySpend() }));
-  // #endregion
-  // #region call
-  /** Answers `prompt` on `modelId`, or says why the cap stopped the call. */
-  return async function answer(modelId: string, prompt: string): Promise<string> {
-    try {
-      const { text } = await generateText({ model: models.languageModel(modelId), prompt });
-      return text;
-    } catch (error) {
-      const refused = budgetRefusal(error);
-      if (refused === undefined) throw error;
-      return `Stopped at the cap of ${refused.capUsd} USD: ${refused.spentUsd} spent, ${refused.projectedUsd} more projected`;
-    }
-  };
-  // #endregion
+  return guardedProvider(anthropic, costGuard({ capUsd: CAP_USD, spend: memorySpend() }));
+}
+// #endregion
+
+// #region call
+/** Answers `prompt` on `modelId`, or says why the cap stopped the call. */
+async function answer(models: ReturnType<typeof guardedModels>, modelId: string, prompt: string): Promise<string> {
+  try {
+    const { text } = await generateText({ model: models.languageModel(modelId), prompt });
+    return text;
+  } catch (error) {
+    const refused = budgetRefusal(error);
+    if (refused === undefined) throw error;
+    return `Stopped at the cap of ${refused.capUsd} USD: ${refused.spentUsd} spent, ${refused.projectedUsd} more projected`;
+  }
+}
+// #endregion
+
+/**
+ * Builds the answerer for one user's key. Make it once per key and keep it, because its spend is what the cap counts.
+ * `send` replaces the network fetch; leave it out to call Anthropic.
+ */
+export function answererForKey(userKey: string, send?: typeof fetch) {
+  // Sets `globalThis.AI_SDK_DEFAULT_PROVIDER` once for the whole process, and repeating it does nothing: from here a
+  // string model id throws instead of reaching a key nobody chose.
+  assertNoDefaultProvider();
+  const models = guardedModels(userKey, send);
+  return (modelId: string, prompt: string): Promise<string> => answer(models, modelId, prompt);
 }
