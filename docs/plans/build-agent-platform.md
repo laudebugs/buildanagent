@@ -13,7 +13,7 @@ As of November 2026, every agent builder turns a description into an agent, but 
 
 **Goal.** At the end of milestone M8, any signed-in user can describe a tool-using agent with approval-gated writes and receive four things:
 
-1. a repository of TypeScript they own, written against Cloudflare `agents` 0.33.0 or the Vercel AI SDK `ai` 7.0.162;
+1. a repository of TypeScript they own, written against Cloudflare `agents` 0.33.0 or the Vercel AI SDK `ai` 7.0.173;
 2. a gate report with type-check, mock-model and eval results;
 3. a deployment in their own Cloudflare or Vercel account;
 4. an audit trail of the build.
@@ -68,7 +68,7 @@ A tenant is the unit of isolation. Each tenant's tasks run in Durable Objects na
 
 **Accepted by the owner on 2026-11-18:** "Ours, plus verified third-party".
 
-M8 generates against two SDKs we have already verified: Cloudflare `agents` 0.33.0 and the Vercel AI SDK `ai` 7.0.162, the exact pins in [`verify/cloudflare-agents`](../../verify/cloudflare-agents/) and [`verify/vercel-ai-sdk`](../../verify/vercel-ai-sdk/). Each has a verified reference and a skill ([Cloudflare skill](../../.agents/skills/cloudflare-agents/SKILL.md); [Vercel AI SDK skill](../../.agents/skills/vercel-ai-sdk/SKILL.md)). U12 recommended Cloudflare first, because only Cloudflare combines durable per-agent state, a native approval flow, credential-brokering sandboxes and a gateway that refuses non-BYO fallback, and Vercel second ([agent-building platforms report][abp-win]). M9 makes our SDK and harness the default once M5 and M6 ship, and the third-party SDKs stay as options. A new SDK, or a new version of a supported one, becomes a target only after it passes the eight-step reference process in [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk).
+M8 generates against two SDKs we have already verified: Cloudflare `agents` 0.33.0 and the Vercel AI SDK `ai` 7.0.173, the exact pins in [`verify/cloudflare-agents`](../../verify/cloudflare-agents/) and [`verify/vercel-ai-sdk`](../../verify/vercel-ai-sdk/). Each has a verified reference and a skill ([Cloudflare skill](../../.agents/skills/cloudflare-agents/SKILL.md); [Vercel AI SDK skill](../../.agents/skills/vercel-ai-sdk/SKILL.md)). U12 recommended Cloudflare first, because only Cloudflare combines durable per-agent state, a native approval flow, credential-brokering sandboxes and a gateway that refuses non-BYO fallback, and Vercel second ([agent-building platforms report][abp-win]). M9 makes our SDK and harness the default once M5 and M6 ship, and the third-party SDKs stay as options. A new SDK, or a new version of a supported one, becomes a target only after it passes the eight-step reference process in [AGENTS.md](../../AGENTS.md#process-for-documenting-an-sdk).
 
 ### PF3. The builder engine is a coding agent task type, run per tenant (proposed)
 
@@ -144,7 +144,7 @@ user ── sign in (GitHub) ──► platform control plane (Cloudflare Worker
                                    │
                                    ▼
                  Durable Object <tenant>/<task>: build-agent task (coding agent engine)
-                   template + skill for the target SDK (agents 0.33.0 or ai 7.0.162)
+                   template + skill for the target SDK (agents 0.33.0 or ai 7.0.173)
                                    │
                  egress route ◄────┤  user's model key (gateway token) and
                                    │  installation token added here

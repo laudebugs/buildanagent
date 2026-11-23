@@ -81,4 +81,10 @@ These rows check PF1's dated revision on A2A, against the [A2A report](../../res
 | 48 | The A2A specification requires a server to scope every task operation to the caller "before any database queries" | ✅ | U19 report, When ¶ on exposing, quoting [spec §13.1](https://github.com/a2aproject/A2A/blob/v1.0.0/docs/specification.md#131-data-access-and-authorization-scoping) |
 | 49 | No Round F todo builds A2A yet | ✅ | A case-insensitive search for "a2a" in `docs/todos/*/F*.md` finds nothing |
 
-**Totals:** 49 claims: 45 ✅, 3 ✏️, 1 ⚠️.
+## The verified pins after the 2026-11-22 weekly updates
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| docs/plans-ai-sdk-pin-1 | The verified pins are Cloudflare `agents` 0.33.0 and the Vercel AI SDK `ai` 7.0.173, corrected from `ai` 7.0.162 in the plan's lines 16, 71 and 147; row 18 recorded the older pin | ✏️ | `verify/vercel-ai-sdk/package.json` pins `ai` 7.0.173 (the weekly update #341, merged 2026-11-22) and `verify/cloudflare-agents/package.json` pins `ai` 7.0.173 and `agents` 0.33.0 (#371, merged 2026-11-23), read on 2026-11-23. The plan's M8 text names the exact pins in those two harnesses, so it follows them; the close-sdk-gaps summary in `docs/plans/README.md` and the F5 row at line 187 describe the scope as approved on 2026-11-18 and keep 7.0.162 as a dated record |
+
+**Totals:** 50 claims: 45 ✅, 4 ✏️, 1 ⚠️.
