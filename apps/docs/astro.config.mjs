@@ -68,6 +68,7 @@ export default defineConfig({
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
       routeMiddleware: "./src/route-data.ts",
       components: {
+        Banner: "./src/components/Banner.astro",
         Footer: "./src/components/Footer.astro",
         Head: "./src/components/Head.astro",
         PageTitle: "./src/components/PageTitle.astro",

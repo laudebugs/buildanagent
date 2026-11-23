@@ -62,7 +62,7 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Six tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Eight tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
 
 ## Sidebar topics keep each page small
 
@@ -136,6 +136,86 @@ The script is static: it splices no value from the build, and the twin's address
 
 The owner chose not to publish a `context7.json` (2026-11-23), so nothing writes one. `src/twins/integration.ts` says where to add it.
 
+## Versions, the banner and the install-line rule
+
+The docs show which release they describe and warn when they describe unreleased code. They also keep every install line on the tag that exists. `docs-deploy.yml` builds `main` once and deploys that one build to docs.buildanagent.fyi or to next.docs.buildanagent.fyi, so the build cannot know its host. The banner is therefore decided in the browser, and nothing in the build is a flag.
+
+**The version tag.** The header shows the SDK's version, such as `0.1.0-alpha.34`, beside the wordmark. `src/version/version.ts` reads it from `packages/sdk/package.json` when Astro builds. The six packages version as one fixed group, so one number names the release. The tag sits beside the home link, not inside it, so the link keeps its name. A screen reader hears "Version 0.1.0-alpha.34". Below 30rem the tag, like the wordmark, is hidden to the eye and kept for screen readers.
+
+**The banner.** `src/components/Banner.astro` overrides Starlight's `Banner` slot. It renders what Starlight rendered (a page's `banner` front matter), then a `<div role="note" aria-label="Unreleased docs" hidden>` that says the pages follow `main` and links to the stable docs. A script that calls `revealUnreleasedBanner` un-hides it when `showsUnreleasedBanner(location.hostname)` is true. That function in `src/version/banner.ts` is the only place the rule lives. Astro bundles it into the script, so the tests and the page run the same code. The rule is that the hostname, lower-cased and without one trailing dot, begins with `next.`:
+
+| Host | Banner |
+| --- | --- |
+| `docs.buildanagent.fyi` (production today) | hidden |
+| `next.docs.buildanagent.fyi` | shown |
+| `localhost`, `127.0.0.1` | hidden |
+| a `workers.dev` preview such as `docs-pr-12.account.workers.dev` | hidden |
+| `next.localhost` | shown, so a developer can see the banner locally |
+| `nextdocs.example`, `docs.next.example.com`, an empty host | hidden |
+
+*What a reader can see.* The banner is hidden in the HTML, so no reader of docs.buildanagent.fyi sees it appear, and the page does not move. Its text is static markup in every page on every host, production included, because the build cannot know its host and one script is all the page carries. `hidden` keeps it from readers, and `data-pagefind-ignore` keeps it out of search. A crawler that ignores `hidden`, or a reader who disables styles, can still read "Unreleased docs for main" on docs.buildanagent.fyi. The plan accepts that exposure over writing the text from the script.
+
+*Without JavaScript.* A reader with JavaScript off sees no banner on `next.` either. The plan accepts that, because a header keeps search engines out, not the banner.
+
+*Styling.* Starlight scopes its banner rules to its own `Banner` component, so the `sl-banner` class alone would give our element no colours. `Banner.astro` therefore styles `.unreleased-banner` itself from the `--sl-*` variables:
+
+- **Background:** the accent.
+- **Text and link:** the page background, the pair "a banner on the accent" in `src/design/pairs.ts`, which `test/contrast.test.ts` measures at 4.5:1.
+- **Focus ring:** the same colour, measured at 3:1 as "the focus ring on a banner".
+
+The element keeps the `sl-banner` class for Starlight's print rule, hides in print and draws an edge in forced-colours mode. The script is static text, the same on every page, with nothing from the build in it. The Content-Security-Policy work (L12m) can therefore allow it by one hash.
+
+*Tests.* `test/version-built.test.ts` reads every built page and checks four things:
+
+- It carries the hidden banner.
+- The HTML never un-hides it.
+- The script's text is identical on all pages.
+- The built CSS styles the banner and its link.
+
+`test/banner.test.ts` drives the function and the reveal step with fakes, for the hosts in the table.
+
+*Known limitation: the banner can shift the layout on `next.`.* The page paints with the banner hidden, and the module script un-hides it afterwards. On a `next.` host the content therefore moves down by the banner's height. We accept that.
+
+A synchronous script in the head would show the banner before the first paint, but it would add a second script to every page. That breaks the one-static-script design, which lets the CSP allow the banner by a single hash. `next.` is not live until the stable switch anyway.
+
+If the shift matters once `next.` is live, the fix is a synchronous head script that sets a flag on `<html>`, with a CSS rule that reserves the banner's space.
+
+**The "Docs for main" link.** Once the SDK is stable, the footer of every page links to `https://next.docs.buildanagent.fyi/` as "Docs for main", in place of a version switcher. The footer says that those pages follow the main branch and can describe changes no release has yet. Until then the footer has no such line. docs.buildanagent.fyi serves `main` itself and `next.` has no deploy, so the link would be dead ([the plan](../../docs/plans/publish-and-docs.md#the-versioning-design)).
+
+`mainDocsLinkFor(SDK_VERSION)` in `src/chrome.ts` decides. It uses the install rule's own switch (`installRuleFor(version) === "stable"`), so one version check governs both. `Footer.astro` renders the line only when it returns a link.
+
+`test/chrome.test.ts` checks both states, and `test/version-built.test.ts` checks the built pages against the current version. The address sits in `src/chrome.ts` beside the site links, but not in `siteLinks`. The header's links are the site's own list, and a test keeps the two in step. The link is one static link on every host, so on `next.` it points at the page's own site. The banner's link to the stable docs is the way back. The owner decided on 2026-11-22 that the switch waits until the harness work is finished.
+
+**How `next.` stays out of search engines.** The build adds no `<meta name="robots">` tag, which would also reach production, and a test fails if one appears. The deploy sends a header instead. For `next.docs.buildanagent.fyi`, `docs-deploy.yml` runs `scripts/ci/site-stage-dist.mjs docs … --noindex` and then `site-guard-deploy.mjs docs --noindex`.
+
+The stage script never writes the artifact's own `_headers`. It writes main's `public/_headers` with `X-Robots-Tag: noindex` added to its one `/*` rule. When the app has no such file, it writes the two lines `/*` and `  X-Robots-Tag: noindex` (`NOINDEX_HEADERS`, `headersFor()`). The guard fails the deploy when the deployed `_headers` differs.
+
+Cloudflare adds the same header to a `workers.dev` preview by itself, and a pull request's preview gets the staged file as well. A custom domain gets nothing from Cloudflare, which is why the file exists. This README describes those scripts and changes none of them.
+
+**The install-line rule.** `test/install-lines.test.ts` finds every install command that names a `@buildanagent/*` package. The commands are:
+
+- `pnpm add`, `pnpm i`, `pnpm install` and `pnpm dlx`
+- `npm install`, `npm i`, `npm add` and `npx`
+- `yarn add` and `yarn dlx`
+- `bun add` and `bunx`
+
+It reads each docs source page, tabs and inline code included, and the text of each built page, the generated reference included. A line ending in a backslash continues on the next. In built HTML, where Expressive Code ends each line with two block ends, the join takes any run of line breaks after the backslash.
+
+*What counts as an argument.* Only the command's own arguments count: the words after the command, up to a shell separator (`&&`, `||`, `;`, `|`), the end of a code span or table cell, or the end of the line. A package named elsewhere in the line is prose. A subpath such as `@buildanagent/gateway/testing` is an import specifier, not an install target, so the rule skips it.
+
+*The alpha rule.* While the SDK's version has an `-alpha.` part, a package on such a line must end in exactly `@alpha`. These forms fail:
+
+- a range: `@^0.1.0`, `@~1`, `@>=0.1` or `@*`
+- `@latest`
+- a bare name
+- a pinned `-alpha.N` version, which names one release that the next alpha supersedes, so the line would go stale
+
+The failure names the file, the package and the rule.
+
+*The stable rule.* Once the SDK's version has no prerelease part, the rule flips: no line may name `@alpha`. The first stable release therefore fails the test until every line is updated. Under the stable rule a range or an exact version passes.
+
+*Parsing and throws.* The built-page text is read with a quote-aware tag pattern, because Expressive Code leaves `>` unescaped inside the copy button's `data-code` attribute. Any other prerelease (`-beta.1`, `-rc.1`) has no rule, because only the `alpha` tag exists. `installRuleFor` throws and tells the maintainer to extend it. `src/version/install-lines.ts` holds the rule as pure functions, which the test checks with fixtures for both states. The packages' own READMEs are checked by their own packages' tests, not here.
+
 ## The theme is the book's
 
 The docs look like the book because they read the book's design data instead of copying its CSS. Each piece has one home:
@@ -156,14 +236,15 @@ The page chrome differs from Starlight's defaults in two ways. The four componen
 
 ### Components the docs override
 
-The docs override five Starlight components and leave the rest as Starlight ships them. A sixth override needs a row here: `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
+The docs override six Starlight components and leave the rest as Starlight ships them. A seventh override needs a row here: `test/overrides.test.ts` fails when this table and `astro.config.mjs` list different components or files.
 
 | Component | File | Why |
 | --- | --- | --- |
-| `Footer` | `src/components/Footer.astro` | Adds the CC BY 4.0 licence line that every page carries, under Starlight's own footer. |
+| `Banner` | `src/components/Banner.astro` | Shows Starlight's `banner` front matter as before, then the hidden "Unreleased docs for main" banner and the script that shows it on a `next.` host ([Versions and the banner](#versions-the-banner-and-the-install-line-rule)). |
+| `Footer` | `src/components/Footer.astro` | Adds the "Docs for main" line once the SDK is stable and the CC BY 4.0 licence line that every page carries, under Starlight's own footer. |
 | `Head` | `src/components/Head.astro` | Adds the preloads for the two fonts every page uses, so the first paint does not wait for them, and the link to the page's Markdown twin. |
 | `PageTitle` | `src/components/PageTitle.astro` | Shows Starlight's title, then the "Copy as Markdown" button and the plain link to the twin. |
-| `SiteTitle` | `src/components/SiteTitle.astro` | Draws the mark and the wordmark "Build An Agent docs" in place of Starlight's text title. The mark is inline, so it takes its frame from the link colour and its caret from the accent token. Below 30rem only the mark shows, and the wordmark stays in the page for screen readers. |
+| `SiteTitle` | `src/components/SiteTitle.astro` | Draws the mark and the wordmark "Build An Agent docs" in place of Starlight's text title, with the SDK's version beside the link. The mark is inline, so it takes its frame from the link colour and its caret from the accent token. Below 30rem only the mark shows, and the wordmark stays in the page for screen readers. |
 | `SocialIcons` | `src/components/SocialIcons.astro` | Puts Docs, Manual and Site before the GitHub icon, in the order of the site's header. Docs carries `aria-current="true"`, not `"page"`, because the link goes to the docs home, which is not always the page the reader is on. `src/chrome.ts` hard-codes the addresses until the shared header source (L12p) replaces that file. |
 
 `test/logo.test.ts` guards the mark. It requires the favicon's strokes to be at least 2px wide at 16px and the favicon to set colours for both schemes, and it requires `SiteTitle` to draw logo 3 in token colours. In headless Chromium it also draws the favicon at 16px in light and dark, and fails when the drawing is blank, when the space inside the frame fills in or when the caret loses its own colour. Playwright is not a dependency of the repo, so this render test skips where Playwright or a browser is missing, as it does in CI today. `test/favicon.test.ts` builds the site and requires the title, the wordmark, the licence line and the favicon link on every page.
