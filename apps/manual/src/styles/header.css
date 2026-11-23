@@ -1,0 +1,271 @@
+/* The sticky header, and the reading progress line along its bottom edge. The header is 56px on a desktop and one 52px row
+   on a phone, where it slides away while a reader scrolls down and returns on the first upward scroll (src/scripts/header.ts
+   decides when). --header-height is its height; the page's scroll padding, the chapter rails' sticky offset and the progress
+   line read it.
+
+   A phone here is a window up to 760px wide or a touch screen. The header is the one part of the page that answers to the
+   window and not to a layout container, because its height sets the page's scroll padding, which no container can set. So
+   these are the book's only viewport-width media queries (test/styles.test.ts allows them in this file alone), and the
+   query string below is the one src/scripts/header.ts matches. */
+
+:root {
+  --header-height: 56px;
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  :root {
+    --header-height: 52px;
+  }
+}
+
+/* A jumped-to heading, a footnote and a passage a note goes back to stop below the header, with a little room. */
+html {
+  scroll-padding-top: calc(var(--header-height) + 12px);
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  height: var(--header-height);
+  border-bottom: 1px solid var(--color-rule);
+  background-color: var(--color-background);
+  transition: transform 0.2s ease;
+}
+
+/* A hidden phone header slides up out of view. It stays in the page's flow, so nothing below it moves. */
+:root[data-header-hidden] .site-header {
+  transform: translateY(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .reading-progress {
+    transition: none;
+  }
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 100%;
+}
+
+.site-header__title {
+  margin-right: auto;
+  font-family: var(--font-display);
+  font-size: var(--size-chapter-link);
+  line-height: 1.1;
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-header__title:hover {
+  text-decoration-line: underline;
+}
+
+.site-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+}
+
+.site-header__nav a,
+.site-menu a,
+.site-menu button {
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The search box gives way before the links do, so a window just over 760px keeps its one row. */
+.site-header .search-box__input {
+  width: clamp(7rem, 14vw, 12rem);
+}
+
+.site-header__tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The settings button's slot: with nothing in it the wrapper is not drawn, so it takes no room and no gap. */
+.site-header__slot:empty {
+  display: none;
+}
+
+/* The buttons only a phone shows. */
+.site-header__search-toggle,
+.site-header__menu-button {
+  display: none;
+}
+
+.site-header__icon-button {
+  justify-content: center;
+  min-width: 2.25rem;
+  padding-inline: 0.25rem;
+  color: var(--color-text-muted);
+}
+
+.site-header__icon-button svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.site-header__icon-button[aria-expanded="true"] {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.site-menu {
+  display: none;
+}
+
+/* A phone: one slim row (the wordmark, then the icons), the links in a menu and the search box in a panel. */
+@media (max-width: 760px), (pointer: coarse) {
+  .site-header__inner {
+    gap: 0.25rem;
+  }
+
+  .site-header__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .site-header__nav {
+    display: none;
+  }
+
+  .site-header__search-toggle,
+  .site-header__menu-button {
+    display: inline-flex;
+  }
+
+  /* A finger needs 44px; the 52px row leaves 4px above and below. */
+  .site-header .control {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .site-header__search {
+    position: absolute;
+    top: 100%;
+    inset-inline: 0;
+    display: none;
+    padding: 0.75rem var(--gutter);
+    border-bottom: 1px solid var(--color-rule);
+    background-color: var(--color-background);
+  }
+
+  .site-header__search[data-open] {
+    display: block;
+  }
+
+  .site-header .search-box {
+    max-width: var(--measure);
+  }
+
+  .site-header .search-box__input {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
+
+  .site-menu {
+    position: absolute;
+    top: 100%;
+    inset-inline: 0;
+    display: block;
+    border-bottom: 1px solid var(--color-rule);
+    background-color: var(--color-background);
+    box-shadow: 0 8px 16px rgb(0 0 0 / 0.12);
+  }
+
+  .site-menu__inner {
+    display: grid;
+    padding-block: 0.25rem;
+  }
+
+  .site-menu a,
+  .site-menu button {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+  }
+
+  .site-menu button {
+    color: var(--color-link);
+    text-decoration-line: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.18em;
+    cursor: pointer;
+  }
+}
+
+/* Without JavaScript the phone buttons stay hidden, so the links and the search box show in a header that wraps and may
+   be taller than its height; it stays in the page's flow and the page's scroll padding still clears it. */
+@media (scripting: none) {
+  .site-header {
+    height: auto;
+    min-height: var(--header-height);
+  }
+
+  .site-header__inner {
+    flex-wrap: wrap;
+    padding-block: 0.5rem;
+  }
+
+  .site-header__nav {
+    display: flex;
+  }
+
+  .site-header__search {
+    position: static;
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+}
+
+/* The reading progress line: a fixed 3px strip whose bar fills left to right with how far through the chapter's main text
+   the reader is (src/scripts/header.ts sets the bar's scale). It rides the header's bottom edge, and while the phone
+   header is hidden it stays at the very top of the window. The bar changes only its transform, which the browser composites
+   without laying the page out. It is decoration: the page has no other state to read from it. */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 35;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateY(calc(var(--header-height) - 3px));
+  transition: transform 0.2s ease;
+}
+
+:root[data-header-hidden] .reading-progress {
+  transform: none;
+}
+
+.reading-progress__bar {
+  height: 100%;
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@media print {
+  .reading-progress {
+    display: none;
+  }
+}

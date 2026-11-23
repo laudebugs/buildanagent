@@ -62,6 +62,8 @@ test("the chapter layout switches its columns with container queries, not viewpo
   const all = css.map(({ text }) => text).join("\n");
   assert.match(all, /\.layout\s*\{\s*container:\s*layout\s*\/\s*inline-size;/);
   for (const { path, text } of css) {
+    // The sticky header answers to the window, not to a container (see the header test below).
+    if (path === "styles/header.css") continue;
     assert.doesNotMatch(text, /@media[^{]*width/, `${path} switches on the viewport's width`);
   }
   assert.match(all, /@container layout \(min-width: 64rem\)\s*\{\s*\.chapter-body/);
@@ -127,7 +129,7 @@ test("on a wide page the page's headings move to a sticky right rail, and print 
   assert.match(wide, /\.chapter-body > \.sidebar\s*\{\s*display: contents;/);
   assert.match(
     wide,
-    /\.chapter-body > \.sidebar > \.sidebar__section\s*\{\s*position: sticky;\s*top: 1\.5rem;\s*grid-row: 1;/,
+    /\.chapter-body > \.sidebar > \.sidebar__section\s*\{\s*position: sticky;\s*top: calc\(var\(--header-height\) \+ 1\.5rem\);\s*grid-row: 1;/,
   );
   assert.match(wide, /\.sidebar__chapters\s*\{\s*grid-column: 1;/);
   assert.match(wide, /\.sidebar__on-page\s*\{\s*grid-column: 3;/);

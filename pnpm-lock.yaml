@@ -167,6 +167,9 @@ importers:
       '@types/unist':
         specifier: 3.0.3
         version: 3.0.3
+      axe-core:
+        specifier: 4.14.1
+        version: 4.14.1
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
@@ -3658,6 +3661,10 @@ packages:
 
   async@3.2.6:
     resolution: {integrity: sha512-htCUDlxyyCLMgaM3xXg0C0LW2xqfuQ6p05pCEIsXuyQ+a1koYKTuBMzRNwmybfLgvJDMd0r1LTn4+E0Ti6C2AA==}
+
+  axe-core@4.14.1:
+    resolution: {integrity: sha512-FHfa+lmNjQZfJz1q8wKqIDwC6DExcHt/pkjNQb09a3NPjCKg2rhu5qb2S4r76ASyFNNtuFooJpZe37OgudVGtQ==}
+    engines: {node: '>=4'}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -9520,6 +9527,8 @@ snapshots:
       - yaml
 
   async@3.2.6: {}
+
+  axe-core@4.14.1: {}
 
   axobject-query@4.1.0: {}
 
