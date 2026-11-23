@@ -8,8 +8,10 @@
 // passage to write the note, and a click on a highlight or its note marker opens the same popover with colour, Share
 // and Remove. A highlight with a note gets a marker, because Firefox 140 to 145 draws
 // no underline from a CSS highlight: a speech bubble in the margin where the window leaves room beside the article,
-// and a numbered dot after the passage's last word where it does not. Without JavaScript, without CSS.highlights or with
-// storage blocked, nothing appears.
+// and a numbered dot after the passage's last word where it does not. The Notes button opens the notes panel on the
+// window's right, below the sticky header: one card per highlight, which goes to its passage, and one menu per card
+// with Edit, Share, the colours and Delete. Without JavaScript, without CSS.highlights or with storage blocked, nothing
+// appears.
 // The file is served as-is from public/, not bundled, like reading.js; the tests import its exported functions.
 
 /** The localStorage key that holds every chapter's highlights. */
@@ -697,6 +699,12 @@ const MESSAGES = {
   gone: "That highlight was deleted in another tab or window. Press Save note to add it back with this note.",
 };
 
+/** What the notes panel says while the chapter has no highlights. */
+const EMPTY = "No notes yet. Select text in the chapter, then choose Add note.";
+/** The rest of the panel footer's sentence on storage, which its tooltip and the panel's description carry. */
+const STORAGE_MORE = "Clearing this site's data deletes your notes, so export them to keep a copy.";
+const STORAGE_NOTE = `Your notes stay in this browser only. ${STORAGE_MORE}`;
+
 /**
  * Starts the script on a chapter page: draws the stored highlights, offers the toolbar on a selection inside the
  * article, and adds the Notes button and its panel. Does nothing on another page, without `CSS.highlights` or with
@@ -773,6 +781,7 @@ class Notes {
     this.headerWatch = new win.MutationObserver(() => {
       this.position();
       this.placePop();
+      this.placePanel();
     });
     this.headerWatch.observe(this.doc.documentElement, { attributes: true, attributeFilter: ["data-header-hidden"] });
   }
@@ -985,13 +994,17 @@ class Notes {
       text: MESSAGES.foreign,
       hidden: !this.foreign,
     });
-    this.list = element(doc, "ol", { className: "notes-dialog__list" });
-    this.empty = element(doc, "p", {
-      className: "notes-dialog__hint",
-      text: `No highlights yet. Select text in the chapter, then choose Highlight or Add note, or press ${SHORTCUT.replaceAll("+", " ")}.`,
-    });
-    this.exportButton = element(doc, "button", { type: "button", className: "control", text: "Export as Markdown" });
-    this.closeButton = element(doc, "button", { type: "button", className: "control", text: "Close" });
+    this.list = element(doc, "ol", { className: "notes-panel__list" });
+    this.empty = element(doc, "p", { className: "notes-panel__empty", text: EMPTY });
+    this.hint = element(doc, "p", { className: "notes-panel__hint", text: "Click a note to go to its passage." });
+    this.total = element(doc, "span", { className: "notes-panel__count" });
+    // The header's two tools are icons, each named by its label and its tooltip.
+    const icon = (label, glyph) =>
+      element(doc, "button", { type: "button", className: "notes-panel__icon", "aria-label": label, title: label }, [
+        glyph,
+      ]);
+    this.exportButton = icon("Export as Markdown", downloadIcon(doc));
+    this.closeButton = icon("Close", cross(doc));
     this.exportField = element(doc, "textarea", {
       id: "notes-export",
       className: "notes-dialog__field",
@@ -1015,32 +1028,41 @@ class Notes {
         this.download,
       ],
     );
+    // The panel on the window's right, below the sticky header: a header with the title, the count, Export and Close; a
+    // body that scrolls, with the hint, the cards and whatever an action shows; and a one-line footer. The footer's full
+    // sentence about storage is its tooltip and the panel's description.
     this.dialog = element(
       doc,
       "dialog",
-      { ...ui, className: "notes-dialog notes-ui", "aria-labelledby": "notes-title" },
+      {
+        ...ui,
+        className: "notes-dialog notes-ui",
+        "aria-labelledby": "notes-title",
+        "aria-describedby": "notes-storage",
+      },
       [
         element(doc, "div", { className: "notes-dialog__head" }, [
-          element(doc, "h2", {
-            id: "notes-title",
-            className: "notes-dialog__title",
-            text: "Your notes on this chapter",
-          }),
-          this.closeButton,
+          element(doc, "div", { className: "notes-panel__heading" }, [
+            element(doc, "h2", { id: "notes-title", className: "notes-dialog__title", text: "Notes" }),
+            this.total,
+          ]),
+          element(doc, "div", { className: "notes-panel__tools" }, [this.exportButton, this.closeButton]),
         ]),
-        element(doc, "p", {
-          className: "notes-dialog__hint",
-          text: "They stay in this browser only. Clearing this site's data deletes them, so export them to keep a copy.",
-        }),
-        this.selectionBlock,
-        this.form,
-        this.warning,
-        this.status,
-        this.shareField,
-        this.empty,
-        this.list,
-        element(doc, "div", { className: "notes-dialog__actions" }, [this.exportButton]),
-        this.exportBlock,
+        element(doc, "div", { className: "notes-panel__body" }, [
+          this.warning,
+          this.selectionBlock,
+          this.form,
+          this.status,
+          this.shareField,
+          this.exportBlock,
+          this.hint,
+          this.empty,
+          this.list,
+        ]),
+        element(doc, "p", { id: "notes-storage", className: "notes-panel__foot", title: STORAGE_NOTE }, [
+          element(doc, "span", { text: "Saved in this browser only." }),
+          element(doc, "span", { className: "visually-hidden", text: ` ${STORAGE_MORE}` }),
+        ]),
       ],
     );
   }
@@ -1069,6 +1091,8 @@ class Notes {
       this.position();
       this.refit();
       this.placePop();
+      this.placePanel();
+      this.placeMenu();
     });
     // On iOS Safari a tap fires a click only when an element below the body listens, so the article listens itself.
     this.article.addEventListener("click", (event) => this.onClick(event));
@@ -1168,6 +1192,40 @@ class Notes {
     this.selectionNote.addEventListener("click", () => this.addPending(true));
     this.closeButton.addEventListener("click", () => this.dialog.close());
     this.dialog.addEventListener("close", () => this.onClose());
+    // A click outside the panel, on its backdrop, closes it. The backdrop's events reach the dialog itself, so a press
+    // and its release must both land outside the panel's box: a drag that starts inside, such as a text selection,
+    // closes nothing.
+    const outside = (event) => {
+      if (event.target !== this.dialog) return false;
+      const box = this.dialog.getBoundingClientRect();
+      const { clientX: x, clientY: y } = event;
+      return x < box.left || x > box.right || y < box.top || y > box.bottom;
+    };
+    let pressedOutside = false;
+    this.dialog.addEventListener("pointerdown", (event) => {
+      pressedOutside = outside(event);
+      // A press anywhere but the open menu and its button closes the menu.
+      const card = this.menuId === undefined ? undefined : this.cardOf(this.menuId);
+      const target = event.target;
+      if (
+        card &&
+        !card.querySelector(".notes-menu")?.contains(target) &&
+        !card.querySelector(".notes-card__more")?.contains(target)
+      )
+        this.closeMenu(false);
+    });
+    this.dialog.addEventListener("click", (event) => {
+      const close = pressedOutside && outside(event);
+      pressedOutside = false;
+      if (close) this.dialog.close();
+    });
+    // Focus that leaves the open menu, by Tab or a click elsewhere, closes it.
+    this.dialog.addEventListener("focusout", (event) => {
+      if (this.menuId === undefined) return;
+      const menu = this.cardOf(this.menuId)?.querySelector(".notes-menu");
+      const next = event.relatedTarget;
+      if (menu && next && !menu.contains(next) && !menu.previousElementSibling?.contains(next)) this.closeMenu(false);
+    });
     this.form.addEventListener("submit", (event) => {
       event.preventDefault();
       this.saveNote();
@@ -2041,8 +2099,7 @@ class Notes {
   savePopped() {
     this.reload();
     if (this.foreign) {
-      this.say(MESSAGES.foreign);
-      this.popMessage.textContent = MESSAGES.foreign;
+      this.showForeign();
       return;
     }
     if (this.popId === undefined && this.draft) {
@@ -2181,13 +2238,6 @@ class Notes {
     win.addEventListener("pointercancel", end);
   }
 
-  /** A colour button on a highlight, pressed when the highlight has that colour. */
-  colorButton(item, color) {
-    const button = this.swatch(color, highlightName(item.color, false) === highlightName(color, false));
-    button.addEventListener("click", () => this.setColor(item.id, color));
-    return button;
-  }
-
   /**
    * A colour in the popover: a radio named for its colour, checked for the highlight's colour, and in the tab order only
    * when checked, since the arrow keys move between the four.
@@ -2241,8 +2291,7 @@ class Notes {
   setColor(id, color) {
     this.reload();
     if (this.foreign) {
-      this.say(MESSAGES.foreign);
-      this.popMessage.textContent = MESSAGES.foreign;
+      this.showForeign();
       return;
     }
     const target = this.items.find((item) => item.id === id);
@@ -2256,10 +2305,8 @@ class Notes {
     this.color = color;
     this.say(`Highlight colour changed to ${COLOR_LABELS[color].toLowerCase()}.`);
     this.renderPop();
+    // The panel redraws its cards with the menu open and focus on the same colour, which is now the checked one.
     if (this.dialog.open) this.rerender();
-    // The panel redraws its rows, so focus goes to the same colour in the row; otherwise it stays in the popover.
-    const row = this.dialog.open ? [...this.list.children].find((child) => child.getAttribute("data-id") === id) : null;
-    if (row) row.querySelector(`[data-color="${color}"]`)?.focus({ preventScroll: true });
     else if (this.popOpen) this.focusColor(color);
   }
 
@@ -2267,8 +2314,7 @@ class Notes {
   removePopped() {
     this.reload();
     if (this.foreign) {
-      this.say(MESSAGES.foreign);
-      this.popMessage.textContent = MESSAGES.foreign;
+      this.showForeign();
       return;
     }
     const item = this.items.find((other) => other.id === this.popId);
@@ -2489,10 +2535,12 @@ class Notes {
     if (pending) this.selectionQuote.textContent = shorten(pending.anchor.quote, 300);
     this.renderList();
     if (!this.dialog.open) this.dialog.showModal();
+    this.placePanel();
     (pending ? this.selectionHighlight : this.closeButton).focus();
   }
 
   onClose() {
+    this.closeMenu(false);
     this.form.hidden = true;
     this.formTarget = undefined;
     this.pending = undefined;
@@ -2512,102 +2560,327 @@ class Notes {
     else this.openButton.focus();
   }
 
-  /** Renders the list again and puts focus back on the same control of the same row, if both are still there. */
+  /**
+   * Renders the cards again and puts focus back on the same control of the same card, if both are still there. A card
+   * whose menu was open opens it again, so a colour picked in the menu, or a change from another tab, leaves the reader
+   * where they were.
+   */
   rerender() {
     const active = this.doc.activeElement;
-    const row = this.list.contains(active) ? active.closest("[data-id]") : null;
-    const id = row?.getAttribute("data-id");
+    const card = this.list.contains(active) ? active.closest("[data-id]") : null;
+    const id = card?.getAttribute("data-id");
     const action = active?.getAttribute?.("data-action");
+    const menuOf = this.menuId;
     this.renderList();
-    if (!row) return;
-    const again = [...this.list.children].find((child) => child.getAttribute("data-id") === id);
+    const again = id === undefined ? undefined : this.cardOf(id);
+    if (menuOf !== undefined && this.cardOf(menuOf)) this.openMenu(menuOf, undefined);
+    if (!card) return;
     const target =
-      [...(again?.querySelectorAll("button") ?? [])].find((button) => button.getAttribute("data-action") === action) ??
-      again?.querySelector("button");
+      [...(again?.querySelectorAll("button") ?? [])].find(
+        (button) => button.getAttribute("data-action") === action && button.closest("[hidden]") === null,
+      ) ?? again?.querySelector(".notes-card__more");
     (target ?? this.closeButton).focus();
   }
 
+  /** The card of a highlight in the panel, if it is listed. */
+  cardOf(id) {
+    return [...this.list.children].find((child) => child.getAttribute("data-id") === id);
+  }
+
+  /**
+   * Draws one card per highlight. A card is its passage and its note, a button that goes to the passage, and one
+   * "More actions" button whose menu holds Edit, Share, the four colours and Delete. A passage the chapter lost has no
+   * button to go to and no Share, since there is nothing to go to or link.
+   */
   renderList() {
     const doc = this.doc;
     const items = this.ordered();
     const numbers = this.noteNumbers();
+    this.menuId = undefined;
     this.empty.hidden = items.length > 0;
+    this.hint.hidden = items.length === 0;
+    this.total.textContent = items.length > 0 ? `${items.length} in this chapter` : "";
     this.list.replaceChildren(
       ...items.map((item) => {
         const place = this.placed.get(item.id) ?? { status: "lost" };
-        const buttons = [];
-        if (place.status !== "lost") {
-          const go = element(doc, "button", {
-            type: "button",
-            className: "control",
-            "data-action": "go",
-            text: "Go to passage",
-          });
-          go.addEventListener("click", () => this.jump(item));
-          buttons.push(go);
-        }
-        const edit = element(doc, "button", {
-          type: "button",
-          className: "control",
-          "data-action": "edit",
-          text: item.note ? "Edit note" : "Add note",
-        });
-        edit.addEventListener("click", () => {
-          this.formTarget = { id: item.id, anchor: anchorOf(item) };
-          this.selectionBlock.hidden = true;
-          this.openForm(item.note, item.quote, edit);
-        });
-        const remove = element(doc, "button", {
-          type: "button",
-          className: "control",
-          "data-action": "delete",
-          text: "Delete",
-        });
-        remove.addEventListener("click", () => this.remove(item));
-        buttons.push(edit, remove);
-        if (place.status !== "lost") {
-          const share = element(doc, "button", {
-            type: "button",
-            className: "control",
-            "data-action": "share",
-            text: "Share",
-          });
-          share.addEventListener("click", () =>
-            this.share(item, { say: (message) => this.say(message), field: this.shareField }),
-          );
-          buttons.push(share);
-        }
-        const colors = element(
-          doc,
-          "div",
-          { className: "notes-colors", role: "group", "aria-label": "Highlight colour" },
-          COLORS.map((color) => this.colorButton(item, color)),
-        );
-        const parts = [element(doc, "blockquote", { className: "notes-dialog__quote", text: item.quote })];
+        const lost = place.status === "lost";
+        const parts = [];
         const number = numbers.get(item.id);
-        // The number on the dot after the passage, so a dot and its note in this list can be matched.
+        // The number on the note's marker, so a marker and its card can be matched.
         if (number !== undefined)
-          parts.unshift(element(doc, "p", { className: "notes-dialog__label label", text: `Note ${number}` }));
+          parts.push(element(doc, "span", { className: "notes-card__label label", text: `Note ${number}` }));
+        parts.push(element(doc, "span", { className: "notes-card__quote", text: item.quote }));
+        if (item.note) parts.push(element(doc, "span", { className: "notes-card__note", text: item.note }));
         if (place.status === "moved") {
           parts.push(
-            element(doc, "p", {
+            element(doc, "span", {
               className: "notes-dialog__flag label",
               text: "Moved: the text around this passage changed since you saved it",
             }),
           );
-        } else if (place.status === "lost") {
+        } else if (lost) {
           parts.push(
-            element(doc, "p", {
+            element(doc, "span", {
               className: "notes-dialog__flag label",
               text: "Not found: the chapter no longer holds this passage",
             }),
           );
         }
-        if (item.note) parts.push(element(doc, "p", { className: "notes-dialog__note", text: item.note }));
-        parts.push(element(doc, "div", { className: "notes-dialog__actions" }, buttons), colors);
-        return element(doc, "li", { className: "notes-dialog__item", "data-id": item.id }, parts);
+        // The passage and the note are one button that goes to the passage; a lost passage's text is not a button.
+        const body = element(
+          doc,
+          lost ? "div" : "button",
+          lost
+            ? { className: "notes-card__go" }
+            : { type: "button", className: "notes-card__go", "data-action": "go", title: "Go to the passage" },
+          parts,
+        );
+        if (!lost) body.addEventListener("click", () => this.jump(item));
+        const menuId = `notes-menu-${item.id}`;
+        const more = element(
+          doc,
+          "button",
+          {
+            type: "button",
+            className: "notes-card__more",
+            "data-action": "more",
+            "aria-label": "More actions",
+            title: "More actions",
+            "aria-haspopup": "menu",
+            "aria-expanded": "false",
+            "aria-controls": menuId,
+          },
+          [moreIcon(doc)],
+        );
+        more.addEventListener("click", () => {
+          if (this.menuId === item.id) this.closeMenu(false);
+          else this.openMenu(item.id, "first");
+        });
+        more.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          event.preventDefault();
+          this.openMenu(item.id, event.key === "ArrowDown" ? "first" : "last");
+        });
+        const menu = this.buildMenu(item, lost, menuId);
+        return element(doc, "li", { className: "notes-card", "data-id": item.id, "data-color": colorKey(item.color) }, [
+          body,
+          more,
+          menu,
+        ]);
       }),
     );
+  }
+
+  /**
+   * A card's menu: Edit, Share, the four colours as radio items with the highlight's own checked, and Delete. Every
+   * item is out of the tab order; the arrow keys move between them, as in any menu.
+   */
+  buildMenu(item, lost, id) {
+    const doc = this.doc;
+    const entry = (action, text, extra = "") =>
+      element(doc, "button", {
+        type: "button",
+        role: "menuitem",
+        tabindex: "-1",
+        className: `notes-menu__item${extra}`,
+        "data-action": action,
+        text,
+      });
+    const edit = entry("edit", item.note ? "Edit" : "Add note");
+    edit.addEventListener("click", (event) => this.editFromPanel(item.id, event.detail === 0));
+    const share = entry("share", "Share");
+    share.addEventListener("click", () => {
+      this.closeMenu(true);
+      this.share(item, { say: (message) => this.say(message), field: this.shareField });
+    });
+    const remove = entry("delete", "Delete", " notes-menu__item--delete");
+    remove.addEventListener("click", () => this.remove(item));
+    const radios = COLORS.map((color) => {
+      const radio = this.swatch(color);
+      radio.setAttribute("role", "menuitemradio");
+      radio.setAttribute("tabindex", "-1");
+      radio.setAttribute("aria-checked", String(colorKey(item.color) === color));
+      radio.addEventListener("click", () => this.setColor(item.id, color));
+      return radio;
+    });
+    const colors = element(doc, "div", { className: "notes-menu__colors", role: "group", "aria-label": "Colour" }, [
+      element(doc, "span", { className: "notes-menu__label", "aria-hidden": "true", text: "Colour" }),
+      ...radios,
+    ]);
+    const menu = element(
+      doc,
+      "div",
+      { id, className: "notes-menu", role: "menu", "aria-label": "Note actions", hidden: true },
+      [edit, ...(lost ? [] : [share]), colors, remove],
+    );
+    menu.addEventListener("keydown", (event) => this.onMenuKey(event));
+    return menu;
+  }
+
+  /** The items of the open menu, in the order the arrow keys visit them. */
+  menuItems(menu) {
+    return [...menu.querySelectorAll("[role='menuitem'], [role='menuitemradio']")];
+  }
+
+  /**
+   * Opens a card's menu and closes any other, so one menu is open at a time. `focus` names the item that takes focus:
+   * the first, the last, or none when a redraw opens it again.
+   */
+  openMenu(id, focus) {
+    this.closeMenu(false);
+    const card = this.cardOf(id);
+    const menu = card?.querySelector(".notes-menu");
+    const more = card?.querySelector(".notes-card__more");
+    if (!menu || !more) return;
+    this.menuId = id;
+    menu.hidden = false;
+    more.setAttribute("aria-expanded", "true");
+    this.placeMenu();
+    const items = this.menuItems(menu);
+    if (focus === "first") items[0]?.focus();
+    else if (focus === "last") items[items.length - 1]?.focus();
+  }
+
+  /**
+   * Hangs the open menu from its button's own box, 4px clear of it: under the button, or above it when the panel's body
+   * has no room below and room above. Both offsets are measured within the card, the menu's containing block, from the
+   * button, so the room checked is the room the menu takes. A menu that fits neither way is scrolled into view. It runs
+   * when the menu opens and again on every resize, since a card that rewraps moves its button.
+   */
+  placeMenu() {
+    if (this.menuId === undefined) return;
+    const card = this.cardOf(this.menuId);
+    const menu = card?.querySelector(".notes-menu");
+    const more = card?.querySelector(".notes-card__more");
+    if (!card || !menu || !more) return;
+    const gap = 4;
+    menu.removeAttribute("data-above");
+    menu.style.setProperty("--notes-menu-top", `${more.offsetTop + more.offsetHeight + gap}px`);
+    menu.style.setProperty("--notes-menu-bottom", `${card.clientHeight - more.offsetTop + gap}px`);
+    const body = menu.closest(".notes-panel__body");
+    const room = body?.getBoundingClientRect();
+    const box = menu.getBoundingClientRect();
+    const button = more.getBoundingClientRect();
+    if (room && box.bottom > room.bottom && button.top - gap - box.height >= room.top)
+      menu.setAttribute("data-above", "");
+    menu.scrollIntoView?.({ block: "nearest" });
+  }
+
+  /**
+   * Reports a stored value this page cannot read, which a reload just found. This page reads such a value as no notes,
+   * so it redraws the page and the panel to match: no highlight and no card stay drawn, and the panel shows its warning.
+   * Focus that was on a card, which is gone, goes to the panel's Close button. Focus elsewhere stays: in the popover,
+   * which stays open with its message and the reader's text, or in the panel's form.
+   */
+  showForeign() {
+    const active = this.doc.activeElement;
+    const fromCard = this.dialog.open && this.list.contains(active);
+    this.say(MESSAGES.foreign);
+    this.popMessage.textContent = MESSAGES.foreign;
+    this.closeMenu(false);
+    this.paint();
+    if (this.dialog.open) this.renderList();
+    if (fromCard) this.closeButton.focus();
+  }
+
+  /** Closes the open menu; `refocus` gives focus back to its "More actions" button. */
+  closeMenu(refocus) {
+    const id = this.menuId;
+    this.menuId = undefined;
+    if (id === undefined) return;
+    const card = this.cardOf(id);
+    const menu = card?.querySelector(".notes-menu");
+    const more = card?.querySelector(".notes-card__more");
+    if (menu) menu.hidden = true;
+    more?.setAttribute("aria-expanded", "false");
+    if (refocus) more?.focus();
+  }
+
+  /**
+   * The keys of an open menu: Up and Down move through every item and wrap, Left and Right move between the colours,
+   * Home and End go to the first and last item, Escape closes the menu and gives focus back to its button, and Tab
+   * closes it and moves on.
+   */
+  onMenuKey(event) {
+    const menu = event.currentTarget;
+    const items = this.menuItems(menu);
+    const at = items.indexOf(this.doc.activeElement);
+    const isColor = this.doc.activeElement?.getAttribute?.("role") === "menuitemradio";
+    let next;
+    if (event.key === "ArrowDown") next = items[(at + 1) % items.length];
+    else if (event.key === "ArrowUp") next = items[(at - 1 + items.length) % items.length];
+    else if (event.key === "Home") next = items[0];
+    else if (event.key === "End") next = items[items.length - 1];
+    else if (isColor && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
+      const colors = items.filter((item) => item.getAttribute("role") === "menuitemradio");
+      const here = colors.indexOf(this.doc.activeElement);
+      const step = event.key === "ArrowRight" ? 1 : -1;
+      next = colors[(here + step + colors.length) % colors.length];
+    } else if (event.key === "Escape") {
+      // Escape closes the menu only; the panel stays open.
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeMenu(true);
+      return;
+    } else if (event.key === "Tab") {
+      this.closeMenu(false);
+      return;
+    }
+    if (!next) return;
+    event.preventDefault();
+    next.focus();
+  }
+
+  /**
+   * Edit opens the note popover for the card's highlight, ready to write: the panel closes, whether it is the panel on
+   * a wide window or the full-width sheet on a phone, the passage is scrolled into view below the header, and the
+   * popover opens at it (the bottom sheet on a phone). A passage the chapter lost has nowhere to open the popover, so
+   * it is edited in the panel's own form, as it is where popovers are missing.
+   */
+  editFromPanel(id, byKeyboard) {
+    const item = this.items.find((other) => other.id === id);
+    if (!item) return;
+    const entry = this.drawn.find((drawn) => drawn.item.id === id);
+    if (!this.canPop || !entry || this.placed.get(id)?.status === "lost") {
+      const more = this.cardOf(id)?.querySelector(".notes-card__more");
+      this.closeMenu(false);
+      this.formTarget = { id, anchor: anchorOf(item) };
+      this.selectionBlock.hidden = true;
+      this.openForm(item.note, item.quote, more);
+      return;
+    }
+    this.closeMenu(false);
+    this.dialog.close();
+    this.showPassage(entry.range);
+    this.popFromKey = byKeyboard;
+    this.openPop(entry, true);
+  }
+
+  /**
+   * Scrolls a passage that is not fully in the window so its first line sits just below the sticky header. A scroll up
+   * makes room for the header's full height, since a phone header slid away comes back on any upward scroll.
+   */
+  showPassage(range) {
+    const { win } = this;
+    const lines = [...range.getClientRects()];
+    if (lines.length === 0 || typeof win.scrollBy !== "function") return;
+    const clear = this.headerClear();
+    const top = lines[0].top;
+    const bottom = lines[lines.length - 1].bottom;
+    if (top >= clear && bottom <= win.innerHeight) return;
+    const up = top < clear;
+    win.scrollBy(0, Math.round(top - (up ? this.headerHeight() : clear) - 16));
+  }
+
+  /**
+   * Places the panel below the sticky header, as the popover does: its top is the header's height while the header
+   * shows, and the window's top while a phone's header is slid away. A resize and the header's slide call it again.
+   */
+  placePanel() {
+    if (!this.dialog.open) return;
+    this.dialog.style.setProperty("--notes-panel-top", `${Math.round(this.headerClear())}px`);
+    // On a window as narrow as a phone's the panel takes the whole width, as the popover becomes a sheet there.
+    this.dialog.toggleAttribute("data-sheet", this.isSheet());
   }
 
   openForm(note, quote, returnTo) {
@@ -2623,9 +2896,12 @@ class Notes {
   closeForm() {
     this.form.hidden = true;
     const target = this.formReturn;
+    const id = this.formTarget && "id" in this.formTarget ? this.formTarget.id : undefined;
     this.formReturn = undefined;
     this.formTarget = undefined;
+    this.empty.hidden = this.items.length > 0;
     if (target?.isConnected) target.focus();
+    else if (id !== undefined) this.focusItem(id);
     else this.closeButton.focus();
   }
 
@@ -2640,8 +2916,8 @@ class Notes {
     // Another tab may have changed this chapter's highlights since the form opened.
     this.reload();
     if (this.foreign) {
-      // The stored value is one this script cannot read, so every highlight reads as missing; say why instead.
-      this.say(MESSAGES.foreign);
+      // The form keeps the reader's text and focus; the page and the panel are redrawn as no notes.
+      this.showForeign();
       return;
     }
     if ("id" in target && !this.items.some((item) => item.id === target.id)) {
@@ -2694,17 +2970,29 @@ class Notes {
     if (!this.form.hidden) this.say(MESSAGES.gone);
   }
 
+  /** Gives focus to a card's "More actions" button, where its Edit and Delete live, or to Close without the card. */
   focusItem(id) {
-    const row = [...this.list.children].find((child) => child.getAttribute("data-id") === id);
-    const button = row?.querySelector("button");
+    const button = this.cardOf(id)?.querySelector(".notes-card__more");
     (button ?? this.closeButton).focus();
   }
 
+  /**
+   * Delete in a card's menu deletes the highlight at once, from the stored list so another tab's changes are kept, and
+   * says so. Focus moves to the next card's menu button, the previous one's after the last card, or Export when none is
+   * left. A Delete the browser refuses to store leaves the card and gives focus back to its menu button.
+   */
   remove(item) {
     const rows = [...this.list.children];
     const index = rows.findIndex((row) => row.getAttribute("data-id") === item.id);
+    this.reload();
+    if (this.foreign) {
+      this.showForeign();
+      return;
+    }
     const problem = this.commit(this.items.filter((other) => other.id !== item.id));
     if (problem) {
+      // Nothing was deleted, so the menu closes and focus goes back to its button, never staying on a hidden item.
+      this.closeMenu(true);
       this.say(problem);
       return;
     }
@@ -2717,7 +3005,7 @@ class Notes {
     this.renderList();
     this.say(`Deleted the highlight on “${shorten(item.quote)}”.`);
     const next = this.list.children[Math.min(index, this.list.children.length - 1)];
-    (next?.querySelector("button") ?? this.exportButton).focus();
+    (next?.querySelector(".notes-card__more") ?? this.exportButton).focus();
   }
 
   jump(item) {
@@ -2764,6 +3052,7 @@ class Notes {
     this.download.setAttribute("download", this.foreign ? "notes-as-stored.txt" : `notes-${this.slug}.md`);
     this.exportField.value = markdown;
     this.exportBlock.hidden = false;
+    this.exportBlock.scrollIntoView?.({ block: "nearest" });
     this.revokeDownload();
     try {
       this.blobUrl = win.URL.createObjectURL(new win.Blob([markdown], { type: "text/markdown" }));
@@ -2856,6 +3145,35 @@ function cross(doc) {
   const path = doc.createElementNS(SVG_NS, "path");
   path.setAttribute("d", "M4 4l8 8M12 4l-8 8");
   svg.append(path);
+  return svg;
+}
+
+/** The download arrow of the notes panel's Export button, built as DOM nodes so the script writes no markup. */
+function downloadIcon(doc) {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  const path = doc.createElementNS(SVG_NS, "path");
+  path.setAttribute("d", "M12 4v11M8 11l4 4 4-4M5 19h14");
+  svg.append(path);
+  return svg;
+}
+
+/** The three dots of a card's "More actions" button. */
+function moreIcon(doc) {
+  const svg = doc.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("class", "notes-card__dots");
+  for (const x of ["5", "12", "19"]) {
+    const dot = doc.createElementNS(SVG_NS, "circle");
+    dot.setAttribute("cx", x);
+    dot.setAttribute("cy", "12");
+    dot.setAttribute("r", "2");
+    svg.append(dot);
+  }
   return svg;
 }
 
