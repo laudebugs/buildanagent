@@ -11,7 +11,9 @@
 // It needs Playwright and a built book (`pnpm --filter @buildanagent/manual build`), so `pnpm test` does not run it.
 // WebKit is optional: install it with `PLAYWRIGHT_BROWSERS_PATH=<dir> npx playwright install webkit` and run with the
 // same variable; without it that part is skipped with a message. No run here can show the real iOS keyboard, whose
-// opening depends on the focus() call being inside the tap; the checks only prove the call is made there.
+// opening depends on the focus() call being inside the tap. The checks do prove the call is made there: a listener on
+// the window, which runs after the page's own click handlers, records document.activeElement at the end of each click
+// dispatch, so a focus() deferred to a frame or a timer is caught.
 //
 //   node scripts/note-editor-flow-check.mjs
 import assert from "node:assert/strict";
@@ -83,7 +85,11 @@ const state = (page) =>
       activeTag: active ? `${active.tagName.toLowerCase()}.${active.className}` : "none",
       live: document.querySelector("[role='status'].visually-hidden")?.textContent ?? "",
       scrollY: Math.round(scrollY),
-      highlights: [...CSS.highlights.values()].reduce((sum, set) => sum + set.size, 0),
+      hovered: [...CSS.highlights.entries()].filter(([k, set]) => k.startsWith("manual-hover") && set.size).length,
+      highlights: [...CSS.highlights.entries()]
+        .filter(([k]) => !k.startsWith("manual-hover"))
+        .map(([, set]) => set)
+        .reduce((sum, set) => sum + set.size, 0),
       controls: document.querySelectorAll(".notes-marker, .notes-dot").length,
       stored: JSON.parse(localStorage.getItem("manual-notes") ?? "null"),
     };
@@ -99,6 +105,14 @@ function checkClosed(s, label) {
 
 async function run(label, context, mobile) {
   const page = await context.newPage();
+  // Records what has focus when the page's own click handlers have run, before any timer or frame could move it.
+  await page.addInitScript(() => {
+    window.addEventListener("click", () => {
+      const a = document.activeElement;
+      window.__atClick = a ? `${a.tagName.toLowerCase()}#${a.id}.${a.className}` : "none";
+    });
+  });
+  const atClick = () => page.evaluate(() => window.__atClick);
   await fresh(page);
 
   // 1. Add note from the toolbar puts focus in the note field, inside the tap.
@@ -112,6 +126,10 @@ async function run(label, context, mobile) {
     (await page.evaluate(() => document.activeElement?.id)) === "notes-field",
     `${label}: Add note opens with focus in the note field`,
   );
+  check(
+    (await atClick()).startsWith("textarea#notes-field"),
+    `${label}: Add note focuses it inside the click (${await atClick()})`,
+  );
   await page.keyboard.press("Escape");
   await fresh(page);
 
@@ -120,6 +138,10 @@ async function run(label, context, mobile) {
   await openOnPassage(page, mobile);
   let s = await state(page);
   check(s.activeTag === "textarea.notes-pop__field", `${label}: the add-note editor opens with focus in the field`);
+  check(
+    (await atClick()).startsWith("textarea#.notes-pop__field"),
+    `${label}: the field is focused inside the tap that opened it, not later (${await atClick()})`,
+  );
   check(s.sheet === mobile, `${label}: the editor is a ${mobile ? "sheet" : "popover"}`);
 
   // 3. Escape closes it and leaves the highlight.
@@ -170,6 +192,13 @@ async function run(label, context, mobile) {
   await page.waitForTimeout(150);
   s = await state(page);
   checkClosed(s, `${label} Save`);
+  if (!mobile) {
+    check(
+      !s.activeTag.includes("notes-marker"),
+      `${label} Save: a mouse Save leaves no margin marker focused (${s.activeTag})`,
+    );
+    check(s.hovered === 0, `${label} Save: no passage is left brightened by a hover or focus shade`);
+  }
   check(s.live === "Note saved.", `${label} Save: the live region says "Note saved." (${s.live})`);
   check(s.controls === 1, `${label} Save: the note's marker is there`);
   check(Math.abs(s.scrollY - before) <= 4, `${label} Save: the page did not jump (${before} to ${s.scrollY})`);
@@ -195,6 +224,10 @@ async function run(label, context, mobile) {
     return [f.selectionStart, f.selectionEnd, f.value.length];
   });
   check(s.activeTag === "textarea.notes-pop__field", `${label} Edit: focus is in the field`);
+  check(
+    (await atClick()).startsWith("textarea#.notes-pop__field"),
+    `${label} Edit: the field is focused inside the Edit press (${await atClick()})`,
+  );
   check(caret[0] === caret[2] && caret[1] === caret[2], `${label} Edit: the caret is at the end (${caret})`);
 
   // 8. The Close button: a sheet has it, a popover does not.
@@ -249,7 +282,6 @@ async function run(label, context, mobile) {
       checkClosed(s, `${label} Close by ${key === " " ? "Space" : key}`);
       await openOnMarker(page, mobile);
     }
-    // Edit again so the next step starts from the same view as on a desktop.
   } else {
     check(!closeBox.shown, `${label}: a popover has no Close button (it closes on Escape and an outside click)`);
     await page.keyboard.press("Escape");

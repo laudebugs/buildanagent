@@ -1074,8 +1074,8 @@ class Notes {
       if (event.newState !== "closed") return;
       this.popOpen = false;
       this.popId = undefined;
-      // A closed sheet must not keep its sheet layout: its display rule would beat the closed popover's display:none
-      // and leave an invisible box over the page.
+      // The sheet attributes are cleared as the popover closes, so a closed popover keeps no sheet or compact layout
+      // and nothing of it can cover the page; opening it sets them again.
       this.pop.removeAttribute("data-sheet");
       this.pop.removeAttribute("data-compact");
     });
@@ -2013,21 +2013,29 @@ class Notes {
 
   /**
    * The one way the editor closes by the reader's own act: Save, Remove, the Close button and a swipe down. It blurs the
-   * field, so the on-screen keyboard goes, hides the popover and leaves focus on the note's marker, or on the page
-   * where the reader was when the highlight has no marker. Escape and a tap outside close the popover in the browser
-   * and reach `restoreDotFocus` through its toggle event instead. Nothing typed is kept: closing drops it, as those
-   * two do.
+   * field, so the on-screen keyboard goes, and hides the popover. Focus then goes to the note's marker when the popover
+   * was opened from the keyboard or is a sheet (a touch reader's marker is a dot with no shade); after a mouse it
+   * stays on the page, since a focused margin marker would keep its passage brightened. Escape and a tap outside close
+   * the popover in the browser and reach `restoreDotFocus` through its toggle event instead. Nothing typed is kept:
+   * closing drops it, as those two do.
    */
   closeEditor() {
     const id = this.popReturnId ?? this.popId;
+    const toMarker = this.popFromKey || this.pop.hasAttribute("data-sheet");
     this.popReturnId = undefined;
     this.popFromKey = false;
     this.popEscaped = false;
     const active = this.doc.activeElement;
     if (active && this.pop.contains(active)) active.blur?.();
     this.closePop();
-    const control = id === undefined ? undefined : this.noteControl(id);
-    control?.focus({ preventScroll: true });
+    if (toMarker) {
+      const control = id === undefined ? undefined : this.noteControl(id);
+      control?.focus({ preventScroll: true });
+      return;
+    }
+    // A pointer close leaves no marker focused, so no passage stays brightened by a focus that is gone.
+    this.hoverSources.focus = undefined;
+    this.hover(this.hoverSources.pointer);
   }
 
   closePop() {

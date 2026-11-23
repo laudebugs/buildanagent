@@ -1254,11 +1254,8 @@ test("a plain highlight shows the quotation and an Add-a-note field, and Save wr
   assert.deepEqual(calls, ["show", "hide"], "Save closes the popover");
   assert.equal(q(win, ".notes-pop i"), null);
   assert.equal(q(win, "[role='status'].visually-hidden")?.textContent, "Note saved.", "and says so in the live region");
-  assert.equal(
-    (win.document.activeElement as Element | null)?.closest(".notes-pop"),
-    null,
-    "focus is not left in the closed popover",
-  );
+  const active = win.document.activeElement;
+  assert.equal(active?.closest(".notes-pop") ?? null, null, "focus is not left in the closed popover");
   // Opening it again shows the saved note with its Edit.
   click(win, q(win, "article p:nth-of-type(2)"), 50, 110);
   assert.equal(q(win, ".notes-pop__note")?.textContent, "Mine, <i>not</i> markup.");

@@ -1609,8 +1609,8 @@
 /* On a narrow window the popover is a bottom sheet: full width, rounded at the top, with a handle to swipe down. The
    quotation is cut to two lines. */
 .notes-pop[data-sheet]:popover-open {
-  /* The display is only for an open popover: a closed one keeps data-sheet, and display:flex would otherwise beat the
-     rule above that hides it. A flex column packed at the top, never a grid, so a sheet taller than its content cannot stretch its rows apart.
+  /* The sheet's display applies only while the popover is open (`:popover-open`); the script also clears `data-sheet`
+     and `data-compact` in `beforetoggle` when it closes, so a closed one has neither. A flex column packed at the top, never a grid, so a sheet taller than its content cannot stretch its rows apart.
      The height is the content's up to half the visual viewport (the script sets both custom properties; 50dvh stands in
      without it), and the sheet scrolls inside itself past that. */
   inset: auto 0 var(--notes-sheet-bottom, 0);
