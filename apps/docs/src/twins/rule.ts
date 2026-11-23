@@ -5,12 +5,15 @@
  * them, so the five can never disagree. The module imports nothing, so the components that render each page can use it.
  *
  * Every page has a twin, the generated API reference included. TypeDoc writes the reference as Markdown already, so its
- * twins use the same pipeline (README: "Markdown twins" gives the measurement). To exclude a page, add its path prefix
- * to `EXCLUDED` with the reason, and say why in the README.
+ * twins use the same pipeline (README: "Markdown twins" gives the measurement). The one exception is the 404 page,
+ * which Starlight adds with no source file in the content folder, so no twin can be written for it. To exclude another
+ * page, add its path prefix to `EXCLUDED` with the reason, and say why in the README.
  */
 
-/** The path prefixes of pages with no twin, each with the reason. Empty: every page has one. */
-const EXCLUDED: readonly { readonly prefix: string; readonly reason: string }[] = [];
+/** The path prefixes of pages with no twin, each with the reason. */
+const EXCLUDED: readonly { readonly prefix: string; readonly reason: string }[] = [
+  { prefix: "404", reason: "Starlight's not-found page has no source file, so there is nothing to flatten" },
+];
 
 /** A slug without slashes at either end; `index`, which Starlight may give the home page, is the empty string. */
 export function normalizeSlug(slug: string): string {

@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "vitest";
-import { checkTwins, hasAlternateLink, llmsFullTxt, llmsTxt } from "../src/twins/build.js";
-import { OPTIONAL_SECTION, readingOrder, slugOf, type TwinPage } from "../src/twins/pages.js";
+import { checkTwins, hasAlternateLink, llmsFullTxt, llmsTxt, writeTwins } from "../src/twins/build.js";
+import { OPTIONAL_SECTION, readingOrder, readPages, slugOf, type TwinPage, twinSlugs } from "../src/twins/pages.js";
 import { hasTwin, normalizeSlug, twinHref, twinUrl } from "../src/twins/rule.js";
 
 const page = (slug: string, extra: Partial<TwinPage> = {}): TwinPage => ({
@@ -36,6 +36,81 @@ test("a file's slug is the one Starlight gives it", () => {
     slugOf("reference/sdk/@buildanagent/sdk/functions/BlockingApprovals.md"),
     "reference/sdk/buildanagent/sdk/functions/blockingapprovals",
   );
+});
+
+test("a file's slug follows github-slugger: spaces become hyphens, and a slug in the front matter wins", () => {
+  assert.equal(slugOf("guides/My Page.md"), "guides/my-page");
+  assert.equal(slugOf("Some Folder/Other Page.mdx"), "some-folder/other-page");
+  assert.equal(slugOf("guides/old-name.md", "/guides/new-name/"), "guides/new-name");
+  assert.equal(slugOf("guides/old-name.md", "index"), "");
+  assert.equal(slugOf("guides/x.md", 3), "guides/x");
+});
+
+/** Runs `check` on a content folder built from `files` (path to text), then removes it. */
+function withContent(files: Record<string, string>, check: (dir: string) => void): void {
+  const dir = mkdtempSync(join(tmpdir(), "twins-content-"));
+  try {
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(join(dir, ...path.split("/").slice(0, -1)), { recursive: true });
+      writeFileSync(join(dir, ...path.split("/")), text);
+    }
+    check(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("the page list skips a draft, slugs a file as Starlight does and honours a slug override", () => {
+  withContent(
+    {
+      "guides/my page.md": "---\ntitle: Spaced\n---\nText.\n",
+      "guides/old.md": "---\ntitle: Moved\nslug: guides/new-home\n---\nText.\n",
+      "guides/wip.md": "---\ntitle: Draft\ndraft: true\n---\nText.\n",
+      "index.mdx": "---\ntitle: Home\n---\nText.\n",
+    },
+    (dir) => {
+      assert.deepEqual(
+        readPages(dir, []).map((p) => [p.slug, p.url, p.title]),
+        [
+          ["", "/index.md", "Home"],
+          ["guides/my-page", "/guides/my-page.md", "Spaced"],
+          ["guides/new-home", "/guides/new-home.md", "Moved"],
+        ],
+      );
+    },
+  );
+});
+
+test("a link to an asset or an unknown address gets no .md when the twins are written with the real page check", () => {
+  withContent(
+    {
+      "a.md":
+        "---\ntitle: A\n---\n[icon](/favicon.svg), [list](/llms.txt), [fonts](/fonts/x.woff2), [b](/b/), ![i](/shot.png)\n",
+      "b.md": "---\ntitle: B\n---\nText.\n",
+    },
+    (dir) => {
+      const pages = readPages(dir, []);
+      const has = twinSlugs(pages);
+      assert.ok(has("b") && has("/b/") && !has("favicon.svg") && !has("fonts/x.woff2"));
+      const out = mkdtempSync(join(tmpdir(), "twins-out-"));
+      try {
+        writeTwins(out, readingOrder(pages, []), { origin: "https://docs.test", title: "Docs", summary: "S." });
+        const twin = readFileSync(join(out, "a.md"), "utf8");
+        assert.equal(
+          twin,
+          "# A\n\n[icon](https://docs.test/favicon.svg), [list](https://docs.test/llms.txt), [fonts](https://docs.test/fonts/x.woff2), [b](https://docs.test/b.md), ![i](https://docs.test/shot.png)\n",
+        );
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+test("the 404 page has no twin, so its head carries no link and it gets no button", () => {
+  assert.equal(hasTwin("404"), false);
+  assert.equal(twinHref("404"), undefined);
+  assert.ok(hasTwin("404-notes") && hasTwin("a/404"));
 });
 
 test("the reading order is the home page, the sidebar, then any page it leaves out, with the generated reference optional", () => {

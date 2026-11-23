@@ -7,14 +7,16 @@
  * - a `::figure` by a line with its caption and alt text, without the drawing;
  * - Starlight's MDX components by Markdown: tabs by a bold label and the code, an aside by a blockquote, link cards
  *   and buttons by list items;
- * - imports, exports, MDX comments and HTML comments by nothing;
- * - a link to a docs page by the address of that page's twin when it has one, and an address on the site otherwise.
+ * - imports, exports, MDX comments and HTML comments by nothing, and an MDX expression that is a string literal by the
+ *   string's text; any other expression is an error, like an unknown component;
+ * - a link, image or reference definition that points at a docs page by the address of that page's twin when it has
+ *   one, and a root-relative address by the same address on the site otherwise, so an asset keeps its own name.
  *
  * Everything else stays as the author wrote it, because the twin takes the source's own characters by position, not by
  * serializing the tree again. A component the module doesn't know is an error, so a new component can't reach a twin as
  * a raw tag.
  */
-import type { Definition, Link, Paragraph, Root, RootContent } from "mdast";
+import type { Definition, Image, Link, Paragraph, Root, RootContent } from "mdast";
 import type {} from "remark-directive";
 import remarkDirective from "remark-directive";
 import type {} from "remark-mdx";
@@ -30,7 +32,10 @@ type AnyNode = Root | RootContent;
 export interface FlattenContext {
   /** The site's origin without a trailing slash, such as `https://docs.buildanagent.fyi`. */
   readonly site: string;
-  /** Whether the page at this slug has a twin, from the one function that decides (pages.ts). */
+  /**
+   * Whether the page at this slug has a twin. The build passes a check against the pages `twinPages()` lists, so a link
+   * to an asset or an unknown address stays an address on the site; `hasTwin()` in rule.ts is the rule for the pages.
+   */
   readonly hasTwin: (slug: string) => boolean;
   /** The page's path, for error messages. */
   readonly page: string;
@@ -102,6 +107,75 @@ function textOf(node: AnyNode): string {
   return "children" in node ? (node.children as AnyNode[]).map(textOf).join("") : "";
 }
 
+/** One replacement of a span of the source. */
+interface Edit {
+  readonly start: number;
+  readonly end: number;
+  readonly column: number;
+  readonly text: string;
+}
+
+/** The part of an ESTree statement the expression check reads. */
+interface EstreeStatement {
+  readonly type: string;
+  readonly expression: {
+    readonly type: string;
+    readonly value?: unknown;
+    readonly quasis?: readonly { readonly value: { readonly cooked?: string | null } }[];
+    readonly expressions?: readonly unknown[];
+  };
+}
+
+/** The index of the `]` that closes the label opened just before `from`, skipping escapes and nested brackets. */
+function labelEnd(raw: string, from: number): number {
+  let depth = 0;
+  for (let i = from; i < raw.length; i += 1) {
+    const char = raw.charAt(i);
+    if (char === "\\") i += 1;
+    else if (char === "[") depth += 1;
+    else if (char === "]") {
+      if (depth === 0) return i;
+      depth -= 1;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Where the address sits in the source text of a link, image or definition: from `from` to `to`, angle brackets
+ * included. The span comes from the node's own text, so spacing, an angle-bracket form and a title are all found.
+ */
+function destinationSpan(raw: string, node: Link | Image | Definition): { from: number; to: number } | undefined {
+  let after: number;
+  if (node.type === "definition") {
+    const label = /^\[(?:\\.|[^\]\\])*\]:\s*/.exec(raw);
+    if (label === null) return undefined;
+    after = label[0].length;
+  } else {
+    const close = labelEnd(raw, node.type === "image" ? 2 : 1);
+    if (close === -1) return undefined;
+    const open = /^\]\(\s*/.exec(raw.slice(close));
+    if (open === null) return undefined;
+    after = close + open[0].length;
+  }
+  if (raw.charAt(after) === "<") {
+    const end = raw.indexOf(">", after);
+    return end === -1 ? undefined : { from: after, to: end + 1 };
+  }
+  let depth = 0;
+  let to = after;
+  for (; to < raw.length; to += 1) {
+    const char = raw.charAt(to);
+    if (/\s/.test(char)) break;
+    if (char === "(") depth += 1;
+    else if (char === ")") {
+      if (depth === 0) break;
+      depth -= 1;
+    }
+  }
+  return to > after ? { from: after, to } : undefined;
+}
+
 class Flattener {
   private readonly source: string;
   private readonly ctx: FlattenContext;
@@ -111,13 +185,16 @@ class Flattener {
     this.ctx = ctx;
   }
 
-  /** The address a link to `url` gets in a twin: a docs page's twin, or the same address on the site. */
-  link(url: string): string {
+  /**
+   * The address a link to `url` gets in a twin: a docs page's twin, or the same address on the site. An image is never
+   * a page, so its address only gains the site.
+   */
+  link(url: string, image = false): string {
     if (!url.startsWith("/") || url.startsWith("//")) return url;
     const [path = "", ...rest] = url.split(/(?=[?#])/);
     const slug = path.replace(/^\/+|\/+$/g, "");
     const suffix = rest.join("");
-    if (this.ctx.hasTwin(slug)) return `${this.ctx.site}${slug === "" ? "/index" : `/${slug}`}.md${suffix}`;
+    if (!image && this.ctx.hasTwin(slug)) return `${this.ctx.site}${slug === "" ? "/index" : `/${slug}`}.md${suffix}`;
     return `${this.ctx.site}${path}${suffix}`;
   }
 
@@ -125,9 +202,10 @@ class Flattener {
   replace(node: RootContent): string | undefined {
     switch (node.type) {
       case "mdxjsEsm":
+        return "";
       case "mdxFlowExpression":
       case "mdxTextExpression":
-        return "";
+        return this.expression(node);
       case "html":
         return /^<!--[\s\S]*-->\s*$/.test(node.value) ? "" : undefined;
       case "code": {
@@ -135,9 +213,6 @@ class Flattener {
         if (ref === undefined) return undefined;
         return fenceOf(exampleSource(ref), node.lang, rewriteMeta(node.meta, ref));
       }
-      case "link":
-      case "definition":
-        return this.relink(node);
       case "mdxJsxFlowElement":
       case "mdxJsxTextElement":
         return this.component(node);
@@ -150,15 +225,43 @@ class Flattener {
     }
   }
 
-  private relink(node: Link | Definition): string | undefined {
-    const next = this.link(node.url);
-    if (next === node.url) return undefined;
-    const { start, end } = offsets(node);
+  /**
+   * The text an MDX expression leaves in a twin. A comment, which parses to no statement, leaves nothing; a string
+   * literal leaves its value, as the rendered page shows it; anything else is computed when the page renders, so a twin
+   * can't know its text and the build fails.
+   */
+  private expression(node: RootContent & { type: "mdxFlowExpression" | "mdxTextExpression" }): string {
+    const body = (node.data as { estree?: { body: readonly EstreeStatement[] } } | undefined)?.estree?.body;
+    if (body === undefined) {
+      if (node.value.trim() === "" || /^\s*\/\*[\s\S]*\*\/\s*$/.test(node.value)) return "";
+    } else if (body.length === 0) return "";
+    else if (body.length === 1 && body[0]?.type === "ExpressionStatement") {
+      const expression = body[0].expression;
+      if (expression.type === "Literal" && typeof expression.value === "string") return expression.value;
+      const [only] = expression.quasis ?? [];
+      if (expression.type === "TemplateLiteral" && expression.expressions?.length === 0 && only?.value.cooked != null)
+        return only.value.cooked;
+    }
+    return fail(
+      this.ctx,
+      node,
+      `the expression {${node.value.trim()}} is computed when the page renders, so its twin can't show it; write the text out`,
+    );
+  }
+
+  /** The edit that rewrites a link, image or reference definition's address, or `undefined` when it stays. */
+  private urlEdit(node: RootContent): Edit | undefined {
+    if (node.type !== "link" && node.type !== "image" && node.type !== "definition") return undefined;
+    if (!node.url.startsWith("/")) return undefined;
+    const { start, end, column } = offsets(node);
     const raw = this.source.slice(start, end);
-    const marker = node.type === "link" ? `](${node.url}` : `]: ${node.url}`;
-    const at = raw.indexOf(marker);
-    if (at === -1) return undefined;
-    return raw.slice(0, at) + marker.replace(node.url, next) + raw.slice(at + marker.length);
+    const span = destinationSpan(raw, node);
+    if (span === undefined) return undefined;
+    const written = raw.slice(span.from, span.to);
+    const next = this.link(written.replace(/^<|>$/g, ""), node.type === "image");
+    if (next === written.replace(/^<|>$/g, "")) return undefined;
+    const text = written.startsWith("<") ? `<${next}>` : next;
+    return { start: start + span.from, end: start + span.to, column, text };
   }
 
   private figure(node: RootContent & { type: "leafDirective" }): string {
@@ -239,7 +342,7 @@ class Flattener {
     if (first === undefined || last === undefined) return "";
     const from = offsets(first);
     const to = offsets(last);
-    const edits: { start: number; end: number; column: number; text: string }[] = [];
+    const edits: Edit[] = [];
     const collect = (node: RootContent): void => {
       const text = this.replace(node);
       if (text !== undefined) {
@@ -247,8 +350,13 @@ class Flattener {
         return;
       }
       if ("children" in node) for (const child of node.children as RootContent[]) collect(child);
+      // After the children, which sit before the address, so the edits stay in source order. The edit covers only the
+      // address, so the rest of the link keeps its own line breaks and indent.
+      const url = this.urlEdit(node);
+      if (url !== undefined) edits.push(url);
     };
     for (const node of nodes) collect(node);
+    edits.sort((a, b) => a.start - b.start);
     let out = "";
     let cursor = from.start;
     for (const edit of edits) {

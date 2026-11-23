@@ -65,6 +65,11 @@ const twin = twinHref(Astro.locals.starlightRoute.id);
     color: var(--color-text-soft);
   }
 
+  /* Display set below must not show a button the script has not revealed yet. */
+  .twin-copy[hidden] {
+    display: none;
+  }
+
   /* A finger needs a bigger target than a pointer does. */
   @media (pointer: coarse) {
     .twin-copy,

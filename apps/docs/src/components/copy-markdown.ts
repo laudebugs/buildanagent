@@ -62,6 +62,11 @@ export function wireCopyButton(button: CopyButton, env: CopyEnvironment): void {
     const done = () => button.announce(STATUS.copied);
     const failed = () => button.announce(STATUS.failed);
     const { clipboard } = env;
+    // A clipboard without `writeText` must fail the copy; calling it through `?.` would resolve and report "Copied".
+    const writeText = (body: string): Promise<void> => {
+      if (clipboard?.writeText === undefined) return Promise.reject(new Error("the clipboard has no writeText"));
+      return clipboard.writeText(body);
+    };
     if (clipboard?.write !== undefined && env.ClipboardItem !== undefined) {
       const markdown = load().then((body) => new env.Blob([body], { type: "text/plain" }));
       // The clipboard reports a failed fetch through `write`; this keeps the promise from also being unhandled.
@@ -69,15 +74,11 @@ export function wireCopyButton(button: CopyButton, env: CopyEnvironment): void {
       const item = new env.ClipboardItem({ "text/plain": markdown });
       clipboard.write([item]).then(done, () => {
         // The write was refused; the pre-fetched text may still go through writeText.
-        load()
-          .then((body) => clipboard.writeText?.(body))
-          .then(done, failed);
+        load().then(writeText).then(done, failed);
       });
       return;
     }
     if (clipboard?.writeText === undefined) return failed();
-    load()
-      .then((body) => clipboard.writeText?.(body))
-      .then(done, failed);
+    load().then(writeText).then(done, failed);
   });
 }

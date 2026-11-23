@@ -103,6 +103,20 @@ test("without ClipboardItem the text a hover fetched ahead goes to writeText, an
   assert.deepEqual(down.said, [STATUS.failed]);
 });
 
+test("a clipboard with no writeText says the copy failed, whether write was refused or missing", async () => {
+  const refuse = async () => {
+    throw new Error("NotAllowedError");
+  };
+  const refused = setup({ clipboard: { write: refuse } });
+  refused.handlers.click?.();
+  await settle();
+  assert.deepEqual(refused.said, [STATUS.failed], "write refused and no writeText: nothing was copied");
+  const noItem = setup({ ClipboardItem: undefined, clipboard: { write: refuse } });
+  noItem.handlers.click?.();
+  await settle();
+  assert.deepEqual(noItem.said, [STATUS.failed]);
+});
+
 test("no clipboard at all says the copy failed, and a button with no twin address gets no handler", () => {
   const none = setup({ clipboard: undefined });
   none.handlers.click?.();

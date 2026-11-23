@@ -5,8 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { twinMarkdown } from "./flatten.js";
-import { OPTIONAL_SECTION, type PlacedPage, splitFrontmatter, type TwinPage } from "./pages.js";
-import { hasTwin } from "./rule.js";
+import { OPTIONAL_SECTION, type PlacedPage, splitFrontmatter, type TwinPage, twinSlugs } from "./pages.js";
 
 /** What `llms.txt` says about the site. */
 export interface TwinSite {
@@ -17,8 +16,11 @@ export interface TwinSite {
   readonly summary: string;
 }
 
-/** A page's twin as text, read from its source file. */
-export function renderTwin(page: TwinPage, site: TwinSite): string {
+/**
+ * A page's twin as text, read from its source file. `hasTwin` says which link targets are pages with a twin; the build
+ * passes `twinSlugs(pages)`, so an asset or an unknown address in a link stays an address on the site.
+ */
+export function renderTwin(page: TwinPage, site: TwinSite, hasTwin: (slug: string) => boolean): string {
   const { body } = splitFrontmatter(readFileSync(page.source, "utf8"));
   return twinMarkdown(page, body, page.mdx, {
     site: site.origin,
@@ -66,8 +68,9 @@ export interface TwinReport {
 export function writeTwins(dist: string, placed: readonly PlacedPage[], site: TwinSite): TwinReport {
   const twins = new Map<string, string>();
   let bytes = 0;
+  const hasTwin = twinSlugs(placed.map((entry) => entry.page));
   for (const { page } of placed) {
-    const text = renderTwin(page, site);
+    const text = renderTwin(page, site, hasTwin);
     twins.set(page.slug, text);
     const file = join(dist, ...page.url.split("/").filter(Boolean));
     mkdirSync(dirname(file), { recursive: true });

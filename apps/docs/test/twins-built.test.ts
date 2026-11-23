@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { test } from "vitest";
 import { exampleSource, parseExampleRef } from "../src/plugins/example-code.js";
 import { checkTwins, htmlOf } from "../src/twins/build.js";
-import { readingOrder, twinPages } from "../src/twins/pages.js";
+import { twinPages } from "../src/twins/pages.js";
 import { builtSite } from "./built.js";
 
 // Every check reads the built docs (test/built-site.ts builds them once).
@@ -18,16 +18,23 @@ test("every page the twin function names has a twin and a head link, and the bui
   for (const page of pages) assert.ok(existsSync(twinFile(builtSite(), page.url)), `${page.url} is missing`);
 });
 
-test("every built page is a page with a twin, so no page lacks its link or its button", () => {
+test("every built page is a page with a twin, so no page lacks its link or its button, and the 404 page has neither", () => {
   const dist = builtSite();
   const built = readdirSync(dist, { recursive: true, encoding: "utf8" })
-    .filter((path) => path.endsWith("index.html"))
+    .filter((path) => path.endsWith(".html"))
     .map((path) => join(dist, path));
   const expected = new Set(pages.map((page) => htmlOf(dist, page)));
+  const notFound = join(dist, "404.html");
+  assert.ok(built.includes(notFound), "the build has a 404 page");
   for (const file of built) {
-    if (file === join(dist, "pagefind", "index.html")) continue;
-    assert.ok(expected.has(file), `${file} is a built page with no twin`);
+    if (file.startsWith(join(dist, "pagefind"))) continue;
     const html = readFileSync(file, "utf8");
+    if (file === notFound) {
+      assert.doesNotMatch(html, /type="text\/markdown"/, "the 404 page links a twin that is not built");
+      assert.doesNotMatch(html, /twin-copy|twin-link/, "the 404 page has a Markdown button");
+      continue;
+    }
+    assert.ok(expected.has(file), `${file} is a built page with no twin`);
     assert.match(
       html,
       /<link rel="alternate" type="text\/markdown" href="\/[^"]*\.md"\s*\/?>/,
@@ -87,16 +94,25 @@ test("no twin keeps a file= fence, a ::figure, an MDX tag, an import or a commen
   assert.ok(!gateway.includes("<svg"), "a twin holds no drawing");
 });
 
-test("a twin's links to other pages are absolute, and a link to a page with a twin ends in .md", () => {
+test("a twin's links are absolute, and every .md address it links is a twin that was written", () => {
   const twin = read("/start/install.md");
   assert.match(twin, /\]\(https:\/\/docs\.buildanagent\.fyi\/start\/first-agent\.md\)/);
+  const origin = "https://docs.buildanagent.fyi";
   for (const page of pages) {
-    const links = [...read(page.url).matchAll(/\]\((\/[^)\s]*)\)/g)];
+    // Outside fences, since a page about links may show one in code.
+    const prose = read(page.url).replace(/^(`{3,})[\s\S]*?^\1\s*$/gm, "");
+    // An inline link or an image, a reference definition in any spacing, and an angle-bracket form.
+    const relative = [...prose.matchAll(/\]\(\s*<?(\/[^)\s>]*)|^\[[^\]]+\]:\s*<?(\/\S*)/gm)];
     assert.deepEqual(
-      links.map((m) => m[1]),
+      relative.map((m) => m[1] ?? m[2]),
       [],
-      `${page.url} has a root-relative link, which a copied twin can't follow`,
+      `${page.url} has a root-relative link, image or definition, which a copied twin can't follow`,
     );
+    for (const [, path] of prose.matchAll(
+      new RegExp(`\\]\\(<?${origin.replace(/\./g, "\\.")}(/[^)\\s>#?]*\\.md)`, "g"),
+    )) {
+      assert.ok(existsSync(twinFile(builtSite(), path ?? "")), `${page.url} links ${path}, which is not a twin`);
+    }
   }
 });
 
@@ -116,9 +132,10 @@ test("llms.txt lists every twin exactly once with an absolute address, and llms-
       `${page.url} is not in llms-full.txt`,
     );
   }
-  // The reading order follows the sidebar: the home page, then Start, then Concepts.
-  const order = readingOrder(pages, []).length;
-  assert.equal(order, pages.length);
+  // The reading order follows the sidebar: the home page, then Start, then Concepts. The headings are read from the
+  // built file, which the plugin wrote from the real sidebar, so this checks the order the site ships; a call to
+  // readingOrder here would need the sidebar, which only astro.config.mjs holds, and test/twins-pages.test.ts covers
+  // readingOrder on a sidebar of its own.
   assert.ok(
     llms.indexOf("## Overview") < llms.indexOf("## Start") && llms.indexOf("## Start") < llms.indexOf("## Concepts"),
   );

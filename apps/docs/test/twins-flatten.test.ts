@@ -129,6 +129,73 @@ test("a link to a page with a twin points at the twin, other links and anchors s
   );
 });
 
+test("a link's address is rewritten where it stands, whatever the spacing, brackets or line breaks around it", () => {
+  const out = flattenBody(
+    [
+      "[a]:/start/install/",
+      "[b]:   /start/install/",
+      "[c]: </start/install/>",
+      '[d]: /start/install/ "A title"',
+      "",
+      "![shot](/shot.png) and ![](</a b.png> 't') and [img](/start/install/ 'T')",
+    ].join("\n"),
+    false,
+    ctx,
+  );
+  assert.equal(
+    out,
+    [
+      "[a]:https://docs.test/start/install.md",
+      "[b]:   https://docs.test/start/install.md",
+      "[c]: <https://docs.test/start/install.md>",
+      '[d]: https://docs.test/start/install.md "A title"',
+      "",
+      "![shot](https://docs.test/shot.png) and ![](<https://docs.test/a b.png> 't') and [img](https://docs.test/start/install.md 'T')",
+      "",
+    ].join("\n"),
+  );
+});
+
+test("a link that spans lines inside a list keeps the indent the author wrote", () => {
+  const body = "- See [the\n  guide](/start/install/) now.\n- Next.\n";
+  assert.equal(
+    flattenBody(body, false, ctx),
+    "- See [the\n  guide](https://docs.test/start/install.md) now.\n- Next.\n",
+  );
+  const nested = "1. Item\n\n   See [the\n   guide](/start/install/) now.\n";
+  assert.equal(
+    flattenBody(nested, false, ctx),
+    "1. Item\n\n   See [the\n   guide](https://docs.test/start/install.md) now.\n",
+  );
+});
+
+test("an address that is not a page with a twin stays an address on the site, without .md", () => {
+  const out = flattenBody("[icon](/favicon.svg), [list](/llms.txt) and ![f](/fonts/a.woff2)", false, {
+    ...ctx,
+    hasTwin: (slug) => slug === "start/install",
+  });
+  assert.equal(
+    out,
+    "[icon](https://docs.test/favicon.svg), [list](https://docs.test/llms.txt) and ![f](https://docs.test/fonts/a.woff2)\n",
+  );
+});
+
+test("an MDX expression that is a string leaves its text, a comment leaves nothing, and any other is an error", () => {
+  assert.equal(mdx("Use {'{'} braces and {\"}\"} too.\n\n{`plain`}\n"), "Use { braces and } too.\n\nplain\n");
+  assert.equal(mdx("Before {/* note */} after."), "Before  after.\n");
+  for (const body of ["Text {props.name} here.", "Line one.\n\n{1 + 1}", "A {`x\u0024{y}`} b."]) {
+    assert.throws(
+      () => mdx(body),
+      (error: unknown) => {
+        assert.ok(error instanceof TwinError);
+        assert.match(error.message, /^fixture\.mdx:\d+: the expression \{/);
+        return true;
+      },
+      body,
+    );
+  }
+});
+
 test("code that mentions a component, a figure or a link is not touched", () => {
   const body = '```mdx\n<Aside>x</Aside>\n::figure[c]{id="a" alt="b"}\n[l](/start/install/)\n```\n';
   assert.equal(flattenBody(body, true, ctx), body);

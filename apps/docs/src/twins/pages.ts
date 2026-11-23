@@ -1,14 +1,15 @@
 /**
- * The pages that have a Markdown twin, read from the content folder, for the post-build step. Whether a page has one is
- * decided by `hasTwin` in rule.ts alone, which the head link and the button read too, without a filesystem, because the
- * components render inside a bundle that has no content folder beside it.
+ * The pages that have a Markdown twin, read from the content folder, for the post-build step. `hasTwin` in rule.ts is
+ * the one rule for which pages may have one, and the head link and the button read it too, without a filesystem,
+ * because the components render inside a bundle that has no content folder beside it. This module adds only what the
+ * folder shows: a draft has no built page, so it has no twin.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { API_PACKAGES } from "../api/packages.js";
-import { hasTwin, twinUrl } from "./rule.js";
+import { hasTwin, normalizeSlug, twinUrl } from "./rule.js";
 
 /** The folder that holds every docs page, and the folders TypeDoc fills during a build. */
 export const CONTENT_DIR = fileURLToPath(new URL("../content/docs/", import.meta.url));
@@ -31,15 +32,23 @@ export interface TwinPage {
 
 /**
  * The slug Starlight gives a file, from its path under the content folder. Each folder and file name is slugged as
- * github-slugger does (lower case, and everything but letters, digits, `-` and `_` dropped), because Astro's content
- * loader slugs the path that way, so `@buildanagent/sdk/Foo.md` is `buildanagent/sdk/foo`. A file named `index` is its
- * folder's page. The build step's check fails when this disagrees with the built site.
+ * github-slugger does, because Astro's content loader slugs the path that way: lower case, everything but letters,
+ * digits, marks, `-`, `_` and spaces dropped, then each space made a `-`. So `guides/My Page.md` is `guides/my-page`
+ * and `@buildanagent/sdk/Foo.md` is `buildanagent/sdk/foo`. A file named `index` is its folder's page. A page's `slug`
+ * front matter replaces the whole result, as it does in Astro. The build step's check fails when this disagrees with
+ * the built site.
  */
-export function slugOf(relativePath: string): string {
+export function slugOf(relativePath: string, override?: unknown): string {
+  if (typeof override === "string" && override.trim() !== "") return normalizeSlug(override.trim());
   const parts = relativePath
     .replace(/\.mdx?$/, "")
     .split(/[\\/]/)
-    .map((part) => part.toLowerCase().replace(/[^\p{L}\p{N}\p{M}_-]/gu, ""));
+    .map((part) =>
+      part
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\p{M}_ -]/gu, "")
+        .replace(/ /g, "-"),
+    );
   if (parts.at(-1) === "index") parts.pop();
   return parts.join("/");
 }
@@ -61,6 +70,33 @@ export function splitFrontmatter(text: string): { data: Record<string, unknown>;
   return { data: (parse(match[1] ?? "") ?? {}) as Record<string, unknown>, body: text.slice(match[0].length) };
 }
 
+/**
+ * The pages with a twin in `contentDir`, sorted by slug. A page marked `draft: true` is left out, because Starlight
+ * leaves drafts out of a production build, so a twin for one would have no page. `generatedDirs` are the folders
+ * TypeDoc fills.
+ */
+export function readPages(contentDir: string, generatedDirs: readonly string[]): TwinPage[] {
+  const pages = markdownFiles(contentDir).flatMap((source): TwinPage[] => {
+    const { data } = splitFrontmatter(readFileSync(source, "utf8"));
+    if (data.draft === true) return [];
+    const slug = slugOf(relative(contentDir, source), data.slug);
+    if (!hasTwin(slug)) return [];
+    const description = typeof data.description === "string" ? data.description : undefined;
+    return [
+      {
+        slug,
+        url: twinUrl(slug),
+        source,
+        mdx: source.endsWith(".mdx"),
+        generated: generatedDirs.some((dir) => source.startsWith(dir)),
+        title: typeof data.title === "string" ? data.title : slug,
+        description,
+      },
+    ];
+  });
+  return pages.sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
+}
+
 let cached: readonly TwinPage[] | undefined;
 
 /**
@@ -71,25 +107,14 @@ let cached: readonly TwinPage[] | undefined;
 export function twinPages(fresh = false): readonly TwinPage[] {
   if (cached !== undefined && !fresh) return cached;
   const generated = API_PACKAGES.map((pkg) => join(CONTENT_DIR, ...pkg.output.split("/")) + sep);
-  const pages = markdownFiles(CONTENT_DIR).flatMap((source): TwinPage[] => {
-    const slug = slugOf(relative(CONTENT_DIR, source));
-    if (!hasTwin(slug)) return [];
-    const { data } = splitFrontmatter(readFileSync(source, "utf8"));
-    const description = typeof data.description === "string" ? data.description : undefined;
-    return [
-      {
-        slug,
-        url: twinUrl(slug),
-        source,
-        mdx: source.endsWith(".mdx"),
-        generated: generated.some((dir) => source.startsWith(dir)),
-        title: typeof data.title === "string" ? data.title : slug,
-        description,
-      },
-    ];
-  });
-  cached = pages.sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
+  cached = readPages(CONTENT_DIR, generated);
   return cached;
+}
+
+/** A check for a link target: whether `slug` is one of `pages`, so a link to anything else gets no `.md`. */
+export function twinSlugs(pages: readonly { readonly slug: string }[]): (slug: string) => boolean {
+  const known = new Set(pages.map((page) => normalizeSlug(page.slug)));
+  return (slug) => known.has(normalizeSlug(slug));
 }
 
 /** A sidebar entry as far as the twin order needs it: Starlight's user config for one item or group. */
