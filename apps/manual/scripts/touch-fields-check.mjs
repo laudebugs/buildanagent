@@ -84,10 +84,10 @@ await page.fill("#notes-field", "A note.");
 await page.click(".notes-dialog__form button[type='submit']");
 
 // Its Export field.
-await page.click("button:has-text('Export as Markdown')");
+await page.click(".notes-dialog [aria-label='Export as Markdown']");
 await page.waitForSelector("#notes-export", { state: "visible" });
 await checkFields("export field", ["textarea.notes-dialog__field"]);
-await page.click(".notes-dialog__head button");
+await page.click(".notes-dialog__head [aria-label='Close']");
 
 // The note editor in the popover or sheet: a plain highlight's Add a note field.
 await selectIn(page, 2, 10, 70);

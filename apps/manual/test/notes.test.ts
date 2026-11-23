@@ -558,6 +558,17 @@ function page(options: { highlights?: boolean; storage?: "blocked"; items?: unkn
 
 const q = <T extends Element>(win: Window, selector: string) =>
   (win.document as unknown as Document).querySelector<T>(selector);
+
+/** The notes panel's cards, in the order it lists them. */
+const cards = (win: Window) => [...(win.document as unknown as Document).querySelectorAll<HTMLElement>(".notes-card")];
+
+/** Opens a card's "More actions" menu and gives back the item that does `action` (edit, share, delete, color-green). */
+function menuAction(win: Window, id: string, action: string): HTMLButtonElement {
+  const card = q<HTMLElement>(win, `.notes-card[data-id="${id}"]`);
+  const menu = card?.querySelector<HTMLElement>(".notes-menu");
+  if (menu?.hidden) card?.querySelector<HTMLButtonElement>(".notes-card__more")?.click();
+  return card?.querySelector<HTMLButtonElement>(`.notes-menu [data-action="${action}"]`) as HTMLButtonElement;
+}
 const painted = (win: Window, name: string) =>
   ((win as unknown as { CSS: { highlights: Map<string, FakeHighlight> } }).CSS.highlights.get(name)?.ranges ?? []).map(
     (range) => range.toString().replace(/\s+/g, " "),
@@ -603,16 +614,17 @@ test("a chapter draws its stored highlights and lists every one, a lost one with
     "only a note\u2019s dot is added inside the article",
   );
   open?.click();
-  const rows = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item")];
+  const rows = cards(win);
   assert.deepEqual(
     rows.map((row) => row.getAttribute("data-id")),
     ["one", "two", "gone"],
     "in chapter order, the lost one last",
   );
   assert.equal(q(win, ".notes-dialog img"), null, "a note's markup stays text");
-  assert.equal(rows[1]?.querySelector(".notes-dialog__note")?.textContent, '<img src=x onerror="alert(1)">');
-  assert.match(rows[2]?.textContent ?? "", /a sentence the chapter lost.*Not found.*Still mine\./s);
-  assert.equal(rows[2]?.querySelector("button")?.textContent, "Edit note", "a lost passage has no Go to button");
+  assert.equal(rows[1]?.querySelector(".notes-card__note")?.textContent, '<img src=x onerror="alert(1)">');
+  assert.match(rows[2]?.textContent ?? "", /a sentence the chapter lost.*Still mine\..*Not found/s);
+  assert.equal(rows[2]?.querySelector("[data-action='go']"), null, "a lost passage has nothing to go to");
+  assert.equal(q(win, ".notes-panel__count")?.textContent, "3 in this chapter");
   assert.deepEqual(requests, []);
 });
 
@@ -621,13 +633,7 @@ test("deleting and editing in the panel write the chapter's list and keep other 
   win.localStorage.setItem(KEY, stored({ tools: ITEMS, "call-workflow-loop": [item({ id: "kept" })] }));
   start(win as unknown as globalThis.Window);
   q<HTMLButtonElement>(win, ".notes-open")?.click();
-  const row = (id: string) =>
-    [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item")].find(
-      (found) => found.getAttribute("data-id") === id,
-    );
-  const button = (id: string, label: string) =>
-    [...(row(id)?.querySelectorAll("button") ?? [])].find((found) => found.textContent === label) as HTMLButtonElement;
-  button("one", "Delete").click();
+  menuAction(win, "one", "delete").click();
   const afterDelete = parseStored(win.localStorage.getItem(KEY));
   assert.deepEqual(
     afterDelete.get("tools")?.map((found) => found.id),
@@ -635,13 +641,16 @@ test("deleting and editing in the panel write the chapter's list and keep other 
   );
   assert.equal(afterDelete.get("call-workflow-loop")?.[0]?.id, "kept");
   assert.deepEqual(painted(win, PLAIN), []);
-  button("gone", "Edit note").click();
+  menuAction(win, "gone", "edit").click();
   const field = q<HTMLTextAreaElement>(win, ".notes-dialog__form textarea");
   assert.ok(field);
   field.value = `  A new note.\n${"y".repeat(400)}  `;
   q<HTMLButtonElement>(win, ".notes-dialog__form button[type='submit']")?.click();
   assert.equal(parseStored(win.localStorage.getItem(KEY)).get("tools")?.[1]?.note, `A new note.\n${"y".repeat(400)}`);
-  assert.equal(win.document.activeElement?.textContent, "Edit note", "focus returns to the edited note's row");
+  assert.ok(
+    win.document.activeElement === (q(win, '.notes-card[data-id="gone"] .notes-card__more') as unknown),
+    "focus returns to the edited note's menu button",
+  );
   assert.deepEqual(requests, []);
 });
 
@@ -650,8 +659,9 @@ test("export writes the chapter's Markdown into a visible field when the clipboa
   Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: undefined });
   start(win as unknown as globalThis.Window);
   q<HTMLButtonElement>(win, ".notes-open")?.click();
-  const exportButton = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog button")].find(
-    (found) => found.textContent === "Export as Markdown",
+  const exportButton = q<HTMLButtonElement>(
+    win,
+    ".notes-dialog [aria-label='Export as Markdown']",
   ) as HTMLButtonElement;
   exportButton.click();
   const field = q<HTMLTextAreaElement>(win, "#notes-export");
@@ -793,7 +803,7 @@ test("at the cap a passage already highlighted still takes a note, and only a ne
   const items = parseStored(win.localStorage.getItem(KEY)).get("tools") ?? [];
   assert.equal(items.length, MAX_HIGHLIGHTS);
   assert.equal(items.find((found) => found.id === made.id)?.note, "A note at the cap.");
-  q<HTMLButtonElement>(win, ".notes-dialog__head button")?.click();
+  q<HTMLButtonElement>(win, ".notes-dialog__head [aria-label='Close']")?.click();
   // The note's dot split the paragraph's text after offset 13, so the later words are in the node after the dot.
   const rest = q(win, "article p:last-of-type")?.lastChild as Node;
   select(win, rest, 27, rest, 38);
@@ -828,20 +838,21 @@ test("a change from another tab redraws the panel and keeps focus on the same co
   const win = page({ items: ITEMS });
   start(win as unknown as globalThis.Window);
   q<HTMLButtonElement>(win, ".notes-open")?.click();
-  const deleteOf = (id: string) =>
+  const greenOf = (id: string) =>
     (win.document as unknown as Document).querySelector<HTMLButtonElement>(
-      `.notes-dialog__item[data-id="${id}"] [data-action="delete"]`,
+      `.notes-card[data-id="${id}"] [data-action="color-green"]`,
     );
-  deleteOf("two")?.focus();
-  const before = deleteOf("two");
+  menuAction(win, "two", "color-green").focus();
+  const before = greenOf("two");
   // Another tab deleted "one".
   win.localStorage.setItem(KEY, stored({ tools: ITEMS.filter((found) => found.id !== "one") }));
   const event = new win.Event("storage");
   Object.defineProperty(event, "key", { value: KEY });
   win.dispatchEvent(event);
-  assert.equal(q(win, '.notes-dialog__item[data-id="one"]'), null, "the list shows the stored notes");
-  assert.notEqual(deleteOf("two"), before, "the row was rendered again");
-  assert.equal(win.document.activeElement, deleteOf("two"));
+  assert.equal(q(win, '.notes-card[data-id="one"]'), null, "the list shows the stored notes");
+  assert.notEqual(greenOf("two"), before, "the card was rendered again");
+  assert.equal(q<HTMLElement>(win, '.notes-card[data-id="two"] .notes-menu')?.hidden, false, "its menu is open again");
+  assert.ok(win.document.activeElement === (greenOf("two") as unknown), "with focus on the same colour");
 });
 
 test("the script names no API that can reach the network and writes no markup", () => {
@@ -874,8 +885,7 @@ const noteForm = (win: Window) => ({
   open: () => q<HTMLElement>(win, ".notes-dialog__form")?.hidden === false,
 });
 const panelStatus = (win: Window) => q(win, ".notes-dialog__status")?.textContent ?? "";
-const rowButton = (win: Window, id: string, action: string) =>
-  q<HTMLButtonElement>(win, `.notes-dialog__item[data-id="${id}"] [data-action="${action}"]`) as HTMLButtonElement;
+const rowButton = (win: Window, id: string, action: string) => menuAction(win, id, action);
 
 test("a note on a highlight another tab deleted keeps the typed text, says so, and the next save adds it back", () => {
   const win = page({ items: ITEMS });
@@ -969,8 +979,9 @@ test("a stored value from a newer version or damaged text is never overwritten, 
     assert.match(visibleMessage(win), /Nothing was changed/);
     q<HTMLButtonElement>(win, ".notes-open")?.click();
     assert.equal(q<HTMLElement>(win, ".notes-dialog__flag")?.hidden, false, "the panel says why");
-    const exportButton = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog button")].find(
-      (found) => found.textContent === "Export as Markdown",
+    const exportButton = q<HTMLButtonElement>(
+      win,
+      ".notes-dialog [aria-label='Export as Markdown']",
     ) as HTMLButtonElement;
     exportButton.click();
     assert.equal(q<HTMLTextAreaElement>(win, "#notes-export")?.value, raw);
@@ -2281,7 +2292,7 @@ test("dots are numbered in the panel's order, and the panel names each note's nu
   const byId = Object.fromEntries(dots(win).map((dot) => [dot.getAttribute("data-id"), dot.getAttribute("data-n")]));
   assert.deepEqual(byId, { early: "1", late: "2" });
   q<HTMLButtonElement>(win, ".notes-open")?.click();
-  const labels = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__label")].map(
+  const labels = [...(win.document as unknown as Document).querySelectorAll(".notes-card__label")].map(
     (label) => label.textContent,
   );
   assert.deepEqual(labels, ["Note 1", "Note 2"]);
@@ -2329,16 +2340,7 @@ test("repainting takes the dots out and joins the text nodes again, so nothing p
   const paragraph = q(win, "article p:last-of-type") as Element;
   assert.equal(paragraph.childNodes.length, 3, "a text node, the dot and the text after it");
   q<HTMLButtonElement>(win, ".notes-open")?.click();
-  const edit = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item button")].find(
-    (found) => found.textContent === "Delete",
-  ) as HTMLButtonElement;
-  // The panel lists the chapter in order: the plain highlight first, then the noted one.
-  const rows = [...(win.document as unknown as Document).querySelectorAll(".notes-dialog__item")];
-  const noted = rows.find((row) => row.getAttribute("data-id") === "two");
-  assert.ok(edit);
-  [...(noted?.querySelectorAll("button") ?? [])]
-    .find((found) => found.textContent === "Delete")
-    ?.dispatchEvent(new win.MouseEvent("click", { bubbles: true }) as unknown as Event);
+  menuAction(win, "two", "delete").dispatchEvent(new win.MouseEvent("click", { bubbles: true }) as unknown as Event);
   assert.equal(dots(win).length, 0, "deleting the note's highlight removes its dot");
   assert.equal(paragraph.childNodes.length, 1, "and the split text is one node again");
 });
@@ -2715,25 +2717,25 @@ test("Share shows the text in a field to copy by hand when the clipboard is miss
   }
 });
 
-test("the panel's rows offer the same colour buttons and Share as the popover", async () => {
+test("a card's menu offers the same colours and Share as the popover, and a colour recolours the card at once", async () => {
   const { win } = stage([CONTRACT, FAILED]);
   const writeText = vi.fn(() => Promise.resolve());
   Object.defineProperty(win.navigator, "clipboard", { configurable: true, value: { writeText } });
   q<HTMLButtonElement>(win, ".notes-open")?.click();
-  const inRow = (id: string, label: string) =>
-    [
-      ...(win.document as unknown as Document).querySelectorAll<HTMLButtonElement>(
-        `.notes-dialog__item[data-id="${id}"] button`,
-      ),
-    ].find((button) => button.textContent === label) as HTMLButtonElement;
-  assert.equal(inRow("one", "Amber").getAttribute("aria-pressed"), "true");
-  inRow("one", "Green").click();
+  assert.equal(menuAction(win, "one", "color-amber").getAttribute("aria-checked"), "true");
+  assert.equal(menuAction(win, "one", "color-amber").getAttribute("role"), "menuitemradio");
+  menuAction(win, "one", "color-green").click();
   assert.equal(storedItems(win).find((found) => found.id === "one")?.color, "green");
-  assert.equal(inRow("one", "Green").getAttribute("aria-pressed"), "true", "the row shows the new colour");
-  inRow("two", "Share").click();
+  assert.equal(menuAction(win, "one", "color-green").getAttribute("aria-checked"), "true", "the menu shows it");
+  assert.equal(q(win, '.notes-card[data-id="one"]')?.getAttribute("data-color"), "green", "and so does the card");
+  assert.deepEqual(painted(win, highlightName("green", false)), ["a contract with a model"], "and the page");
+  menuAction(win, "two", "share").click();
   await Promise.resolve();
   assert.equal(writeText.mock.calls.length, 1);
-  assert.equal(inRow("gone", "Share"), undefined, "a passage the chapter lost has nothing to link to");
+  assert.ok(
+    win.document.activeElement === (q(win, '.notes-card[data-id="two"] .notes-card__more') as unknown),
+    "focus returns",
+  );
 });
 
 test("textDirective builds a whole-word directive for a passage, its ends, or its context", () => {
@@ -2806,4 +2808,280 @@ test("shareLink drops an old fragment and keeps the heading as the fallback, and
     "no whole word, so the section only",
   );
   assert.equal(shareText("q", "T", "https://u"), "“q”\n— T\nhttps://u");
+});
+
+// The notes panel (the B1 design in docs/design/notes/): a header with the title, the count, Export and Close; a hint;
+// one card per highlight with a button to its passage and one "More actions" menu; and a one-line footer.
+
+const LOST = item({ id: "gone", quote: "a sentence the chapter lost", note: "Still mine." });
+
+/** The buttons a reader can see in a card: not hidden, and not inside a closed menu. */
+const shownButtons = (card: Element) =>
+  [...card.querySelectorAll<HTMLButtonElement>("button")].filter((button) => button.closest("[hidden]") === null);
+
+function key(win: Window, target: Element | null, name: string) {
+  target?.dispatchEvent(
+    new win.KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true }) as unknown as Event,
+  );
+}
+
+test("the panel has a title and count, Export and Close as named icons, a hint, cards and a one-line footer", () => {
+  const { win } = stage([CONTRACT, FAILED, LOST]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const dialog = q<HTMLDialogElement>(win, ".notes-dialog") as HTMLDialogElement;
+  assert.equal(dialog.open, true);
+  assert.equal(q(win, "#notes-title")?.textContent, "Notes");
+  assert.equal(q(win, ".notes-panel__count")?.textContent, "3 in this chapter");
+  const tools = [...dialog.querySelectorAll<HTMLButtonElement>(".notes-dialog__head button")];
+  assert.deepEqual(
+    tools.map((button) => [button.getAttribute("aria-label"), button.getAttribute("title"), button.textContent]),
+    [
+      ["Export as Markdown", "Export as Markdown", ""],
+      ["Close", "Close", ""],
+    ],
+    "two icon buttons, each named by its label and its tooltip",
+  );
+  assert.equal(q(win, ".notes-panel__hint")?.textContent, "Click a note to go to its passage.");
+  assert.equal(q<HTMLElement>(win, ".notes-panel__hint")?.hidden, false);
+  const foot = q(win, ".notes-panel__foot");
+  assert.equal(foot?.querySelector("span:not(.visually-hidden)")?.textContent, "Saved in this browser only.");
+  assert.match(
+    foot?.getAttribute("title") ?? "",
+    /Clearing this site's data deletes them/,
+    "the long sentence is its tooltip",
+  );
+  assert.equal(dialog.getAttribute("aria-describedby"), "notes-storage");
+  assert.match(q(win, "#notes-storage")?.textContent ?? "", /^Saved in this browser only\. Clearing/);
+  assert.ok(win.document.activeElement === (tools[1] as unknown), "focus starts on Close");
+  // The old panel's long rows of buttons are gone.
+  assert.equal(
+    q(win, ".notes-dialog__item, .notes-card .notes-dialog__actions, .notes-card .control:not(.notes-swatch)"),
+    null,
+  );
+  const texts = [...dialog.querySelectorAll("button")].map((button) => button.textContent);
+  for (const old of ["Go to passage", "Edit note", "Export as Markdown", "Close"]) {
+    assert.ok(!texts.includes(old), `no button reads "${old}"`);
+  }
+  assert.doesNotMatch(dialog.textContent ?? "", /Your notes on this chapter/);
+});
+
+test("each card shows at most two buttons: its passage, which goes there, and More actions", () => {
+  const { win } = stage([CONTRACT, FAILED, LOST]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  for (const card of cards(win)) {
+    const shown = shownButtons(card);
+    const lost = card.getAttribute("data-id") === "gone";
+    const more = shown.filter((button) => button.getAttribute("aria-label") === "More actions");
+    assert.equal(more.length, 1, "one More actions button");
+    assert.equal(more[0]?.getAttribute("aria-haspopup"), "menu");
+    assert.equal(more[0]?.getAttribute("aria-expanded"), "false");
+    assert.equal(more[0]?.getAttribute("aria-controls"), card.querySelector(".notes-menu")?.id);
+    const go = shown.filter((button) => button !== more[0]);
+    assert.equal(go.length, lost ? 0 : 1, "and, unless the passage is lost, the passage itself");
+    if (!lost) {
+      assert.equal(go[0]?.getAttribute("data-action"), "go");
+      assert.ok(go[0]?.textContent?.includes(card.querySelector(".notes-card__quote")?.textContent ?? "?"));
+    }
+  }
+  const one = cards(win)[0] as HTMLElement;
+  assert.equal(one.getAttribute("data-color"), "amber", "the card's bar takes its colour");
+  const failed = cards(win)[1] as HTMLElement;
+  assert.equal(failed.querySelector(".notes-card__note")?.textContent, "Remember the retry.");
+});
+
+test("a card's passage button closes the panel and goes to the passage", async () => {
+  const { win } = stage([CONTRACT]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  q<HTMLButtonElement>(win, ".notes-card__go")?.click();
+  assert.equal(q<HTMLDialogElement>(win, ".notes-dialog")?.open, false);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(win.document.activeElement, q(win, "article p:nth-of-type(2)"), "focus goes to the passage's block");
+});
+
+test("the menu: Edit, Share, four colour radios and Delete, with arrows, Home, End and Escape", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const button = q<HTMLButtonElement>(win, '.notes-card[data-id="one"] .notes-card__more') as HTMLButtonElement;
+  const menu = q<HTMLElement>(win, '.notes-card[data-id="one"] .notes-menu') as HTMLElement;
+  assert.equal(menu.hidden, true, "closed until asked");
+  assert.equal(menu.getAttribute("role"), "menu");
+  button.focus();
+  key(win, button, "ArrowDown");
+  assert.equal(menu.hidden, false);
+  assert.equal(button.getAttribute("aria-expanded"), "true");
+  const items = [...menu.querySelectorAll<HTMLElement>("[role='menuitem'], [role='menuitemradio']")];
+  assert.deepEqual(
+    items.map((found) => `${found.getAttribute("role")}:${found.textContent}`),
+    [
+      "menuitem:Add note",
+      "menuitem:Share",
+      "menuitemradio:Amber",
+      "menuitemradio:Green",
+      "menuitemradio:Blue",
+      "menuitemradio:Pink",
+      "menuitem:Delete",
+    ],
+  );
+  assert.ok(
+    items.every((found) => found.getAttribute("tabindex") === "-1"),
+    "no item is a tab stop",
+  );
+  assert.ok(win.document.activeElement === (items[0] as unknown), "ArrowDown opens it on its first item");
+  key(win, items[0] as Element, "ArrowUp");
+  assert.ok(win.document.activeElement === (items[6] as unknown), "ArrowUp wraps to the last");
+  key(win, items[6] as Element, "ArrowDown");
+  assert.ok(win.document.activeElement === (items[0] as unknown), "and ArrowDown back to the first");
+  key(win, items[0] as Element, "End");
+  assert.ok(win.document.activeElement === (items[6] as unknown), "focus");
+  key(win, items[6] as Element, "Home");
+  assert.ok(win.document.activeElement === (items[0] as unknown), "focus");
+  (items[3] as HTMLElement).focus();
+  key(win, items[3] as Element, "ArrowLeft");
+  assert.ok(win.document.activeElement === (items[2] as unknown), "Left moves between the colours");
+  key(win, items[2] as Element, "ArrowLeft");
+  assert.ok(win.document.activeElement === (items[5] as unknown), "and wraps");
+  const esc = new win.KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+  items[5]?.dispatchEvent(esc as unknown as Event);
+  assert.equal(esc.defaultPrevented, true, "the panel does not see the Escape");
+  assert.equal(menu.hidden, true, "Escape closes the menu");
+  assert.equal(button.getAttribute("aria-expanded"), "false");
+  assert.ok(win.document.activeElement === (button as unknown), "and gives focus back to its button");
+  assert.equal(q<HTMLDialogElement>(win, ".notes-dialog")?.open, true, "the panel stays open");
+  key(win, button, "ArrowUp");
+  assert.ok(win.document.activeElement === (items[6] as unknown), "ArrowUp on the button opens on the last item");
+  q<HTMLButtonElement>(win, '.notes-card[data-id="one"] .notes-card__more')?.click();
+  assert.equal(menu.hidden, true, "a second click on the button closes it");
+});
+
+test("one menu is open at a time, and a press elsewhere in the panel closes it", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const menuOf = (id: string) => q<HTMLElement>(win, `.notes-card[data-id="${id}"] .notes-menu`) as HTMLElement;
+  q<HTMLButtonElement>(win, '.notes-card[data-id="one"] .notes-card__more')?.click();
+  assert.equal(menuOf("one").hidden, false);
+  q<HTMLButtonElement>(win, '.notes-card[data-id="two"] .notes-card__more')?.click();
+  assert.equal(menuOf("one").hidden, true, "opening the second closes the first");
+  assert.equal(menuOf("two").hidden, false);
+  assert.equal(
+    [...(win.document as unknown as Document).querySelectorAll(".notes-menu")].filter(
+      (menu) => !(menu as HTMLElement).hidden,
+    ).length,
+    1,
+  );
+  q(win, ".notes-panel__hint")?.dispatchEvent(
+    new win.PointerEvent("pointerdown", { bubbles: true }) as unknown as Event,
+  );
+  assert.equal(menuOf("two").hidden, true, "a press on the panel elsewhere closes it");
+});
+
+test("Delete in the menu deletes at once, says so, and moves focus to the next card's menu button", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  menuAction(win, "one", "delete").click();
+  assert.deepEqual(
+    storedItems(win).map((found) => found.id),
+    ["two"],
+  );
+  assert.deepEqual(painted(win, PLAIN), []);
+  assert.match(
+    q(win, ".notes-dialog__status")?.textContent ?? "",
+    /Deleted the highlight on “a contract with a model”/,
+  );
+  assert.ok(
+    win.document.activeElement === (q(win, '.notes-card[data-id="two"] .notes-card__more') as unknown),
+    "focus",
+  );
+  assert.equal(q(win, ".notes-panel__count")?.textContent, "1 in this chapter");
+  menuAction(win, "two", "delete").click();
+  assert.ok(
+    win.document.activeElement === (q(win, "[aria-label='Export as Markdown']") as unknown),
+    "with none left, Export",
+  );
+  // The empty state: one sentence on how to add a note, no hint, no count.
+  assert.equal(q<HTMLElement>(win, ".notes-panel__empty")?.hidden, false);
+  assert.equal(
+    q(win, ".notes-panel__empty")?.textContent,
+    "No notes yet. Select text in the chapter, then choose Add note.",
+  );
+  assert.equal(q<HTMLElement>(win, ".notes-panel__hint")?.hidden, true);
+  assert.equal(q(win, ".notes-panel__count")?.textContent, "");
+});
+
+test("Delete never overwrites a stored value this page cannot read", () => {
+  const { win } = stage([CONTRACT]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const newer = '{"v":3,"chapters":{"tools":{"new":"shape"}}}';
+  win.localStorage.setItem(KEY, newer);
+  menuAction(win, "one", "delete").click();
+  assert.equal(win.localStorage.getItem(KEY), newer);
+  assert.match(q(win, ".notes-dialog__status")?.textContent ?? "", /Nothing was changed/);
+});
+
+test("Edit closes the panel, scrolls the passage below the header and opens the note popover ready to write", () => {
+  const { win, calls } = stage([CONTRACT, FAILED]);
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+  win.document.documentElement.style.setProperty("--header-height", "56px");
+  const scrolls: number[] = [];
+  Object.defineProperty(win, "scrollBy", { configurable: true, value: (_x: number, y: number) => scrolls.push(y) });
+  // The passage sits above the window, under where the header would be.
+  layout(win, { ...RECTS, "A failed call comes back again": [rect(10, -300, 150, -280)] });
+  win.dispatchEvent(new win.Event("resize"));
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  menuAction(win, "two", "edit").dispatchEvent(
+    new win.MouseEvent("click", { bubbles: true, detail: 1 }) as unknown as Event,
+  );
+  assert.equal(q<HTMLDialogElement>(win, ".notes-dialog")?.open, false, "the panel closes");
+  assert.deepEqual(scrolls.slice(0, 1), [-300 - 56 - 16], "the passage is scrolled to just below the header");
+  assert.equal(calls.at(-1), "show", "the popover opens");
+  assert.equal(q<HTMLTextAreaElement>(win, ".notes-pop__field")?.hidden, false, "with the field");
+  assert.equal(q<HTMLTextAreaElement>(win, ".notes-pop__field")?.value, "Remember the retry.");
+  assert.ok(win.document.activeElement === (q(win, ".notes-pop__field") as unknown), "and focus in it");
+});
+
+test("Edit on a passage the chapter lost edits the note in the panel's form, which has nowhere else to open", () => {
+  const { win } = stage([CONTRACT, LOST]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  assert.equal(menuAction(win, "gone", "share"), null, "nothing to share");
+  menuAction(win, "gone", "edit").click();
+  assert.equal(q<HTMLDialogElement>(win, ".notes-dialog")?.open, true);
+  assert.equal(noteForm(win).open(), true);
+  assert.equal(noteForm(win).field.value, "Still mine.");
+});
+
+test("a click on the backdrop closes the panel; a press that starts inside it does not", () => {
+  const { win } = stage([CONTRACT]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const dialog = q<HTMLDialogElement>(win, ".notes-dialog") as HTMLDialogElement;
+  vi.spyOn(dialog, "getBoundingClientRect").mockReturnValue(rect(880, 56, 1280, 800) as unknown as DOMRect);
+  const at = (type: string, target: Element, x: number, y: number) =>
+    target.dispatchEvent(new win.PointerEvent(type, { bubbles: true, clientX: x, clientY: y }) as unknown as Event);
+  at("pointerdown", dialog, 1000, 300);
+  dialog.dispatchEvent(new win.MouseEvent("click", { bubbles: true, clientX: 1000, clientY: 300 }) as unknown as Event);
+  assert.equal(dialog.open, true, "a click on the panel's own padding keeps it");
+  at("pointerdown", q(win, ".notes-card__go") as Element, 1000, 300);
+  dialog.dispatchEvent(new win.MouseEvent("click", { bubbles: true, clientX: 200, clientY: 300 }) as unknown as Event);
+  assert.equal(dialog.open, true, "a drag from inside to outside keeps it");
+  at("pointerdown", dialog, 200, 300);
+  dialog.dispatchEvent(new win.MouseEvent("click", { bubbles: true, clientX: 200, clientY: 300 }) as unknown as Event);
+  assert.equal(dialog.open, false, "a click left of the panel closes it");
+});
+
+test("the panel opens below the sticky header, follows it as it slides, and is full width on a phone", async () => {
+  const { win } = stage([CONTRACT]);
+  const root = win.document.documentElement;
+  root.style.setProperty("--header-height", "52px");
+  let phone = false;
+  Object.defineProperty(win, "matchMedia", { configurable: true, value: () => ({ matches: phone }) });
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const dialog = q<HTMLDialogElement>(win, ".notes-dialog") as HTMLDialogElement;
+  assert.equal(dialog.style.getPropertyValue("--notes-panel-top"), "52px");
+  assert.equal(dialog.hasAttribute("data-sheet"), false);
+  root.setAttribute("data-header-hidden", "");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(dialog.style.getPropertyValue("--notes-panel-top"), "0px", "a slid-away header leaves the top free");
+  root.removeAttribute("data-header-hidden");
+  phone = true;
+  win.dispatchEvent(new win.Event("resize"));
+  assert.equal(dialog.style.getPropertyValue("--notes-panel-top"), "52px");
+  assert.equal(dialog.hasAttribute("data-sheet"), true, "a phone-width window gets the full-width panel");
 });

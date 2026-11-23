@@ -29,6 +29,7 @@
     "check:note-sheet": "node scripts/note-sheet-check.mjs",
     "check:note-editor": "node scripts/note-editor-flow-check.mjs",
     "check:note-popover": "node scripts/note-popover-check.mjs",
+    "check:notes-panel": "node scripts/notes-panel-check.mjs",
     "book:switch-report": "tsx scripts/switch-report.ts",
     "figures:build": "tsx scripts/build-figures.ts figures test/fixtures/book/figures test/fixtures/site/figures",
     "figures:audit": "tsx scripts/audit-figures.ts figures test/fixtures/book/figures test/fixtures/site/figures",

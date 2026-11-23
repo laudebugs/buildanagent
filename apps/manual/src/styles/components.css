@@ -1803,37 +1803,414 @@
   text-align: center;
 }
 
+/* The notes panel (the B1 design in docs/design/notes/): a modal dialog on the window's right, from the sticky header's
+   bottom edge to the window's foot. The script sets --notes-panel-top to the header's height while the header shows,
+   as it does for the popover. It is 25rem wide, and the whole width on a phone (data-sheet). Its header and footer stay put, and
+   its body scrolls. */
 .notes-dialog {
-  width: min(40rem, calc(100vw - 1rem));
-  max-height: calc(100dvh - 2rem);
-  padding: 1rem;
-  overflow-y: auto;
-  border: 1px solid var(--color-text-muted);
-  border-radius: 6px;
+  position: fixed;
+  inset: var(--notes-panel-top, 0px) 0 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  inline-size: min(25rem, 100vw);
+  max-inline-size: 100vw;
+  block-size: auto;
+  max-block-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-inline-start: 1.5px solid var(--color-text-muted);
   background-color: var(--color-background);
   color: var(--color-text);
-  overscroll-behavior: contain;
+}
+
+.notes-dialog:not([open]) {
+  display: none;
 }
 
 .notes-dialog::backdrop {
   background-color: color-mix(in srgb, var(--color-text) 35%, transparent);
 }
 
+/* On a window as narrow as a phone's (the popover's sheet width, which the script reads) the panel takes the whole width. */
+.notes-dialog[data-sheet] {
+  inline-size: 100vw;
+  border-inline-start: 0;
+}
+
 .notes-dialog__head {
   display: flex;
-  gap: 1rem;
-  align-items: baseline;
+  flex: none;
+  gap: 0.5rem;
+  align-items: center;
   justify-content: space-between;
+  padding: 12px max(12px, env(safe-area-inset-right)) 8px 18px;
+}
+
+.notes-panel__heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  min-inline-size: 0;
 }
 
 .notes-dialog__title {
   margin: 0;
-  font-size: var(--size-chapter-link);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.notes-panel__count,
+.notes-panel__hint,
+.notes-panel__foot {
+  color: var(--color-text-muted);
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.notes-panel__tools {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+.notes-panel__icon,
+.notes-card__more {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 36px;
+  block-size: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.notes-panel__icon svg,
+.notes-card__more svg {
+  inline-size: 18px;
+  block-size: 18px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notes-card__more svg {
+  fill: currentcolor;
+  stroke: none;
+}
+
+.notes-panel__icon:hover,
+.notes-card__more:hover,
+.notes-card__more[aria-expanded="true"] {
+  background-color: var(--panel-background);
+}
+
+.notes-panel__icon:focus-visible,
+.notes-card__more:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px;
+}
+
+.notes-panel__body {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 12px;
+  min-block-size: 0;
+  padding: 0 max(18px, env(safe-area-inset-right)) 12px 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.notes-panel__hint,
+.notes-panel__empty {
+  margin: 0;
+}
+
+.notes-panel__empty {
+  font-size: var(--size-note);
+  line-height: 1.45;
+  color: var(--color-text-soft);
+}
+
+.notes-panel__foot {
+  flex: none;
+  margin: 0 18px;
+  padding-block: 10px max(10px, env(safe-area-inset-bottom));
+  border-block-start: 1px solid var(--color-rule);
+}
+
+.notes-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A card: a bar in its highlight's edge shade (3:1 on the page, book-tokens.json) on the left, its passage and note as
+   the button that goes to the passage, and the "More actions" button at its top right. */
+.notes-card {
+  --notes-edge: var(--color-highlight-edge);
+  position: relative;
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  padding: 6px 4px 6px 0;
+  border: 1.5px solid var(--color-rule);
+  border-inline-start: 5px solid var(--notes-edge);
+  border-radius: 4px;
+  background-color: var(--color-background);
+}
+
+.notes-card[data-color="green"] {
+  --notes-edge: var(--color-highlight-edge-green);
+}
+
+.notes-card[data-color="blue"] {
+  --notes-edge: var(--color-highlight-edge-blue);
+}
+
+.notes-card[data-color="pink"] {
+  --notes-edge: var(--color-highlight-edge-pink);
+}
+
+.notes-card__go {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 6px 4px 6px 12px;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  text-align: start;
+}
+
+button.notes-card__go {
+  cursor: pointer;
+}
+
+.notes-card__go:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 0;
+}
+
+.notes-card__label {
+  color: var(--color-text-muted);
+}
+
+/* The passage is a small quotation, cut to three lines; the note is the main text. */
+.notes-card__quote {
+  display: -webkit-box;
+  padding-inline-start: 10px;
+  border-inline-start: 3px solid var(--color-accent);
+  overflow: hidden;
+  color: var(--color-text-soft);
+  font-size: 14.5px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow-wrap: anywhere;
+}
+
+button.notes-card__go:hover .notes-card__quote {
+  text-decoration: underline;
+}
+
+.notes-card__note {
+  margin-block-start: 2px;
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* The menu hangs under the card's "More actions" button, or above it near the panel's foot. */
+.notes-menu {
+  position: absolute;
+  inset-block-start: 44px;
+  inset-inline-end: 4px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 11rem;
+  padding: 6px 0;
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 4px;
+  background-color: var(--color-background);
+}
+
+.notes-menu[hidden] {
+  display: none;
+}
+
+.notes-menu[data-above] {
+  inset-block: auto 44px;
+}
+
+.notes-menu__item,
+.notes-menu__colors {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-sizing: border-box;
+  min-block-size: 36px;
+  padding: 0 14px;
+  font-family: var(--font-code);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.notes-menu__item {
+  inline-size: 100%;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: start;
+}
+
+.notes-menu__item:hover,
+.notes-menu__item:focus-visible {
+  background-color: var(--panel-background);
+}
+
+.notes-menu__item:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: -2px;
+}
+
+.notes-menu__item--delete {
+  color: var(--color-danger);
+}
+
+/* The colours are 16px dots in 24px targets, their names kept for assistive technology; the checked one is ringed. */
+.notes-menu__colors {
+  gap: 4px;
+}
+
+.notes-menu__label {
+  margin-inline-end: 6px;
+}
+
+.notes-menu .notes-swatch {
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+  min-block-size: 0;
+  flex: none;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 0;
+}
+
+.notes-menu .notes-swatch::before {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.notes-menu .notes-swatch[aria-checked="true"]::before {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.notes-menu .notes-swatch:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+}
+
+@media (hover: hover) {
+  .notes-menu .notes-swatch:not([aria-checked="true"]):hover::before {
+    outline: 2px solid var(--color-text-muted);
+    outline-offset: 2px;
+  }
+}
+
+/* In forced colours a dot keeps its own fill, so the colour still shows, and its rings take system colours. The card's
+   bar becomes a system-coloured border, and the menu names the card's colour as its checked item. */
+@media (forced-colors: active) {
+  .notes-menu .notes-swatch::before {
+    border-color: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .notes-menu .notes-swatch[aria-checked="true"]::before {
+    outline-color: Highlight;
+  }
+
+  .notes-menu__item:hover,
+  .notes-menu__item:focus-visible {
+    outline: 2px solid Highlight;
+  }
+}
+
+/* On a touch screen every control in the panel is a 44px target. */
+@media (pointer: coarse) {
+  .notes-panel__icon,
+  .notes-card__more {
+    inline-size: 44px;
+    block-size: 44px;
+  }
+
+  .notes-menu {
+    inset-block-start: 52px;
+  }
+
+  .notes-menu[data-above] {
+    inset-block: auto 52px;
+  }
+
+  .notes-menu__item,
+  .notes-menu__colors {
+    min-block-size: 44px;
+  }
+
+  .notes-menu .notes-swatch {
+    inline-size: 44px;
+    block-size: 44px;
+  }
+
+  .notes-menu .notes-swatch::before {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+
+  .notes-card__go {
+    min-block-size: 44px;
+  }
+
+  .notes-dialog .control {
+    min-block-size: 44px;
+  }
 }
 
 .notes-dialog__hint,
 .notes-dialog__status {
-  margin: 0.5rem 0;
+  margin: 0;
   font-size: var(--size-note);
   line-height: 1.45;
   color: var(--color-text-soft);
@@ -1841,12 +2218,6 @@
 
 .notes-dialog__status:empty {
   display: none;
-}
-
-.notes-dialog__selection,
-.notes-dialog__form,
-.notes-dialog__export {
-  margin-block: 1rem;
 }
 
 .notes-dialog__quote {
@@ -1885,27 +2256,9 @@
   }
 }
 
-.notes-dialog__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.notes-dialog__item {
-  padding-block: 0.75rem;
-  border-top: 1px solid var(--color-rule);
-}
-
 .notes-dialog__flag {
-  margin: 0 0 0.4rem;
+  margin: 0;
   color: var(--color-accent);
-}
-
-.notes-dialog__note {
-  margin: 0 0 0.5rem;
-  font-size: var(--size-note);
-  line-height: 1.45;
-  white-space: pre-wrap;
 }
 
 .notes-dialog__actions {
