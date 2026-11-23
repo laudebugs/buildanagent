@@ -57,6 +57,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "buildanagent",
+      favicon: "/favicon.svg",
       description: "Docs for the buildanagent gateway and SDK: build an agent, test it offline, ship it.",
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
       components: {
