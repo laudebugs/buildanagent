@@ -85,6 +85,6 @@ These rows check PF1's dated revision on A2A, against the [A2A report](../../res
 
 | # | Claim | Verdict | Source and reason |
 | --- | --- | --- | --- |
-| docs/plans-ai-sdk-pin-1 | The verified pins are Cloudflare `agents` 0.33.0 and the Vercel AI SDK `ai` 7.0.173, corrected from `ai` 7.0.162 in the plan's lines 16, 71 and 147; row 18 recorded the older pin | ✏️ | `verify/vercel-ai-sdk/package.json` pins `ai` 7.0.173 (the weekly update #341, merged 2026-11-22) and `verify/cloudflare-agents/package.json` pins `ai` 7.0.173 and `agents` 0.33.0 (#371, merged 2026-11-23), read on 2026-11-23. The plan's M8 text names the exact pins in those two harnesses, so it follows them; the close-sdk-gaps summary in `docs/plans/README.md` and the F5 row at line 187 describe the scope as approved on 2026-11-18 and keep 7.0.162 as a dated record |
+| docs/plans-ai-sdk-pin-1 | The plan's lines 16, 71 and 147 name the verified pins as Cloudflare `agents` 0.33.0 and Vercel AI SDK `ai` 7.0.173; row 18 recorded `ai` 7.0.162, the older pin | ✏️ | On 2026-11-23, `verify/vercel-ai-sdk/package.json` pinned `ai` 7.0.173 (weekly update #341, merged 2026-11-22), and `verify/cloudflare-agents/package.json` pinned `ai` 7.0.173 and `agents` 0.33.0 (#371, merged 2026-11-23). The plan's M8 text names the exact pins in those two harnesses, so it follows them. The close-sdk-gaps summary in `docs/plans/README.md` and the F5 row at line 187 record the scope approved on 2026-11-18, so they keep 7.0.162 as a dated record |
 
 **Totals:** 50 claims: 45 ✅, 4 ✏️, 1 ⚠️.
