@@ -1,7 +1,7 @@
 // One run of the SDK's loop (packages/sdk/src/loop.ts): the model is called, the tools it asks for run, their results
 // go back to the next model call, and the run ends when the model answers without a tool call (`done`) or with another
 // stop reason, such as `max_steps`, `budget`, `error` or `awaiting_approval`. The page beside the figure names every
-// stop reason, so the figure keeps to the one cycle. It is drawn in two columns, 320 wide, so it fits a 390 px phone
+// stop reason, so the figure labels that exit "otherwise" and keeps to the one cycle. It is drawn in two columns, 320 wide, so it fits a 390 px phone
 // whole: the run on the left, the tools on the right.
 import { Figure, type Rect } from "@buildanagent/manual/figures/svgkit";
 
@@ -20,8 +20,8 @@ export default function draw(): Figure {
   const model = figure.box(box(LEFT, STEP.y, STEP.height), { label: "model call", tone: "accent" });
   const tools = figure.box(box(RIGHT, STEP.y, STEP.height), { label: "run tools" });
   const done = figure.box(box(LEFT, END), { label: "done" });
-  const stop = figure.box(box(RIGHT, END - 4, 48), {
-    label: ["another", "stop reason"],
+  const stop = figure.box(box(RIGHT, END), {
+    label: "stop reason",
     tone: "muted",
     labelTone: "muted",
     dashed: true,
@@ -43,8 +43,8 @@ export default function draw(): Figure {
   figure.text({ x: 48, y: 204 }, "text answer", { anchor: "start" });
 
   // Anything else that ends the run: a guard or a hook, a failed model call, an abort, or a tool call that waits for
-  // approval or asks the user a question. The label names none of them, because the page lists all nine reasons.
+  // approval or asks the user a question. The arrow's label names none of them, because the page lists all nine reasons.
   figure.arrow({ x: 280, y: bottom }, { x: 280, y: stop.y }, { tone: "muted", dashed: true });
-  figure.text({ x: 272, y: 204 }, "another stop", { anchor: "end", tone: "muted" });
+  figure.text({ x: 272, y: 204 }, "otherwise", { anchor: "end", tone: "muted" });
   return figure;
 }

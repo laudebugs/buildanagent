@@ -32,9 +32,8 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <text x="257" y="139.2" text-anchor="middle" class="fig-text">run tools</text>
 <rect x="8" y="230" width="110" height="40" rx="4" class="fig-paper"/>
 <text x="63" y="254.2" text-anchor="middle" class="fig-text">done</text>
-<rect x="202" y="226" width="110" height="48" rx="4" class="fig-paper fig-paper--muted fig-line--dashed"/>
-<text x="257" y="246.1" text-anchor="middle" class="fig-text fig-text--muted">another</text>
-<text x="257" y="262.3" text-anchor="middle" class="fig-text fig-text--muted">stop reason</text>
+<rect x="202" y="230" width="110" height="40" rx="4" class="fig-paper fig-paper--muted fig-line--dashed"/>
+<text x="257" y="254.2" text-anchor="middle" class="fig-text fig-text--muted">stop reason</text>
 <path d="M63 56 L63 93.37" class="fig-line"/>
 <path d="M63 100 L66.12 92.63 L59.88 92.63 Z" class="fig-head"/>
 <text x="160" y="112" text-anchor="middle" class="fig-text">tool calls</text>
@@ -46,7 +45,7 @@ svg{--font-code:"Manual Code",ui-monospace, "SF Mono", Menlo, Consolas, monospac
 <path d="M40 170 L40 223.37" class="fig-line"/>
 <path d="M40 230 L43.12 222.63 L36.88 222.63 Z" class="fig-head"/>
 <text x="48" y="204" class="fig-text">text answer</text>
-<path d="M280 170 L280 219.37" class="fig-line fig-line--muted fig-line--dashed"/>
-<path d="M280 226 L283.12 218.63 L276.88 218.63 Z" class="fig-head--muted"/>
-<text x="272" y="204" text-anchor="end" class="fig-text fig-text--muted">another stop</text>
+<path d="M280 170 L280 223.37" class="fig-line fig-line--muted fig-line--dashed"/>
+<path d="M280 230 L283.12 222.63 L276.88 222.63 Z" class="fig-head--muted"/>
+<text x="272" y="204" text-anchor="end" class="fig-text fig-text--muted">otherwise</text>
 </svg>
