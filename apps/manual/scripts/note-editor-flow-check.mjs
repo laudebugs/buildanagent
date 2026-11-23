@@ -1,5 +1,7 @@
 // Checks the note editor's flow, in desktop and iPhone 14 touch Chromium and, when a WebKit build is installed, in
 // iPhone 14 WebKit (the engine Safari uses):
+//  - Add note on a selection opens the note editor, not the notes panel, with the four colours and focus in the field,
+//    and Escape then drops the new highlight;
 //  - the note field has focus as soon as the add-note sheet opens, and on Edit with the caret at the end of the note;
 //  - Save, Remove, the Close button, Escape and a swipe down all close the editor, leave it display:none and out of
 //    the way, move focus out of it, never jump the page, and can be followed by opening it again without a reload;
@@ -115,32 +117,43 @@ async function run(label, context, mobile) {
   });
   const atClick = () => page.evaluate(() => window.__atClick);
   await fresh(page);
+  let s;
 
-  // 1. Add note from the toolbar puts focus in the note field, inside the tap.
+  // 1. Add note from the toolbar opens the note editor itself (a popover, or a sheet on a phone), never the notes
+  //    panel, with focus in the note field, inside the tap; Escape drops the new note and leaves no highlight.
   await selectIn(page, 2, 10, 70);
   await page.waitForSelector(".notes-toolbar:not([hidden])");
   const addNote = page.locator(".notes-toolbar >> text=Add note");
   if (mobile) await addNote.tap();
   else await addNote.click();
-  await page.waitForSelector("#notes-field", { state: "visible" });
+  await page.waitForSelector(".notes-pop:popover-open");
+  s = await state(page);
+  check(s.sheet === mobile, `${label}: Add note opens the ${mobile ? "sheet" : "popover"}`);
+  check(!(await page.evaluate(() => document.querySelector(".notes-dialog").open)), `${label}: the panel stays closed`);
+  check(s.activeTag === "textarea.notes-pop__field", `${label}: Add note opens with focus in the note field`);
   check(
-    (await page.evaluate(() => document.activeElement?.id)) === "notes-field",
-    `${label}: Add note opens with focus in the note field`,
-  );
-  check(
-    (await atClick()).startsWith("textarea#notes-field"),
+    (await atClick()).startsWith("textarea#notes-pop-field"),
     `${label}: Add note focuses it inside the click (${await atClick()})`,
   );
+  check(
+    (await page.locator(".notes-pop [role='radio']").count()) === 4,
+    `${label}: the new note has the four colour dots`,
+  );
+  check(s.highlights === 1 && s.stored === null, `${label}: the new highlight is drawn and nothing is stored yet`);
   await page.keyboard.press("Escape");
+  await page.waitForTimeout(100);
+  s = await state(page);
+  checkClosed(s, `${label} Escape on a new note`);
+  check(s.highlights === 0 && s.stored === null, `${label} Escape on a new note: no highlight is left`);
   await fresh(page);
 
   // 2. A plain highlight's editor opens with focus in the field.
   await highlight(page);
   await openOnPassage(page, mobile);
-  let s = await state(page);
+  s = await state(page);
   check(s.activeTag === "textarea.notes-pop__field", `${label}: the add-note editor opens with focus in the field`);
   check(
-    (await atClick()).startsWith("textarea#.notes-pop__field"),
+    (await atClick()).startsWith("textarea#notes-pop-field"),
     `${label}: the field is focused inside the tap that opened it, not later (${await atClick()})`,
   );
   check(s.sheet === mobile, `${label}: the editor is a ${mobile ? "sheet" : "popover"}`);
@@ -226,7 +239,7 @@ async function run(label, context, mobile) {
   });
   check(s.activeTag === "textarea.notes-pop__field", `${label} Edit: focus is in the field`);
   check(
-    (await atClick()).startsWith("textarea#.notes-pop__field"),
+    (await atClick()).startsWith("textarea#notes-pop-field"),
     `${label} Edit: the field is focused inside the Edit press (${await atClick()})`,
   );
   check(caret[0] === caret[2] && caret[1] === caret[2], `${label} Edit: the caret is at the end (${caret})`);

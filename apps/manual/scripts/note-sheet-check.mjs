@@ -307,7 +307,7 @@ async function runForced(name, browser) {
   const page = await context.newPage();
   await openSheet(page, "");
   const rings = await page.evaluate(() => {
-    const pressed = document.querySelector(".notes-pop .notes-swatch[aria-pressed='true']");
+    const pressed = document.querySelector(".notes-pop .notes-swatch[aria-checked='true']");
     const s = getComputedStyle(pressed, "::before");
     return { style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor };
   });

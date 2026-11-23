@@ -125,12 +125,12 @@ async function checkPopoverLayout(page, name, mobile, plain, label) {
       `${name}: every action and colour is a 44px target on touch (${touch.join(",")})`,
     );
   } else {
-    check(!p.sheet && p.rect.width <= 331, `${name}: a wide window gets a popover up to 330px (${p.rect.width})`);
+    check(!p.sheet && p.rect.width <= 373, `${name}: a wide window gets a popover up to 372px (${p.rect.width})`);
   }
   return p;
 }
 
-/** A long passage is cut to three lines (two in a sheet) with its full text as the tooltip. */
+/** A long passage is cut to two lines with its full text as the tooltip. */
 async function checkClamp(page, name, mobile) {
   const long = await selectIn(page, 0, 0, 250);
   await page.waitForSelector(".notes-toolbar:not([hidden])");
@@ -150,7 +150,7 @@ async function checkClamp(page, name, mobile) {
   else await page.mouse.click(point.x, point.y);
   await page.waitForSelector(".notes-pop:popover-open");
   const p = await readPopover(page);
-  const lines = mobile ? 2 : 3;
+  const lines = 2;
   check(p.quote.scrollHeight > p.quote.clientHeight, `${name}: a long passage is cut off in the quotation`);
   check(
     p.quote.clientHeight <= p.quote.lineHeight * lines + 1,
@@ -348,8 +348,8 @@ async function runAt(name, viewport, mobile) {
     `${name}: a click opens the popover on its passage`,
   );
   check(
-    (await page.getAttribute(".notes-pop [data-color='green']", "aria-pressed")) === "true",
-    `${name}: the highlight's colour is pressed`,
+    (await page.getAttribute(".notes-pop [data-color='green']", "aria-checked")) === "true",
+    `${name}: the highlight's colour is checked`,
   );
   await checkPopoverLayout(page, name, mobile, true, "a plain highlight's popover");
   if (shots) await page.screenshot({ path: join(shots, `${name}-popover.png`) });
@@ -393,9 +393,10 @@ async function runAt(name, viewport, mobile) {
   await selectIn(page, 2, 10, 70);
   await page.waitForSelector(".notes-toolbar:not([hidden])");
   await page.click(".notes-toolbar >> text=Add note");
-  await page.fill("#notes-field", "A private note that Share must not copy.");
-  await page.click(".notes-dialog__form button[type='submit']");
-  await page.click(".notes-dialog__head button");
+  await page.waitForSelector(".notes-pop:popover-open");
+  await page.fill(".notes-pop__field", "A private note that Share must not copy.");
+  await page.click(".notes-pop__act[data-action='save']");
+  await page.waitForSelector(".notes-pop:not(:popover-open)", { state: "attached" });
   const gutter = () =>
     page.evaluate(
       () => document.documentElement.clientWidth - document.querySelector("article p").getBoundingClientRect().right,

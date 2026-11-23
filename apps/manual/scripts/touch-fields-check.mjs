@@ -1,6 +1,6 @@
 // Checks, in a touch-emulated Chromium at an iPhone 14's size, that every text-entry control the manual shows has a
 // computed font size of at least 16px, because iOS Safari zooms the page when a smaller field takes focus. It opens the
-// note editor in the dialog and in the popover, the Notes dialog's export and share fields, the contents page's search
+// new-note sheet, the note editor in the dialog and in the popover, the Notes dialog's export field, the contents page's search
 // box and the search page. It also checks that no page scrolls sideways, that the sheet fits above a short window (a
 // stand-in for the on-screen keyboard) and that the viewport meta forbids no zoom.
 //
@@ -65,10 +65,19 @@ check(!/maximum-scale|user-scalable/.test(meta), `the viewport meta forbids no z
 await page.waitForSelector(".notes-open");
 await checkFields("chapter, nothing open");
 
-// The note editor in the dialog.
+// The new-note sheet that the toolbar's Add note opens.
 await selectIn(page, 1, 20, 60);
 await page.waitForSelector(".notes-toolbar:not([hidden])");
 await page.click(".notes-toolbar >> text=Add note");
+await page.waitForSelector(".notes-pop:popover-open");
+await checkFields("new-note sheet", ["textarea.notes-pop__field"]);
+await page.keyboard.press("Escape");
+
+// The note editor in the Notes panel, which the panel offers for the selected text.
+await selectIn(page, 1, 20, 60);
+await page.waitForSelector(".notes-toolbar:not([hidden])");
+await page.click(".notes-open");
+await page.click(".notes-dialog__selection >> text=Add note");
 await page.waitForSelector("#notes-field", { state: "visible" });
 await checkFields("note dialog", ["textarea.notes-dialog__field"]);
 await page.fill("#notes-field", "A note.");
