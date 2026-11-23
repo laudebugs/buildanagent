@@ -20,6 +20,7 @@
     "build": "astro build && pagefind --site dist && node scripts/offline-build.mjs dist",
     "icons": "node scripts/generate-icons.mjs",
     "check:offline": "node scripts/offline-browser-check.mjs",
+    "offline:verify": "node scripts/offline-verify-deployed.mjs",
     "check:book": "tsx scripts/check-book.ts",
     "book:switch-report": "tsx scripts/switch-report.ts",
     "figures:build": "tsx scripts/build-figures.ts figures test/fixtures/book/figures test/fixtures/site/figures",

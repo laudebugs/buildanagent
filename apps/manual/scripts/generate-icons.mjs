@@ -7,7 +7,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,7 +17,9 @@ const app = fileURLToPath(new URL("..", import.meta.url));
 const listFile = join(app, "scripts", "icons.json");
 const list = JSON.parse(readFileSync(listFile, "utf8"));
 const svg = readFileSync(join(app, list.source));
-const env = { PATH: process.env.PATH ?? "", HOME: tmpdir(), LANG: "C.UTF-8" };
+// A fresh HOME for Chromium, removed at the end, so the browser writes nothing into a shared folder.
+const home = mkdtempSync(join(tmpdir(), "manual-icons-home-"));
+const env = { PATH: process.env.PATH ?? "", HOME: home, TMPDIR: tmpdir(), LANG: "C.UTF-8" };
 if (process.env.PLAYWRIGHT_BROWSERS_PATH) env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH;
 
 const require = createRequire(import.meta.url);
@@ -63,6 +65,7 @@ try {
   }
 } finally {
   await browser.close();
+  rmSync(home, { recursive: true, force: true });
 }
 list.sha256 = createHash("sha256").update(svg).digest("hex");
 writeFileSync(listFile, `${JSON.stringify(list, null, 2)}\n`);
