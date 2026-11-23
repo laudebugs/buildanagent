@@ -12,5 +12,7 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     setupFiles: ["./test/setup.ts"],
+    // One `astro build` per run, shared by every file that reads built pages (test/built-book.ts).
+    globalSetup: ["./test/built-book.ts"],
   },
 });
