@@ -128,6 +128,11 @@ test("a stored value that is not exactly an allowed one is ignored", () => {
     "115%",
     "1150",
     "015",
+    "090",
+    "+90",
+    " 90",
+    "90.0",
+    "9e1",
     "1e2",
     " 115",
     "115 ",
@@ -204,6 +209,35 @@ test("the layout loads the script blocking in <head>, before the stylesheet, wit
 
 // What reading.css may reference: a reading face's family only inside its @font-face rule and under the attribute of
 // a pairing that uses it, so a page without that attribute never asks for the face's files.
+test("the header's wordmark divides only the rem parts of --size-chapter-link, not its viewport term", () => {
+  const tokensCss = readFileSync(new URL("../src/styles/tokens.css", import.meta.url), "utf8");
+  const token = /--size-chapter-link:\s*clamp\(([\d.]+)rem,\s*([\d.]+)rem \+ ([\d.]+vw),\s*([\d.]+)rem\)/.exec(
+    tokensCss,
+  );
+  assert.ok(token, "tokens.css defines --size-chapter-link as clamp(rem, rem + vw, rem)");
+  const [low = "", base = "", vw = "", high = ""] = token.slice(1);
+  const header = readFileSync(new URL("../src/styles/header.css", import.meta.url), "utf8");
+  const scaled = (rem: string) => `calc(${rem}rem / var(--reading-scale))`;
+  const expected = `font-size: clamp(\n    ${scaled(low)},\n    ${scaled(base)} + ${vw},\n    ${scaled(high)}\n  );`;
+  const flat = (text: string) => text.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")");
+  assert.ok(flat(header).includes(flat(expected)), `header.css sets the wordmark as ${expected}`);
+});
+
+test("the header's search field divides its height and padding by the text size, as the buttons do", () => {
+  const header = readFileSync(new URL("../src/styles/header.css", import.meta.url), "utf8");
+  const rule = [...header.matchAll(/\.site-header \.search-box__input \{([^}]*)\}/g)]
+    .map((match) => match[1])
+    .join("\n");
+  assert.match(rule, /min-height: calc\(2\.25rem \/ var\(--reading-scale\)\)/);
+  assert.match(rule, /padding: calc\(0\.25rem \/ var\(--reading-scale\)\) calc\(0\.6rem \/ var\(--reading-scale\)\)/);
+});
+
+test("the figure check page carries reading.css's variables, which the base styles read", () => {
+  const isokit = readFileSync(new URL("../figures/lib/isokit.ts", import.meta.url), "utf8");
+  assert.match(isokit, /\["reading\.css", "base\.css"/);
+  assert.match(readFileSync(READING_CSS_URL, "utf8"), /--weight-display: \d+;/);
+});
+
 test("the CSS names a pairing's families only under that pairing's attribute", () => {
   const styles = new URL("../src/styles/", import.meta.url);
   const sheets = readdirSync(styles).filter((name) => name.endsWith(".css"));

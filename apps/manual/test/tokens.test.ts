@@ -4,6 +4,7 @@ import { test } from "vitest";
 import {
   fluidSize,
   fontUrl,
+  pairingFace,
   pairingPreloads,
   READING_CSS_URL,
   readingCss,
@@ -114,6 +115,48 @@ test("a pairing that names a missing face, or a default that is no pairing or st
     "the default size 120 is no step",
   ]);
   assert.throws(() => readingCss(broken), /cannot generate reading\.css/);
+});
+
+test("a face or pairing name that only Object.prototype has is a missing face", () => {
+  const tokens = readTokens();
+  for (const name of ["constructor", "toString", "__proto__"]) {
+    assert.throws(() => pairingFace(tokens, name), /book-tokens\.json lacks/);
+    const broken = {
+      ...tokens,
+      font: {
+        ...tokens.font,
+        reading: {
+          ...tokens.font.reading,
+          pairings: [...tokens.font.reading.pairings, { ...tokens.font.reading.pairings[1], id: "odd", body: name }],
+        },
+      },
+    } as typeof tokens;
+    assert.deepEqual(readingProblems(broken), [`pairing odd names the face ${name}, which font.reading.faces lacks`]);
+  }
+});
+
+test("the default pairing must use the book's own faces, because readingCss writes no family rule for it", () => {
+  const tokens = readTokens();
+  const withDefault = (change: Record<string, string>) =>
+    ({
+      ...tokens,
+      font: {
+        ...tokens.font,
+        reading: {
+          ...tokens.font.reading,
+          pairings: tokens.font.reading.pairings.map((pairing) =>
+            pairing.id === tokens.font.reading.default ? { ...pairing, ...change } : pairing,
+          ),
+        },
+      },
+    }) as typeof tokens;
+  assert.deepEqual(readingProblems(withDefault({ body: "atkinsonHyperlegible" })), [
+    "the default pairing book must use the book's own display and body faces",
+  ]);
+  assert.deepEqual(readingProblems(withDefault({ display: "atkinsonHyperlegible" })), [
+    "the default pairing book must use the book's own display and body faces",
+  ]);
+  assert.throws(() => readingCss(withDefault({ body: "atkinsonHyperlegible" })), /cannot generate reading\.css/);
 });
 
 test("a size step sets the root font size and the scale the header divides by; the default sets neither", () => {

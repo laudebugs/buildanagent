@@ -498,7 +498,7 @@ Literata stays variable on both its axes, optical size (7â€“72) and weight (200â
 
 ## A reader chooses a typeface pairing and a text size
 
-A reader can set the book in one of four typeface pairings and at one of five text sizes; the owner chose both lists on 2026-11-23 (design S1). The choice lives in the reader's own browser and applies before the first paint. This part ships the fonts, the early script and the CSS; the settings panel that writes the choice comes in a second pull request of T69.
+A reader can set the book in one of four typeface pairings and at one of five text sizes; the owner chose both lists on 2026-11-23 (design S1). The choice lives in the reader's own browser and applies before the first paint. This part ships the fonts, the early script and the CSS; the settings panel that writes the choice is [T70](../../docs/todos/ready/T70-manual-reading-settings-ui.md).
 
 | Pairing | `data-reading-font` | Headings | Body |
 | --- | --- | --- | --- |
@@ -515,7 +515,7 @@ The code face, Manual Code, the figures' labels and Pagefind's search page stay 
 
 A blocking script cannot be a module, so it cannot export. It leaves its lists and functions, frozen, on `window.manualReadingSettings`: the two keys, `PAIRINGS` (each id with its preload files), `SIZES`, `readFont`, `readSize`, `read(storage)` and `apply(root, settings)`. The settings panel will use them, so the allow-lists live in one place. `test/reading-settings.test.ts` runs the script in a sandbox and checks that its lists match `book-tokens.json`.
 
-**The header keeps its size.** The header is the book's controls, not its text. Every rem length in it is divided by `--reading-scale`, so it stays one 52 px row on a phone and one 56 px row on a desktop at every text size, and the wordmark never shortens to an ellipsis. Only the search field's text follows the reader's size, which keeps the 16px minimum under a finger.
+**The header keeps its size.** The header is the book's controls, not its text. Every rem length in it is divided by `--reading-scale`, so it stays one 52 px row on a phone and one 56 px row on a desktop at every text size, and the wordmark never shortens to an ellipsis. The wordmark's size is a clamp of rem and viewport parts, so only its rem parts are divided; the viewport part is left alone, and the wordmark measures the same at 1024 px wide at every size. The search field's height and padding are divided like the buttons'; only its text follows the reader's size, which keeps the 16px minimum under a finger. `check:reading` measures the header on a 1280 px desktop at every size.
 
 **Sizes in px.** Text sized in px would ignore the reader's size. The notes popover's quote (13px), note and field (15.5px) and action row (12px) now use rem: 0.8125rem, 0.96875rem and 0.75rem, the same sizes at 100%. Figures keep px: an SVG's text scales with its SVG, and `figures/lib/svgkit.ts` measures labels at those sizes. The search box now caps itself at its column's width and lets its field shrink, because at 150% on a phone the gallery's sample box was wider than the screen.
 

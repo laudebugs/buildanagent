@@ -282,7 +282,7 @@ export function tokensCss(tokens: BookTokens, options: TokensCssOptions = {}): s
 /** The face a pairing names: the book's own display or body font, or one of the reading faces. */
 export function pairingFace(tokens: BookTokens, name: string): FontToken {
   if (name === "display" || name === "body") return tokens.font[name];
-  const face = tokens.font.reading.faces[name];
+  const face = Object.hasOwn(tokens.font.reading.faces, name) ? tokens.font.reading.faces[name] : undefined;
   if (face === undefined) throw new Error(`a pairing names the face ${name}, which book-tokens.json lacks`);
   return face;
 }
@@ -316,7 +316,8 @@ const READING_HEADER = [
 
 /**
  * Problems with the reading block that would let the page reach a face or a size nobody declared: a pairing naming a
- * missing face, a repeated id, an id that is not lower-case letters, a default that is no pairing, or a size list
+ * missing face, a repeated id, an id that is not lower-case letters, a default that is no pairing or that does not use the book's own
+ * display and body faces, or a size list
  * without its default.
  */
 export function readingProblems(tokens: BookTokens): string[] {
@@ -325,10 +326,15 @@ export function readingProblems(tokens: BookTokens): string[] {
   const ids = reading.pairings.map((pairing) => pairing.id);
   if (new Set(ids).size !== ids.length) problems.push("two pairings share an id");
   if (!ids.includes(reading.default)) problems.push(`the default pairing ${reading.default} is not a pairing`);
+  const book = reading.pairings.find((pairing) => pairing.id === reading.default);
+  if (book !== undefined && (book.display !== "display" || book.body !== "body")) {
+    // readingCss writes no family rule for the default pairing, so the page shows tokens.css's own faces.
+    problems.push(`the default pairing ${book.id} must use the book's own display and body faces`);
+  }
   for (const pairing of reading.pairings) {
     if (!/^[a-z]+$/.test(pairing.id)) problems.push(`pairing id ${pairing.id} is not lower-case letters`);
     for (const name of [pairing.display, pairing.body]) {
-      if (name !== "display" && name !== "body" && !(name in reading.faces)) {
+      if (name !== "display" && name !== "body" && !Object.hasOwn(reading.faces, name)) {
         problems.push(`pairing ${pairing.id} names the face ${name}, which font.reading.faces lacks`);
       }
     }

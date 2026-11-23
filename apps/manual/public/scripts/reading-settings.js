@@ -40,9 +40,8 @@
 
   /** The size step a stored value names, or the default for anything that is not exactly one of the steps. */
   const readSize = (raw) => {
-    if (typeof raw !== "string" || !/^[0-9]{2,3}$/.test(raw)) return DEFAULT_SIZE;
-    const size = Number(raw);
-    return SIZES.includes(size) ? size : DEFAULT_SIZE;
+    const index = typeof raw === "string" ? SIZES.findIndex((size) => String(size) === raw) : -1;
+    return index === -1 ? DEFAULT_SIZE : SIZES[index];
   };
 
   const get = (storage, key) => {

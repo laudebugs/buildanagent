@@ -206,8 +206,10 @@ export class IsoFigure {
    */
   page(source: string, theme: Theme): string {
     const tokens = readFileSync(new URL("src/styles/tokens.css", APP), "utf8").replace(/@font-face\s*\{[^}]*\}/g, "");
-    const styles = ["base.css", "components.css", "figures.css", "anatomy.css"].map((file) =>
-      readFileSync(new URL(`src/styles/${file}`, APP), "utf8"),
+    // reading.css defines --weight-display and --reading-scale, which base.css and the header read; its font faces
+    // are dropped like tokens.css's, because the check page loads no font files.
+    const styles = ["reading.css", "base.css", "components.css", "figures.css", "anatomy.css"].map((file) =>
+      readFileSync(new URL(`src/styles/${file}`, APP), "utf8").replace(/@font-face\s*\{[^}]*\}/g, ""),
     );
     const figure = this.fragment(source).replace(/^<!--[^\n]*-->\n/, "");
     return [

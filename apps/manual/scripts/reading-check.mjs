@@ -11,6 +11,9 @@
 // - each size step sets the root font size to 16px times its percent and makes the body text larger step by step;
 // - at 150% on an iPhone 14 profile (390px), no sampled page scrolls sideways in any pairing, and the header stays one
 //   52px row with the wordmark whole and every button inside the window;
+// - on a 1280px desktop, at every size, the header stays one 56px row, each button keeps the height it has at 100%, the
+//   search field is at least 8px shorter than the row and nothing in it overflows; and the wordmark's font size at
+//   1024px is the same at every size, within 0.5px;
 // - a chapter has no axe-core violation in each pairing at 150% on the phone, and at 100% on a desktop.
 //
 // The sample of pages is the contents page, the glossary and the three chapters with the most listings, figures and
@@ -299,6 +302,52 @@ async function phoneChecks(browser) {
   }
 }
 
+/** The header's boxes on a desktop at every size, measured against the 100% size. */
+async function headerChecks(browser) {
+  const measure = (page) =>
+    page.evaluate(() => {
+      const bar = document.querySelector(".site-header");
+      const box = (element) => element.getBoundingClientRect();
+      const sized = [...bar.querySelectorAll(".control, button, .search-box__input")]
+        .filter((element) => box(element).width > 0)
+        .map((element) => ({ name: element.className, height: Math.round(box(element).height * 100) / 100 }));
+      const title = document.querySelector(".site-header__title");
+      return {
+        height: box(bar).height,
+        sized,
+        search: sized.find((item) => item.name.includes("search-box__input"))?.height ?? 0,
+        overflow: bar.scrollWidth > bar.clientWidth || document.documentElement.scrollWidth > innerWidth,
+        titleWhole: title.scrollWidth <= title.clientWidth,
+        wordmark: Number.parseFloat(getComputedStyle(title).fontSize),
+      };
+    });
+  let base;
+  let baseWordmark;
+  for (const size of [reading.defaultSize, ...reading.sizes.filter((step) => step !== reading.defaultSize)]) {
+    label = `header desktop ${size}%`;
+    const values = { "manual-reading-size": String(size) };
+    const ctx = await context(browser, { viewport: { width: 1280, height: 800 } }, values);
+    const { page } = await open(ctx, CHAPTER);
+    const now = await measure(page);
+    base ??= now;
+    check(Math.abs(now.height - 56) < 0.5, `the header is one 56px row (${now.height})`);
+    check(!now.overflow && now.titleWhole, "nothing in the header overflows");
+    check(now.search > 0 && now.search <= now.height - 8, `the search field fits the row with room (${now.search}px)`);
+    check(
+      now.sized.length === base.sized.length &&
+        now.sized.every((item, index) => Math.abs(item.height - base.sized[index].height) < 0.5),
+      `each control keeps its height from 100% (${now.sized.map((item) => item.height)} against ${base.sized.map((item) => item.height)})`,
+    );
+    await ctx.close();
+    const narrow = await context(browser, { viewport: { width: 1024, height: 800 } }, values);
+    const opened = await open(narrow, CHAPTER);
+    const { wordmark } = await measure(opened.page);
+    baseWordmark ??= wordmark;
+    check(Math.abs(wordmark - baseWordmark) < 0.5, `the wordmark is ${baseWordmark}px at 1024px wide (${wordmark})`);
+    await narrow.close();
+  }
+}
+
 let browser;
 try {
   browser = await chromium.launch({ env: browserEnv });
@@ -308,7 +357,7 @@ try {
   process.exit(1);
 }
 console.log("SKIPPED - WebKit: the reading check runs in Chromium only");
-for (const run of [pairingChecks, fallbackChecks, sizeChecks, phoneChecks]) {
+for (const run of [pairingChecks, fallbackChecks, sizeChecks, headerChecks, phoneChecks]) {
   try {
     await run(browser);
   } catch (error) {

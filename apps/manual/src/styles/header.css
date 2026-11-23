@@ -214,8 +214,16 @@ html {
   gap: calc(1.5rem / var(--reading-scale));
 }
 
+/* --size-chapter-link is clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem). Only its rem parts follow the text size, so
+   only they are divided: dividing the whole token would divide the viewport term too and shrink the wordmark at a
+   large size. test/reading-settings.test.ts fails when these numbers differ from the token's. */
 .site-header__title {
-  font-size: calc(var(--size-chapter-link) / var(--reading-scale));
+  font-size: clamp(
+    calc(1.375rem / var(--reading-scale)),
+    calc(1.2772rem / var(--reading-scale)) +
+    0.4348vw,
+    calc(1.625rem / var(--reading-scale))
+  );
 }
 
 .site-header__nav {
@@ -238,6 +246,8 @@ html {
 
 .site-header .search-box__input {
   width: clamp(calc(7rem / var(--reading-scale)), 14vw, calc(12rem / var(--reading-scale)));
+  min-height: calc(2.25rem / var(--reading-scale));
+  padding: calc(0.25rem / var(--reading-scale)) calc(0.6rem / var(--reading-scale));
 }
 
 .site-header .control {
