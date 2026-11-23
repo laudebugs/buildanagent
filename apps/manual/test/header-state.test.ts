@@ -15,6 +15,7 @@ const phone: HeaderFlags = {
   phone: true,
   menuOpen: false,
   searchOpen: false,
+  settingsOpen: false,
   focusInside: false,
   headerHeight: 52,
 };
@@ -50,8 +51,8 @@ test("a desktop header never hides", () => {
   assert.deepEqual(trace([0, 500, 1000, 400], { ...phone, phone: false }), [false, false, false, false]);
 });
 
-test("the menu, the search panel and keyboard focus keep the header shown", () => {
-  for (const flag of ["menuOpen", "searchOpen", "focusInside"] as const) {
+test("the menu, the search panel, the reading settings and keyboard focus keep the header shown", () => {
+  for (const flag of ["menuOpen", "searchOpen", "settingsOpen", "focusInside"] as const) {
     assert.deepEqual(trace([100, 400, 900], { ...phone, [flag]: true }), [false, false, false], flag);
   }
 });
@@ -60,6 +61,14 @@ test("a header shown by an open menu may hide again once the menu closes", () =>
   const open = nextHeaderState(initialHeaderState(0), 500, { ...phone, menuOpen: true });
   assert.equal(open.hidden, false);
   assert.equal(nextHeaderState(open, 600, phone).hidden, true);
+});
+
+test("a header kept shown by the open reading settings may hide again once they close", () => {
+  const open = nextHeaderState(initialHeaderState(0), 500, { ...phone, settingsOpen: true });
+  assert.equal(open.hidden, false);
+  assert.equal(nextHeaderState(open, 600, phone).hidden, true);
+  // A hidden header comes back as the panel opens, at the next scroll frame, without any scroll of its own.
+  assert.equal(nextHeaderState({ hidden: true, lastY: 600 }, 600, { ...phone, settingsOpen: true }).hidden, false);
 });
 
 test("an overscroll above the top counts as the top", () => {

@@ -1,4 +1,5 @@
 ---
+import ReadingSettings from "../components/ReadingSettings.astro";
 import SiteFooter from "../components/SiteFooter.astro";
 import SiteHeader from "../components/SiteHeader.astro";
 import "../styles/tokens.css";
@@ -7,6 +8,7 @@ import "../styles/base.css";
 import "../styles/layout.css";
 import "../styles/components.css";
 import "../styles/header.css";
+import "../styles/reading-panel.css";
 import "../styles/figures.css";
 import "../styles/anatomy.css";
 import tokens from "../../../../docs/design/book-tokens.json";
@@ -52,11 +54,13 @@ const hosts = offlineHosts(Astro.site, process.env.MANUAL_OFFLINE_TEST_HOST).joi
     <script is:inline type="module" src="/scripts/offline.js"></script>
     <!-- The footer's "Save the manual for offline reading" control; it talks to the worker offline.js registers. -->
     <script is:inline type="module" src="/scripts/save-offline.js"></script>
+    <!-- The header's reading settings panel; it writes the choice through reading-settings.js's API. -->
+    <script is:inline type="module" src="/scripts/reading-panel.js"></script>
     <slot name="head" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to the text</a>
-    <SiteHeader />
+    <SiteHeader><ReadingSettings slot="settings" /></SiteHeader>
     <main id="main" tabindex="-1">
       <slot />
     </main>

@@ -1,0 +1,104 @@
+---
+import tokens from "../../../../docs/design/book-tokens.json";
+import { bookPublicDir } from "../book/load.js";
+import type { BookTokens } from "../design/tokens.js";
+import { pairingOptions, sizeOptions } from "./reading-options.js";
+
+// The reading settings (design S1): the header's "Aa" button and the panel it opens, a popover under the button on a
+// desktop and a bottom sheet on a phone. The panel lists the typeface pairings, each with an "Aa" in its heading face,
+// and the five text-size steps, and saves the choice on the device. public/scripts/reading-panel.js runs it through
+// window.manualReadingSettings (public/scripts/reading-settings.js), which put a stored choice on <html> before the
+// first paint. Both groups are native radio buttons, so a screen reader names each choice and the arrow keys move
+// between them.
+//
+// The button and the panel render hidden. Without JavaScript, or in a browser without the popover API or the early
+// script's API, the button stays hidden and the page shows the default pairing and size. The panel's ids, values and
+// names come from book-tokens.json through reading-options.ts, so the script holds no list of its own.
+const book = tokens as unknown as BookTokens;
+const pairings = pairingOptions(book, bookPublicDir());
+const sizes = sizeOptions(book);
+---
+
+<button
+  type="button"
+  class="control site-header__icon-button reading-button"
+  data-reading-button
+  aria-label="Reading settings"
+  aria-expanded="false"
+  aria-controls="reading-panel"
+  popovertarget="reading-panel"
+  hidden
+>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <path d="M1.5 19.5L7.5 4.5l6 15M3.9 13.5h7.2"></path>
+    <circle cx="18.75" cy="16.5" r="3"></circle>
+    <path d="M21.75 13.5v6"></path>
+  </svg>
+</button>
+<div class="reading-panel" id="reading-panel" popover="auto" role="dialog" aria-labelledby="reading-panel-title" data-reading-panel hidden>
+  <div class="reading-panel__head">
+    <h2 class="reading-panel__title" id="reading-panel-title">Reading</h2>
+    <button type="button" class="reading-panel__close" data-reading-close aria-label="Close">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+    </button>
+  </div>
+  <fieldset class="reading-panel__group">
+    <legend class="reading-panel__legend">Typeface pairing</legend>
+    {
+      pairings.map((pairing) => (
+        <label class="reading-panel__pairing">
+          <input
+            class="reading-panel__input"
+            type="radio"
+            name="reading-font"
+            value={pairing.id}
+            checked={pairing.isDefault}
+            data-files={pairing.files.join(" ")}
+            data-bytes={pairing.bytes}
+          />
+          <span class="reading-panel__dot" aria-hidden="true" />
+          <span class="reading-panel__names">
+            <span class="reading-panel__name">{pairing.label}</span>
+            <span class="reading-panel__faces">{pairing.faces}</span>
+          </span>
+          <span class="reading-panel__sample" data-reading-sample={pairing.id} aria-hidden="true">
+            Aa
+          </span>
+        </label>
+      ))
+    }
+  </fieldset>
+  <fieldset class="reading-panel__group">
+    <legend class="reading-panel__legend">Text size</legend>
+    <div class="reading-panel__sizes">
+      <span class="reading-panel__end reading-panel__end--small" aria-hidden="true">A</span>
+      <span class="reading-panel__track">
+        {
+          sizes.map((step) => (
+            <label class="reading-panel__step">
+              <input
+                class="reading-panel__input"
+                type="radio"
+                name="reading-size"
+                value={step.size}
+                checked={step.isDefault}
+                data-label={step.label}
+              />
+              <span class="reading-panel__stop" aria-hidden="true" />
+              <span class="visually-hidden">{`${step.size}%, ${step.name}`}</span>
+            </label>
+          ))
+        }
+      </span>
+      <span class="reading-panel__end reading-panel__end--large" aria-hidden="true">A</span>
+    </div>
+    <p class="reading-panel__size-label" aria-hidden="true" data-reading-size-label>
+      {sizes.find((step) => step.isDefault)?.label}
+    </p>
+  </fieldset>
+  <div class="reading-panel__foot">
+    <p class="reading-panel__note">Saved on this device</p>
+    <button type="button" class="reading-panel__reset" data-reading-reset>Reset</button>
+  </div>
+  <p class="reading-panel__status" role="status" data-reading-status></p>
+</div>

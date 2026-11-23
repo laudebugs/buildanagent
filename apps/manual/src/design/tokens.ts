@@ -309,6 +309,15 @@ export function pairingPreloads(tokens: BookTokens, pairing: Pairing): string[] 
   return [...new Set(files)];
 }
 
+/**
+ * Every file a pairing's text can use: each file of its display face and of its body face, italics and bold included,
+ * in that order and without repeats. The settings panel asks the offline worker to save these for a chosen pairing.
+ */
+export function pairingFiles(tokens: BookTokens, pairing: Pairing): string[] {
+  const faces = [pairingFace(tokens, pairing.display), pairingFace(tokens, pairing.body)];
+  return [...new Set(faces.flatMap((face) => face.files.map((file) => file.src)))];
+}
+
 const READING_HEADER = [
   "Generated from docs/design/book-tokens.json by apps/manual/scripts/generate-tokens.ts. Do not edit: change the",
   "JSON file's font.reading block and run `pnpm --filter @buildanagent/manual tokens`.",
@@ -373,6 +382,17 @@ export function readingCss(tokens: BookTokens, fontBase: string = FONT_BASE): st
       `  --font-display: ${family(pairingFace(tokens, pairing.display))};`,
       `  --font-body: ${family(pairingFace(tokens, pairing.body))};`,
       `  --weight-display: ${pairing.displayWeight};`,
+      "}",
+      "",
+    );
+  }
+  // The settings panel shows an "Aa" in each pairing's heading face, whatever pairing the page is in. A face is
+  // downloaded once an element uses it, and the panel is not drawn until it opens, so these cost nothing until then.
+  for (const pairing of reading.pairings) {
+    lines.push(
+      `[data-reading-sample="${pairing.id}"] {`,
+      `  font-family: ${family(pairingFace(tokens, pairing.display))};`,
+      `  font-weight: ${pairing.displayWeight};`,
       "}",
       "",
     );

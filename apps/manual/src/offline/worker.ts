@@ -18,6 +18,9 @@
 // Saving the whole book (SAVE_ALL) downloads only the build's own list, never a URL a page names, and the saved record
 // that makes the control say "Saved" is written only once every listed file is in the cache. A save that stops early,
 // for a full disk, a dropped connection or a press on Cancel, is recorded as partial, never as saved.
+//
+// SAVE_FILES saves a few fonts by path, for the reading pairing a reader chose: only plain paths under /fonts/ that are
+// on the build's list, checked as any store is. A file SAVE_ALL is downloading is waited for, not downloaded twice.
 
 import { BUILD_PLACEHOLDER, findMark, withMark } from "./mark.js";
 
@@ -34,6 +37,12 @@ export const OFFLINE_PATH = "/offline/";
 
 /** The most paths one SAVE_PAGE message may ask for. */
 export const SAVE_PAGE_LIMIT = 100;
+
+/** The most paths one SAVE_FILES message may ask for: a typeface pairing has at most a handful of font files. */
+export const SAVE_FILES_LIMIT = 16;
+
+/** The only folder SAVE_FILES saves from: the fonts, which a reading pairing the shell leaves out may need offline. */
+export const SAVE_FILES_PREFIX = "/fonts/";
 
 /** How many files SAVE_ALL downloads at once. */
 export const SAVE_CONCURRENCY = 6;
@@ -127,6 +136,7 @@ export type InboundMessage =
   | { readonly type: "SKIP_WAITING" }
   | { readonly type: "SAVE_PAGE"; readonly paths: readonly string[] }
   | { readonly type: "SAVE_ALL" }
+  | { readonly type: "SAVE_FILES"; readonly paths: readonly string[] }
   | { readonly type: "CANCEL_SAVE" }
   | { readonly type: "REMOVE_ALL" };
 
@@ -210,10 +220,29 @@ export interface SavedReply {
   readonly failed: readonly Problem[];
 }
 
+/**
+ * A file SAVE_FILES did not save, with the reason: one a store gives, `not-allowed` for a path outside the fonts or not
+ * written as a plain path (a query string, a fragment, a dot segment, an encoded or doubled separator), `not-listed`
+ * for a font this build does not have, `not-active` when this worker is not the active one and `busy` while the saved
+ * copy is being removed.
+ */
+export interface FileProblem {
+  readonly path: string;
+  readonly reason: SaveProblem["reason"] | "not-allowed" | "not-listed" | "not-active" | "busy";
+}
+
+/** The answer to SAVE_FILES: the paths saved now or already saved, and the ones that were not, each with its reason. */
+export interface SavedFilesReply {
+  readonly type: "SAVED_FILES";
+  readonly saved: readonly string[];
+  readonly failed: readonly FileProblem[];
+}
+
 /** What handleMessage returns: a reply to post back, a request to skip waiting, or nothing to answer. */
 export type MessageOutcome =
   | StatusReply
   | SavedReply
+  | SavedFilesReply
   | SaveDone
   | RemovedReply
   | { readonly type: "SKIP_WAITING" }
@@ -224,7 +253,15 @@ export interface MessageContext {
   readonly post?: (message: SaveProgress) => void;
 }
 
-const MESSAGE_TYPES = new Set<string>(["STATUS", "SKIP_WAITING", "SAVE_PAGE", "SAVE_ALL", "CANCEL_SAVE", "REMOVE_ALL"]);
+const MESSAGE_TYPES = new Set<string>([
+  "STATUS",
+  "SKIP_WAITING",
+  "SAVE_PAGE",
+  "SAVE_ALL",
+  "SAVE_FILES",
+  "CANCEL_SAVE",
+  "REMOVE_ALL",
+]);
 
 /** The fields of a message's sender this module reads: a page's tab is a "window" client with a frame type. */
 export interface MessageSource {
@@ -356,6 +393,10 @@ export class OfflineWorker {
   #activated = false;
   #saving: SaveRun | null = null;
   #removing: Promise<RemovedReply> | null = null;
+  // The downloads SAVE_ALL and SAVE_FILES have in flight, by path, so a file both ask for is downloaded once.
+  readonly #downloads = new Map<string, Promise<SaveProblem["reason"] | null>>();
+  // The SAVE_FILES runs in flight, which REMOVE_ALL waits for, so none writes a font back after the copy is removed.
+  readonly #fileRuns = new Set<Promise<unknown>>();
 
   constructor(build: OfflineBuild, deps: WorkerDeps) {
     this.#build = build;
@@ -556,6 +597,19 @@ export class OfflineWorker {
       if (await cache.match(key)) continue;
       if (!(await this.#saveFromNetwork(key))) throw new Error(`${path} is not this build's file`);
     }
+  }
+
+  // As #fetchAndStore for a save: a file the cache already holds is not downloaded again, and a file another save is
+  // downloading now is waited for, not downloaded a second time.
+  #download(cache: CacheLike, path: string): Promise<SaveProblem["reason"] | null> {
+    const running = this.#downloads.get(path);
+    if (running) return running;
+    const key = `${this.#deps.origin}${path}`;
+    const download = (async () => ((await cache.match(key)) ? null : this.#fetchAndStore(key)))().finally(() => {
+      this.#downloads.delete(path);
+    });
+    this.#downloads.set(path, download);
+    return download;
   }
 
   // Fetches a listed file, revalidating past the HTTP cache, and stores it if it is this build's; records a failure.
@@ -839,7 +893,7 @@ export class OfflineWorker {
   }
 
   /**
-   * Answers a page's message; anything that is not one of the six message shapes is ignored. CANCEL_SAVE gets no reply
+   * Answers a page's message; anything that is not one of the seven message shapes is ignored. CANCEL_SAVE gets no reply
    * of its own: the SAVE_ALL it stops answers with `cancelled`.
    */
   async handleMessage(data: unknown, context: MessageContext = {}): Promise<MessageOutcome> {
@@ -854,6 +908,11 @@ export class OfflineWorker {
       return this.savePage(paths.filter((path): path is string => typeof path === "string"));
     }
     if (type === "SAVE_ALL") return this.saveAll(context.post);
+    if (type === "SAVE_FILES") {
+      const paths = (data as { paths?: unknown }).paths;
+      if (!Array.isArray(paths) || paths.length > SAVE_FILES_LIMIT) return null;
+      return this.saveFiles(paths.filter((path): path is string => typeof path === "string"));
+    }
     if (type === "CANCEL_SAVE") {
       this.cancelSave();
       return null;
@@ -942,7 +1001,7 @@ export class OfflineWorker {
           return;
         }
         try {
-          const reason = await this.#fetchAndStore(`${this.#deps.origin}${path}`);
+          const reason = await this.#download(cache, path);
           if (reason === null) {
             run.done++;
             run.bytes += this.#files.get(path)?.size ?? 0;
@@ -1033,6 +1092,7 @@ export class OfflineWorker {
       running.cancelled = true;
       await running.result.catch(() => undefined);
     }
+    await Promise.allSettled([...this.#fileRuns]);
     await this.#purge(await this.#cache());
     // Another build's cache can bring the copy back: a waiting build carried the files over and records them as
     // `previous`, and an older cache an open tab still reads holds its saved record for the next install to find.
@@ -1090,6 +1150,62 @@ export class OfflineWorker {
       }
     }
     return { type: "SAVED", saved, failed };
+  }
+
+  /**
+   * Saves a few named fonts of this build: the files of a reading pairing that the shell leaves out, which the reader
+   * chose and needs offline. Each path must be a plain path under /fonts/ (`not-allowed` otherwise) and on this
+   * build's list (`not-listed`); each is checked and stored as any store is, and a file the cache holds already, or
+   * that a running SAVE_ALL is downloading, is not downloaded again. Only the active worker saves, so a waiting build
+   * never fills its cache early, and nothing is saved while the saved copy is being removed.
+   */
+  saveFiles(paths: readonly string[]): Promise<SavedFilesReply> {
+    const run = this.#saveNamed(paths);
+    this.#fileRuns.add(run);
+    return run.finally(() => {
+      this.#fileRuns.delete(run);
+    });
+  }
+
+  async #saveNamed(paths: readonly string[]): Promise<SavedFilesReply> {
+    const saved: string[] = [];
+    const failed: FileProblem[] = [];
+    const wanted: string[] = [];
+    for (const path of new Set(paths)) {
+      const reason = this.#fileRule(path);
+      if (reason) failed.push({ path, reason });
+      else wanted.push(path);
+    }
+    const refuse = (reason: "not-active" | "busy"): SavedFilesReply => ({
+      type: "SAVED_FILES",
+      saved,
+      failed: [...failed, ...wanted.map((path) => ({ path, reason }))],
+    });
+    if (wanted.length === 0) return { type: "SAVED_FILES", saved, failed };
+    if (this.#removing) return refuse("busy");
+    if (!(await this.#isActive())) return refuse("not-active");
+    if (this.#removing) return refuse("busy");
+    const cache = await this.#cache();
+    for (const path of wanted) {
+      try {
+        const reason = await this.#download(cache, path);
+        if (reason === null) saved.push(path);
+        else failed.push({ path, reason });
+      } catch (error) {
+        // The browser refused the write.
+        const reason = isQuotaError(error) ? "quota" : "storage";
+        failed.push({ path, reason });
+        await this.#problem(path, reason).catch(() => undefined);
+      }
+    }
+    return { type: "SAVED_FILES", saved, failed };
+  }
+
+  // Why SAVE_FILES may not save a path, or null when it may: only a font of this build's list, named by its plain path.
+  #fileRule(path: string): "not-allowed" | "not-listed" | null {
+    if (!path.startsWith(SAVE_FILES_PREFIX) || /[?#\\]/.test(path) || normalisePath(path) !== path)
+      return "not-allowed";
+    return this.#files.has(path) ? null : "not-listed";
   }
 
   /** Counts the files and bytes of this build that its cache holds, with the rewritten and failed files. */

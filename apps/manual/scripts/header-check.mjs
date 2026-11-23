@@ -7,7 +7,7 @@
 // - a phone's header hides on a scroll down, returns on the first scroll up, stays shown near the top, ignores a move
 //   under 8px, stays shown while the menu or search is open or keyboard focus is inside it, and is revealed when focus
 //   moves into it; with prefers-reduced-motion it still hides, with no transition;
-// - the settings slot is in the header and takes no room while empty;
+// - the settings slot holds the reading settings button, shown in the row between the search and the theme toggle;
 // - the progress line is about 0 at the top of a chapter, about 50% in the middle and 100% at the end of its main text,
 //   rides the header's bottom edge and stays at the top of the window while a phone's header is hidden, and a page
 //   that is not a chapter has none;
@@ -91,9 +91,14 @@ async function common(page, height) {
   check(
     await page.evaluate(() => {
       const slot = document.querySelector(".site-header [data-slot='settings']");
-      return !!slot && slot.children.length === 0 && slot.getBoundingClientRect().width === 0;
+      const button = slot?.querySelector("[data-reading-button]");
+      const theme = document.querySelector(".site-header [data-theme-toggle]");
+      if (!button || button.hidden || !theme) return false;
+      const box = button.getBoundingClientRect();
+      // The slot is laid out as its contents, so the button is one of the tools; DOM order puts it before the toggle.
+      return box.width > 0 && box.right <= theme.getBoundingClientRect().left;
     }),
-    "the empty settings slot is in the header and takes no room",
+    "the settings slot's Aa button is shown in the row, before the theme toggle",
   );
   // The progress line.
   check(near(await progress(page), 0, 0.001), "the progress line is empty at the top");
