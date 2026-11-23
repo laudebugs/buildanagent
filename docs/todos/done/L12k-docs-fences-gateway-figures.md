@@ -76,9 +76,9 @@ Make every code block on the docs' existing pages come from a tested example fil
 
 ## Outcome
 
-- The two inline `ts` blocks now come from tested example files (`packages/sdk/examples/make-model.ts` and `offline-setup.ts`), and `apps/docs/test/fences.test.ts` fails on any `ts` block without a `file=` fence (its exceptions map is empty, and each entry needs a reason).
+- The two inline `ts` blocks now come from tested example files (`packages/sdk/examples/make-model.ts`, `make-openai-model.ts` and `offline-setup.ts`), and `apps/docs/test/fences.test.ts` fails on any `ts` block without a `file=` fence, whatever the case of its language, and on a `<Code lang="ts">` component (`test/exceptions.ts` is empty, and each entry needs a reason).
 - The gateway page is `concepts/the-gateway.mdx` (MDX because it uses tabs for the Anthropic and OpenAI adapters), with five sections and examples from `packages/gateway/examples/`; every claim is in the fact-check log.
 - Four figures, each on the page that explains it: `stream-and-transcript`, `stop-reasons`, `approval-pause` and `gateway-adapters`. The gateway's third adapter is labelled `scripted`, because the gateway has no testing adapter of its own.
-- Checking `loop.ts` corrected the stop-reasons page: `error` also covers a hook that throws while the run fails closed and a budget that cannot price a call (fact-check row L12k-22).
+- Checking `loop.ts` corrected the stop-reasons page: `error` also covers a hook that throws while the run fails closed, a budget that cannot price a call and a refused resume (fact-check rows L12k-22 and L12k-30). The gateway page also says a provider hint over 60 seconds ends the call with no retry (row L12k-29).
 - `::figure` works in MDX with no change to the plugin, and a test requires a figure on an `.mdx` page. Starlight's typographic quotes turn an apostrophe in a caption into a curly one, so captions must not contain apostrophes (the README says so).
 - Open: the OpenAI example names a model that the examples don't pin to a catalog date, so a retirement shows up as a failing test of `makeOpenAiModel`.

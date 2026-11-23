@@ -1,6 +1,6 @@
 // The nine stop reasons of a run (packages/sdk/src/loop.ts, `Outcome`), in four groups by what ended the run. `done`
 // is the model's own answer. A step limit, the budget, the progress policy and a stop hook end a run that would have
-// gone on. A failed call, a failed hook or an unpriceable budget end it `error`, and the caller's abort ends it
+// gone on. A failed call, a failed hook, an unpriceable budget or a refused resume (`RunError.kind`, packages/sdk/src/result.ts) end it `error`, and the caller's abort ends it
 // `aborted`. A call that waits for a person ends it `awaiting_approval` or, for a question, `clarification_requested`.
 // Drawn 320 wide so it fits a 390 px phone whole.
 import { Figure, type Rect } from "@buildanagent/manual/figures/svgkit";

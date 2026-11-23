@@ -21,7 +21,7 @@ Make a model with the adapter for your provider. Each adapter takes the key you 
   ```
   </TabItem>
   <TabItem label="OpenAI">
-  ```ts file="packages/sdk/examples/make-model.ts" region="openai"
+  ```ts file="packages/sdk/examples/make-openai-model.ts" region="model"
   ```
   </TabItem>
 </Tabs>
@@ -35,7 +35,9 @@ The SDK's `ScriptedModel` is a scripted adapter that plays the answers you list,
 
 ## Every adapter streams the same events
 
-`model.stream()` yields one event sequence for every adapter: a `start` event, each content block's start, deltas and end, and one terminal event, `done` or `error`. The terminal event carries the finished assistant message. `model.complete()` folds the stream into that message for you. [The transcript and the stream](/concepts/transcript-and-stream/) states the four rules of the sequence.
+`model.stream()` yields one event sequence for every adapter: a `start` event, each content block's start, deltas and end, and one terminal event, `done` or `error`. The terminal event carries the finished assistant message. `model.complete()` folds the stream into that message for you.
+
+Two more events can appear: a `retry` event, which comes after `start` and before any content when the gateway retries a failed call, and a `warning` event, which reports something the call survived, such as an option the provider would reject, and can come anywhere between `start` and the terminal event. [The transcript and the stream](/concepts/transcript-and-stream/) states the four rules of the sequence.
 
 This code reads a stream's text as it arrives and keeps the closing message:
 
@@ -46,11 +48,27 @@ This code reads a stream's text as it arrives and keeps the closing message:
 
 A call that fails before the model has streamed any content is retried twice by default. The first retry waits 2 seconds and the second waits 4. Each wait doubles and never passes 60 seconds. Set `retries` in `createModel()` to change the count, or to 0 to turn retries off.
 
-Three rules keep a retry from doing harm:
+Four rules keep a retry from doing harm:
 
 1. Once a content event has reached you, the gateway never retries, because a second attempt would replay text you have already seen.
 2. Only an error of kind `retryable`, such as a rate limit or an overloaded server, is retried. A `quota`, `overflow` or `fatal` error ends the call at once.
 3. When the provider says how long to wait, the gateway waits at least that long, up to the 60-second cap.
+4. A provider that asks for more than 60 seconds ends the call at once, with no retry. The error keeps its `retryAfterMs`, so your code can wait that long and call again.
+
+The examples below share a small setup. This is a long system prompt, called `policy`:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="policy"
+```
+
+This code makes a model over `stub`, a test double for Anthropic's Messages API that answers the HTTP statuses you queue:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="wire"
+```
+
+This helper asks one question with `cacheRetention` set to `"short"`, which the caching section explains:
+
+```ts file="packages/gateway/examples/04-retries-caching.ts" region="ask"
+```
 
 In this code the provider answers HTTP 529 once. The gateway retries, and the caller sees only the answer:
 
@@ -62,11 +80,6 @@ A failed attempt still costs tokens, so the final message's usage and cost add u
 ## One option sets prompt caching
 
 The `cacheRetention` option takes `"none"`, `"short"` or `"long"`. Each adapter maps it to its provider's own cache controls, and leaving it out keeps the adapter's default, which is `"short"` for both adapters. The Anthropic adapter puts up to three cache breakpoints, on the system prompt, the last tool and the last block of the last user message. `"short"` asks for the 5-minute cache, `"long"` asks for the 1-hour cache and `"none"` sends no breakpoint. OpenAI caches prompts on its own, so the OpenAI-compatible adapter acts on the option only for a model whose flags allow explicit breakpoints or extended retention.
-
-This helper asks one question with `cacheRetention` set to `"short"`:
-
-```ts file="packages/gateway/examples/04-retries-caching.ts" region="ask"
-```
 
 The first call with a long system prompt writes the prompt to the cache. The next call with the same prompt reports the tokens it read from the cache:
 

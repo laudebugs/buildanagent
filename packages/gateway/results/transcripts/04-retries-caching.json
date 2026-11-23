@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 34,
+      "line": 36,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -35,7 +35,7 @@
     },
     {
       "kind": "response",
-      "line": 34,
+      "line": 36,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -46,7 +46,7 @@
     },
     {
       "kind": "request",
-      "line": 34,
+      "line": 36,
       "model": "model-1",
       "repeated": 2,
       "messages": [],
@@ -54,7 +54,7 @@
     },
     {
       "kind": "response",
-      "line": 34,
+      "line": 36,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -76,25 +76,25 @@
     },
     {
       "kind": "check",
-      "line": 37,
+      "line": 39,
       "message": "an HTTP 529 costs one retry, and the answer arrives (1)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 38,
+      "line": 40,
       "message": "the caller sees only the answer",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 40,
+      "line": 42,
       "message": "cacheRetention \"short\" marks the system prompt for the provider's cache",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 45,
+      "line": 47,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -112,7 +112,7 @@
     },
     {
       "kind": "response",
-      "line": 45,
+      "line": 47,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -123,13 +123,13 @@
     },
     {
       "kind": "check",
-      "line": 46,
+      "line": 48,
       "message": "an error that is not retryable fails at once, with no retry",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 53,
+      "line": 55,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -147,7 +147,7 @@
     },
     {
       "kind": "response",
-      "line": 53,
+      "line": 55,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -158,7 +158,7 @@
     },
     {
       "kind": "request",
-      "line": 53,
+      "line": 55,
       "model": "model-1",
       "repeated": 2,
       "messages": [],
@@ -166,7 +166,7 @@
     },
     {
       "kind": "response",
-      "line": 53,
+      "line": 55,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -177,13 +177,13 @@
     },
     {
       "kind": "check",
-      "line": 54,
+      "line": 56,
       "message": "retries: 1 gives up after two errors",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 61,
+      "line": 63,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -201,7 +201,7 @@
     },
     {
       "kind": "response",
-      "line": 61,
+      "line": 63,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -223,49 +223,49 @@
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 66,
       "message": "the first call writes the prefix to the cache",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 65,
+      "line": 67,
       "message": "the same prefix, sent again, reports cache-read tokens (3973)",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 66,
+      "line": 68,
       "message": "the second call writes nothing",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 72,
+      "line": 74,
       "message": "the first call is priced with a cache write",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 73,
+      "line": 75,
       "message": "the second call is priced with a cache read",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 74,
+      "line": 76,
       "message": "the price comes from the gateway's catalog",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 76,
+      "line": 78,
       "message": "the cached call costs under a fifth of an uncached one",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 79,
+      "line": 81,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -283,7 +283,7 @@
     },
     {
       "kind": "response",
-      "line": 79,
+      "line": 81,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -305,13 +305,13 @@
     },
     {
       "kind": "check",
-      "line": 80,
+      "line": 82,
       "message": "cacheRetention \"none\" sends no mark",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 81,
+      "line": 83,
       "message": "an unmarked prefix is neither written nor read",
       "pass": true
     }

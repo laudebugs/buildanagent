@@ -1,4 +1,9 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "vitest";
 import { lookupOrderTool } from "../examples/lookup-order-tool.js";
 import { answerOrderQuestion } from "../examples/order-agent.js";
@@ -96,14 +101,47 @@ test("the make-model example binds the Anthropic adapter to one model id", async
   assert.deepEqual(model.ref, { api: "anthropic-messages", provider: "anthropic", id: "claude-opus-5-5" });
 });
 
-test("the make-model example binds the OpenAI adapter to one model id", async () => {
-  const { makeOpenAiModel } = await import("../examples/make-model.js");
+test("the make-openai-model example binds the OpenAI adapter to one model id", async () => {
+  const { makeOpenAiModel } = await import("../examples/make-openai-model.js");
   const model = makeOpenAiModel("test-key");
   assert.deepEqual(model.ref, { api: "openai-chat", provider: "openai", id: "gpt-5.4-mini" });
 });
 
-test("the offline-setup example turns real model requests off", async () => {
-  const { OFFLINE } = await import("../examples/offline-setup.js");
-  assert.equal(OFFLINE, true);
-  await assert.rejects(() => fetch("https://api.anthropic.com/v1/messages"), /blocked|disabled|loopback|not allowed/i);
+// The example runs in its own process, because the vitest setup has already blocked fetch in this one and would hide
+// a missing import. The child gets an allowlisted environment, so no inherited key reaches it.
+const TSX = import.meta.resolve("tsx");
+const SOURCE_CONDITION = fileURLToPath(new URL("../../../scripts/transcripts/source-condition.mjs", import.meta.url));
+const OFFLINE_EXAMPLE = fileURLToPath(new URL("../examples/offline-setup.ts", import.meta.url));
+
+function runOfflineExample(script: string, extraEnv: Record<string, string> = {}) {
+  const home = mkdtempSync(join(tmpdir(), "sdk-offline-home-"));
+  try {
+    return spawnSync(
+      process.execPath,
+      ["--import", TSX, "--import", SOURCE_CONDITION, "--input-type=module", "-e", script],
+      {
+        env: { PATH: process.env.PATH ?? "", HOME: home, TMPDIR: tmpdir(), LANG: "C.UTF-8", ...extraEnv },
+        encoding: "utf8",
+        timeout: 45_000,
+      },
+    );
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+}
+
+test("the offline-setup example blocks a request to a non-loopback host", { timeout: 60_000 }, () => {
+  const script = `await import(${JSON.stringify(OFFLINE_EXAMPLE)});
+    try { await fetch("https://api.anthropic.com/v1/messages"); console.log("REACHED"); }
+    catch (error) { console.log("BLOCKED " + error.message); }`;
+  const result = runOfflineExample(script);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /BLOCKED Blocked outbound request to api\.anthropic\.com/);
+});
+
+test("the offline-setup example stops the run when a provider key is set", { timeout: 60_000 }, () => {
+  const script = `await import(${JSON.stringify(OFFLINE_EXAMPLE)});`;
+  const result = runOfflineExample(script, { ANTHROPIC_API_KEY: "sk-test" });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Refusing to run tests with provider credentials set \(ANTHROPIC_API_KEY\)/);
 });

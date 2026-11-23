@@ -20,7 +20,7 @@ A fence with a `file` attribute takes its code from a file under a package's `ex
 ```
 ````
 
-The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import: `test/fences.test.ts` fails on a block without it, unless the test's `EXCEPTIONS` list names the block with its reason (empty today). Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
+The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import: `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
 
 ## Draw a figure with a script, and the build inlines it
 
