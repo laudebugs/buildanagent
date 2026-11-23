@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@buildanagent/gateway": "workspace:*",
+    "@buildanagent/manual": "workspace:*",
     "wrangler": "4.160.1",
     "yaml": "2.9.1"
   }

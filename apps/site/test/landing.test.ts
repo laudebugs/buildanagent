@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, relative } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { describe, inject, test } from "vitest";
 import { layers, NARROW_WIDTH } from "../figures/layers.js";
 import { Drawing } from "../figures/lib/draw.js";
@@ -312,7 +314,13 @@ describe("the figure's geometry", () => {
 
 describe("the fonts", () => {
   const FONTS = join(ROOT, "public/fonts");
-  const MANUAL_FONTS = join(ROOT, "../manual/public/fonts");
+  // The manual serves its fonts from public/fonts/, two folders up from the tokens module its package exports.
+  const MANUAL_FONTS = fileURLToPath(
+    new URL(
+      "../../public/fonts/",
+      pathToFileURL(createRequire(import.meta.url).resolve("@buildanagent/manual/design/tokens")),
+    ),
+  );
 
   test("are byte-identical copies of the manual's self-hosted subsets", () => {
     const files = readdirSync(FONTS, { recursive: true, withFileTypes: true }).filter((entry) => entry.isFile());
