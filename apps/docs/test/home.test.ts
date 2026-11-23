@@ -46,10 +46,7 @@ describe("the home page", () => {
       const card = cards.find((entry) => entry.title === title);
       assert.equal(card?.href, target);
       const slug = target.replace(/^\/|\/$/g, "");
-      assert.ok(
-        existsSync(`${DOCS_DIR}${slug}.md`) || existsSync(`${DOCS_DIR}${slug}.mdx`),
-        `${target} has no page`,
-      );
+      assert.ok(existsSync(`${DOCS_DIR}${slug}.md`) || existsSync(`${DOCS_DIR}${slug}.mdx`), `${target} has no page`);
     }
   });
 
