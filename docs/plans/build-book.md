@@ -17,7 +17,7 @@ This repository already holds most of what a book on building agents needs. It h
 
 - **Sign-in, analytics or cookies.** The owner made the book public with no sign-in (BK2), so the site needs no Worker code and collects nothing about its readers.
 - **PDF and EPUB in Round T.** The web book comes first; export follows once the chapter model settles (BK13).
-- **Offline reading.** The garment book's hand-written service worker needed its own build script and offline end-to-end test (`scripts/offline-build.mjs`, `test:offline` in its `package.json`). A later PDF or EPUB covers offline reading more simply.
+- **Offline reading.** *Reversed on 2026-11-23 ([ADR 0059](../decisions/0059-offline-manual-service-worker.md)).* The garment book's hand-written service worker needed its own build script and offline end-to-end test, so the plan first left offline reading to a later PDF or EPUB. The owner answered [issue #175](https://github.com/laudebugs/buildanagent/issues/175) with a yes on 2026-11-23: [T67a](../todos/done/T67a-manual-offline-pwa.md) makes the book installable and readable offline with a per-build service worker, and [T67b](../todos/ready/T67b-manual-save-for-offline.md) adds the reader's control that saves the whole book.
 - **Live code that calls a real model, in a browser or in CI.** No provider key ever reaches a browser, and CI never holds one. Tier 4 of the interactive listings, a later option, runs only against a scripted model (BK9). The one live path is a workflow the owner starts by hand (BK18).
 - **Research inside a chapter.** Chapters draw on sources already in this repo. The four topics the repo lacks get research todos first (BK19), and a chapter that finds another gap records it as a follow-up research todo instead of filling it from memory. No topic of the coverage review is a non-goal.
 
@@ -317,7 +317,7 @@ The repository has no licence file, so its code is reusable only under this perm
 | Committed reader emails, Access application IDs and AUD tags | Personal and account data; the owner excluded them, and our book has no sign-in |
 | The Access-checking Worker and `jose` | The book is public (BK2) |
 | Deploy secrets on self-hosted runners shared with pull-request code | The garment repo flags this risk itself; we deploy from GitHub-hosted runners in environments |
-| The offline service worker | Out of scope (§1) |
+| The garment book's hand-written offline service worker | Our own replaces it: a worker bundled from a tested module, with a per-build file list checked byte for byte (ADR 0059, T67a) |
 | Python scripts | Our tooling is Node and pnpm, so the checks are ported to `.mjs` or `.ts` |
 
 **Licence (owner, 2026-11-19):** code copied or adapted from the garment repository is published here under "Apache 2.0", not under our usual Apache-2.0 OR MIT. T1 adds that exception to [LICENSE](../../LICENSE). T1, T3, T6 and T9 add each file they copy to a garment-repository section of THIRD-PARTY-NOTICES.md. Each derived file opens with a header comment that names its origin, the source path and commit, and its Apache-2.0 licence. No book todo reads the garment repository's `docs/todos/` or deploy config, where its personal data lives.
@@ -616,6 +616,8 @@ The three research rounds behind the sections each confirmed its placement, and 
 | [T62](../todos/done/T62-chapter-choosing-the-shape-on-our-packages.md) | Add our own packages to Chapter 8's listings as tabs (BK8) | T17, B19b, T50 | M |
 | [T63](../todos/done/T63-chapter-side-effects-that-can-fail-on-our-packages.md) | Add our own packages to Chapter 16's listings as tabs (BK8) | T23, E1, E2, E3, E4a, E4b, T50 | M |
 | [T66](../todos/done/T66-chapter-tools-at-scale-on-our-packages.md) | Add our own packages to Chapter 13's listings as tabs (BK8) | T21, N11, N21, N22, N23, N24 | M |
+| [T67a](../todos/done/T67a-manual-offline-pwa.md) | Make the manual installable and readable offline: manifest, icons, a service worker with a per-build file list, an offline page, an update notice and the ADR that reverses the offline non-goal (owner's yes on issue #175, 2026-11-23) | None | L |
+| [T67b](../todos/ready/T67b-manual-save-for-offline.md) | A "Save the manual for offline reading" control: progress, size, saved date and build, remove, and the offline state | T67a | M |
 | [U18](../todos/done/U18-research-retrieval-and-long-term-memory.md) | Research: retrieval and long-term memory, for the book | None | L |
 | [U19](../todos/done/U19-research-a2a.md) | Research: agent-to-agent protocols (a2a), for the book | None | L |
 | [U20](../todos/done/U20-research-voice-and-realtime.md) | Research: voice and realtime agents, for the book | None | L |
