@@ -345,6 +345,7 @@ test("after a deploy that changes one stylesheet, the saved pages carry over to 
     const caches = new FakeCaches();
     const first = new OfflineWorker(asBuild(manifest), { origin: ORIGIN, caches, fetch: served(out, manifest).fetch });
     await first.install();
+    await first.activate();
     const saved = ["/glossary/", "/sources/", "/call-workflow-loop/"];
     const reply = await first.savePage(saved);
     assert.deepEqual(reply.saved, saved);

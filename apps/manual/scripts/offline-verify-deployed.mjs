@@ -11,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { BUILD_PLACEHOLDER, findMark, withMark } from "../src/offline/mark.js";
 
 /**
  * Fetches the list and every listed file from `origin`; resolves to { build, ok, rewritten, failed }, where each of
@@ -22,15 +23,8 @@ export async function verifyDeployed(origin, { fetch = globalThis.fetch } = {}) 
   const listResponse = await get("/offline-manifest.json");
   if (listResponse.status !== 200) throw new Error(`/offline-manifest.json answered ${listResponse.status}`);
   const list = await listResponse.json();
-  const mark = `<meta name="manual-build" content="${list.build}">`;
-  // The list hashes each page with the placeholder in its build mark, as the worker compares it.
-  const unstamped = (bytes) =>
-    Buffer.from(
-      bytes
-        .toString("latin1")
-        .replace(/(<meta name="manual-build" content=")[A-Za-z0-9_]{1,64}(")/, "$1__MANUAL_BUILD__$2"),
-      "latin1",
-    );
+  // The list hashes each page with the placeholder in its build mark; the worker's own module finds and sets the mark.
+  const unstamped = (bytes) => Buffer.from(withMark(bytes, BUILD_PLACEHOLDER));
   const result = { build: list.build, ok: [], rewritten: [], failed: [] };
   const worker = await get("/sw.js");
   const workerText = worker.status === 200 ? await worker.text() : "";
@@ -47,11 +41,11 @@ export async function verifyDeployed(origin, { fetch = globalThis.fetch } = {}) 
     const page = file.path.endsWith(".html");
     const compared = page ? unstamped(bytes) : bytes;
     const same = compared.length === file.size && createHash("sha256").update(compared).digest("hex") === file.sha256;
-    if (same && (!page || bytes.toString("latin1").includes(mark))) {
+    if (same && (!page || findMark(bytes)?.value === list.build)) {
       result.ok.push(file.url);
     } else if (same) {
       result.failed.push({ path: file.url, reason: `carries another build's mark than ${list.build}` });
-    } else if (file.path.endsWith(".html") && bytes.toString("utf8").includes(mark)) {
+    } else if (page && findMark(bytes)?.value === list.build) {
       result.rewritten.push(file.url);
     } else {
       result.failed.push({ path: file.url, reason: `${bytes.length} bytes that differ from the build's ${file.size}` });

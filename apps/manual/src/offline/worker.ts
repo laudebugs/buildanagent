@@ -15,6 +15,10 @@
 //   worker records such pages in the cache itself, so the rule holds after the browser restarts the worker.
 // - Every file the worker could not store when it tried to save it is recorded, and STATUS reports it.
 
+import { BUILD_PLACEHOLDER, findMark, withMark } from "./mark.js";
+
+export { BUILD_PLACEHOLDER, findMark, withMark };
+
 /** The prefix of every cache this worker owns; caches with other names are never read or deleted. */
 export const CACHE_PREFIX = "manual-";
 
@@ -33,6 +37,12 @@ const RECORD_PREFIX = "/__manual-offline__/";
 const CLIENTS_RECORD = `${RECORD_PREFIX}clients.json`;
 const PROBLEMS_RECORD = `${RECORD_PREFIX}problems.json`;
 const OLDER_RECORD = `${RECORD_PREFIX}older.json`;
+// Written when a worker starts to install into its cache and cleared when it activates. A build's cache can be another
+// worker's older cache and a waiting worker's own at once, when a deploy brings back a build whose id is the same, so
+// no worker deletes a cache whose own worker is installing or waiting. A mark older than a day is from a worker that
+// never activated, and no longer protects its cache.
+const PENDING_RECORD = `${RECORD_PREFIX}pending.json`;
+const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 // Pages kept in the clients record; the oldest go first, since a page that long ago has closed.
 const MAX_CLIENTS = 200;
 
@@ -81,6 +91,8 @@ export interface WorkerDeps {
   readonly delay?: (ms: number) => Promise<void>;
   /** The ids of the pages and workers open now (`clients.matchAll()`); without it, no page counts as open. */
   readonly openClients?: () => Promise<readonly string[]>;
+  /** The time in milliseconds; tests pass a fixed clock. */
+  readonly now?: () => number;
 }
 
 /** The fields of a fetch event this module reads. `waitUntil` keeps the worker alive for a background write. */
@@ -146,43 +158,6 @@ export function cacheName(build: string): string {
 /** Returns the `<meta>` tag the build writes into every page; the worker checks a rewritten page for it. */
 export function buildMark(build: string): string {
   return `<meta name="manual-build" content="${build}">`;
-}
-
-/** The placeholder a page's build mark holds before the build writes its id; the list hashes pages with it. */
-export const BUILD_PLACEHOLDER = "__MANUAL_BUILD__";
-
-const MARK_START = new TextEncoder().encode('<meta name="manual-build" content="');
-const QUOTE = 0x22;
-const MARK_VALUE = /^[A-Za-z0-9_]{1,64}$/;
-
-/**
- * Finds a page's build mark and returns where its value starts and ends and the value, or null when the page has none.
- * Only the first mark counts; a page with a second one differs from the list wherever it is.
- */
-export function findMark(
-  bytes: Uint8Array,
-): { readonly start: number; readonly end: number; readonly value: string } | null {
-  outer: for (let i = 0; i + MARK_START.length < bytes.length; i++) {
-    for (let j = 0; j < MARK_START.length; j++) if (bytes[i + j] !== MARK_START[j]) continue outer;
-    const start = i + MARK_START.length;
-    const end = bytes.indexOf(QUOTE, start);
-    if (end === -1 || end - start > 64) return null;
-    const value = String.fromCharCode(...bytes.subarray(start, end));
-    return MARK_VALUE.test(value) ? { start, end, value } : null;
-  }
-  return null;
-}
-
-/** Returns a page's bytes with its build mark holding `value`, or the bytes unchanged when it has none. */
-export function withMark(bytes: Uint8Array, value: string): Uint8Array {
-  const mark = findMark(bytes);
-  if (!mark) return bytes;
-  const inserted = new TextEncoder().encode(value);
-  const out = new Uint8Array(bytes.length - (mark.end - mark.start) + inserted.length);
-  out.set(bytes.subarray(0, mark.start));
-  out.set(inserted, mark.start);
-  out.set(bytes.subarray(mark.end), mark.start + inserted.length);
-  return out;
 }
 
 /** Returns the lower-case hex SHA-256 of some bytes. */
@@ -442,6 +417,7 @@ export class OfflineWorker {
    */
   async install(): Promise<void> {
     const cache = await this.#cache();
+    await this.#write(PENDING_RECORD, () => ({ since: this.#now() }));
     await this.#carryOver(cache);
     for (const path of this.#build.shell) {
       const key = this.keyFor(`${this.#deps.origin}${path}`);
@@ -498,16 +474,35 @@ export class OfflineWorker {
         ids = [];
       }
       const kept = Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string" && open.has(id)) : [];
-      if (kept.length === 0) await this.#deps.caches.delete(name);
+      if (kept.length === 0) await this.#deleteUnlessPending(name);
       else for (const id of kept) this.#olderClients.set(id, name);
     }
     this.#olderLoaded = true;
     await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
+    await this.#write(PENDING_RECORD, () => ({ since: null }));
+  }
+
+  #now(): number {
+    return this.#deps.now ? this.#deps.now() : Date.now();
+  }
+
+  // Deletes another build's cache unless its own worker is installing or waiting.
+  async #deleteUnlessPending(name: string): Promise<void> {
+    const response = await (await this.#deps.caches.open(name)).match(`${this.#deps.origin}${PENDING_RECORD}`);
+    let since: unknown = null;
+    try {
+      since = response ? ((await response.json()) as { since?: unknown }).since : null;
+    } catch {
+      since = null;
+    }
+    if (typeof since === "number" && this.#now() - since < PENDING_TTL_MS) return;
+    await this.#deps.caches.delete(name);
   }
 
   /**
    * Deletes each older cache that activate kept once none of its pages is open. It touches only the caches activate
-   * recorded, never another `manual-` cache, which may belong to a newer build's worker that is waiting.
+   * recorded, never another `manual-` cache, and never a cache whose own worker is installing or waiting, which a
+   * deploy that brings an older build back makes possible.
    */
   async pruneOlder(): Promise<void> {
     await this.#olderLoad;
@@ -519,7 +514,7 @@ export class OfflineWorker {
       if (open.has(id)) continue;
       this.#olderClients.delete(id);
       changed = true;
-      if (!live.has(name)) await this.#deps.caches.delete(name);
+      if (!live.has(name) && (await this.#deps.caches.keys()).includes(name)) await this.#deleteUnlessPending(name);
     }
     if (changed) await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
   }

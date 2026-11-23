@@ -468,6 +468,49 @@ test("once the old page closes, the kept cache goes, and a cache activate did no
   assert.deepEqual([...caches.stores.keys()].sort(), ["manual-b1", "manual-b2"]);
 });
 
+test("a kept older cache whose build is redeployed and waiting is not pruned when its old page closes", async () => {
+  // Build Y is active, with a page still open on build X, so Y keeps manual-X.
+  const caches = new FakeCaches();
+  const x = buildOf("x1", TEXTS, SHELL);
+  const network = new FakeNetwork(
+    Object.fromEntries(Object.entries(TEXTS).map(([path, text]) => [path, () => ok(text)])),
+  );
+  const xFirst = new OfflineWorker(x, { origin: ORIGIN, caches, fetch: network.fetch });
+  await xFirst.install();
+  await xFirst.activate();
+  await (await caches.open("manual-x1")).put(`${ORIGIN}/__manual-offline__/clients.json`, json(["c1"]));
+  let open = ["c1"];
+  const y = new OfflineWorker(buildOf("y1", { ...TEXTS, "/tools/": "<h1>Tools, edited</h1>" }, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: network.fetch,
+    openClients: async () => open,
+  });
+  await y.install();
+  await y.activate();
+  assert.ok(caches.stores.has("manual-x1"), "Y keeps X's cache while c1 is open");
+
+  // X is deployed again: same id, same cache name. Its worker installs into manual-x1 and waits.
+  const xAgain = new OfflineWorker(x, { origin: ORIGIN, caches, fetch: network.fetch });
+  await xAgain.install();
+  open = [];
+  await y.pruneOlder();
+  assert.ok(caches.stores.has("manual-x1"), "the waiting worker's cache stays");
+  const status = await xAgain.status();
+  assert.equal(status.shell.saved, SHELL.length, "and still holds its shell");
+
+  // Once X activates it clears its mark; a pending mark a day old no longer protects a cache.
+  const stale = new OfflineWorker(buildOf("z1", TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: network.fetch,
+    now: () => Date.now() + 25 * 60 * 60 * 1000,
+  });
+  await stale.install();
+  await stale.activate();
+  assert.deepEqual([...caches.stores.keys()], ["manual-z1"]);
+});
+
 test("carrying over many files reads the problems record once and writes it never", async () => {
   const { worker, caches } = setup();
   const older = await caches.open("manual-b0");
@@ -479,5 +522,9 @@ test("carrying over many files reads the problems record once and writes it neve
   const record = `${ORIGIN}/__manual-offline__/problems.json`;
   assert.equal(cache?.reads.get(record), 1);
   assert.equal(cache?.writes.get(record) ?? 0, 0);
-  assert.equal(cache?.entries.size, 6, "every unchanged file carried over");
+  assert.equal(
+    [...(cache?.entries.keys() ?? [])].filter((key) => !key.includes("__manual-offline__")).length,
+    6,
+    "every unchanged file carried over",
+  );
 });
