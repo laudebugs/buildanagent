@@ -136,3 +136,13 @@ test("inline code inside a link keeps the link's colour", () => {
   const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
   assert.match(css, /\.sl-markdown-content a code:not\(:where\(\.not-content \*\)\) \{\s*color: inherit;/);
 });
+
+test("the pagination links are compact: a rule border, no shadow, label and note sizes, a 44px tap height", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  const link = css.match(/\.pagination-links a \{([^}]*)\}/)?.[1] ?? "";
+  assert.match(link, /box-shadow: none;/);
+  assert.match(link, /border-color: var\(--color-rule\);/);
+  assert.match(link, /font-size: var\(--size-label\);/);
+  assert.match(link, /min-height: 2\.75rem;/);
+  assert.match(css, /\.pagination-links \.link-title \{[^}]*font-size: var\(--size-note\);/);
+});
