@@ -263,7 +263,7 @@ test("a page shown from the cache gets its assets from the same build's cache, n
   assert.equal(network.requests.length, before + 1, "another page asks the network first");
 });
 
-test("STATUS counts what this build's cache holds, SKIP_WAITING asks to take over, and the save messages wait for T67b", async () => {
+test("STATUS counts what this build's cache holds, with no saved copy yet, and SKIP_WAITING asks to take over", async () => {
   const { worker } = setup();
   await worker.install();
   const files = buildOf("b1", TEXTS, SHELL).files;
@@ -273,17 +273,19 @@ test("STATUS counts what this build's cache holds, SKIP_WAITING asks to take ove
     type: "STATUS",
     build: "b1",
     total: { files: listed.length, bytes: listed.reduce((sum, [, file]) => sum + file.size, 0) },
-    saved: {
+    stored: {
       files: SHELL.length,
       bytes: SHELL.reduce((sum, path) => sum + (files[path]?.size ?? 0), 0),
     },
     shell: { files: SHELL.length, saved: SHELL.length },
+    saved: null,
+    partial: null,
+    previous: null,
+    saving: null,
     rewritten: [],
     failed: [],
   });
   assert.deepEqual(await worker.handleMessage({ type: "SKIP_WAITING" }), { type: "SKIP_WAITING" });
-  assert.deepEqual(await worker.handleMessage({ type: "SAVE_ALL" }), { type: "UNSUPPORTED", request: "SAVE_ALL" });
-  assert.deepEqual(await worker.handleMessage({ type: "REMOVE_ALL" }), { type: "UNSUPPORTED", request: "REMOVE_ALL" });
   for (const junk of [null, undefined, "SKIP_WAITING", 1, {}, { type: "skip_waiting" }, { type: "__proto__" }]) {
     assert.equal(await worker.handleMessage(junk), null, JSON.stringify(junk));
   }

@@ -192,13 +192,14 @@ test("the build's id is stamped into sw.js with the whole list, and the worker n
     manifest.files.map((file) => file.url),
   );
 
-  const message = (data: unknown, origin: string) => {
+  const tab = { type: "window", frameType: "top-level", url: "https://manual.buildanagent.fyi/", postMessage() {} };
+  const message = (data: unknown, origin: string, source: unknown = tab) => {
     const waits: Promise<unknown>[] = [];
     listeners.get("message")?.({
       data,
       origin,
       ports: [],
-      source: null,
+      source,
       waitUntil: (p: Promise<unknown>) => waits.push(p),
     });
     return Promise.all(waits);
@@ -206,6 +207,10 @@ test("the build's id is stamped into sw.js with the whole list, and the worker n
   return (async () => {
     await message({ type: "SKIP_WAITING" }, "https://evil.example");
     assert.equal(skipped, 0, "another origin's message is ignored");
+    await message({ type: "SKIP_WAITING" }, "https://manual.buildanagent.fyi", { ...tab, frameType: "nested" });
+    assert.equal(skipped, 0, "a frame's message is ignored");
+    await message({ type: "SKIP_WAITING" }, "https://manual.buildanagent.fyi", null);
+    assert.equal(skipped, 0, "a message with no window behind it is ignored");
     await message({ type: "SKIP_WAITING" }, "https://manual.buildanagent.fyi");
     assert.equal(skipped, 1, "the page's Reload asks the waiting worker to take over");
   })();

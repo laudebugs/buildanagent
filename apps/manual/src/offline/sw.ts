@@ -1,7 +1,7 @@
 // The service worker's entry: it wires OfflineWorker (worker.ts) to the worker's events. scripts/offline-build.mjs
 // bundles this file into dist/sw.js as one classic script with no imports, and puts the build's file list above it as
 // __MANUAL_OFFLINE__, so every build's worker differs byte for byte and the browser installs it as an update.
-import { type InboundMessage, type OfflineBuild, OfflineWorker } from "./worker.js";
+import { fromBookWindow, type InboundMessage, type MessageSource, type OfflineBuild, OfflineWorker } from "./worker.js";
 
 declare const __MANUAL_OFFLINE__: OfflineBuild;
 
@@ -20,7 +20,7 @@ interface MessageEventLike extends ExtendableEventLike {
   readonly data: InboundMessage | unknown;
   readonly origin: string;
   readonly ports: readonly MessagePort[];
-  readonly source: { postMessage(message: unknown): void } | null;
+  readonly source: (MessageSource & { postMessage(message: unknown): void }) | null;
 }
 
 interface ServiceWorkerScopeLike {
@@ -56,13 +56,14 @@ scope.addEventListener("fetch", (event) => {
 });
 
 scope.addEventListener("message", (event) => {
-  // Only this origin's pages can message the worker; the check keeps that true if a browser ever widens it.
-  if (event.origin !== scope.location.origin) return;
+  if (!fromBookWindow(scope.location.origin, event)) return;
   const reply = event.ports[0] ?? event.source;
+  const post = (message: unknown) => reply?.postMessage(message);
+  // waitUntil keeps the worker alive for the whole of a SAVE_ALL, which posts its progress as it goes.
   event.waitUntil(
-    worker.handleMessage(event.data).then(async (outcome) => {
+    worker.handleMessage(event.data, { post }).then(async (outcome) => {
       if (outcome?.type === "SKIP_WAITING") await scope.skipWaiting();
-      else if (outcome) reply?.postMessage(outcome);
+      else if (outcome) post(outcome);
     }),
   );
 });
