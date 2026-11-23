@@ -18,95 +18,20 @@
 //
 //   node scripts/offline-browser-check.mjs
 import assert from "node:assert/strict";
-import { execFile, execFileSync } from "node:child_process";
-import {
-  cpSync,
-  createReadStream,
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { createServer } from "node:http";
-import { createRequire } from "node:module";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, dirname, extname, join, normalize, sep } from "node:path";
-import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
+import { join } from "node:path";
+import { loadPlaywright } from "./lib/browser-check.mjs";
+import { buildTestBook, offlineEnv, serveBook } from "./lib/offline-site.mjs";
 import { writeOffline } from "./offline-build.mjs";
 
-const app = fileURLToPath(new URL("..", import.meta.url));
-const run = promisify(execFile);
-const env = {
-  PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-  HOME: mkdtempSync(join(tmpdir(), "manual-home-")),
-  TMPDIR: tmpdir(),
-  LANG: "C.UTF-8",
-  ASTRO_TELEMETRY_DISABLED: "1",
-};
-if (process.env.PLAYWRIGHT_BROWSERS_PATH) env.PLAYWRIGHT_BROWSERS_PATH = process.env.PLAYWRIGHT_BROWSERS_PATH;
-
-function nearestBin(name) {
-  for (let dir = app; dir !== dirname(dir); dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", ".bin", name);
-    if (existsSync(bin)) return bin;
-  }
-  throw new Error(`no node_modules/.bin/${name} above ${app}`);
-}
-
-const require = createRequire(import.meta.url);
-function loadPlaywright() {
-  try {
-    return require("playwright");
-  } catch {
-    const global = execFileSync("npm", ["root", "-g"], { encoding: "utf8", env }).trim();
-    return createRequire(join(global, "x.js"))("playwright");
-  }
-}
+const env = offlineEnv();
 const { chromium } = loadPlaywright();
 
 // 0. A test build: the production build's steps, with the loopback test host.
 const work = mkdtempSync(join(tmpdir(), "manual-offline-check-"));
-const dist = join(work, "dist");
-await run(nearestBin("astro"), ["build", "--outDir", dist], {
-  cwd: app,
-  env: { ...env, MANUAL_OFFLINE_TEST_HOST: "127.0.0.1" },
-});
-await run(nearestBin("pagefind"), ["--site", dist], { cwd: app, env });
-const first = await writeOffline(dist);
+const { dist, manifest: first } = await buildTestBook(work, env);
 console.log(`built ${first.files.length} files, build ${first.build}`);
-
-// The rules of public/_headers, applied as Cloudflare's asset server would: `/*`, a path prefix ending in `*`, or an
-// exact path. Values of the same header from two rules are joined with a comma.
-function parseHeaders(text) {
-  const rules = [];
-  for (const line of text.split("\n")) {
-    if (line.startsWith("#") || line.trim() === "") continue;
-    if (!line.startsWith(" ")) rules.push({ pattern: line.trim(), headers: [] });
-    else
-      rules.at(-1)?.headers.push(
-        line
-          .trim()
-          .split(/:\s*(.*)/s)
-          .slice(0, 2),
-      );
-  }
-  return rules;
-}
-const RULES = parseHeaders(readFileSync(join(app, "public", "_headers"), "utf8"));
-const matches = (pattern, path) => (pattern.endsWith("*") ? path.startsWith(pattern.slice(0, -1)) : path === pattern);
-const TYPES = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript",
-  ".css": "text/css",
-  ".woff2": "font/woff2",
-  ".json": "application/json",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".webmanifest": "application/manifest+json",
-};
 
 let root = dist;
 
@@ -119,48 +44,13 @@ function rewriteLikeCloudflare(html) {
     .replace(ADDRESS, '<a href="/cdn-cgi/l/email-protection" class="__cf_email__">[email&#160;protected]</a>')
     .replace("</body>", '<script data-cfasync="false" src="/cdn-cgi/scripts/email-decode.min.js"></script></body>');
 }
-const sockets = new Set();
-const server = createServer((request, response) => {
-  const path = normalize(decodeURIComponent(new URL(request.url ?? "/", "http://x").pathname))
-    .split(sep)
-    .join("/");
-  let file = join(root, path);
-  let status = 200;
-  if (!file.startsWith(root) || !existsSync(file)) {
-    file = join(root, "404.html");
-    status = 404;
-  } else if (statSync(file).isDirectory()) {
-    if (!path.endsWith("/")) {
-      response.writeHead(307, { location: `${path}/` }).end();
-      return;
-    }
-    file = join(file, "index.html");
-  }
-  const headers = new Map([["content-type", TYPES[extname(file)] ?? "application/octet-stream"]]);
-  for (const rule of RULES) {
-    if (!matches(rule.pattern, path)) continue;
-    for (const [name, value] of rule.headers) {
-      const key = name.toLowerCase();
-      headers.set(key, headers.has(key) && key !== "content-type" ? `${headers.get(key)}, ${value}` : value);
-    }
-  }
-  response.writeHead(status, Object.fromEntries(headers));
-  if (file.endsWith(".html")) response.end(rewriteLikeCloudflare(readFileSync(file, "utf8")));
-  else createReadStream(file).pipe(response);
-});
-server.on("connection", (socket) => {
-  sockets.add(socket);
-  socket.on("close", () => sockets.delete(socket));
-});
-await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-const port = server.address().port;
-const origin = `http://127.0.0.1:${port}`;
-const stopServer = () =>
-  new Promise((resolve) => {
-    server.close(resolve);
-    for (const socket of sockets) socket.destroy();
-  });
-const startServer = () => new Promise((resolve) => server.listen(port, "127.0.0.1", resolve));
+const {
+  origin,
+  port,
+  stop: stopServer,
+  start: startServer,
+  close: closeServer,
+} = await serveBook(() => root, rewriteLikeCloudflare);
 
 const results = [];
 const check = (condition, message) => {
@@ -366,8 +256,7 @@ try {
   console.log(`\n${results.length} checks passed`);
 } finally {
   await browser.close();
-  server.close();
-  for (const socket of sockets) socket.destroy();
+  closeServer();
   rmSync(work, { recursive: true, force: true });
   rmSync(env.HOME, { recursive: true, force: true });
 }

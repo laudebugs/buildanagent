@@ -22,13 +22,20 @@ export class FakeCache implements CacheLike {
   /** How many times each key was read and written, for the tests that count record accesses. */
   readonly reads = new Map<string, number>();
   readonly writes = new Map<string, number>();
+  /** Set to make a put fail as a browser does when it refuses the space; it gets the key and returns the error. */
+  refuse: ((key: string) => Error | null) | null = null;
   async match(key: string): Promise<Response | undefined> {
     this.reads.set(key, (this.reads.get(key) ?? 0) + 1);
     return this.entries.get(key)?.clone();
   }
   async put(key: string, response: Response): Promise<void> {
+    const error = this.refuse?.(key);
+    if (error) throw error;
     this.writes.set(key, (this.writes.get(key) ?? 0) + 1);
     this.entries.set(key, response);
+  }
+  async delete(key: string): Promise<boolean> {
+    return this.entries.delete(key);
   }
   async keys(): Promise<readonly { url: string }[]> {
     return [...this.entries.keys()].map((url) => ({ url }));

@@ -131,6 +131,13 @@ test("a browser without service workers is left alone, and a refused registratio
     throw new DOMException("denied", "SecurityError");
   };
   assert.equal(await start(refused.win), "failed");
+  assert.equal(refused.doc.documentElement.dataset.offline, "install-failed", "marked for the save control");
+  const preview = page("https://pr-42.manual.buildanagent.fyi/", "manual.buildanagent.fyi");
+  preview.container.getRegistrations = async () => {
+    throw new DOMException("denied", "SecurityError");
+  };
+  assert.equal(await start(preview.win), "failed");
+  assert.equal(preview.doc.documentElement.dataset.offline, undefined, "a preview never registers, so nothing failed");
 });
 
 test("a waiting worker shows the notice, and only a press on Reload asks it to take over and reloads", async () => {

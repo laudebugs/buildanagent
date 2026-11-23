@@ -152,11 +152,13 @@ export async function saveLandingPage(win) {
  */
 export async function start(win) {
   if (!win.navigator.serviceWorker) return "unsupported";
+  let registering = false;
   try {
     if (!allowedHosts(win.document).includes(win.location.hostname)) {
       await clearLeftovers(win);
       return "cleared";
     }
+    registering = true;
     // updateViaCache "none" makes every update check fetch sw.js from the network, never from the HTTP cache.
     const registration = await win.navigator.serviceWorker.register(WORKER_URL, { scope: "/", updateViaCache: "none" });
     watchForUpdate(win, registration);
@@ -164,7 +166,9 @@ export async function start(win) {
     saveLandingPage(win).catch(() => undefined);
     return "registered";
   } catch {
-    // Storage can be off or the browser can refuse the worker; the book then reads online as before.
+    // Storage can be off or the browser can refuse the worker; the book then reads online as before. A refused
+    // registration is marked as a failed install, so the save control can say so.
+    if (registering) win.document.documentElement.dataset.offline = "install-failed";
     return "failed";
   }
 }

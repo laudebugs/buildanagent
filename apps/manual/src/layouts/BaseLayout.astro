@@ -45,6 +45,8 @@ const hosts = offlineHosts(Astro.site, process.env.MANUAL_OFFLINE_TEST_HOST).joi
     <script is:inline type="module" src="/scripts/reading.js"></script>
     <!-- A module too: it registers the offline worker on the book's own host and shows the update notice. -->
     <script is:inline type="module" src="/scripts/offline.js"></script>
+    <!-- The footer's "Save the manual for offline reading" control; it talks to the worker offline.js registers. -->
+    <script is:inline type="module" src="/scripts/save-offline.js"></script>
     <link rel="preload" href="/fonts/literata/literata-roman.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/instrument-serif/instrument-serif-regular.woff2" as="font" type="font/woff2" crossorigin />
     <slot name="head" />

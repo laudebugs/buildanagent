@@ -14,6 +14,10 @@
 //   gets its assets from the same cache, or from the network only when the network's bytes are this build's; the
 //   worker records such pages in the cache itself, so the rule holds after the browser restarts the worker.
 // - Every file the worker could not store when it tried to save it is recorded, and STATUS reports it.
+//
+// Saving the whole book (SAVE_ALL) downloads only the build's own list, never a URL a page names, and the saved record
+// that makes the control say "Saved" is written only once every listed file is in the cache. A save that stops early,
+// for a full disk, a dropped connection or a press on Cancel, is recorded as partial, never as saved.
 
 import { BUILD_PLACEHOLDER, findMark, withMark } from "./mark.js";
 
@@ -31,12 +35,23 @@ export const OFFLINE_PATH = "/offline/";
 /** The most paths one SAVE_PAGE message may ask for. */
 export const SAVE_PAGE_LIMIT = 100;
 
+/** How many files SAVE_ALL downloads at once. */
+export const SAVE_CONCURRENCY = 6;
+
 // Two records the worker keeps in its own cache, under paths no file of the book has and keyFor never returns, so a
 // request can never be answered with either.
 const RECORD_PREFIX = "/__manual-offline__/";
 const CLIENTS_RECORD = `${RECORD_PREFIX}clients.json`;
 const PROBLEMS_RECORD = `${RECORD_PREFIX}problems.json`;
 const OLDER_RECORD = `${RECORD_PREFIX}older.json`;
+// The reader's saved copy: when SAVE_ALL started or finished, for which build, and whether every listed file was stored.
+// It lives in the cache it describes, so a browser that evicts the cache evicts the record with it.
+const SAVED_RECORD = `${RECORD_PREFIX}saved.json`;
+// A complete saved copy of an older build that install carried over, so the control can offer to update it.
+const PREVIOUS_RECORD = `${RECORD_PREFIX}previous.json`;
+// Written by REMOVE_ALL into every other build's cache: install carries nothing over from such a cache, and the cache's
+// own worker purges its saved copy when it activates.
+const REMOVED_RECORD = `${RECORD_PREFIX}removed.json`;
 // Written when a worker starts to install into its cache and cleared when it activates. A build's cache can be another
 // worker's older cache and a waiting worker's own at once, when a deploy brings back a build whose id is the same, so
 // no worker deletes a cache whose own worker is installing or waiting. A mark older than a day is from a worker that
@@ -72,6 +87,7 @@ export interface OfflineBuild {
 export interface CacheLike {
   match(key: string): Promise<Response | undefined>;
   put(key: string, response: Response): Promise<void>;
+  delete(key: string): Promise<boolean>;
   keys(): Promise<readonly { readonly url: string }[]>;
 }
 
@@ -93,6 +109,8 @@ export interface WorkerDeps {
   readonly openClients?: () => Promise<readonly string[]>;
   /** The time in milliseconds; tests pass a fixed clock. */
   readonly now?: () => number;
+  /** Whether this worker is the registration's active one, when the browser can say; undefined when it cannot. */
+  readonly isActive?: () => boolean | undefined;
 }
 
 /** The fields of a fetch event this module reads. `waitUntil` keeps the worker alive for a background write. */
@@ -103,30 +121,83 @@ export interface FetchLike {
   waitUntil?(promise: Promise<unknown>): void;
 }
 
-/**
- * The messages a page may send. STATUS, SKIP_WAITING and SAVE_PAGE work now; SAVE_ALL and REMOVE_ALL are reserved for
- * the reader's save control (T67b) and answered as unsupported until then.
- */
+/** The messages a page may send. SAVE_ALL takes no paths: it saves the build's own list. */
 export type InboundMessage =
   | { readonly type: "STATUS" }
   | { readonly type: "SKIP_WAITING" }
   | { readonly type: "SAVE_PAGE"; readonly paths: readonly string[] }
   | { readonly type: "SAVE_ALL" }
+  | { readonly type: "CANCEL_SAVE" }
   | { readonly type: "REMOVE_ALL" };
 
-/** A file the worker tried to save and could not, with the reason. */
+/**
+ * A file the worker tried to save and could not, with the reason. `quota` means the browser refused the space, and
+ * `storage` that it refused the write for another reason.
+ */
 export interface Problem {
   readonly path: string;
-  readonly reason: "different-bytes" | "no-build-mark" | "not-storable" | "network";
+  readonly reason: "different-bytes" | "no-build-mark" | "not-storable" | "network" | "quota" | "storage";
 }
 
-/** How much of the build this worker's cache holds, and what it could not save. */
+/** A file SAVE_ALL could not save; `other-build` means the server already holds a newer deploy's file. */
+export interface SaveProblem {
+  readonly path: string;
+  readonly reason: Problem["reason"] | "other-build";
+}
+
+/** The reader's complete saved copy: when it was saved, for which build, and how much it holds. */
+export interface SavedCopy {
+  readonly at: number;
+  readonly build: string;
+  readonly files: number;
+  readonly bytes: number;
+}
+
+/** How far a running SAVE_ALL has got: files and bytes stored out of the build's list, and files that failed. */
+export interface SaveProgress {
+  readonly type: "SAVE_PROGRESS";
+  readonly done: number;
+  readonly total: number;
+  readonly bytes: number;
+  readonly failed: number;
+}
+
+/**
+ * The end of a SAVE_ALL. `saved` holds every listed file; `partial` stopped with files missing, listed in `failed`;
+ * `cancelled` stopped at CANCEL_SAVE or REMOVE_ALL; `refused` never started, because this worker is not the active
+ * one (`not-active`) or the saved copy is being removed (`busy`). A `partial` save carries `quota` or `storage` when the
+ * browser refused a write.
+ */
+export interface SaveDone {
+  readonly type: "SAVE_DONE";
+  readonly result: "saved" | "partial" | "cancelled" | "refused";
+  readonly reason?: "not-active" | "busy" | "quota" | "storage";
+  readonly saved: SavedCopy | null;
+  readonly failed: readonly SaveProblem[];
+}
+
+/** The answer to REMOVE_ALL: whether the saved copy was removed, which only the active worker does. */
+export interface RemovedReply {
+  readonly type: "REMOVED";
+  readonly removed: boolean;
+}
+
+/** How much of the build this worker's cache holds, the reader's saved copy, and what it could not save. */
 export interface StatusReply {
   readonly type: "STATUS";
   readonly build: string;
   readonly total: { readonly files: number; readonly bytes: number };
-  readonly saved: { readonly files: number; readonly bytes: number };
+  /** The listed files the cache holds now, however they got there. */
+  readonly stored: { readonly files: number; readonly bytes: number };
   readonly shell: { readonly files: number; readonly saved: number };
+  /** The complete saved copy, or null when none was saved or a file of it is gone. */
+  readonly saved: SavedCopy | null;
+  /** A save that started and did not finish, with when it started; null once a save completes or is removed. */
+  readonly partial: { readonly at: number } | null;
+  /** A complete saved copy of an older build that this build carried over, while this build has none of its own. */
+  readonly previous: { readonly at: number; readonly build: string } | null;
+  /** The progress of a SAVE_ALL that is running now. */
+  readonly saving: Omit<SaveProgress, "type"> | null;
   /** Pages stored although a CDN changed their bytes, because they still carry this build's mark. */
   readonly rewritten: readonly string[];
   readonly failed: readonly Problem[];
@@ -139,16 +210,47 @@ export interface SavedReply {
   readonly failed: readonly Problem[];
 }
 
-/** The answer to a message this build's worker does not carry out yet. */
-export interface UnsupportedReply {
-  readonly type: "UNSUPPORTED";
-  readonly request: InboundMessage["type"];
+/** What handleMessage returns: a reply to post back, a request to skip waiting, or nothing to answer. */
+export type MessageOutcome =
+  | StatusReply
+  | SavedReply
+  | SaveDone
+  | RemovedReply
+  | { readonly type: "SKIP_WAITING" }
+  | null;
+
+/** What a message's sender gives handleMessage: where to post progress while a SAVE_ALL runs. */
+export interface MessageContext {
+  readonly post?: (message: SaveProgress) => void;
 }
 
-/** What handleMessage returns: a reply to post back, a request to skip waiting, or nothing for a malformed message. */
-export type MessageOutcome = StatusReply | SavedReply | UnsupportedReply | { readonly type: "SKIP_WAITING" } | null;
+const MESSAGE_TYPES = new Set<string>(["STATUS", "SKIP_WAITING", "SAVE_PAGE", "SAVE_ALL", "CANCEL_SAVE", "REMOVE_ALL"]);
 
-const MESSAGE_TYPES = new Set<string>(["STATUS", "SKIP_WAITING", "SAVE_PAGE", "SAVE_ALL", "REMOVE_ALL"]);
+/** The fields of a message's sender this module reads: a page's tab is a "window" client with a frame type. */
+export interface MessageSource {
+  readonly type?: string;
+  readonly frameType?: string;
+  readonly url?: string;
+}
+
+/**
+ * True when a message comes from a tab or window of `origin`, and false for a frame, a worker or anything else. Only
+ * this origin's pages can message the worker; the check keeps that true if a browser ever widens it, and keeps a page
+ * of the book that another site frames from starting a download or removing the reader's copy.
+ */
+export function fromBookWindow(
+  origin: string,
+  event: { readonly origin: string; readonly source: MessageSource | null },
+): boolean {
+  const { source } = event;
+  if (event.origin !== origin || !source || source.type !== "window") return false;
+  if (source.frameType !== "top-level" && source.frameType !== "auxiliary") return false;
+  try {
+    return new URL(source.url ?? "").origin === origin;
+  } catch {
+    return false;
+  }
+}
 
 /** Returns the cache name for a build id. */
 export function cacheName(build: string): string {
@@ -191,10 +293,12 @@ export function normalisePath(pathname: string): string | null {
 
 /**
  * True when a response may be stored at all, before its bytes are checked: a plain same-origin 200 that sets no cookie
- * and does not forbid storing.
+ * and does not forbid storing. With `fromCache`, for a copy read back from one of the worker's own caches, a response
+ * the worker built itself also passes: a page it stamped with its build's mark has the type "default".
  */
-export function storable(response: Response): boolean {
-  if (response.status !== 200 || response.type !== "basic" || response.redirected) return false;
+export function storable(response: Response, fromCache = false): boolean {
+  const plain = response.type === "basic" || (fromCache && response.type === "default");
+  if (response.status !== 200 || !plain || response.redirected) return false;
   const control = response.headers.get("cache-control") ?? "";
   if (/(^|[\s,])(no-store|private)([\s,=]|$)/i.test(control)) return false;
   if (response.headers.has("set-cookie")) return false;
@@ -212,6 +316,20 @@ const REWRITE_ALLOWANCE = 64 * 1024;
 type Checked =
   | { readonly ok: true; readonly copy: Response; readonly rewritten: boolean }
   | { readonly ok: false; readonly reason: Problem["reason"] | "other-build" };
+
+// One SAVE_ALL while it runs: its counts, the pages to tell, and whether a page asked it to stop.
+interface SaveRun {
+  done: number;
+  total: number;
+  bytes: number;
+  readonly failed: SaveProblem[];
+  readonly listeners: Set<(message: SaveProgress) => void>;
+  cancelled: boolean;
+  result: Promise<SaveDone>;
+}
+
+const isQuotaError = (error: unknown) =>
+  typeof error === "object" && error !== null && (error as { name?: unknown }).name === "QuotaExceededError";
 
 /** The service worker for one build. */
 export class OfflineWorker {
@@ -234,6 +352,10 @@ export class OfflineWorker {
   #olderLoaded = false;
   readonly #olderLoad: Promise<void>;
   #records: Promise<unknown> = Promise.resolve();
+  // Set once activate has run in this instance; after a restart the pending record says whether this worker activated.
+  #activated = false;
+  #saving: SaveRun | null = null;
+  #removing: Promise<RemovedReply> | null = null;
 
   constructor(build: OfflineBuild, deps: WorkerDeps) {
     this.#build = build;
@@ -289,9 +411,9 @@ export class OfflineWorker {
    * passes; the copy returned then carries this build's mark, so a cache only ever holds this build's exact page. A
    * page a CDN rewrote passes only while it carries this build's mark, and is kept as it arrived.
    */
-  async #check(key: string, response: Response): Promise<Checked> {
+  async #check(key: string, response: Response, fromCache = false): Promise<Checked> {
     const file = this.#files.get(new URL(key).pathname);
-    if (!file || !storable(response)) return { ok: false, reason: "not-storable" };
+    if (!file || !storable(response, fromCache)) return { ok: false, reason: "not-storable" };
     const copy = response.clone();
     const bytes = new Uint8Array(await response.clone().arrayBuffer());
     if (!file.html) {
@@ -324,15 +446,26 @@ export class OfflineWorker {
    * response from another build is never a failure. Returns whether it was stored.
    */
   async store(key: string, response: Response, report = false): Promise<boolean> {
+    return (await this.#put(key, response, report)) === null;
+  }
+
+  // Stores a checked response and returns null, or returns why it was not stored. A write the browser refuses throws.
+  async #put(
+    key: string,
+    response: Response,
+    report: boolean,
+    fromCache = false,
+  ): Promise<SaveProblem["reason"] | null> {
     const path = new URL(key).pathname;
-    const checked = await this.#check(key, response);
+    const checked = await this.#check(key, response, fromCache);
     if (!checked.ok) {
       if (report && checked.reason !== "other-build") await this.#problem(path, checked.reason);
-      return false;
+      return checked.reason;
     }
     await (await this.#cache()).put(key, checked.copy);
-    await this.#problem(path, checked.rewritten ? "rewritten" : null);
-    return true;
+    // The file is stored; a full disk that refuses the small problems record does not undo that.
+    await this.#problem(path, checked.rewritten ? "rewritten" : null).catch(() => undefined);
+    return null;
   }
 
   #cache(): Promise<CacheLike> {
@@ -354,10 +487,7 @@ export class OfflineWorker {
   // last write always holds the latest state.
   #write(path: string, value: () => unknown): Promise<void> {
     const next = this.#records.then(async () => {
-      await (await this.#cache()).put(
-        `${this.#deps.origin}${path}`,
-        new Response(JSON.stringify(value()), { headers: { "content-type": "application/json" } }),
-      );
+      await (await this.#cache()).put(`${this.#deps.origin}${path}`, jsonResponse(value()));
     });
     this.#records = next.catch(() => undefined);
     return next;
@@ -416,6 +546,7 @@ export class OfflineWorker {
    * still carries this build's mark is stored and reported as rewritten.
    */
   async install(): Promise<void> {
+    this.#activated = false;
     const cache = await this.#cache();
     await this.#write(PENDING_RECORD, () => ({ since: this.#now() }));
     await this.#carryOver(cache);
@@ -429,31 +560,52 @@ export class OfflineWorker {
 
   // Fetches a listed file, revalidating past the HTTP cache, and stores it if it is this build's; records a failure.
   async #saveFromNetwork(key: string): Promise<boolean> {
+    return (await this.#fetchAndStore(key)) === null;
+  }
+
+  // As #saveFromNetwork, returning why the file was not stored. A write the browser refuses throws.
+  async #fetchAndStore(key: string): Promise<SaveProblem["reason"] | null> {
     // no-cache revalidates with the server, so an HTTP cache entry from an older deploy is never taken as current.
     const request = new Request(key, { cache: "no-cache", credentials: "same-origin", redirect: "error" });
     let response: Response;
     try {
       response = await this.#deps.fetch(request);
     } catch {
-      await this.#problem(new URL(key).pathname, "network");
-      return false;
+      await this.#problem(new URL(key).pathname, "network").catch(() => undefined);
+      return "network";
     }
-    return this.store(key, response, true);
+    return this.#put(key, response, true);
   }
 
   // Copies unchanged files from older builds' caches, so an update keeps the pages a reader already saved. Only exact
-  // bytes carry over: a rewritten page carries another build's mark.
+  // bytes carry over: a rewritten page carries another build's mark. An older build's complete saved copy is
+  // remembered, so the control can offer to update it.
   async #carryOver(cache: CacheLike): Promise<void> {
+    let previous: { at: number; build: string } | null = null;
     for (const name of await this.#deps.caches.keys()) {
       if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
       const older = await this.#deps.caches.open(name);
+      // The reader removed the saved copy since this cache was filled, so nothing in it is carried back.
+      if (await older.match(`${this.#deps.origin}${REMOVED_RECORD}`)) continue;
+      const copy = savedRecord(
+        await readJson(await older.match(`${this.#deps.origin}${SAVED_RECORD}`)),
+        name.slice(CACHE_PREFIX.length),
+      );
+      // An older build may itself hold a carried-over copy that the reader never updated, after two deploys or more.
+      const carried = previousRecord(await readJson(await older.match(`${this.#deps.origin}${PREVIOUS_RECORD}`)));
+      for (const found of [copy?.complete ? { at: copy.at, build: copy.build } : null, carried]) {
+        if (found && (!previous || found.at > previous.at)) previous = found;
+      }
       for (const request of await older.keys()) {
         const key = this.keyFor(request.url);
         if (!key || (await cache.match(key))) continue;
         const response = await older.match(key);
-        if (response) await this.store(key, response);
+        // A page an older worker stamped with its own mark was built by that worker, so it is a "default" response.
+        if (response) await this.#put(key, response, false, true);
       }
     }
+    const found = previous;
+    if (found) await this.#write(PREVIOUS_RECORD, () => found);
   }
 
   /**
@@ -464,9 +616,17 @@ export class OfflineWorker {
   async activate(): Promise<void> {
     const open = new Set(this.#deps.openClients ? await this.#deps.openClients() : []);
     this.#olderClients = new Map();
+    // The newest complete copy an older build saved, read before its cache may go, so a save made after a Remove wins.
+    let newest: { at: number; build: string } | null = null;
     for (const name of await this.#deps.caches.keys()) {
       if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
-      const response = await (await this.#deps.caches.open(name)).match(`${this.#deps.origin}${CLIENTS_RECORD}`);
+      const older = await this.#deps.caches.open(name);
+      const copy = savedRecord(
+        await readJson(await older.match(`${this.#deps.origin}${SAVED_RECORD}`)),
+        name.slice(CACHE_PREFIX.length),
+      );
+      if (copy?.complete && (!newest || copy.at > newest.at)) newest = { at: copy.at, build: copy.build };
+      const response = await older.match(`${this.#deps.origin}${CLIENTS_RECORD}`);
       let ids: unknown = [];
       try {
         ids = response ? await response.json() : [];
@@ -478,8 +638,47 @@ export class OfflineWorker {
       else for (const id of kept) this.#olderClients.set(id, name);
     }
     this.#olderLoaded = true;
+    // The reader removed the saved copy while this build waited, after install had carried it over. The mark carries
+    // its time: a complete copy an older build saved after it means the reader saved again, so the carried files stay
+    // and that copy becomes the one to update.
+    const cache = await this.#cache();
+    const removed = await readJson(await cache.match(`${this.#deps.origin}${REMOVED_RECORD}`));
+    if (removed !== null) {
+      const at = (removed as { at?: unknown }).at;
+      const resaved = newest && typeof at === "number" && newest.at > at ? newest : null;
+      if (resaved) {
+        await cache.delete(`${this.#deps.origin}${REMOVED_RECORD}`);
+        await this.#write(PREVIOUS_RECORD, () => resaved);
+      } else await this.#purge(cache);
+    }
     await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
     await this.#write(PENDING_RECORD, () => ({ since: null }));
+    this.#activated = true;
+  }
+
+  // Whether this worker is the registration's active one: it activated in this instance, the browser says so, or its
+  // cache exists and holds a cleared pending mark, which install writes and activate clears. Without the browser's word,
+  // a worker whose cache the browser evicted has no mark to read, so it refuses until a later activation.
+  async #isActive(): Promise<boolean> {
+    if (this.#activated) return true;
+    const told = this.#deps.isActive?.();
+    if (told !== undefined) return told;
+    if (!(await this.#cacheExists())) return false;
+    const record = await this.#read<{ since?: unknown } | null>(PENDING_RECORD, null);
+    return record !== null && typeof record === "object" && record.since === null;
+  }
+
+  // Whether this save's cache is still the one it started in. A later worker's activation may delete it, and a file in
+  // flight may then write it back, but never with the saved record this save wrote first.
+  // It opens the cache by name each time, because a Cache object a save already holds goes on naming the deleted one.
+  async #stillSaving(): Promise<boolean> {
+    if (!(await this.#cacheExists())) return false;
+    return (await (await this.#cache()).match(`${this.#deps.origin}${SAVED_RECORD}`)) !== undefined;
+  }
+
+  // Opening a cache creates it, so a save checks first that a later worker's activation has not deleted it.
+  async #cacheExists(): Promise<boolean> {
+    return (await this.#deps.caches.keys()).includes(this.cacheName);
   }
 
   #now(): number {
@@ -639,8 +838,11 @@ export class OfflineWorker {
     return Response.error();
   }
 
-  /** Answers a page's message; anything that is not one of the five message shapes is ignored. */
-  async handleMessage(data: unknown): Promise<MessageOutcome> {
+  /**
+   * Answers a page's message; anything that is not one of the six message shapes is ignored. CANCEL_SAVE gets no reply
+   * of its own: the SAVE_ALL it stops answers with `cancelled`.
+   */
+  async handleMessage(data: unknown, context: MessageContext = {}): Promise<MessageOutcome> {
     if (typeof data !== "object" || data === null) return null;
     const type = (data as { type?: unknown }).type;
     if (typeof type !== "string" || !MESSAGE_TYPES.has(type)) return null;
@@ -651,7 +853,216 @@ export class OfflineWorker {
       if (!Array.isArray(paths) || paths.length > SAVE_PAGE_LIMIT) return null;
       return this.savePage(paths.filter((path): path is string => typeof path === "string"));
     }
-    return { type: "UNSUPPORTED", request: type as InboundMessage["type"] };
+    if (type === "SAVE_ALL") return this.saveAll(context.post);
+    if (type === "CANCEL_SAVE") {
+      this.cancelSave();
+      return null;
+    }
+    return this.removeAll();
+  }
+
+  /**
+   * Saves every file of this build's list that the cache does not hold yet, `SAVE_CONCURRENCY` at a time, checking
+   * each as any store does, and posts progress to `post` after each file. A SAVE_ALL that arrives while one runs joins
+   * it instead of starting another. Only the active worker saves, so a waiting build never fills its cache before the
+   * reader presses Reload. The saved record is written only once every listed file is stored; a save that stops early
+   * leaves a partial record, and the next SAVE_ALL skips the files already stored.
+   */
+  saveAll(post?: (message: SaveProgress) => void): Promise<SaveDone> {
+    const running = this.#saving;
+    if (running) {
+      if (post) {
+        running.listeners.add(post);
+        post(progressOf(running));
+      }
+      return running.result;
+    }
+    if (this.#removing) return Promise.resolve(refused("busy"));
+    const run: SaveRun = {
+      done: 0,
+      total: this.#files.size,
+      bytes: 0,
+      failed: [],
+      listeners: new Set(post ? [post] : []),
+      cancelled: false,
+      result: Promise.resolve(refused("not-active")),
+    };
+    // Set before the first await, so a second SAVE_ALL that arrives meanwhile joins this one.
+    this.#saving = run;
+    run.result = this.#runSave(run).finally(() => {
+      this.#saving = null;
+    });
+    return run.result;
+  }
+
+  /** Stops a running SAVE_ALL once the files it is downloading now are done; the files already stored stay. */
+  cancelSave(): void {
+    if (this.#saving) this.#saving.cancelled = true;
+  }
+
+  // Always resolves: a refused write anywhere, the records included, ends the save as partial with its reason, so the
+  // page that asked always gets an answer.
+  async #runSave(run: SaveRun): Promise<SaveDone> {
+    try {
+      return await this.#saveFiles(run);
+    } catch (error) {
+      const reason = isQuotaError(error) ? "quota" : "storage";
+      return { type: "SAVE_DONE", result: "partial", reason, saved: null, failed: run.failed };
+    }
+  }
+
+  async #saveFiles(run: SaveRun): Promise<SaveDone> {
+    if (!(await this.#isActive())) return refused("not-active");
+    const started = this.#now();
+    const cache = await this.#cache();
+    await this.#write(SAVED_RECORD, () => ({ at: started, build: this.#build.build, complete: false }));
+    const stored = await this.#storedPaths(cache);
+    for (const path of stored) {
+      run.done++;
+      run.bytes += this.#files.get(path)?.size ?? 0;
+    }
+    const emit = () => {
+      const message = progressOf(run);
+      for (const listener of run.listeners) {
+        try {
+          listener(message);
+        } catch {
+          // A page that has closed cannot be told; the save goes on for the others.
+        }
+      }
+    };
+    emit();
+    const queue = [...this.#files.keys()].filter((path) => !stored.has(path));
+    let stopped: "quota" | "gone" | null = null;
+    const next = async (): Promise<void> => {
+      for (let path = queue.shift(); path !== undefined; path = queue.shift()) {
+        if (run.cancelled || stopped) return;
+        if (!(await this.#stillSaving())) {
+          stopped = "gone";
+          return;
+        }
+        try {
+          const reason = await this.#fetchAndStore(`${this.#deps.origin}${path}`);
+          if (reason === null) {
+            run.done++;
+            run.bytes += this.#files.get(path)?.size ?? 0;
+          } else run.failed.push({ path, reason });
+        } catch (error) {
+          // The browser refused the write. A full quota stops the save, since every later write would fail too.
+          const reason = isQuotaError(error) ? "quota" : "storage";
+          run.failed.push({ path, reason });
+          await this.#problem(path, reason).catch(() => undefined);
+          if (reason === "quota") stopped = "quota";
+        }
+        emit();
+      }
+    };
+    await Promise.all(Array.from({ length: SAVE_CONCURRENCY }, next));
+    // A later worker's activation deleted this cache. The files in flight may already have written it back with at
+    // most one file each; the saved record is never written, and the next activation deletes that orphan cache.
+    if (stopped === "gone") return { type: "SAVE_DONE", result: "partial", saved: null, failed: run.failed };
+    // A cancel that came while the last file was in flight still leaves every file stored, which is a saved copy.
+    const complete = (await this.#storedPaths(cache)).size === this.#files.size;
+    if (!complete) {
+      const reason =
+        stopped === "quota"
+          ? "quota"
+          : run.failed.some((problem) => problem.reason === "storage")
+            ? "storage"
+            : undefined;
+      return {
+        type: "SAVE_DONE",
+        result: run.cancelled ? "cancelled" : "partial",
+        ...(reason ? { reason } : {}),
+        saved: null,
+        failed: run.failed,
+      };
+    }
+    const at = this.#now();
+    await this.#write(SAVED_RECORD, () => ({ at, build: this.#build.build, complete: true }));
+    await cache.delete(`${this.#deps.origin}${PREVIOUS_RECORD}`);
+    return {
+      type: "SAVE_DONE",
+      result: "saved",
+      saved: { at, build: this.#build.build, files: this.#files.size, bytes: this.#totalBytes() },
+      failed: [],
+    };
+  }
+
+  async #storedPaths(cache: CacheLike): Promise<Set<string>> {
+    const stored = new Set<string>();
+    for (const request of await cache.keys()) {
+      const key = this.keyFor(request.url);
+      if (key) stored.add(new URL(key).pathname);
+    }
+    return stored;
+  }
+
+  #totalBytes(): number {
+    let bytes = 0;
+    for (const file of this.#files.values()) bytes += file.size;
+    return bytes;
+  }
+
+  /**
+   * Removes the reader's saved copy. It stops a running save and deletes every file of this build's cache but the
+   * shell, so the book still opens. It clears the saved record and the problems of the files it deleted, and deletes
+   * the older builds' caches that activate kept once no page of theirs is open; a cache an open page of an older build
+   * still reads stays until that page closes. Only the active worker removes anything, and a refused delete answers
+   * `removed: false`.
+   */
+  removeAll(): Promise<RemovedReply> {
+    this.#removing ??= this.#remove().finally(() => {
+      this.#removing = null;
+    });
+    return this.#removing;
+  }
+
+  async #remove(): Promise<RemovedReply> {
+    try {
+      return await this.#removeFiles();
+    } catch {
+      return { type: "REMOVED", removed: false };
+    }
+  }
+
+  async #removeFiles(): Promise<RemovedReply> {
+    if (!(await this.#isActive())) return { type: "REMOVED", removed: false };
+    const running = this.#saving;
+    if (running) {
+      running.cancelled = true;
+      await running.result.catch(() => undefined);
+    }
+    await this.#purge(await this.#cache());
+    // Another build's cache can bring the copy back: a waiting build carried the files over and records them as
+    // `previous`, and an older cache an open tab still reads holds its saved record for the next install to find.
+    // This worker knows neither build's shell, so it deletes their records and marks them removed: install carries
+    // nothing over from a marked cache, and a marked cache's own worker purges it when it activates.
+    for (const name of await this.#deps.caches.keys()) {
+      if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
+      const other = await this.#deps.caches.open(name);
+      await other.delete(`${this.#deps.origin}${SAVED_RECORD}`);
+      await other.delete(`${this.#deps.origin}${PREVIOUS_RECORD}`);
+      await other.put(`${this.#deps.origin}${REMOVED_RECORD}`, jsonResponse({ at: this.#now() }));
+    }
+    await this.pruneOlder();
+    return { type: "REMOVED", removed: true };
+  }
+
+  // Deletes every file of this build's cache but the shell, the saved, previous and removed records, and the problems
+  // of the deleted files.
+  async #purge(cache: CacheLike): Promise<void> {
+    const shell = new Set(this.#build.shell);
+    for (const path of await this.#storedPaths(cache)) {
+      if (!shell.has(path)) await cache.delete(`${this.#deps.origin}${path}`);
+    }
+    for (const record of [SAVED_RECORD, PREVIOUS_RECORD, REMOVED_RECORD]) {
+      await cache.delete(`${this.#deps.origin}${record}`);
+    }
+    const problems = await this.#loadProblems();
+    const before = problems.size;
+    for (const path of [...problems.keys()]) if (!shell.has(path)) problems.delete(path);
+    if (problems.size !== before) await this.#write(PROBLEMS_RECORD, () => Object.fromEntries(problems));
   }
 
   /**
@@ -685,11 +1096,7 @@ export class OfflineWorker {
   async status(): Promise<StatusReply> {
     await this.pruneOlder().catch(() => undefined);
     const cache = await this.#cache();
-    const saved = new Set<string>();
-    for (const request of await cache.keys()) {
-      const key = this.keyFor(request.url);
-      if (key) saved.add(new URL(key).pathname);
-    }
+    const saved = await this.#storedPaths(cache);
     let totalBytes = 0;
     let savedBytes = 0;
     for (const [path, file] of this.#files) {
@@ -697,16 +1104,71 @@ export class OfflineWorker {
       if (saved.has(path)) savedBytes += file.size;
     }
     const entries = [...(await this.#loadProblems())].filter(([path]) => this.#files.has(path));
+    const origin = this.#deps.origin;
+    const record = savedRecord(await readJson(await cache.match(`${origin}${SAVED_RECORD}`)), this.#build.build);
+    // A copy counts as saved only while the cache still holds every listed file, so an eviction shows as not saved. A
+    // full cache is saved even if its record says partial, as when the worker stopped before the closing write.
+    const whole = record !== null && saved.size === this.#files.size;
+    const previous = whole ? null : previousRecord(await readJson(await cache.match(`${origin}${PREVIOUS_RECORD}`)));
     return {
       type: "STATUS",
       build: this.#build.build,
       total: { files: this.#files.size, bytes: totalBytes },
-      saved: { files: saved.size, bytes: savedBytes },
+      stored: { files: saved.size, bytes: savedBytes },
       shell: { files: this.#build.shell.length, saved: this.#build.shell.filter((path) => saved.has(path)).length },
+      saved:
+        whole && record ? { at: record.at, build: record.build, files: this.#files.size, bytes: totalBytes } : null,
+      partial: record && !whole ? { at: record.at } : null,
+      previous,
+      saving: this.#saving ? withoutType(progressOf(this.#saving)) : null,
       rewritten: entries.filter(([path, state]) => state === "rewritten" && saved.has(path)).map(([path]) => path),
       failed: entries
         .filter(([, state]) => state !== "rewritten")
         .map(([path, reason]) => ({ path, reason: reason as Problem["reason"] })),
     };
   }
+}
+
+function progressOf(run: SaveRun): SaveProgress {
+  return { type: "SAVE_PROGRESS", done: run.done, total: run.total, bytes: run.bytes, failed: run.failed.length };
+}
+
+function withoutType({ type: _type, ...rest }: SaveProgress): Omit<SaveProgress, "type"> {
+  return rest;
+}
+
+function refused(reason: "not-active" | "busy"): SaveDone {
+  return { type: "SAVE_DONE", result: "refused", reason, saved: null, failed: [] };
+}
+
+function jsonResponse(value: unknown): Response {
+  return new Response(JSON.stringify(value), { headers: { "content-type": "application/json" } });
+}
+
+async function readJson(response: Response | undefined): Promise<unknown> {
+  if (!response) return null;
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+const BUILD_ID = /^[A-Za-z0-9_]{1,64}$/;
+
+// The saved record of `build`, or null for anything else: another build's record, or one in a shape this worker never
+// writes.
+function savedRecord(value: unknown, build: string): { at: number; build: string; complete: boolean } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { at, build: recorded, complete } = value as Record<string, unknown>;
+  if (typeof at !== "number" || !Number.isFinite(at) || recorded !== build || typeof complete !== "boolean")
+    return null;
+  return { at, build, complete };
+}
+
+function previousRecord(value: unknown): { at: number; build: string } | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { at, build } = value as Record<string, unknown>;
+  if (typeof at !== "number" || !Number.isFinite(at) || typeof build !== "string" || !BUILD_ID.test(build)) return null;
+  return { at, build };
 }

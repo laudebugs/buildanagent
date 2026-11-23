@@ -1945,3 +1945,108 @@
   outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
+
+/* The footer's "Save the manual for offline reading" control (public/scripts/save-offline.js, ADR 0059). It takes the
+   footer's whole first row. Its buttons are 44px targets on every screen, like the update notice's. It has no text
+   field, so the 16px rule for fields on a touch screen does not apply. */
+.save-offline {
+  flex: 1 1 100%;
+  box-sizing: border-box;
+  max-width: var(--measure);
+  min-width: 0;
+  margin-block-end: 1rem;
+  color: var(--color-text-soft);
+}
+
+.save-offline__title {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-display);
+  font-size: var(--size-chapter-link);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+/* The heading takes focus only when the button that held it goes away, and needs no ring for that. */
+.save-offline__title:focus {
+  outline: none;
+}
+
+.save-offline__state,
+.save-offline__detail {
+  margin: 0 0 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.save-offline__state {
+  color: var(--color-text);
+}
+
+.save-offline__progress {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 10px;
+  margin-block: 0.25rem 0.75rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.save-offline__bar {
+  block-size: 100%;
+  inline-size: 0;
+  background-color: var(--color-accent);
+}
+
+.save-offline__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.save-offline__button {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  max-inline-size: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--color-text);
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: start;
+}
+
+.save-offline__button--quiet {
+  border-color: var(--color-text-muted);
+  color: var(--color-text-soft);
+}
+
+.save-offline__button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.save-offline__button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+/* In forced colours the bar would lose its fill, so it takes the system's highlight colour. */
+@media (forced-colors: active) {
+  .save-offline__bar {
+    background-color: Highlight;
+  }
+
+  .save-offline__progress {
+    border-color: CanvasText;
+  }
+}
+
+/* On paper there is nothing to save. */
+@media print {
+  .save-offline {
+    display: none;
+  }
+}

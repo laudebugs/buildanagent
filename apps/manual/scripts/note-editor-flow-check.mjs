@@ -83,7 +83,8 @@ const state = (page) =>
       sheet: pop.hasAttribute("data-sheet"),
       activeInPop: Boolean(active?.closest(".notes-pop")),
       activeTag: active ? `${active.tagName.toLowerCase()}.${active.className}` : "none",
-      live: document.querySelector("[role='status'].visually-hidden")?.textContent ?? "",
+      // The notes' own live region; the footer's save control has another on every page.
+      live: document.querySelector("[data-notes-ui][role='status'].visually-hidden")?.textContent ?? "",
       scrollY: Math.round(scrollY),
       hovered: [...CSS.highlights.entries()].filter(([k, set]) => k.startsWith("manual-hover") && set.size).length,
       highlights: [...CSS.highlights.entries()]
