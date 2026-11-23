@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `mcp`, `server` and `testing` are built. `memory`, `telemetry` and `ablation` are empty stubs that hold their place until their components arrive.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry` and `testing` are built. `ablation` is an empty stub that holds its place until its component arrives.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -196,7 +196,7 @@ A tool that needs a credential uses a route. `routes` lists, for each one, a nam
 
 The secret is read for each request, so a rotated key is used at once, and it never enters the sandbox's environment, a log record or a response from the proxy.
 
-`proxy.fetch(input, init)` is for tools that run in the harness's own process, which a network sandbox doesn't confine. It applies the same allowlist, address check and pinned connection, and it rejects with `egress_denied` for a host that isn't allowed. It uses HTTPS only and doesn't follow redirects, so each hop is a new call that the allowlist checks. A URL under `proxy.url`, or under `http://egress.proxy`, which also works on a Unix socket, is a route request with the same injection. An aborted signal rejects with its reason.
+`proxy.fetch(input, init)` is for tools that run in the harness's own process, which a network sandbox doesn't confine. It applies the same allowlist, address check and pinned connection, and it rejects with `egress_denied` for a host that isn't allowed. It uses HTTPS only and doesn't follow redirects, so each hop is a new call that the allowlist checks. An upstream status outside 200 to 599, which Node parses and a Web `Response` refuses, rejects with `egress_denied`, closes the upstream connection and is logged with the reason `bad_status`. An answer that breaks after it has begun is logged once, when it closes. A URL under `proxy.url`, or under `http://egress.proxy`, which also works on a Unix socket, is a route request with the same injection. An aborted signal rejects with its reason.
 
 `scrubSecrets(entry, secrets)` returns a copy of a session entry with each secret replaced by `[REDACTED]`, in every string and key at any depth, and also when the secret was percent-encoded, JSON-escaped or turned into base64, alone or inside a longer value such as a Basic authorization header. An entry's `type`, `id`, `parentId`, `seq`, `timestamp`, `origin` and `formatVersion` are never rewritten. Apply it before every append, with `await proxy.knownSecrets()` and the tokens and session URLs of any hosted-browser, CDP or OAuth connector tool, because the scrubber can only remove a secret it is told about.
 
@@ -408,7 +408,7 @@ const { archived, purged, kept, skipped, errors } = await pruneSessions({
 });
 ```
 
-The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. The [session format page](docs/session-format.md#nothing-expires-unless-you-set-a-retention-period) says where the archive is, and it has the [disk-cost projection](docs/session-format.md#what-a-month-of-sessions-costs-on-disk).
+The package sets no default period, and `days` must be a positive number or the call throws `invalid_retention`. Pass the memory extension's purge list as `marks`, and the result says which marks a purge removed with their sessions (`purgedMarks`) and which archived sessions still hold marked entries (`markedArchives`) for `purgeSession()`: an archive keeps a marked entry as it is. The [session format page](docs/session-format.md#nothing-expires-unless-you-set-a-retention-period) says where the archive is, and it has the [disk-cost projection](docs/session-format.md#what-a-month-of-sessions-costs-on-disk).
 
 ## `runTurn()` writes one SDK run into the log, and the user entry goes first
 
@@ -644,6 +644,38 @@ A test file is a code file (such as `.ts`, `.js`, `.py`, `.go`, `.rs`, `.java` o
 
 **The diff needs a way to snapshot the workspace.** The default, `gitSnapshotter`, lists `git ls-files --cached --others --exclude-standard` in the sandbox and reads each file up to 256 KiB as UTF-8 text, at most 5,000 files. The second snapshot reads the first one's paths again and adds the new ones. A file left out for its size, its encoding or the cap, or one it could not read for any reason but its absence (a policy refusal, a sandbox error), is ignored by the diff, so none is reported as deleted. The listing and each read stop after 60 seconds (`SNAPSHOT_TIMEOUT_MS`), and a read that times out is skipped. In a workspace that is no repository, or when the listing times out, it returns nothing, and the entry then has checks and no diff flags. Pass `snapshotter` in `completion` to diff another way.
 
+## The log projects to OpenTelemetry spans with content off, and a meter warns at 80% of the session cap
+
+Telemetry is a projection of the log, so it never becomes a second record: `projectSpans()` from `@buildanagent/harness/telemetry` turns a session's entries into spans, and the same entries give the same spans in any process, on any day. A change to what you export needs no change to what you store, and a session recorded before you added a backend can still be traced.
+
+```ts
+import { context, type Span, trace } from "@opentelemetry/api";
+await projectSpans(loggedEntries, {
+  tracer: trace.getTracer("my-agent"),
+  childContext: (parent) => trace.setSpan(context.active(), parent as Span),
+});
+```
+
+The harness imports nothing from OpenTelemetry, so you pass `childContext` to build each child's context.
+
+**The tree has four levels.** `invoke_agent` covers the session. Under it, a `turn` span covers each run or resume, with the run id, the mode (`run` or `continue`), the stop reason and the step count. Under a turn, a `chat` span covers each model call, from the entry before the answer's first block to its `message_end`, and an `execute_tool` span covers each tool call, from the `message_end` that asked for it to its `tool_result`. A call that waited for a person has an `approval_wait` span beneath it, from the `approval_requested` entry to the `approval_resolved` entry, with the request id and the decision. A tool span is a sibling of the model call that asked for it, as in the SDK's live observer. A call that waited ends in the turn that resumed it, so its span can outlive the turn that started it.
+
+**Special calls and damaged logs get their own spans.** A summary or judge call writes a `chat` span with `buildanagent.usage.source` set to `summary` or `judge`. A host's code call (a `code_call` entry) writes an `execute_tool` span with `buildanagent.tool.code_call` set to `true`. The spans carry the entries' own timestamps, so a duration is what the log recorded. Only an entry right after a message's end prices that message's call; any other model-call `usage` entry belongs to a superseded call and gets its own `chat` span. A span whose closing entry is missing closes at the log's last timestamp and carries `buildanagent.span.unfinished`. Three cases leave a span unfinished: a call still waiting when the log ends, a turn that no `turn_end` closed, and a model call that streamed blocks and never reached its `message_end`, as after a crash.
+
+**The attribute names come from the SDK, and ours sit in their own namespace.** The conventions' names and the pinned commit (`d28355d`, as of November 2026) come from `@buildanagent/sdk/otel`, which the live observer shares, so a rename upstream is one change. `gen_ai.usage.input_tokens` counts every input token, cached ones included, and the cache split uses the conventions' own `gen_ai.usage.cache_read.input_tokens` and `gen_ai.usage.cache_write.input_tokens`, which the SDK's live observer writes too. No convention names cost, so `buildanagent.cost.usd` holds the price of a call, and the sum on a turn and on the session's root span, with `buildanagent.cost.basis` of `provider`, `catalog` or `unknown`. A price that is unknown has the basis `unknown` and no `buildanagent.cost.usd`, and so does every sum that includes it. A usage the provider did not report writes no token counts. The root span also carries `buildanagent.semconv.genai.commit`; a tracer provider's resource is yours, so stamp the same value there if you want it on every span. `BUILDANAGENT_ATTRIBUTES` lists our names.
+
+**Content is off until you ask for it.** With the defaults, no span holds a prompt, a message, a tool argument or a tool result. `content: "attributes"` writes the system prompt, the messages of each call and each tool's result as the conventions' content attributes. A call's messages are what the model was sent, rebuilt from the log the way a resume rebuilds them: after a compaction they are the summary and the messages it kept, and a host code call's result is never among them. `content: "refs"` writes `buildanagent.content.ref` instead, the ids of the entries that hold the content: the turn's system prompt, the compaction that applies, the entry each input message starts at and the answer's own entries. A backend that can fetch entries from the session store holds no text this way. Tool arguments have their own switch, `toolArguments`, which is off by default and independent of `content`, because arguments carry what a user asked for: a path, a query, a customer id. With `content: "attributes"` and `toolArguments: false`, the messages show each tool call's name and leave its arguments out.
+
+**`hashAttributes` keeps a value out of the export and keeps spans groupable.** Name the attributes in `hashAttributes: { key, names }`, and each named attribute carries the HMAC-SHA-256 of its value under `key`, as lower-case hex, instead of the value. Two spans with the same value get the same hash, so a backend can still group by user or tool. A string is hashed as it is, a number or boolean as its text and a list as its JSON. A span's name leaves out a hashed tool name or request model, which it would otherwise repeat. At content level `attributes` the messages repeat a tool's name, call id, arguments and result in plain text, so `projectSpans()` throws a `HarnessError` with code `invalid_telemetry_options` when `hashAttributes` names any content attribute, or the tool's name or call id, at that level; use `refs` or `none`. The key never leaves your process; if you lose it, hashes made with it can no longer be matched against new ones.
+
+**A meter folds the `usage` entries and warns once.** `createBudgetMeter({ capUsd, warnAt, onWarning })` adds each call's cost with `record` or `observe`, and calls `onWarning` once, with the `budget_warning` event the harness sends clients, when the spend first reaches `warnAt` of the cap (80% by default).
+
+```ts
+const meter = createBudgetMeter({ capUsd: 5, onWarning: ({ spentUsd, capUsd }) => console.log(spentUsd, capUsd) });
+```
+
+The `remainingUsd` method returns the cap less the spend, never below zero, to pass as a turn's `budgetUsd`. A call whose price is unknown makes the spend unknown for good: the meter never warns again, and `remainingUsd` throws a `HarnessError` with code `budget_unknown`, because a turn with a limit it cannot measure against has no limit. `budgetMeterFromEntries(entries, options)` rebuilds the meter from a branch after a restart. It stays quiet about spend the log already holds, since a client that heard the warning once need not hear it again, and warns once if later calls reach the threshold. The meter reports and the caller enforces: nothing here stops a turn, and the SDK's per-call check against `budgetUsd` does that.
+
 ## An extension adds hooks and tools in the harness's own process, and project trust only gates loading
 
 An `Extension` from `@buildanagent/harness/extensions` is a name, a version, and any of `interceptors`, `observers` and `tools`. It runs in the harness's process with the harness's permissions, so loading one is a trust decision and nothing more: **trust is not a sandbox.** The permission pipeline still decides every call an extension's tool makes, and an extension's own hooks can do anything the process can.
@@ -731,6 +763,7 @@ The harness reads the list one page at a time and stops at the page that passes 
 - `aborted`: the turn's signal fired.
 - `input_required`: the server asked for input from the user, which this harness does not supply yet.
 - `server_error`: the server answered with an error, and its message is cut to 500 characters.
+- `disabled`: the tool is new, changed or removed since it was pinned, and the call never reached the server.
 
 A server that fails to start, or to finish its handshake within `connectTimeoutMs` (default 30,000 ms), fails to connect with `mcp_connect_failed`. A stdio server's line over `maxLineBytes` (default 8 MiB) closes the connection, and a line that is not a JSON object is dropped and logged. Only the newest `maxStderrBytes` (default 64 KiB) of its standard error are kept, for `connection.stderr()`, and they never reach the model.
 
@@ -740,9 +773,74 @@ A server that fails to start, or to finish its handshake within `connectTimeoutM
 
 **One switch turns MCP off.** With `createMcpManager({ ..., mcp: false })`, `connect()` resolves with an empty list, starts no server and registers nothing.
 
-**A session records which servers ran.** `manager.records()` gives one `extension_loaded` record of tier `mcp` per connected server, in config order; pass them in `extensionRecords` to `createHarness()`, and a turn writes an entry for each record its session's log does not hold yet. A record holds the server's name, the transport kind, the era, and two hashes: one of the command and its args, for a stdio server, and one of the tools as registered, each tool's name, description and input schema, sorted by name. It never holds an argument or an environment value, because either can carry a token, and a server that failed to connect has no record. The command hash is not salted, so anyone who reads the log can check a guess at an argument, such as a short PIN or a token of a known format, by hashing it; put every secret in `setEnv`, never in `args`. Every hash is `sha256:` and the SHA-256 of canonical JSON, so an unchanged server records the same hashes on every connect.
+**A session records which servers ran.** `manager.records()` gives one `extension_loaded` record of tier `mcp` per connected server, in config order; pass them in `extensionRecords` to `createHarness()`, and a turn writes an entry for each record its session's log does not hold yet. A record holds the server's name, the transport kind, the era, and two hashes: one of the command and its args, for a stdio server, or of the URL, for a remote one, and one of the tools as registered, each tool's name, description and input schema, sorted by name. It never holds an argument or an environment value, because either can carry a token, and a server that failed to connect has no record. The command hash is not salted, so anyone who reads the log can check a guess at an argument, such as a short PIN or a token of a known format, by hashing it; put every secret in `setEnv`, never in `args`. Every hash is `sha256:` and the SHA-256 of canonical JSON, so an unchanged server records the same hashes on every connect.
 
-Three limits remain. A server's notice that its tool list changed is logged through `log`, and its tools stay as registered at connect. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own MCP config, which needs project trust, is todo N54.
+Two limits remain. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own MCP config, which needs project trust, is todo N54.
+
+## A remote server is reached over HTTPS to a public address, and every byte it sends is bounded
+
+A server with `transport: { kind: "http", url }` speaks MCP's streamable HTTP transport, and the era is negotiated as for any other server. `kind: "sse"` is the HTTP+SSE transport of the 2024-11-05 revision, which MCP has deprecated since 2025-03-26; it is for legacy servers only, so the harness connects in the legacy era with no probe. A remote server is untrusted code on another machine, and the harness reaches it with its own network identity, so the URL, every address the URL's name resolves to and every byte that comes back are checked. The client library supplies both transports, and the harness's own guarded fetch sends every request they make. This example, `examples/mcp-remote.ts`, reaches a server through the egress proxy with a token the host read from its secret store, and puts the manager at the turn boundary:
+
+```ts
+export function trackerHarness(registry: ToolRegistry, model: Model, proxy: McpEgressFetch, token: string) {
+  const manager = createMcpManager({
+    registry,
+    servers: [
+      {
+        name: "tracker",
+        transport: {
+          kind: "http",
+          url: "https://mcp.tracker.example/mcp",
+          headers: { Authorization: `Bearer ${token}` },
+          proxy,
+        },
+        exposure: "direct",
+      },
+    ],
+    pins: memoryMcpPinStore(),
+  });
+  manager.start();
+  const pipeline = createPermissionPipeline(
+    { mode: "default", hooks: [manager.permissionHook()], interactive: true, policyVersion: "v1" },
+    registry,
+  );
+  const harness = createHarness({ registry, model, system: "You track issues.", pipeline, turnBoundaries: [manager] });
+  return { manager, harness };
+}
+```
+
+**The URL and the headers come from host code alone.** The URL must be `https:`, and the harness refuses one with a user name or password, a fragment, a control character, or a query parameter whose name looks like a credential, such as `token` or `api_key`. A credential goes in `headers`, which nothing reads from the environment. A header the transport sets itself, such as Host, Content-Type, Accept-Encoding or Mcp-Session-Id, is refused, and so is a value with a line break. A refusal names the rule and never quotes the value. No log line, error message or `extension_loaded` record holds a header value or the URL: errors and log lines have both replaced with `[redacted]`, and the record holds a hash of the URL. A `401` fails the connect or the call with an `McpError` that says so; the harness runs no OAuth flow and fetches no metadata the server points at.
+
+**Every address is checked, and the request connects to the one that was checked.** Without a proxy, on Node, each request resolves the URL's name once, refuses it when any answer is loopback, private, carrier-grade NAT, link-local (with the cloud metadata address `169.254.169.254`), unspecified, multicast or reserved, or an IPv6 form that wraps one, and connects to the first answer. Once the socket connects, the harness checks the address it reached once more, so a name whose answer changes between two lookups can't steer a request to the host's own network. `allowAddresses` names the ranges one server may reach anyway, such as `10.20.0.0/16`; it never allows loopback. A `/0` range is refused, and so is any IPv6 range that holds the base of a form that wraps IPv4: mapped, compatible, translated, NAT64 or 6to4. `::ffff:0:0/96` is all of IPv4, and `::ffff:10.0.0.0/8` is really `::/8`, so both are refused; write the IPv4 range itself. A range in brackets, such as `[10.0.0.0]/8`, is refused too, since brackets belong to a URL. `unsafeAllowLoopback` lets a test reach a server on `127.0.0.1`, over plain `http:` when every answer is loopback, and nothing else does. `resolve` replaces the system resolver, and every address it returns is checked the same way. With `proxy`, every request goes through the egress proxy's `fetch()`, so its allowlist, its own address checks and its log apply, and the URL must be `https:`. On any other runtime, Cloudflare's workerd included, the platform's `fetch` carries the request. workerd has `node:https` under `nodejs_compat` but refuses the custom lookup the pinned connection needs, so the harness tells it apart by its user agent. There the harness checks a literal address, counts `localhost` and names under `.localhost`, with or without a trailing dot, as loopback, and can't resolve any other name, so the platform decides where it goes.
+
+**TLS is never weakened.** Certificates are always verified, against the system's authorities or the server's own `ca`, over TLS 1.2 or later, and an `https:` URL never falls back to plain HTTP. The harness asks for no compression and refuses a compressed answer on Node, so a decompression bomb is never decoded; through a platform `fetch`, which decodes on its own, the byte caps count decoded bytes.
+
+**No redirect is followed.** The client library would follow a redirect within the server's origin. The harness answers every `3xx` with an error instead, and answers a `304`, which no MCP request asks for, with an error that says so. It never sends a request that leaves the configured origin, such as one to an SSE `endpoint` event on another host.
+
+**Every response is bounded.** A JSON body, one server-sent event and one line may each hold at most `maxMessageBytes` (default 8 MiB), and one stream at most `maxStreamBytes` (default 64 MiB). A response must start within `headersTimeoutMs` (default 30,000 ms), and a stream is cut when it sends nothing for `streamIdleMs` (default 120,000 ms) or stays open past `maxStreamMs` (default an hour). At most `maxStreams` responses (default 8) may be open on one connection; a request past that fails at once. A body, event or line past its size, or any bound on the answer to one request, closes the connection and fails what was waiting on it, with the bound in the error. A streamable HTTP GET stream or a `subscriptions/listen` stream that goes quiet, stays open an hour or passes `maxStreamBytes` is cut and opened again at once, and such a cut never counts against the reopen limits below. A legacy SSE server's event stream is the one channel its answers come on and can't be opened again, so it has only the event and line bounds: a quiet SSE server needs no keepalives. A body on that GET that is not an event stream, such as an error page, is bounded like any answer. The server's session id must be 1 to 256 visible ASCII characters, and the harness sends it back and trusts nothing else about it.
+
+**The server can't set the reconnect delay.** The harness removes every `retry:` field from an event stream, and every `id:` field the client could not send back as `Last-Event-ID`, before the library reads the stream. A streamable HTTP stream that drops, or whose reopen fails, is opened again after one second, doubling to thirty, and after ten such reopens within ten minutes the connection closes, so a legacy server never keeps a connection with no stream for its change notices. A legacy SSE stream is opened once: when it ends, the connection closes, and nothing reconnects it.
+
+## Servers connect in the background, and the first turn waits only for `direct` servers
+
+`manager.start()` connects every server in the background and returns at once. Pass the manager to `createHarness({ turnBoundaries: [manager] })`. Each turn then calls `manager.beginTurn()` before it builds the turn's tools. The first turn waits up to `directWaitMs` (default 10,000 ms) for the servers whose `exposure` is `direct`, and for no other. A deferred server that takes thirty seconds to answer never delays the first model call, and a `direct` server that answers within the wait is in the first request's tools. A server that connects later is registered at the next turn's start, never inside a turn, and a `direct` one is registered as `deferred`, so the tools a request sends never change because a server was slow. A server that fails is tried once and reported once, in its status and through `log`. `manager.statuses()` reports each server, `connecting` until its tools are registered. `manager.close()` aborts the connects still running and every open stream, and clears its timers. `connect()` still connects everything and waits, for a host that wants every server before its first turn.
+
+## A tool runs only while its definition matches its pin, and a change waits for the next turn
+
+The manager pins each tool's definition: `sha256:` and the SHA-256 of the canonical JSON of its `name`, `description` and `inputSchema`. The annotations are left out, because they change nothing the harness does. With `pins`, a store of approved definitions, a tool that has no pin, or whose definition hashes differently, starts disabled, and a server the store holds nothing for has every tool disabled. Without a store, each server's tools as listed at connect are its pins for the life of the manager. `fileMcpPinStore(".agents/extensions.lock.json")` from `@buildanagent/harness/extensions/node` keeps the pins in the project's lock file, under `mcp.<server>.tools`, beside the extension pins, and each writer keeps the other's entries. `readMcpPins(file, server)` and `writeMcpPins(file, server, pins)` from the same entry read and write one server's pins directly, for a host that builds its own store; `writeMcpPins()` refuses a lock file it can't read. Every write to one path in this process, through any store or `writeLock()`, runs after the one before it. A lock file with MCP pins alone pins no extension, so writing it never makes a project's extensions refused, and the loader's notice says the file holds no extension pins. A lock file that is a link, not a regular file, or over 1 MiB is refused. The harness checks and reads it through one open handle, so a file swapped in between the check and the read is never read. The lock file sits in the project, so anyone who can commit to the project can approve definitions for any server the host configures: give a project's `fileMcpPinStore()` to the manager only for a project the person trusts, as project extensions load only then. `pinProjectExtensions()` replaces a lock file it can't read, such as one with merge-conflict markers, and its MCP pins go with it; an MCP pin write refuses such a file, since dropping the extension pins would let unpinned extensions load.
+
+**A disabled tool is refused before its server.** `manager.permissionHook()` denies a call to a disabled tool before anything else decides, so a sticky allowance, an allow rule or `bypass` mode can't run it; put it first in the pipeline's `hooks`. A disabled tool's own `execute` refuses the call too, with `failure: "disabled"`, so the server is never reached without the hook either. `manager.pending()` lists the tools waiting for a person, with each one's definition for the person to read and its hash. `manager.approve(server, tool, hash)` writes the pin and then records the approval, so a failed write approves nothing, and the tool may run from the next turn. A hash that is no longer the server's current one is refused, so an approval never covers a definition the person did not see, and a tool that changes after its approval is disabled again. A tool runs only when both its server's current definition and the definition it was registered with match its pin, because the model reads the registered one all session. The registered definition's hash is the one taken from the same list the tool was registered from, so a server that lists another definition between its connect and the turn that registers it can't make the registered one pass. A tool registered with an unapproved definition therefore stays disabled for the session even if the server later lists the approved one, and a new session registers that one.
+
+**A changed list is read again and announced at the next turn.** A legacy server's `notifications/tools/list_changed`, and the same notice on the `subscriptions/listen` stream that the harness opens on a 2026-07-28 server that advertises `tools.listChanged`, make the manager read the list again, at most once per `relistIntervalMs` (default 2,000 ms), however many notices come. A dropped listen stream is opened again after one second, doubling to a minute; after eight short-lived streams in a row, it stays closed. At the next turn's start, a changed, new or removed tool is disabled, an approved one is enabled, and the turn writes one notice, a text block of origin `harness` in front of the user's input. The gateway's transcript has no system role, so this block is how an append-only log tells the model that tools changed. The notice names each tool by its canonical name, which keeps only `A-Z`, `a-z`, `0-9`, `_` and `-` of the server's name for it, and says what changed. It never quotes a description, it counts the tools a server added mid-session instead of naming them, it lists at most 20 changes, and a change that is undone before the turn announces nothing. A notice counts as told only once the turn has written it, through `manager.commitNotices()`, so a turn that fails before its input is written tells it again next time.
+
+**The tools a request sends never change mid-session.** A changed tool keeps the definition it was registered with, so the model reads the old description until a new session. A tool a server adds mid-session is not registered: it waits in `manager.pending()`, and once approved it joins the next session's tools.
+
+Four limits come with the remote transports and the pins:
+
+- the post-connect address check and the reconnect delay clamp are second guards, behind the pinned lookup and the removed `retry:` field;
+- the manager's tool state is per manager, so two sessions that share one manager see each other's turn boundaries;
+- a response stream that breaks loses its request, and the harness never sends a tool call again, since every MCP tool is a write;
+- on any runtime but Node, Cloudflare's workerd included, a name is resolved by the platform, which the harness can't check; `localhost` and names under `.localhost` count as loopback there.
 
 ## A skill is a file the model reads, and only its name, description and path are in the prompt
 
@@ -774,6 +872,119 @@ const harness = createHarness({ registry, model, system: withPlanConvention(syst
 `projectContext()` returns an extension whose `transformContext` hook puts the files at the start of the first user message of every request, as one text block whose bytes never change, followed by a second block for the plan files. Each file sits in an `<untrusted-project-context-TOKEN source="…">` section under a note that says the text is the project's and not the user's. The token is the first 16 hex digits of the SHA-256 of the file's path and text, and the section ends only at `</untrusted-project-context-TOKEN>` with the same token. A file would have to hold its own hash to close its section early, and the token stays the same while the file does, so the block's bytes still never change. As a second guard, every spelling of the label's tag in a file is escaped. The match runs on a folded copy of the text: white space and format characters are removed, and the rest is normalised to NFKC and lower case. It therefore catches fullwidth brackets, a tag name split across lines, and entities for `<` with or without their `;`. The text is rebuilt from the files for each request and is not written to the log, so a compaction that replaces the early messages with a summary can't remove it: the first request after a compaction holds the `AGENTS.md` text again, beside the summary. The cost is that the log doesn't hold the context files' text, so a replay needs the same files.
 
 A long task keeps its state in two files under the project's `.agents/` folder: `plan.md` (Markdown: the goal, the steps, which are done) and `progress.json` (JSON: what is done and what is next). `withPlanConvention()` adds a paragraph to the system prompt that tells the model to keep and update them. `planFileSource(root)` reads both files from disk. `projectContext()` asks the source at the first model call of every run, whether the run is a new turn or a resume, so the first request of a resumed session holds what the last process left. The same text is sent for the rest of the run, so the model's own edits during a run show in the next run, and the run's later calls read the prompt cache. A plan edit is not free, though. The plan sits in the first message, and a provider caches a prompt by its prefix, so the first call of the run after an edit reads none of the conversation from the cache: everything after the system prompt and tools is sent uncached once, and later calls read it from the cache again. Putting the plan in its own block after the context files keeps their text unchanged but does not avoid that pass. The gateway puts cache breakpoints on the system prompt, the tools and the newest message, never between the two blocks. A file that doesn't exist is left out, and a `progress.json` that isn't valid JSON, which a crash can leave, is shown as written with a notice. The harness only reads these files; the model writes them with its ordinary tools.
+
+## Long-term memory is an extension of sourced records that expire, and a delete reaches the log
+
+A wrong fact that never expires misleads every later run, and a deleted fact that stays in a transcript is not deleted. `memoryExtension()` from `@buildanagent/harness/memory` gives an agent facts that outlast a session, kept as files under the project's `.agents/memory/`. It is off until you load it: with it left out, no `memory` tool and no index reach the model. Load one per session, beside the registry the session's tools are in. `fileMemoryFiles(root)` from the Node-only `@buildanagent/harness/memory/node` keeps the folder on disk, and a host on another runtime passes its own `MemoryFiles`, five calls over names relative to the folder.
+
+```ts
+/** A harness with long-term memory for the session `sessionId` of the project at `root`. */
+export function memoryHarness(registry: ToolRegistry, model: Model, root: string, sessionId: string) {
+  const memory = memoryExtension({ root, files: fileMemoryFiles(root), registry, sessionId });
+  const { interceptors, observers } = composeExtensions([memory]);
+  registerExtensionTools(registry, [memory]);
+  const harness = createHarness({ registry, model, system: SYSTEM, interceptors, observers });
+  return { harness, memory };
+}
+```
+
+**One file holds one record.** A `MemoryRecord` has a `subject`, the `fact`, a `source` (a `file:line`, a URL or the user's own words), a `type` (`project`, `task` or `preference`), the `created` and `validated` dates, an `expires` date (`null` for a preference that holds until it is changed) and a `trust` of `trusted` or `low`. A task record also names its `session`, the one whose `endSession()` expires it. A change or a renewal from another session keeps that name, and `endSession()` returns without a change when the folder is refused, as the index does. The file is Markdown: front matter between two `---` lines, one field per line with its value as a JSON string or `null`, then the fact as the body.
+
+```md
+---
+subject: "How to build"
+source: "AGENTS.md:12"
+type: "project"
+created: "2026-11-22T09:00:00.000Z"
+validated: "2026-11-22T09:00:00.000Z"
+expires: "2027-02-20T09:00:00.000Z"
+trust: "trusted"
+---
+Run pnpm build from the repository root; the SDK needs the gateway's dist first.
+```
+
+**The `memory` tool has five commands.** `view` shows a record, with its source, its dates and its trust beside the fact, or lists the records of a folder. `create` writes a new record from `path`, `subject`, `fact`, `source` and `type`. `str_replace` changes the fact from `old_str` to `new_str`, and may give a new `source`. `delete` removes a record, and `rename` moves one from `old_path` to `new_path`. A path is relative to the project root, or absolute under it, and must already be canonical and inside `.agents/memory/`. A path with a `.` or `..` segment, a percent sign, a backslash, a control character or a name that starts with a dot is an error result, and the tool reads nothing for it, so neither `.agents/memory/../secrets.env` nor `.agents/memory/%2e%2e/secrets.env` reaches a file. `fileMemoryFiles()` then walks the real path one folder at a time and refuses a link anywhere on the way, the record included, so a link planted in a cloned project can't send a read or a write outside the folder. A `delete` or a `rename` of the folder itself is refused. A write that holds a credential's shape, or one of the `secrets` the host passes, is refused and stored nowhere.
+
+**The index leads each run's first request.** The index is one line per record that still holds, with its subject, type, trust and path, and never its fact. Like the context files, it is built into the start of the first user message by a `transformContext` hook, labelled untrusted, and is in neither the system prompt nor the log. It is read at each run's first model call, so a record written in one run shows in the next. It stops at 200 lines or 25 KiB, whichever comes first (`MEMORY_INDEX_MAX_LINES`, `MEMORY_INDEX_MAX_BYTES`), heading and note included, and the note says how many records it left out. Trusted records come first, then the most recently validated. The agent finds the rest with `grep` and `glob`.
+
+**A record expires unless a write renews it.** Every date comes from the extension's injected `clock`. A record is shown in `view` and in the index only until it expires (`MEMORY_EXPIRY_DAYS`):
+
+| Type | Trusted | Low trust |
+| --- | --- | --- |
+| `project` | 90 days after it was last validated | 30 days |
+| `preference` | until it is changed | 30 days |
+| `task` | when `endSession()` runs, or 7 days | when `endSession()` runs, or 1 day |
+
+A `view` never moves `validated`. A `create` or a `str_replace` sets it to now, and a `str_replace` whose `old_str` equals its `new_str` renews a record without changing it: the tool's description tells the model to do that only after it has re-read the record's source and found the fact still true. The extension does not read the source itself, so the check is the model's. An expired record stays on disk until a `create` replaces it or a `delete` removes it.
+
+**Writes after untrusted input are low trust, and no write raises a record's trust.** Once a result from a tool whose `outputTrust` is `untrusted` is in the session, or the model has viewed a low-trust record, every write the session makes is stored with `trust: "low"`. A `str_replace` keeps the lower of the record's trust and the session's, so a renewal or a change in a trusted session leaves a low-trust record low trust, with the low-trust period. Only a `create` over an expired or deleted record starts from the session's trust. A call to such a tool in the same step as the write also makes it low trust, because the two may run together. The `memory` tool's own results are logged as `untrusted`, because a record may have been planted, but a view of a trusted record does not make later writes low trust. The session's earlier tool results are read from the conversation, so after a compaction removes them in a new process, only a fresh untrusted result marks the session again.
+
+**The built-in `write` and `edit` tools can't write the memory folder.** The extension's `beforeToolCall` gate denies a `write` or an `edit` whose path, resolved against the root and compared without case, is in `.agents/memory/`, so a record can't skip the memory tool's trust and secret checks, and the bookkeeping files can't be written over. The gate reads only those two tools' paths. `bash`, and any tool whose writes it can't read, can still write the folder, and a link to the folder from elsewhere in the project is not seen. A record carries no mark of the tool that wrote it, so a record planted that way reads like any other, though its expiry is still capped by its type and trust.
+
+**A delete marks every call that held the record.** The extension remembers each call that wrote or returned a record: every `memory` call on it, and any other tool's call whose result holds the record, whatever its input names, such as a `read` of the record's file, `cd .agents && cat memory/x.md` or a copy of the fact elsewhere. A result holds a record when it holds the fact, a line of the fact or the file's `subject` line verbatim, or the fact with its white space collapsed, as a result that wraps the fact's lines shows it. A text under 12 characters is too likely to occur by chance, so a fact that short is marked only on the `memory` tool's own calls, and a cut result that keeps none of a record's lines is not marked. An expired record counts too, because its file stays readable until a `create` or a `delete` replaces it. The extension never fails another tool's call to track it. If the folder is refused or the bookkeeping can't be read, the call stays unmarked and its result reaches the model unchanged.
+
+**The calls file is bounded.** A record keeps its newest 100 calls, and the calls file stays under 2 MiB. Older calls, and the calls of a record whose file another tool removed, go to the purge list early rather than being dropped. A calls file the extension can't read is moved to `.calls-unread.json`, and memory keeps working without the calls it held.
+
+**The purge list is read with `readPurgeMarks()` and cleared with `clearPurgeMarks()`.** A `delete` adds a mark for each of those calls to the purge list, and `readPurgeMarks(files)` returns them as `PurgeMark`s, each a run id, a call id, a tool name and the date it joined the list. `purgeSession()` from `@buildanagent/harness/session` rewrites a session so that no marked entry keeps its content, and `clearPurgeMarks()` removes the marks it is given once every session that held them is purged. The `unmatched` option of `clearPurgeMarks()` takes the marks a pass over every session found in none, such as a mark whose call never reached the log, and drops each once it has been on the list for 30 days, so the list can't grow for good and a pending delete is not dropped early. The clear waits for the memory calls of any extension in the process over the same `MemoryFiles` object, and `fileMemoryFiles()` returns one object per root, so a delete that runs meanwhile keeps its marks. Nothing coordinates two processes, so clear where no session over the folder runs in another. The pass below does four things: it purges each session (a fork before the session it continues), deletes the purged results' spill files, and clears the marks the purges applied:
+
+```ts
+/**
+ * Purges each session once, adding the marks each purge applied to `applied`, and returns the sessions that a fork
+ * still continues, with the conflict that names one of them.
+ */
+async function purgeRound(
+  log: Log,
+  userId: string,
+  sessionIds: readonly string[],
+  marks: readonly PurgeMark[],
+  applied: PurgeMark[],
+  removeSpill: (path: string) => Promise<void>,
+) {
+  const waiting: string[] = [];
+  let conflict: unknown;
+  for (const sessionId of sessionIds) {
+    try {
+      const result = await purgeSession({ ...log, key: { userId, sessionId }, marks });
+      if (!result.purged) continue;
+      applied.push(...result.marks);
+      for (const path of result.spills) await removeSpill(path);
+    } catch (error) {
+      if (!isHarnessError(error) || error.code !== "session_conflict") throw error;
+      waiting.push(sessionId);
+      conflict = error;
+    }
+  }
+  return { waiting, conflict };
+}
+
+/**
+ * Purges every deleted record from each of the user's sessions, then clears the marks those purges applied. A session
+ * that a fork continues waits until the fork is purged, so the order of `sessionIds` does not matter. `sessionIds` must
+ * list every session that could hold a mark, because a mark the pass finds in none leaves the list after 30 days.
+ */
+export async function purgeDeleted(
+  root: string,
+  log: Log,
+  userId: string,
+  sessionIds: readonly string[],
+  removeSpill: (path: string) => Promise<void>,
+) {
+  const files = fileMemoryFiles(root);
+  const marks = await readPurgeMarks(files);
+  const applied: PurgeMark[] = [];
+  for (let pending = [...sessionIds]; pending.length > 0; ) {
+    const { waiting, conflict } = await purgeRound(log, userId, pending, marks, applied, removeSpill);
+    // No session was purged this round, so the forks they wait for are not among `sessionIds`.
+    if (waiting.length === pending.length) throw conflict;
+    pending = waiting;
+  }
+  // A session purged earlier holds nothing now, so a mark no purge applied this time held nothing in any session.
+  const unmatched = marks.filter((mark) => !applied.includes(mark));
+  await clearPurgeMarks(files, applied, { unmatched });
+}
+```
+
+A purge blanks each marked call's input to `{}` and its result's content to `PURGED_TEXT`, and every entry keeps its base fields, so the session still rebuilds. The result's `spills` lists the spill file of each purged result, for the caller to delete with the spill store that wrote it. Its `residual` lists, by entry id, the compaction summaries and the model's own text after the first marked call, which the purge leaves as they are. A fork that continues a file the purge would rewrite must be purged first, or the purge throws `session_conflict` before it writes anything. The [session format page](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/docs/session-format.md#a-memory-delete-marks-entries-and-a-targeted-purge-removes-their-content) says how marks match, how the new files are named and replaced, and what a purge leaves behind.
 
 ## A call that needs a person is a signed pause that any process with the key file can resume
 

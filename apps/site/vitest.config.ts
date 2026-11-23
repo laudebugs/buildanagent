@@ -11,5 +11,8 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     setupFiles: ["./test/setup.ts"],
+    globalSetup: ["./test/global-build.ts"],
+    // A cold build takes longer than a hook's default 10 seconds.
+    hookTimeout: 180_000,
   },
 });

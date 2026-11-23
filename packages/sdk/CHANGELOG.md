@@ -1,5 +1,27 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.33
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.33
+
+## 0.1.0-alpha.32
+
+### Minor Changes
+
+- ec8a6e0: Export the content helpers of the OpenTelemetry observer from @buildanagent/sdk/otel (inputMessagesJson, outputMessagesJson, systemInstructionsJson, resultParts and jsonValue), so a span rebuilt from a session log holds content in the format a live run writes
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.32
+
+## 0.1.0-alpha.31
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.31
+
 ## 0.1.0-alpha.30
 
 ### Patch Changes

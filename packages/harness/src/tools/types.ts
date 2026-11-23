@@ -117,3 +117,20 @@ export interface ToolRegistry {
    */
   preambleTokens(options?: PreambleOptions): number;
 }
+
+/**
+ * A component that changes a session's tools only between turns, such as the MCP client. The runner calls
+ * `beginTurn()` once at the start of each turn, before it builds the turn's tools, so a change never lands inside a
+ * turn and the tools a request sends never change because of it.
+ */
+export interface TurnBoundary {
+  /**
+   * Applies what changed since the last turn and returns the notices the turn writes in front of its input, as text
+   * blocks of origin `harness`. Each is text the component wrote itself and holds no outside party's prose, though it
+   * may name something an outside party named, such as an MCP tool's canonical name, which keeps only `A-Z`, `a-z`,
+   * `0-9`, `_` and `-` of the server's name for it. An empty list writes nothing.
+   */
+  beginTurn(signal: AbortSignal): Promise<readonly string[]>;
+  /** Called once the turn has written the notices, so a component can hold back what it told until then. */
+  commitNotices?(): void;
+}

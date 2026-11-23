@@ -41,10 +41,15 @@ The sections of README.md and every public export, generated from this package's
 - [A summary replaces an outgrown span between turns, and the log keeps every original](README.md#a-summary-replaces-an-outgrown-span-between-turns-and-the-log-keeps-every-original)
 - [Two more triggers compact inside a turn: at 90% of a small window, and after a provider overflow](README.md#two-more-triggers-compact-inside-a-turn-at-90-of-a-small-window-and-after-a-provider-overflow)
 - [A turn that ends `done` runs the project's checks, and the diff flags are recorded, never fatal](README.md#a-turn-that-ends-done-runs-the-projects-checks-and-the-diff-flags-are-recorded-never-fatal)
+- [The log projects to OpenTelemetry spans with content off, and a meter warns at 80% of the session cap](README.md#the-log-projects-to-opentelemetry-spans-with-content-off-and-a-meter-warns-at-80-of-the-session-cap)
 - [An extension adds hooks and tools in the harness's own process, and project trust only gates loading](README.md#an-extension-adds-hooks-and-tools-in-the-harnesss-own-process-and-project-trust-only-gates-loading)
 - [MCP servers connect side by side, each in its own era, and their tools wait behind tool search](README.md#mcp-servers-connect-side-by-side-each-in-its-own-era-and-their-tools-wait-behind-tool-search)
+- [A remote server is reached over HTTPS to a public address, and every byte it sends is bounded](README.md#a-remote-server-is-reached-over-https-to-a-public-address-and-every-byte-it-sends-is-bounded)
+- [Servers connect in the background, and the first turn waits only for `direct` servers](README.md#servers-connect-in-the-background-and-the-first-turn-waits-only-for-direct-servers)
+- [A tool runs only while its definition matches its pin, and a change waits for the next turn](README.md#a-tool-runs-only-while-its-definition-matches-its-pin-and-a-change-waits-for-the-next-turn)
 - [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
+- [Long-term memory is an extension of sourced records that expire, and a delete reaches the log](README.md#long-term-memory-is-an-extension-of-sourced-records-that-expire-and-a-delete-reaches-the-log)
 - [A call that needs a person is a signed pause that any process with the key file can resume](README.md#a-call-that-needs-a-person-is-a-signed-pause-that-any-process-with-the-key-file-can-resume)
   - [One answer can cover more than its call, and a quorum can ask for several](README.md#one-answer-can-cover-more-than-its-call-and-a-quorum-can-ask-for-several)
   - [Code runs a side effect through the same pipeline and pause as the model, with no model call](README.md#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)
@@ -102,6 +107,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface LoadOptions`: The options of `load()`.
 - `LoadoutEntry`: re-exported from `@buildanagent/protocol`.
 - `interface LockHandle`: What `acquire()` returns to the writer that got the lock.
+- `marksIn()`: The marks whose call has an entry among `entries`, one file read whole.
 - `MAX_FLAGS`: The most flags one check records.
 - `MAX_SNAPSHOT_FILE_BYTES`: The largest file a snapshot keeps, in bytes.
 - `MAX_SNAPSHOT_FILES`: The most files a snapshot keeps.
@@ -129,6 +135,12 @@ The sections of README.md and every public export, generated from this package's
 - `ProtocolError`: re-exported from `@buildanagent/protocol`.
 - `ProtocolErrorCode`: re-exported from `@buildanagent/protocol`.
 - `pruneKeys()`: Calls `store.prune(inUse)` and returns the ids it removed.
+- `PURGED_TEXT`: The text that replaces the content of a purged entry.
+- `interface PurgeMark`: One tool call whose entries must leave the log: the `message_block` that holds the call, its `tool_result`, and, for a call the host's code made, its `code_call` and `approval_requested` entries.
+- `interface PurgeResidual`: The entries of a purged session, after its first marked call, that may restate what the call held: a purge clears only the marked calls, so the fact can still be in a summary or in the model's own words.
+- `purgeSession()`: Rewrites the session so that no entry matching `marks` keeps its content.
+- `interface PurgeSessionOptions`: The options of `purgeSession()`.
+- `type PurgeSessionResult`: What `purgeSession()` did.
 - `quorumOf()`: A policy that needs `needed` allows from distinct approvers, named by `Resolution.by`.
 - `interface QuorumPolicy`: Decides when a request has enough answers.
 - `type QuorumVerdict`: What a quorum policy says about one request: its answers are enough, not yet, a refusal, or too old.
@@ -234,6 +246,7 @@ The sections of README.md and every public export, generated from this package's
 - `toolSearchTool()`: The `tool_search` tool: it searches the registry's `deferred` tools by the words of a query, records the best matches in `options.activated` and tells the model their names, plus the descriptions of trusted tools.
 - `type ToolSource`: Where a tool comes from: the harness, an in-process extension, one MCP server (`mcp:<server>`) or the client.
 - `type ToolWrapper`: Wraps one registered tool's definition for a turn: a write cap, shadow mode or a sandbox binding, with the turn's host context.
+- `interface TurnBoundary`: A component that changes a session's tools only between turns, such as the MCP client.
 
 ## Exports from `@buildanagent/harness/mcp`
 
@@ -244,15 +257,24 @@ The sections of README.md and every public export, generated from this package's
 - `interface McpCallResult`: What one tool call returned.
 - `interface McpChannel`: A message channel to a server in this process, such as an `InMemoryTransport` from `@modelcontextprotocol/server`.
 - `interface McpConnection`: One connected server.
+- `interface McpEgressFetch`: The part of an egress proxy a remote server's requests go through: `startEgressProxy()` returns one.
 - `type McpEra`: The protocol era a server speaks: the 2026-07-28 revision, or `legacy` for the 2025 revisions and their `initialize`.
 - `class McpError`: Thrown for a server that could not connect (`mcp_connect_failed`), a tool list the harness refuses (`mcp_tool_list_refused`) and a tool call that ended with no result (`mcp_call_failed`, with `failure` saying why).
+- `interface McpHttpTransport`: A server reached over MCP's streamable HTTP transport: each message is a `POST`, and the answer is JSON or a server-sent event stream.
 - `interface McpInProcessTransport`: A server in this process, reached through a channel the host built.
 - `interface McpManager`: The MCP client as one removable component: it connects the servers and registers their tools.
 - `interface McpManagerOptions`: What `createMcpManager()` takes.
+- `interface McpPendingTool`: A tool whose current definition has no matching pin, so it waits for a person's approval.
+- `interface McpPinStore`: Where the approved definitions of each server's tools are kept: for each server, its tool names and the hash of each one's definition.
+- `interface McpRemoteSettings`: The settings a remote server shares, over streamable HTTP or legacy SSE.
 - `interface McpServerConfig`: One MCP server the harness connects to.
 - `type McpServerStatus`: How one server's connection went.
+- `interface McpSseTransport`: A server reached over the HTTP+SSE transport of the 2024-11-05 revision, which MCP has deprecated since 2025-03-26.
 - `interface McpStdioTransport`: A server the harness starts as a child process and speaks to over its standard input and output, one JSON message per line.
+- `interface McpTimers`: The timers the MCP client waits with, so a test can run its waits on a clock of its own.
 - `interface McpTool`: A tool as a server lists it.
+- `type McpToolState`: How a server's current definition of a tool compares with its pin.
+- `memoryMcpPinStore()`: A pin store in memory, for a host that keeps approvals for the life of the process, and for tests.
 
 ## Exports from `@buildanagent/harness/permissions`
 
@@ -399,6 +421,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface DiscoveredSkills`: The skills found, what to record about them, and why any were left out.
 - `discoverSkills()`: Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and every folder above it up to the repository root (the first folder with a `.git`).
 - `interface DiscoverSkillsOptions`: The settings of `discoverSkills()`.
+- `fileMcpPinStore()`: A pin store over the lock file at `lockFile`, such as `.agents/extensions.lock.json`.
 - `fileTrustStore()`: A trust store in the file at `file`, created on the first `trust()`.
 - `interface FoundContextFiles`: The context files found, and why any were skipped.
 - `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
@@ -407,15 +430,48 @@ The sections of README.md and every public export, generated from this package's
 - `pinProjectExtensions()`: Writes the lock file for every extension folder as it is now.
 - `planFileSource()`: A plan source that reads `.agents/plan.md` and `.agents/progress.json` under `root` each time it is called.
 - `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
-- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file.
+- `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file or it pins no extension, because it holds MCP pins alone.
+- `readMcpPins()`: The MCP pins of one server in a lock file, by tool name, or `undefined` when it holds none for the server.
 - `realPathTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself, that resolves each folder to its real path when the store is built and when `trust()` adds it.
-- `writeLock()`: Writes the lock file for these pins, replacing the old one in one step.
+- `writeLock()`: Writes the lock file for these extension pins, keeping its MCP pins, and replaces the old file in one step.
+- `writeMcpPins()`: Replaces the MCP pins of one server in a lock file, keeping every other member.
 
 ## Exports from `@buildanagent/harness/memory`
 
+- `clearPurgeMarks()`: Removes `marks`, and only those, from the purge list, once the purges have removed their entries from every session that held them, and drops the `unmatched` marks that have waited 30 days.
+- `interface ClearPurgeMarksOptions`: The options of `clearPurgeMarks()`.
+- `MEMORY_DIR`: The memory folder, relative to the project root.
+- `MEMORY_EXPIRY_DAYS`: How long a record holds after its last validation, by type and trust, in days.
+- `MEMORY_INDEX_MAX_BYTES`: The most bytes of the index as UTF-8, the heading and the left-out note included.
+- `MEMORY_INDEX_MAX_LINES`: The most lines of the index, the heading and the left-out note included.
+- `MEMORY_RECORD_MAX_BYTES`: The most bytes of one record's file.
+- `MEMORY_TOOL`: The tool's name.
+- `memoryExtension()`: Long-term memory over `.agents/memory/` under `root`: the `memory` tool and the index.
+- `interface MemoryExtension`: The memory extension: an `Extension`, and the call that ends its session.
+- `interface MemoryExtensionOptions`: The options of `memoryExtension()`.
+- `interface MemoryFiles`: The files of one memory folder, by name relative to it, such as `project/build.md`.
+- `interface MemoryRecord`: One durable fact, with where it came from and how long it holds.
+- `type MemoryTrust`: `low` for a record written in a session that had received output from a tool whose output is untrusted.
+- `type MemoryType`: What a record is about: a fact about the project, a note for the task at hand, or something the user prefers.
+- `parseRecord()`: A record from its file, or `undefined` when the file is not one: a missing field, a bad value or no front matter.
+- `readPurgeMarks()`: The purge list: the marks of every call that wrote or returned a record deleted since the list was last cleared.
+
+## Exports from `@buildanagent/harness/memory/node`
+
+- `fileMemoryFiles()`: The memory folder on disk under `root`, `.agents/memory/`.
 
 ## Exports from `@buildanagent/harness/telemetry`
 
+- `interface BudgetMeter`: A session's running spend against its cap.
+- `budgetMeterFromEntries()`: Rebuilds a meter from the entries of one branch, such as a session reopened after a restart.
+- `interface BudgetMeterOptions`: Options for `createBudgetMeter()`.
+- `type BudgetWarning`: The protocol event a meter emits when the spend reaches the warning threshold.
+- `BUILDANAGENT_ATTRIBUTES`: The `buildanagent.*` attribute names, keyed by what each holds.
+- `type ContentLevel`: The content a plan carries: nothing, the text itself, or the ids of the entries that hold it.
+- `createBudgetMeter`: Creates a meter with nothing spent.
+- `DEFAULT_WARN_AT`: The fraction of the cap at which the meter warns, unless the caller sets another.
+- `projectSpans()`: Projects a session's entries onto spans: `invoke_agent` for the session, a `turn` for each run or resume, a `chat` span for each model call and an `execute_tool` span for each tool call, with an `approval_wait` span under a call that waited for a person, from its `approval_requested` entry to its `approval_resolved` entry.
+- `interface ProjectSpansOptions`: Options for `projectSpans()`.
 
 ## Exports from `@buildanagent/harness/server`
 

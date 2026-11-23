@@ -1,10 +1,11 @@
 // Chapter 25's flat figure of a run's spans projected from its session log: each span is computed from log entries,
-// so the log stays the only record and telemetry is a view of it. The mapping is the harness plan's, and the
-// projection is not built yet; the SDK's observer builds the same kinds of span from a run's events.
+// so the log stays the only record and telemetry is a view of it. The mapping is the harness's `projectSpans()`
+// (packages/harness/src/telemetry/plan.ts); the session's root `invoke_agent` span opens at no one entry, so the
+// first row shows the `turn` span a run's entries bound.
 import { Figure } from "../lib/svgkit.js";
 
 const ROWS = [
-  { entry: "turn_start … turn_end", span: "invoke_agent" },
+  { entry: "turn_start … turn_end", span: "turn" },
   { entry: "message_end + usage", span: "chat" },
   { entry: "tool_result", span: "execute_tool" },
   { entry: "approval_requested … resolved", span: "approval wait" },

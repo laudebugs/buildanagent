@@ -3,7 +3,7 @@ name: langchain
 description: Use when writing, reviewing or testing TypeScript that imports `langchain`, `@langchain/core` or `@langchain/langgraph` for agents (createAgent, tool, createMiddleware, humanInTheLoopMiddleware, Command resume, responseFormat, MemorySaver, thread_id, recursionLimit, runtime.store, fakeModel). Gives the verified 1.x setup, the interrupt-and-resume flow, the gotchas from our fact-check, and how to test offline with fakeModel().
 ---
 
-# LangChain.js (`langchain@1.6.1`, `@langchain/core@1.3.4`, `@langchain/langgraph@1.6.0`)
+# LangChain.js (`langchain@1.6.6`, `@langchain/core@1.4.1`, `@langchain/langgraph@1.7.4`)
 
 `createAgent` compiles a two-node LangGraph graph (`model_request` → `tools`) in your process. Every feature beyond the loop is middleware; threads, interrupts and memory come from LangGraph's checkpointer and store. Full reference: [`docs/reference/langchain/guide.md`](../../../docs/reference/langchain/guide.md); verified examples: [`verify/langchain/examples/`](../../../verify/langchain/examples/).
 
@@ -68,7 +68,7 @@ if (first.__interrupt__) {
 - **`message.content` is `string | ContentBlock[]`.** Narrow it before string use; read `tool_calls` only from an `AIMessage`.
 - **`result.__interrupt__` is missing from the typed result.** Read it through `any` or a cast.
 - **`initChatModel()` returns a Promise.** Await it.
-- **The JS docs run ahead of the release** (`modelRefusalMiddleware`, `ModelRefusalError`, `executionInfo`). Compile copied examples against your pinned version.
+- **The JS docs can run ahead of your release.** `modelRefusalMiddleware` and `ModelRefusalError` were missing in 1.6.1 and first ship in 1.6.4 (1.6.6 has them). `runtime.executionInfo` exists at run time in 1.6.6 but not on the `ToolRuntime` type that a tool's second argument has, so cast. `runtime.serverInfo` is `undefined` outside the Agent Server (locally), so check it before you read a field from it. Compile copied examples against your pinned version.
 - **Old approval flags** (`allowAccept`, `allowEdit`) are gone; use `allowedDecisions`.
 - **A call rejected by `humanInTheLoopMiddleware` never reaches `wrapToolCall`**, so an audit built on `wrapToolCall` misses it. Audit requested calls in `afterModel` (from the model's `tool_calls`) if you need them all. The rejection reaches the model as a `ToolMessage` named after the tool.
 

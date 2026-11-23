@@ -1,0 +1,16 @@
+---
+// The wordmark with the mark, and the four links. Its text lives in src/landing/chrome.ts.
+import { logoMark, navLinks, wordmark } from "../landing/chrome.js";
+
+const [before, accent, after] = wordmark.split(" ");
+---
+
+<header class="site-header">
+  <a class="brand" href="/">
+    <Fragment set:html={logoMark} />
+    <span class="wordmark">{before} <i>{accent}</i> {after}</span>
+  </a>
+  <nav aria-label="Main">
+    {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+  </nav>
+</header>

@@ -3,8 +3,8 @@
   "example": "01-hello-agent",
   "file": "verify/langchain/examples/01-hello-agent.ts",
   "harness": "verify/langchain",
-  "pin": "langchain@1.6.1",
-  "mock": "@langchain/core@1.3.4",
+  "pin": "langchain@1.6.6",
+  "mock": "@langchain/core@1.4.1",
   "events": [
     {
       "kind": "request",

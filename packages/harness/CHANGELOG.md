@@ -1,5 +1,55 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.33
+
+### Minor Changes
+
+- eea1862: Add long-term memory to the harness as a removable extension.
+  
+  - `memoryExtension()` from the new `@buildanagent/harness/memory` entry adds a `memory` tool (`view`, `create`, `str_replace`, `delete`, `rename`) over `.agents/memory/` only. Each record is one sourced Markdown file, and the index at the start of each run's first request stops at 200 lines or 25 KiB.
+  - Records expire from an injected clock. A write after untrusted tool output is stored as low trust, and no write raises a record's trust.
+  - The extension denies the built-in `write` and `edit` tools inside the folder.
+  - `fileMemoryFiles()` from `@buildanagent/harness/memory/node` keeps the folder on disk and follows no links.
+  - A delete adds the calls that held the record to a purge list, which a mark matches by run where the log shows one.
+  - `purgeSession()` from `@buildanagent/harness/session` rewrites a session with those calls' content removed, keeps each entry's base fields, and returns the `spills` and `residual` entries the caller should handle.
+  - `pruneSessions({ marks })` takes the purge list, and its result adds `purgedMarks` and `markedArchives`.
+  - `clearPurgeMarks()` takes an `unmatched` option: marks no session held leave the list once they are 30 days old.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.33
+  - @buildanagent/gateway@0.1.0-alpha.33
+  - @buildanagent/protocol@0.1.0-alpha.33
+  - @buildanagent/sdk@0.1.0-alpha.33
+
+## 0.1.0-alpha.32
+
+### Minor Changes
+
+- ec8a6e0: Add @buildanagent/harness/telemetry: projectSpans() rebuilds OpenTelemetry spans from a session log, with content off by default, and createBudgetMeter() warns once at 80% of a session cap
+
+### Patch Changes
+
+- Updated dependencies [ec8a6e0]
+  - @buildanagent/sdk@0.1.0-alpha.32
+  - @buildanagent/protocol@0.1.0-alpha.32
+  - @buildanagent/agent-safety@0.1.0-alpha.32
+  - @buildanagent/gateway@0.1.0-alpha.32
+
+## 0.1.0-alpha.31
+
+### Minor Changes
+
+- 06f0cc5: Add remote MCP servers, background connect and tool pins. A server config takes `transport: { kind: "http", url, headers?, proxy?, allowAddresses?, unsafeAllowLoopback?, resolve?, ... }` for streamable HTTP, typed `McpRemoteSettings` and with the bounds the README lists, or `kind: "sse"` for a legacy HTTP+SSE server. Every request is HTTPS to a checked public address, follows no redirect and is bounded in bytes and time. `createMcpManager()` gains `start()`, `beginTurn()`, `statuses()`, `pending()`, `approve()` and `permissionHook()`, and the options `pins`, `directWaitMs`, `relistIntervalMs` and `timers`. `HarnessOptions` gains `turnBoundaries`, which a turn runs before it builds its tools. A tool whose definition has no matching pin starts disabled until a person approves it, and a changed tool list applies at the next turn. `memoryMcpPinStore()` keeps the pins in memory, and `fileMcpPinStore()`, `readMcpPins()` and `writeMcpPins()` from `@buildanagent/harness/extensions/node` keep them in `extensions.lock.json`. The new types are `McpPinStore`, `McpPendingTool`, `McpEgressFetch` and `McpTimers`. `McpCallFailure` gains `disabled`, and the protocol's `McpServerRecord` gains the `http` and `sse` transports and `urlHash`. `TurnBoundary` gives a component `commitNotices()`, called once a turn has written its notices. The egress proxy's `fetch()` now rejects an upstream status outside 200 to 599 with `egress_denied`, where it used to throw inside a socket handler. The proxy's log records a refused status with the reason `bad_status`.
+
+### Patch Changes
+
+- Updated dependencies [06f0cc5]
+  - @buildanagent/protocol@0.1.0-alpha.31
+  - @buildanagent/agent-safety@0.1.0-alpha.31
+  - @buildanagent/gateway@0.1.0-alpha.31
+  - @buildanagent/sdk@0.1.0-alpha.31
+
 ## 0.1.0-alpha.30
 
 ### Minor Changes

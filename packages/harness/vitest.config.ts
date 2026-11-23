@@ -19,6 +19,9 @@ export default defineConfig({
     // `@modelcontextprotocol/client`, which the framing check reads with, reaches eventsource and eventsource-parser,
     // which ship a `source` condition too. Loaded natively, they would resolve to their src/*.ts, which Node won't strip
     // under node_modules, so Vite transforms the chain that imports them, as agent-safety's config does for `ai`.
+    // `@opentelemetry/api` 1.9.1 and the packages built on it resolve to builds that Node cannot load under the
+    // `module` condition above (the ES build imports its own files without extensions), so Vite bundles them.
+    deps: { optimizer: { ssr: { enabled: true, include: ["@opentelemetry/api", "@opentelemetry/sdk-trace"] } } },
     server: { deps: { inline: [/\/node_modules\/(@modelcontextprotocol\/[^/]+|eventsource|eventsource-parser)\//] } },
   },
 });

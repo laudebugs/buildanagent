@@ -1,41 +1,16 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { delimiter, dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
-import { afterAll, beforeAll, describe, test } from "vitest";
+import { describe, inject, test } from "vitest";
+import { copy } from "../src/landing/copy.js";
+import { ROOT } from "./build.js";
 
-const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const FIGURE_ALT: string = copy.figure.alt;
+
 const PAGES = join(ROOT, "src/pages");
-const OUT = mkdtempSync(join(tmpdir(), "site-build-"));
-
-function nearestBin(name: string): string {
-  for (let dir = ROOT; dir !== dirname(dir); dir = dirname(dir)) {
-    const bin = join(dir, "node_modules", ".bin", name);
-    if (existsSync(bin)) return bin;
-  }
-  throw new Error(`no node_modules/.bin/${name} above ${ROOT}`);
-}
+const OUT = inject("siteOut");
 const ROUTES = ["", "packages/gateway", "packages/sdk"];
-
-beforeAll(async () => {
-  const home = mkdtempSync(join(tmpdir(), "site-home-"));
-  // An allowlisted environment, never ...process.env (AGENTS.md), with Astro's telemetry off so the build stays offline.
-  const env = {
-    PATH: [dirname(process.execPath), process.env.PATH ?? ""].join(delimiter),
-    HOME: home,
-    TMPDIR: tmpdir(),
-    LANG: process.env.LANG ?? "C.UTF-8",
-    ASTRO_TELEMETRY_DISABLED: "1",
-  };
-  await promisify(execFile)(nearestBin("astro"), ["build", "--outDir", OUT], { cwd: ROOT, env });
-  rmSync(home, { recursive: true, force: true });
-  // A cold build takes longer than a hook's default 10 seconds.
-}, 180_000);
-
-afterAll(() => rmSync(OUT, { recursive: true, force: true }));
 
 const htmlOf = (route: string) => readFileSync(join(OUT, route, "index.html"), "utf8");
 
@@ -59,6 +34,15 @@ describe("the built site", () => {
       const html = htmlOf(route);
       assert.match(html, /href="https:\/\/docs\.buildanagent\.fyi"/, route);
       assert.match(html, /href="https:\/\/github\.com\/laudebugs\/buildanagent"/, route);
+    }
+  });
+
+  test("links each package page back to the landing page's package grid, above the title", () => {
+    for (const route of ["packages/gateway", "packages/sdk"]) {
+      const html = htmlOf(route);
+      const back = html.indexOf('<a class="back" href="/#packages">All packages</a>');
+      assert.ok(back !== -1, route);
+      assert.ok(back < html.indexOf("<h1"), `${route} puts the link above the title`);
     }
   });
 
@@ -87,9 +71,41 @@ const IDS = new RegExp(`\\b(?:${[...new Set(todoIds())].join("|")})\\b`);
 const words = (text: string) => text.split(/\s+/).filter((word) => word !== "");
 const plain = (text: string) => text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");
 
-/** A page's Markdown body: no front matter, no fenced code, links reduced to their words. */
-function prose(route: string): { description: string; paragraphs: string[]; text: string } {
-  const file = join(PAGES, route === "" ? "index.md" : `${route}.md`);
+/** The text a reader sees on a built page: each block its own paragraph, inline tags replaced by a space, code and figures left out. */
+function proseOfHtml(route: string): { description: string; opening: string; paragraphs: string[]; text: string } {
+  const html = htmlOf(route);
+  const description = /<meta name="description" content="([^"]*)"/.exec(html)?.[1] ?? "";
+  const main = /<main[\s\S]*?<\/main>/.exec(html)?.[0] ?? "";
+  const clean = (fragment: string) =>
+    fragment
+      .replace(/<(svg|pre)[\s\S]*?<\/\1>/g, "\n")
+      .replace(/<\/?(?:a|em|i|b|strong|code|span)(?:\s[^>]*)?>/g, " ")
+      .replace(/<[^>]+>/g, "\n")
+      .replace(/&amp;/g, "&")
+      .replace(/&#39;/g, "'")
+      .split("\n")
+      .map((line) =>
+        line
+          .replace(/\s+/g, " ")
+          .replace(/\s+([.,;:])/g, "$1")
+          .trim(),
+      )
+      .filter((line) => line !== "");
+  const blocks = clean(main);
+  // The lead is the paragraph the page opens its pitch with: the one with the `lead` class.
+  const lead = /<p class="lead">([\s\S]*?)<\/p>/.exec(main)?.[1] ?? "";
+  return {
+    description,
+    opening: clean(lead).join(" "),
+    paragraphs: blocks,
+    text: `${description} ${blocks.join(" ")} ${FIGURE_ALT}`,
+  };
+}
+
+/** A page's body: Markdown for a package page, the built HTML for the landing page. */
+function prose(route: string): { description: string; opening: string; paragraphs: string[]; text: string } {
+  if (route === "") return proseOfHtml(route);
+  const file = join(PAGES, `${route}.md`);
   const source = readFileSync(file, "utf8");
   const description = /^description: (.*)$/m.exec(source)?.[1] ?? "";
   const body = source.replace(/^---\n[\s\S]*?\n---\n/, "").replace(/```[\s\S]*?```/g, "");
@@ -98,18 +114,19 @@ function prose(route: string): { description: string; paragraphs: string[]; text
     .flatMap((block) => (/^\s*-\s/.test(block) ? block.split(/\n(?=\s*-\s)/) : [block]))
     .map((block) => plain(block.replace(/^\s*-\s+/, "").replace(/\n/g, " ")).trim())
     .filter((block) => block !== "" && !block.startsWith("#"));
-  return { description, paragraphs, text: plain(`${description} ${body}`) };
+  return { description, opening: paragraphs[0] ?? "", paragraphs, text: plain(`${description} ${body}`) };
 }
 
 describe.each(ROUTES.map((route) => [route || "/", route] as const))("the copy of %s", (_name, route) => {
-  const { description, paragraphs, text } = prose(route);
-
   test("opens with a paragraph of 50 words or fewer", () => {
+    const { description, opening } = prose(route);
     assert.ok(description !== "", "has a description");
-    assert.ok(words(paragraphs[0] ?? "").length <= 50, paragraphs[0] ?? "no paragraph");
+    assert.ok(opening !== "", "has an opening paragraph");
+    assert.ok(words(opening).length <= 50, opening);
   });
 
   test("keeps sentences to 40 words and paragraphs to 100", () => {
+    const { paragraphs } = prose(route);
     for (const paragraph of paragraphs) {
       assert.ok(words(paragraph).length <= 100, paragraph);
       for (const sentence of paragraph.split(/(?<=[.?!])\s+(?=[A-Z`*])/)) {
@@ -119,6 +136,7 @@ describe.each(ROUTES.map((route) => [route || "/", route] as const))("the copy o
   });
 
   test("names no todo, decision or round id, repository path or banned word", () => {
+    const { text } = prose(route);
     assert.equal(IDS.exec(text)?.[0], undefined);
     assert.equal(LEAKS.exec(text)?.[0], undefined);
     assert.equal(BANNED.exec(text)?.[0], undefined);

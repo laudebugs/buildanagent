@@ -1,6 +1,6 @@
 # Fact-check: Memory within a task: sessions, threads and resuming
 
-The claims log for [`memory-and-sessions.md`](../src/content/chapters/memory-and-sessions.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-19. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0` (with `@openai/agents-core@0.21.0`), `@anthropic-ai/claude-agent-sdk@0.3.327` (bundling Claude Code 2.1.327), `langchain@1.6.1` (with `@langchain/langgraph@1.6.0` and `@langchain/langgraph-checkpoint@1.2.3`), `@google/adk@2.5.0`, `agents@0.33.0` (Cloudflare), `@earendil-works/pi-coding-agent@1.5.2`, `@github/copilot-sdk@1.0.31` and `ai@7.0.173`. A file named as `dist/…` or `sdk.d.ts` sits inside that package as installed. The AI SDK rows were first checked on `ai@7.0.162` and re-checked on `ai@7.0.173` on 2026-11-22: cited line numbers moved, and each claim held except where a row says it was corrected. On 2026-11-22 the OpenAI rows were re-read against `@openai/agents@0.22.0` and the `v0.22.0` docs; rows cite those versions, and a row that records a past run says so.
+The claims log for [`memory-and-sessions.md`](../src/content/chapters/memory-and-sessions.md), checked section by section as each was drafted (BK21). Each row names the claim, the section it sits in, the verdict and the primary source. Pages were read on 2026-11-19. Package claims are checked against the harness pins of that date: `@openai/agents@0.21.0` (with `@openai/agents-core@0.21.0`), `@anthropic-ai/claude-agent-sdk@0.3.327` (bundling Claude Code 2.1.327), `langchain@1.6.6` (with `@langchain/langgraph@1.7.4` and `@langchain/langgraph-checkpoint@1.2.3`; bumped from 1.6.1 and 1.6.0 on 2026-11-22, with the checkpoint package unchanged), `@google/adk@2.5.0`, `agents@0.33.0` (Cloudflare), `@earendil-works/pi-coding-agent@1.5.2`, `@github/copilot-sdk@1.0.31` and `ai@7.0.173`. A file named as `dist/…` or `sdk.d.ts` sits inside that package as installed. The AI SDK rows were first checked on `ai@7.0.162` and re-checked on `ai@7.0.173` on 2026-11-22: cited line numbers moved, and each claim held except where a row says it was corrected. On 2026-11-22 the OpenAI rows were re-read against `@openai/agents@0.22.0` and the `v0.22.0` docs; rows cite those versions, and a row that records a past run says so.
 
 ## The research question, answered before drafting
 
@@ -246,11 +246,19 @@ T59 turned `#session-openai`, `#thread-langchain` and `#resume-claude` into tabs
 | --- | --- | --- | --- | --- |
 | 142 | As of November 2026 `@buildanagent/harness` is published on npm as an alpha release under the `alpha` tag. This replaces the text behind row 108's status clause (private, not on npm, version `0.0.0`), which stopped being true when the six packages were first published as alphas on 2026-11-22 | § A session keeps the conversation | ✏️ | `npm view @buildanagent/harness dist-tags --json` (2026-11-22): `{"latest":"0.0.0-bootstrap.0","alpha":"0.1.0-alpha.29"}`; `packages/harness/package.json` has version `0.1.0-alpha.29` and no `private` field; the version number is left out of the text because every release changes it |
 
+## Update to langchain@1.6.6 (2026-11-22)
+
+The weekly update moved `langchain` to 1.6.6 and `@langchain/langgraph` to 1.7.4. `@langchain/langgraph-checkpoint` stays at 1.2.3. Each row below re-reads a source that rows 12 to 14 cite.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| 143 | Rows 13 and 14 still hold at the new pins: `MemorySaver` stores under `config.configurable?.thread_id`, `assertSafeStorageKey` refuses a non-string, an empty string and prototype keys, and a call without a thread throws at `put` and `putWrites` | § A session keeps the conversation | ✅ | `@langchain/langgraph-checkpoint@1.2.3` `dist/memory.js` (unchanged, read again on 2026-11-22): `assertSafeStorageKey` at line 46, its checks at lines 49–54, the "Failed to put checkpoint" throw at line 223 and the "Failed to put writes" throw at line 245. The replay in `05-thread-memory.json` differs from the 1.6.1 one only in its `pin` and `mock` fields (compare `verify/langchain/results/transcripts/05-thread-memory.json` at `main` with the file on this branch: `pin` names `langchain@1.6.1` before and `langchain@1.6.6` after, and `mock` names `@langchain/core@1.3.4` before and `@langchain/core@1.4.1` after), so the line numbers rows 14 cites hold |
+
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 122 |
+| ✅ confirmed | 123 |
 | ✏️ corrected | 16 (rows 3, 16, 37, 42, 59, 61, 72, 87, 88, 89, 105, 112, 118, 119, 122 and 142) |
 | ⚠️ unverified, our recommendation or reading, marked as ours in the text | 4 (rows 45, 74, 98 and 101) |
-| Total | 142 |
+| Total | 143 |
