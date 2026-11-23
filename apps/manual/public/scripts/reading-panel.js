@@ -44,7 +44,7 @@ export function nextSize(sizes, current, key) {
 /** How long, in milliseconds, the panel waits after a pairing change before it saves the fonts, so arrowing through the radios saves only the pairing the reader stops on. */
 export const SAVE_DELAY_MS = 600;
 
-/** The note under the choices while the settings are stored, and while storage refused them. */
+/** The note under the choices while the settings are stored, and while storage refuses them. */
 export const NOTE_SAVED = "Saved on this device";
 export const NOTE_UNSAVED = "Not saved: this browser blocked storage";
 
@@ -106,7 +106,7 @@ export function tabEnds(panel) {
   return [stops[0], stops[stops.length - 1]];
 }
 
-/** The key the start-up probe writes and removes at once; it never holds a setting. */
+/** The key the probe writes and removes at once; it never holds a setting. */
 export const PROBE_KEY = "manual-reading-probe";
 
 /**
