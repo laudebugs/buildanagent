@@ -26,7 +26,7 @@ export const mainDocsLink: ChromeLink = { label: "Docs for main", href: "https:/
 /**
  * The "Docs for main" link the footer shows for an SDK `version`, or `undefined` when it shows none. next.docs has no
  * deploy until the first stable release, so before it docs.buildanagent.fyi serves main itself and a link there would
- * be dead. The link therefore appears once the install rule is the stable one, the switch the owner defined. A
+ * be dead. The link therefore appears once the install rule is the stable one, the stable switch in DS4 of the publish plan. A
  * prerelease other than `-alpha.` throws, as `installRuleFor` does.
  */
 export function mainDocsLinkFor(version: string): ChromeLink | undefined {

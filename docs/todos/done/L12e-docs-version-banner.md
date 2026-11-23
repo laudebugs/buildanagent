@@ -11,7 +11,7 @@
 
 ## Goal
 
-The docs header shows the SDK's version, read at build time. A small script shows an "Unreleased docs for main" banner when the page is served from a host that begins with `next.`, and nowhere else. A "Docs for main" link stands in for a version switcher. A test keeps every install line on the `@alpha` tag while only alphas exist.
+The docs header shows the SDK's version, read at build time. A small script shows an "Unreleased docs for main" banner when the page is served from a host that begins with `next.`, and nowhere else. Once the SDK is stable, a "Docs for main" link stands in for a version switcher. A test keeps every install line on the `@alpha` tag while only alphas exist.
 
 ## Context
 
@@ -24,7 +24,7 @@ The docs header shows the SDK's version, read at build time. A small script show
 
 - The version tag from `packages/sdk/package.json` at build time.
 - The hostname-checking banner script, with tests for `docs.`, `next.`, `localhost` and preview hosts, and a statement of how `noindex` is handled.
-- The "Docs for main" link.
+- The "Docs for main" link, once the SDK is stable.
 - A strict install-line test: every install line names `@alpha` while only alphas exist.
 
 **Out of scope**
@@ -43,6 +43,7 @@ The docs header shows the SDK's version, read at build time. A small script show
 
 - [x] No banner shows on `docs.buildanagent.fyi`, `localhost` or a preview host, and it shows on `next.` hosts.
 - [x] The header shows the SDK's version.
+- [x] The footer shows "Docs for main" only when the SDK is stable.
 - [x] A test fails on an install line without `@alpha`.
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass.
 
@@ -62,5 +63,4 @@ The docs header shows the SDK's version, read at build time. A small script show
 - `next.` stays out of search engines through the `X-Robots-Tag: noindex` header that `site-stage-dist.mjs --noindex` writes; the build adds no robots meta tag, and a test requires that. The scripts are unchanged.
 - `test/install-lines.test.ts` applies the install-line rule to every docs source page and built page: `@alpha` on every package while the SDK's version has `-alpha.`, no `@alpha` once it is stable.
 - Tests: `banner.test.ts`, `install-lines.test.ts` and `version-built.test.ts`. Changing the host rule, removing the `hidden` attribute or dropping `@alpha` from an install line each failed them.
-- Review fixes (PR #392): `Banner.astro` styles `.unreleased-banner` itself from `--sl-*` tokens, because Starlight scopes its banner rules to its own component; the pair is measured in `pairs.ts`. The install-line rule now reads only a command's own arguments, keeps subpaths whole, joins backslash continuations, knows `pnpm i`, `pnpm install`, `npm add`, `yarn dlx`, `bun add` and `bunx`, and throws for a prerelease other than `-alpha.`. The README names the banner's layout shift on `next.` as a known limitation: a synchronous head script would fix it but would break the one-hash CSP design, and `next.` is not live.
-- Second review fixes (PR #392): the rule now joins a backslash continuation in built HTML, where Expressive Code ends each line with two block ends. It checks a package with any `@` suffix, so a range (`@^0.1.0`, `@~1`, `@>=0.1`, `@*`) and a pinned `-alpha.N` version fail the alpha rule while a range passes the stable rule. `textOfHtml` strips tags with a quote-aware pattern, because Expressive Code leaves `>` unescaped inside the copy button's `data-code`. The version-tag test normalises whitespace. The README now states that the banner's text is in every page's HTML.
+- Review fixes (PR #392): `Banner.astro` styles its own banner, because Starlight's rules cover only its own component, and the colour pair is measured in `pairs.ts`. The install-line rule reads only a command's own arguments, keeps subpaths whole, joins backslash continuations (in built HTML too) and throws for a prerelease other than `-alpha.`. It checks a package with any `@` suffix, so a range or a pinned `-alpha.N` fails the alpha rule. The README names the banner's layout shift on `next.` as a known limitation and says the banner's text is in every page's HTML.

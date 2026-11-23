@@ -1,6 +1,6 @@
 /**
- * The install-line rule. While only alpha releases exist, npm's `latest` tag has no release to serve (or serves a
- * placeholder), so an install line that names a package without a tag gives the reader the wrong version. Every
+ * The install-line rule. While only alpha releases exist, npm's `latest` tag serves a placeholder, not a
+ * release, so an install line that names a package without a tag gives the reader the wrong version. Every
  * `@buildanagent/*` package on an install line therefore carries `@alpha`. Once the SDK's version is stable, the
  * `alpha` tag points at old code, so the rule flips: no line may name `@alpha`. The test reads the SDK's version to
  * choose which rule applies, so the first stable release fails it until every line is updated.
