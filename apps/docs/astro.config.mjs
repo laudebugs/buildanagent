@@ -10,6 +10,7 @@ import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
 import { figureDirective } from "./src/plugins/figure.js";
 import { renderInputFiles } from "./src/plugins/render-inputs.js";
+import { markdownTwins } from "./src/twins/integration.js";
 
 // Astro caches each page's rendered HTML until the page's own file changes. A page that shows an example file, or the
 // plugin that fills its fence, would therefore keep old code after an edit. When any of those files differs from the
@@ -64,6 +65,7 @@ export default defineConfig({
       components: {
         Footer: "./src/components/Footer.astro",
         Head: "./src/components/Head.astro",
+        PageTitle: "./src/components/PageTitle.astro",
         SiteTitle: "./src/components/SiteTitle.astro",
         SocialIcons: "./src/components/SocialIcons.astro",
       },
@@ -82,7 +84,8 @@ export default defineConfig({
         minSyntaxHighlightingColorContrast: 0,
         styleOverrides: CODE_STYLE_OVERRIDES,
       },
-      plugins: [starlightLinksValidator(), ...api.map((entry) => entry.plugin)],
+      // markdownTwins() goes last: it reads the sidebar after the other plugins have changed it.
+      plugins: [starlightLinksValidator(), ...api.map((entry) => entry.plugin), markdownTwins()],
       sidebar: [
         {
           label: "Start",
