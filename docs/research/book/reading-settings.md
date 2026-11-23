@@ -1,6 +1,6 @@
 # Reading settings, part 1: four pairings and five sizes reach the page before its first paint
 
-The owner approved design S1 on 2026-11-23: a reader of the manual chooses one of four typeface pairings and one of five text sizes, saved on the device. Before the settings panel can exist, the book needs the pairings' fonts, a way to apply a stored choice before the first paint, and CSS that changes the type without loading fonts the reader did not choose. This report covers [T69](../../todos/done/T69-manual-reading-fonts-and-early-script.md): what changed, what each pairing costs in bytes, which px sizes became rem, and what the browser checks measured. **In every pairing a page now requests only the chosen pairing's fonts and the code face, the choice is on `<html>` in the first animation frame, and at 150% on a 390 px phone no checked page scrolls sideways while the header stays one 52 px row.**
+The owner approved design S1 on 2026-11-23: a reader of the manual chooses one of four typeface pairings and one of five text sizes, saved on the device. Before the settings panel can exist, the book needs the pairings' fonts, a way to apply a stored choice before the first paint, and CSS that changes the type without loading fonts the reader did not choose. This report covers [T69](../../todos/done/T69-manual-reading-fonts-and-early-script.md): what changed, what each pairing costs in bytes, which px sizes became rem, and what the browser checks measured. **In every pairing a page requests only the chosen pairing's fonts and the code face. The choice is on `<html>` in the first animation frame. At 150% on a 390 px phone, no checked page scrolls sideways and the header stays one 52 px row.**
 
 ## Four pairings come from google/fonts at the book's pinned commit
 
@@ -36,11 +36,11 @@ What a reader fetches first, the preloaded upright files, is 168,080 bytes for B
 Each family's `OFL.txt` at the pinned commit carries the standard SIL Open Font License 1.1 text, identical below its header to Literata's. Each copy ships unchanged beside its subsets.
 
 - **Atkinson Hyperlegible:** "Copyright 2020 Braille Institute of America, Inc." No Reserved Font Name.
-- **Space Grotesk:** "Copyright 2020 The Space Grotesk Project Authors". No Reserved Font Name.
-- **Inter:** "Copyright 2020 The Inter Project Authors". No Reserved Font Name. Its name table says 2016 and carries the notice "Inter UI and Inter is a trademark of rsms."
+- **Space Grotesk:** "Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)". No Reserved Font Name.
+- **Inter:** "Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)". No Reserved Font Name. Its name table says 2016 and carries the notice "Inter UI and Inter is a trademark of rsms."
 - **Bitter:** "Copyright 2011 The Bitter Project Authors (https://github.com/solmatas/BitterPro) with Reserved Font Name "Bitter Pro"." Its name table carries "Bitter is a trademark of Sol Matas (www.solmatas.com)."
 
-None of the four folders holds a `TRADEMARKS.md`. Bitter's Reserved Font Name is "Bitter Pro", which the served family, Bitter, does not use. "BitterPro" appears in the subsets only inside the copyright notice's URL, which the OFL requires a modified version to keep, so the book serves Bitter under its own name. Inter and Bitter keep their names in the same way the owner chose to keep Literata's on 2026-11-19, despite their trademark notices. The owner has not ruled on these two names, and that decision is open.
+None of the four folders holds a `TRADEMARKS.md`. Bitter's Reserved Font Name is "Bitter Pro", which the served family, Bitter, does not use. "BitterPro" appears in the subsets only inside the copyright notice's URL, which the OFL requires a modified version to keep, so the book serves Bitter under its own name. Inter and Bitter keep their names in the same way the owner chose to keep Literata's on 2026-11-19, despite their trademark notices. As of 2026-11-23 the owner has not ruled on these two names, and that decision is open.
 
 ## A blocking script puts the choice on `<html>` before the first paint
 
@@ -51,9 +51,9 @@ The script reads two localStorage keys, `manual-reading-font` and `manual-readin
 - `data-reading-font`: `readable`, `sans` or `slab`. Book, the default, removes the attribute.
 - `data-reading-size`: `90`, `115`, `130` or `150`. The default, 100, removes the attribute.
 
-Only those exact strings count, and anything else, such as `Sans`, `115%` or `__proto__`, leaves the default. Every storage call sits in try/catch. The script then adds a preload link for the chosen pairing's upright files. The layout's two static preloads for Book had to go, because they would have fetched Instrument Serif and Literata in every pairing.
+Only those exact strings count, and anything else, such as `Sans`, `115%` or `__proto__`, leaves the default. Every storage call sits in try/catch, and so does the rest of the script's start-up, after it has put its API on `window`. The script then adds a preload link for the chosen pairing's upright files. The layout's two static preloads for Book had to go, because they would have fetched Instrument Serif and Literata in every pairing.
 
-A blocking script cannot be a module, so it cannot export functions. The script therefore leaves its lists and functions, frozen, on `window.manualReadingSettings`: the two keys, `PAIRINGS` with each pairing's preload files, `SIZES`, `readFont`, `readSize`, `read(storage)` and `apply(root, settings)`. Part 2's settings panel will use them, so the allow-lists live in one file. `public/scripts/reading.js`, which records a reader's place, could not hold this code: it is a deferred module, and the choice must be on `<html>` before the first paint.
+A blocking script cannot be a module, so it cannot export functions. The script therefore leaves its lists and functions, frozen, on `window.manualReadingSettings`, which it sets before it reads anything: the two keys, `PAIRINGS` with each pairing's preload files, `SIZES`, `readFont`, `readSize`, `read(storage)` and `apply(root, settings)`. Part 2's settings panel will use them, so the allow-lists live in one file. The script uses optional chaining and `??`, so it runs from Safari 13.1, Chrome 80 and Firefox 74, and it avoids `Object.hasOwn` (Safari 15.4), `at()`, `structuredClone`, `replaceAll` and logical assignment, so a stored choice still applies there. In an older browser the script is a syntax error: the page shows Book at 100% and `window.manualReadingSettings` stays undefined, so the panel must check for it. `public/scripts/reading.js`, which records a reader's place, could not hold this code: it is a deferred module, and the choice must be on `<html>` before the first paint.
 
 ## The CSS names a pairing's fonts only under that pairing's attribute
 
@@ -79,11 +79,11 @@ The header is the exception by design. At 150% its rem-sized wordmark and button
 
 One overflow turned up at 150%. The gallery's sample search box grew wider than a 390 px screen, because a form field cannot shrink below its own width. The search box now caps itself at its column's width and lets its field shrink. Where the box fits, nothing changes.
 
-The default look did not change. A screenshot of the model gateway chapter at 1280 px, before and after, differs only in 21 anti-aliased corner pixels of the header's controls, by 1 of 255 in one channel. The phone screenshot is identical.
+The default look did not change. Screenshots of the model gateway chapter in Book, taken from a build of the commit before this change and from this branch, are byte-identical at 1280 × 900 and on the iPhone 14 profile, and no pixel differs. The report therefore commits only the desktop shot from this branch.
 
 ## The browser checks pass in every pairing, size and page
 
-`check:reading` ran in Chromium 157.0.8103.78 (Playwright 1.63.0) on 2026-11-23 against a production build, with 188 checks passing and `--all` passing on every built page.
+`check:reading` ran in Chromium 157.0.8103.78 (Playwright 1.63.0) on 2026-11-23 against a production build, with 137 checks passing and `--all` passing on every built page.
 
 - **Fonts.** Each pairing sets the chapter title, a section heading and the body in its faces. Listings keep Manual Code. The pairing's faces report `loaded`.
 - **Requests.** On the model gateway chapter, Book requests Literata's and Instrument Serif's romans and Manual Code's two files, as before. Readable requests Atkinson Hyperlegible's regular and bold, Sans requests Inter's and Space Grotesk's romans, and Slab requests Bitter's roman. Each also requests Manual Code, and none requests another pairing's files. Unknown stored values, and storage that throws, give Book.
@@ -92,20 +92,19 @@ The default look did not change. A screenshot of the model gateway chapter at 12
 - **The phone at 150%.** The sample was the contents page, the glossary and the three chapters with the most `<pre>`, `<figure>` and `<table>` elements in the built HTML: the-model-gateway (18, 24 and 3), tools-at-scale (18, 21 and 1) and approvals-guardrails-and-injection (16, 19 and 1). No sampled page scrolls sideways in any pairing. With `--all`, all 24 built pages pass in every pairing. The header measures 52 px, the wordmark shows whole, and every button sits in the row.
 - **Accessibility.** axe-core 4.14.1 finds no violation on the chapter in each pairing at 150% on the phone, or in Book at 100% on a desktop.
 
-`check:header`, `check:offline` and the manual's 714 Vitest tests also pass.
+`check:header`, `check:offline` and the manual's 742 Vitest tests also pass.
 
-## Two things this pull request leaves to the offline plan and part 2
+## The offline shell leaves the optional fonts out, and part 2 saves them
 
-The offline shell would have grown, so the build now keeps the optional fonts out of it. The worker's install-time shell holds every font a linked stylesheet names, and `reading.css` names all four new families. That took the shell from 58 files and 1,622 KiB to 67 files and 1,981 KiB, 359,320 bytes of it fonts that only readers who pick Readable, Sans or Slab ever use. `scripts/offline-build.mjs` now derives those files from `font.reading` in `book-tokens.json` (every pairing's files but the default pairing's and the code font's) and exports them as `OPTIONAL_FONTS`. The shell leaves them out and the list keeps them, byte-checked, for a later save. The shell is now 59 files and 1,631 KiB. That is Book's and Manual Code's fonts only, plus the one new script, `reading-settings.js`. A first visit therefore costs 1,631 KiB of shell, and a reader who picks a pairing fetches its fonts (Readable 59 KiB, Slab 77 KiB, Sans 215 KiB; 351 KiB for all eight files) once, from the network, when the page first needs them. Saving them for offline use is part 2's job.
+The offline shell would have grown, so the build now keeps the optional fonts out of it. The worker's install-time shell holds every font a linked stylesheet names, and `reading.css` names all four new families. That took the shell from 58 files and 1,622 KiB to 67 files and 1,981 KiB, 359,320 bytes (351 KiB) of it fonts that only readers who pick Readable, Sans or Slab ever use. `scripts/offline-build.mjs` now derives those files from `font.reading` in `book-tokens.json` (every pairing's files but the default pairing's and the code font's) and exports them as `OPTIONAL_FONTS`. The shell leaves them out and the list keeps them, byte-checked, for a later save. The shell is now 59 files and 1,632 KiB, against 58 files and 1,622 KiB before this change. It holds Book's and Manual Code's fonts only. The extra file is the early script, `reading-settings.js` (5,251 bytes), and most of the other 4 KiB or so is the bundled stylesheet, which `BaseLayout` imports `reading.css` into and which grew from 50,449 to 54,965 bytes. A first visit therefore costs 1,632 KiB of shell, and a reader who picks a pairing fetches its fonts (Readable 59 KiB, Slab 77 KiB, Sans 215 KiB; 351 KiB for all eight files) once, from the network, when the page first needs them. Saving them for offline use is part 2's job.
 
 WebKit was not run. It is not installed in the cloud sessions, so Safari's engine and a real iPhone's toolbar and zoom are unchecked. Part 2 adds the settings button, the popover and the phone sheet, which write the two keys through `window.manualReadingSettings`.
 
 ## Screenshots
 
-Screenshots are in [`reading-screenshots/`](reading-screenshots/), each under 300 KB. The desktop shots are at 1280 × 900; the phone shots use the iPhone 14 profile at 2× scale.
+Screenshots are in [`reading-screenshots/`](reading-screenshots/), each under 300 KB. The desktop shots are at 1280 × 900; the phone shot uses the iPhone 14 profile at 2× scale.
 
-- `before-book-desktop.png`, `before-book-phone.png`: the model gateway chapter before this change.
-- `after-book-desktop.png`, `after-readable-desktop.png`, `after-sans-desktop.png`, `after-slab-desktop.png`: the same chapter in each pairing at 100%.
+- `after-book-desktop.png`, `after-readable-desktop.png`, `after-sans-desktop.png`, `after-slab-desktop.png`: the model gateway chapter in each pairing at 100%. Book's shot also stands for the chapter before this change, which looks the same.
 - `after-readable-150-phone.png`: Readable at 150% on the phone, with the header still one row.
 
 The fonts, the early script and the CSS are in place. Part 2 can build the panel on `window.manualReadingSettings` and the two attributes without touching the fonts or the CSS again.

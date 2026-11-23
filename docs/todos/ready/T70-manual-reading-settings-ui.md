@@ -18,7 +18,7 @@ A reader can choose a typeface pairing and a text size from the header and see t
 - The approved design: `docs/design/reading/reading-designs.html` (section 2, S1), on the branch `claude/happy-albattani-p54jjp`.
 - `window.manualReadingSettings` (`public/scripts/reading-settings.js`): the keys, the allow-lists, `read` and `apply`, which the panel must reuse.
 - The notes popover and sheet (`notes.js`, which this todo does not change): the pattern for a desktop popover that becomes a phone bottom sheet.
-- [ADR 0059](../../decisions/0059-offline-manual-service-worker.md): the offline worker, `SAVE_FILES` and the optional fonts kept out of the shell.
+- [ADR 0059](../../decisions/0059-offline-manual-service-worker.md): the offline worker, its `SAVE_ALL` message and the optional fonts kept out of the shell.
 
 ## Scope
 
@@ -28,7 +28,8 @@ A reader can choose a typeface pairing and a text size from the header and see t
 - A popover on a desktop and a bottom sheet on a phone, built on the notes sheet's pattern.
 - Four pairing radios, each with its heading and body names and an Aa sample, and a five-step size control with a live label such as "115% · Large".
 - Reset, and the note "Saved on this device".
-- A `SAVE_FILES` message to the offline worker, and a `SAVE_ALL` that saves the whole list including the optional fonts; the size shows in the control.
+- A `SAVE_FILES` message to the offline worker, which saves the chosen pairing's optional fonts.
+- The size of those fonts, shown in the control.
 
 **Out of scope**
 
@@ -40,7 +41,7 @@ A reader can choose a typeface pairing and a text size from the header and see t
 - [ ] Build the popover and the phone sheet, with focus, Escape and reduced-motion rules.
 - [ ] Build the four radios and the five-step size control with its live label.
 - [ ] Write the choice to localStorage, apply it at once and add Reset and "Saved on this device".
-- [ ] Add `SAVE_FILES` and `SAVE_ALL` to the offline worker and show the size in the control.
+- [ ] Add `SAVE_FILES` to the offline worker (`SAVE_ALL` has saved the whole manifest list, optional fonts included, since T67b) and show the size in the control.
 - [ ] Write the tests and take the screenshots.
 
 ## Acceptance criteria

@@ -59,7 +59,7 @@ The manual can apply a reader's typeface pairing and text size before the first 
 
 ## Outcome
 
-Part 1 shipped in pull request #397. The four families are in the font pipeline with their OFL texts. `public/scripts/reading-settings.js` sets `data-reading-font` and `data-reading-size` on `<html>` from two localStorage keys, accepting only exact values. `reading.css` is generated from `book-tokens.json`, and the header divides its rem lengths by `--reading-scale`. The eight optional font files stay out of the offline shell, which is 59 files and 1,631 KiB. Review found that the search field and the wordmark's viewport term still grew with the text size; both are fixed and `check:reading` now measures the header on a desktop at every size.
+Part 1 is in pull request #397. The four families are in the font pipeline with their OFL texts. `public/scripts/reading-settings.js` sets `data-reading-font` and `data-reading-size` on `<html>` from two localStorage keys, accepting only exact values. `reading.css` is generated from `book-tokens.json`, and the header divides its rem lengths by `--reading-scale`. The eight optional font files stay out of the offline shell, which is 59 files and 1,632 KiB. Review found that the search field and the wordmark's viewport term still grew with the text size; both are fixed and `check:reading` now measures the header on a desktop at every size.
 
 ## Risks and open questions
 
