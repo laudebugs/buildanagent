@@ -1718,6 +1718,17 @@
   resize: vertical;
 }
 
+/* iOS Safari zooms the page when a field under 16px takes focus. On a touch screen every text field the book draws is
+   at least 16px, and keeps its smaller size with a mouse. Pagefind's own search field already sets 16px. A new field's
+   selector belongs in this list; test/touch-fields.test.ts fails when one is missing. */
+@media (pointer: coarse) {
+  .search-box__input,
+  .notes-pop__field,
+  .notes-dialog__field {
+    font-size: max(1rem, var(--size-note));
+  }
+}
+
 .notes-dialog__list {
   margin: 0;
   padding: 0;

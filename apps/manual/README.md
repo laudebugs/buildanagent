@@ -503,6 +503,8 @@ A reader can highlight a passage of a chapter and attach a short note to it, wit
 
 To run the browser check, build the book with `pnpm --filter @buildanagent/manual build`, then run `node scripts/notes-browser-check.mjs` from `apps/manual` (add `--shots <folder>` for screenshots).
 
+On a touch screen (`pointer: coarse`) every text field the book draws is at least 16px, so no field is smaller than 1rem there. `test/touch-fields.test.ts` fails when a stylesheet or script adds a field without that rule, and `pnpm --filter @buildanagent/manual check:touch-fields` measures the built book in an iPhone 14 context.
+
 ## The book deploys from main's workflow, and a pull request only ever gets a preview
 
 GitHub Actions publishes the book, not Cloudflare's own Git integration. Two workflows split the work so that no pull request can change a job that holds a Cloudflare token ([book plan BK15](../../docs/plans/build-book.md#bk15-an-assets-only-worker-on-a-custom-domain-behind-a-guard-and-a-switch-proposed)). First, `book-build.yml` builds the site with no secrets on every pull request and every push to `main`, and uploads `dist/` as the `book-dist` artifact. Second, `book-deploy.yml` runs after each build finishes. GitHub always runs that second workflow from the file on `main`, so editing it on a branch changes nothing until the branch merges.
