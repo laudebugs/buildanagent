@@ -1,5 +1,7 @@
 # The book already loads from Cloudflare's cache, and a service worker would add offline reading at the cost of a reversed non-goal
 
+**Status:** answered. On 2026-11-23 the owner chose option C, so the book now has an offline service worker ([ADR 0059](../../decisions/0059-offline-manual-service-worker.md), [T67a](../../todos/done/T67a-manual-offline-pwa.md)). The report stays as the evidence for that choice.
+
 [Issue #175](https://github.com/laudebugs/buildanagent/issues/175) asks whether the owner wants to reverse the book plan's decision that an offline service worker is out of scope ([book plan §1](../../plans/build-book.md)). The first question is what the reader wants. A book that stays readable on a flaky connection needs at most a header change. A book that opens with no connection at all needs a service worker, its own build script, an offline end-to-end test and an ADR. This report, as of November 2026, sets out what the deployed Worker already does, three options and a recommendation. The owner decides, and nothing here changes the plan.
 
 ## What a reader gets today

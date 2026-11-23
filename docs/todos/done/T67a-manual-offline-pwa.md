@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T67a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build the book §1](../../plans/build-book.md) (the non-goal this todo reverses) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
 | Depends on | None |
@@ -43,24 +43,24 @@ Let a reader install the manual at manual.buildanagent.fyi as an app and open it
 ## Tasks
 
 - [x] Claim the todo and tell the manager.
-- [ ] Write ADR 0059, the reversal of the offline non-goal, with its cost and its rollback (unregister the worker and drop the caches).
-- [ ] Draw the icons from `favicon.svg` with a script (Playwright's Chromium, which `figures:audit` already uses) and commit them with a test that checks their sizes, their format and that the source SVG's hash matches the one the script recorded.
-- [ ] Add the manifest and the head links, and a test of the manifest's fields, the icons' presence and `start_url` and `scope`.
-- [ ] Write the service worker and its logic module (routing, cache names, precache, navigation fallback, update message) so a unit test can run it against a fake cache and fetch.
-- [ ] Write the offline-manifest generator, run at build, and its stale test.
-- [ ] Write the registration script (production host only, update notice), served from `/scripts/`.
-- [ ] Add the offline page.
-- [ ] Update `public/_headers` for the worker file (`Cache-Control: no-cache`) and the manifest's content type, and check `stage-dist.mjs` and `guard-deploy.mjs` accept the build, changing them only with tests.
-- [ ] Add a Playwright check that, after the pages are cached, `context.setOffline(true)` still opens a page, a deep link and the search, and that notes still save.
-- [ ] Fact-check every claim in the reader-facing copy about browser behaviour (storage limits, eviction on iOS Safari, install prompts, which browsers support what, as of November 2026), with rows in the book's log.
+- [x] Write ADR 0059, the reversal of the offline non-goal, with its cost and its rollback (unregister the worker and drop the caches).
+- [x] Draw the icons from `favicon.svg` with a script (Playwright's Chromium, which `figures:audit` already uses) and commit them with a test that checks their sizes, their format and that the source SVG's hash matches the one the script recorded.
+- [x] Add the manifest and the head links, and a test of the manifest's fields, the icons' presence and `start_url` and `scope`.
+- [x] Write the service worker and its logic module (routing, cache names, precache, navigation fallback, update message) so a unit test can run it against a fake cache and fetch.
+- [x] Write the offline-manifest generator, run at build, and its stale test.
+- [x] Write the registration script (production host only, update notice), served from `/scripts/`.
+- [x] Add the offline page.
+- [x] Update `public/_headers` for the worker file (`Cache-Control: no-cache`) and the manifest's content type, and check `stage-dist.mjs` and `guard-deploy.mjs` accept the build, changing them only with tests.
+- [x] Add a Playwright check that, after the pages are cached, `context.setOffline(true)` still opens a page, a deep link and the search, and that notes still save.
+- [x] Fact-check every claim in the reader-facing copy about browser behaviour (storage limits, eviction on iOS Safari, install prompts, which browsers support what, as of November 2026), with rows in the book's log.
 
 ## Acceptance criteria
 
 - [ ] The manual passes Lighthouse's installability check in Chrome and installs from the address bar.
-- [ ] With the pages saved and the network off, a chapter, a deep link, the glossary and the search open, and the offline page appears for a page that was not saved.
-- [ ] A new deploy shows the update notice; the page does not reload until the reader chooses.
-- [ ] A preview host registers no worker.
-- [ ] `pnpm --filter @buildanagent/manual test`, `check:book`, the build, `pnpm check` and `pnpm typecheck` pass, and `stage-dist.mjs --preview` accepts the new `dist/`.
+- [x] With the pages saved and the network off, a chapter, a deep link, the glossary and the search open, and the offline page appears for a page that was not saved.
+- [x] A new deploy shows the update notice; the page does not reload until the reader chooses.
+- [x] A preview host registers no worker.
+- [x] `pnpm --filter @buildanagent/manual test`, `check:book`, the build, `pnpm check` and `pnpm typecheck` pass, and `stage-dist.mjs --preview` accepts the new `dist/`.
 
 ## Tests
 
@@ -80,8 +80,17 @@ Unit tests of the worker's logic against a fake cache and fetch; the manifest, i
 ## Definition of done
 
 - [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (Opus high first), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+Done on 2026-11-23 ([ADR 0059](../../decisions/0059-offline-manual-service-worker.md)). The worker stores only the bytes its build lists, so a cache never mixes builds; the README's section "The book installs as an app and opens offline" describes it, and the ADR records the message protocol T67b builds on.
+
+- **Decisions beyond the brief.** Assets that are not content-addressed come from the network first, not stale-while-revalidate, unless their page came from the cache or matched the list, because stale-while-revalidate would serve an old build's script under a new page. A page the reader opens online is saved when its bytes match, which costs no extra download; saving the whole book stays with T67b. Install carries every unchanged file over from the older build's cache, so an update keeps what a reader saved. The worker is bundled with esbuild 0.28.2, already in the lockfile, into one classic script. The offline page is an Astro page at `/offline/`, so it uses the book's stylesheet and fonts from the shell.
+- **Security.** Only same-origin GETs for listed paths are cached, keyed by origin and path; a response is stored only as a plain 200 of type `basic` with the listed size and SHA-256, and never with `Set-Cookie`, `Vary: *`, `no-store` or `private`. `/sw.js` and `/offline-manifest.json` never enter a cache. The worker never calls `skipWaiting()` itself and deletes old caches only at activate. Registration needs a host from the build's meta tag; `MANUAL_OFFLINE_TEST_HOST` accepts only a loopback name. `_headers` gained `manifest-src 'self'`, which the manifest needs under `default-src 'none'`.
+- **Verification.** 41 new tests (worker, registration, assets, a fixture build through the offline step); the manual's 538 Vitest tests and 154 `node --test` tests pass. `scripts/offline-browser-check.mjs` passed its 19 checks in Chromium, including Chrome's own installability check with no errors, offline reading, search and notes, the update notice and a host that registers nothing. `stage-dist.mjs --preview` staged a zip of the real `dist/` (101 files). The first acceptance criterion stays open: Chrome's check passes, but installing from the address bar on the deployed site needs a person after the deploy.
+- **Left for the coordinator.** The todo lists `AGENTS.md`'s description of the book among the docs to update. This builder leaves `AGENTS.md` (which `CLAUDE.md` links to) unchanged and proposes the sentence in the pull request description.

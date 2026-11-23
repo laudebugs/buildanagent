@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build the book §1](../../plans/build-book.md) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
-| Depends on | [T67a](../ongoing/T67a-manual-offline-pwa.md) |
+| Depends on | [T67a](../done/T67a-manual-offline-pwa.md) |
 | Size | M (one control, its worker messages and its tests) |
 
 ## Goal
@@ -15,7 +15,7 @@ Give a reader a button that saves every page of the manual for offline reading, 
 
 ## Context
 
-- [T67a](../ongoing/T67a-manual-offline-pwa.md): the service worker, its offline manifest (path, size and hash of every file of a build) and the registration script this control talks to.
+- [T67a](../done/T67a-manual-offline-pwa.md): the service worker, its offline manifest (path, size and hash of every file of a build) and the registration script this control talks to.
 - [`docs/research/book/offline-reading-and-caching.md`](../../research/book/offline-reading-and-caching.md): the cost and the stale-cache risk.
 - [`apps/manual/public/scripts/`](../../../apps/manual/public/scripts): the book's other reader controls (`notes.js`, `reading.js`) show the pattern: a plain script, no inline code, tokens for colour.
 
