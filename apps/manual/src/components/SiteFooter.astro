@@ -10,6 +10,35 @@ const links = [
 
 <footer class="site-footer">
   <div class="page site-footer__inner">
+    {/*
+      The control that saves the whole book for offline reading (public/scripts/save-offline.js, ADR 0059). It sits in
+      the footer because every page has one, the offline page and the contents included, and saving is about the
+      whole book, not the chapter being read. It renders hidden, so a page without JavaScript shows no dead button.
+    */}
+    <section class="save-offline" aria-labelledby="save-offline-title" data-save-offline hidden>
+      <h2 class="save-offline__title" id="save-offline-title" tabindex="-1">Offline reading</h2>
+      <p class="save-offline__state" data-save-offline-state></p>
+      <p class="save-offline__detail" data-save-offline-detail></p>
+      <div
+        class="save-offline__progress"
+        role="progressbar"
+        aria-label="Saving the manual"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+        data-save-offline-progress
+        hidden
+      >
+        <div class="save-offline__bar" data-save-offline-bar></div>
+      </div>
+      <div class="save-offline__actions">
+        <button type="button" class="save-offline__button" data-save-offline-primary hidden></button>
+        <button type="button" class="save-offline__button save-offline__button--quiet" data-save-offline-remove hidden>
+          Remove the saved copy
+        </button>
+      </div>
+      <p class="visually-hidden" role="status" data-save-offline-announce></p>
+    </section>
     <p class="site-footer__about">Build an agent</p>
     <nav class="site-footer__nav" aria-label="Repository and author">
       {
