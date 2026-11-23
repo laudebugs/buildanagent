@@ -11,7 +11,7 @@
 
 ## Goal
 
-Apply the owner's rule on research papers to the nine papers of the model-talking chapter and the structured-output chapter: no paper stays bare text, a chapter's first mention describes the paper, and every later mention links to its entry on the Sources page.
+Apply the owner's rule on research papers to the nine papers of Chapter 2 (talking to a model) and Chapter 4 (stopping and structured output): no paper stays bare text, a chapter's first mention describes the paper, and every later mention links to its entry on the Sources page.
 
 ## Context
 
@@ -23,7 +23,7 @@ Apply the owner's rule on research papers to the nine papers of the model-talkin
 **In scope**
 
 - `short` and `blurb` for `fireact`, `gekhman-new-knowledge`, `gepa`, `map-measuring-agents`, `medprompt`, `ovadia-knowledge-injection`, `qi-fine-tuning-safety`, `swe-rl` and `ghosh-truthgate`, each fact-checked against the whole paper, and their removal from `papers-pending.json`.
-- Every mention of them in `talking-to-a-model.md` and `stopping-and-structured-output.md` converted, with no claim changed.
+- Every mention of them in `talking-to-a-model.md` and `stopping-and-structured-output.md` converted. No claim changes except the GEPA sentence in Chapter 2, which the fact-check corrected (row T68b-10).
 
 **Out of scope** (and which todo covers it)
 
@@ -59,5 +59,5 @@ A blurb restating a chapter's number must agree with the paper; a disagreement i
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes
+- [x] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes
