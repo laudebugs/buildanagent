@@ -23,7 +23,8 @@
       "!apps/manual/src/styles/anatomy.css",
       "!apps/manual/src/data/sources.json",
       "!apps/manual/src/data/glossary.json",
-      "!apps/manual/src/content/analogies.json"
+      "!apps/manual/src/content/analogies.json",
+      "!docs/design/notes/note-designs.html"
     ]
   },
   "formatter": {
