@@ -1621,15 +1621,123 @@ test("an Escape that ends an input method's composition leaves the new note open
   assert.deepEqual(painted(win, PLAIN), ["a contract with a model", SELECTED]);
 });
 
-test("Add note on a passage below the window scrolls it into view, so the popover opens beside it, not hidden", () => {
+test("Add note on a passage below the window scrolls the passage itself into view, just below the header", () => {
+  for (const header of [0, 56]) {
+    const { win } = stage([CONTRACT]);
+    layout(win, { ...RECTS, [SELECTED]: [rect(20, 1300, 120, 1320)] });
+    if (header) win.document.documentElement.style.setProperty("--header-height", `${header}px`);
+    Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
+    const scrolls: number[] = [];
+    Object.defineProperty(win, "scrollBy", { configurable: true, value: (_x: number, y: number) => scrolls.push(y) });
+    const paragraph = q<HTMLElement>(win, "article p:last-of-type") as HTMLElement;
+    const block = vi.fn();
+    Object.defineProperty(paragraph, "scrollIntoView", { configurable: true, value: block });
+    addNote(win);
+    // The passage's first line at 1300 lands 16px below the header: 1300 - header - 16.
+    assert.deepEqual(scrolls, [1300 - header - 16], `with a ${header}px header`);
+    assert.equal(block.mock.calls.length, 0, "its block, which can be taller than the window, is not what scrolls");
+  }
+});
+
+test("the popover and the toolbar stay below the sticky header, and a passage under the header counts as away", () => {
   const { win } = stage([CONTRACT]);
-  layout(win, { ...RECTS, [SELECTED]: [rect(20, 1300, 120, 1320)] });
+  const at: { rects: Rect[] } = { rects: [rect(120, 600, 220, 620)] };
+  vi.spyOn(win.Range.prototype, "getClientRects").mockImplementation(function (this: Range) {
+    const text = this.toString().replace(/\s+/g, " ");
+    return (text === SELECTED ? at.rects : ((RECTS as Record<string, Rect[]>)[text] ?? [])) as never;
+  } as never);
+  Object.defineProperty(win, "innerHeight", { configurable: true, value: 420 });
+  const root = win.document.documentElement;
+  root.style.setProperty("--header-height", "56px");
+  const toolbar = q<HTMLElement>(win, ".notes-toolbar") as HTMLElement;
+  vi.spyOn(toolbar, "getBoundingClientRect").mockReturnValue(rect(0, 0, 300, 44) as unknown as DOMRect);
+  // The toolbar on a passage near the window's foot flips above it, but never above the header's edge.
+  at.rects = [rect(120, 80, 220, 400)];
+  const paragraph = q(win, "article p:last-of-type")?.firstChild as Node;
+  select(win, paragraph, 2, paragraph, 13);
+  shortcut(win);
+  assert.equal(toolbar.style.top, "64px", "8px below a 56px header");
+  root.setAttribute("data-header-hidden", "");
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(toolbar.style.top, "28px", "a phone header slid away leaves it right above the passage: 80 - 44 - 8");
+  root.removeAttribute("data-header-hidden");
+  // The popover: a passage just under the header puts it below, never over the header.
+  at.rects = [rect(120, 60, 220, 80)];
+  toolbarButton(win, "Add note").click();
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  vi.spyOn(pop, "getBoundingClientRect").mockReturnValue(rect(0, 0, 372, 300) as unknown as DOMRect);
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(pop.style.top, "88px", "under the passage");
+  // Near the foot of a short window it would flip above, but the header leaves no room there, so it stays below.
+  at.rects = [rect(120, 200, 220, 220)];
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(pop.getAttribute("data-side"), "below");
+  assert.equal(pop.style.top, "112px", "clamped to the window's foot, 420 - 300 - 8");
+  at.rects = [rect(120, 300, 220, 320)];
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(pop.getAttribute("data-side"), "above");
+  assert.equal(pop.style.top, "64px", "the flipped popover stops at the header's edge, not under it");
+  // A passage scrolled under the header is away, so the popover hides.
+  at.rects = [rect(120, 20, 220, 40)];
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(pop.hasAttribute("data-offscreen"), true);
+  root.setAttribute("data-header-hidden", "");
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(pop.hasAttribute("data-offscreen"), false, "unless the header has slid away");
+});
+
+test("a popover hidden with its passage that crosses into a sheet shows again with focus back in its field", () => {
+  const win = page({ items: [CONTRACT] });
+  const at: { rects: Rect[] } = { rects: [rect(20, 300, 120, 320)] };
+  layout(win, RECTS);
+  vi.spyOn(win.Range.prototype, "getClientRects").mockImplementation(function (this: Range) {
+    const text = this.toString().replace(/\s+/g, " ");
+    return (text === SELECTED ? at.rects : ((RECTS as Record<string, Rect[]>)[text] ?? [])) as never;
+  } as never);
   Object.defineProperty(win, "innerHeight", { configurable: true, value: 800 });
-  const paragraph = q<HTMLElement>(win, "article p:last-of-type") as HTMLElement;
-  const scrolled = vi.fn();
-  Object.defineProperty(paragraph, "scrollIntoView", { configurable: true, value: scrolled });
+  withPopover(win);
+  const listeners: ((event: unknown) => void)[] = [];
+  const query = {
+    matches: false,
+    media: "(max-width: 40rem)",
+    addEventListener: (_type: string, listener: (event: unknown) => void) => listeners.push(listener),
+  };
+  Object.defineProperty(win, "matchMedia", { configurable: true, value: () => query });
+  start(win as unknown as globalThis.Window);
   addNote(win);
-  assert.deepEqual(scrolled.mock.calls, [[{ block: "nearest" }]]);
+  const pop = q<HTMLElement>(win, ".notes-pop") as HTMLElement;
+  const field = q<HTMLTextAreaElement>(win, ".notes-pop__field") as HTMLTextAreaElement;
+  field.value = "Still mine.";
+  at.rects = [rect(20, -500, 120, -480)];
+  win.dispatchEvent(new win.Event("scroll"));
+  assert.equal(pop.hasAttribute("data-offscreen"), true);
+  // A browser drops focus from the hidden popover.
+  field.blur();
+  query.matches = true;
+  for (const listener of listeners) listener({});
+  assert.equal(pop.hasAttribute("data-sheet"), true);
+  assert.equal(pop.hasAttribute("data-offscreen"), false, "a sheet always shows");
+  assert.ok((win.document.activeElement as unknown) === field, "and focus is back in the field");
+  assert.equal(field.value, "Still mine.");
+});
+
+test("the sheet's reveal keeps the passage's first line below the header while it shows", () => {
+  for (const [hidden, expected] of [
+    [false, 228],
+    [true, 284],
+  ] as const) {
+    const capped = sheetWindow(40);
+    const root = capped.win.document.documentElement;
+    root.style.setProperty("--header-height", "56px");
+    if (hidden) root.setAttribute("data-header-hidden", "");
+    click(capped.win, q(capped.win, "article p:last-of-type"), 50, 310);
+    // The first line's top at 300 allows 284px of scroll, less the 56px header while it shows.
+    assert.deepEqual(
+      capped.scrolls,
+      [expected],
+      hidden ? "a hidden header leaves the whole window" : "with the header",
+    );
+  }
 });
 
 test("a popover whose passage scrolls out of the window hides, still open, and comes back with focus in its field", () => {

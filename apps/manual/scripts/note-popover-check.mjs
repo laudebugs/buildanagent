@@ -11,6 +11,9 @@
 //  - a resize across the sheet's width keeps the new note, its text and focus; the popover hides while its passage is
 //    scrolled away and returns with it; a marker opened meanwhile drops the new note; and an empty Save note keeps a
 //    note another tab put on the same passage;
+//  - in a 1280x420 window the toolbar and the popover stay below the sticky header, and a passage below the fold of a
+//    paragraph taller than the window is scrolled into view with its popover shown; on an iPhone 14 the sheet's reveal
+//    keeps the passage's first line below the header;
 //  - a highlight's own popover is the same component, and every action is reachable from the keyboard alone;
 //  - the popover's roles, names and states, read from the browser's accessibility tree.
 // The repo has no axe-core, so the last item is a targeted check of roles, names, labels and states, not an axe run.
@@ -71,7 +74,46 @@ async function addNoteOn(page) {
 
 async function addNote(page, how = "click") {
   if (how === "click") await page.click(".notes-toolbar >> text=Add note");
-  await page.waitForSelector(".notes-pop:popover-open");
+  // Attached, not visible: a popover hidden with its passage is a failure the checks name, not a timeout.
+  await page.waitForSelector(".notes-pop:popover-open", { state: "attached" });
+}
+
+/**
+ * Selects 950 characters from the start of the n-th long paragraph into the next one, with the first paragraph's top at
+ * `at` of the window's height: a passage taller than a short window, so the toolbar and the popover press against the
+ * top.
+ */
+async function selectAcross(page, index, at) {
+  await page.evaluate(
+    ([i, where]) => {
+      const long = [...document.querySelectorAll("article p")].filter((el) => el.textContent.trim().length > 200);
+      const [from, to] = [long[i], long[i + 1]];
+      scrollTo({ top: from.getBoundingClientRect().top + scrollY - innerHeight * where, behavior: "instant" });
+      const texts = (p) => {
+        const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+        const all = [];
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          if (!n.parentElement.closest("[aria-hidden='true'], [data-pagefind-ignore]") && n.data.trim()) all.push(n);
+        }
+        return all;
+      };
+      // At most 950 characters, under the 1,000 one highlight holds.
+      const nodes = [...texts(from), ...texts(to)];
+      const range = document.createRange();
+      range.setStart(nodes[0], 0);
+      let budget = 950;
+      for (const node of nodes) {
+        const take = Math.min(node.data.length, budget);
+        range.setEnd(node, take);
+        budget -= take;
+        if (budget <= 0) break;
+      }
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    },
+    [index, at],
+  );
+  await page.waitForSelector(".notes-toolbar:not([hidden])");
 }
 
 /** The open popover, the passage it is on, the reading column and what the page holds. */
@@ -331,6 +373,24 @@ async function run(name, context) {
     `${name}: with its text and focus`,
   );
 
+  // 4d. Hidden with its passage away, then narrowed into a sheet: the sheet shows with focus back in the field.
+  await page.evaluate(() => scrollBy({ top: 2500, behavior: "instant" }));
+  await page.waitForTimeout(250);
+  await page.setViewportSize({ width: 600, height: 900 });
+  await page.waitForTimeout(300);
+  s = await read(page);
+  check(s.open && s.sheet && !s.hidden, `${name}: a hidden popover narrowed into a sheet shows`);
+  check(
+    s.fieldValue === NOTE && s.activeTag.startsWith("textarea#notes-pop-field"),
+    `${name}: and focus is back in its field (${s.activeTag})`,
+  );
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(300);
+  await page.evaluate(() => scrollBy({ top: -2500, behavior: "instant" }));
+  await page.waitForTimeout(250);
+  s = await read(page);
+  checkPlaced(s, `${name} wide again with the passage back`, "below");
+
   // 5. Escape drops the new note: nothing stored, no highlight, focus back at the passage.
   await page.keyboard.press("Escape");
   await page.waitForTimeout(100);
@@ -515,11 +575,149 @@ async function run(name, context) {
   await page.close();
 }
 
+/** The bottom of the sticky header while it shows, or 0 while a phone's header is slid away. */
+const headerBottom = (page) =>
+  page.evaluate(() =>
+    document.documentElement.hasAttribute("data-header-hidden")
+      ? 0
+      : (document.querySelector("[data-site-header]")?.getBoundingClientRect().bottom ?? 0),
+  );
+
+/**
+ * A short desktop window (1280x420): the toolbar and the popover stay below the sticky header, near the header and near
+ * the window's foot, and Add note on a passage below the fold of a paragraph taller than the window scrolls the passage,
+ * not its paragraph, into view and opens a visible popover.
+ */
+async function runShort(name, context) {
+  const page = await context.newPage();
+  await fresh(page);
+  const header = await headerBottom(page);
+  check(header >= 50, `${name} short: the sticky header is ${header}px tall`);
+  for (const [label, at] of [
+    ["just below the header", 0.2],
+    ["near the window's foot", 0.85],
+  ]) {
+    await selectAt(page, 2, at, 10, 40);
+    const toolbar = await page.evaluate(() => document.querySelector(".notes-toolbar").getBoundingClientRect().top);
+    check(
+      toolbar >= header - 0.5,
+      `${name} short, ${label}: the toolbar is below the header (${toolbar} >= ${header})`,
+    );
+    await addNote(page);
+    await page.waitForTimeout(100);
+    const s = await read(page);
+    check(s.open && !s.hidden, `${name} short, ${label}: the popover shows`);
+    check(s.rect.top >= header - 0.5, `${name} short, ${label}: the popover is below the header (${s.rect.top})`);
+    await page.keyboard.press("Escape");
+  }
+  // A passage taller than the window, starting just below the header: the toolbar and the popover flip above it and
+  // stop at the header's edge.
+  await selectAcross(page, 2, 0.15);
+  const flipped = await page.evaluate(() => document.querySelector(".notes-toolbar").getBoundingClientRect().top);
+  check(flipped >= header - 0.5, `${name} short, a tall passage: the toolbar stops below the header (${flipped})`);
+  await addNote(page);
+  await page.waitForTimeout(100);
+  let tall = await read(page);
+  check(
+    tall.rect.top >= header - 0.5,
+    `${name} short, a tall passage: the popover stops below the header (${tall.rect.top})`,
+  );
+  await page.keyboard.press("Escape");
+  // A paragraph taller than the window: its top in view, the passage below the fold.
+  const found = await page.evaluate(() => {
+    const tall = [...document.querySelectorAll("article p, article li")].filter(
+      (p) => p.getBoundingClientRect().height > innerHeight,
+    );
+    for (const block of tall) {
+      scrollTo({ top: block.getBoundingClientRect().top + scrollY - 100, behavior: "instant" });
+      const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node.parentElement.closest("[aria-hidden='true'], [data-pagefind-ignore], code, a")) continue;
+        for (let i = 0; i + 12 < node.data.length; i += 4) {
+          const range = document.createRange();
+          range.setStart(node, i);
+          range.setEnd(node, i + 12);
+          const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+          if (rects.length >= 1 && rects[0].top > innerHeight + 40) {
+            getSelection().removeAllRanges();
+            getSelection().addRange(range);
+            return { y: scrollY, top: rects[0].top };
+          }
+        }
+      }
+    }
+    return null;
+  });
+  check(found !== null, `${name} short: found a passage below the fold of a paragraph taller than the window`);
+  if (found) {
+    await page.waitForSelector(".notes-toolbar:not([hidden])");
+    await addNote(page);
+    await page.waitForTimeout(150);
+    tall = await read(page);
+    const s = tall;
+    const y = await page.evaluate(() => scrollY);
+    check(s.open && !s.hidden, `${name} short: the popover on that passage opens visible`);
+    check(y > found.y, `${name} short: the page scrolled to the passage (${found.y} to ${y})`);
+    check(s.activeTag.startsWith("textarea#notes-pop-field"), `${name} short: with focus in its field`);
+    check(
+      s.first && s.first.top >= header - 0.5 && s.rect.top >= header - 0.5,
+      `${name} short: the passage and the popover are below the header`,
+    );
+    await page.keyboard.press("Escape");
+  }
+  await page.close();
+}
+
+/** A phone: the sheet's reveal scroll keeps a long passage's first line below the header that showed as it opened. */
+async function runPhone(name, context) {
+  const page = await context.newPage();
+  // Records each page scroll made while the sheet is open: whether the header showed when it began, and where the
+  // passage's first line ended up. The header slides away after a downward scroll, so a later reveal may use the room.
+  await page.addInitScript(() => {
+    window.__reveals = [];
+    const scrollBy = window.scrollBy.bind(window);
+    window.scrollBy = (...args) => {
+      const shown = !document.documentElement.hasAttribute("data-header-hidden");
+      scrollBy(...args);
+      if (!document.querySelector(".notes-pop[data-sheet]:popover-open")) return;
+      const ranges = [...CSS.highlights.values()].flatMap((set) => [...set]);
+      const first = Math.min(...ranges.map((range) => range.getClientRects()[0]?.top ?? Number.POSITIVE_INFINITY));
+      window.__reveals.push({ shown, first });
+    };
+  });
+  await fresh(page);
+  // Two paragraphs, far more than fits above the sheet, so the reveal's limit on the first line is what binds. An
+  // upward scroll after the selection brings the header back before the sheet opens.
+  await selectAcross(page, 2, 0.4);
+  await page.evaluate(() => scrollBy({ top: -40, behavior: "instant" }));
+  await page.waitForTimeout(300);
+  const header = await headerBottom(page);
+  check(header > 0, `${name}: the phone header shows before the sheet opens (${header}px)`);
+  await page.locator(".notes-toolbar >> text=Add note").tap();
+  await page.waitForSelector(".notes-pop:popover-open");
+  await page.waitForTimeout(400);
+  const reveals = await page.evaluate(() => window.__reveals);
+  const whileShown = reveals.filter((reveal) => reveal.shown);
+  check(
+    whileShown.length > 0,
+    `${name}: the sheet's reveal scrolled while the header showed (${JSON.stringify(reveals)})`,
+  );
+  check(
+    whileShown.every((reveal) => reveal.first >= header + 16 - 1),
+    `${name}: each such reveal keeps the first line below the header (${whileShown.map((r) => Math.round(r.first))} >= ${header} + 16)`,
+  );
+  await page.close();
+}
+
 async function launch(type, name) {
   const browser = await type.launch({ env: browserEnv });
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "light" });
   try {
     await run(name, context);
+    const short = await browser.newContext({ viewport: { width: 1280, height: 420 }, colorScheme: "light" });
+    await runShort(name, short);
+    const { defaultBrowserType: _ignored, ...phone } = playwright.devices["iPhone 14"];
+    await runPhone(`${name.split(" ")[0]} iPhone 14`, await browser.newContext(phone));
   } finally {
     await browser.close();
   }

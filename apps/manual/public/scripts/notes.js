@@ -1253,9 +1253,11 @@ class Notes {
     const height = win.innerHeight;
     const box = this.toolbar.getBoundingClientRect();
     const gap = 8;
+    // Never under the sticky header: its height is the top limit while it shows.
+    const limit = gap + this.headerClear();
     let top = last.bottom + gap;
     if (top + box.height > height - gap) top = first.top - box.height - gap;
-    top = Math.max(gap, Math.min(top, height - box.height - gap));
+    top = Math.max(limit, Math.min(top, height - box.height - gap));
     const left = Math.max(gap, Math.min(last.left, width - box.width - gap));
     // Set through the CSSOM, which the content security policy allows; a style attribute in markup it would block.
     this.toolbar.style.top = `${Math.round(top)}px`;
@@ -1784,10 +1786,12 @@ class Notes {
       });
     } else {
       // A passage the reader cannot see, such as one selected and then scrolled away, is brought into view first, so
-      // the popover opens beside it rather than hidden.
+      // the popover opens beside it rather than hidden. The passage itself is scrolled to, not its block, which can be
+      // taller than the window, and it lands just below the sticky header.
       const lines = [...range.getClientRects()];
-      const away = lines.length > 0 && (lines[lines.length - 1].bottom < 0 || lines[0].top > win.innerHeight);
-      if (away) this.popBlock?.scrollIntoView?.({ block: "nearest" });
+      const clear = this.headerClear();
+      const away = lines.length > 0 && (lines[lines.length - 1].bottom < clear || lines[0].top > win.innerHeight);
+      if (away) win.scrollBy?.(0, Math.round(lines[0].top - clear - 16));
       this.placePop();
     }
     // iOS Safari opens the keyboard only for a focus() made inside the tap that asked for it, so the field takes focus
@@ -1805,7 +1809,8 @@ class Notes {
     this.sheetKey = undefined;
     if (sheet) {
       this.pop.removeAttribute("data-side");
-      this.pop.removeAttribute("data-offscreen");
+      // A sheet always shows, so a popover hidden with its passage shows again, with the focus it had.
+      this.setOffscreen(false);
       this.pop.style.top = "";
       this.pop.style.left = "";
       this.layoutSheet();
@@ -1830,30 +1835,24 @@ class Notes {
     const last = rects[rects.length - 1];
     if (!first || !last) return;
     const height = win.innerHeight;
+    const gap = 8;
+    // The sticky header covers the window's top while it shows, so it is the top limit, and a passage under it is away.
+    const clear = this.headerClear();
+    const limit = gap + clear;
     // While the passage is scrolled out of the window the popover is hidden, still open and holding what the reader
     // wrote, so it never sits over unrelated text; it shows again, with focus back in it, when the passage returns.
-    const away = last.bottom < 0 || first.top > height;
-    if (away !== this.pop.hasAttribute("data-offscreen")) {
-      const active = this.doc.activeElement;
-      if (away) this.hiddenFocus = this.pop.contains(active) ? active : undefined;
-      this.pop.toggleAttribute("data-offscreen", away);
-      const back = this.hiddenFocus;
-      if (!away && back?.isConnected && this.pop.contains(back) && this.isFocusOnPage()) {
-        back.focus({ preventScroll: true });
-      }
-      if (!away) this.hiddenFocus = undefined;
-    }
+    const away = last.bottom < clear || first.top > height;
+    this.setOffscreen(away);
     if (away) return;
     const box = this.pop.getBoundingClientRect();
     const width = doc.documentElement.clientWidth || win.innerWidth;
-    const gap = 8;
     const below = last.bottom + gap;
     const above = first.top - gap - box.height;
     const fitsBelow = below + box.height <= height - gap;
-    const fitsAbove = above >= gap;
+    const fitsAbove = above >= limit;
     // With room on neither side, the side with more room wins and the window's edge clamps it.
     const side = fitsBelow || (!fitsAbove && height - last.bottom >= first.top) ? "below" : "above";
-    const top = Math.max(gap, Math.min(side === "below" ? below : above, height - box.height - gap));
+    const top = Math.max(limit, Math.min(side === "below" ? below : above, height - box.height - gap));
     const column = (this.article.querySelector("p") ?? this.article).getBoundingClientRect();
     const inColumn = Math.max(column.left, Math.min(last.left, column.right - box.width));
     const left = Math.max(gap, Math.min(inColumn, width - box.width - gap));
@@ -1861,6 +1860,34 @@ class Notes {
     // Set through the CSSOM, which the content security policy allows; a style attribute in markup it would block.
     this.pop.style.top = `${Math.round(top)}px`;
     this.pop.style.left = `${Math.round(left)}px`;
+  }
+
+  /**
+   * Hides the popover while its passage is away, or shows it again. Hiding remembers what had focus in it, since a
+   * browser drops focus from a hidden element, and showing gives that focus back when nothing else has taken it.
+   */
+  setOffscreen(away) {
+    if (away === this.pop.hasAttribute("data-offscreen")) return;
+    if (away) {
+      const active = this.doc.activeElement;
+      this.hiddenFocus = this.pop.contains(active) ? active : undefined;
+    }
+    this.pop.toggleAttribute("data-offscreen", away);
+    if (away) return;
+    const back = this.hiddenFocus;
+    this.hiddenFocus = undefined;
+    if (back?.isConnected && this.pop.contains(back) && this.isFocusOnPage()) back.focus({ preventScroll: true });
+  }
+
+  /**
+   * How much of the window's top the sticky header covers: its height (`--header-height`) while it shows, and 0 while
+   * a phone's header is slid away (`data-header-hidden` on the root) or on a page without one.
+   */
+  headerClear() {
+    const root = this.doc.documentElement;
+    if (root.hasAttribute("data-header-hidden")) return 0;
+    const value = Number.parseFloat(this.win.getComputedStyle?.(root)?.getPropertyValue("--header-height") ?? "");
+    return Number.isFinite(value) && value > 0 ? value : 0;
   }
 
   /** Whether focus rests on the page itself rather than on a control. */
@@ -1933,7 +1960,8 @@ class Notes {
     const gap = 16;
     const needed = last.bottom - (sheetTop - gap);
     if (needed <= 0) return;
-    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap)));
+    // The passage's first line stays below the sticky header while it shows.
+    win.scrollBy(0, Math.max(0, Math.min(needed, first.top - gap - this.headerClear())));
   }
 
   /**
