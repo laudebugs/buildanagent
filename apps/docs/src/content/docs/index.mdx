@@ -9,7 +9,7 @@ hero:
 
 import { Tabs, TabItem, CardGrid, LinkCard, LinkButton } from "@astrojs/starlight/components";
 
-Most agents start with the SDK and the gateway. Install both with the alpha tag, because npm serves every release under that tag until the first stable one:
+Start with the SDK and the gateway. Install both with the `alpha` tag, which npm serves for every release until the first stable one:
 
 <Tabs syncKey="package-manager">
   <TabItem label="pnpm">
@@ -34,9 +34,9 @@ Most agents start with the SDK and the gateway. Install both with the alpha tag,
 Pick the package you need. The gateway and the SDK start in these docs, and the other four start in their READMEs on GitHub.
 
 <CardGrid>
-  <LinkCard title="Gateway" description="Calls Anthropic or OpenAI-compatible models through one transcript and one stream format, with retries and a cost on every message. Start with the install page." href="/start/install/" />
+  <LinkCard title="Gateway" description="Calls Anthropic or OpenAI-compatible models through one transcript and one stream format, with retries and a cost on every message. Read the install page." href="/start/install/" />
 
-  <LinkCard title="SDK" description="Runs your agent's loop: it calls the model, runs the tools the model asks for and stops when the work is done. Test it offline with a scripted model. Start by building your first agent." href="/start/first-agent/" />
+  <LinkCard title="SDK" description="Runs your agent's loop: it calls the model, runs the tools the model asks for and stops when the work is done. Test it offline with a scripted model. Build your first agent." href="/start/first-agent/" />
 
   <LinkCard title="Harness" description="Wraps the loop with a session log that survives a crash, a context policy, tools, permissions and a sandbox that holds no credentials. Read the README on GitHub." href="https://github.com/laudebugs/buildanagent/blob/main/packages/harness/README.md" />
 
@@ -49,7 +49,7 @@ Pick the package you need. The gateway and the SDK start in these docs, and the 
 
 ## Learn the ideas
 
-The manual teaches how agents work, with type-checked listings from eight SDKs. Read it beside these docs, or start with the guides here.
+The manual teaches how agents work, with type-checked listings from eight SDKs. Read it beside these docs, or work through the guides here.
 
 <LinkButton href="https://manual.buildanagent.fyi" variant="primary">Open the manual</LinkButton>
 <LinkButton href="/guides/add-a-tool/" variant="secondary">Read the guides</LinkButton>
