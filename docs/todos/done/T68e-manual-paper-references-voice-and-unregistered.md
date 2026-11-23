@@ -45,13 +45,15 @@ Apply the owner's rule for research papers to the four voice papers and to the r
 
 ## Outcome
 
-- Five blurbs and four new register entries (`karpukhin-dpr`, `hofstatter-tas-b`, `izacard-contriever`, `chhikara-mem0`), each checked against the full paper (rows T68e-1 to T68e-15 of the book plan's fact-check log).
+- Eight blurbs: four for the voice papers and four for new register entries (`karpukhin-dpr`, `hofstatter-tas-b`, `izacard-contriever`, `chhikara-mem0`). Each was checked against the full paper (rows T68e-1 to T68e-15 of the book plan's fact-check log).
 - Two chapter claims were wrong and were corrected in place, the only deliberate claim changes: Chapter 15's 85% and 31 to 51% sentence, and its 208 ms sentence (rows T68e-10 and T68e-11).
 - BM25, PaLM, LoCoMo and SWE-bench stay unregistered, and LoCoMo and SWE-bench go to the owner as open questions.
 
 ## Review outcome
 
 - **First round, Opus high:** 7 findings, all fixed.
+- **Second round, Sonnet medium:** 1 finding, fixed. The DPR and Contriever blurbs no longer carry BM25 results, which read as contradicting BEIR's nDCG@10 figures in Chapter 12.
+- **Second round, Sonnet low:** 0 code findings. It found six copy findings, fixed in one commit: this outcome's blurb count, this list, the fact-check section's introduction, row T68e-9, Chapter 12's BEIR sentence and the pull request's missing merge-risk note.
 
 ## Definition of done
 
