@@ -11,5 +11,7 @@ export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
     setupFiles: ["./test/setup.ts"],
+    // One docs build per run, shared by every file that reads built pages (test/built-site.ts).
+    globalSetup: ["./test/built-site.ts"],
   },
 });
