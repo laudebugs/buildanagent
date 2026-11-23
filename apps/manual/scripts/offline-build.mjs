@@ -155,11 +155,15 @@ async function bundleWorker() {
 export async function writeOffline(dist) {
   const code = await bundleWorker();
   stampPages(dist, BUILD_PLACEHOLDER);
-  const unstamped = listFiles(dist);
-  const id = buildId(unstamped, code, shellUrls(dist, unstamped));
-  stampPages(dist, id);
+  // The list records every page as it is now, with the placeholder in its build mark. The worker sets a page's mark
+  // back to the placeholder before it compares the page, so a saved page of an older build carries over to this one
+  // exactly when everything but its mark is unchanged. The id and the placeholder have the same length, so a stamped
+  // page keeps the listed size.
   const files = listFiles(dist);
   const shell = shellUrls(dist, files);
+  const id = buildId(files, code, shell);
+  if (id.length !== BUILD_PLACEHOLDER.length) throw new Error("the build id must be as long as the placeholder");
+  stampPages(dist, id);
   const manifest = {
     version: FORMAT_VERSION,
     build: id,

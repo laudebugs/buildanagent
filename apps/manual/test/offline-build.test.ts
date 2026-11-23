@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +20,13 @@ import {
 } from "../scripts/offline-build.mjs";
 import { checkName, LIMITS, previewHeaders } from "../scripts/stage-dist.mjs";
 import { offlineHosts } from "../src/offline/hosts.js";
+import {
+  type OfflineBuild,
+  OfflineWorker,
+  BUILD_PLACEHOLDER as WORKER_PLACEHOLDER,
+  withMark,
+} from "../src/offline/worker.js";
+import { basic, FakeCaches, FakeNetwork } from "./offline-fakes.js";
 
 // Builds the fixture book the way `pnpm build` does, `astro build`, then Pagefind, then scripts/offline-build.mjs,
 // into a temporary folder, and checks what the offline step wrote: a file list that matches dist/ byte for byte, a
@@ -88,10 +95,11 @@ test("a page's URL is its directory with a slash, and any other file's URL is it
   assert.equal(urlFor("fonts/literata/OFL.txt"), "/fonts/literata/OFL.txt");
 });
 
-test("every listed file exists with the size and SHA-256 the list records, and the totals add up", () => {
+test("every listed file exists with the size and SHA-256 the list records, a page with the placeholder in its mark", () => {
   assert.equal(manifest.version, FORMAT_VERSION);
   for (const file of manifest.files) {
-    const bytes = readFileSync(join(out, file.path));
+    const read = readFileSync(join(out, file.path));
+    const bytes = file.path.endsWith(".html") ? Buffer.from(withMark(read, BUILD_PLACEHOLDER)) : read;
     assert.equal(bytes.length, file.size, file.path);
     assert.equal(createHash("sha256").update(bytes).digest("hex"), file.sha256, file.path);
     assert.equal(urlFor(file.path), file.url);
@@ -168,7 +176,7 @@ test("the build's id is stamped into sw.js with the whole list, and the worker n
     },
     addEventListener: (type: string, listener: (event: unknown) => void) => listeners.set(type, listener),
   };
-  const context = createContext({ self: scope, URL, Request, Response, crypto, setTimeout });
+  const context = createContext({ self: scope, URL, Request, Response, Headers, TextEncoder, crypto, setTimeout });
   runInContext(sw, context);
   assert.deepEqual([...listeners.keys()].sort(), ["activate", "fetch", "install", "message"]);
   // A top-level const of a classic script is visible to later scripts in the same realm, as in a worker.
@@ -287,4 +295,94 @@ test("the deploy scripts accept the new files unchanged: stage-dist's name and s
   };
   assert.deepEqual(problemsIn(config, { source, deployed: source }), []);
   assert.deepEqual(problemsIn(config, { source, deployed: previewHeaders(source) }, { preview: true }), []);
+});
+
+// The build stamps each page with its id, so a page's bytes differ in every build. The list hashes pages with the
+// placeholder in their mark, and the worker compares them that way, so a saved page carries over to the next build
+// when only its mark differs, and keeps the new build's mark once carried.
+test("after a deploy that changes one stylesheet, the saved pages carry over to the new build and the old cache goes", async () => {
+  const ORIGIN = "https://manual.buildanagent.fyi";
+  const asBuild = (list: OfflineManifest): OfflineBuild => ({
+    build: list.build,
+    shell: list.shell,
+    files: Object.fromEntries(
+      list.files.map((file) => [
+        file.url,
+        file.path.endsWith(".html")
+          ? { size: file.size, sha256: file.sha256, html: true }
+          : { size: file.size, sha256: file.sha256 },
+      ]),
+    ),
+  });
+  const served = (dir: string, list: OfflineManifest) => {
+    const byUrl = new Map(list.files.map((file) => [file.url, file.path]));
+    return new FakeNetwork(
+      Object.fromEntries(
+        [...byUrl].map(([url, path]) => [
+          url,
+          () => basic(new Response(readFileSync(join(dir, path)), { status: 200 })),
+        ]),
+      ),
+    );
+  };
+  // The next build: the same fixture with one stylesheet and one chapter changed.
+  const next = mkdtempSync(join(tmpdir(), "manual-offline-next-"));
+  try {
+    cpSync(out, next, { recursive: true });
+    const css = manifest.files.find((file) => /^_astro\/.+\.css$/.test(file.path));
+    assert.ok(css);
+    writeFileSync(join(next, css.path), `${readFileSync(join(next, css.path), "utf8")}\n/* changed */\n`);
+    const chapter = join(next, "call-workflow-loop", "index.html");
+    writeFileSync(chapter, readFileSync(chapter, "utf8").replace("</h1>", " (second edition)</h1>"));
+    const second = (await writeOffline(next)) as OfflineManifest;
+    assert.notEqual(second.build, manifest.build);
+    assert.notEqual(
+      readFileSync(join(next, "glossary", "index.html"), "utf8"),
+      readFileSync(join(out, "glossary", "index.html"), "utf8"),
+      "the stamped page's bytes differ between the builds",
+    );
+
+    const caches = new FakeCaches();
+    const first = new OfflineWorker(asBuild(manifest), { origin: ORIGIN, caches, fetch: served(out, manifest).fetch });
+    await first.install();
+    const saved = ["/glossary/", "/sources/", "/call-workflow-loop/"];
+    const reply = await first.savePage(saved);
+    assert.deepEqual(reply.saved, saved);
+
+    const network = served(next, second);
+    const update = new OfflineWorker(asBuild(second), {
+      origin: ORIGIN,
+      caches,
+      fetch: network.fetch,
+      openClients: async () => [],
+    });
+    await update.install();
+    const cache = await caches.open(`manual-${second.build}`);
+    for (const path of ["/glossary/", "/sources/"]) {
+      const page = await (await cache.match(`${ORIGIN}${path}`))?.text();
+      assert.equal(
+        page,
+        readFileSync(join(next, path.slice(1), "index.html"), "utf8"),
+        `${path} carried over as the new build's page`,
+      );
+      assert.ok(
+        !network.requests.some((req) => new URL(req.url).pathname === path),
+        `${path} was not downloaded again`,
+      );
+    }
+    assert.equal(
+      await cache.match(`${ORIGIN}/call-workflow-loop/`),
+      undefined,
+      "a changed chapter is not carried over",
+    );
+    await update.activate();
+    assert.deepEqual([...caches.stores.keys()], [`manual-${second.build}`], "the old build's cache is gone");
+    assert.deepEqual((await update.status()).failed, []);
+  } finally {
+    rmSync(next, { recursive: true, force: true });
+  }
+});
+
+test("the worker and the build agree on the placeholder", () => {
+  assert.equal(WORKER_PLACEHOLDER, BUILD_PLACEHOLDER);
 });

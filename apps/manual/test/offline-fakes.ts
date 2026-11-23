@@ -1,7 +1,7 @@
 // Fakes of the Cache API, fetch and the worker's timer for the offline worker's tests. Node's Response always has the
 // type "default", so basic() marks a response as a browser's same-origin "basic" one, and its clones keep the mark.
 import { createHash } from "node:crypto";
-import type { CacheLike, CacheStorageLike, OfflineBuild } from "../src/offline/worker.js";
+import { BUILD_PLACEHOLDER, type CacheLike, type CacheStorageLike, type OfflineBuild } from "../src/offline/worker.js";
 
 export const ORIGIN = "https://manual.buildanagent.fyi";
 
@@ -84,18 +84,21 @@ export class FakeTimer {
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 
-/** A build whose files have these texts, keyed by URL path. */
+// As the build does, a page is listed with its build mark holding the placeholder.
+const unstamped = (text: string) =>
+  text.replace(/(<meta name="manual-build" content=")[A-Za-z0-9_]{1,64}(")/, `$1${BUILD_PLACEHOLDER}$2`);
+
+/** A build whose files have these texts, keyed by URL path; a path ending in a slash is a page. */
 export function buildOf(id: string, texts: Record<string, string>, shell: string[]): OfflineBuild {
   return {
     build: id,
     shell,
     files: Object.fromEntries(
-      Object.entries(texts).map(([path, text]) => [
-        path,
-        path.endsWith("/")
-          ? { size: Buffer.byteLength(text), sha256: sha(text), html: true }
-          : { size: Buffer.byteLength(text), sha256: sha(text) },
-      ]),
+      Object.entries(texts).map(([path, text]) => {
+        if (!path.endsWith("/")) return [path, { size: Buffer.byteLength(text), sha256: sha(text) }];
+        const listed = unstamped(text);
+        return [path, { size: Buffer.byteLength(listed), sha256: sha(listed), html: true }];
+      }),
     ),
   };
 }

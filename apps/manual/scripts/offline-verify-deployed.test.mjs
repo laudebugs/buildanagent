@@ -9,12 +9,11 @@ import { verifyDeployed } from "./offline-verify-deployed.mjs";
 const BUILD = "0123456789abcdef";
 const PAGE = `<!doctype html><html><head><meta name="manual-build" content="${BUILD}"></head><body>bob@example.com</body></html>`;
 const SCRIPT = "console.log('notes');";
-const entry = (url, path, text) => ({
-  url,
-  path,
-  size: Buffer.byteLength(text),
-  sha256: createHash("sha256").update(text).digest("hex"),
-});
+// As the build does, a page is listed with the placeholder in its build mark.
+const entry = (url, path, text) => {
+  const listed = path.endsWith(".html") ? text.replace(BUILD, "__MANUAL_BUILD__") : text;
+  return { url, path, size: Buffer.byteLength(listed), sha256: createHash("sha256").update(listed).digest("hex") };
+};
 const LIST = {
   version: 2,
   build: BUILD,

@@ -23,6 +23,14 @@ export async function verifyDeployed(origin, { fetch = globalThis.fetch } = {}) 
   if (listResponse.status !== 200) throw new Error(`/offline-manifest.json answered ${listResponse.status}`);
   const list = await listResponse.json();
   const mark = `<meta name="manual-build" content="${list.build}">`;
+  // The list hashes each page with the placeholder in its build mark, as the worker compares it.
+  const unstamped = (bytes) =>
+    Buffer.from(
+      bytes
+        .toString("latin1")
+        .replace(/(<meta name="manual-build" content=")[A-Za-z0-9_]{1,64}(")/, "$1__MANUAL_BUILD__$2"),
+      "latin1",
+    );
   const result = { build: list.build, ok: [], rewritten: [], failed: [] };
   const worker = await get("/sw.js");
   const workerText = worker.status === 200 ? await worker.text() : "";
@@ -36,8 +44,13 @@ export async function verifyDeployed(origin, { fetch = globalThis.fetch } = {}) 
       continue;
     }
     const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length === file.size && createHash("sha256").update(bytes).digest("hex") === file.sha256) {
+    const page = file.path.endsWith(".html");
+    const compared = page ? unstamped(bytes) : bytes;
+    const same = compared.length === file.size && createHash("sha256").update(compared).digest("hex") === file.sha256;
+    if (same && (!page || bytes.toString("latin1").includes(mark))) {
       result.ok.push(file.url);
+    } else if (same) {
+      result.failed.push({ path: file.url, reason: `carries another build's mark than ${list.build}` });
     } else if (file.path.endsWith(".html") && bytes.toString("utf8").includes(mark)) {
       result.rewritten.push(file.url);
     } else {

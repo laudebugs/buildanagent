@@ -266,15 +266,16 @@ test("a page shown from the cache gets its assets from the same build's cache, n
 test("STATUS counts what this build's cache holds, SKIP_WAITING asks to take over, and the save messages wait for T67b", async () => {
   const { worker } = setup();
   await worker.install();
-  const listed = Object.entries(TEXTS).filter(([path]) => path !== "/sw.js");
+  const files = buildOf("b1", TEXTS, SHELL).files;
+  const listed = Object.entries(files).filter(([path]) => path !== "/sw.js");
   const status = await worker.handleMessage({ type: "STATUS" });
   assert.deepEqual(status, {
     type: "STATUS",
     build: "b1",
-    total: { files: listed.length, bytes: listed.reduce((sum, [, text]) => sum + Buffer.byteLength(text), 0) },
+    total: { files: listed.length, bytes: listed.reduce((sum, [, file]) => sum + file.size, 0) },
     saved: {
       files: SHELL.length,
-      bytes: SHELL.reduce((sum, path) => sum + Buffer.byteLength(TEXTS[path as keyof typeof TEXTS]), 0),
+      bytes: SHELL.reduce((sum, path) => sum + (files[path]?.size ?? 0), 0),
     },
     shell: { files: SHELL.length, saved: SHELL.length },
     rewritten: [],
@@ -441,6 +442,30 @@ test("activate keeps an older build's cache while a page of it is open, serves t
   });
   await closed.activate();
   assert.deepEqual([...caches.stores.keys()], ["manual-b1"]);
+  // A worker that still remembers the old page asks the network and does not bring the deleted cache back.
+  await open.handleFetch(event(request("/scripts/notes.js"), { clientId: "tab-old" }))?.catch(() => undefined);
+  assert.deepEqual([...caches.stores.keys()], ["manual-b1"]);
+});
+
+test("once the old page closes, the kept cache goes, and a cache activate did not keep, such as a waiting build's, stays", async () => {
+  const { worker, caches } = setup();
+  const older = await caches.open("manual-b0");
+  await older.put(`${ORIGIN}/__manual-offline__/clients.json`, json(["tab-old"]));
+  await worker.install();
+  let open = ["tab-old"];
+  const active = new OfflineWorker(buildOf("b1", TEXTS, SHELL), {
+    origin: ORIGIN,
+    caches,
+    fetch: new FakeNetwork({}).fetch,
+    openClients: async () => open,
+  });
+  await active.activate();
+  await caches.open("manual-b2");
+  await active.pruneOlder();
+  assert.ok(caches.stores.has("manual-b0"), "kept while its page is open");
+  open = [];
+  await active.status();
+  assert.deepEqual([...caches.stores.keys()].sort(), ["manual-b1", "manual-b2"]);
 });
 
 test("carrying over many files reads the problems record once and writes it never", async () => {

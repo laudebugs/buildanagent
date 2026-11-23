@@ -341,8 +341,16 @@ try {
   const cacheNames = await page.evaluate(() => caches.keys());
   check(
     cacheNames.length === 1 && cacheNames[0] === `manual-${second.build}`,
-    `the old build's cache is gone once the new worker activated (${cacheNames.join(", ")})`,
+    `the old build's cache is gone once its last page reloaded (${cacheNames.join(", ")})`,
   );
+  const carried = await page.evaluate(
+    async ([name, path]) => {
+      const response = await (await caches.open(name)).match(path);
+      return response ? (await response.text()).includes(`content="${name.slice("manual-".length)}"`) : false;
+    },
+    [`manual-${second.build}`, LANDING],
+  );
+  check(carried, "the landing chapter saved under the old build carried over, stamped with the new build");
   await context.close();
 
   // 5. A host the build does not list registers nothing.

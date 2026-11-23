@@ -148,9 +148,46 @@ export function buildMark(build: string): string {
   return `<meta name="manual-build" content="${build}">`;
 }
 
+/** The placeholder a page's build mark holds before the build writes its id; the list hashes pages with it. */
+export const BUILD_PLACEHOLDER = "__MANUAL_BUILD__";
+
+const MARK_START = new TextEncoder().encode('<meta name="manual-build" content="');
+const QUOTE = 0x22;
+const MARK_VALUE = /^[A-Za-z0-9_]{1,64}$/;
+
+/**
+ * Finds a page's build mark and returns where its value starts and ends and the value, or null when the page has none.
+ * Only the first mark counts; a page with a second one differs from the list wherever it is.
+ */
+export function findMark(
+  bytes: Uint8Array,
+): { readonly start: number; readonly end: number; readonly value: string } | null {
+  outer: for (let i = 0; i + MARK_START.length < bytes.length; i++) {
+    for (let j = 0; j < MARK_START.length; j++) if (bytes[i + j] !== MARK_START[j]) continue outer;
+    const start = i + MARK_START.length;
+    const end = bytes.indexOf(QUOTE, start);
+    if (end === -1 || end - start > 64) return null;
+    const value = String.fromCharCode(...bytes.subarray(start, end));
+    return MARK_VALUE.test(value) ? { start, end, value } : null;
+  }
+  return null;
+}
+
+/** Returns a page's bytes with its build mark holding `value`, or the bytes unchanged when it has none. */
+export function withMark(bytes: Uint8Array, value: string): Uint8Array {
+  const mark = findMark(bytes);
+  if (!mark) return bytes;
+  const inserted = new TextEncoder().encode(value);
+  const out = new Uint8Array(bytes.length - (mark.end - mark.start) + inserted.length);
+  out.set(bytes.subarray(0, mark.start));
+  out.set(inserted, mark.start);
+  out.set(bytes.subarray(mark.end), mark.start + inserted.length);
+  return out;
+}
+
 /** Returns the lower-case hex SHA-256 of some bytes. */
-export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+export async function sha256Hex(bytes: ArrayBuffer | Uint8Array): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes as BufferSource));
   return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -208,7 +245,6 @@ export class OfflineWorker {
   readonly #files: Map<string, OfflineFile>;
   readonly #deps: WorkerDeps;
   readonly #delay: (ms: number) => Promise<void>;
-  readonly #mark: string;
   // Pages whose document is exactly this build's, kept in memory and in the clients record, so the rule survives the
   // browser stopping and restarting the worker.
   readonly #buildClients = new Set<string>();
@@ -231,7 +267,6 @@ export class OfflineWorker {
     );
     this.#deps = deps;
     this.#delay = deps.delay ?? defaultDelay;
-    this.#mark = buildMark(build.build);
     this.cacheName = cacheName(build.build);
     this.#olderLoad = this.#loadOlder()
       .catch(() => undefined)
@@ -273,20 +308,34 @@ export class OfflineWorker {
     return path !== null && this.#files.has(path) ? `${this.#deps.origin}${path}` : null;
   }
 
-  /** Checks a response against this build's file at `key`: its bytes, or for a rewritten page, the build's mark. */
+  /**
+   * Checks a response against this build's file at `key`. A page is compared with its build mark set back to the
+   * placeholder, because the list hashes pages that way, so a page of any build whose content equals this build's page
+   * passes; the copy returned then carries this build's mark, so a cache only ever holds this build's exact page. A
+   * page a CDN rewrote passes only while it carries this build's mark, and is kept as it arrived.
+   */
   async #check(key: string, response: Response): Promise<Checked> {
     const file = this.#files.get(new URL(key).pathname);
     if (!file || !storable(response)) return { ok: false, reason: "not-storable" };
     const copy = response.clone();
-    const bytes = await response.clone().arrayBuffer();
-    if (bytes.byteLength === file.size && (await sha256Hex(bytes)) === file.sha256) {
-      return { ok: true, copy, rewritten: false };
+    const bytes = new Uint8Array(await response.clone().arrayBuffer());
+    if (!file.html) {
+      if (bytes.byteLength === file.size && (await sha256Hex(bytes)) === file.sha256)
+        return { ok: true, copy, rewritten: false };
+      return { ok: false, reason: "different-bytes" };
     }
-    if (!file.html || bytes.byteLength > file.size + REWRITE_ALLOWANCE) return { ok: false, reason: "different-bytes" };
-    const text = new TextDecoder().decode(bytes);
-    if (text.includes(this.#mark)) return { ok: true, copy, rewritten: true };
+    const mark = findMark(bytes);
+    const normalised = withMark(bytes, BUILD_PLACEHOLDER);
+    if (normalised.byteLength === file.size && (await sha256Hex(normalised)) === file.sha256) {
+      if (mark?.value === this.#build.build) return { ok: true, copy, rewritten: false };
+      const restamped = withMark(bytes, this.#build.build);
+      const headers = new Headers(response.headers);
+      return { ok: true, copy: new Response(restamped as BodyInit, { status: 200, headers }), rewritten: false };
+    }
+    if (normalised.byteLength > file.size + REWRITE_ALLOWANCE) return { ok: false, reason: "different-bytes" };
+    if (mark?.value === this.#build.build) return { ok: true, copy, rewritten: true };
     // Another build's mark means a newer or older deploy answered, which is no fault of this build's.
-    return { ok: false, reason: text.includes('<meta name="manual-build"') ? "other-build" : "no-build-mark" };
+    return { ok: false, reason: mark ? "other-build" : "no-build-mark" };
   }
 
   /** Returns the response if it is this build's file at that key, and null otherwise. */
@@ -457,6 +506,25 @@ export class OfflineWorker {
   }
 
   /**
+   * Deletes each older cache that activate kept once none of its pages is open. It touches only the caches activate
+   * recorded, never another `manual-` cache, which may belong to a newer build's worker that is waiting.
+   */
+  async pruneOlder(): Promise<void> {
+    await this.#olderLoad;
+    if (this.#olderClients.size === 0 || !this.#deps.openClients) return;
+    const open = new Set(await this.#deps.openClients());
+    const live = new Set([...this.#olderClients].filter(([id]) => open.has(id)).map(([, name]) => name));
+    let changed = false;
+    for (const [id, name] of [...this.#olderClients]) {
+      if (open.has(id)) continue;
+      this.#olderClients.delete(id);
+      changed = true;
+      if (!live.has(name)) await this.#deps.caches.delete(name);
+    }
+    if (changed) await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
+  }
+
+  /**
    * Decides, synchronously as a fetch event requires, whether the worker answers a request. Returns the response's
    * promise, or null to leave the request to the browser: anything but a same-origin GET, a range request, and any
    * subresource that is not a file of this build.
@@ -491,6 +559,8 @@ export class OfflineWorker {
 
   // A page still open on an older build gets that build's files from its cache, and anything else from the network.
   async #fromOlder(event: FetchLike, name: string, path: string): Promise<Response> {
+    // Opening a cache creates it, so a cache a later activation deleted is never brought back.
+    if (!(await this.#deps.caches.keys()).includes(name)) return this.#deps.fetch(event.request);
     const saved = await (await this.#deps.caches.open(name)).match(`${this.#deps.origin}${path}`);
     return saved ?? this.#deps.fetch(event.request);
   }
@@ -550,6 +620,7 @@ export class OfflineWorker {
       if (key && (await this.store(key, copy))) await this.#markBuildClient(client);
     });
     this.#background(event, saving);
+    this.#background(event, this.pruneOlder());
     const first = await Promise.race([settled, this.#delay(NAVIGATION_TIMEOUT_MS).then(() => "timeout" as const)]);
     if (first !== "timeout" && first.response) return first.response;
     const saved = key ? await this.#cached(key) : undefined;
@@ -617,6 +688,7 @@ export class OfflineWorker {
 
   /** Counts the files and bytes of this build that its cache holds, with the rewritten and failed files. */
   async status(): Promise<StatusReply> {
+    await this.pruneOlder().catch(() => undefined);
     const cache = await this.#cache();
     const saved = new Set<string>();
     for (const request of await cache.keys()) {
