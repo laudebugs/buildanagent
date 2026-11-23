@@ -5,7 +5,7 @@
 // global setup that throws stops every test file, including the ones that never read the built site. This is the same
 // pattern as apps/docs/test/built-site.ts.
 import { execFile } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -60,9 +60,32 @@ async function astroBuild(out: string): Promise<void> {
   }
 }
 
+/** Removes `manual-build-*` folders a run that was killed before its teardown left in the temp folder over a day ago. */
+function removeStaleBuilds(): void {
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  for (const name of readdirSync(tmpdir())) {
+    if (!name.startsWith("manual-build-")) continue;
+    try {
+      const path = join(tmpdir(), name);
+      if (statSync(path).mtimeMs < dayAgo) rmSync(path, { recursive: true, force: true });
+    } catch {
+      // Another run may be removing the same folder.
+    }
+  }
+}
+
 export default async function setup(project: TestProject): Promise<() => void> {
+  removeStaleBuilds();
   const out = mkdtempSync(join(tmpdir(), "manual-build-"));
   const teardown = () => rmSync(out, { recursive: true, force: true });
+  // A killed run (Ctrl+C, a CI cancel) skips the returned teardown, so remove the folder on the way out as well.
+  const onSignal = (signal: NodeJS.Signals) => {
+    teardown();
+    process.kill(process.pid, signal);
+  };
+  process.once("exit", teardown);
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
   try {
     await astroBuild(out);
   } catch (error) {

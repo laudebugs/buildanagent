@@ -65,10 +65,13 @@ beforeAll(async () => {
     LANG: process.env.LANG ?? "C.UTF-8",
     ASTRO_TELEMETRY_DISABLED: "1",
   };
-  await promisify(execFile)(nearestBin("pagefind"), ["--site", out], { cwd: app, env });
-  await writeOffline(out);
-  manifest = JSON.parse(readFileSync(join(out, "offline-manifest.json"), "utf8"));
-  rmSync(home, { recursive: true, force: true });
+  try {
+    await promisify(execFile)(nearestBin("pagefind"), ["--site", out], { cwd: app, env });
+    await writeOffline(out);
+    manifest = JSON.parse(readFileSync(join(out, "offline-manifest.json"), "utf8"));
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 }, 240_000);
 
 afterAll(() => {
