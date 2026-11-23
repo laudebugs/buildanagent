@@ -616,9 +616,17 @@ export class OfflineWorker {
   async activate(): Promise<void> {
     const open = new Set(this.#deps.openClients ? await this.#deps.openClients() : []);
     this.#olderClients = new Map();
+    // The newest complete copy an older build saved, read before its cache may go, so a save made after a Remove wins.
+    let newest: { at: number; build: string } | null = null;
     for (const name of await this.#deps.caches.keys()) {
       if (!name.startsWith(CACHE_PREFIX) || name === this.cacheName) continue;
-      const response = await (await this.#deps.caches.open(name)).match(`${this.#deps.origin}${CLIENTS_RECORD}`);
+      const older = await this.#deps.caches.open(name);
+      const copy = savedRecord(
+        await readJson(await older.match(`${this.#deps.origin}${SAVED_RECORD}`)),
+        name.slice(CACHE_PREFIX.length),
+      );
+      if (copy?.complete && (!newest || copy.at > newest.at)) newest = { at: copy.at, build: copy.build };
+      const response = await older.match(`${this.#deps.origin}${CLIENTS_RECORD}`);
       let ids: unknown = [];
       try {
         ids = response ? await response.json() : [];
@@ -630,9 +638,19 @@ export class OfflineWorker {
       else for (const id of kept) this.#olderClients.set(id, name);
     }
     this.#olderLoaded = true;
-    // The reader removed the saved copy while this build waited, after install had carried it over.
+    // The reader removed the saved copy while this build waited, after install had carried it over. The mark carries
+    // its time: a complete copy an older build saved after it means the reader saved again, so the carried files stay
+    // and that copy becomes the one to update.
     const cache = await this.#cache();
-    if (await cache.match(`${this.#deps.origin}${REMOVED_RECORD}`)) await this.#purge(cache);
+    const removed = await readJson(await cache.match(`${this.#deps.origin}${REMOVED_RECORD}`));
+    if (removed !== null) {
+      const at = (removed as { at?: unknown }).at;
+      const resaved = newest && typeof at === "number" && newest.at > at ? newest : null;
+      if (resaved) {
+        await cache.delete(`${this.#deps.origin}${REMOVED_RECORD}`);
+        await this.#write(PREVIOUS_RECORD, () => resaved);
+      } else await this.#purge(cache);
+    }
     await this.#write(OLDER_RECORD, () => Object.fromEntries(this.#olderClients));
     await this.#write(PENDING_RECORD, () => ({ since: null }));
     this.#activated = true;

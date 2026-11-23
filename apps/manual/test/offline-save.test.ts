@@ -479,6 +479,23 @@ test("Remove while a new build waits also removes the copy that build carried ov
   assert.equal(status.stored.files, SHELL.length, "the carried files are gone, the shell stays");
 });
 
+test("a save made after Remove, while a new build waits, survives that build's activation", async () => {
+  const caches = new FakeCaches();
+  let clock = 1_000;
+  const b1 = await active({}, { caches, now: () => clock++ });
+  assert.equal((await b1.worker.saveAll()).result, "saved");
+  const network = new FakeNetwork(served(B2_TEXTS));
+  const b2 = new OfflineWorker(buildOf("b2", B2_TEXTS, SHELL), { origin: ORIGIN, caches, fetch: network.fetch });
+  await b2.install();
+  await b1.worker.removeAll();
+  const resaved = await b1.worker.saveAll();
+  assert.equal(resaved.result, "saved", "the reader saved again before the update");
+  await b2.activate();
+  const status = await b2.status();
+  assert.deepEqual(status.previous, { at: resaved.saved?.at, build: "b1" }, "the new copy is offered for update");
+  assert.equal(status.stored.files, FILES - 1, "the carried files stayed; only the changed glossary is missing");
+});
+
 test("Remove marks an older cache an open tab still reads, so the next install carries nothing back from it", async () => {
   const caches = new FakeCaches();
   const old = await active({}, { caches }, buildOf("b0", TEXTS, SHELL));

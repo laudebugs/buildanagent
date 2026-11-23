@@ -194,9 +194,13 @@ function statusView(s) {
     };
   }
   if (update) {
+    // A Remove pressed while a new version waits still says it worked.
+    const removed = s.result?.result === "removed";
     return {
-      state: "A new version of the manual is ready.",
-      detail: "Reload the page, then save the manual for offline reading.",
+      state: removed ? "Removed the saved copy." : "A new version of the manual is ready.",
+      detail: removed
+        ? "A new version of the manual is ready. Reload the page before you save it again."
+        : "Reload the page, then save the manual for offline reading.",
       primary: null,
       remove: Boolean(status.partial || status.previous),
       progress: null,

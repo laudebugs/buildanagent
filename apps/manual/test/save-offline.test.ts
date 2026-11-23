@@ -336,6 +336,18 @@ test("with a new build waiting or deployed, the control asks for a Reload before
   assert.equal(deployed.ui.root().dataset.state, "update-waiting");
 });
 
+test("Remove pressed while a new version waits still says the copy was removed", async () => {
+  const { logic } = await readyWorker();
+  await logic.saveAll();
+  const { win, ui } = page({ worker: new PageWorker(logic), waiting: true });
+  await mount(win);
+  ui.remove().click();
+  await settle();
+  assert.equal(ui.state(), "Removed the saved copy.");
+  assert.equal(ui.detail(), "A new version of the manual is ready. Reload the page before you save it again.");
+  assert.equal(ui.announce(), "Removed the saved copy.");
+});
+
 test("after an update, an older saved copy offers Update the saved copy, with what is left to download", async () => {
   const caches = new FakeCaches();
   const old = await readyWorker({}, caches);
