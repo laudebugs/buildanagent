@@ -7,7 +7,7 @@
 | Plan | [Build the book §2, BK6](../../plans/build-book.md#bk6-a-source-register-tied-to-our-fact-checks-with-citations-that-fail-the-build-proposed) |
 | Round / milestone | Round T (the book), added 2026-11-23 |
 | Depends on | [T68a](../done/T68a-manual-paper-references-tooling.md) |
-| Size | M (eleven register entries and about twenty mentions in nine chapters) |
+| Size | M (eleven register entries and about twenty mentions in seven chapters) |
 
 ## Goal
 
@@ -55,9 +55,9 @@ The book plan's todo table and its fact-check log.
 
 - All eleven papers have a short name and a blurb checked against the whole paper (rows T68d-1 to T68d-33 of the book plan's fact-check log) and are off `papers-pending.json`.
 - `τ-bench` and `tau-bench` name the paper of Yao et al. (arXiv:2406.12045). `τ²-bench` is a different paper that no chapter names, and `τ-Voice` is the separate `tau-voice` entry.
-- Every mention of ReAct in Chapter 8 and in Chapter 12 is `[[paper:yao-react]]`, because the pattern and the paper share one name. Chapter 8 no longer tags the `react` glossary term, since a paper link covers it.
+- Chapter 8 calls the pattern "the reason-act loop", which is now the `react` glossary term (shown as "Reason-act loop"), and names the ReAct paper once as the pattern's source and where it cites the paper's results (`[[paper:yao-react]]`). Chapter 12 says "reason-act agent" in plain words and no longer lists the paper. The chapter 8 summary and the analogy `hiker-signs-or-route` use the plain name too.
 - No first mention is marked `described`: each first mention shows its blurb.
-- One chapter claim is not stated by its paper: Chapter 11's "each cell is one run" (row T68d-18).
+- One chapter claim was not stated by its paper: Chapter 11's "each cell is one run" (row T68d-19). The sentence now says "each cell covers 500 tasks" (row T68d-35).
 
 ## Definition of done
 
