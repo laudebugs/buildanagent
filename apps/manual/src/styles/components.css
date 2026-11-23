@@ -1810,16 +1810,17 @@
 
 /* The notes panel (the B1 design in docs/design/notes/): a modal dialog on the window's right, from the sticky header's
    bottom edge to the window's foot. The script sets --notes-panel-top to the header's height while the header shows,
-   as it does for the popover. It is 25rem wide, and the whole width on a phone (data-sheet). Its header and footer stay put, and
-   its body scrolls. */
+   as it does for the popover. It is 25rem wide, and the whole width on a phone (data-sheet). Widths are percentages of
+   the window, never vw, which counts a classic scrollbar and would push the panel's edge off the window. Its header and
+   footer stay put, and its body scrolls. */
 .notes-dialog {
   position: fixed;
   inset: var(--notes-panel-top, 0px) 0 0 auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  inline-size: min(25rem, 100vw);
-  max-inline-size: 100vw;
+  inline-size: min(25rem, 100%);
+  max-inline-size: 100%;
   block-size: auto;
   max-block-size: none;
   margin: 0;
@@ -1840,7 +1841,8 @@
 
 /* On a window as narrow as a phone's (the popover's sheet width, which the script reads) the panel takes the whole width. */
 .notes-dialog[data-sheet] {
-  inline-size: 100vw;
+  inset-inline-start: 0;
+  inline-size: auto;
   border-inline-start: 0;
 }
 
@@ -2049,10 +2051,11 @@ button.notes-card__go:hover .notes-card__quote {
   white-space: pre-wrap;
 }
 
-/* The menu hangs under the card's "More actions" button, or above it near the panel's foot. */
+/* The menu hangs just under the card's "More actions" button, or just above it near the panel's foot. The script sets
+   both offsets from the button's own box, so a menu that opens upward never covers the button, however tall the card. */
 .notes-menu {
   position: absolute;
-  inset-block-start: 44px;
+  inset-block-start: var(--notes-menu-top, 44px);
   inset-inline-end: 4px;
   z-index: 3;
   display: flex;
@@ -2069,7 +2072,7 @@ button.notes-card__go:hover .notes-card__quote {
 }
 
 .notes-menu[data-above] {
-  inset-block: auto 44px;
+  inset-block: auto var(--notes-menu-bottom, 44px);
 }
 
 .notes-menu__item,
@@ -2179,14 +2182,6 @@ button.notes-card__go:hover .notes-card__quote {
   .notes-card__more {
     inline-size: 44px;
     block-size: 44px;
-  }
-
-  .notes-menu {
-    inset-block-start: 52px;
-  }
-
-  .notes-menu[data-above] {
-    inset-block: auto 52px;
   }
 
   .notes-menu__item,

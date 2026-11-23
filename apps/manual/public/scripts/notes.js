@@ -2737,13 +2737,19 @@ class Notes {
     this.menuId = id;
     menu.hidden = false;
     more.setAttribute("aria-expanded", "true");
-    // A menu near the panel's foot opens upward when there is room above, and is scrolled into view otherwise.
+    // The menu hangs from the button's own box, 4px clear of it: under the button, or above it when the panel's body has
+    // no room below and room above. Both offsets are measured within the card, the menu's containing block, from the
+    // button, so the room checked is the room the menu takes. A menu that fits neither way is scrolled into view.
+    const gap = 4;
     menu.removeAttribute("data-above");
+    menu.style.setProperty("--notes-menu-top", `${more.offsetTop + more.offsetHeight + gap}px`);
+    menu.style.setProperty("--notes-menu-bottom", `${card.clientHeight - more.offsetTop + gap}px`);
     const body = menu.closest(".notes-panel__body");
     const room = body?.getBoundingClientRect();
     const box = menu.getBoundingClientRect();
     const button = more.getBoundingClientRect();
-    if (room && box.bottom > room.bottom && button.top - box.height >= room.top) menu.setAttribute("data-above", "");
+    if (room && box.bottom > room.bottom && button.top - gap - box.height >= room.top)
+      menu.setAttribute("data-above", "");
     menu.scrollIntoView?.({ block: "nearest" });
     const items = this.menuItems(menu);
     if (focus === "first") items[0]?.focus();
@@ -2946,19 +2952,26 @@ class Notes {
   /**
    * Delete in a card's menu deletes the highlight at once, from the stored list so another tab's changes are kept, and
    * says so. Focus moves to the next card's menu button, the previous one's after the last card, or Export when none is
-   * left.
+   * left. A Delete the browser refuses to store leaves the card and gives focus back to its menu button.
    */
   remove(item) {
     const rows = [...this.list.children];
     const index = rows.findIndex((row) => row.getAttribute("data-id") === item.id);
-    this.closeMenu(false);
     this.reload();
     if (this.foreign) {
+      // The stored value is one this page cannot read, which it reads as no notes: the page and the panel are drawn
+      // again to show that, with the warning, and focus goes to Close, since the card it was on is gone.
+      this.closeMenu(false);
+      this.paint();
+      this.renderList();
       this.say(MESSAGES.foreign);
+      this.closeButton.focus();
       return;
     }
     const problem = this.commit(this.items.filter((other) => other.id !== item.id));
     if (problem) {
+      // Nothing was deleted, so the menu closes and focus goes back to its button, never staying on a hidden item.
+      this.closeMenu(true);
       this.say(problem);
       return;
     }

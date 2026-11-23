@@ -3085,3 +3085,77 @@ test("the panel opens below the sticky header, follows it as it slides, and is f
   assert.equal(dialog.style.getPropertyValue("--notes-panel-top"), "52px");
   assert.equal(dialog.hasAttribute("data-sheet"), true, "a phone-width window gets the full-width panel");
 });
+
+test("Delete works from the stored list, so a note another tab added meanwhile survives it", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  // The other tab's write has landed in storage, but its event has not reached this page yet.
+  const added = item({ id: "added", quote: "a passage from the other tab", note: "Theirs." });
+  win.localStorage.setItem(KEY, stored({ tools: [CONTRACT, FAILED, added] }));
+  menuAction(win, "one", "delete").click();
+  assert.deepEqual(
+    storedItems(win).map((found) => found.id),
+    ["two", "added"],
+    "the other tab's note is kept",
+  );
+});
+
+test("a Delete the browser refuses keeps the card and gives focus back to its menu button", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  vi.spyOn(win.localStorage, "setItem").mockImplementation(() => {
+    throw new win.DOMException("full", "QuotaExceededError");
+  });
+  menuAction(win, "one", "delete").click();
+  assert.equal(storedItems(win).length, 2, "nothing was deleted");
+  assert.equal(q<HTMLElement>(win, '.notes-card[data-id="one"] .notes-menu')?.hidden, true, "the menu closes");
+  assert.ok(
+    win.document.activeElement === (q(win, '.notes-card[data-id="one"] .notes-card__more') as unknown),
+    "focus is back on More actions, not on the hidden Delete",
+  );
+  assert.match(q(win, ".notes-dialog__status")?.textContent ?? "", /would not save the change/);
+});
+
+test("a Delete that finds a stored value this page cannot read redraws the panel as no notes and focuses Close", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  win.localStorage.setItem(KEY, '{"v":3,"chapters":{"tools":{"new":"shape"}}}');
+  menuAction(win, "one", "delete").click();
+  assert.equal(cards(win).length, 0, "the cards match what the page can read");
+  assert.deepEqual(painted(win, PLAIN), [], "and so do the highlights");
+  assert.equal(q<HTMLElement>(win, ".notes-dialog__flag")?.hidden, false, "the warning says why");
+  assert.ok(win.document.activeElement === (q(win, ".notes-dialog__head [aria-label='Close']") as unknown), "focus");
+});
+
+test("a menu opens from its button's own box: under it, or above it with its bottom clear of the button", () => {
+  const { win } = stage([CONTRACT, FAILED]);
+  q<HTMLButtonElement>(win, ".notes-open")?.click();
+  const card = q<HTMLElement>(win, '.notes-card[data-id="two"]') as HTMLElement;
+  const more = card.querySelector<HTMLElement>(".notes-card__more") as HTMLElement;
+  const menu = card.querySelector<HTMLElement>(".notes-menu") as HTMLElement;
+  // A tall card near the panel's foot: the button at the card's top, little room below, plenty above.
+  Object.defineProperty(more, "offsetTop", { configurable: true, value: 6 });
+  Object.defineProperty(more, "offsetHeight", { configurable: true, value: 36 });
+  Object.defineProperty(card, "clientHeight", { configurable: true, value: 140 });
+  vi.spyOn(q(win, ".notes-panel__body") as Element, "getBoundingClientRect").mockReturnValue(
+    rect(880, 100, 1280, 600) as unknown as DOMRect,
+  );
+  vi.spyOn(more, "getBoundingClientRect").mockReturnValue(rect(1230, 460, 1266, 496) as unknown as DOMRect);
+  vi.spyOn(menu, "getBoundingClientRect").mockReturnValue(rect(1090, 500, 1266, 660) as unknown as DOMRect);
+  more.click();
+  assert.equal(menu.style.getPropertyValue("--notes-menu-top"), "46px", "4px under the button");
+  assert.equal(
+    menu.style.getPropertyValue("--notes-menu-bottom"),
+    "138px",
+    "4px above the button, not the card's foot",
+  );
+  assert.equal(menu.hasAttribute("data-above"), true, "no room below, so it opens upward");
+});
+
+test("the panel's widths are percentages of the window, never vw, which counts a classic scrollbar", () => {
+  const css = readFileSync(new URL("../src/styles/components.css", import.meta.url), "utf8");
+  const rules = [...css.matchAll(/\.notes-dialog(?:\[data-sheet\])?\s*\{([^}]*)\}/g)].map((found) => found[1]);
+  assert.ok(rules.length >= 2);
+  for (const body of rules) assert.doesNotMatch(body ?? "", /\d+vw/);
+  assert.match(css, /\.notes-dialog\[data-sheet\]\s*\{\s*inset-inline-start: 0;\s*inline-size: auto;/);
+});

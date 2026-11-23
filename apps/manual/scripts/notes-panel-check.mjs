@@ -48,12 +48,12 @@ const check = (condition, message) => {
 const NOTES = ["Check this against the cost cap in chapter 4.", "", "Reuse in the approvals chapter."];
 
 /** Opens the chapter with no notes stored, then adds two notes and one plain highlight through the toolbar. */
-async function seeded(page) {
+async function seeded(page, notes = NOTES) {
   await page.goto(`${origin}/tools/`);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await page.waitForSelector(".notes-open");
-  for (const [i, note] of NOTES.entries()) {
+  for (const [i, note] of notes.entries()) {
     await selectIn(page, i, 0, 40);
     await page.waitForSelector(".notes-toolbar:not([hidden])");
     if (!note) {
@@ -481,6 +481,69 @@ async function desktop(browser, name) {
   });
   check(menuFits, `${name} 1280x420: the last card's menu shows whole inside the panel`);
   await short.close();
+
+  // 12. Tall cards near the panel's foot: a menu that opens upward hangs above its own button and never covers it, so a
+  // click meant for the button cannot land on a colour.
+  const tall = await browser.newContext({ viewport: { width: 1280, height: 520 }, colorScheme: "light" });
+  const tallPage = await tall.newPage();
+  const long = "A long note that wraps onto several lines in the panel, so its card is far taller than its button. ";
+  await seeded(tallPage, [long.repeat(3), long.repeat(3), "Short.", long]);
+  await tallPage.click(".notes-open");
+  await tallPage.waitForSelector(".notes-dialog[open]");
+  await tallPage.evaluate(() => {
+    const body = document.querySelector(".notes-panel__body");
+    body.scrollTop = body.scrollHeight;
+  });
+  let tallAbove = 0;
+  for (const nth of [1, 2, 3, 4]) {
+    await tallPage.click(`.notes-card:nth-child(${nth}) .notes-card__more`);
+    const cover = await tallPage.evaluate((n) => {
+      const card = document.querySelector(`.notes-card:nth-child(${n})`);
+      const more = card.querySelector(".notes-card__more");
+      const menu = card.querySelector(".notes-menu");
+      const b = more.getBoundingClientRect();
+      const m = menu.getBoundingClientRect();
+      const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return {
+        above: menu.hasAttribute("data-above"),
+        clear: menu.hasAttribute("data-above") ? m.bottom <= b.top : m.top >= b.bottom,
+        onButton: more.contains(hit),
+        card: Math.round(card.getBoundingClientRect().height),
+      };
+    }, nth);
+    check(
+      cover.clear && cover.onButton,
+      `${name} 1280x520: card ${nth}'s menu (${cover.above ? "above" : "below"}, card ${cover.card}px) leaves its button uncovered`,
+    );
+    if (cover.above && cover.card >= 120) tallAbove += 1;
+    await tallPage.click(`.notes-card:nth-child(${nth}) .notes-card__more`);
+    check((await openMenus(tallPage)) === 0, `${name} 1280x520: a click on the button closes the menu again`);
+  }
+  check(tallAbove > 0, `${name} 1280x520: a card taller than 120px near the foot opened its menu upward`);
+  check(
+    await tallPage.evaluate(() =>
+      JSON.parse(localStorage.getItem("manual-notes")).chapters.tools.every((item) => item.color !== "pink"),
+    ),
+    `${name} 1280x520: and no click landed on a colour`,
+  );
+
+  // 13. A Delete the browser refuses keeps the card and gives focus back to its menu button.
+  await tallPage.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+  });
+  await tallPage.focus(".notes-card:first-child .notes-card__more");
+  await tallPage.keyboard.press("Enter");
+  await tallPage.keyboard.press("End");
+  await tallPage.keyboard.press("Enter");
+  const refused = await active(tallPage);
+  check(
+    refused.label === "More actions" && (await openMenus(tallPage)) === 0,
+    `${name}: after a refused Delete focus is back on More actions, not on the hidden Delete (${refused.label})`,
+  );
+  check((await readPanel(tallPage)).cards.length === 4, `${name}: and the card is still listed`);
+  await tall.close();
 }
 
 async function phone(browser, name) {
