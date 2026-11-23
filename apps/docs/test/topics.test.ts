@@ -28,7 +28,12 @@ const html = (route: string) => readFileSync(join(builtSite(), route, "index.htm
 /** The links inside the sidebar of a built page, without the topic tabs above them. */
 function sidebarLinks(page: string): string[] {
   const pane = /<sl-sidebar-pane[\s\S]*?<\/sl-sidebar-pane>/.exec(page)?.[0] ?? "";
-  const afterTabs = pane.split("</ul>").slice(1).join("</ul>");
+  // Cut at the end of the tabs' own list, and require the tabs to be in the pane, so that a layout change cannot make
+  // the cut drop the first group's links instead.
+  const tabsStart = pane.indexOf('<ul class="starlight-sidebar-topics');
+  assert.ok(tabsStart >= 0, "the topic tabs must be inside the sidebar pane");
+  const afterTabs = pane.slice(pane.indexOf("</ul>", tabsStart) + "</ul>".length);
+  assert.doesNotMatch(afterTabs, /starlight-sidebar-topics/, "the slice must not hold the tabs");
   return [...afterTabs.matchAll(/href="([^"]+)"/g)].map((match) => match[1] ?? "");
 }
 

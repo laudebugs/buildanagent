@@ -74,7 +74,7 @@ The plugin must come before every TypeDoc plugin in `plugins`. It writes the sid
 
 Previous and next links stop at a topic's first and last page: the first page of "SDK & gateway" has no Previous link, and `reference/packages` has no Next link.
 
-`test/topics.test.ts` reads the built pages. It fails on a page over 200 KiB of HTML, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic. The budget is 200 KiB (204,800 bytes; every size in this app's docs is in bytes or KiB, 1 KiB being 1,024 bytes). The largest page is 141,164 bytes (137.9 KiB) after the split and 175,279 bytes (171.2 KiB) before it. Raise the budget only with a new measurement, recorded in the L12 todo. A collapsed group still holds every link in the HTML, so collapsing does not shrink a page: an API topic that nears the budget must be split into more topics or have modules dropped from its sidebar. Going from one shared API topic to one per package cut the largest page by 33,456 bytes, so splitting works.
+`test/topics.test.ts` reads the built pages. It fails on a page over 200 KiB of HTML, a page whose tabs are wrong or that has no current tab, a sidebar that links into another topic and a reference page outside its package's topic. The budget is 200 KiB (204,800 bytes; sizes in these docs are in bytes or KiB, 1 KiB being 1,024 bytes). Raise it only with a new measurement, recorded in the L12 todo, which holds the measurements. A collapsed group still holds every link in the HTML, so collapsing does not shrink a page: an API topic that nears the budget must be split into more topics or have modules dropped from its sidebar.
 
 ## The API reference is generated
 
