@@ -22,6 +22,42 @@ A fence with a `file` attribute takes its code from a file under a package's `ex
 
 The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build.
 
+## Draw a figure with a script, and the build inlines it
+
+A figure is a script that draws an SVG with the book's kit, and a page places the committed SVG with a directive. The build inlines the drawing, so it follows the page's theme in light and dark mode and needs no JavaScript. To add a figure:
+
+1. Write `figures/<id>.ts`, a kebab-case id. Its default export draws the figure with `@buildanagent/manual/figures/svgkit` and returns it; [`figures/run-loop.ts`](figures/run-loop.ts) is the sample. The kit names no colour, only tones and fills that map to the book's `fig-*` classes, and it throws when a label overlaps another, leaves its box or uses a glyph the code font lacks.
+2. Add the id to `FIGURE_IDS` in [`figures/registry.ts`](figures/registry.ts).
+3. Run `pnpm --filter @buildanagent/docs figures:build`, which writes `figures/<id>.svg` beside each script. Commit both files.
+4. Place the figure on its own line, with the caption in the brackets and alt text that states the figure's point:
+
+   ```md
+   ::figure[One run of the loop, from your input to its stop reason]{id="run-loop" alt="The run calls the model and runs the tools it asks for. Their results go back to the model until it answers in text, or until a guard or hook ends the run."}
+   ```
+
+5. State in the page's text every fact the figure shows, as [docs-writing.md](../../docs/guidelines/docs-writing.md#draw-a-diagram-where-a-picture-answers-faster) requires.
+
+Draw a figure 320 units wide or less where you can. At that width it fits a 390 px phone whole. A wider figure keeps its natural size, so its labels stay at 12 px, and its panel scrolls sideways under a hint on a narrower screen. The kit allows up to 520.
+
+The build fails, naming the page and line, when a figure has no alt text, no caption or an id the registry lacks. It also fails when the directive carries any other attribute, when a page shows one figure twice or when the caption holds more than text and inline code. `src/plugins/figure.ts` implements the directive. Starlight's remark-directive parses it, and the plugin runs before Starlight puts unknown directives back as text.
+
+The page carries only what the kit draws. Each committed SVG starts with a `<style>` that embeds the code font and the panel tokens, so the file renders on its own, for example in a pull request. The page drops that style, because it loads the same font and tokens. `src/plugins/figure-svg.ts` then reads the rest of the file tag by tag and refuses anything the kit never writes, without repairing it:
+
+- an element other than `g`, `rect`, `path`, `circle` and `text`, such as `script`, `style`, `foreignObject`, `image`, `use` or `a`;
+- an attribute other than the kit's, such as an event handler, `href`, `xlink:href`, `style` or `fill`, or a value outside the kit's pattern, such as path data with anything but numbers and `M`, `L`, `Q` and `Z`;
+- a class that the book's `figures.css` doesn't define, so every colour comes from a theme token;
+- a comment, a CDATA section, a doctype, a processing instruction, an entity other than the four the kit escapes labels with, or markup inside the standalone style;
+- an id without the `<id>--` prefix, a root `<svg>` tag that differs from the kit's, or a file drawn for another figure.
+
+`src/styles/figures.css` holds the figure panel, scoped to `.docs-figure`: the book's grid paper, the scrolling stage, the hint, a smaller padding under 40rem and system colours under forced colours. It loads after the book's `figures.css`, which colours the marks. A change to the kit, the book's `figures.css`, the tokens or the code font makes the SVGs stale, so rerun `figures:build`.
+
+Four test files guard the figures:
+
+- `test/figures.test.ts` fails when a committed SVG differs from what its script draws, when the folder holds a file the registry doesn't name, or when a script, a drawing or the inlined markup writes a colour. It also fails when the standalone style holds a colour that isn't a panel token's value, or when the panel's scroll and forced-colour rules are missing.
+- `test/figure-svg.test.ts` plants each refused construct in a real committed SVG and requires the check to reject it.
+- `test/figure-directive.test.ts` renders the directive through Astro's Markdown processor and requires each broken form to fail.
+- `test/figure-build.test.ts` builds the site and requires each placed figure inline on its page, with its alt text, its caption and the scrolling stage.
+
 ## The API reference is generated
 
 TypeDoc writes a page for every export of the gateway and the SDK under `src/content/docs/reference/gateway/` and `reference/sdk/` each time Astro builds. The pages are not committed, and the tests skip them. The entry points come from each package's own `exports` map, so the reference matches what users import (`src/api/packages.ts`).
