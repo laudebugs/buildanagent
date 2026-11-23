@@ -165,7 +165,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader'
 
 #### The versioning design
 
-DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first stable release, and from then on `main` deploys `next.docs.buildanagent.fyi`. `docs-deploy.yml` builds `main` once and deploys that one build to either host, so the build cannot know which host it will serve. The "Unreleased docs for `main`" banner is therefore a small script that shows it when `location.hostname` begins with `next.`, not a build flag. Without JavaScript the `next.` site shows no banner, so human readers get no warning; search engines are still kept out, because `site-stage-dist.mjs` already sends `X-Robots-Tag: noindex`. The header's version tag is read at build time from the shared package version. A test fails when an install line omits `@alpha`. A "Docs for main" link stands in for a switcher, which waits until old releases are archived.
+DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first stable release, and from then on `main` deploys `next.docs.buildanagent.fyi`. `docs-deploy.yml` builds `main` once and deploys that one build to either host, so the build cannot know which host it will serve. The "Unreleased docs for `main`" banner is therefore a small script that shows it when `location.hostname` begins with `next.`, not a build flag. Without JavaScript the `next.` site shows no banner, so human readers get no warning; search engines are still kept out, because `site-stage-dist.mjs` already sends `X-Robots-Tag: noindex`. The header's version tag is read at build time from the shared package version. A test fails when an install line omits `@alpha`. A "Docs for main" link stands in for a switcher, which waits until old releases are archived. The owner decided on 2026-11-22 that the first stable release, and so the switch, waits until the harness work is finished, which is paused; see the risks in [L12](../todos/ongoing/L12-docs-redesign.md#risks-and-open-questions).
 
 #### The sub-todos and the owner's questions
 
@@ -213,6 +213,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L11](../todos/done/L11-bootstrap-and-release-protocol-harness-cli.md) | Drop `private`, hand the owner the new `release.yml`, and publish the four together through trusted publishing | L9, L10, N29, N30 | M |
 | [L12](../todos/ongoing/L12-docs-redesign.md) | Redesign `apps/docs` to match the book's theme, with diagrams, tested examples and the harness packages' pages | L5, L6, L8 | L |
 | [L12n](../todos/done/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
+| [L12a](../todos/done/L12a-docs-theme-foundation.md) | The docs app takes the book's theme: generated tokens, shared fonts, a Starlight mapping and contrast tests, first build step of the L12 docs redesign | None | M |
 | [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
 
 B20's README type-checking, `llms.txt`, `defaultsHash` and second export diff stay in B20; its revision moves the docs site and the first export diff here.

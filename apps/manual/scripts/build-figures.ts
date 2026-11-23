@@ -3,7 +3,7 @@
 // The package script also names the fixture books' figure folders, so one command redraws every figure the tests
 // check. The staleness test fails when a committed file differs from what its script draws, so rerun this after
 // changing a script, figures/lib/svgkit.ts or isokit.ts, the vendored anatomy kit, the figure rules in
-// src/styles/components.css, the tokens or the code font.
+// src/styles/figures.css, the tokens or the code font.
 
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";

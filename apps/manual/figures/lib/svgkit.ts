@@ -8,7 +8,7 @@
 // that refuses a glyph outside it, escaped labels, and arrows whose shaft starts on one box's edge and whose head lands
 // on the next. It adds checks the garment kit left to a browser audit: every mark stays inside the canvas, labels
 // fit their boxes and never overlap, and every id starts with the figure's id. Colours come from the `fig-*` classes
-// in src/styles/components.css, which use T2's panel tokens, so an inlined figure follows the page's theme.
+// in src/styles/figures.css, which use T2's panel tokens, so an inlined figure follows the page's theme.
 import { readFileSync } from "node:fs";
 import { escapeXml } from "../../src/book/figures.js";
 import { KEBAB_ID } from "../../src/book/outline-rules.js";
@@ -16,7 +16,7 @@ import { type COLOR_SETS, colorProperty, readTokens } from "../../src/design/tok
 import { woff2Advances } from "../../src/design/woff2.js";
 
 const APP = new URL("../../", import.meta.url);
-const COMPONENTS_CSS = new URL("src/styles/components.css", APP);
+const FIGURES_CSS = new URL("src/styles/figures.css", APP);
 
 /** A drawing broke one of the kit's rules; the message names the figure and what to change. */
 export class FigureError extends Error {
@@ -43,7 +43,7 @@ export type Tone = "text" | "muted" | "accent";
 /** The fill of a dot: one of the panel's mark colours. Text never sits on a fill, whose contrast nobody measured. */
 export type Fill = "text" | "amber" | "olive" | "terracotta";
 
-/** A label's size and weight, each a `fig-text` class in components.css. */
+/** A label's size and weight, each a `fig-text` class in figures.css. */
 export type TextStyle = "label" | "heading";
 
 /**
@@ -90,9 +90,9 @@ export function missingGlyphs(text: string): string[] {
 const describe = (char: string): string =>
   `"${char}" (U+${(char.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")})`;
 
-/** The `.fig-*` rules of components.css, comments removed and whitespace collapsed, for a standalone figure. */
+/** The `.fig-*` rules of figures.css, comments removed and whitespace collapsed, for a standalone figure. */
 export function figureRules(): string {
-  const css = readFileSync(COMPONENTS_CSS, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = readFileSync(FIGURES_CSS, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   const rules = [...css.matchAll(/(\.fig-[\w-]+(?:\s*,\s*\.fig-[\w-]+)*)\s*\{([^}]*)\}/g)];
   return rules
     .map(([, selector = "", body = ""]) => {
@@ -105,7 +105,7 @@ export function figureRules(): string {
     .join("\n");
 }
 
-/** The font size, in px, that components.css gives one `fig-text` class. */
+/** The font size, in px, that figures.css gives one `fig-text` class. */
 function cssFontSize(rules: string, selector: string): number | undefined {
   const rule = rules.split("\n").find((line) => line.startsWith(`${selector}{`));
   const size = rule?.match(/font-size:(\d+(?:\.\d+)?)px/)?.[1];
@@ -202,7 +202,7 @@ export class Figure {
     const label = cssFontSize(this.#rules, ".fig-text");
     const heading = cssFontSize(this.#rules, ".fig-text--heading") ?? label;
     if (label === undefined || heading === undefined) {
-      throw new FigureError("components.css gives .fig-text no font-size in px, so labels cannot be measured");
+      throw new FigureError("figures.css gives .fig-text no font-size in px, so labels cannot be measured");
     }
     this.#sizes = { label, heading };
   }

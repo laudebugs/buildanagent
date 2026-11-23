@@ -206,7 +206,7 @@ export class IsoFigure {
    */
   page(source: string, theme: Theme): string {
     const tokens = readFileSync(new URL("src/styles/tokens.css", APP), "utf8").replace(/@font-face\s*\{[^}]*\}/g, "");
-    const styles = ["base.css", "components.css", "anatomy.css"].map((file) =>
+    const styles = ["base.css", "components.css", "figures.css", "anatomy.css"].map((file) =>
       readFileSync(new URL(`src/styles/${file}`, APP), "utf8"),
     );
     const figure = this.fragment(source).replace(/^<!--[^\n]*-->\n/, "");

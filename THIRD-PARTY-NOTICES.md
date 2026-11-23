@@ -69,6 +69,8 @@ None of the three licences names a Reserved Font Name. Google Sans Code's `TRADE
 
 Instrument Serif and Literata keep their names. Neither licence reserves a font name, and neither folder in google/fonts carries a `TRADEMARKS.md`. Literata's name table includes the notice "Literata is a trademark of Google Inc.", which the subsets keep unchanged. The owner chose to keep the Literata name on 2026-11-19.
 
+The docs site serves the same files. [`apps/docs/public/fonts/`](apps/docs/public/fonts/) is a byte-for-byte copy of the book's three folders, licence files and `TRADEMARKS.md` included, which `pnpm --filter @buildanagent/docs tokens` writes and a docs test checks. Everything above applies to that copy unchanged.
+
 ## Quotations elsewhere are short, attributed excerpts
 
 Two kinds of third-party text appear outside the mirrors, both as short quotations with attribution. First, the practitioner research in [`docs/research/practitioners/`](docs/research/practitioners/) quotes Hacker News comments, each credited to its author with a link to the comment. The raw comment corpus stays in a gitignored folder, so the repo does not distribute it ([corpus.md](docs/research/practitioners/corpus.md)). Second, [`twelve-factor-agents.md`](docs/research/external-designs/twelve-factor-agents.md) quotes HumanLayer's "12-factor agents" essay, whose prose is licensed CC BY-SA 4.0; because of that share-alike term, the repo quotes the essay briefly and does not mirror it. These quotations remain the work of their authors.

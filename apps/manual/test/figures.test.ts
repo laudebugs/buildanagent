@@ -344,7 +344,8 @@ test("no figure may be wider than the stage shows whole at desktop widths", () =
 // which must not fall under the approved phone label size.
 test("labels render at no less than the phone label size, because a figure never shrinks", () => {
   const css = readFileSync(join(app, "src/styles/components.css"), "utf8");
-  const labelPx = Number(/\.fig-text \{[^}]*font-size: (\d+)px/.exec(css)?.[1]);
+  const marks = readFileSync(join(app, "src/styles/figures.css"), "utf8");
+  const labelPx = Number(/\.fig-text \{[^}]*font-size: (\d+)px/.exec(marks)?.[1]);
   assert.ok(labelPx >= readTokens().size.code.label.phone, `labels are ${labelPx}px`);
   const natural = /\.figure__stage--scroll svg\.fig \{([^}]*)\}/.exec(css)?.[1] ?? "";
   assert.match(natural, /width: auto;/);

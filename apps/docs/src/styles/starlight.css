@@ -1,0 +1,178 @@
+/* Starlight in the book's theme. Every value here names a token from tokens.css, never a colour, so the docs change
+   with docs/design/book-tokens.json and every colour pair is measured (test/contrast.test.ts). The rules are not in a
+   cascade layer, so they win over Starlight's own, which sit in @layer starlight.*. One :root block serves both
+   modes: the tokens switch with the theme, so a variable that names a token switches with them. The mapping depends
+   on the --sl-* variables of Starlight 0.42.10; check them after every Starlight upgrade. */
+
+:root {
+  /* Starlight's grey scale runs from its strongest text (white) to its page (black) in both modes. */
+  --sl-color-white: var(--color-text);
+  --sl-color-gray-1: var(--color-text);
+  --sl-color-gray-2: var(--color-text-soft);
+  --sl-color-gray-3: var(--color-text-muted);
+  --sl-color-gray-4: var(--color-text-muted);
+  --sl-color-gray-5: var(--color-rule);
+  --sl-color-gray-6: var(--panel-background);
+  --sl-color-gray-7: var(--panel-background);
+  --sl-color-black: var(--color-background);
+
+  --sl-color-accent-low: var(--color-highlight);
+  --sl-color-accent: var(--color-accent);
+  --sl-color-accent-high: var(--color-link);
+
+  --sl-color-text: var(--color-text);
+  --sl-color-text-accent: var(--color-link);
+  --sl-color-text-invert: var(--color-background);
+  --sl-color-bg: var(--color-background);
+  --sl-color-bg-nav: var(--color-background);
+  --sl-color-bg-sidebar: var(--color-background);
+  --sl-color-bg-inline-code: var(--panel-background);
+  --sl-color-bg-accent: var(--color-accent);
+  --sl-color-hairline-light: var(--color-rule);
+  --sl-color-hairline: var(--color-rule);
+  --sl-color-hairline-shade: var(--color-rule);
+
+  /* Starlight's colour families become the book's highlight families: a pale background, an edge that reaches 3:1 on
+     the page, and the text colour for anything written on the background. Tips are green, as the book's are, so the
+     purple family takes green too. */
+  --sl-color-blue-low: var(--color-highlight-blue);
+  --sl-color-blue: var(--color-highlight-edge-blue);
+  --sl-color-blue-high: var(--color-text);
+  --sl-color-green-low: var(--color-highlight-green);
+  --sl-color-green: var(--color-highlight-edge-green);
+  --sl-color-green-high: var(--color-text);
+  --sl-color-purple-low: var(--color-highlight-green);
+  --sl-color-purple: var(--color-highlight-edge-green);
+  --sl-color-purple-high: var(--color-text);
+  --sl-color-orange-low: var(--color-highlight);
+  --sl-color-orange: var(--color-highlight-edge);
+  --sl-color-orange-high: var(--color-text);
+  --sl-color-red-low: var(--color-highlight-pink);
+  --sl-color-red: var(--color-highlight-edge-pink);
+  --sl-color-red-high: var(--color-text);
+
+  --sl-font: var(--font-body);
+  --sl-font-mono: var(--font-code);
+  --sl-line-height: var(--line-height-body);
+  --sl-content-width: var(--measure);
+}
+
+/* Instrument Serif has one weight, so headings stay at 400: a heavier weight would make the browser fake a bold. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.site-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-wrap: balance;
+}
+
+/* The book's display face sets small for its size, so the smallest headings keep the body face, at a weight
+   Literata has. */
+.sl-markdown-content :is(h5, h6) {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+
+/* Neither link colour is 3:1 apart from body text, so links are underlined in both modes (WCAG 1.4.1). */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.18em;
+}
+
+.sl-markdown-content a:hover:not(:where(.not-content *)) {
+  color: var(--color-link);
+  text-decoration-thickness: 0.14em;
+}
+
+/* The accent reaches 3:1 on the page and on the panel in both modes. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: var(--color-background);
+}
+
+.sl-markdown-content code:not(:where(.not-content *)) {
+  color: var(--panel-text);
+  border-radius: 0.2rem;
+}
+
+/* Code inside a link keeps the link's colour, so a linked name still reads as a link on the panel shade. */
+.sl-markdown-content a code:not(:where(.not-content *)) {
+  color: inherit;
+}
+
+/* An aside is a highlight from the book: its pale background under the text colour, and a left rule in the edge
+   shade, which reaches 3:1 on the page. Note is blue, tip green, caution amber and danger pink. */
+.starlight-aside {
+  --sl-color-asides-text-accent: var(--color-text);
+  color: var(--color-text);
+}
+
+.starlight-aside--note {
+  --sl-color-asides-border: var(--color-highlight-edge-blue);
+  background-color: var(--color-highlight-blue);
+}
+
+.starlight-aside--tip {
+  --sl-color-asides-border: var(--color-highlight-edge-green);
+  background-color: var(--color-highlight-green);
+}
+
+.starlight-aside--caution {
+  --sl-color-asides-border: var(--color-highlight-edge);
+  background-color: var(--color-highlight);
+}
+
+.starlight-aside--danger {
+  --sl-color-asides-border: var(--color-highlight-edge-pink);
+  background-color: var(--color-highlight-pink);
+}
+
+.starlight-aside__title {
+  font-family: var(--font-body);
+}
+
+.starlight-aside__content a {
+  color: var(--color-link);
+}
+
+/* Starlight keeps code in a heading at the heading's size, which in the condensed display face makes it the largest
+   thing on the line. */
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) code {
+  font-size: 0.8em;
+}
+
+/* --sl-color-accent-low is the pale highlight, which is decorative on the page, but printed, Starlight outlines a file
+   tree's highlighted entry with it; the accent reaches 3:1. */
+@media print {
+  starlight-file-tree .highlight {
+    outline-color: var(--color-accent);
+  }
+
+  /* Printed, the panel takes its light colours (tokens.css), so code takes the light theme's syntax colours too.
+     Expressive Code stores each theme's colour in a numbered variable on every token, in the order of the themes
+     list: --0 is the dark theme and --1 the light one. */
+  .expressive-code .ec-line :where(span[style^="--"]:not([class])) {
+    color: var(--1, inherit);
+    background-color: var(--1bg, transparent);
+    font-style: var(--1fs, inherit);
+    font-weight: var(--1fw, inherit);
+    text-decoration: var(--1td, inherit);
+  }
+
+  /* A line marker's label is drawn in the panel's background colour on its line's edge colour, and bare paper drops
+     the fill, so printed, the label takes the edge colour on no fill (test/contrast.test.ts). */
+  .expressive-code .ec-line.tm-label .code::before {
+    background: transparent;
+    color: var(--ecLineBrdCol);
+  }
+}

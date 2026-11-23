@@ -120,6 +120,7 @@ L12 is done when L12a to L12p are done and these hold on `main`:
 - **The docs checks.** They count paragraphs and next links. `pages.ts` already lists `.mdx` files, but its paragraph rules read only Markdown, so MDX, asides and figure directives need small changes to the content tests.
 - **Coupling.** A change to a book token or a `fig-*` rule fails the docs' tests. That is intended, and both READMEs say so.
 - **CSP hashes** change with each Starlight upgrade, and L12m's test catches it.
+- **The first stable release waits for the harness work.** The owner decided on 2026-11-22 that the first stable release, and with it the docs' versioning switch to `next.docs.buildanagent.fyi`, waits until the harness work is finished. The harness work is paused and resumes later, so `main` keeps deploying docs.buildanagent.fyi until then. L12e builds the banner and the version tag now, and they take effect only at that switch.
 
 **Unverified items from the study**
 

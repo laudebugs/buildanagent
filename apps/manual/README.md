@@ -312,7 +312,7 @@ The kit throws while drawing, naming the figure, when a mark breaks one of its r
 - `connect()` joins two boxes that overlap or share no band across the gap between them, or an arrow is shorter than twice its head.
 - An id does not start with `<figure id>--`. Inlined figures share the page's id space, and kebab-case ids never hold `--`, so two figures cannot clash.
 
-The figure colours its marks with the `fig-*` classes in `src/styles/components.css`, never with colour attributes. The kit measures labels at those classes' font sizes. Each committed SVG also embeds the code font as a data URI and the panel tokens of both modes, so the file renders on its own, for example in a pull request. The build drops that `<style>` element when it inlines the figure, because the page serves the same font and tokens and its content security policy allows no inline style. A change to the kit, the `fig-*` rules, the tokens or the code font therefore makes the figures stale: rerun `figures:build`. The font makes each committed SVG about 61 KB, but no page carries it.
+The figure colours its marks with the `fig-*` classes in `src/styles/figures.css`, never with colour attributes. The kit measures labels at those classes' font sizes. Each committed SVG also embeds the code font as a data URI and the panel tokens of both modes, so the file renders on its own, for example in a pull request. The build drops that `<style>` element when it inlines the figure, because the page serves the same font and tokens and its content security policy allows no inline style. A change to the kit, the `fig-*` rules, the tokens or the code font therefore makes the figures stale: rerun `figures:build`. The font makes each committed SVG about 61 KB, but no page carries it.
 
 A page shows a figure at its natural size, so its labels stay at 12 px, the approved phone label size, on every screen (BK11). Where the panel is narrower than the figure, as on a phone, the drawing keeps its size and the panel's drawing area, the stage, scrolls sideways. A figure never splits into a second drawing, and none of this needs JavaScript. The note "Scroll sideways to see the whole figure →" shows under the drawing exactly when the stage overflows, because the note's animation runs on the stage's scroll timeline, which stays inactive while nothing scrolls. A browser without scroll-driven animations never shows the note, but the stage still scrolls. The stage takes keyboard focus on every screen, since CSS cannot make it focusable only while it overflows, and the figure's caption names it for screen readers.
 
@@ -399,6 +399,8 @@ Four checks in three test files guard the file. First, `test/tokens.test.ts` fai
 
 To change a token, edit the JSON file, update its recorded ratio if a colour changed, then run `pnpm --filter @buildanagent/manual tokens`.
 
+The package's `exports` map lets `apps/docs` reuse the generator without copying it: `./design/tokens`, `./design/contrast`, `./design/woff2`, `./figures/svgkit` and `./styles/figures.css`. The `fig-*` rules sit in `figures.css`, apart from `components.css`, so a site that takes the figures does not take the book's page styles. `tokensCss()` takes an optional header comment and font folder for such a site.
+
 ## Where each token may be used
 
 | Custom property | Use it for | Never use it for |
@@ -415,7 +417,7 @@ To change a token, edit the JSON file, update its recorded ratio if a colour cha
 | `--size-*`, `--line-height-body` | Type sizes, which scale from the phone value at 360 px to the desktop value at 1280 px | |
 | `--page-width`, `--measure`, `--article-max`, `--side-note-width`, `--gutter` | Direction C's widths: the page (100rem), the prose measure (42rem, about 75 characters of body text), a chapter's widest article column (59.5rem: the measure, a gap and a side note), the side note beside the prose and the side gutter. The sidebar (11rem) and the "On this page" rail (15rem) are fixed in `layout.css` | |
 
-A figure colours its parts with the `fig-*` classes in `src/styles/components.css`, not with `fill` and `stroke` attributes, so every figure colour stays in a stylesheet that the style test reads.
+A figure colours its parts with the `fig-*` classes in `src/styles/figures.css`, not with `fill` and `stroke` attributes, so every figure colour stays in a stylesheet that the style test reads.
 
 ## The fonts are self-hosted subsets
 

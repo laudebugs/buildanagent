@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "vitest";
-import { fluidSize, readTokens, TOKENS_CSS_URL, tokenProblems, tokensCss } from "../src/design/tokens.js";
+import { fluidSize, fontUrl, readTokens, TOKENS_CSS_URL, tokenProblems, tokensCss } from "../src/design/tokens.js";
 
 test("the committed tokens.css is what the generator writes from book-tokens.json", () => {
   assert.equal(
@@ -34,4 +34,25 @@ test("a size scales from its phone value at 360 px to its desktop value at 1280 
   const viewport = { phone: 360, desktop: 1280 };
   assert.equal(fluidSize({ phone: 44, desktop: 80 }, viewport), "clamp(2.75rem, 1.8696rem + 3.913vw, 5rem)");
   assert.equal(fluidSize({ phone: 12, desktop: 12 }, viewport), "0.75rem");
+});
+
+test("another site's tokens file takes its own header and font folder and keeps every other line", () => {
+  const tokens = readTokens();
+  const book = tokensCss(tokens);
+  const other = tokensCss(tokens, {
+    header: ["Written by another site.", "Run its own command."],
+    fontBase: "/assets/f/",
+  });
+  assert.ok(other.startsWith("/* Written by another site.\n   Run its own command. */\n"));
+  assert.match(other, /src: url\("\/assets\/f\/literata\/literata-roman\.woff2"\)/);
+  assert.doesNotMatch(other, /url\("\/fonts\//);
+  const body = (css: string): string => css.slice(css.indexOf("*/")).replace(/url\("[^"]*"\)/g, "url()");
+  assert.equal(body(other), body(book));
+});
+
+test("a font folder must end in a slash, and a font file must sit under /fonts/", () => {
+  assert.equal(fontUrl("/fonts/a/b.woff2", "/x/"), "/x/a/b.woff2");
+  assert.throws(() => fontUrl("/fonts/a/b.woff2", "/x"), /does not end in \//);
+  assert.throws(() => fontUrl("/elsewhere/b.woff2"), /is not under \/fonts\//);
+  assert.throws(() => tokensCss(readTokens(), { header: ["a */ b"] }), /cannot contain \*\//);
 });
