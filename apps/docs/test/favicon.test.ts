@@ -42,6 +42,7 @@ test("every built page links /favicon.svg as its icon", () => {
 });
 
 test("every built page has the header title with the mark, the wordmark and the licence line, and the install tabs sync", () => {
+  const out = builtSite();
   const pages = readdirSync(out, { recursive: true, encoding: "utf8" }).filter((path) => path.endsWith(".html"));
   for (const path of pages) {
     const html = readFileSync(join(out, path), "utf8");
