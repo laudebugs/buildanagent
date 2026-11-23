@@ -23,6 +23,22 @@ Two packages hold everything these docs describe. You need this to find which en
 - **`@buildanagent/sdk/otel`**: an observer that exports a run as OpenTelemetry spans.
 - **`@buildanagent/sdk/testing`**: `ScriptedModel` and the doubles that stand in for an approver and a tool server.
 
+## Six packages build on the gateway
+
+The gateway and the SDK are two of the six `@buildanagent` packages. Each package imports only packages drawn below it, so the gateway, at the bottom, imports none of the others.
+
+::figure[The six packages, each above the packages it imports]{id="package-map" alt="The CLI imports the harness, the harness imports the protocol and agent-safety, the protocol imports the SDK, and the SDK and agent-safety import the gateway."}
+
+Each package imports these others:
+
+- **`@buildanagent/sdk`**: the gateway.
+- **`@buildanagent/agent-safety`**: the gateway.
+- **`@buildanagent/protocol`**: the SDK and the gateway.
+- **`@buildanagent/harness`**: the protocol, agent-safety, the SDK and the gateway.
+- **`@buildanagent/cli`**: the harness, the protocol, the SDK and the gateway.
+
+The figure draws an arrow only where no chain of arrows already leads. The arrow from the CLI to the harness therefore also stands for the CLI's imports of the protocol, the SDK and the gateway.
+
 ## Every export has a reference page
 
 The docs generate a page for each export from its TSDoc, so a page always matches the code it describes. Browse the [gateway API](/reference/gateway/) or the [SDK API](/reference/sdk/), which list each entry point's functions, classes, interfaces and types.

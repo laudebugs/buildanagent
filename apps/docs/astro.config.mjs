@@ -8,6 +8,7 @@ import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 import { API_PACKAGES, entryPoints, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
 import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
+import { figureDirective } from "./src/plugins/figure.js";
 import { renderInputFiles } from "./src/plugins/render-inputs.js";
 
 // Astro caches each page's rendered HTML until the page's own file changes. A page that shows an example file, or the
@@ -53,7 +54,7 @@ const api = API_PACKAGES.map((pkg) => {
 export default defineConfig({
   site: "https://docs.buildanagent.fyi",
   cacheDir: CACHE_DIR,
-  markdown: { remarkPlugins: [exampleFile] },
+  markdown: { remarkPlugins: [exampleFile, figureDirective] },
   integrations: [
     starlight({
       title: "buildanagent",
@@ -65,7 +66,12 @@ export default defineConfig({
       // panel colours are measured at 4.5:1 or more, so Expressive Code must not shift them to its own minimum. That
       // also turns off its correction on marked, inserted and deleted lines, so the markers take measured panel colours
       // too (CODE_STYLE_OVERRIDES.textMarkers).
-      customCss: ["./src/styles/tokens.css", "./src/styles/starlight.css"],
+      customCss: [
+        "./src/styles/tokens.css",
+        "./src/styles/starlight.css",
+        "@buildanagent/manual/styles/figures.css",
+        "./src/styles/figures.css",
+      ],
       expressiveCode: {
         themes: codeThemes(),
         minSyntaxHighlightingColorContrast: 0,
