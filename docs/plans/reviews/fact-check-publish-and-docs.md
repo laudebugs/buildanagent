@@ -960,6 +960,22 @@ Read on 2026-11-23 from llmstxt.org, MDN, the WebKit blog, the Astro and Starlig
 | L12l-15 | An MDX string-literal expression leaves the string's text in the twin | ✏️ | Corrects the README's claim: the text is backslash-escaped for `\ * _ [ ] < > # ~`, the pipe and the backtick, because Markdown would otherwise read `{'*'}` as emphasis while the page shows the character. Measured by `test/twins-flatten.test.ts` |
 | L12l-16 | The button's blob should have the type of its key, `text/plain`; what a mismatch does is not documented | ✏️ | Corrects the README and the `copy-markdown.ts` header, which said "must" on the strength of row L12l-4, still ⚠️: neither the WebKit post nor MDN says what a mismatch does. The code rebuilds the text as `text/plain` to stay on the documented side |
 
+## L12r: the docs' body font (branch `todo/L12r-docs-body-font-inter`, 2026-11-24)
+
+| ID | Claim | Verdict | Source or reason |
+| --- | --- | --- | --- |
+| L12r-1 | The owner chose Inter for body text, Instrument Serif for titles and Manual Code for code on 2026-11-24 (option A) | ✅ | The owner's decision as relayed by the manager on 2026-11-24 |
+| L12r-2 | The book's tokens define Inter as a reading face (`font.reading.faces.inter`): one variable roman file and one italic file, weight 100 to 900, licence OFL-1.1 | ✅ | `docs/design/book-tokens.json`, `font.reading.faces.inter` |
+| L12r-3 | The book serves Inter as `inter-roman.woff2` (90,144 bytes), `inter-italic.woff2` (99,840 bytes) and `OFL.txt` (4,377 bytes) | ✅ | `wc -c apps/manual/public/fonts/inter/*` on 2026-11-24 |
+| L12r-4 | The docs' font copy held Literata (two files, 145,056 and 149,452 bytes, with `OFL.txt`) before this change and holds Inter after it; its WOFF2 total falls from 429,936 bytes to 325,412 bytes, 104,524 fewer | ✅ | `git ls-tree -r -l HEAD apps/docs/public/fonts` for the before total, `ls -l apps/docs/public/fonts/*/*.woff2` for the after total: Instrument Serif 47,152 and Manual Code 88,276 stay, Literata 294,508 goes and Inter 189,984 comes |
+| L12r-5 | `docsTokens()` swaps only the body font, so `tokens.css` differs from the book's token output in the Inter `@font-face` rules and the `--font-body` line | ✅ | `test/tokens.test.ts` compares the two after removing those lines; the diff of `tokens.css` shows exactly them |
+| L12r-6 | Body text renders in Inter at 16px with a 26.4px line height (1.65), a second-level heading in Instrument Serif 35px at weight 400, a third-level heading in Inter 29px at weight 600 before the size change and a fourth-level one in Inter 24px | ✅ | Computed styles in headless Chromium at 1280px on the built `tooldefinition` reference page; the size change then set the third and fourth levels to 1.375 and 1.125rem |
+| L12r-7 | Starlight's heading sizes come from `--sl-text-h3`, `--sl-text-h4` and `--sl-text-h5`, which it raises in a wider viewport, and an unlayered rule beats Starlight's layered ones | ✅ | `--sl-text-h1` to `-h5` in Starlight 0.42.10's `props.css`, set again inside a `min-width` media query; the built page then shows the new sizes at 1280px |
+| L12r-8 | After the change the browser loads Instrument Serif (roman and italic), Inter roman and Manual Code on the home page, and no Literata | ✅ | `document.fonts` entries with status `loaded` in headless Chromium on the built home page |
+| L12r-9 | A page's HTML is six bytes shorter, because the preload `href` `/fonts/inter/inter-roman.woff2` is 30 characters and Literata's was 36 | ✅ | The two strings in `Head.astro` before and after; nothing else in a page's HTML names a font, because the `@font-face` rules live in the stylesheet |
+| L12r-10 | The docs' Inter files are byte-identical with the book's | ✅ | `test/fonts.test.ts`, "every docs font file is byte-identical to the book's" |
+| L12r-11 | No colour token changed, so the contrast pairs pass without edits | ✅ | `git diff` shows no colour line of `tokens.css` changed; `test/contrast.test.ts` passes |
+
 ## L12e: the docs version tag, banner and install-line test (branch `todo/L12e-docs-version-banner`, 2026-11-23)
 
 | # | Claim | Verdict | Source and reason |

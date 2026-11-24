@@ -53,28 +53,37 @@
 
   --sl-font: var(--font-body);
   --sl-font-mono: var(--font-code);
-  --sl-line-height: var(--line-height-body);
+  /* The owner's mock sets body text at 1.65, not the book's 1.7. */
+  --sl-line-height: 1.65;
   --sl-content-width: var(--measure);
+
+  /* Inter at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings sit well below the
+     second-level heading's size: Starlight's 1.8rem third-level heading would match it by weight. These rules are not
+     in a layer, so they also win over Starlight's wider-viewport steps. */
+  --sl-text-h3: 1.375rem;
+  --sl-text-h4: 1.125rem;
+  --sl-text-h5: 1rem;
 }
 
-/* Instrument Serif has one weight, so headings stay at 400: a heavier weight would make the browser fake a bold. */
+/* Instrument Serif has one weight, so the page title and the second-level headings stay at 400: a heavier weight
+   would make the browser fake a bold. */
 h1,
 h2,
-h3,
-h4,
-h5,
-h6,
 .site-title {
   font-family: var(--font-display);
   font-weight: 400;
   text-wrap: balance;
 }
 
-/* The book's display face sets small for its size, so the smallest headings keep the body face, at a weight
-   Literata has. */
-.sl-markdown-content :is(h5, h6) {
+/* Third-level headings and smaller take the body face, Inter, at weight 600: the display face is condensed and has no
+   bold, so at small sizes it reads thin beside body text. */
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-body);
   font-weight: 600;
+  text-wrap: balance;
 }
 
 /* A Starlight button (LinkButton) is itself a `.not-content` anchor, so the rules below skip it as well as anything inside
@@ -147,8 +156,7 @@ h6,
   color: var(--color-link);
 }
 
-/* Starlight keeps code in a heading at the heading's size, which in the condensed display face makes it the largest
-   thing on the line. */
+/* Starlight keeps code in a heading at the heading's size, which makes it the largest thing on the line. */
 .sl-markdown-content :is(h1, h2, h3, h4, h5, h6) code {
   font-size: 0.8em;
 }

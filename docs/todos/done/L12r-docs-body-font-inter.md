@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12r` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs §4](../../plans/publish-and-docs.md#4-round-l-and-its-todos) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs, added 2026-11-24) |
-| Depends on | [L12a](../done/L12a-docs-theme-foundation.md) |
+| Depends on | [L12a](L12a-docs-theme-foundation.md) |
 | Size | S |
 
 ## Goal
@@ -34,16 +34,16 @@ Change the body text of `docs.buildanagent.fyi` from Literata to Inter, the owne
 
 ## Tasks
 
-- [ ] Choose Inter as the docs' body face in `theme.ts` and regenerate `tokens.css` and `public/fonts/`.
-- [ ] Map headings and the preload, and update the tests.
-- [ ] Look at the built pages in a browser at 1280 and 390 px, light and dark.
-- [ ] Update the README, the notices and the fact-check log.
+- [x] Choose Inter as the docs' body face in `theme.ts` and regenerate `tokens.css` and `public/fonts/`.
+- [x] Map headings and the preload, and update the tests.
+- [x] Look at the built pages in a browser at 1280 and 390 px, light and dark.
+- [x] Update the README, the notices and the fact-check log.
 
 ## Acceptance criteria
 
-- [ ] The docs' `--font-body` is Inter, `--font-display` is Instrument Serif and `--font-code` is Manual Code, and no Literata file, rule or preload remains in `apps/docs`.
-- [ ] The docs font files are byte-identical with the book's, and the colour pairs are unchanged and pass.
-- [ ] The book's tests pass untouched.
+- [x] The docs' `--font-body` is Inter, `--font-display` is Instrument Serif and `--font-code` is Manual Code, and no Literata file, rule or preload remains in `apps/docs`.
+- [x] The docs font files are byte-identical with the book's, and the colour pairs are unchanged and pass.
+- [x] The book's tests pass untouched.
 
 ## Tests
 
@@ -60,8 +60,12 @@ Change the body text of `docs.buildanagent.fyi` from Literata to Inter, the owne
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+The docs' body text is Inter, drawn from the book's `inter` reading face through `docsTokens()` in `apps/docs/src/design/theme.ts`; the book's token file, tokens output and files did not change. Instrument Serif stays at weight 400 for the page title, the second-level headings and the home page's card titles; third-level headings and smaller are Inter at 600, at 1.375, 1.125 and 1rem. Body text sets at 1.65. The docs' font copy swaps Literata (294,508 bytes of WOFF2) for Inter (189,984 bytes), 104,524 bytes fewer. Claims are in the fact-check log, rows L12r-1 to L12r-11.

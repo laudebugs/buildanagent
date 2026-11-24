@@ -6,12 +6,14 @@ import {
   type BookTokens,
   type ColorSet,
   colorProperty,
+  pairingFace,
   readTokens,
   tokensCss,
 } from "@buildanagent/manual/design/tokens";
 
 // The docs site's theme is the book's: the same token file, the same generator and the same font files. This module
-// says where the docs keep their copies and builds the parts Starlight takes as configuration, not as CSS.
+// says where the docs keep their copies and builds the parts Starlight takes as configuration, not as CSS. One thing
+// differs: the docs set their body text in Inter, a face the book offers only in its reading settings.
 
 /** Where the generated tokens file lives. Starlight loads it through `customCss`. */
 export const DOCS_TOKENS_CSS_URL = new URL("../styles/tokens.css", import.meta.url);
@@ -54,12 +56,23 @@ function printBlock(tokens: BookTokens): string[] {
   return [...lines, "  }", "}", ""];
 }
 
+/** The key of the book's reading face that the docs use for body text. */
+export const DOCS_BODY_FACE = "inter";
+
+/**
+ * The book's tokens with the docs' body face in place of the book's own. The display and code fonts, the colours and
+ * the sizes stay the book's, so the docs differ from the book in one font only (the owner's choice, 2026-11-24).
+ */
+export function docsTokens(tokens: BookTokens = readTokens()): BookTokens {
+  return { ...tokens, font: { ...tokens.font, body: pairingFace(tokens, DOCS_BODY_FACE) } };
+}
+
 /**
  * The docs site's tokens file: the book's custom properties, under the docs site's own header, then a print block
  * that gives paper the light colours in either mode.
  */
 export function docsTokensCss(tokens: BookTokens = readTokens()): string {
-  return [tokensCss(tokens, { header: HEADER }), ...printBlock(tokens)].join("\n");
+  return [tokensCss(docsTokens(tokens), { header: HEADER }), ...printBlock(tokens)].join("\n");
 }
 
 /** Every file under a fonts folder, as paths relative to it with `/` separators, sorted. */
@@ -72,11 +85,12 @@ export function fontFiles(folder: URL): string[] {
 }
 
 /**
- * The book's font folders the docs serve: those of the display, body and code fonts the tokens name. The book's reading
- * pairings add folders of their own, which the docs never use, so they stay out of the copy.
+ * The book's font folders the docs serve: those of the display and code fonts the tokens name and of the docs' body
+ * face. The book's own body font and the other reading faces have folders the docs never use, so they stay out.
  */
 export function docsFontFolders(tokens: BookTokens = readTokens()): string[] {
-  const folders = [tokens.font.display, tokens.font.body, tokens.font.code].flatMap((font) =>
+  const docs = docsTokens(tokens);
+  const folders = [docs.font.display, docs.font.body, docs.font.code].flatMap((font) =>
     font.files.map((file) => file.src.split("/")[2] ?? ""),
   );
   return [...new Set(folders)].sort();
@@ -96,9 +110,10 @@ export function copyFonts(): void {
   }
 }
 
-/** The two font files every page preloads, the regular faces of the body and display fonts, as the book does. */
+/** The two font files every page preloads, the roman faces of the docs' body and display fonts. */
 export function preloadedFonts(tokens: BookTokens = readTokens()): string[] {
-  return [tokens.font.body, tokens.font.display].map((font) => {
+  const docs = docsTokens(tokens);
+  return [docs.font.body, docs.font.display].map((font) => {
     const file = font.files.find((entry) => entry.style === "normal");
     if (file === undefined) throw new Error(`${font.cssFamily} has no roman file to preload`);
     return file.src;

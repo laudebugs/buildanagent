@@ -124,12 +124,15 @@ test("a decorative variable is followed through the custom properties that name 
   assert.ok(!onlyDecorative("--sl-color-gray-5", unread), "a chain that ends where nothing reads it is not known");
 });
 
-test("headings use the display face at its one weight", () => {
+test("the title and second-level headings use the display face at its one weight", () => {
   const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
-  assert.match(
-    css,
-    /h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6,\s*\.site-title\s*\{\s*font-family: var\(--font-display\);\s*font-weight: 400;/,
-  );
+  assert.match(css, /h1,\s*h2,\s*\.site-title\s*\{\s*font-family: var\(--font-display\);\s*font-weight: 400;/);
+});
+
+test("third-level headings and smaller use the body face at weight 600", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  assert.match(css, /h3,\s*h4,\s*h5,\s*h6\s*\{\s*font-family: var\(--font-body\);\s*font-weight: 600;/);
+  assert.match(css, /--sl-font: var\(--font-body\);/);
 });
 
 test("inline code inside a link keeps the link's colour", () => {
