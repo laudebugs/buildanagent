@@ -1,7 +1,9 @@
 // Every string the landing page shows. Each factual sentence has a row in
 // docs/plans/reviews/fact-check-landing-page.md; change both together.
-/** The repository, which the GitHub link, the package links and the footer licence link share. */
+/** The repository, which the GitHub link and the footer licence link share. */
 export const repository = "https://github.com/laudebugs/buildanagent";
+
+const docs = "https://docs.buildanagent.fyi";
 
 export const copy = {
   brand: "Build An Agent",
@@ -63,22 +65,22 @@ export const copy = {
       {
         name: "@buildanagent/harness",
         summary: "Keeps sessions and runs tools.",
-        href: `${repository}/tree/main/packages/harness#readme`,
+        href: `${docs}/reference/harness/`,
       },
       {
         name: "@buildanagent/agent-safety",
         summary: "Types write outcomes, signs approvals and caps spend.",
-        href: `${repository}/tree/main/packages/agent-safety#readme`,
+        href: `${docs}/reference/agent-safety/`,
       },
       {
         name: "@buildanagent/protocol",
         summary: "Defines the session log and client messages.",
-        href: `${repository}/tree/main/packages/protocol#readme`,
+        href: `${docs}/reference/protocol/`,
       },
       {
         name: "@buildanagent/cli",
         summary: "Runs the harness in a terminal.",
-        href: `${repository}/tree/main/packages/cli#readme`,
+        href: `${docs}/reference/cli/`,
       },
     ],
   },

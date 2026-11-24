@@ -162,6 +162,19 @@ describe("the landing page", () => {
     }
   });
 
+  test("points the other four packages at their docs API reference, not GitHub", () => {
+    const external = copy.packages.items.filter((entry) => !entry.href.startsWith("/"));
+    assert.deepEqual(
+      external.map((entry) => [entry.name, entry.href]),
+      [
+        ["@buildanagent/harness", "https://docs.buildanagent.fyi/reference/harness/"],
+        ["@buildanagent/agent-safety", "https://docs.buildanagent.fyi/reference/agent-safety/"],
+        ["@buildanagent/protocol", "https://docs.buildanagent.fyi/reference/protocol/"],
+        ["@buildanagent/cli", "https://docs.buildanagent.fyi/reference/cli/"],
+      ],
+    );
+  });
+
   test("links the favicon and ships the file", () => {
     assert.match(html, /<link rel="icon" href="\/favicon\.svg" type="image\/svg\+xml"/);
     assert.ok(existsSync(join(OUT, "favicon.svg")));
