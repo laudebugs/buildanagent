@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { readTokens, tokensCss } from "@buildanagent/manual/design/tokens";
 import { test } from "vitest";
-import { DOCS_TOKENS_CSS_URL, docsTokensCss } from "../src/design/theme.js";
+import { DOCS_TOKENS_CSS_URL, docsTokensCss, insertBeforeRoot } from "../src/design/theme.js";
 
 test("the committed tokens.css is what the generator writes from book-tokens.json", () => {
   assert.equal(
@@ -50,4 +50,9 @@ test("Starlight loads the tokens before the stylesheet that maps them", () => {
   const config = readFileSync(new URL("../astro.config.mjs", import.meta.url), "utf8");
   // Later entries, such as the figure stylesheets, may follow the two.
   assert.match(config, /customCss: \[\s*"\.\/src\/styles\/tokens\.css",\s*"\.\/src\/styles\/starlight\.css"[,\]]/);
+});
+
+test("the Plex rules go before the book's :root block, and output without one is refused", () => {
+  assert.equal(insertBeforeRoot("/* h */\n:root {\n}\n", "@font-face {}\n"), "/* h */\n@font-face {}\n:root {\n}\n");
+  assert.throws(() => insertBeforeRoot("/* h */\nhtml {\n}\n", "@font-face {}\n"), /has no ":root \{" block/);
 });

@@ -1,20 +1,28 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { readTokens } from "@buildanagent/manual/design/tokens";
 import { test } from "vitest";
+import { PLEX_MIN_AGE_DAYS } from "../scripts/plex-release.js";
 import {
   BOOK_FONTS_URL,
   bookFontFilesForDocs,
+  copyFonts,
   DOCS_FONTS_URL,
   DOCS_TOKENS_CSS_URL,
   docsFontFolders,
   docsTokens,
   fontFiles,
+  fontFolders,
   PLEX_FALLBACK_FAMILY,
   PLEX_FALLBACKS,
   PLEX_FONTS_URL,
   preloadedFonts,
   readPlexPin,
+  weightIncludes,
 } from "../src/design/theme.js";
 
 // The docs serve two folders copied from the book and one of their own, IBM Plex Sans, which the pin file records.
@@ -73,9 +81,16 @@ test("the Plex files are the ones the pin records, byte for byte, with IBM's lic
   assert.ok(note.includes(pin.published) && note.includes(pin.gitHead));
 });
 
+// Offline, the test can only compare the dates the pin records: fonts:plex checks the publish date against the
+// registry, and refuses a release under a week old, when it writes them.
 test("the pinned release was at least a week old when it was pinned, and the faces are the three the docs use", () => {
   const pin = readPlexPin();
   assert.match(pin.version, /^\d+\.\d+\.\d+$/);
+  assert.match(pin.published, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(pin.pinned, /^\d{4}-\d{2}-\d{2}$/);
+  const days = (Date.parse(pin.pinned) - Date.parse(pin.published)) / (24 * 60 * 60 * 1000);
+  assert.ok(days >= PLEX_MIN_AGE_DAYS, `${pin.version} was ${days} days old when it was pinned`);
+  assert.ok(Date.parse(pin.pinned) <= Date.now(), "the pin's date is in the future");
   assert.match(pin.integrity, /^sha512-/);
   assert.deepEqual(
     pin.files.map((file) => `${file.style} ${file.weight}`),
@@ -150,4 +165,37 @@ test("every Plex face is declared with its weight, style and unicode range, and 
       ),
     );
   }
+});
+
+test("the tokens script removes stray files beside the book's folders, keeps the Plex folder and makes a missing one", () => {
+  const root = mkdtempSync(join(tmpdir(), "docs-fonts-"));
+  try {
+    const target = pathToFileURL(join(root, "fonts/"));
+    assert.deepEqual(fontFolders(target), []);
+    copyFonts(target);
+    assert.deepEqual(fontFolders(target), docsFontFolders());
+    mkdirSync(join(root, "fonts", "ibm-plex-sans"));
+    writeFileSync(join(root, "fonts", "ibm-plex-sans", "kept.woff2"), "");
+    mkdirSync(join(root, "fonts", "inter"));
+    writeFileSync(join(root, "fonts", "stray.woff2"), "");
+    copyFonts(target);
+    assert.deepEqual(readdirSync(join(root, "fonts")).sort(), [...docsFontFolders(), "ibm-plex-sans"].sort());
+    assert.ok(existsSync(join(root, "fonts", "ibm-plex-sans", "kept.woff2")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a variable font whose weight range covers 400 is preloaded as the regular face", () => {
+  assert.ok(weightIncludes("400", 400));
+  assert.ok(weightIncludes("300 700", 400));
+  assert.ok(!weightIncludes("600", 400));
+  assert.ok(!weightIncludes("500 900", 400));
+  const tokens = readTokens();
+  const display = {
+    ...tokens.font.display,
+    files: [{ src: "/fonts/instrument-serif/variable.woff2", style: "normal" as const, weight: "300 700" }],
+  };
+  const preloaded = preloadedFonts({ ...tokens, font: { ...tokens.font, display } });
+  assert.equal(preloaded[1], "/fonts/instrument-serif/variable.woff2");
 });

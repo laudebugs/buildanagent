@@ -3,6 +3,7 @@
   "package": "@ibm/plex-sans",
   "version": "1.1.0",
   "published": "2024-11-11",
+  "pinned": "2026-11-24",
   "registry": "https://registry.npmjs.org/@ibm/plex-sans/-/plex-sans-1.1.0.tgz",
   "integrity": "sha512-WPgvO6Yfj2w5YbhyAr1tv95RUz4LRJlqN+CmYvBglabXteufP1D1E9BABMde+ZIKdRbFJDoKF5eQzfhpnbgZcQ==",
   "gitHead": "1da12f02587b630c07e92692d21492d722f53614",

@@ -9,7 +9,7 @@
 | Depends on | [L12a](L12a-docs-theme-foundation.md) |
 | Size | S |
 
-> Superseded by [L12s](../ongoing/L12s-docs-body-font-plex.md): the owner replaced Inter with IBM Plex Sans on 2026-11-24.
+> Superseded by [L12s](L12s-docs-body-font-plex.md): the owner replaced Inter with IBM Plex Sans on 2026-11-24.
 
 ## Goal
 

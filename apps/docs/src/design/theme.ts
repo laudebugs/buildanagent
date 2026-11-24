@@ -1,4 +1,4 @@
-import { cpSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -77,6 +77,8 @@ export interface PlexPin {
   readonly package: string;
   readonly version: string;
   readonly published: string;
+  /** The day the release was pinned, at least a week after `published`. */
+  readonly pinned: string;
   readonly registry: string;
   readonly integrity: string;
   readonly gitHead: string;
@@ -138,8 +140,10 @@ export function plexFont(pin: PlexPin = readPlexPin()): FontToken {
 }
 
 /**
- * The `@font-face` rules for the body font: each Plex file with the unicode range IBM gives its Latin1 subset, then
- * the stand-in faces. The book's generator writes no unicode range or size metrics, so the docs write these.
+ * The `@font-face` rules for the body font: each Plex file with the pin's unicode range, then the stand-in faces. The
+ * range is derived from the one IBM's CSS gives the Latin1 subset, minus U+2074, which no shipped file maps, and with
+ * IBM's two pieces of U+00A0-00FF joined. The book's generator writes no unicode range or size metrics, so the docs
+ * write these.
  */
 export function plexFontFaces(pin: PlexPin = readPlexPin()): string[] {
   const lines: string[] = [];
@@ -196,13 +200,28 @@ export function docsTokensCss(tokens: BookTokens = readTokens()): string {
     { ...docs, font: { ...docs.font, body: { ...docs.font.body, files: [] } } },
     { header: HEADER },
   );
-  const at = generated.indexOf(":root {");
-  const withFaces = `${generated.slice(0, at)}${plexFontFaces().join("\n")}\n${generated.slice(at)}`;
-  return [withFaces, ...printBlock(tokens)].join("\n");
+  return [insertBeforeRoot(generated, `${plexFontFaces().join("\n")}\n`), ...printBlock(tokens)].join("\n");
 }
 
-/** The names of the folders directly under a fonts folder, sorted. */
+const ROOT_ANCHOR = ":root {";
+
+/**
+ * Puts `text` before the first `:root {` block of the book generator's output. It throws when the output has no such
+ * block, so a change to the book's generator fails the docs build instead of mangling the CSS.
+ */
+export function insertBeforeRoot(generated: string, text: string): string {
+  const at = generated.indexOf(ROOT_ANCHOR);
+  if (at === -1) {
+    throw new Error(
+      `the book's token output has no "${ROOT_ANCHOR}" block to put the docs' Plex @font-face rules before`,
+    );
+  }
+  return `${generated.slice(0, at)}${text}${generated.slice(at)}`;
+}
+
+/** The names of the folders directly under a fonts folder, sorted; none when the folder is missing. */
 export function fontFolders(folder: URL): string[] {
+  if (!existsSync(folder)) return [];
   return readdirSync(folder, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -236,24 +255,36 @@ export function bookFontFilesForDocs(): string[] {
   return fontFiles(BOOK_FONTS_URL).filter((file) => folders.includes(file.split("/")[0] ?? ""));
 }
 
+/** The docs' own font folder, which {@link copyFonts} leaves in place. */
+export const PLEX_FOLDER = "ibm-plex-sans";
+
 /**
- * Replaces the book's copies in the docs fonts folder with fresh ones, so a font the book drops leaves too. The docs'
- * own Plex folder stays as it is.
+ * Replaces the book's copies in the docs fonts folder with fresh ones. Everything else at the folder's top level goes,
+ * stray files included, so a font the book drops leaves too; only the docs' own Plex folder stays as it is. A missing
+ * folder is created.
  */
-export function copyFonts(): void {
-  for (const folder of fontFolders(DOCS_FONTS_URL).filter((name) => name !== "ibm-plex-sans")) {
-    rmSync(new URL(`${folder}/`, DOCS_FONTS_URL), { recursive: true, force: true });
+export function copyFonts(target: URL = DOCS_FONTS_URL, source: URL = BOOK_FONTS_URL): void {
+  mkdirSync(target, { recursive: true });
+  for (const entry of readdirSync(target, { withFileTypes: true })) {
+    if (entry.name === PLEX_FOLDER && entry.isDirectory()) continue;
+    rmSync(new URL(entry.name, target), { recursive: true, force: true });
   }
   for (const folder of docsFontFolders()) {
-    cpSync(new URL(`${folder}/`, BOOK_FONTS_URL), new URL(`${folder}/`, DOCS_FONTS_URL), { recursive: true });
+    cpSync(new URL(`${folder}/`, source), new URL(`${folder}/`, target), { recursive: true });
   }
+}
+
+/** Whether a CSS `font-weight` value, one weight or a variable font's `low high` range, includes `weight`. */
+export function weightIncludes(value: string, weight: number): boolean {
+  const [low, high = low] = value.trim().split(/\s+/).map(Number);
+  return low !== undefined && high !== undefined && low <= weight && weight <= high;
 }
 
 /** The two font files every page preloads: the body font's regular face and the display font's roman. */
 export function preloadedFonts(tokens: BookTokens = readTokens()): string[] {
   const docs = docsTokens(tokens);
   return [docs.font.body, docs.font.display].map((font) => {
-    const file = font.files.find((entry) => entry.style === "normal" && entry.weight.split(" ")[0] === "400");
+    const file = font.files.find((entry) => entry.style === "normal" && weightIncludes(entry.weight, 400));
     if (file === undefined) throw new Error(`${font.cssFamily} has no regular file to preload`);
     return file.src;
   });
