@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { linkSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  linkSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -9,10 +18,17 @@ import {
   checkEntryName,
   checkPublished,
   checkVersion,
+  latin1Range,
+  licenceCopyright,
+  nextPin,
   PLEX_MIN_AGE_DAYS,
+  parseView,
   readTarball,
+  replaceFolder,
   takePlexFiles,
+  writeFileAtomic,
 } from "../scripts/plex-release.js";
+import { readPlexPin } from "../src/design/theme.js";
 
 // Tarballs are built here, in memory or in a scratch folder, so the tests need no network and no real release.
 const FOLDER = "fonts/split/woff2";
@@ -200,4 +216,164 @@ test("a release with no publish time, or one under a week old, is refused", () =
   assert.throws(() => checkPublished("2026-11-18T18:05:37Z", now), /less than 7 days ago/);
   assert.equal(checkPublished("2026-11-17T12:00:00Z", now), "2026-11-17");
   assert.equal(checkPublished("2024-11-11T14:44:52Z", now), "2024-11-11");
+});
+
+test("a GNU long-name, a PAX global header or any other non-file entry type refuses the tarball", () => {
+  for (const type of ["L", "K", "g", "7"]) {
+    assert.throws(
+      () => readTarball(tarball([{ name: "././@LongLink", type, data: Buffer.from("package/x") }, ...good])),
+      /is not a regular file/,
+      type,
+    );
+  }
+});
+
+test("a tarball that unpacks past the cap is refused before it is parsed", () => {
+  const big = tarball([{ name: "package/big", data: Buffer.alloc(64 * 1024) }]);
+  assert.throws(() => readTarball(big, 32 * 1024), /unpacks to more than 32768 bytes/);
+  assert.equal(readTarball(big, 1024 * 1024).size, 1);
+});
+
+test("a licence with a control, a bidirectional or an invisible format character is refused", () => {
+  const withLicence = (data: Buffer) => readTarball(tarball([good[1] as Entry, { name: "package/LICENSE.txt", data }]));
+  for (const char of ["\u0085", "\u009b", "‮", "⁦", "⁩", "﻿", "​", "‍", "­", " "]) {
+    const data = Buffer.from(`Copyright © 2017 IBM Corp.${char}\n`);
+    assert.throws(
+      () => takePlexFiles(withLicence(data), FOLDER, [FONT], "LICENSE.txt"),
+      /is not plain text/,
+      char.codePointAt(0)?.toString(16),
+    );
+  }
+  const typographic = Buffer.from("Copyright © 2017 IBM Corp. – “Plex” … ‘x’ — é\r\n");
+  assert.doesNotThrow(() => takePlexFiles(withLicence(typographic), FOLDER, [FONT], "LICENSE.txt"));
+});
+
+const view = {
+  "dist.integrity": "sha512-abc",
+  "dist.tarball": "https://registry.npmjs.org/@ibm/plex-sans/-/plex-sans-2.0.0.tgz",
+  gitHead: "0123456789abcdef0123456789abcdef01234567",
+  time: { "2.0.0": "2026-11-01T00:00:00Z" },
+};
+
+test("npm view's output for a missing release, or one without a source commit, is refused by name", () => {
+  const spec = "@ibm/plex-sans@9.9.9";
+  assert.throws(() => parseView("", spec), /no such release @ibm\/plex-sans@9\.9\.9/);
+  assert.throws(() => parseView('{"error":{"code":"E404"}}', spec), /no such release/);
+  assert.throws(() => parseView(JSON.stringify({ ...view, gitHead: undefined }), spec), /no source commit/);
+  assert.throws(() => parseView(JSON.stringify({ ...view, "dist.tarball": "http://evil/x.tgz" }), spec), /tarball/);
+  assert.throws(() => parseView(JSON.stringify({ ...view, "dist.integrity": "sha1-x" }), spec), /integrity/);
+  assert.deepEqual(parseView(JSON.stringify(view), spec), {
+    integrity: "sha512-abc",
+    tarball: view["dist.tarball"],
+    gitHead: view.gitHead,
+    time: view.time,
+  });
+});
+
+const RANGE = "U+0000, U+0020-007E, U+00A0-00FF";
+const css = (file: string, range: string): Buffer =>
+  Buffer.from(
+    `/* Subset: Greek */\n@font-face {\n\tsrc: url("x-Greek.woff2");\n\tunicode-range: U+0384-038A\n}\n` +
+      `/* Subset: Latin1 */\n@font-face {\n\tsrc: url("${file}") format("woff2");\n\tunicode-range: ${range}\n}\n`,
+  );
+
+function releaseFiles(ranges: Record<string, string>): Map<string, Buffer> {
+  const pin = readPlexPin();
+  const files = new Map<string, Buffer>();
+  for (const file of pin.files) {
+    const face = file.name.replace(/-Latin1\.woff2$/, "");
+    files.set(`package/${pin.folder}/${face}.css`, css(file.name, ranges[file.name] ?? RANGE));
+    files.set(`package/${pin.folder}/${file.name}`, Buffer.concat([woff2, Buffer.from(file.name)]));
+  }
+  return files;
+}
+
+test("the unicode range is read from IBM's per-face CSS, and faces that disagree are refused", () => {
+  const pin = readPlexPin();
+  const names = pin.files.map((file) => file.name);
+  assert.equal(latin1Range(releaseFiles({}), pin.folder, names), RANGE);
+  assert.throws(
+    () => latin1Range(releaseFiles({ [names[1] as string]: "U+0000" }), pin.folder, names),
+    /different ranges/,
+  );
+  const missing = releaseFiles({});
+  missing.delete(`package/${pin.folder}/IBMPlexSans-Italic.css`);
+  assert.throws(() => latin1Range(missing, pin.folder, names), /has no package\//);
+});
+
+test("the copyright comes from the licence, which must be the OFL 1.1", () => {
+  const ofl = Buffer.from(
+    'Copyright © 2026 IBM Corp. with Reserved Font Name "Plex"\r\n\r\nSIL OPEN FONT LICENSE Version 1.1\r\n',
+  );
+  assert.equal(licenceCopyright(ofl), 'Copyright © 2026 IBM Corp. with Reserved Font Name "Plex"');
+  assert.throws(() => licenceCopyright(Buffer.from("Copyright 2026\nMIT License\n")), /not the SIL OFL 1\.1/);
+  assert.throws(() => licenceCopyright(Buffer.from("SIL Open Font License, Version 1.1\n")), /no copyright line/);
+});
+
+test("a new release's pin takes its commit, tarball, range and copyright from the release, not the old pin", () => {
+  const pin = readPlexPin();
+  const files = releaseFiles({});
+  const licenceText = Buffer.from(
+    'Copyright © 2026 IBM Corp. with Reserved Font Name "Plex"\nSIL Open Font License, Version 1.1\n',
+  );
+  const release = takePlexFiles(
+    new Map([...files, ["package/LICENSE.txt", licenceText]]),
+    pin.folder,
+    pin.files.map((file) => file.name),
+    "LICENSE.txt",
+  );
+  const fetched = {
+    version: "2.0.0",
+    view: parseView(JSON.stringify(view), "@ibm/plex-sans@2.0.0"),
+    integrity: "sha512-abc",
+    published: "2026-11-01",
+    today: "2026-11-30",
+    files,
+    release,
+  };
+  const next = nextPin(pin, fetched);
+  assert.equal(next.version, "2.0.0");
+  assert.equal(next.gitHead, view.gitHead);
+  assert.equal(next.registry, view["dist.tarball"]);
+  assert.equal(next.unicodeRange, RANGE);
+  assert.equal(next.copyright, 'Copyright © 2026 IBM Corp. with Reserved Font Name "Plex"');
+  assert.equal(next.pinned, "2026-11-30");
+  assert.deepEqual(
+    next.files.map((file) => file.bytes),
+    pin.files.map((file) => woff2.length + file.name.length),
+  );
+  assert.throws(
+    () =>
+      nextPin(pin, { ...fetched, view: { ...fetched.view, tarball: "https://registry.npmjs.org/x/-/x-2.0.0.tgz" } }),
+    /is not named for @ibm\/plex-sans 2\.0\.0/,
+  );
+});
+
+test("the Plex folder is swapped in whole, and a failed write leaves the old one as it was", () => {
+  const root = mkdtempSync(join(tmpdir(), "plex-swap-"));
+  scratch.push(root);
+  const target = join(root, "ibm-plex-sans");
+  mkdirSync(target);
+  writeFileSync(join(target, "SOURCE.md"), "note");
+  writeFileSync(join(target, FONT), "old");
+  writeFileSync(join(target, "stale.woff2"), "stale");
+  assert.throws(() =>
+    replaceFolder(
+      target,
+      [
+        { name: FONT, data: woff2 },
+        { name: "missing/dir.woff2", data: woff2 },
+      ],
+      ["SOURCE.md"],
+    ),
+  );
+  assert.deepEqual(readdirSync(root), ["ibm-plex-sans"]);
+  assert.equal(readFileSync(join(target, FONT), "utf8"), "old");
+  replaceFolder(target, [{ name: FONT, data: woff2 }], ["SOURCE.md"]);
+  assert.deepEqual(readdirSync(root), ["ibm-plex-sans"]);
+  assert.deepEqual(readdirSync(target).sort(), [FONT, "SOURCE.md"]);
+  assert.ok(readFileSync(join(target, FONT)).equals(woff2));
+  assert.equal(readFileSync(join(target, "SOURCE.md"), "utf8"), "note");
+  writeFileAtomic(join(root, "pin.json"), "{}\n");
+  assert.deepEqual(readdirSync(root).sort(), ["ibm-plex-sans", "pin.json"]);
 });

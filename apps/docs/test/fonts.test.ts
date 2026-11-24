@@ -133,7 +133,10 @@ test("the body font is IBM Plex Sans, the display font is Instrument Serif and n
     /--font-body: "IBM Plex Sans", "IBM Plex Sans Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;/,
   );
   assert.match(css, /--font-display: "Instrument Serif", /);
-  assert.doesNotMatch(css, /Literata|Inter\b/i);
+  const leftover = /Literata|\bInter\b/;
+  assert.doesNotMatch(css, leftover);
+  for (const word of ["printer", "pointer", "winter", "Interrupt", "interface"]) assert.doesNotMatch(word, leftover);
+  assert.match('font-family: "Inter";', leftover);
   const head = readFileSync(new URL("../src/components/Head.astro", import.meta.url), "utf8");
   assert.doesNotMatch(head, /literata|inter\//i);
   for (const folder of ["inter", "literata"]) {
@@ -181,6 +184,24 @@ test("the tokens script removes stray files beside the book's folders, keeps the
     copyFonts(target);
     assert.deepEqual(readdirSync(join(root, "fonts")).sort(), [...docsFontFolders(), "ibm-plex-sans"].sort());
     assert.ok(existsSync(join(root, "fonts", "ibm-plex-sans", "kept.woff2")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the tokens script removes oddly named stray files by path, and touches nothing outside the fonts folder", () => {
+  const root = mkdtempSync(join(tmpdir(), "docs-fonts-"));
+  try {
+    const fonts = join(root, "public", "fonts");
+    mkdirSync(join(fonts, "ibm-plex-sans"), { recursive: true });
+    writeFileSync(join(fonts, "ibm-plex-sans", "kept.woff2"), "");
+    writeFileSync(join(root, "public", "favicon.svg"), "");
+    const odd = ["%2e%2e", ".%2e", "%2e", "ibm-plex-sans#x", "a?b", "%2F"];
+    for (const name of odd) writeFileSync(join(fonts, name), "");
+    copyFonts(pathToFileURL(`${fonts}/`));
+    assert.deepEqual(readdirSync(fonts).sort(), [...docsFontFolders(), "ibm-plex-sans"].sort());
+    assert.ok(existsSync(join(fonts, "ibm-plex-sans", "kept.woff2")));
+    assert.ok(existsSync(join(root, "public", "favicon.svg")));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

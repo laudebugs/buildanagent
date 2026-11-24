@@ -141,9 +141,8 @@ export function plexFont(pin: PlexPin = readPlexPin()): FontToken {
 
 /**
  * The `@font-face` rules for the body font: each Plex file with the pin's unicode range, then the stand-in faces. The
- * range is derived from the one IBM's CSS gives the Latin1 subset, minus U+2074, which no shipped file maps, and with
- * IBM's two pieces of U+00A0-00FF joined. The book's generator writes no unicode range or size metrics, so the docs
- * write these.
+ * range is the one IBM's per-face CSS beside the split files gives the Latin1 subset, the same for all three faces.
+ * The book's generator writes no unicode range or size metrics, so the docs write these.
  */
 export function plexFontFaces(pin: PlexPin = readPlexPin()): string[] {
   const lines: string[] = [];
@@ -264,10 +263,15 @@ export const PLEX_FOLDER = "ibm-plex-sans";
  * folder is created.
  */
 export function copyFonts(target: URL = DOCS_FONTS_URL, source: URL = BOOK_FONTS_URL): void {
-  mkdirSync(target, { recursive: true });
-  for (const entry of readdirSync(target, { withFileTypes: true })) {
+  const folder = fileURLToPath(target);
+  mkdirSync(folder, { recursive: true });
+  for (const entry of readdirSync(folder, { withFileTypes: true })) {
     if (entry.name === PLEX_FOLDER && entry.isDirectory()) continue;
-    rmSync(new URL(entry.name, target), { recursive: true, force: true });
+    // A path, not a URL: a URL would read `%2e%2e`, `#` and `?` in a file's name and could name another folder.
+    if (entry.name === "." || entry.name === ".." || /[/\\]/.test(entry.name)) {
+      throw new Error(`public/fonts/ holds an entry with an unsafe name: ${JSON.stringify(entry.name)}`);
+    }
+    rmSync(join(folder, entry.name), { recursive: true, force: true });
   }
   for (const folder of docsFontFolders()) {
     cpSync(new URL(`${folder}/`, source), new URL(`${folder}/`, target), { recursive: true });
