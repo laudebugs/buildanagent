@@ -15,7 +15,7 @@ Skills that coding agents (Claude Code, Codex, OpenCode, Pi) load when a task ne
   ```
 
   `name` matches the folder. `description` says *when* to load the skill, because agents decide from the description alone.
-- **Short enough to load in full.** A skill links to the references in `docs/reference/<sdk>/` for detail instead of copying them.
+- **Short enough to load in full.** A skill links to its reference in `docs/reference/<sdk>/` or guideline in `docs/guidelines/` for detail instead of copying it.
 - **Pinned.** Each SDK skill states the version it was checked against, and the reference's upgrade steps include updating the skill.
 
 ## Skills
