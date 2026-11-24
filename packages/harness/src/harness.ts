@@ -45,8 +45,9 @@ export interface HarnessOptions<H = unknown> {
   readonly ablationHash?: string;
   /**
    * Switches for every removable component of this harness. When set, `createHarness()` validates the configuration,
-   * stamps `ablationHash` and `env.sandbox` from it, and switches off disabled skills, extension records, telemetry
-   * observers and completion checks.
+   * stamps `ablationHash` and `env.sandbox` from it, filters disabled MCP/in-process extension tools, extension
+   * records, `turnBoundaries`, `tool_search`, skills, telemetry observers, overflow retries and completion checks.
+   * Pass `layers: ablation.context` to `createContextPolicy()` so the policy disables the matching context layers.
    */
   readonly ablation?: AblationConfig;
   /** When set, its gate decides every tool call, and each decision is written to the log. */

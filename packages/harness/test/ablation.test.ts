@@ -16,7 +16,7 @@ import { createContextPolicy, type SpillStore } from "@buildanagent/harness/cont
 import { createHarness } from "@buildanagent/harness/server";
 import { openSession, runTurn, type SessionStore } from "@buildanagent/harness/session";
 import { fakeSandbox } from "@buildanagent/harness/testing";
-import { createToolRegistry } from "@buildanagent/harness/tools";
+import { createToolRegistry, toolSearchInterceptors } from "@buildanagent/harness/tools";
 import { defineTool } from "@buildanagent/sdk";
 import { fixedClock, ScriptedModel, sequentialIds } from "@buildanagent/sdk/testing";
 import { describe, test } from "vitest";
@@ -274,6 +274,7 @@ describe("scripted ablation matrix", () => {
           system: "You run scripted ablation checks.",
           ablation,
           context,
+          interceptors: toolSearchInterceptors(registry, new Set()),
           observers: [(event) => void harnessObserved.push(event.type)],
           extensionRecords: [
             { name: "ext-inproc", tier: "in_process", contentHash: "sha256:01" },

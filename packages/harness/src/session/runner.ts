@@ -552,6 +552,14 @@ function interceptorsOf<H>(
           "a hook changed the model inside a turn; set TurnOptions.model for the next turn so it is recorded",
         );
       }
+      if (
+        patch !== undefined &&
+        "activeTools" in patch &&
+        patch.activeTools !== undefined &&
+        harness.ablation !== undefined
+      ) {
+        return { ...patch, activeTools: patch.activeTools.filter((name) => isToolEnabled(harness, name)) };
+      }
       return patch;
     },
   };
@@ -945,7 +953,14 @@ async function retryAfterOverflow<H>(
   options: TurnOptions<H>,
   first: TurnResult,
 ): Promise<TurnResult> {
-  if (first.stopReason !== "error" || first.error.kind !== "overflow" || options.history !== undefined) return first;
+  if (
+    harness.ablation?.context.overflow_retry === false ||
+    first.stopReason !== "error" ||
+    first.error.kind !== "overflow" ||
+    options.history !== undefined
+  ) {
+    return first;
+  }
   const model = options.model ?? harness.model;
   const turnContext = contextFor(harness, session, model, options, true);
   if (turnContext === undefined) return first;
