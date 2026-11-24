@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N45` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
 | Depends on | [N41](N41-scheduler-wake.md), [N42](../done/N42-read-only-key-store.md), [N43](N43-remote-sandbox-egress-policy.md), [N44](N44-web-stream-websocket-transport.md), [E7](../done/E7-safety-portability.md) |
