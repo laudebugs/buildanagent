@@ -23,20 +23,24 @@ test("the docs header reads its links, mark and wordmark from the shared site-ch
   assert.equal(logoMark, SITE_CHROME.mark.svg);
 });
 
-test("the built docs header renders every shared link in order, with Docs marked current and GitHub as social icon", () => {
-  const html = readFileSync(join(builtSite(), "index.html"), "utf8");
-  const nav =
-    /<nav class="site-links[^"]*" aria-label="buildanagent sites"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
-  const rendered = [...nav.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(([, href, attrs, label]) => ({
-    href,
-    label: label?.trim(),
-    current: attrs?.includes('aria-current="true"') ?? false,
-  }));
-  assert.deepEqual(
-    rendered,
-    siteLinks.map((link) => ({ href: link.href, label: link.label, current: Boolean(link.current) })),
-  );
-  assert.ok(html.includes(`href="${githubLink.href}"`), "the built header links to GitHub from the shared source");
+test("the built docs header renders every shared link and mark on both splash and content pages", () => {
+  for (const page of ["index.html", join("start", "install", "index.html")]) {
+    const html = readFileSync(join(builtSite(), page), "utf8");
+    const nav =
+      /<nav class="site-links[^"]*" aria-label="buildanagent sites"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
+    const rendered = [...nav.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(([, href, attrs, label]) => ({
+      href,
+      label: label?.trim(),
+      current: attrs?.includes('aria-current="true"') ?? false,
+    }));
+    assert.deepEqual(
+      rendered,
+      siteLinks.map((link) => ({ href: link.href, label: link.label, current: Boolean(link.current) })),
+      page,
+    );
+    assert.ok(html.includes(SITE_CHROME.mark.svg), `${page}: renders the shared inline mark`);
+    assert.ok(html.includes(`href="${githubLink.href}"`), `${page}: links to GitHub from the shared source`);
+  }
 });
 
 test("the 'Docs for main' link appears once the SDK is stable and not while only alphas exist", () => {

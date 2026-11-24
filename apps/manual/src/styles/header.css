@@ -168,7 +168,23 @@ html {
   .site-header__title {
     min-width: 0;
     overflow: hidden;
+  }
+
+  .site-header__wordmark {
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  /* Keep the kind label for screen readers while saving room beside the four 44px phone buttons. */
+  .site-header__kind {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 
   .site-header__nav,

@@ -54,37 +54,40 @@ test("siteChromeLinks marks only the active site and applies selfHref when suppl
 });
 
 test("the built manual header renders the shared mark, wordmark and all four cross-site links in order", () => {
-  const html = readFileSync(join(builtBook(), "index.html"), "utf8");
-  const title = /<a class="site-header__title" href="\/">([\s\S]*?)<\/a>/.exec(html)?.[1] ?? "";
-  assert.ok(title.includes(SITE_CHROME.mark.svg), "the header title inlines the shared prompt mark");
-  assert.ok(title.includes(SITE_CHROME.sites.manual.name), "the header title carries the shared brand name");
-  assert.ok(
-    title.includes(`<span class="site-header__kind">${SITE_CHROME.sites.manual.kind}</span>`),
-    "the header title carries the manual kind label",
-  );
-
   const expected = siteChromeLinks("manual", { selfHref: "/" });
-  const sitesNav =
-    /<nav class="site-header__sites" aria-label="buildanagent sites">([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
-  const desktopLinks = [...sitesNav.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(
-    ([, href, attrs, label]) => ({
-      href,
-      label,
-      current: attrs?.includes('aria-current="true"') ?? false,
-    }),
-  );
-  assert.deepEqual(
-    desktopLinks,
-    expected.map((link) => ({ href: link.href, label: link.label, current: Boolean(link.current) })),
-  );
+  for (const page of ["index.html", join("call-workflow-loop", "index.html")]) {
+    const html = readFileSync(join(builtBook(), page), "utf8");
+    const title = /<a class="site-header__title" href="\/">([\s\S]*?)<\/a>/.exec(html)?.[1] ?? "";
+    assert.ok(title.includes(SITE_CHROME.mark.svg), `${page}: the header title inlines the shared prompt mark`);
+    assert.ok(title.includes(SITE_CHROME.sites.manual.name), `${page}: the header title carries the shared brand name`);
+    assert.ok(
+      title.includes(`<span class="site-header__kind">${SITE_CHROME.sites.manual.kind}</span>`),
+      `${page}: the header title carries the manual kind label`,
+    );
 
-  const menuSites = /<div class="site-menu__sites">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? "";
-  const phoneLinks = [...menuSites.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(
-    ([, href, attrs, label]) => ({
-      href,
-      label,
-      current: attrs?.includes('aria-current="true"') ?? false,
-    }),
-  );
-  assert.deepEqual(phoneLinks, desktopLinks);
+    const sitesNav =
+      /<nav class="site-header__sites" aria-label="buildanagent sites">([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
+    const desktopLinks = [...sitesNav.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(
+      ([, href, attrs, label]) => ({
+        href,
+        label,
+        current: attrs?.includes('aria-current="true"') ?? false,
+      }),
+    );
+    assert.deepEqual(
+      desktopLinks,
+      expected.map((link) => ({ href: link.href, label: link.label, current: Boolean(link.current) })),
+      page,
+    );
+
+    const menuSites = /<div class="site-menu__sites">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? "";
+    const phoneLinks = [...menuSites.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(
+      ([, href, attrs, label]) => ({
+        href,
+        label,
+        current: attrs?.includes('aria-current="true"') ?? false,
+      }),
+    );
+    assert.deepEqual(phoneLinks, desktopLinks, page);
+  }
 });
