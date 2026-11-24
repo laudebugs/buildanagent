@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry` and `testing` are built. `ablation` is an empty stub that holds its place until its component arrives.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry`, `ablation` and `testing` are built.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -1077,23 +1077,25 @@ The owner rotates such a ring with the platform's own tooling: add a new key and
 
 ## Every removable component has one ablation switch and one header hash
 
-`@buildanagent/harness/ablation` exposes one switch for every removable component in `AblationConfig`, plus `DEFAULT_ABLATION`, `defaultAblation()`, `validateAblation()`, `ablationHash()` and `credentialEnvOf()`. The session log, the permission pipeline and the protocol are absent from `AblationConfig` on purpose: they form the harness's non-removable spine.
+`@buildanagent/harness/ablation` defines `AblationConfig`—one switch per removable component—along with `DEFAULT_ABLATION`, `defaultAblation()`, `validateAblation()`, `ablationHash()` and `credentialEnvOf()`. `AblationConfig` omits the session log, permission pipeline and protocol because they form the harness's non-removable spine.
 
-Pass `ablation` to `createHarness()` to stamp `ablationHash(ablation)` into `session_header.ablationHash` and `ablation.sandbox` into `env_stamp.sandbox`. Switching off a safety component fails safe: `credentialProxy: false` makes `credentialEnvOf()` return an empty object so tools receive no credentials, and `sandbox: "none"` throws `unsafe_sandbox_not_acknowledged` unless `unsafe: true` is set explicitly.
+Build a config with `defaultAblation(overrides)` and pass `ablation` to `createHarness()` to stamp `ablationHash(ablation)` into `session_header.ablationHash` and `ablation.sandbox` into `env_stamp.sandbox`. Safety components fail safe when turned off: `credentialProxy: false` makes `credentialEnvOf()` return `{}` so tools receive no credentials, and `sandbox: "none"` throws `unsafe_sandbox_not_acknowledged` unless you pass `unsafe: true`.
 
-| Flag | Default | When switched off |
+By default every component runs:
+
+| Flag | Default | When off (or changed) |
 | --- | --- | --- |
-| `context.write_cap` | `true` | Tool results are stored uncapped without spilling. |
-| `context.mask` | `true` | Older tool results stay unmasked in the request view. |
-| `context.summarize` | `true` | Between-turn summarization does not run. |
-| `context.mid_turn` | `true` | Mid-turn compaction does not run. |
-| `context.overflow_retry` | `true` | Overflow recovery does not retry the turn. |
-| `mcp` | `true` | MCP servers and MCP extension records are omitted. |
-| `extensions.inProcess` | `true` | In-process extension records are omitted. |
-| `extensions.mcp` | `true` | MCP-tier extension records are omitted. |
-| `extensions.skills` | `true` | Skills are omitted from the harness and system prompt. |
-| `toolSearch` | `true` | Deferred tool search (`tool_search`) is disabled. |
-| `credentialProxy` | `true` | Fails safe: `credentialEnvOf()` returns `{}` so tools get no credentials. |
-| `telemetry` | `true` | Harness and turn observers receive no events. |
-| `completionCheck` | `true` | Post-turn `completion_check` entries are skipped. |
-| `sandbox` | `"os"` | Stamps the chosen tier; `"none"` requires `unsafe: true`. |
+| `context.write_cap` | `true` | Stores tool results uncapped without spilling. |
+| `context.mask` | `true` | Leaves older tool results unmasked in the request view. |
+| `context.summarize` | `true` | Skips between-turn summarization. |
+| `context.mid_turn` | `true` | Skips mid-turn compaction. |
+| `context.overflow_retry` | `true` | Skips overflow retry on the turn. |
+| `mcp` | `true` | Omits MCP tools, turn boundaries and MCP-tier extension records. |
+| `extensions.inProcess` | `true` | Omits in-process extension tools and extension records. |
+| `extensions.mcp` | `true` | Omits MCP-tier extension tools, turn boundaries and extension records. |
+| `extensions.skills` | `true` | Omits skills from the harness and skips `skill_loaded` entries. |
+| `toolSearch` | `true` | Omits `tool_search` from active tools. |
+| `credentialProxy` | `true` | Returns `{}` from `credentialEnvOf()` so tools receive no credentials. |
+| `telemetry` | `true` | Drops events to harness and turn observers. |
+| `completionCheck` | `true` | Skips post-turn `completion_check` entries. |
+| `sandbox` | `"os"` | Sets `env_stamp.sandbox` to the chosen tier; `"none"` requires `unsafe: true`. |
