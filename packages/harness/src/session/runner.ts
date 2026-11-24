@@ -189,12 +189,26 @@ function wrapperOf<H>(harness: Harness<H>, clientTool: ClientToolRunner | undefi
   };
 }
 
-/** The turn's tools: the registry's definitions for this host context, cut to the allowlist. */
+/** Whether a registered tool is active under `harness.ablation`. */
+function isToolEnabled<H>(harness: Harness<H>, canonicalName: string): boolean {
+  const ablation = harness.ablation;
+  if (ablation === undefined) return true;
+  if (!ablation.toolSearch && canonicalName === "tool_search") return false;
+  const entry = harness.registry.get(canonicalName);
+  if (entry === undefined) return true;
+  if ((!ablation.mcp || !ablation.extensions.mcp) && entry.source.startsWith("mcp:")) return false;
+  if (!ablation.extensions.inProcess && entry.source === "extension") return false;
+  return true;
+}
+
+/** The turn's tools: the registry's definitions for this host context, cut to ablation switches and the allowlist. */
 function toolsOf<H>(
   harness: Harness<H>,
   options: Pick<TurnOptions<H>, "tools" | "hostContext" | "clientTool">,
 ): ToolDefinition<unknown, unknown, unknown>[] {
-  const all = harness.registry.definitions(wrapperOf(harness, options.clientTool), options.hostContext as H);
+  const all = harness.registry
+    .definitions(wrapperOf(harness, options.clientTool), options.hostContext as H)
+    .filter((definition) => isToolEnabled(harness, definition.name));
   if (options.tools === undefined) return all;
   const allowed = new Set<string>();
   for (const name of options.tools) {
@@ -653,12 +667,6 @@ function turnPlumbing(session: Session, options: { signal?: AbortSignal; clock?:
   return { signal, newId, writer };
 }
 
-function stripDisabledObservers<H>(harness: Harness<H>, options: TurnOptions<H>): TurnOptions<H> {
-  if (harness.ablation?.telemetry !== false || options.observers === undefined) return options;
-  const { observers: _dropped, ...rest } = options;
-  return rest;
-}
-
 /**
  * Runs one turn on a session and writes it to the log. The session must be open with a lock. The first turn of a new
  * session writes its header and `env_stamp`; a turn whose model or tools differ from the last recorded ones writes a
@@ -672,22 +680,14 @@ export async function runTurn<H = unknown>(
   harness: Harness<H>,
   options: TurnOptions<H>,
 ): Promise<TurnResult> {
-  const effectiveOptions = stripDisabledObservers(harness, options);
-  const settings = harness.ablation?.completionCheck === false ? undefined : effectiveOptions.completion;
+  const settings = harness.ablation?.completionCheck === false ? undefined : options.completion;
   // The start state is taken before the turn writes anything, and with the turn's own signal, so an abort stops it.
   // It is taken for every turn, because whether the turn ends `done` is known only after the model has run.
   const start =
-    settings === undefined
-      ? undefined
-      : await snapshotStart(settings, effectiveOptions.signal ?? new AbortController().signal);
-  const result = await retryAfterOverflow(
-    session,
-    harness,
-    effectiveOptions,
-    await runTurnOnce(session, harness, effectiveOptions),
-  );
+    settings === undefined ? undefined : await snapshotStart(settings, options.signal ?? new AbortController().signal);
+  const result = await retryAfterOverflow(session, harness, options, await runTurnOnce(session, harness, options));
   if (settings === undefined || result.stopReason !== "done") return result;
-  return recordCompletion(session, settings, start, effectiveOptions, result);
+  return recordCompletion(session, settings, start, options, result);
 }
 
 /**
@@ -775,7 +775,11 @@ async function runTurnOnce<H = unknown>(
     tools,
     signal,
     interceptors: interceptorsOf(harness, session, writer, recorder, options.hostContext, model, turnContext),
-    observers: [observer, ...afterWrites(harness.observers, writer), ...afterWrites(options.observers, writer)],
+    observers: [
+      observer,
+      ...afterWrites(harness.observers, writer),
+      ...afterWrites(harness.ablation?.telemetry === false ? undefined : options.observers, writer),
+    ],
     ...optionalRunOptions(options, harness, history),
   });
   options.onRun?.(handle);
@@ -922,7 +926,7 @@ export async function resumeTurn<H = unknown>(
     observers: [
       (event: AgentEvent) => recorder.handle(event),
       ...afterWrites(harness.observers, writer),
-      ...afterWrites(options.observers, writer),
+      ...afterWrites(harness.ablation?.telemetry === false ? undefined : options.observers, writer),
     ],
     ...optionalRunOptions(options, harness, []),
   });
@@ -985,7 +989,7 @@ async function retryAfterOverflow<H>(
     observers: [
       (event: AgentEvent) => recorder.handle(event),
       ...afterWrites(harness.observers, writer),
-      ...afterWrites(options.observers, writer),
+      ...afterWrites(harness.ablation?.telemetry === false ? undefined : options.observers, writer),
     ],
     ...optionalRunOptions(stepsLeft === undefined ? options : { ...options, maxSteps: stepsLeft }, harness, []),
   });

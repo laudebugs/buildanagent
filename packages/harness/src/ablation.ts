@@ -1,21 +1,27 @@
 /**
  * `@buildanagent/harness/ablation`: switches for every removable harness component and the hash stamped into each
- * session header.
- *
- * The session log, the permission pipeline and the protocol are absent from `AblationConfig` on purpose: they are the
- * harness's non-removable spine (see `docs/guides/agent-harness.md` §11). Every other component can be switched off to
- * test its no-op path or measure its value in an ablation run.
+ * session header. Every removable component can be switched off to test its no-op path or measure its value in an
+ * ablation run; the session log, the permission pipeline and the protocol remain active in every run.
  *
  * @module @buildanagent/harness/ablation
  */
 
+import type { SandboxTier } from "@buildanagent/protocol";
 import type { LayerName } from "./context/types.js";
 import { HarnessError } from "./errors.js";
 import { sha256HexSync } from "./extensions/digest.js";
-import type { SandboxClient } from "./sandbox/types.js";
+
+// Exhaustive against LayerName so adding a context layer fails type-checking until added here.
+const LAYER_KEYS: Readonly<Record<LayerName, true>> = {
+  write_cap: true,
+  mask: true,
+  summarize: true,
+  mid_turn: true,
+  overflow_retry: true,
+};
 
 /** The five context layers in fixed canonical order for hashing. */
-const LAYER_NAMES: readonly LayerName[] = ["write_cap", "mask", "summarize", "mid_turn", "overflow_retry"];
+const LAYER_NAMES = Object.keys(LAYER_KEYS) as LayerName[];
 
 /** Per-tier switches for the three extension tiers. */
 export interface AblationExtensions {
@@ -27,11 +33,11 @@ export interface AblationExtensions {
   readonly skills: boolean;
 }
 
+// The session log, permission pipeline and protocol are absent from AblationConfig on purpose:
+// they are the harness's non-removable spine (see docs/guides/agent-harness.md §11).
 /**
- * Switches for every removable component of the harness.
- *
- * The session log, the permission pipeline and the protocol are intentionally omitted (see
- * `docs/guides/agent-harness.md` §11): they remain active in every ablation arm.
+ * Switches for every removable component of the harness. The session log, the permission pipeline and the protocol are
+ * intentionally omitted so they remain active in every ablation arm.
  */
 export interface AblationConfig {
   /** Which of the five context-policy layers run. */
@@ -52,32 +58,18 @@ export interface AblationConfig {
   /** Whether the code-level completion check runs after a `done` turn. */
   readonly completionCheck: boolean;
   /** The sandbox tier the session stamps. `"none"` still requires `unsafe: true`. */
-  readonly sandbox: SandboxClient["tier"];
+  readonly sandbox: SandboxTier;
   /** Explicit acknowledgement required when `sandbox` is `"none"`. */
   readonly unsafe?: boolean;
 }
 
 /** Partial overrides accepted by `defaultAblation()`. */
-export interface AblationOverrides {
+export type AblationOverrides = Partial<Omit<AblationConfig, "context" | "extensions">> & {
   /** Per-layer overrides merged onto all-on context layers. */
   readonly context?: Readonly<Partial<Record<LayerName, boolean>>>;
-  /** Override for top-level MCP support. */
-  readonly mcp?: boolean;
   /** Per-tier overrides merged onto all-on extension tiers. */
   readonly extensions?: Readonly<Partial<AblationExtensions>>;
-  /** Override for deferred tool search. */
-  readonly toolSearch?: boolean;
-  /** Override for the egress credential proxy. */
-  readonly credentialProxy?: boolean;
-  /** Override for telemetry observers. */
-  readonly telemetry?: boolean;
-  /** Override for the post-turn completion check. */
-  readonly completionCheck?: boolean;
-  /** Override for the sandbox tier. `"none"` still requires `unsafe: true`. */
-  readonly sandbox?: SandboxClient["tier"];
-  /** Explicit acknowledgement required when `sandbox` is `"none"`. */
-  readonly unsafe?: boolean;
-}
+};
 
 /** Baseline ablation configuration with every removable component enabled on the `"os"` sandbox tier. */
 export const DEFAULT_ABLATION: AblationConfig = {

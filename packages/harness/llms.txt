@@ -511,7 +511,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface AblationConfig`: Switches for every removable component of the harness.
 - `interface AblationExtensions`: Per-tier switches for the three extension tiers.
 - `ablationHash()`: Computes a deterministic `sha256:` digest of `config` to stamp into `session_header.ablationHash`.
-- `interface AblationOverrides`: Partial overrides accepted by `defaultAblation()`.
+- `type AblationOverrides`: Partial overrides accepted by `defaultAblation()`.
 - `credentialEnvOf()`: Returns the credential environment entries allowed under `config`.
 - `DEFAULT_ABLATION`: Baseline ablation configuration with every removable component enabled on the `"os"` sandbox tier.
 - `defaultAblation()`: Builds a complete `AblationConfig` from `DEFAULT_ABLATION` plus `overrides`, and validates it with `validateAblation()`.
