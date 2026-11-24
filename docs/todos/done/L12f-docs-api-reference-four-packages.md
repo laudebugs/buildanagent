@@ -11,7 +11,7 @@
 
 ## Goal
 
-Add `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `@buildanagent/agent-safety` to the docs site's generated API reference, so every published package has its own sidebar topic and export pages at `docs.buildanagent.fyi`. Measure the built site's page count, largest page, mean page, total `dist/` size, Pagefind index and build time with all six packages in place, and verify that every built HTML page stays inside the 200 KiB budget.
+Add `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `@buildanagent/agent-safety` to the docs site's generated API reference, so every published package has its own sidebar topic and export pages at `docs.buildanagent.fyi`. Verify that every built HTML page stays inside the 200 KiB budget, and record the site's page count, page sizes (mean and largest), `dist/` size, Pagefind index size and build time.
 
 ## Context
 
@@ -40,7 +40,7 @@ Add `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `
 
 - [x] Add the four packages to `API_PACKAGES` and `apps/docs/.gitignore`.
 - [x] Update `listExports()` and the built-site tests so single-entry and multi-entry packages are checked accurately.
-- [x] Build `apps/docs` and measure page count, largest page, mean page, `dist/` size, Pagefind index and build time; confirm every page stays under the 200 KiB budget (or adjust/document if a single package exceeds it).
+- [x] Build `apps/docs` and measure page count, largest page, mean page, `dist/` size, Pagefind index and build time; confirm every page stays under the 200 KiB budget.
 - [x] Update `apps/docs/src/content/docs/reference/packages.md`, `apps/docs/README.md` and the L12 umbrella todo with the new packages and measurements.
 - [x] Log fact-check rows (`L12f-1`, …) in `docs/plans/reviews/fact-check-publish-and-docs.md` and run `pnpm fact-check-logs --write`.
 - [x] Run `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm check:api-docs` and `pnpm --filter @buildanagent/docs build`.
@@ -62,23 +62,23 @@ Add `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `
 
 ## Risks and open questions
 
-- `@buildanagent/harness` has 20 entry points and many exports; its sidebar topic could push its largest generated page close to or over the 200 KiB HTML budget. Measure before assuming it fits.
-- Single-entry packages (`protocol` and `cli`) emit exports directly under `reference/<pkg>/` rather than under a `@buildanagent/<pkg>/` module folder, so `listExports()` and tests must handle both layouts.
+- `@buildanagent/harness` has 20 entry points and 446 generated pages; full leaf links in its sidebar pushed 27 pages over the 200 KiB budget, resolved with `sidebar: "modules"`.
+- Single-entry packages (`protocol` and `cli`) emit exports directly under `reference/<pkg>/` rather than under a `@buildanagent/<pkg>/` module folder, handled in `listExports()` and the API/topic tests.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
-
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
 - Added `@buildanagent/agent-safety`, `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to `API_PACKAGES` (`apps/docs/src/api/packages.ts`), unified `CHECKED_PACKAGES` with `API_PACKAGES`, and ignored all four generated directories in `apps/docs/.gitignore`.
-- Added `@module <import-path>` TSDoc tags to the 30 entry points across those four packages that lacked them, resolving the Astro `/reference/agent-safety` and `/reference/harness` route collisions.
+- Added `@module <import-path>` TSDoc tags to the 30 entry points that lacked them, resolving the Astro `/reference/agent-safety` and `/reference/harness` route collisions.
 - Updated `listExports()` (`apps/docs/src/api/check.ts`) and `api-docs.test.ts` / `topics.test.ts` to handle single-entry packages (`protocol` and `cli`) alongside multi-entry packages.
-- Measured the six-package build: with full leaf links in `@buildanagent/harness`'s sidebar (20 entry points, 446 pages), 27 pages exceeded the 200 KiB budget (largest 233,112 bytes / 227.6 KiB) and `dist/` reached 129 MB. Added `sidebar: "modules"` (`moduleSidebarGroup()`) for `@buildanagent/harness`, which lists its 20 entry-point modules in the sidebar while still generating every export page and Markdown twin. That brought harness's largest page to 94,510 bytes (92.3 KiB), `dist/` to 70 MB, and kept all 965 HTML pages under 200 KiB (largest overall: `reference/sdk/buildanagent/sdk/interfaces/continueoptions/index.html` at 146,947 bytes / 143.5 KiB; mean 61,907 bytes; Pagefind 4.9 MB; 964 Markdown twins totaling 1,281,177 bytes; warm build ~23 s).
-- Updated `apps/docs/test/twins-built.test.ts`'s total twin cap from 1 MB (set for two packages) to 2.5 MB for six packages, added a `topics.test.ts` test verifying `modules`-sidebar packages omit leaf export links, updated `apps/docs/src/content/docs/reference/packages.md` and `apps/docs/README.md`, recorded measurements in `docs/todos/ongoing/L12-docs-redesign.md`, and logged rows `L12f-1` to `L12f-7` in `docs/plans/reviews/fact-check-publish-and-docs.md`.
+- Full leaf links in `@buildanagent/harness`'s sidebar (20 entry points, 446 pages) pushed 27 pages over the 200 KiB budget (largest 233,112 bytes / 227.6 KiB) and grew `dist/` to 129 MB. Added `sidebar: "modules"` (`moduleSidebarGroup()`) to `@buildanagent/harness`; that mode lists only the 20 entry-point modules in the sidebar while still generating every export page and Markdown twin. The change cut harness's largest page to 94,510 bytes (92.3 KiB) and `dist/` to 70 MB, keeping all 965 HTML pages under 200 KiB. Across the full six-package build, the largest page is `reference/sdk/buildanagent/sdk/interfaces/continueoptions/index.html` (146,947 bytes / 143.5 KiB), the mean page is 61,907 bytes, Pagefind is 4.9 MB, 964 Markdown twins total 1,281,177 bytes, and a warm build takes ~23 s.
+- Raised `apps/docs/test/twins-built.test.ts`'s total twin cap from 1 MB (set for two packages) to 2.5 MB for six packages, and added a `topics.test.ts` test verifying that `modules`-sidebar packages list every entry-point module and omit leaf export links.
+- Updated `apps/docs/src/content/docs/reference/packages.md`, `apps/docs/README.md` and `docs/plans/publish-and-docs.md`, recorded measurements in `docs/todos/ongoing/L12-docs-redesign.md`, and logged rows `L12f-1` to `L12f-7` in `docs/plans/reviews/fact-check-publish-and-docs.md`.

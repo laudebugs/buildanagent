@@ -41,7 +41,7 @@ The figure draws an arrow only where no chain of arrows already leads. The arrow
 
 ## Every export has a reference page
 
-TypeDoc generates a page for each export from its TSDoc, so every page matches the code it describes. Browse any package's API reference to see its entry points, functions, classes, interfaces and types:
+The docs generate a page for each export from its TSDoc, so every page matches the code it describes. Browse a package's API reference to see its entry points and exports:
 
 - [Gateway API](/reference/gateway/) (`@buildanagent/gateway`)
 - [SDK API](/reference/sdk/) (`@buildanagent/sdk`)
