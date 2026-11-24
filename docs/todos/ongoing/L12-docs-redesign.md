@@ -93,6 +93,8 @@ L12o no longer depends on L12d: the owner chose package cards without an illustr
 
 **L12e progress (2026-11-23).** L12e is done in [its own todo](done/L12e-docs-version-banner.md): the header shows the SDK's version, read from `packages/sdk/package.json` at build time; a `Banner` override holds a hidden "Unreleased docs for main" banner that one static script un-hides on a host that begins with `next.`, decided by `showsUnreleasedBanner()` in `apps/docs/src/version/banner.ts`; the footer links "Docs for main" once the SDK is stable; and a test fails on an install line without `@alpha` while only alphas exist, and requires none once the SDK is stable. Until the switch to `next.`, the footer shows no "Docs for main" line, because that host has no deploy. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12e-1` to `L12e-26`.
 
+**L12p progress (2026-11-24).** L12p is done in [its own todo](../done/L12p-shared-header-source.md): `apps/manual` exports `./site-chrome` (`src/design/site-chrome.ts` over `src/design/site-chrome.json`), holding the shared brand, repository URL, cross-site links (Docs, Manual, Site, GitHub), per-site wordmarks and inline prompt mark SVG. `apps/manual`, `apps/docs` and `apps/site` all render their headers from that single source and test the built header against it. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12p-1` to `L12p-4`.
+
 ## Acceptance criteria
 
 L12 is done when L12a to L12p are done and these hold on `main`:

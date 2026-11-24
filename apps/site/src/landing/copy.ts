@@ -1,16 +1,13 @@
 // Every string the landing page shows. Each factual sentence has a row in
 // docs/plans/reviews/fact-check-landing-page.md; change both together.
+import { SITE_CHROME, siteChromeLinks } from "@buildanagent/manual/site-chrome";
+
 /** The repository, which the GitHub link, the package links and the footer licence link share. */
-export const repository = "https://github.com/laudebugs/buildanagent";
+export const repository = SITE_CHROME.repository;
 
 export const copy = {
-  brand: "Build An Agent",
-  nav: [
-    { label: "Docs", href: "https://docs.buildanagent.fyi" },
-    { label: "Manual", href: "https://manual.buildanagent.fyi" },
-    { label: "Site", href: "/" },
-    { label: "GitHub", href: repository },
-  ],
+  brand: SITE_CHROME.sites.site.name,
+  nav: siteChromeLinks("site", { selfHref: "/" }).map(({ label, href }) => ({ label, href })),
   hero: {
     eyebrow: "Agent toolkit · alpha",
     headlineBefore: "An agent is three layers.",

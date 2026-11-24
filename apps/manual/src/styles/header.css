@@ -42,11 +42,14 @@ html {
 .site-header__inner {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.75rem;
   height: 100%;
 }
 
 .site-header__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   margin-right: auto;
   font-family: var(--font-display);
   font-size: var(--size-chapter-link);
@@ -57,28 +60,60 @@ html {
   white-space: nowrap;
 }
 
-.site-header__title:hover {
+.site-header__title .mark {
+  flex: none;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.site-header__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+}
+
+.site-header__kind {
+  font-family: var(--font-code);
+  font-size: var(--size-label);
+  color: var(--color-text-muted);
+}
+
+.site-header__title:hover .site-header__name {
   text-decoration-line: underline;
 }
 
-.site-header__nav {
+.site-header__nav,
+.site-header__sites {
   display: flex;
   align-items: center;
-  gap: 0.5rem 1.25rem;
+  gap: 0.5rem 0.75rem;
+}
+
+.site-header__sites {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--color-rule);
 }
 
 .site-header__nav a,
+.site-header__sites a,
 .site-menu a,
 .site-menu button {
   font-family: var(--font-code);
   font-size: var(--size-label);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* The current site drops its underline at rest so active state does not rely on colour alone (WCAG 1.4.1). */
+.site-header__sites a[aria-current],
+.site-menu a[aria-current] {
+  color: var(--color-text);
+  text-decoration: none;
 }
 
 /* The search box gives way before the links do, so a window just over 760px keeps its one row. */
 .site-header .search-box__input {
-  width: clamp(7rem, 14vw, 12rem);
+  width: clamp(5.5rem, 11vw, 11rem);
 }
 
 .site-header__tools {
@@ -136,7 +171,8 @@ html {
     text-overflow: ellipsis;
   }
 
-  .site-header__nav {
+  .site-header__nav,
+  .site-header__sites {
     display: none;
   }
 
@@ -190,6 +226,15 @@ html {
     padding-block: 0.25rem;
   }
 
+  .site-menu__sites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    border-top: 1px solid var(--color-rule);
+    margin-top: 0.25rem;
+    padding-top: 0.25rem;
+  }
+
   .site-menu a,
   .site-menu button {
     display: flex;
@@ -216,19 +261,29 @@ html {
    56px desktop row. The search field's own text still follows the reader's size, and keeps 16px under a finger
    (components.css). The family follows the chosen pairing. */
 .site-header__inner {
-  gap: calc(1.5rem / var(--reading-scale));
+  gap: calc(0.75rem / var(--reading-scale));
 }
 
 /* --size-chapter-link is clamp(1.375rem, 1.2772rem + 0.4348vw, 1.625rem). Only its rem parts follow the text size, so
    only they are divided: dividing the whole token would divide the viewport term too and shrink the wordmark at a
    large size. test/reading-settings.test.ts fails when these numbers differ from the token's. */
 .site-header__title {
+  gap: calc(0.4rem / var(--reading-scale));
   font-size: clamp(
     calc(1.375rem / var(--reading-scale)),
     calc(1.2772rem / var(--reading-scale)) +
     0.4348vw,
     calc(1.625rem / var(--reading-scale))
   );
+}
+
+.site-header__title .mark {
+  width: calc(1.35rem / var(--reading-scale));
+  height: calc(1.35rem / var(--reading-scale));
+}
+
+.site-header__kind {
+  font-size: calc(var(--size-label) / var(--reading-scale));
 }
 
 /* The page's side gutter, --gutter, is clamp(1rem, 0.413rem + 2.6087vw, 2.5rem); the header divides its rem parts in the
@@ -243,11 +298,17 @@ html {
   );
 }
 
-.site-header__nav {
-  gap: calc(0.5rem / var(--reading-scale)) calc(1.25rem / var(--reading-scale));
+.site-header__nav,
+.site-header__sites {
+  gap: calc(0.5rem / var(--reading-scale)) calc(0.75rem / var(--reading-scale));
+}
+
+.site-header__sites {
+  padding-left: calc(0.75rem / var(--reading-scale));
 }
 
 .site-header__nav a,
+.site-header__sites a,
 .site-menu a,
 .site-menu button {
   font-size: calc(var(--size-label) / var(--reading-scale));
@@ -262,7 +323,7 @@ html {
 }
 
 .site-header .search-box__input {
-  width: clamp(calc(7rem / var(--reading-scale)), 14vw, calc(12rem / var(--reading-scale)));
+  width: clamp(calc(5.5rem / var(--reading-scale)), 11vw, calc(11rem / var(--reading-scale)));
   min-height: calc(2.25rem / var(--reading-scale));
   padding: calc(0.25rem / var(--reading-scale)) calc(0.6rem / var(--reading-scale));
 }
@@ -321,7 +382,8 @@ html {
     padding-block: 0.5rem;
   }
 
-  .site-header__nav {
+  .site-header__nav,
+  .site-header__sites {
     display: flex;
   }
 

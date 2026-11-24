@@ -1,0 +1,19 @@
+{
+  "brand": "Build An Agent",
+  "repository": "https://github.com/laudebugs/buildanagent",
+  "links": [
+    { "id": "docs", "label": "Docs", "href": "https://docs.buildanagent.fyi" },
+    { "id": "manual", "label": "Manual", "href": "https://manual.buildanagent.fyi" },
+    { "id": "site", "label": "Site", "href": "https://buildanagent.fyi" },
+    { "id": "github", "label": "GitHub", "href": "https://github.com/laudebugs/buildanagent" }
+  ],
+  "sites": {
+    "site": { "name": "Build An Agent" },
+    "docs": { "name": "Build An Agent", "kind": "docs" },
+    "manual": { "name": "Build An Agent", "kind": "manual" }
+  },
+  "mark": {
+    "viewBox": "0 0 64 64",
+    "svg": "<svg class=\"mark\" viewBox=\"0 0 64 64\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"7\" y=\"7\" width=\"50\" height=\"50\" rx=\"11\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"5\"/><path d=\"M21 23L34 32L21 41\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M38 43H48\" fill=\"none\" stroke=\"var(--color-accent)\" stroke-width=\"5\" stroke-linecap=\"round\"/></svg>"
+  }
+}

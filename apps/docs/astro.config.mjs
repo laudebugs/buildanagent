@@ -7,6 +7,7 @@ import starlightLinksValidator from "starlight-links-validator";
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 import { API_PACKAGES, entryPoints, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
+import { githubLink } from "./src/chrome.js";
 import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
 import { figureDirective } from "./src/plugins/figure.js";
@@ -65,7 +66,7 @@ export default defineConfig({
       title: "buildanagent",
       favicon: "/favicon.svg",
       description: "Docs for the buildanagent gateway and SDK: build an agent, test it offline, ship it.",
-      social: [{ icon: "github", label: "GitHub", href: "https://github.com/laudebugs/buildanagent" }],
+      social: [{ icon: "github", label: githubLink.label, href: githubLink.href }],
       routeMiddleware: "./src/route-data.ts",
       components: {
         Banner: "./src/components/Banner.astro",

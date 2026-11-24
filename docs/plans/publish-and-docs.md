@@ -216,6 +216,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12a](../todos/done/L12a-docs-theme-foundation.md) | The docs app takes the book's theme: generated tokens, shared fonts, a Starlight mapping and contrast tests, first build step of the L12 docs redesign | None | M |
 | [L12d](../todos/done/L12d-docs-figure-pipeline.md) | The docs figure pipeline on the book's `svgkit`, with the `package-map` and `run-loop` figures | L12a | M |
 | [L12k](../todos/done/L12k-docs-fences-gateway-figures.md) | `file=` fences on the docs' inline examples, a gateway page and figures 3 to 6 | L12d | M |
+| [L12p](../todos/done/L12p-shared-header-source.md) | One shared header source (`@buildanagent/manual/site-chrome`) read by `apps/manual`, `apps/docs` and `apps/site`, with built-header tests in each app | L12b | S to M |
 | [L12q](../todos/done/L12q-docs-examples.md) | The new tested examples the docs pages need: protocol, a harness sandbox and compaction, and an agent-safety bring-your-own-key guard | L12k | M |
 | [L12r](../todos/done/L12r-docs-body-font-inter.md) | The docs' body text in Inter, with Instrument Serif kept for titles, after the owner's decision of 2026-11-24 | L12a | S |
 | [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
