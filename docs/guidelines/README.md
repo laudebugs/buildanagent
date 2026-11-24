@@ -9,6 +9,7 @@ These guidelines hold the coding and documentation rules for `packages/` in one 
 | [testing.md](testing.md) | write a test: what runs offline, which seam to use, what a test must prove |
 | [docs-writing.md](docs-writing.md) | write a page a user of our packages reads, such as a package README: a story, plain English, no internal ids |
 | [examples.md](examples.md) | write an example a reader will copy: public imports only, no test scaffolding unless its subject is testing or it is a numbered book example, always tested |
+| [building-a-workflow-with-a-model.md](building-a-workflow-with-a-model.md) | start a workflow in which a model does part of a job on structured data, write its evaluation, or run its build with several agents and an owner: the rules-only baseline, code guardrails, hard test sets, spend caps, copy as data, decision and fact logs, and landing rules |
 
 **MUST** and **SHOULD** mark rules. Text without either is advice.
 

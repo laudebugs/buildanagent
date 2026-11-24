@@ -30,6 +30,7 @@ Skills that coding agents (Claude Code, Codex, OpenCode, Pi) load when a task ne
 | [cloudflare-agents](cloudflare-agents/SKILL.md) | Code imports `agents`, `@cloudflare/think` or `@cloudflare/ai-chat` |
 | [google-adk](google-adk/SKILL.md) | Code imports `@google/adk` |
 | [copilot-sdk](copilot-sdk/SKILL.md) | Code imports `@github/copilot-sdk` |
+| [building-a-workflow-with-a-model](building-a-workflow-with-a-model/SKILL.md) | Planning, evaluating or running a workflow in which a model does part of a job on structured data, such as a spreadsheet import |
 | [anatomy](anatomy/SKILL.md) | Drawing an isometric figure for the book in `apps/manual`; vendored, see below |
 
 ## The anatomy skill is vendored, not ours
