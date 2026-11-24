@@ -142,8 +142,13 @@ test("heading sizes are set on the page content, not on Starlight's shared varia
     /--sl-text-h[1-6]\s*:/,
     "a --sl-text-h* override also resizes the TOC heading and aside titles",
   );
-  for (const level of ["h3", "h4", "h5", "h6"]) {
-    assert.match(css, new RegExp(`\\.sl-markdown-content ${level} \\{\\s*font-size: [\\d.]+rem;`), level);
+  const sizes: Record<string, string> = { h3: "1.375", h4: "1.125", h5: "1.0625", h6: "1" };
+  for (const [level, size] of Object.entries(sizes)) {
+    const rule = new RegExp(
+      `\\.sl-markdown-content ${level}:not\\(:where\\(\\.not-content \\*\\)\\),\\s*` +
+        `\\.sl-markdown-content \\.sl-heading-wrapper\\.level-${level}:not\\(:where\\(\\.not-content \\*\\)\\) \\{\\s*font-size: ${size}rem;`,
+    );
+    assert.match(css, rule, `${level} and its .sl-heading-wrapper need the same size`);
   }
 });
 
