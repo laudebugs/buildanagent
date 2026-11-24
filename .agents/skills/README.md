@@ -15,7 +15,7 @@ Skills that coding agents (Claude Code, Codex, OpenCode, Pi) load when a task ne
   ```
 
   `name` matches the folder. `description` says *when* to load the skill, because agents decide from the description alone.
-- **Short enough to load in full.** A skill links to the references in `docs/reference/<sdk>/` for detail instead of copying them.
+- **Short enough to load in full.** A skill links to its reference in `docs/reference/<sdk>/` or guideline in `docs/guidelines/` for detail instead of copying it.
 - **Pinned.** Each SDK skill states the version it was checked against, and the reference's upgrade steps include updating the skill.
 
 ## Skills
@@ -30,6 +30,7 @@ Skills that coding agents (Claude Code, Codex, OpenCode, Pi) load when a task ne
 | [cloudflare-agents](cloudflare-agents/SKILL.md) | Code imports `agents`, `@cloudflare/think` or `@cloudflare/ai-chat` |
 | [google-adk](google-adk/SKILL.md) | Code imports `@google/adk` |
 | [copilot-sdk](copilot-sdk/SKILL.md) | Code imports `@github/copilot-sdk` |
+| [building-a-workflow-with-a-model](building-a-workflow-with-a-model/SKILL.md) | Planning, evaluating or running a workflow in which a model does part of a job on structured data, such as a spreadsheet import |
 | [anatomy](anatomy/SKILL.md) | Drawing an isometric figure for the book in `apps/manual`; vendored, see below |
 
 ## The anatomy skill is vendored, not ours
