@@ -26,7 +26,10 @@ export async function checkApiDocs(options: Partial<TypeDocOptions>): Promise<Ap
   return { problems };
 }
 
-/** One export of a package: its module (`index`, `testing`, `adapters/anthropic`), its name and its TypeDoc kind. */
+/**
+ * One export of a package: its module (`@buildanagent/sdk`, `@buildanagent/sdk/testing`, or empty for a single-entry
+ * package whose exports live at the package root), its name and its TypeDoc kind.
+ */
 export interface ApiExport {
   readonly module: string;
   readonly name: string;
@@ -38,8 +41,20 @@ export async function listExports(options: Partial<TypeDocOptions>): Promise<Api
   const app = await Application.bootstrap({ ...options, emit: "none", logLevel: "None" });
   const project = await app.convert();
   if (project === undefined) throw new Error("TypeDoc could not convert the entry points");
-  // A re-export has the kind Reference and is documented where it is declared, so only declarations count.
-  return (project.children ?? []).flatMap((module) =>
+  // Multi-entry packages group exports under Module children; single-entry packages place declarations directly on the
+  // project. A re-export has the kind Reference and is documented where it is declared, so only declarations count.
+  const children = project.children ?? [];
+  const hasModules = children.some((child) => child.kind === ReflectionKind.Module);
+  if (!hasModules) {
+    return children
+      .filter((member) => member.kind !== ReflectionKind.Reference)
+      .map((member) => ({
+        module: "",
+        name: member.name,
+        kind: ReflectionKind[member.kind],
+      }));
+  }
+  return children.flatMap((module) =>
     (module.children ?? [])
       .filter((member) => member.kind !== ReflectionKind.Reference)
       .map((member) => ({

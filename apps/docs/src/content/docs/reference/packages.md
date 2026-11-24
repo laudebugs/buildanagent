@@ -41,6 +41,13 @@ The figure draws an arrow only where no chain of arrows already leads. The arrow
 
 ## Every export has a reference page
 
-The docs generate a page for each export from its TSDoc, so a page always matches the code it describes. Browse the [gateway API](/reference/gateway/) or the [SDK API](/reference/sdk/), which list each entry point's functions, classes, interfaces and types.
+TypeDoc generates a page for each export from its TSDoc, so every page matches the code it describes. Browse any package's API reference to see its entry points, functions, classes, interfaces and types:
+
+- [Gateway API](/reference/gateway/) (`@buildanagent/gateway`)
+- [SDK API](/reference/sdk/) (`@buildanagent/sdk`)
+- [Agent safety API](/reference/agent-safety/) (`@buildanagent/agent-safety`)
+- [Protocol API](/reference/protocol/) (`@buildanagent/protocol`)
+- [Harness API](/reference/harness/) (`@buildanagent/harness`)
+- [CLI API](/reference/cli/) (`@buildanagent/cli`)
 
 Start with [your first agent](/start/first-agent/) if you have not built one yet.

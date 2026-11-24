@@ -9,6 +9,8 @@
  * each makes and removes empty files there. A path outside the roots is refused by its real path, so a symlink that
  * leads out is refused too, and the opened file is checked again through `/proc`, so a path swapped for a link in
  * between is caught. A hostile process could still win that race, which is why no `hostile_process` stop is claimed.
+ *
+ * @module @buildanagent/harness/sandbox/srt
  */
 import { HarnessError } from "../../errors.js";
 import { BackendSandbox } from "../base.js";

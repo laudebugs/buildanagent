@@ -82,7 +82,9 @@ The budget is 200 KiB of HTML per page (204,800 bytes; 1 KiB is 1,024 bytes). A 
 
 ## The API reference is generated
 
-TypeDoc writes a page for every export of the gateway and the SDK under `src/content/docs/reference/gateway/` and `reference/sdk/` each time Astro builds. The pages are not committed, and the tests skip them. The entry points come from each package's own `exports` map, so the reference matches what users import (`src/api/packages.ts`).
+TypeDoc writes a page for every export of all six published packages under `src/content/docs/reference/<folder>/` each time Astro builds (`gateway`, `sdk`, `agent-safety`, `protocol`, `harness` and `cli`). The pages are not committed, and the tests skip them. The entry points come from each package's own `exports` map, so the reference matches what users import (`src/api/packages.ts`).
+
+Packages with many entry points can set `sidebar: "modules"` in `API_PACKAGES` (`@buildanagent/harness` does, across 20 entry points). That mode lists one link per entry-point module in the sidebar instead of every leaf export, keeping every page well inside the 200 KiB HTML budget while TypeDoc still generates every export page, its Pagefind entry and its Markdown twin.
 
 `pnpm check:api-docs` fails when an exported function, class, interface, type alias, variable or enum has no TSDoc, or a `{@link}` doesn't resolve. `pnpm test` runs the same check, so CI enforces it, and a test builds the site and requires a page for every export.
 

@@ -85,7 +85,7 @@ describe("the topics", () => {
       [],
     );
     for (const pkg of API_PACKAGES) {
-      const apiLinks = sidebarLinks(html(`${pkg.output}/buildanagent/${pkg.folder}`));
+      const apiLinks = sidebarLinks(html(pkg.output));
       assert.ok(apiLinks.some((href) => href.startsWith(`/${pkg.output}/`)));
       assert.deepEqual(
         apiLinks.filter((href) => !href.startsWith(`/${pkg.output}/`) && !href.startsWith("http")),
@@ -100,7 +100,7 @@ describe("the topics", () => {
     const root = builtSite();
     for (const pkg of API_PACKAGES) {
       const generated = builtPages().filter((page) => page.path.startsWith(`${pkg.output}/`));
-      assert.ok(generated.length > 50, `${pkg.output} has only ${generated.length} pages`);
+      assert.ok(generated.length > 5, `${pkg.output} has only ${generated.length} pages`);
       for (const page of generated) {
         const current = topicTabs(readFileSync(join(root, page.path), "utf8")).current;
         assert.deepEqual(current, [pkg.label], `${page.path} is not in ${pkg.label}`);
@@ -119,6 +119,20 @@ describe("the topics", () => {
     const middle = html("concepts/tools");
     assert.match(middle, /<a href="\/concepts\/stop-reasons\/" rel="prev"/);
     assert.match(middle, /<a href="\/concepts\/approvals\/" rel="next"/);
+  });
+
+  test("keeps a modules-sidebar package limited to entry-point links", () => {
+    const modulePackages = API_PACKAGES.filter((pkg) => pkg.sidebar === "modules");
+    assert.ok(modulePackages.length > 0, "expected at least one modules-sidebar package");
+    for (const pkg of modulePackages) {
+      const links = sidebarLinks(html(pkg.output));
+      assert.ok(links.length > 0, `${pkg.name} sidebar lists its modules`);
+      assert.deepEqual(
+        links.filter((href) => /\/(classes|functions|interfaces|type-aliases|variables|enumerations)\//.test(href)),
+        [],
+        `${pkg.name} sidebar must omit leaf export pages`,
+      );
+    }
   });
 
   test("keeps the home page free of any sidebar topic", () => {

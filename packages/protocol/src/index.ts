@@ -1,4 +1,8 @@
-/** `@buildanagent/protocol`, the wire types of the buildanagent harness: the session entry union, the client and server messages and their JSONL framing. */
+/**
+ * `@buildanagent/protocol`, the wire types of the buildanagent harness: the session entry union, the client and server messages and their JSONL framing.
+ *
+ * @module @buildanagent/protocol
+ */
 export type {
   ApprovalPolicy,
   CheckoutEntry,

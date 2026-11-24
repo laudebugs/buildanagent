@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs) |
 | Depends on | [L12](../ongoing/L12-docs-redesign.md) (L12c, merged) |
@@ -38,19 +38,19 @@ Add `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `
 
 ## Tasks
 
-- [ ] Add the four packages to `API_PACKAGES` and `apps/docs/.gitignore`.
-- [ ] Update `listExports()` and the built-site tests so single-entry and multi-entry packages are checked accurately.
-- [ ] Build `apps/docs` and measure page count, largest page, mean page, `dist/` size, Pagefind index and build time; confirm every page stays under the 200 KiB budget (or adjust/document if a single package exceeds it).
-- [ ] Update `apps/docs/src/content/docs/reference/packages.md`, `apps/docs/README.md` and the L12 umbrella todo with the new packages and measurements.
-- [ ] Log fact-check rows (`L12f-1`, …) in `docs/plans/reviews/fact-check-publish-and-docs.md` and run `pnpm fact-check-logs --write`.
-- [ ] Run `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm check:api-docs` and `pnpm --filter @buildanagent/docs build`.
+- [x] Add the four packages to `API_PACKAGES` and `apps/docs/.gitignore`.
+- [x] Update `listExports()` and the built-site tests so single-entry and multi-entry packages are checked accurately.
+- [x] Build `apps/docs` and measure page count, largest page, mean page, `dist/` size, Pagefind index and build time; confirm every page stays under the 200 KiB budget (or adjust/document if a single package exceeds it).
+- [x] Update `apps/docs/src/content/docs/reference/packages.md`, `apps/docs/README.md` and the L12 umbrella todo with the new packages and measurements.
+- [x] Log fact-check rows (`L12f-1`, …) in `docs/plans/reviews/fact-check-publish-and-docs.md` and run `pnpm fact-check-logs --write`.
+- [x] Run `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm check:api-docs` and `pnpm --filter @buildanagent/docs build`.
 
 ## Acceptance criteria
 
-- [ ] `API_PACKAGES` includes all six published packages (`gateway`, `sdk`, `agent-safety`, `protocol`, `harness`, `cli`).
-- [ ] Every export of all six packages has a generated reference page in `apps/docs/dist/reference/<pkg>/`, and every generated page belongs to its package's sidebar topic.
-- [ ] Every built HTML page stays inside the 200 KiB budget, and the measurements are recorded in the L12 umbrella todo and fact-check log.
-- [ ] `pnpm check`, `pnpm typecheck`, `pnpm test` and `pnpm check:api-docs` pass offline.
+- [x] `API_PACKAGES` includes all six published packages (`gateway`, `sdk`, `agent-safety`, `protocol`, `harness`, `cli`).
+- [x] Every export of all six packages has a generated reference page in `apps/docs/dist/reference/<pkg>/`, and every generated page belongs to its package's sidebar topic.
+- [x] Every built HTML page stays inside the 200 KiB budget, and the measurements are recorded in the L12 umbrella todo and fact-check log.
+- [x] `pnpm check`, `pnpm typecheck`, `pnpm test` and `pnpm check:api-docs` pass offline.
 
 ## Tests
 
@@ -73,3 +73,12 @@ Add `@buildanagent/protocol`, `@buildanagent/harness`, `@buildanagent/cli` and `
 - [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+
+## Outcome
+
+- Added `@buildanagent/agent-safety`, `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to `API_PACKAGES` (`apps/docs/src/api/packages.ts`), unified `CHECKED_PACKAGES` with `API_PACKAGES`, and ignored all four generated directories in `apps/docs/.gitignore`.
+- Added `@module <import-path>` TSDoc tags to the 30 entry points across those four packages that lacked them, resolving the Astro `/reference/agent-safety` and `/reference/harness` route collisions.
+- Updated `listExports()` (`apps/docs/src/api/check.ts`) and `api-docs.test.ts` / `topics.test.ts` to handle single-entry packages (`protocol` and `cli`) alongside multi-entry packages.
+- Measured the six-package build: with full leaf links in `@buildanagent/harness`'s sidebar (20 entry points, 446 pages), 27 pages exceeded the 200 KiB budget (largest 233,112 bytes / 227.6 KiB) and `dist/` reached 129 MB. Added `sidebar: "modules"` (`moduleSidebarGroup()`) for `@buildanagent/harness`, which lists its 20 entry-point modules in the sidebar while still generating every export page and Markdown twin. That brought harness's largest page to 94,510 bytes (92.3 KiB), `dist/` to 70 MB, and kept all 965 HTML pages under 200 KiB (largest overall: `reference/sdk/buildanagent/sdk/interfaces/continueoptions/index.html` at 146,947 bytes / 143.5 KiB; mean 61,907 bytes; Pagefind 4.9 MB; 964 Markdown twins totaling 1,281,177 bytes; warm build ~23 s).
+- Updated `apps/docs/test/twins-built.test.ts`'s total twin cap from 1 MB (set for two packages) to 2.5 MB for six packages, added a `topics.test.ts` test verifying `modules`-sidebar packages omit leaf export links, updated `apps/docs/src/content/docs/reference/packages.md` and `apps/docs/README.md`, recorded measurements in `docs/todos/ongoing/L12-docs-redesign.md`, and logged rows `L12f-1` to `L12f-7` in `docs/plans/reviews/fact-check-publish-and-docs.md`.
