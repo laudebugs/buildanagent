@@ -18,18 +18,18 @@
 }
 
 @font-face {
-  font-family: "Literata";
-  src: url("/fonts/literata/literata-roman.woff2") format("woff2");
+  font-family: "Inter";
+  src: url("/fonts/inter/inter-roman.woff2") format("woff2");
   font-style: normal;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Literata";
-  src: url("/fonts/literata/literata-italic.woff2") format("woff2");
+  font-family: "Inter";
+  src: url("/fonts/inter/inter-italic.woff2") format("woff2");
   font-style: italic;
-  font-weight: 200 900;
+  font-weight: 100 900;
   font-display: swap;
 }
 
@@ -51,7 +51,7 @@
 
 :root {
   --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --font-body: "Literata", Georgia, "Times New Roman", serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
   --font-code: "Manual Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --size-title: clamp(2.75rem, 1.8696rem + 3.913vw, 5rem);
   --size-section: clamp(1.875rem, 1.6304rem + 1.087vw, 2.5rem);

@@ -1,8 +1,8 @@
 ---
-// Starlight's head, plus a preload for the two faces nearly every line of a page uses, the body and display romans,
-// as the book does, so the first paint does not wait for them. A test checks that these are the token file's roman
-// faces and that public/fonts/ serves them. A page with a Markdown twin also links it, so an agent that fetches the
-// page can find the plain-text version (`hasTwin()` in src/twins/rule.ts decides which pages have one).
+// Starlight's head, plus a preload for the two faces nearly every line of a page uses, the body (Inter) and display
+// (Instrument Serif) romans, so the first paint does not wait for them. A test checks that these are the roman faces of
+// the docs' tokens and that public/fonts/ serves them. A page with a Markdown twin also links it, so an agent that
+// fetches the page can find the plain-text version (`hasTwin()` in src/twins/rule.ts decides which pages have one).
 import Default from "@astrojs/starlight/components/Head.astro";
 import { twinHref } from "../twins/rule.js";
 
@@ -10,6 +10,6 @@ const twin = twinHref(Astro.locals.starlightRoute.id);
 ---
 
 <Default {...Astro.props}><slot /></Default>
-<link rel="preload" href="/fonts/literata/literata-roman.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="/fonts/inter/inter-roman.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="/fonts/instrument-serif/instrument-serif-regular.woff2" as="font" type="font/woff2" crossorigin />
 {twin !== undefined && <link rel="alternate" type="text/markdown" href={twin} />}

@@ -124,12 +124,32 @@ test("a decorative variable is followed through the custom properties that name 
   assert.ok(!onlyDecorative("--sl-color-gray-5", unread), "a chain that ends where nothing reads it is not known");
 });
 
-test("headings use the display face at its one weight", () => {
+test("the title and second-level headings use the display face at its one weight", () => {
   const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
-  assert.match(
+  assert.match(css, /h1,\s*h2,\s*\.site-title\s*\{\s*font-family: var\(--font-display\);\s*font-weight: 400;/);
+});
+
+test("third-level headings and smaller use the body face at weight 600", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  assert.match(css, /h3,\s*h4,\s*h5,\s*h6\s*\{\s*font-family: var\(--font-body\);\s*font-weight: 600;/);
+  assert.match(css, /--sl-font: var\(--font-body\);/);
+});
+
+test("heading sizes are set on the page content, not on Starlight's shared variables", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  assert.doesNotMatch(
     css,
-    /h1,\s*h2,\s*h3,\s*h4,\s*h5,\s*h6,\s*\.site-title\s*\{\s*font-family: var\(--font-display\);\s*font-weight: 400;/,
+    /--sl-text-h[1-6]\s*:/,
+    "a --sl-text-h* override also resizes the TOC heading and aside titles",
   );
+  const sizes: Record<string, string> = { h3: "1.375", h4: "1.125", h5: "1.0625", h6: "1" };
+  for (const [level, size] of Object.entries(sizes)) {
+    const rule = new RegExp(
+      `\\.sl-markdown-content ${level}:not\\(:where\\(\\.not-content \\*\\)\\),\\s*` +
+        `\\.sl-markdown-content \\.sl-heading-wrapper\\.level-${level}:not\\(:where\\(\\.not-content \\*\\)\\) \\{\\s*font-size: ${size}rem;`,
+    );
+    assert.match(css, rule, `${level} and its .sl-heading-wrapper need the same size`);
+  }
 });
 
 test("inline code inside a link keeps the link's colour", () => {
