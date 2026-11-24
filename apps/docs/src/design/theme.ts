@@ -5,8 +5,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   type BookTokens,
   type ColorSet,
-  type FontToken,
   colorProperty,
+  type FontToken,
   readTokens,
   tokensCss,
 } from "@buildanagent/manual/design/tokens";
