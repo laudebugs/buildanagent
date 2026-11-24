@@ -84,7 +84,8 @@ export function entryPoints(pkg: CheckedPackage): string[] {
 
 /**
  * A sidebar group listing one link per entry-point module in `pkg`'s `exports` map, used when `pkg.sidebar` is
- * `"modules"` so large packages stay inside the HTML page budget.
+ * `"modules"` so large packages stay inside the HTML page budget. Requires a multi-entry package because single-entry
+ * packages have no per-module subdirectories.
  */
 export function moduleSidebarGroup(pkg: ApiPackage): {
   label: string;
@@ -92,8 +93,15 @@ export function moduleSidebarGroup(pkg: ApiPackage): {
   items: { label: string; link: string }[];
 } {
   const manifest = readManifest(pkg);
-  const items = Object.keys(manifest.exports).map((subpath) => {
-    const mod = subpath === "." ? pkg.name : `${pkg.name}/${subpath.slice(2)}`;
+  const subpaths = Object.keys(manifest.exports);
+  if (subpaths.length <= 1) {
+    throw new Error(`sidebar: "modules" requires a multi-entry package (${pkg.name} has ${subpaths.length})`);
+  }
+  const items = subpaths.map((subpath) => {
+    if (subpath !== "." && !subpath.startsWith("./")) {
+      throw new Error(`unexpected export key "${subpath}" in ${pkg.name}`);
+    }
+    const mod = subpath === "." ? pkg.name : `${pkg.name}/${subpath.replace(/^\.\//, "")}`;
     return {
       label: mod,
       link: `/${pkg.output}/${mod.replace(/^@/, "").toLowerCase()}/`,

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "vitest";
-import { API_PACKAGES } from "../src/api/packages.js";
+import { API_PACKAGES, moduleSidebarGroup } from "../src/api/packages.js";
 import { readPages } from "../src/plugins/pages.js";
 import { builtSite } from "./built.js";
 
@@ -125,10 +125,16 @@ describe("the topics", () => {
     const modulePackages = API_PACKAGES.filter((pkg) => pkg.sidebar === "modules");
     assert.ok(modulePackages.length > 0, "expected at least one modules-sidebar package");
     for (const pkg of modulePackages) {
-      const links = sidebarLinks(html(pkg.output));
-      assert.ok(links.length > 0, `${pkg.name} sidebar lists its modules`);
+      const links = sidebarLinks(html(pkg.output)).filter((href) => href.startsWith(`/${pkg.output}/`));
       assert.deepEqual(
-        links.filter((href) => /\/(classes|functions|interfaces|type-aliases|variables|enumerations)\//.test(href)),
+        links,
+        moduleSidebarGroup(pkg).items.map((item) => item.link),
+        `${pkg.name} sidebar lists every entry-point module and nothing else`,
+      );
+      assert.deepEqual(
+        links.filter((href) =>
+          /\/(classes|functions|interfaces|type-aliases|variables|enumerations|namespaces)\//.test(href),
+        ),
         [],
         `${pkg.name} sidebar must omit leaf export pages`,
       );

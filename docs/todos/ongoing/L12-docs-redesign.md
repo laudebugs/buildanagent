@@ -98,7 +98,7 @@ L12o no longer depends on L12d: the owner chose package cards without an illustr
 
 L12 is done when L12a to L12p are done and these hold on `main`:
 
-- [ ] `pnpm --filter @buildanagent/docs test` and `pnpm check:api-docs` pass, with the tests covering all six packages.
+- [x] `pnpm --filter @buildanagent/docs test` and `pnpm check:api-docs` pass, with the tests covering all six packages.
 - [ ] `apps/docs/src/styles/tokens.css` is generated from `docs/design/book-tokens.json`, and a test fails when it is stale.
 - [ ] `apps/docs/src/styles/starlight.css` holds no hex colour, and a test fails on one.
 - [ ] A contrast test recomputes every extra pair Starlight's roles create, from the shipped `tokens.css`, at 4.5:1 for text and 3:1 for other parts. These pairs stay out of `book-tokens.json`, whose manual test asserts exactly 38.

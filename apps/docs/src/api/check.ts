@@ -45,20 +45,14 @@ export async function listExports(options: Partial<TypeDocOptions>): Promise<Api
   // project. A re-export has the kind Reference and is documented where it is declared, so only declarations count.
   const children = project.children ?? [];
   const hasModules = children.some((child) => child.kind === ReflectionKind.Module);
-  if (!hasModules) {
-    return children
+  const groups = hasModules
+    ? children.map((mod) => ({ module: mod.name, members: mod.children ?? [] }))
+    : [{ module: "", members: children }];
+  return groups.flatMap(({ module, members }) =>
+    members
       .filter((member) => member.kind !== ReflectionKind.Reference)
       .map((member) => ({
-        module: "",
-        name: member.name,
-        kind: ReflectionKind[member.kind],
-      }));
-  }
-  return children.flatMap((module) =>
-    (module.children ?? [])
-      .filter((member) => member.kind !== ReflectionKind.Reference)
-      .map((member) => ({
-        module: module.name,
+        module,
         name: member.name,
         kind: ReflectionKind[member.kind],
       })),
