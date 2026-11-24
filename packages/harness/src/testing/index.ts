@@ -1,8 +1,21 @@
 /**
- * `@buildanagent/harness/testing`: test doubles and conformance suites for the harness's components. The in-memory
- * sandbox, and the conformance suites of the sandbox, the session store, the scheduler and the key store, are here so
- * far.
+ * `@buildanagent/harness/testing`: test doubles and conformance suites for the harness's portable seams: the in-memory
+ * sandbox, the individual suites for `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`,
+ * `EgressPolicy` and the protocol transport, and the unified eight-seam portability suite (`runPortabilityConformance()`).
+ *
+ * @module @buildanagent/harness/testing
  */
+export {
+  EGRESS_DENIED_TARGETS,
+  type EgressCase,
+  type EgressConformanceReport,
+  type EgressDeniedTarget,
+  type EgressFactory,
+  type EgressProbeResult,
+  type EgressUnderTest,
+  egressConformanceCases,
+  runEgressConformance,
+} from "./egress-conformance.js";
 export {
   FAKE_COMMANDS,
   type FakeSandboxClient,
@@ -18,6 +31,25 @@ export {
   keyStoreConformanceCases,
   runKeyStoreConformance,
 } from "./key-store-conformance.js";
+export {
+  type LockCase,
+  type LockConformanceReport,
+  type LockFactory,
+  type LockLeaseHarness,
+  type LockUnderTest,
+  lockConformanceCases,
+  runLockConformance,
+} from "./lock-conformance.js";
+export {
+  type EffectStoreFactory,
+  PORTABILITY_SEAMS,
+  type PortabilityCase,
+  type PortabilityConformanceReport,
+  type PortabilitySeam,
+  type PortabilityTarget,
+  portabilityConformanceCases,
+  runPortabilityConformance,
+} from "./portability-conformance.js";
 export {
   runSandboxConformance,
   type SandboxCase,
@@ -44,3 +76,11 @@ export {
   type StoreUnderTest,
   storeConformanceCases,
 } from "./store-conformance.js";
+export {
+  runTransportConformance,
+  type TransportCase,
+  type TransportConformanceReport,
+  type TransportFactory,
+  type TransportUnderTest,
+  transportConformanceCases,
+} from "./transport-conformance.js";
