@@ -5,7 +5,7 @@ These are IBM's own WOFF2 files, unchanged. The docs app owns them; the book doe
 - Package: `@ibm/plex-sans` 1.1.0, published 2024-11-11 by IBM, <https://registry.npmjs.org/@ibm/plex-sans/-/plex-sans-1.1.0.tgz> (source repository <https://github.com/IBM/plex>, package `gitHead` `1da12f02587b630c07e92692d21492d722f53614`).
 - Files: `fonts/split/woff2/` of that package, the Latin1 subset of each face. IBM builds the split files; the docs do not subset anything.
 - Licence: SIL Open Font License 1.1, in `LICENSE.txt`, the package's own file. Copyright © 2017 IBM Corp. with Reserved Font Name "Plex".
-- The pin, with the tarball's integrity, is `apps/docs/fonts/ibm-plex-sans.json`; `pnpm --filter @buildanagent/docs fonts:plex` re-fetches and verifies the files.
+- The pin, with the tarball's integrity, is `apps/docs/fonts/ibm-plex-sans.json`; `pnpm --filter @buildanagent/docs fonts:plex` restores the files from the pinned release and checks them against the pin.
 
 | File | Face | SHA-256 |
 | --- | --- | --- |

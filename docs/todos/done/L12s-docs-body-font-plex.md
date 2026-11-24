@@ -47,7 +47,7 @@ Replace Inter with IBM Plex Sans as the body face of `docs.buildanagent.fyi`, th
 
 ## Tests
 
-`apps/docs/test/fonts.test.ts`, `tokens.test.ts` and `styles.test.ts`.
+`apps/docs/test/fonts.test.ts`, `tokens.test.ts`, `styles.test.ts` and `plex-release.test.ts`.
 
 ## Docs to update
 
