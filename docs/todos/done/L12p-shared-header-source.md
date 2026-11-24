@@ -66,6 +66,9 @@ Give `apps/manual`, `apps/docs` and `apps/site` one shared data source for their
 ## Outcome
 
 - Added `apps/manual/src/design/site-chrome.json` and `apps/manual/src/design/site-chrome.ts`, exported from `apps/manual/package.json` as `./site-chrome` and `./site-chrome.json`.
-- Wired `apps/manual` (`SiteHeader.astro`, `header.css`, `scripts/header-check.mjs`), `apps/docs` (`src/chrome.ts`, `astro.config.mjs`, `SiteTitle.astro`) and `apps/site` (`src/landing/copy.ts`, `src/landing/chrome.ts`, `SiteHeader.astro`) to read their links, wordmarks and inline prompt mark from `@buildanagent/manual/site-chrome`.
-- Added built-header and shape tests across all three apps (`apps/manual/test/site-chrome.test.ts`, `apps/docs/test/chrome.test.ts`, `apps/site/test/landing.test.ts`).
-- Updated `apps/manual/README.md`, `apps/docs/README.md`, `docs/plans/publish-and-docs.md` §4, `docs/todos/ongoing/L12-docs-redesign.md`, and logged fact-check rows `L12p-1` to `L12p-4` in `docs/plans/reviews/fact-check-publish-and-docs.md`.
+- Wired all three apps to read their header links, wordmarks and inline prompt mark from `@buildanagent/manual/site-chrome`:
+  - `apps/manual`: `SiteHeader.astro`, `header.css` and `scripts/header-check.mjs`.
+  - `apps/docs`: `src/chrome.ts`, `astro.config.mjs` and `SiteTitle.astro`.
+  - `apps/site`: `src/landing/copy.ts`, `src/landing/chrome.ts`, `SiteHeader.astro` and `site.css`.
+- Added shape and built-header tests across all three apps (`apps/manual/test/site-chrome.test.ts`, `apps/docs/test/chrome.test.ts` and `apps/site/test/landing.test.ts`).
+- Updated `apps/manual/README.md`, `apps/docs/README.md`, `docs/plans/publish-and-docs.md` §4 and `docs/todos/ongoing/L12-docs-redesign.md`, and logged fact-check rows `L12p-1` to `L12p-4` in `docs/plans/reviews/fact-check-publish-and-docs.md`.
