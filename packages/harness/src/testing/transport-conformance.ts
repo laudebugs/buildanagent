@@ -1,8 +1,8 @@
 /**
- * The transport conformance suite: what every JSON-RPC 2.0 harness transport must do (`inProcessTransport`,
- * `stdioTransport`, `webSocketTransport` and any hosted transport). The cases verify the `initialize` handshake,
- * session creation and listing, a complete `turn/start` to `turn/settled` lifecycle, and clean close. The cases import
- * no test runner and no Node module, so any runner, including workerd, can call them.
+ * The protocol transport conformance suite: what `inProcessTransport`, `stdioTransport`, `webSocketTransport` and any
+ * hosted JSON-RPC 2.0 transport must do. The cases verify the `initialize` handshake, session creation and listing, a
+ * `turn/start` to `turn/settled` lifecycle, unknown-method error recovery and clean close. The cases import no test
+ * runner and no Node module, so any runner, including workerd, can call them.
  */
 import type { ClientMessage, ClientResultMap, ServerMessage } from "@buildanagent/protocol";
 import { type CaseReport, type RunnableCase, runCases } from "./run-cases.js";
@@ -13,7 +13,7 @@ export interface TransportUnderTest {
   readonly send: (message: ClientMessage) => Promise<void> | void;
   /** Subscribes to every server message arriving over the transport; returns an unsubscribe function. */
   readonly onMessage: (listener: (message: ServerMessage) => void) => () => void;
-  /** Closes the transport and releases any underlying resources. */
+  /** Closes the transport and releases its resources. */
   readonly close: () => Promise<void> | void;
 }
 

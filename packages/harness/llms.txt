@@ -513,7 +513,7 @@ The sections of README.md and every public export, generated from this package's
 
 - `interface DeliveredWake`: One wake a scheduler delivered.
 - `type EffectStoreFactory`: Makes a fresh, empty `EffectStore` for each conformance case.
-- `EGRESS_DENIED_TARGETS`: Addresses every egress backend must refuse when not explicitly allowlisted (and always for loopback/metadata).
+- `EGRESS_DENIED_TARGETS`: Target URLs every egress backend must refuse: a non-allowlisted host, loopback addresses and cloud metadata endpoints.
 - `type EgressCase`: One case of the egress conformance suite.
 - `egressConformanceCases()`: The egress conformance cases, exported for the local proxy and every hosted sandbox backend.
 - `type EgressConformanceReport`: The report the egress conformance suite returns.
@@ -537,7 +537,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface LockLeaseHarness`: Lease-expiry hooks supplied by a lock factory.
 - `interface LockUnderTest`: What a lock factory returns for one case.
 - `PORTABILITY_SEAMS`: The eight portable seams covered by `portabilityConformanceCases()`.
-- `type PortabilityCase`: One case of the unified portability conformance suite, prefixed with its seam name.
+- `type PortabilityCase`: One case of the portability conformance suite, prefixed with its seam name.
 - `portabilityConformanceCases()`: Collects conformance cases for every seam supplied in `target`, each named `<seam>: <case>`.
 - `type PortabilityConformanceReport`: The report returned by `runPortabilityConformance()`.
 - `type PortabilitySeam`: Name of one of the eight portable seams.

@@ -1,8 +1,7 @@
 /**
- * Portability conformance suite over all eight portable seams: `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`,
- * `SandboxClient`, `EgressPolicy`, the protocol transport and `EffectStore` (imported from
- * `@buildanagent/agent-safety/testing`). Any deployment target (local Node, Cloudflare, AWS or Vercel) supplies
- * factories for the seams it implements and runs one suite.
+ * One portability conformance suite over all eight portable seams (`PORTABILITY_SEAMS`), reusing
+ * `effectStoreConformance()` from `@buildanagent/agent-safety/testing`. Any deployment target (local Node, Cloudflare,
+ * AWS or Vercel) supplies factories for the seams it implements and runs the same suite.
  */
 import type { EffectStore } from "@buildanagent/agent-safety";
 import { effectStoreConformance } from "@buildanagent/agent-safety/testing";
@@ -55,7 +54,7 @@ export interface PortabilityTarget {
   readonly effectStore?: EffectStoreFactory;
 }
 
-/** One case of the unified portability conformance suite, prefixed with its seam name. */
+/** One case of the portability conformance suite, prefixed with its seam name. */
 export type PortabilityCase = RunnableCase;
 
 /** The report returned by `runPortabilityConformance()`. */

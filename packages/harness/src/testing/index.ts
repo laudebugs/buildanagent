@@ -1,7 +1,7 @@
 /**
- * `@buildanagent/harness/testing`: test doubles and conformance suites for the harness's portable seams: the in-memory
- * sandbox, the individual suites for `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`,
- * `EgressPolicy` and the protocol transport, and the unified eight-seam portability suite (`runPortabilityConformance()`).
+ * `@buildanagent/harness/testing`: test doubles and conformance suites for the harness's portable seams. Exports
+ * `fakeSandbox()`, standalone suites for the seven harness seams, and the eight-seam portability suite
+ * (`runPortabilityConformance()`).
  *
  * @module @buildanagent/harness/testing
  */

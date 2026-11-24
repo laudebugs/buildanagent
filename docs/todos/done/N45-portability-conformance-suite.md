@@ -77,8 +77,11 @@ History: plan review 2 (2026-11-19) pointed the write rule at E2's cases, named 
 
 ## Outcome
 
-- Added three new portable conformance suites in `packages/harness/src/testing/` (with zero `node:*` imports so workerd can run them): `lock-conformance.ts` (`SessionLock`, supporting both local `lease_and_dead_pid` and off-host `lease_only` staleness takeover), `egress-conformance.ts` (`EGRESS_DENIED_TARGETS`, `egressConformanceCases()`, `runEgressConformance()` checking non-allowlisted hosts, IPv4/IPv6 loopback, `localhost`, and AWS/GCP/Azure/Alibaba metadata endpoints plus `compileEgressPolicy()`), and `transport-conformance.ts` (`transportConformanceCases()`, `runTransportConformance()` over `initialize`, `session/create`, `turn/start` to `turn/settled`, and `session/list`).
-- Unified all eight portable seams into `portability-conformance.ts` (`PORTABILITY_SEAMS`, `portabilityConformanceCases()`, `runPortabilityConformance()`), combining `store`, `lock`, `scheduler` (at-least-once wake), `keyStore`, `sandbox`, `egress`, `transport`, and `effectStore` (imported directly from `@buildanagent/agent-safety/testing`, including the concurrent `begin` single-winner case).
-- Exported all new suites and types from `@buildanagent/harness/testing` (`packages/harness/src/testing/index.ts`).
-- Added `packages/harness/test/portability-conformance.test.ts` exercising all eight seams against local implementations (`jsonlStore`, `memoryStore`, `fileLock`, `processScheduler`, `fileKeyStore`, `fakeSandbox`, local HD15 `startEgressProxy`, `webSocketTransport`, `stdioTransport` over Web streams, `memoryEffectStore`) plus an explicit off-host `lease_only` lock check.
-- Updated `docs/plans/build-harness.md` §5.2, `docs/plans/build-coding-agent.md` §5.1, `packages/harness/README.md`, regenerated `packages/harness/llms.txt`, and added a minor changeset.
+- Added three Node-free conformance suites in `packages/harness/src/testing/` so workerd can run them:
+  - `lock-conformance.ts`: `SessionLock` exclusivity, concurrent single-winner acquire, idempotent release, and both local (`lease_and_dead_pid`) and off-host (`lease_only`) lease takeover.
+  - `egress-conformance.ts`: `compileEgressPolicy()` validation and `EGRESS_DENIED_TARGETS` covering non-allowlisted hosts, loopback addresses, and cloud metadata endpoints.
+  - `transport-conformance.ts`: `initialize`, `session/create`, `turn/start` to `turn/settled`, `session/list`, and unknown-method JSON-RPC error recovery.
+- Combined all eight portable seams in `portability-conformance.ts` (`PORTABILITY_SEAMS`, `portabilityConformanceCases()`, `runPortabilityConformance()`), reusing `effectStoreConformance()` from `@buildanagent/agent-safety/testing` (including the single-winner concurrent `begin` case).
+- Exported every new suite and type from `@buildanagent/harness/testing` (`packages/harness/src/testing/index.ts`).
+- Added `packages/harness/test/portability-conformance.test.ts` running all eight seams against local implementations, plus allowlisted egress and off-host `lease_only` lock checks.
+- Updated `docs/plans/build-harness.md` §5.2, `docs/plans/build-coding-agent.md` §5.1, and `packages/harness/README.md`; regenerated `packages/harness/llms.txt`; and added a minor changeset.

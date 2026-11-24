@@ -1,17 +1,18 @@
 /**
- * The session-lock conformance suite: what every `SessionLock` must do. One writer holds a session at a time, a second
- * writer gets `"would_block"` at once without waiting, release is idempotent and never releases another writer's hold,
- * and an off-host lock stays held until its lease expires regardless of local process ids. The cases import no test
- * runner and no Node module, so any runner, including workerd, can call them.
+ * The session-lock conformance suite: what every `SessionLock` must do. One writer holds a session at a time, and a
+ * second writer gets `"would_block"` without waiting. Calling `release()` twice is safe and never drops another
+ * writer's hold. Regardless of local process ids, an off-host lock stays held until its lease expires. The cases
+ * import no test runner and no Node module, so any runner, including workerd, can call them.
  */
 import type { LockHandle, SessionLock } from "../session/lock.js";
 import type { SessionKey } from "../session/store.js";
 import { type CaseReport, type RunnableCase, runCases } from "./run-cases.js";
 
 /**
- * Lease-expiry hooks supplied by a lock factory. Off-host locks (`staleness: "lease_only"`, such as DynamoDB, Postgres
- * or a Durable Object) reclaim a lock as soon as its lease expires. Local file locks (`staleness: "lease_and_dead_pid"`)
- * reclaim only when the lease expires and the holding process on the same host is dead.
+ * Lease-expiry hooks supplied by a lock factory. Off-host locks (`staleness: "lease_only"`) reclaim a session as soon
+ * as its lease expires, as on DynamoDB, Postgres or a Durable Object. Local file locks
+ * (`staleness: "lease_and_dead_pid"`) reclaim it only when the lease expires and the holding process on the same host
+ * is dead.
  */
 export interface LockLeaseHarness {
   /** A second lock instance representing another writer (dead PID on same host for local locks, or any peer off-host). */
@@ -28,7 +29,7 @@ export interface LockLeaseHarness {
 export interface LockUnderTest {
   /** The primary writer's lock instance. */
   readonly lock: SessionLock;
-  /** Optional lease-expiry harness so the suite can verify takeover after lease expiry. */
+  /** Optional lease-expiry harness so the suite can verify takeover once the lease expires. */
   readonly lease?: LockLeaseHarness;
   /** Optional cleanup run after the case finishes. */
   readonly dispose?: () => Promise<void> | void;

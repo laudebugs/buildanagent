@@ -1,8 +1,8 @@
 /**
- * The egress conformance suite: what every sandbox egress backend and proxy must refuse. Requests to a host outside
- * `EgressPolicy.allow`, to loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and to cloud metadata endpoints
- * (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`) must all fail closed. The
- * cases import no test runner and no Node module, so local proxies and hosted sandbox backends share one suite.
+ * The egress conformance suite: what every sandbox egress backend and proxy must refuse. Every backend must fail
+ * closed on requests to non-allowlisted hosts, loopback addresses and cloud metadata endpoints (see
+ * `EGRESS_DENIED_TARGETS`). The cases import no test runner and no Node module, so local proxies and hosted sandbox
+ * backends share one suite.
  */
 import { compileEgressPolicy } from "../credentials/egress-policy.js";
 import { isHarnessError } from "../errors.js";
@@ -14,7 +14,7 @@ export interface EgressDeniedTarget {
   readonly url: string;
 }
 
-/** Addresses every egress backend must refuse when not explicitly allowlisted (and always for loopback/metadata). */
+/** Target URLs every egress backend must refuse: a non-allowlisted host, loopback addresses and cloud metadata endpoints. */
 export const EGRESS_DENIED_TARGETS: readonly EgressDeniedTarget[] = [
   { label: "a host outside EgressPolicy.allow", url: "https://not-allowed.example.invalid/" },
   { label: "IPv4 loopback (127.0.0.1)", url: "https://127.0.0.1/" },
@@ -39,7 +39,7 @@ export interface EgressProbeResult {
 export interface EgressUnderTest {
   /** Attempts one outbound request to `targetUrl` through the backend under test and reports whether it was allowed. */
   readonly probe: (targetUrl: string) => Promise<EgressProbeResult>;
-  /** Optional allowlisted URL that should succeed, verifying the backend is live rather than totally disconnected. */
+  /** Optional allowlisted URL that should succeed, verifying the backend is live rather than disconnected. */
   readonly allowedUrl?: string;
   /** Optional cleanup run after each case. */
   readonly dispose?: () => Promise<void> | void;

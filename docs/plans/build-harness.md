@@ -879,13 +879,13 @@ The built-in `bash`, `write` and `edit` tools touch a host only through a `Sandb
 
 ### 5.2 Conformance suites pin each interface that has more than one implementation
 
-Five suites run in `pnpm test`; each takes a factory, so a new implementation passes the same tests:
+Six suites run in `pnpm test`; each takes a factory, so a new implementation passes the same tests:
 - **`SessionStore`:** idempotent append by id, the expected-last-id compare-and-swap, ordered `load` from a sequence, a torn last line skipped, the 64 KiB bound as a typed error, `list` and `delete`. Memory and JSONL run it in N3.
 - **`SessionLock`:** a second acquire returns `"would_block"`, release frees it, a lapsed lease with a dead pid is reclaimed, and a live one is not. N4 adds the crash test, which spawns a child writer, kills it with `SIGKILL` mid-append and checks recovery.
 - **`SandboxClient`:** writes outside `writeRoots` are denied, network is denied unless allowlisted, the environment holds only `spawnEnv` names, and an unavailable backend throws `SandboxUnavailableError` rather than running unsandboxed. The fake runs it always; `srt` and Docker run it in `test:sandbox`.
 - **Protocol:** every fixture message validates against the generated schema and type-checks with `satisfies`, in both directions, and the framer round-trips U+2028 and U+2029 inside strings.
 - **MCP:** the client lists and calls tools on an in-process `@modelcontextprotocol/server` 2.4.0, on both protocol eras.
-- **Portability (all eight seams):** `@buildanagent/harness/testing` exports `runPortabilityConformance()` and `portabilityConformanceCases()` over `SessionStore`, `SessionLock` (including lease-only expiry for off-host locks), `Scheduler` (at-least-once wake), `KeyStore`, `SandboxClient`, `EgressPolicy` (denying non-allowlisted hosts, loopback and cloud metadata endpoints), protocol transports (`webSocketTransport`, `stdioTransport`) and `EffectStore` (imported from `@buildanagent/agent-safety/testing`). Local implementations pass all eight seams in `pnpm test` (`packages/harness/test/portability-conformance.test.ts`), and each cloud target runs the same suite in N46–N48.
+- **Portability (all eight seams):** `@buildanagent/harness/testing` exports `runPortabilityConformance()` and `portabilityConformanceCases()` covering `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the protocol transport, and `EffectStore` (imported from `@buildanagent/agent-safety/testing`). The suite adds lease-only expiry for off-host locks, at-least-once wake checks, and egress denial for non-allowlisted hosts, loopback addresses, and cloud metadata endpoints. Local implementations pass all eight seams in `pnpm test` (`packages/harness/test/portability-conformance.test.ts`), and each cloud target runs the same suite in N46–N48.
 
 ### 5.3 Playback and resume tests prove the log is the only source of truth
 

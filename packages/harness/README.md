@@ -1077,6 +1077,17 @@ The owner rotates such a ring with the platform's own tooling: add a new key and
 
 ## One portability suite tests all eight target seams
 
-`@buildanagent/harness/testing` exports `portabilityConformanceCases()` and `runPortabilityConformance()` to verify every portable seam of a deployment target: `store` (`SessionStore`), `lock` (`SessionLock`), `scheduler` (`Scheduler`), `keyStore` (`KeyStore`), `sandbox` (`SandboxClient`), `egress` (`EgressPolicy`), `transport` (JSON-RPC 2.0 transport) and `effectStore` (`EffectStore`, imported directly from `@buildanagent/agent-safety/testing`).
+`@buildanagent/harness/testing` exports `portabilityConformanceCases()` and `runPortabilityConformance()` to verify all eight portable seams of a deployment target. The module also exports standalone runners for the seven harness seams, while `effectStore` reuses `effectStoreConformance()` from `@buildanagent/agent-safety/testing`:
 
-Each seam also exports its own standalone runner (`runStoreConformance()`, `runLockConformance()`, `runSchedulerConformance()`, `runKeyStoreConformance()`, `runSandboxConformance()`, `runEgressConformance()`, `runTransportConformance()`). `runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend proves that non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`) fail closed. Every suite imports no Node module, so local Node, Cloudflare, AWS and Vercel targets run the same cases.
+| Target field | Seam | Standalone runner |
+| --- | --- | --- |
+| `store` | `SessionStore` | `runStoreConformance()` |
+| `lock` | `SessionLock` | `runLockConformance()` |
+| `scheduler` | `Scheduler` | `runSchedulerConformance()` |
+| `keyStore` | `KeyStore` | `runKeyStoreConformance()` |
+| `sandbox` | `SandboxClient` | `runSandboxConformance()` |
+| `egress` | `EgressPolicy` | `runEgressConformance()` |
+| `transport` | Protocol transport | `runTransportConformance()` |
+| `effectStore` | `EffectStore` | `effectStoreConformance()` (`@buildanagent/agent-safety/testing`) |
+
+`runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend refuses non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`). None of the suites import Node modules, so local Node, Cloudflare, AWS and Vercel targets run the same cases. Pass your target's seam factories to `runPortabilityConformance(target)` to verify a new backend.
