@@ -53,8 +53,8 @@
 
   --sl-font: var(--font-body);
   --sl-font-mono: var(--font-code);
-  /* The owner's mock sets body text at 1.65, so the docs do not use the book's --line-height-body (1.7). This and the
-     heading sizes below are plain numbers, the only non-token values the mapping holds; no colour is one. */
+  /* The owner's mock sets body text at 1.65, so the docs do not use the book's --line-height-body (1.7). This line
+     height and the heading sizes below are plain numbers; every colour is a token. */
   --sl-line-height: 1.65;
   --sl-content-width: var(--measure);
 }
@@ -69,8 +69,7 @@ h2,
   text-wrap: balance;
 }
 
-/* Third-level headings and smaller take the body face, Inter, at weight 600: the display face is condensed and has no
-   bold, so at small sizes it reads thin beside body text. */
+/* Third-level headings and smaller take the body face, Inter, at weight 600, a weight Instrument Serif lacks. */
 h3,
 h4,
 h5,
@@ -82,8 +81,8 @@ h6 {
 
 /* Inter at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings of a page's content
    sit well below the second-level heading: Starlight's 1.8rem third-level heading matched it by weight. The sizes are
-   set here, not on Starlight's --sl-text-h3 to -h5 variables, because the variables also size the "On this page"
-   heading and the aside titles. The rule is unlayered, so it beats Starlight's wider-viewport steps. */
+   set here, not on Starlight's --sl-text-h3 to -h5 variables, because --sl-text-h4 and -h5 also size card titles, the
+   "On this page" heading and the aside titles. The rule is unlayered, so it beats Starlight's wider-viewport steps. */
 .sl-markdown-content h3 {
   font-size: 1.375rem;
 }

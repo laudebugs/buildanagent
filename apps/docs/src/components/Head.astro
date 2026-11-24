@@ -1,8 +1,8 @@
 ---
 // Starlight's head, plus a preload for the two faces nearly every line of a page uses, the body (Inter) and display
 // (Instrument Serif) romans, so the first paint does not wait for them. A test checks that these are the roman faces of
-// the docs' tokens and that public/fonts/ serves them. A page with a Markdown twin also links it, so an agent that fetches the
-// page can find the plain-text version (`hasTwin()` in src/twins/rule.ts decides which pages have one).
+// the docs' tokens and that public/fonts/ serves them. A page with a Markdown twin also links it, so an agent that
+// fetches the page can find the plain-text version (`hasTwin()` in src/twins/rule.ts decides which pages have one).
 import Default from "@astrojs/starlight/components/Head.astro";
 import { twinHref } from "../twins/rule.js";
 
