@@ -142,6 +142,18 @@ export function lockConformanceCases(factory: LockFactory): readonly LockCase[] 
       return undefined;
     }),
 
+    named("of many concurrent acquires on one session, exactly one wins", async ({ lock }) => {
+      const results = await Promise.all(Array.from({ length: 8 }, () => lock.acquire(KEY_A)));
+      const winners = results.filter((result): result is LockHandle => result !== "would_block");
+      try {
+        check(winners.length === 1, `expected exactly 1 winner, got ${winners.length}`);
+        check(results.length - winners.length === 7, "all losing writers must receive would_block");
+      } finally {
+        await Promise.all(winners.map((handle) => handle.release()));
+      }
+      return undefined;
+    }),
+
     named("stale lock stays held until its lease expires and allows takeover afterwards", checkLeaseTakeover),
   ];
 }

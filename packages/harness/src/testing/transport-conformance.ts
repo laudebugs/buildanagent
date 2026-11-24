@@ -104,7 +104,18 @@ async function checkSessionLifecycle(under: TransportUnderTest): Promise<void> {
       input: [{ type: "text", text: "hello" }],
     });
     check(started.accepted === true, `expected accepted: true, got ${JSON.stringify(started)}`);
-    await collector.waitFor((msg) => "method" in msg && msg.method === "turn/settled", "turn/settled notification");
+    check(typeof started.turn === "string" && started.turn.length > 0, "accepted disposition must name a turn");
+    const settled = await collector.waitFor(
+      (msg) => "method" in msg && msg.method === "turn/settled",
+      "turn/settled notification",
+    );
+    check(
+      "params" in settled && typeof settled.params === "object" && settled.params !== null,
+      "turn/settled must carry params",
+    );
+    const params = settled.params as { readonly session?: unknown; readonly turn?: unknown };
+    check(params.session === created.session, "turn/settled must name the created session");
+    check(params.turn === started.turn, "turn/settled must name the started turn");
 
     const listed = await rpcCall(under, collector, 4, "session/list", {});
     check(Array.isArray(listed.sessions), "session/list must return a sessions array");
@@ -117,22 +128,21 @@ async function checkSessionLifecycle(under: TransportUnderTest): Promise<void> {
   }
 }
 
-async function checkTurnSettled(under: TransportUnderTest): Promise<void> {
+async function checkUnknownMethodError(under: TransportUnderTest): Promise<void> {
   const collector = createCollector(under);
   try {
-    await rpcCall(under, collector, 1, "initialize", INIT_PARAMS);
-    const created = await rpcCall(under, collector, 2, "session/create", { cwd: "/workspace" });
-    const started = await rpcCall(under, collector, 3, "turn/start", {
-      session: created.session,
-      input: [{ type: "text", text: "hello" }],
-    });
-    check(started.accepted === true, `expected accepted: true, got ${JSON.stringify(started)}`);
-    check(typeof started.turn === "string" && started.turn.length > 0, "accepted disposition must name a turn");
-    const settled = await collector.waitFor(
-      (msg) => "method" in msg && msg.method === "turn/settled",
-      "turn/settled notification",
+    await under.send({ jsonrpc: "2.0", id: 1, method: "conformance/unknown", params: {} } as unknown as ClientMessage);
+    const reply = await collector.waitFor(
+      (msg) => "id" in msg && msg.id === 1 && ("result" in msg || "error" in msg),
+      "error response to unknown method",
     );
-    check("params" in settled, "turn/settled must carry params");
+    check(
+      "error" in reply && typeof reply.error.code === "number",
+      `expected JSON-RPC error, got ${JSON.stringify(reply)}`,
+    );
+    // The transport must stay usable after returning a JSON-RPC error.
+    const init = await rpcCall(under, collector, 2, "initialize", INIT_PARAMS);
+    check(Array.isArray(init.capabilities), "transport must answer initialize after an error response");
   } finally {
     collector.dispose();
   }
@@ -164,8 +174,11 @@ export function transportConformanceCases(factory: TransportFactory): readonly T
         collector.dispose();
       }
     }),
-    named("session/create, turn/start and session/list round-trip over the transport", checkSessionLifecycle),
-    named("turn/start returns accepted disposition and delivers turn/settled notification", checkTurnSettled),
+    named(
+      "session/create, turn/start to turn/settled and session/list round-trip over the transport",
+      checkSessionLifecycle,
+    ),
+    named("unknown method returns a JSON-RPC error without closing the transport", checkUnknownMethodError),
   ];
 }
 

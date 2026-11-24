@@ -1,8 +1,8 @@
 /**
- * The unified portability conformance suite over all eight portable seams (ADR 0033 + ADR 0043):
- * `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the protocol transport, and
- * `EffectStore` (imported directly from `@buildanagent/agent-safety/testing`). Any deployment target (local Node,
- * Cloudflare, AWS or Vercel) supplies factories for the seams it implements and runs one suite.
+ * Portability conformance suite over all eight portable seams: `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`,
+ * `SandboxClient`, `EgressPolicy`, the protocol transport and `EffectStore` (imported from
+ * `@buildanagent/agent-safety/testing`). Any deployment target (local Node, Cloudflare, AWS or Vercel) supplies
+ * factories for the seams it implements and runs one suite.
  */
 import type { EffectStore } from "@buildanagent/agent-safety";
 import { effectStoreConformance } from "@buildanagent/agent-safety/testing";

@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
 import { request as httpRequest } from "node:http";
+import { type AddressInfo, createServer as createTcpServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { memoryEffectStore } from "@buildanagent/agent-safety";
@@ -21,6 +22,7 @@ import {
   PORTABILITY_SEAMS,
   type PortabilityTarget,
   portabilityConformanceCases,
+  runEgressConformance,
   runPortabilityConformance,
   runTransportConformance,
   type SchedulerFactory,
@@ -325,7 +327,51 @@ describe("unified eight-seam portability conformance suite (local target)", () =
   test("passes every local implementation across all eight seams with zero failures", async () => {
     const report = await runPortabilityConformance(LOCAL_TARGET);
     assert.deepEqual(report.failed, []);
+    // Only the three OS-level fakeSandbox cases and offline allowlisted-host egress probe skip on LOCAL_TARGET.
+    assert.deepEqual(
+      report.skipped.map((entry) => entry.name),
+      [
+        "sandbox: an abort and a timeout end the command's whole process tree, and exec settles",
+        "sandbox: a symlink in the workspace that points outside it is denied for reads and writes",
+        "sandbox: the network is denied unless the host is on the allowlist",
+        "egress: allows a host explicitly listed on EgressPolicy.allow",
+      ],
+    );
     assert.ok(report.passed.length >= 40, `expected >= 40 passing cases, got ${report.passed.length}`);
+  });
+
+  test("egress conformance also passes its allowlisted-host case with zero skips", async () => {
+    const server = createTcpServer((socket) => socket.end());
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const report = await runEgressConformance(async () => {
+        const proxy = await startEgressProxy({
+          allow: [`allowed.test:${port}`],
+          log: () => undefined,
+          resolve: async (host) => {
+            if (host === "allowed.test" || host === "localhost") return ["127.0.0.1"];
+            if (host === "metadata.google.internal") return ["169.254.169.254"];
+            return ["93.184.216.34"];
+          },
+          unsafeAllowAddresses: ["127.0.0.1"],
+        });
+        return {
+          allowedUrl: `https://allowed.test:${port}/`,
+          probe: async (targetUrl) => {
+            const parsed = new URL(targetUrl);
+            const targetPort = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
+            return probeConnect(proxy.url, `${parsed.hostname}:${targetPort}`);
+          },
+          dispose: () => proxy.close(),
+        };
+      });
+      assert.deepEqual(report.failed, []);
+      assert.deepEqual(report.skipped, []);
+      assert.equal(report.passed.length, 11);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 
   test("stdioTransport over Web streams also passes transport conformance", async () => {
@@ -379,6 +425,6 @@ describe("unified eight-seam portability conformance suite (local target)", () =
     });
     assert.deepEqual(report.failed, []);
     assert.equal(report.skipped.length, 0);
-    assert.equal(report.passed.length, 4);
+    assert.equal(report.passed.length, 5);
   });
 });
