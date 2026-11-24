@@ -135,6 +135,18 @@ test("third-level headings and smaller use the body face at weight 600", () => {
   assert.match(css, /--sl-font: var\(--font-body\);/);
 });
 
+test("heading sizes are set on the page content, not on Starlight's shared variables", () => {
+  const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
+  assert.doesNotMatch(
+    css,
+    /--sl-text-h[1-6]\s*:/,
+    "a --sl-text-h* override also resizes the TOC heading and aside titles",
+  );
+  for (const level of ["h3", "h4", "h5", "h6"]) {
+    assert.match(css, new RegExp(`\\.sl-markdown-content ${level} \\{\\s*font-size: [\\d.]+rem;`), level);
+  }
+});
+
 test("inline code inside a link keeps the link's colour", () => {
   const css = files.find(({ path }) => path === "styles/starlight.css")?.text ?? "";
   assert.match(css, /\.sl-markdown-content a code:not\(:where\(\.not-content \*\)\) \{\s*color: inherit;/);

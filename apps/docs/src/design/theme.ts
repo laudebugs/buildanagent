@@ -6,7 +6,6 @@ import {
   type BookTokens,
   type ColorSet,
   colorProperty,
-  pairingFace,
   readTokens,
   tokensCss,
 } from "@buildanagent/manual/design/tokens";
@@ -64,7 +63,13 @@ export const DOCS_BODY_FACE = "inter";
  * the sizes stay the book's, so the docs differ from the book in one font only (the owner's choice, 2026-11-24).
  */
 export function docsTokens(tokens: BookTokens = readTokens()): BookTokens {
-  return { ...tokens, font: { ...tokens.font, body: pairingFace(tokens, DOCS_BODY_FACE) } };
+  const body = Object.hasOwn(tokens.font.reading.faces, DOCS_BODY_FACE)
+    ? tokens.font.reading.faces[DOCS_BODY_FACE]
+    : undefined;
+  if (body === undefined) {
+    throw new Error(`the docs' body face "${DOCS_BODY_FACE}" is not in font.reading.faces of book-tokens.json`);
+  }
+  return { ...tokens, font: { ...tokens.font, body } };
 }
 
 /**

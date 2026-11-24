@@ -53,16 +53,10 @@
 
   --sl-font: var(--font-body);
   --sl-font-mono: var(--font-code);
-  /* The owner's mock sets body text at 1.65, not the book's 1.7. */
+  /* The owner's mock sets body text at 1.65, so the docs do not use the book's --line-height-body (1.7). This and the
+     heading sizes below are plain numbers, the only non-token values the mapping holds; no colour is one. */
   --sl-line-height: 1.65;
   --sl-content-width: var(--measure);
-
-  /* Inter at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings sit well below the
-     second-level heading's size: Starlight's 1.8rem third-level heading would match it by weight. These rules are not
-     in a layer, so they also win over Starlight's wider-viewport steps. */
-  --sl-text-h3: 1.375rem;
-  --sl-text-h4: 1.125rem;
-  --sl-text-h5: 1rem;
 }
 
 /* Instrument Serif has one weight, so the page title and the second-level headings stay at 400: a heavier weight
@@ -84,6 +78,26 @@ h6 {
   font-family: var(--font-body);
   font-weight: 600;
   text-wrap: balance;
+}
+
+/* Inter at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings of a page's content
+   sit well below the second-level heading: Starlight's 1.8rem third-level heading matched it by weight. The sizes are
+   set here, not on Starlight's --sl-text-h3 to -h5 variables, because the variables also size the "On this page"
+   heading and the aside titles. The rule is unlayered, so it beats Starlight's wider-viewport steps. */
+.sl-markdown-content h3 {
+  font-size: 1.375rem;
+}
+
+.sl-markdown-content h4 {
+  font-size: 1.125rem;
+}
+
+.sl-markdown-content h5 {
+  font-size: 1.0625rem;
+}
+
+.sl-markdown-content h6 {
+  font-size: 1rem;
 }
 
 /* A Starlight button (LinkButton) is itself a `.not-content` anchor, so the rules below skip it as well as anything inside
