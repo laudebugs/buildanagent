@@ -13,11 +13,13 @@ test("the committed tokens.css is what the generator writes from book-tokens.jso
 });
 
 // What the docs change in the book's output: the body font's @font-face rules and its --font-body line. The strip
-// takes only the rules for the family `family`, so a change to any other face's rules still shows.
-function withoutFace(css: string, family: string): string {
-  return css
-    .replace(new RegExp(`@font-face \\{\\n {2}font-family: "${family}";[^}]*\\}\\n\\n`, "g"), "")
-    .replace(/ {2}--font-body: [^\n]*\n/, "");
+// takes only the rules for the families in `families`, so a change to any other face's rules still shows.
+function withoutFaces(css: string, families: readonly string[]): string {
+  let stripped = css.replace(/ {2}--font-body: [^\n]*\n/, "");
+  for (const family of families) {
+    stripped = stripped.replace(new RegExp(`@font-face \\{\\n {2}font-family: "${family}";[^}]*\\}\\n\\n`, "g"), "");
+  }
+  return stripped;
 }
 
 test("the docs tokens are the book's but for the body font, under the docs site's own header, then the print block", () => {
@@ -33,12 +35,15 @@ test("the docs tokens are the book's but for the body font, under the docs site'
   assert.ok(printAt > 0, "the docs file ends with the print block");
   const docsOwn = afterComment(docs.slice(0, printAt));
   assert.equal(
-    withoutFace(docsOwn, "Inter"),
-    withoutFace(afterComment(book), "Literata"),
+    withoutFaces(docsOwn, ["IBM Plex Sans", "IBM Plex Sans Fallback"]),
+    withoutFaces(afterComment(book), ["Literata"]),
     "the docs tokens differ from the book's in the body font's rules and --font-body only",
   );
-  assert.match(docsOwn, /@font-face \{\n {2}font-family: "Inter";[^}]*\/fonts\/inter\/inter-roman\.woff2/);
-  assert.match(docsOwn, /--font-body: "Inter", /);
+  assert.match(
+    docsOwn,
+    /@font-face \{\n {2}font-family: "IBM Plex Sans";[^}]*\/fonts\/ibm-plex-sans\/IBMPlexSans-Regular-Latin1\.woff2/,
+  );
+  assert.match(docsOwn, /--font-body: "IBM Plex Sans", "IBM Plex Sans Fallback", /);
 });
 
 test("Starlight loads the tokens before the stylesheet that maps them", () => {

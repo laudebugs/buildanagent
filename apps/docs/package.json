@@ -15,6 +15,7 @@
     "test": "vitest run",
     "check:api-docs": "tsx scripts/check-api-docs.ts",
     "tokens": "tsx scripts/generate-tokens.ts",
+    "fonts:plex": "node scripts/fetch-plex.mjs",
     "figures:build": "tsx figures/build.ts"
   },
   "dependencies": {
