@@ -653,6 +653,12 @@ function turnPlumbing(session: Session, options: { signal?: AbortSignal; clock?:
   return { signal, newId, writer };
 }
 
+function stripDisabledObservers<H>(harness: Harness<H>, options: TurnOptions<H>): TurnOptions<H> {
+  if (harness.ablation?.telemetry !== false || options.observers === undefined) return options;
+  const { observers: _dropped, ...rest } = options;
+  return rest;
+}
+
 /**
  * Runs one turn on a session and writes it to the log. The session must be open with a lock. The first turn of a new
  * session writes its header and `env_stamp`; a turn whose model or tools differ from the last recorded ones writes a
@@ -666,14 +672,22 @@ export async function runTurn<H = unknown>(
   harness: Harness<H>,
   options: TurnOptions<H>,
 ): Promise<TurnResult> {
-  const settings = options.completion;
+  const effectiveOptions = stripDisabledObservers(harness, options);
+  const settings = harness.ablation?.completionCheck === false ? undefined : effectiveOptions.completion;
   // The start state is taken before the turn writes anything, and with the turn's own signal, so an abort stops it.
   // It is taken for every turn, because whether the turn ends `done` is known only after the model has run.
   const start =
-    settings === undefined ? undefined : await snapshotStart(settings, options.signal ?? new AbortController().signal);
-  const result = await retryAfterOverflow(session, harness, options, await runTurnOnce(session, harness, options));
+    settings === undefined
+      ? undefined
+      : await snapshotStart(settings, effectiveOptions.signal ?? new AbortController().signal);
+  const result = await retryAfterOverflow(
+    session,
+    harness,
+    effectiveOptions,
+    await runTurnOnce(session, harness, effectiveOptions),
+  );
   if (settings === undefined || result.stopReason !== "done") return result;
-  return recordCompletion(session, settings, start, options, result);
+  return recordCompletion(session, settings, start, effectiveOptions, result);
 }
 
 /**

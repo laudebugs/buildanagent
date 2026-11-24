@@ -9,6 +9,7 @@ import type { Model } from "@buildanagent/gateway";
 import type { ApprovalPolicy, PermissionMode, SandboxTier } from "@buildanagent/protocol";
 import type { ApprovalSigner, Interceptors, Observer, SignedPendingRequest, ToolResult } from "@buildanagent/sdk";
 import type { Clock } from "@buildanagent/sdk/testing";
+import type { AblationConfig } from "./ablation.js";
 import type { ContextPolicy } from "./context/types.js";
 import type { Skill } from "./extensions/skills.js";
 import type { ExtensionLoadedRecord } from "./extensions/types.js";
@@ -40,8 +41,14 @@ export interface HarnessOptions<H = unknown> {
   readonly tenant?: string;
   /** The harness's version, stamped into each session header. */
   readonly harnessVersion?: string;
-  /** A hash of the ablation switches, stamped into each session header. Default `none`. */
+  /** A hash of the ablation switches, stamped into each session header. Default `none`, or `ablationHash(ablation)`. */
   readonly ablationHash?: string;
+  /**
+   * Switches for every removable component of this harness. When set, `createHarness()` validates the configuration,
+   * stamps `ablationHash` and `env.sandbox` from it, and switches off disabled skills, extension records, telemetry
+   * observers and completion checks.
+   */
+  readonly ablation?: AblationConfig;
   /** When set, its gate decides every tool call, and each decision is written to the log. */
   readonly pipeline?: PermissionPipeline;
   /**

@@ -1073,3 +1073,27 @@ On a serverless host the harness can read its key but not write it, so `secretKe
 The owner rotates such a ring with the platform's own tooling: add a new key and make it current, then remove an old key once no waiting request names it. `rotateKeys(store)` and `pruneKeys(store, inUse)` call a store's `rotate()` and `prune()` when it has them. On a store without them they reject with `key_store_read_only`, whose message names the platform's secret tooling (by default "such as wrangler secret put, aws secretsmanager put-secret-value or vercel env"; pass `platformHint` for your own text). 
 `keyStoreConformanceCases(factory)` and `runKeyStoreConformance(factory)` in `@buildanagent/harness/testing` check a store with five cases. `load()` returns a usable ring, returns the same ring twice, and gives a ring that signs and verifies through `hmacSigner()`. `rotate()` keeps the old key loadable, and `prune()` keeps the current and in-use keys and returns the ids it removed. The rotate and prune cases skip with a reason when a store leaves the methods out. Run `runKeyStoreConformance(factory)` against any store you write.
 
+
+
+## Every removable component has one ablation switch and one header hash
+
+`@buildanagent/harness/ablation` exposes one switch for every removable component in `AblationConfig`, plus `DEFAULT_ABLATION`, `defaultAblation()`, `validateAblation()`, `ablationHash()` and `credentialEnvOf()`. The session log, the permission pipeline and the protocol are absent from `AblationConfig` on purpose: they form the harness's non-removable spine.
+
+Pass `ablation` to `createHarness()` to stamp `ablationHash(ablation)` into `session_header.ablationHash` and `ablation.sandbox` into `env_stamp.sandbox`. Switching off a safety component fails safe: `credentialProxy: false` makes `credentialEnvOf()` return an empty object so tools receive no credentials, and `sandbox: "none"` throws `unsafe_sandbox_not_acknowledged` unless `unsafe: true` is set explicitly.
+
+| Flag | Default | When switched off |
+| --- | --- | --- |
+| `context.write_cap` | `true` | Tool results are stored uncapped without spilling. |
+| `context.mask` | `true` | Older tool results stay unmasked in the request view. |
+| `context.summarize` | `true` | Between-turn summarization does not run. |
+| `context.mid_turn` | `true` | Mid-turn compaction does not run. |
+| `context.overflow_retry` | `true` | Overflow recovery does not retry the turn. |
+| `mcp` | `true` | MCP servers and MCP extension records are omitted. |
+| `extensions.inProcess` | `true` | In-process extension records are omitted. |
+| `extensions.mcp` | `true` | MCP-tier extension records are omitted. |
+| `extensions.skills` | `true` | Skills are omitted from the harness and system prompt. |
+| `toolSearch` | `true` | Deferred tool search (`tool_search`) is disabled. |
+| `credentialProxy` | `true` | Fails safe: `credentialEnvOf()` returns `{}` so tools get no credentials. |
+| `telemetry` | `true` | Harness and turn observers receive no events. |
+| `completionCheck` | `true` | Post-turn `completion_check` entries are skipped. |
+| `sandbox` | `"os"` | Stamps the chosen tier; `"none"` requires `unsafe: true`. |
