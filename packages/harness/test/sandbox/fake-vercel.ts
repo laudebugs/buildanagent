@@ -68,7 +68,6 @@ export interface FakeVercel {
   live(): FakeVm[];
 }
 
-const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
 
 function normalize(path: string): string {
@@ -487,5 +486,3 @@ export function sentIntoVms(calls: readonly FakeCall[]): string[] {
     return [];
   });
 }
-
-export { ENCODER };
