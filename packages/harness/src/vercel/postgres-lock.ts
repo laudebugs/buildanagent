@@ -4,9 +4,10 @@
  * because no host can check whether another host's process still runs. This file imports no Node module.
  */
 import { HarnessError } from "../errors.js";
+import { LeaseRenewals, leaseId } from "../session/lease-renewals.js";
 import type { LockHandle, SessionLock } from "../session/lock.js";
 import { type ProcessScheduler, processScheduler } from "../session/scheduler.js";
-import { checkKey, encodeName, type SessionKey } from "../session/store.js";
+import { checkKey, type SessionKey } from "../session/store.js";
 import { type PgClientLike, toNumber } from "./postgres-schema.js";
 
 const DEFAULT_LEASE_MS = 30_000;
@@ -84,23 +85,15 @@ function monotonic(): number {
   return globalThis.performance.now();
 }
 
-/** The scheduler id of a session's lease renewals, prefixed so it never meets a wake the host asks for the session. */
-function leaseId(key: SessionKey): string {
-  return `lease:${encodeName(key.userId)}/${encodeName(key.sessionId)}`;
-}
-
 class Hold implements PostgresLockHandle {
   readonly token: string;
   readonly fence: number;
   #held = true;
-  #renewing: Promise<void> | undefined;
   // The local time by which this hold counts its lease as gone, measured from before the statement that set it was sent.
   #deadline: number;
-  #armedAt = 0;
   readonly #key: SessionKey;
   readonly #settings: Settings;
-  readonly #wakeId: string;
-  readonly #stopListening: () => void;
+  readonly #renewals: LeaseRenewals;
 
   constructor(key: SessionKey, token: string, fence: number, sentAt: number, settings: Settings) {
     this.token = token;
@@ -108,20 +101,14 @@ class Hold implements PostgresLockHandle {
     this.#key = key;
     this.#settings = settings;
     this.#deadline = sentAt + settings.leaseMs;
-    this.#wakeId = `${leaseId(key)}/${token}`;
-    this.#stopListening = settings.scheduler.onWake((id, at) => {
-      if (id !== this.#wakeId || at.getTime() !== this.#armedAt || !this.#held) return;
-      this.#arm();
-      void this.#tick();
+    this.#renewals = new LeaseRenewals({
+      scheduler: settings.scheduler,
+      renewMs: settings.renewMs,
+      wakeId: `${leaseId(key)}/${token}`,
+      held: () => this.#held,
+      renew: () => this.#renew(),
+      lose: () => this.#lose(),
     });
-    this.#arm();
-  }
-
-  #arm(): void {
-    const { scheduler, renewMs } = this.#settings;
-    const at = new Date(Math.max(scheduler.now() + renewMs, this.#armedAt + 1));
-    this.#armedAt = at.getTime();
-    scheduler.wake(at, this.#wakeId).catch(() => this.#lose());
   }
 
   held(): boolean {
@@ -129,15 +116,6 @@ class Hold implements PostgresLockHandle {
     // database's queue only ever shorten it here, and no clock difference between hosts can make a holder outlive it.
     if (this.#held && this.#settings.localNow() >= this.#deadline) this.#lose();
     return this.#held;
-  }
-
-  #tick(): Promise<void> {
-    if (!this.#held || this.#renewing !== undefined) return Promise.resolve();
-    const renewal = this.#renew().finally(() => {
-      this.#renewing = undefined;
-    });
-    this.#renewing = renewal;
-    return renewal;
   }
 
   async #renew(): Promise<void> {
@@ -161,14 +139,13 @@ class Hold implements PostgresLockHandle {
   #lose(): void {
     if (!this.#held) return;
     this.#held = false;
-    this.#stopListening();
-    this.#settings.scheduler.cancel(this.#wakeId).catch(() => undefined);
+    this.#renewals.stop();
   }
 
   async release(): Promise<void> {
     this.#lose();
     // A renewal in progress finishes first, so it can't extend the lease after the release.
-    await this.#renewing;
+    await this.#renewals.idle();
     await this.#settings.client.query(RELEASE, [this.#key.userId, this.#key.sessionId, this.token]);
   }
 }
