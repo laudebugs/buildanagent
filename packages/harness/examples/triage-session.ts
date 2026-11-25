@@ -1,6 +1,7 @@
 // A support-triage agent on the harness. It looks the signed-in customer up, pauses before it pages an engineer and
 // ends with a typed record. The session's log holds every step, so any process that can open the session and load the
-// key ring answers the pause, and the permission pipeline decides the call again then, so a deny added since wins.
+// key ring can answer the pause. The permission pipeline decides the call again at that point, so a deny added since the
+// pause wins.
 import type { Model } from "@buildanagent/gateway";
 import type { ContextPolicy } from "@buildanagent/harness/context";
 import { createPermissionPipeline, type Rule } from "@buildanagent/harness/permissions";
@@ -15,7 +16,7 @@ export const BUDGET_USD = 0.25;
 export const SYSTEM_PROMPT =
   "You triage support tickets. Look the customer up first. Escalate only a ticket an on-call engineer must see. Submit the triage last.";
 
-/** What the harness is built from. `policy.version` rides on every pause, and `policy.deny` wins over an approval. */
+/** What the harness is built from. Every pause records `policy.version`, and a rule in `policy.deny` overrides an approval. */
 export interface TriageParts {
   readonly model: Model;
   readonly signer: ApprovalSigner;

@@ -709,7 +709,7 @@ Checked on 2026-11-25 against the branch's own test run (`npx vitest run test/ca
 
 | # | Claim | Where | Verdict | Source and reason |
 | --- | --- | --- | --- | --- |
-| N35-1 | The per-delta file of each case is 3.5 to 3.6 times its per-block file | HD1 result | ✏️ | `granularity.json`: 6,810 / 1,889 = 3.61, 6,831 / 1,910 = 3.58, 6,898 / 1,977 = 3.49. Corrects the draft's "3.6 times in each case". |
+| N35-1 | The per-delta file of each case is 3.5 to 3.6 times its per-block file | HD1 result | ✏️ | `granularity.json`: 6,810 / 1,889 = 3.61, 6,831 / 1,910 = 3.58, 6,898 / 1,977 = 3.49. Corrects the first draft of the HD1 result, which said 3.6 times in each case. |
 | N35-2 | In the approved case the per-delta file has 6,810 bytes and 69 lines, the per-block file 1,889 bytes and 10 lines, and the per-message file 1,589 bytes and 6 lines | HD1 result, ADR 0013 | ✅ | `granularity.json`, `approved.bytes` and `approved.lines`. |
 | N35-3 | All three files play back to the same transcript as the package's rebuilt context, block for block | HD1 result, ADR 0013 | ✅ | The HD1 test in `test/capstone.test.ts` asserts `deepEqual` between each decoder's output and `session.toContext()`'s assistant and tool messages, for all three cases. |
 | N35-4 | Per-delta keeps 56 delta boundaries beyond per-block in each case, and no playback reads them | HD1 result, ADR 0013 | ✅ | `granularity.json`, `deltas`: 56 in each case. `contextOf()` in `src/session/rebuild.ts` and `#replay()` in `src/server/dispatcher.ts` read entries only; the log holds no delta. |

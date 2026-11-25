@@ -1,6 +1,6 @@
 # 0013. Write one session-log entry per content block, from the SDK's end events, and never persist deltas
 
-- **Status:** Proposed, no longer provisional: todo N35's granularity test kept the choice (2026-11-25)
+- **Status:** Proposed; confirmed by todo N35's granularity test on 2026-11-25
 - **Date:** 2026-11-18
 - **Plan:** [build-harness.md, HD1](../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-decided-by-n35)
 
@@ -20,4 +20,4 @@ On `model_call_end` the session runner writes one `message_block` entry per bloc
 
 ## Result of the granularity test (N35, 2026-11-25)
 
-Todo N35 recorded the harness capstone's three cases per delta, per block and per message, and kept this decision. In the approved case, the per-delta file took 6,810 bytes against 1,889 per block and 1,589 per message. All three played back to the same transcript as the rebuilt context, for text and tool-call blocks; the capstone has no reasoning block, so a reasoning block's signature is not covered. Per delta kept only the stream's 56 chunk boundaries beyond per block, and no playback reads them. Its decoder also needed the most code, 29 lines against 18 per block. Per message was smaller still, but one line per message cannot give each block its own provenance label. The numbers are in [`granularity.json`](../../packages/harness/test/fixtures/capstone/granularity.json), and the plan's [HD1](../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-decided-by-n35) records the result.
+Todo N35 recorded the harness capstone's three cases per delta, per block and per message, and kept this decision. In the approved case, the per-delta file took 6,810 bytes against 1,889 per block and 1,589 per message. All three played back to the same transcript as the rebuilt context. The capstone has text and tool-call blocks only, so it does not cover a reasoning block's signature. Per delta kept only the stream's 56 delta boundaries beyond per block, and no playback reads them, and its decoder also needed the most code, 29 lines against 18 per block. A per-message file is smaller still, but one line per message cannot give each block its own provenance label. The numbers are in [`granularity.json`](../../packages/harness/test/fixtures/capstone/granularity.json), and the plan's [HD1](../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-decided-by-n35) records the result.
