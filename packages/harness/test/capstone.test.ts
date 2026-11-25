@@ -292,7 +292,8 @@ describe("Secrets: no provider key or injected credential appears in any entry o
     const page = resultOf(entries, "call-2");
     assert.match(JSON.stringify(page?.details), /"authorization":"Bearer \[REDACTED\]","x-api-key":"\[REDACTED\]"/);
     const all = await everything();
-    for (const secret of [PROVIDER_KEY, PAGER_TOKEN, btoa(PROVIDER_KEY), encodeURIComponent(PAGER_TOKEN)]) {
+    // The raw secrets, and each as the base64 an HTTP Basic header would carry.
+    for (const secret of [PROVIDER_KEY, PAGER_TOKEN, btoa(`${PROVIDER_KEY}:`), btoa(`:${PAGER_TOKEN}`)]) {
       assert.ok(!all.includes(secret), `${secret.slice(0, 8)}... is absent`);
     }
   });
@@ -385,7 +386,7 @@ describe("Crash: a process killed after the pager accepted a page resumes withou
     const key = (repeated?.details as { receipt: { outcome: { effectKey: string } } } | undefined)?.receipt.outcome
       .effectKey;
     assert.deepEqual(pagesIn(pager), [key], "the pager still holds one page, under the repeated call's key");
-  });
+  }, 60_000); // longer than openAfterLease's wait, so its message and the child's cleanup come first
 });
 
 /** The assistant messages and tool results of a context, in the shape the granularity decoders play back. */
@@ -433,7 +434,7 @@ describe("HD1: per-block playback keeps everything per-delta keeps that playback
           perDelta: bytes(recorders.perDelta.file()),
           perBlock: bytes(recorders.perBlock.file()),
           perMessage: bytes(recorders.perMessage.file()),
-          packageLog: bytes(fileOf(files)),
+          packageLog: bytes(normalized(fileOf(files))),
         },
         lines: Object.fromEntries(Object.entries(recorders).map(([key, r]) => [key, r.lines().length])),
         // What per-delta keeps that per-block drops: the stream's chunk boundaries, one per delta, and their times.

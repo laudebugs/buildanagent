@@ -155,4 +155,4 @@ test("a second buildanagent rpc process resolves the capstone's pause, and the a
   }
   assert.equal(await exited, 0, stderr);
   assert.deepEqual(readFileSync(pagesFile, "utf8").split("\n").filter(Boolean), [REASON], "paged once, by the child");
-});
+}, 60_000); // longer than the helper waits, so their messages and the child's cleanup run first
