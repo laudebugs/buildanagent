@@ -30,6 +30,8 @@ const PLANNED_ENTRIES = [
   "./aws/scheduler",
   "./aws/secrets-manager",
   "./ablation",
+  "./vercel",
+  "./vercel/workflow",
   "./testing",
 ];
 

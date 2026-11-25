@@ -132,6 +132,16 @@
       "types": "./dist/ablation.d.ts",
       "default": "./dist/ablation.js"
     },
+    "./vercel": {
+      "source": "./src/vercel/index.ts",
+      "types": "./dist/vercel/index.d.ts",
+      "default": "./dist/vercel/index.js"
+    },
+    "./vercel/workflow": {
+      "source": "./src/vercel/workflow.ts",
+      "types": "./dist/vercel/workflow.d.ts",
+      "default": "./dist/vercel/workflow.js"
+    },
     "./testing": {
       "source": "./src/testing/index.ts",
       "types": "./dist/testing/index.d.ts",
@@ -228,6 +238,14 @@
         "types": "./dist/ablation.d.ts",
         "default": "./dist/ablation.js"
       },
+      "./vercel": {
+        "types": "./dist/vercel/index.d.ts",
+        "default": "./dist/vercel/index.js"
+      },
+      "./vercel/workflow": {
+        "types": "./dist/vercel/workflow.d.ts",
+        "default": "./dist/vercel/workflow.js"
+      },
       "./testing": {
         "types": "./dist/testing/index.d.ts",
         "default": "./dist/testing/index.js"
@@ -240,7 +258,8 @@
     "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts"
+    "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts",
+    "live:vercel": "node scripts/live-vercel.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.83",
@@ -271,10 +290,13 @@
     "@aws-sdk/client-dynamodb": "3.1169.0",
     "@aws-sdk/client-scheduler": "3.1169.0",
     "@aws-sdk/client-secrets-manager": "3.1169.0",
+    "@electric-sql/pglite": "0.5.16",
     "@modelcontextprotocol/server": "2.4.0",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/sdk-trace": "2.12.1",
     "json-rpc-2.0": "1.8.1",
-    "miniflare": "5.20261103.0-beta"
+    "miniflare": "5.20261103.0-beta",
+    "pg": "8.23.1",
+    "workflow": "5.6.1"
   }
 }
