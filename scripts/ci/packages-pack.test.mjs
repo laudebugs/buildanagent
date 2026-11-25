@@ -356,10 +356,10 @@ const OPTIONAL_PEER_FAILURES = [
   "@buildanagent/agent-safety/byok",
   "@buildanagent/agent-safety/cost",
   "@buildanagent/agent-safety/stores/dynamodb",
+  "@buildanagent/harness/sandbox/vercel",
   "@buildanagent/harness/aws/dynamodb",
   "@buildanagent/harness/aws/scheduler",
   "@buildanagent/harness/aws/secrets-manager",
-  "@buildanagent/harness/sandbox/vercel",
 ];
 
 for (const conditions of [[], ["--conditions=source"]]) {
