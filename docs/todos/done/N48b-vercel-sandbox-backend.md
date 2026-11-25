@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N48b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
 | Depends on | [N45](N45-portability-conformance-suite.md) |
@@ -32,15 +32,15 @@ Implement the Vercel side of the portable seams and pass the N45 conformance sui
 
 ## Tasks
 
-- [ ] Implement each item behind the existing interfaces
-- [ ] Run N45 against an emulator or recorded HTTP exchanges offline
-- [ ] Add an opt-in live run that uses the owner's account and is never part of CI
-- [ ] Pin every new dependency exactly, at least a week old
+- [x] Implement each item behind the existing interfaces
+- [x] Run N45 against an emulator or recorded HTTP exchanges offline (an in-process fake of `@vercel/sandbox`, `test/sandbox/fake-vercel.ts`)
+- [x] Add an opt-in live run that uses the owner's account and is never part of CI (`scripts/vercel-live.ts`)
+- [x] Pin every new dependency exactly, at least a week old (`@vercel/sandbox` 3.9.1, 2026-10-28)
 
 ## Acceptance criteria
 
-- [ ] N45 passes offline for every new implementation
-- [ ] The opt-in live run is documented and passes once on the owner's account
+- [x] N45 passes offline for every new implementation (the sandbox and egress seams; only the process-tree case skips)
+- [ ] The opt-in live run is documented and passes once on the owner's account (documented in the harness README; not run, because the build session can't reach vercel.com and has no Vercel account: the owner runs it)
 
 ## Tests
 
@@ -56,7 +56,38 @@ The pin is a major version behind 4.0.0; the upgrade is a later todo.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
+
+## Outcome
+
+`vercelSandbox()` is in `packages/harness/src/sandbox/vercel/` and exported from the new subpath `@buildanagent/harness/sandbox/vercel`, with `@vercel/sandbox` 3.9.1 as an optional peer that only `sdk.ts` imports by value. The harness README's Vercel section describes it, the fact-check log is [fact-check-vercel-sandbox.md](../../plans/reviews/fact-check-vercel-sandbox.md), and the harness plan's §3.1 exports list and stage 8 table link it.
+
+**What shipped**
+
+- `vercelSandbox({ sdk?, egress?, secret?, deniedSubnets?, timeoutMs?, persistent?, image?, vcpus?, name? })`: tier `microvm`, stops `mistakes`, `exfiltration` and `hostile_process`, capabilities `resume` and `snapshot`, plus `pause` when `persistent` is set.
+- `vercelSandboxSdk(credentials?)`, the real client, and the `VercelSandboxSdk`, `VercelSandboxInstance`, `VercelCommand`, `VercelFinishedCommand`, `VercelRunParams`, `VercelCreateParams` and `VercelCredentials` types, so a test passes a fake.
+- `checkVercelNetworkPolicy(policy)`, `VERCEL_DENIED_SUBNETS` and `VercelSecretError` (code `egress_secret_unresolved`, field `credential`), a new code in `HarnessErrorCode`.
+- `scripts/vercel-live.ts` (`pnpm --filter @buildanagent/harness live:vercel`), which does nothing unless `HARNESS_VERCEL_LIVE=1`.
+
+**Decisions**
+
+- **The `SandboxPolicy`'s `network.allow` is the whole allowlist, and `egress` must name the same hosts.** A route can't add a host the policy didn't ask for. [Add route hosts to the firewall on top of `network.allow`: the read-back would then report hosts the request never named.]
+- **The secret resolves with the header's whole value.** The firewall sets a header, where the local proxy swaps a placeholder inside one. [Format it as `Bearer <token>`: a guess that is wrong for `x-api-key` and Basic.]
+- **A git route, a port, an upper-case host and two routes on one host are refused.** The firewall can't read git's ref list or a port, and applies the first matching rule. [Compile a git route as a header route: a push could go to any branch.]
+- **A route-only host takes only the route's methods**, through a trailing 403 `response` rule, as the local proxy's routes do; a host also in `allow` passes other methods with no credential.
+- **The firewall also denies loopback, private, shared and link-local ranges.** [Rely on the domain allowlist alone: an allowed name that resolves to 169.254.169.254 would be reached.]
+- **The roots are checked on the file calls and the working directory, with each path resolved in the VM.** A command can still touch the whole VM, which holds nothing of the host's, so `mistakes` is claimed for the host's files.
+- **Every command, variable, path and file is scanned for each credential value and its bare token, and output and file reads are scrubbed.** [Trust the firewall alone: an echoing service hands the credential to the sandbox, and the log would keep it.]
+- **Dispose stops and deletes; a failed provision deletes, even after a create that failed once Vercel had made the sandbox.** A resume by name never deletes on a mismatch, as `resumeSandbox()` requires.
+- **The interception is Vercel's.** ADR 0020's no-TLS-interception rule governs our local proxy; the plan chose the firewall `transform` for Vercel, and the README names the vendor CA as a limit.
+
+**Mutation checks.** The builder broke 16 rules one at a time and ran `test/sandbox/vercel.test.ts` after each; every mutation failed between 1 and 13 tests: no secret scan, no delete on dispose, no output scrub, no file-read redaction, `"allow-all"` for an empty policy, no subnet check, no credential-rule check, no 403 rule, no cleanup after a failed create, no dispose after a failed provision, no real-path check, no kill on dispose, no host-set check, git routes allowed, and no `-i` on `env`.
+
+**What could not be done**
+
+- **The live run was not run.** vercel.com is unreachable from the build session, which has no Vercel account. The owner runs `HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel` once, and ticks the second acceptance box when it passes.
+- **Nine claims are ⚠️** in the fact-check log, each one the live run checks: header replacement, SNI and the vendor CA, first-match rules, ports, the denied ranges, the process tree, the image's programs and the sandbox name rule.
+- **The process-tree conformance case skips**, because the fake can't fork and the host can't see the VM's processes.
