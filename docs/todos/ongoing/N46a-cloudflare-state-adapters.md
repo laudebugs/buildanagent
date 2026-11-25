@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N46a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
 | Depends on | [N45](N45-portability-conformance-suite.md) |
@@ -58,7 +58,7 @@ Alarms run for at most 15 minutes, so a long turn must end each step with a wake
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
