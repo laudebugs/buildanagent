@@ -6,7 +6,9 @@
 //   HARNESS_LIVE_VERCEL=1 DATABASE_URL=<unpooled connection string> pnpm --filter @buildanagent/harness live:vercel
 //
 // It reads DATABASE_URL only to connect, and never prints it. Every table it makes lives in a schema of its own,
-// harness_live_<random>, which it drops at the end. The key store case uses a ring made here, not your real one.
+// harness_live_<random>, which it drops at the end. The key store case uses a ring made here, not your real one. Use
+// the unpooled connection string: the script refuses a connection whose search path is not its own schema, which is
+// what a transaction pooler's connection can turn into.
 import { randomBytes } from "node:crypto";
 import process from "node:process";
 import { createPostgresTables, postgresEffectStore } from "@buildanagent/agent-safety/stores/postgres";
@@ -33,21 +35,27 @@ if (connectionString === undefined || connectionString === "") {
 }
 
 const schema = `harness_live_${randomBytes(6).toString("hex")}`;
-const pool = new pg.Pool({ connectionString, max: 4 });
-// Each connection works in the run's own schema, so the run never touches the harness's real tables.
-pool.on("connect", (client) => {
-  client.query(`SET search_path TO ${schema}`).catch(() => undefined);
-});
+// Each connection starts in the run's own schema, set as a startup option rather than by a later SET whose failure
+// could pass unseen, so the run never touches the harness's real tables in the default schema.
+const pool = new pg.Pool({ connectionString, max: 4, options: `-c search_path=${schema}` });
 // A pg error names the statement or the host it could not reach, never the password, so it is safe to print.
 const fail = (error) => {
   console.error(`Failed: ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;
 };
 
+const TABLES = ["harness_session_entries", "harness_session_locks", "harness_wakes", "effect_records", "plan_steps"];
+
+/** Throws unless the connection the pool hands out next works in the run's own schema. */
+async function checkSchema() {
+  const { rows } = await pool.query("SELECT current_schema() AS name");
+  if (rows[0]?.name !== schema) throw new Error("a connection is not in the run's own schema, so the run stopped");
+}
+
 async function fresh() {
-  await pool.query(
-    "TRUNCATE harness_session_entries, harness_session_locks, harness_wakes, effect_records, plan_steps",
-  );
+  await checkSchema();
+  // Every table is named with the run's schema, so a connection that lost its search path still empties only the run's.
+  await pool.query(`TRUNCATE ${TABLES.map((table) => `${schema}.${table}`).join(", ")}`);
   return pool;
 }
 
@@ -67,15 +75,16 @@ async function leaseLapsesOnTheDatabaseClock() {
 
 async function ledgerRoundTrip() {
   const ledger = postgresWakeLedger(await fresh());
-  await ledger.add("live", 1_000);
-  await ledger.add("live", 1_000);
+  const nonce = await ledger.add("live", 1_000);
+  if ((await ledger.add("live", 1_000)) !== nonce) throw new Error("a pending wake asked for again got a new nonce");
   await ledger.add("live", 2_000);
-  const removed = (await ledger.removeAll("live")).sort((a, b) => a - b);
+  const removed = (await ledger.removeAll("live")).map(({ at }) => at).sort((a, b) => a - b);
   if (removed.join() !== "1000,2000") throw new Error(`the ledger removed ${removed.join()}`);
 }
 
 try {
   await pool.query(`CREATE SCHEMA ${schema}`);
+  await checkSchema();
   await createPostgresHarnessTables(pool);
   await createPostgresTables(pool);
   let time = Date.now();

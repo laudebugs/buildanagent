@@ -33,6 +33,8 @@ export const POSTGRES_HARNESS_SCHEMA: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS harness_wakes (
     session_id TEXT NOT NULL,
     at_ms BIGINT NOT NULL,
+    nonce TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    claimed BOOLEAN NOT NULL DEFAULT false,
     PRIMARY KEY (session_id, at_ms)
   )`,
 ];

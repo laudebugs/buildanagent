@@ -1,6 +1,6 @@
 /**
  * `envKeyStore()`: a read-only `KeyStore` over a secret environment variable, such as a Vercel environment variable of
- * the sensitive type. It is `secretKeyStore()` with a reader that looks the variable up at each `load()`. This file
+ * the Secret type. It is `secretKeyStore()` with a reader that looks the variable up at each `load()`. This file
  * imports no Node module: it reads `process.env` through `globalThis` when no `env` is given.
  */
 import type { KeyStore } from "@buildanagent/agent-safety";

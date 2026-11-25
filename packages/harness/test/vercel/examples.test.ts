@@ -24,9 +24,11 @@ vi.mock("workflow/api", () => ({
 }));
 
 let db: PGlite;
-beforeAll(() => {
+// PGlite starts its WebAssembly engine on the first query, which takes seconds on a loaded machine, so it starts here.
+beforeAll(async () => {
   db = new PGlite();
-});
+  await db.waitReady;
+}, 60_000);
 afterAll(async () => {
   await db.close();
 });

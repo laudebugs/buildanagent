@@ -143,6 +143,51 @@ describe("postgresStore", () => {
       (error) => isHarnessError(error) && error.code === "invalid_store_options",
     );
   });
+
+  test("load refuses a log in another format as unsupported and a bad row as corrupt, and loadRaw reads both", async () => {
+    const client = await fresh();
+    const store = postgresStore(client);
+    await store.append(KEY, [header, record("r1", "h1")]);
+    await client.query(
+      "UPDATE harness_session_entries SET entry = jsonb_set(entry::jsonb, '{formatVersion}', '99')::text WHERE seq = 0",
+    );
+    await assert.rejects(
+      () => collect(store.load(KEY)),
+      (error) => isHarnessError(error) && error.code === "unsupported_format",
+    );
+    assert.ok(store.loadRaw !== undefined);
+    const raw = (await collect(store.loadRaw(KEY))) as { formatVersion?: number }[];
+    assert.equal(raw[0]?.formatVersion, 99);
+    await client.query('UPDATE harness_session_entries SET entry = \'{"id":"r1"}\' WHERE seq = 1');
+    await assert.rejects(
+      () => collect(store.load(KEY, { fromSeq: 1 })),
+      (error) => isHarnessError(error) && error.code === "session_corrupt",
+    );
+  });
+
+  test("a retry whose batch another writer partly stored between its reads still lands after that part", async () => {
+    const client = await fresh();
+    await postgresStore(client).append(KEY, [header]);
+    // The other writer stores the batch's first entry just before this writer reads the batch's ids.
+    let raced = false;
+    const racing: PgClientLike = {
+      async query(text, values) {
+        if (!raced && text.includes("entry_id IN")) {
+          raced = true;
+          await postgresStore(client).append(KEY, [record("a", "h1")]);
+        }
+        return client.query(text, values);
+      },
+    };
+    const written = await postgresStore(racing).append(KEY, [record("a", "h1"), record("b", "a")]);
+    assert.deepEqual(
+      written.map((entry) => [entry.id, entry.seq]),
+      [
+        ["a", 1],
+        ["b", 2],
+      ],
+    );
+  });
 });
 
 describe("postgresLock", () => {
@@ -233,23 +278,65 @@ describe("workflowScheduler", () => {
 
   test("a cancel ends a waiting run at once, and ignores a run that is gone", async () => {
     const ledger = postgresWakeLedger(await fresh());
-    const workflow = fakeWorkflow({ ledger, start: START, failStart: (request) => request.sessionId === "lost" });
+    const tokens: string[] = [];
+    const workflow = fakeWorkflow({
+      ledger,
+      start: START,
+      failStart: (request) => {
+        tokens.push(request.token);
+        return request.sessionId === "lost";
+      },
+    });
     await workflow.under.scheduler.wake(new Date(START + 60_000), "s1");
     await workflow.settle();
     await workflow.under.scheduler.cancel("s1");
     await workflow.settle();
     assert.deepEqual(workflow.outcomes(), ["cancelled"]);
     await assert.rejects(() => workflow.under.scheduler.wake(new Date(START + 1_000), "lost"), /did not start/);
-    assert.equal(await ledger.has("lost", START + 1_000), true, "a failed start leaves the wake for a retry");
+    const pending = async (sessionId: string) =>
+      (await db.query("SELECT 1 FROM harness_wakes WHERE session_id = $1", [sessionId])).rows.length > 0;
+    assert.equal(await pending("lost"), true, "a failed start leaves the wake for a retry");
     await workflow.under.scheduler.cancel("lost");
-    assert.deepEqual(workflow.resumed(), [wakeToken("s1", START + 60_000), wakeToken("lost", START + 1_000)]);
-    assert.equal(await ledger.has("lost", START + 1_000), false);
+    assert.deepEqual(workflow.resumed(), tokens);
+    assert.equal(await pending("lost"), false);
+  });
+
+  test("a wake asked for again after a cancel is delivered, though the cancelled run still holds its hook", async () => {
+    const workflow = fakeWorkflow({ ledger: postgresWakeLedger(await fresh()), start: START, deferResume: true });
+    const at = new Date(START + 1_000);
+    await workflow.under.scheduler.wake(at, "s1");
+    await workflow.settle();
+    await workflow.under.scheduler.cancel("s1");
+    await workflow.under.scheduler.wake(at, "s1");
+    await workflow.settle();
+    await workflow.flushResumes();
+    await workflow.under.advanceTo(new Date(START + 2_000));
+    assert.deepEqual([...workflow.outcomes()].sort(), ["cancelled", "delivered"]);
+    assert.equal(workflow.under.delivered().length, 1);
+  });
+
+  test("a run that a cancel beats to the step reports that it was cancelled", async () => {
+    const ledger = postgresWakeLedger(await fresh());
+    let workflow: ReturnType<typeof fakeWorkflow> | undefined;
+    // The ledger's claim is the first thing the step does, so a cancel just before it stands for one after the sleep.
+    const racing = {
+      ...ledger,
+      claim: async (sessionId: string, at: number, nonce: string) => {
+        await workflow?.under.scheduler.cancel(sessionId);
+        return ledger.claim(sessionId, at, nonce);
+      },
+    };
+    workflow = fakeWorkflow({ ledger: racing, start: START });
+    await workflow.under.scheduler.wake(new Date(START + 1_000), "s1");
+    await workflow.under.advanceTo(new Date(START + 2_000));
+    assert.deepEqual(workflow.outcomes(), ["cancelled"]);
+    assert.equal(workflow.under.delivered().length, 0);
   });
 
   test("a handler that throws keeps the wake in the ledger, so a retried step delivers it", async () => {
     const ledger = postgresWakeLedger(await fresh());
-    await ledger.add("s1", START);
-    const request = { sessionId: "s1", at: START, token: wakeToken("s1", START) };
+    const nonce = await ledger.add("s1", START);
+    const request = { sessionId: "s1", at: START, nonce, token: wakeToken("s1", START, nonce) };
     await assert.rejects(() =>
       deliverWake(request, {
         ledger,
@@ -258,13 +345,28 @@ describe("workflowScheduler", () => {
         },
       }),
     );
-    assert.equal(await ledger.has("s1", START), true);
+    const { rows } = await db.query("SELECT nonce FROM harness_wakes WHERE session_id = 's1'");
+    assert.deepEqual(rows, [{ nonce }], "the claimed wake is still in the ledger");
     assert.equal(await deliverWake(request, { ledger, handler: () => undefined }), "delivered");
     assert.equal(await deliverWake(request, { ledger, handler: () => undefined }), "cancelled");
   });
 
+  test("a handler that asks for its own wake again gets a new wake, which the delivery leaves in place", async () => {
+    const ledger = postgresWakeLedger(await fresh());
+    const nonce = await ledger.add("s1", START);
+    assert.equal(await ledger.add("s1", START), nonce, "a pending wake asked for again keeps its nonce");
+    const request = { sessionId: "s1", at: START, nonce, token: wakeToken("s1", START, nonce) };
+    let again = "";
+    const handler = async () => {
+      again = await ledger.add("s1", START);
+    };
+    assert.equal(await deliverWake(request, { ledger, handler }), "delivered");
+    assert.notEqual(again, nonce);
+    assert.deepEqual(await ledger.removeAll("s1"), [{ at: START, nonce: again }]);
+  });
+
   test("a token holds no separator from the id, and options it can't use are refused", () => {
-    assert.equal(wakeToken("a:b", 5), "harness-wake:a%3Ab:5");
+    assert.equal(wakeToken("a:b", 5, "n"), "harness-wake:a%3Ab:5:n");
     assert.throws(
       () => workflowScheduler({ ledger: {} as never, start: async () => undefined, resumeHook: async () => undefined }),
       (error) => isHarnessError(error) && error.code === "invalid_scheduler_options",

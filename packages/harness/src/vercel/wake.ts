@@ -12,43 +12,62 @@ import type { WakeRequest, WakeSignal } from "./workflow.js";
 
 /**
  * The wakes still pending, kept where every function instance can read them. `postgresWakeLedger()` keeps them in the
- * `harness_wakes` table.
+ * `harness_wakes` table. Each wake carries a nonce, which names one asking of it: asking again for a pending wake keeps
+ * its nonce, so a second run for it is a duplicate, while asking again once it was cancelled or claimed for delivery
+ * makes a new nonce, so the new run never meets the old run's hook token.
  */
 export interface WakeLedger {
-  /** Records a pending wake. Recording one that is already there is no error. */
-  add(sessionId: string, at: number): Promise<void>;
-  /** Whether the wake is still pending. */
-  has(sessionId: string, at: number): Promise<boolean>;
-  /** Removes one wake, after it was delivered. */
-  remove(sessionId: string, at: number): Promise<void>;
-  /** Removes every pending wake of `sessionId` and returns their times. */
-  removeAll(sessionId: string): Promise<number[]>;
+  /**
+   * Records a pending wake and returns its nonce. Recording one that is pending already is no error and returns the
+   * nonce it has. Recording one that a delivery has claimed records a new wake with a new nonce.
+   */
+  add(sessionId: string, at: number): Promise<string>;
+  /** Marks the wake with this nonce as being delivered, and returns whether it is still in the ledger. */
+  claim(sessionId: string, at: number, nonce: string): Promise<boolean>;
+  /** Removes the wake with this nonce, after it was delivered. A newer asking of the same wake stays. */
+  remove(sessionId: string, at: number, nonce: string): Promise<void>;
+  /** Removes every wake of `sessionId`, pending or claimed, and returns their times and nonces. */
+  removeAll(sessionId: string): Promise<{ readonly at: number; readonly nonce: string }[]>;
 }
 
 const TABLE = "harness_wakes";
 
-/** A `WakeLedger` in the `harness_wakes` table that `POSTGRES_HARNESS_SCHEMA` creates. Each method is one statement. */
+/**
+ * A `WakeLedger` in the `harness_wakes` table that `POSTGRES_HARNESS_SCHEMA` creates. Each method is one statement, and
+ * the database makes each nonce with `gen_random_uuid()`.
+ */
 export function postgresWakeLedger(client: PgClientLike): WakeLedger {
   return {
     async add(sessionId, at) {
-      await client.query(`INSERT INTO ${TABLE} (session_id, at_ms) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [
-        sessionId,
-        at,
-      ]);
+      // A pending row keeps its nonce; a claimed row is being delivered already, so this asking is a new wake.
+      const { rows } = await client.query(
+        `INSERT INTO ${TABLE} AS w (session_id, at_ms) VALUES ($1, $2)
+         ON CONFLICT (session_id, at_ms) DO UPDATE
+           SET nonce = CASE WHEN w.claimed THEN EXCLUDED.nonce ELSE w.nonce END, claimed = false
+         RETURNING nonce`,
+        [sessionId, at],
+      );
+      return String(rows[0]?.nonce);
     },
-    async has(sessionId, at) {
-      const { rows } = await client.query(`SELECT 1 FROM ${TABLE} WHERE session_id = $1 AND at_ms = $2`, [
-        sessionId,
-        at,
-      ]);
+    async claim(sessionId, at, nonce) {
+      const { rows } = await client.query(
+        `UPDATE ${TABLE} SET claimed = true WHERE session_id = $1 AND at_ms = $2 AND nonce = $3 RETURNING 1`,
+        [sessionId, at, nonce],
+      );
       return rows.length > 0;
     },
-    async remove(sessionId, at) {
-      await client.query(`DELETE FROM ${TABLE} WHERE session_id = $1 AND at_ms = $2`, [sessionId, at]);
+    async remove(sessionId, at, nonce) {
+      await client.query(`DELETE FROM ${TABLE} WHERE session_id = $1 AND at_ms = $2 AND nonce = $3`, [
+        sessionId,
+        at,
+        nonce,
+      ]);
     },
     async removeAll(sessionId) {
-      const { rows } = await client.query(`DELETE FROM ${TABLE} WHERE session_id = $1 RETURNING at_ms`, [sessionId]);
-      return rows.map((row) => toNumber(row.at_ms));
+      const { rows } = await client.query(`DELETE FROM ${TABLE} WHERE session_id = $1 RETURNING at_ms, nonce`, [
+        sessionId,
+      ]);
+      return rows.map((row) => ({ at: toNumber(row.at_ms), nonce: String(row.nonce) }));
     },
   };
 }
@@ -69,9 +88,9 @@ export interface WorkflowSchedulerOptions {
   readonly resumeHook: (token: string, signal: WakeSignal) => Promise<unknown>;
 }
 
-/** The hook token of one wake: the id, encoded so it holds no `:`, and the time. */
-export function wakeToken(sessionId: string, at: number): string {
-  return `harness-wake:${encodeName(sessionId)}:${at}`;
+/** The hook token of one wake: the id, encoded so it holds no `:`, the time and the nonce the ledger gave it. */
+export function wakeToken(sessionId: string, at: number, nonce: string): string {
+  return `harness-wake:${encodeName(sessionId)}:${at}:${encodeName(nonce)}`;
 }
 
 /**
@@ -83,19 +102,22 @@ export function wakeToken(sessionId: string, at: number): string {
  * Wakes are at-least-once. A step that fails is retried by the Workflow SDK, and a wake asked for twice may start two
  * runs; the second finds the hook token taken and ends without delivering. The wake handler must still treat a
  * second delivery as harmless, because a step that delivered and then failed to record it runs again.
+ *
+ * The id is the only key, as with every `Scheduler`, so a host that serves several users puts the user in the id, or
+ * one user's `cancel()` drops another's wakes of the same session id.
  */
 export function workflowScheduler(options: WorkflowSchedulerOptions): Scheduler {
   const { ledger, start, resumeHook } = options;
   if (
     typeof start !== "function" ||
     typeof resumeHook !== "function" ||
-    ["add", "has", "remove", "removeAll"].some(
+    ["add", "claim", "remove", "removeAll"].some(
       (name) => typeof (ledger as unknown as Record<string, unknown>)?.[name] !== "function",
     )
   ) {
     throw new HarnessError(
       "invalid_scheduler_options",
-      "workflowScheduler() needs a ledger with add, has, remove and removeAll, a start function and a resumeHook function",
+      "workflowScheduler() needs a ledger with add, claim, remove and removeAll, a start function and a resumeHook function",
     );
   }
   return {
@@ -104,13 +126,15 @@ export function workflowScheduler(options: WorkflowSchedulerOptions): Scheduler 
       if (Number.isNaN(time)) throw new TypeError("Scheduler.wake needs a valid date.");
       // The ledger comes first, so a run that starts can always find its wake. A wake asked for again starts a run
       // again, which covers a start that failed after the row was written; a duplicate run ends without delivering.
-      await ledger.add(sessionId, time);
-      await start({ sessionId, at: time, token: wakeToken(sessionId, time) });
+      const nonce = await ledger.add(sessionId, time);
+      await start({ sessionId, at: time, nonce, token: wakeToken(sessionId, time, nonce) });
     },
     async cancel(sessionId) {
-      const times = await ledger.removeAll(sessionId);
+      const removed = await ledger.removeAll(sessionId);
       await Promise.all(
-        times.map((time) => resumeHook(wakeToken(sessionId, time), { cancel: true }).catch(() => undefined)),
+        removed.map(({ at, nonce }) =>
+          resumeHook(wakeToken(sessionId, at, nonce), { cancel: true }).catch(() => undefined),
+        ),
       );
     },
   };
@@ -125,19 +149,20 @@ export interface DeliverWakeOptions {
 }
 
 /**
- * Delivers one wake from inside a workflow step: it calls `handler` if the wake is still in the ledger, and then
- * removes it. A wake that `cancel()` removed is not delivered, and returns `"cancelled"`. Call it from the
+ * Delivers one wake from inside a workflow step: it claims the wake if it is still in the ledger, calls `handler`, and
+ * then removes it. A wake that `cancel()` removed is not delivered, and returns `"cancelled"`. Call it from the
  * `"use step"` function you pass to `runWakeWorkflow()` as `deliver`, so the handler runs once per step and a replay
  * reads the step's recorded result. A handler that throws leaves the wake in the ledger, so the SDK's retry of the step
- * delivers it again.
+ * delivers it again; a wake whose retries all fail stays in the table until `cancel()` removes it. A handler that asks
+ * for the same id and time again gets a new wake, which the removal leaves in place.
  */
 export async function deliverWake(
   request: WakeRequest,
   options: DeliverWakeOptions,
 ): Promise<"delivered" | "cancelled"> {
   const { ledger, handler } = options;
-  if (!(await ledger.has(request.sessionId, request.at))) return "cancelled";
+  if (!(await ledger.claim(request.sessionId, request.at, request.nonce))) return "cancelled";
   await handler(request.sessionId, new Date(request.at));
-  await ledger.remove(request.sessionId, request.at);
+  await ledger.remove(request.sessionId, request.at, request.nonce);
   return "delivered";
 }

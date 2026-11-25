@@ -13,7 +13,9 @@ export interface WakeRequest {
   readonly sessionId: string;
   /** The wake's time, in milliseconds since the epoch. */
   readonly at: number;
-  /** The token of the run's hook, unique to this id and time, which `cancel()` resumes to end the run early. */
+  /** The nonce the ledger gave this asking of the wake, which the delivery step claims and removes it by. */
+  readonly nonce: string;
+  /** The token of the run's hook, unique to this id, time and nonce, which `cancel()` resumes to end the run early. */
   readonly token: string;
 }
 
@@ -37,10 +39,10 @@ export interface WakeWorkflowRuntime {
   /** The SDK's `createHook`, from `workflow`. */
   readonly createHook: (options: { token: string }) => WakeHook<WakeSignal>;
   /**
-   * A `"use step"` function that calls `deliverWake()` from `@buildanagent/harness/vercel`. It runs as one workflow
-   * step, so a replay reads its recorded result and never runs the harness's turn twice.
+   * A `"use step"` function that calls `deliverWake()` from `@buildanagent/harness/vercel` and returns its result. It
+   * runs as one workflow step, so a replay reads its recorded result and never runs the harness's turn twice.
    */
-  readonly deliver: (request: WakeRequest) => Promise<unknown>;
+  readonly deliver: (request: WakeRequest) => Promise<"delivered" | "cancelled">;
   /**
    * The clock, in milliseconds since the epoch. Default `Date.now`, which the Workflow SDK fixes to the run's recorded
    * time inside a workflow, so a replay takes the same branch.
@@ -68,8 +70,8 @@ export async function runWakeWorkflow(request: WakeRequest, runtime: WakeWorkflo
       const cancelled = Promise.resolve(hook).then(() => "cancelled" as const);
       if ((await Promise.race([due, cancelled])) === "cancelled") return "cancelled";
     }
-    await runtime.deliver(request);
-    return "delivered";
+    // A cancel can land after the sleep and before the step reads the ledger, and the step then delivers nothing.
+    return (await runtime.deliver(request)) === "cancelled" ? "cancelled" : "delivered";
   } finally {
     hook.dispose();
   }

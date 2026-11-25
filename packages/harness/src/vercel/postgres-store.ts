@@ -3,7 +3,7 @@
  * primary key on `(user_id, session_id, seq)` makes it the compare-and-swap: two writers that read the same tail both
  * try to write the same `seq`, so Postgres refuses one of them whole. This file imports no Node module.
  */
-import type { SessionEntry } from "@buildanagent/protocol";
+import { isProtocolError, parseEntry, type SessionEntry } from "@buildanagent/protocol";
 import { HarnessError } from "../errors.js";
 import { ConflictError } from "../session/errors.js";
 import {
@@ -40,27 +40,48 @@ function parse(text: unknown): SessionEntry {
   return JSON.parse(String(text)) as SessionEntry;
 }
 
+/** A stored entry through the protocol's parser, so a log in another format is refused as the JSONL store refuses it. */
+function parseStored(text: unknown, key: SessionKey, seq: unknown): SessionEntry {
+  try {
+    return parseEntry(String(text));
+  } catch (cause) {
+    // A header from another format isn't corruption: the log is whole and needs a migration or a newer harness.
+    const format = isProtocolError(cause) && cause.code === "unsupported_format_version";
+    throw new HarnessError(
+      format ? "unsupported_format" : "session_corrupt",
+      `session ${key.sessionId} has ${format ? "a log in a format this harness doesn't read" : "a bad entry"} at seq ${String(seq)}`,
+      { cause },
+    );
+  }
+}
+
 /** The part of the log an append reads: where it ends, and the stored entries that share an id with the batch. */
 async function stateFor(client: PgClientLike, key: SessionKey, inputs: readonly EntryInput[]): Promise<LogState> {
-  const tail = await client.query(
-    `SELECT seq, entry_id FROM ${TABLE} WHERE user_id = $1 AND session_id = $2 ORDER BY seq DESC LIMIT 1`,
-    [key.userId, key.sessionId],
+  // planAppend reads `byId` only for the batch's own ids, so an append costs the batch and not the whole log. The tail
+  // and the ids come from one statement, so they share one snapshot: read apart, another writer's append between them
+  // could show part of this batch stored while the tail still ends before it.
+  const ids = [...new Set(inputs.map((input) => input.id))];
+  const marks = ids.map((_, index) => `$${index + 3}`).join(", ");
+  const matches =
+    ids.length === 0
+      ? ""
+      : ` UNION ALL (SELECT false, seq, entry_id, entry FROM ${TABLE}
+           WHERE user_id = $1 AND session_id = $2 AND entry_id IN (${marks}))`;
+  const { rows } = await client.query(
+    `(SELECT true AS tail, seq, entry_id, NULL AS entry FROM ${TABLE}
+       WHERE user_id = $1 AND session_id = $2 ORDER BY seq DESC LIMIT 1)${matches}`,
+    [key.userId, key.sessionId, ...ids],
   );
   const byId = new Map<string, SessionEntry>();
-  const ids = [...new Set(inputs.map((input) => input.id))];
-  if (ids.length > 0) {
-    // planAppend reads `byId` only for the batch's own ids, so an append costs the batch and not the whole log.
-    const marks = ids.map((_, index) => `$${index + 3}`).join(", ");
-    const { rows } = await client.query(
-      `SELECT entry FROM ${TABLE} WHERE user_id = $1 AND session_id = $2 AND entry_id IN (${marks})`,
-      [key.userId, key.sessionId, ...ids],
-    );
-    for (const row of rows) {
-      const entry = parse(row.entry);
-      byId.set(entry.id, entry);
+  let last: Record<string, unknown> | undefined;
+  for (const row of rows) {
+    if (row.tail === true) {
+      last = row;
+      continue;
     }
+    const entry = parse(row.entry);
+    byId.set(entry.id, entry);
   }
-  const last = tail.rows[0];
   return {
     byId,
     lastId: last === undefined ? null : String(last.entry_id),
@@ -111,6 +132,7 @@ async function* entries(
   key: SessionKey,
   options: LoadOptions | undefined,
   pageSize: number,
+  validate: boolean,
 ): AsyncGenerator<SessionEntry> {
   // The last seq when the load began bounds every page, so an append made while a caller iterates doesn't extend it.
   const { rows: top } = await client.query(
@@ -127,7 +149,7 @@ async function* entries(
        ORDER BY seq LIMIT $5`,
       [key.userId, key.sessionId, from, end, pageSize],
     );
-    for (const row of rows) yield parse(row.entry);
+    for (const row of rows) yield validate ? parseStored(row.entry, key, row.seq) : parse(row.entry);
     const lastRow = rows.at(-1);
     if (rows.length < pageSize || lastRow === undefined) return;
     from = toNumber(lastRow.seq) + 1;
@@ -159,8 +181,10 @@ async function* summaries(client: PgClientLike, userId: string): AsyncGenerator<
  * append reads the log's tail and the stored entries that share an id with the batch, applies the store's rules, and
  * writes the new entries in one `INSERT`. When another writer took the next `seq` first, Postgres refuses the whole
  * `INSERT` and the append plans again, so it never writes part of a batch. A load reads the entries present when it
- * began, a page at a time. The store has no torn lines, because Postgres writes a row whole or not at all, and it
- * offers `loadRaw()`, which reads the same rows.
+ * began, a page at a time, and passes each through the protocol's parser: a log written in another format throws a
+ * `HarnessError` with code `unsupported_format`, and an entry the parser refuses throws one with code `session_corrupt`.
+ * The store has no torn lines, because Postgres writes a row whole or not at all, and it offers `loadRaw()`, which reads
+ * the same rows unparsed, for a migration.
  */
 export function postgresStore(client: PgClientLike, options: PostgresStoreOptions = {}): SessionStore {
   const maxBytes = options.maxEntryBytes ?? DEFAULT_MAX_ENTRY_BYTES;
@@ -172,11 +196,11 @@ export function postgresStore(client: PgClientLike, options: PostgresStoreOption
     append: (key, inputs, appendOptions) => append(client, key, inputs, appendOptions, maxBytes),
     load(key, loadOptions) {
       checkKey(key);
-      return entries(client, key, loadOptions, pageSize);
+      return entries(client, key, loadOptions, pageSize, true);
     },
     loadRaw(key) {
       checkKey(key);
-      return entries(client, key, undefined, pageSize);
+      return entries(client, key, undefined, pageSize, false);
     },
     list(userId) {
       checkKey({ userId, sessionId: "-" });

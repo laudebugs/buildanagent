@@ -31,6 +31,8 @@ export interface FakeWorkflow {
   readonly resumed: () => readonly string[];
   /** Waits until every run has finished or is blocked on a sleep or a hook. */
   readonly settle: () => Promise<void>;
+  /** Hands every resume that `deferResume` held back to its run. */
+  readonly flushResumes: () => Promise<void>;
 }
 
 export interface FakeWorkflowOptions {
@@ -40,6 +42,11 @@ export interface FakeWorkflowOptions {
   readonly handler?: (sessionId: string, at: Date) => void | Promise<void>;
   /** Makes start() fail for the requests it returns true for. */
   readonly failStart?: (request: WakeRequest) => boolean;
+  /**
+   * Holds each resumeHook() back until `flushResumes()`, as the real engine queues a resume for the run to pick up
+   * later, so a test can act while a cancelled run still holds its hook.
+   */
+  readonly deferResume?: boolean;
 }
 
 export function fakeWorkflow(options: FakeWorkflowOptions): FakeWorkflow {
@@ -50,6 +57,7 @@ export function fakeWorkflow(options: FakeWorkflowOptions): FakeWorkflow {
   const delivered: DeliveredWake[] = [];
   const outcomes: WakeOutcome[] = [];
   const resumed: string[] = [];
+  const heldResumes: (() => void)[] = [];
   const handler =
     options.handler ??
     ((sessionId: string, at: Date) => {
@@ -123,7 +131,8 @@ export function fakeWorkflow(options: FakeWorkflowOptions): FakeWorkflow {
       resumed.push(token);
       const resolve = hooks.get(token);
       if (resolve === undefined) throw new HookNotFoundError(`no hook holds ${token}`);
-      resolve(signal);
+      if (options.deferResume) heldResumes.push(() => resolve(signal));
+      else resolve(signal);
       return { token };
     },
   });
@@ -154,5 +163,9 @@ export function fakeWorkflow(options: FakeWorkflowOptions): FakeWorkflow {
       await settle();
     },
   };
-  return { under, outcomes: () => [...outcomes], resumed: () => [...resumed], settle };
+  const flushResumes = async () => {
+    for (const resume of heldResumes.splice(0)) resume();
+    await settle();
+  };
+  return { under, outcomes: () => [...outcomes], resumed: () => [...resumed], settle, flushResumes };
 }

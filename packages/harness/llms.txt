@@ -529,7 +529,7 @@ The sections of README.md and every public export, generated from this package's
 
 - `createPostgresHarnessTables()`: Creates the three tables of `POSTGRES_HARNESS_SCHEMA` where they are missing.
 - `DEFAULT_KEY_RING_VARIABLE`: The variable `envKeyStore()` reads when no name is given.
-- `deliverWake()`: Delivers one wake from inside a workflow step: it calls `handler` if the wake is still in the ledger, and then removes it.
+- `deliverWake()`: Delivers one wake from inside a workflow step: it claims the wake if it is still in the ledger, calls `handler`, and then removes it.
 - `interface DeliverWakeOptions`: The options of `deliverWake()`.
 - `envKeyStore()`: A `KeyStore` whose `load()` reads the ring from one environment variable and parses it as `secretKeyStore()` does: JSON such as `{"current":"2026-11","keys":{"2026-11":"<base64url key>"}}`.
 - `interface EnvKeyStoreOptions`: The options of `envKeyStore()`.
@@ -544,7 +544,7 @@ The sections of README.md and every public export, generated from this package's
 - `interface WakeLedger`: The wakes still pending, kept where every function instance can read them.
 - `interface WakeRequest`: What one wake run is started with.
 - `interface WakeSignal`: What `cancel()` sends to a waiting run's hook.
-- `wakeToken()`: The hook token of one wake: the id, encoded so it holds no `:`, and the time.
+- `wakeToken()`: The hook token of one wake: the id, encoded so it holds no `:`, the time and the nonce the ledger gave it.
 - `workflowScheduler()`: A `Scheduler` on Vercel Workflow.
 - `interface WorkflowSchedulerOptions`: The options of `workflowScheduler()`.
 
