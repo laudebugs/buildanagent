@@ -49,7 +49,7 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 
 | # | Decision | Choice | Status | ADR |
 | --- | --- | --- | --- | --- |
-| HD1 | Log granularity | One entry per content block, written from the SDK's end events; deltas are never persisted | Decided, provisional (N35) | [0013](../decisions/0013-log-entry-per-content-block.md) |
+| HD1 | Log granularity | One entry per content block, written from the SDK's end events; deltas are never persisted | Decided (settled by N35) | [0013](../decisions/0013-log-entry-per-content-block.md) |
 | HD2 | Lock primitive | An exclusive lock file with pid, host and a renewed lease; stale only when the lease has lapsed and the pid is gone; local disk only | Decided, provisional (N4) | [0014](../decisions/0014-session-writer-lock.md) |
 | HD3 | Default context layers and budget | Layers 1, 2, 3 and 5 on; layer 4 on only below 128K; budget `min(window − 16,384, 200,000)` | Decided, provisional (N39) | none: tunable defaults |
 | HD4 | Default sandbox backend | `srt` for interactive local runs, Docker for headless runs and evals; `none` only with an explicit unsafe flag | Accepted (owner, 2026-11-18) | [0020](../decisions/0020-default-sandbox-backend.md) |
@@ -66,13 +66,15 @@ Three decisions merge with the SDK's. For each, this plan references P1's choice
 | HD15 | Credential proxy shape | Default-deny egress; credentials injected on local reverse-proxy routes by sentinel; no TLS interception | Decided | [0020](../decisions/0020-default-sandbox-backend.md), whose decision records the proxy shape |
 | HD17 | Long-term memory | A removable extension: a `memory` tool over `.agents/memory/`, sourced records that expire unless a check renews them, an index capped at 200 lines or 25 KB, and low-trust records from sessions that read untrusted content | Accepted (owner, 2026-11-19) | [0056](../decisions/0056-file-based-memory-and-log-purge.md) |
 
-### HD1. One entry per content block, written from the SDK's end events (provisional)
+### HD1. One entry per content block, written from the SDK's end events (decided by N35)
 
 **Options.** One JSONL line per stream delta, per content block, or per completed message ([harness guide §13, decision 1][hg13]).
 
 **Choice: one entry per content block.** On `model_call_end`, the session runner writes one `message_block` entry per block of the `AssistantMessage`, then a `message_end` entry with its stop reason and a `usage` entry with its `Usage` and `Cost`. Each `tool_call_end` becomes one `tool_result` entry. Deltas (`text_delta` and the rest) reach live clients as protocol events and are never written.
 
 **Evidence.** The real Claude Code transcript writes one entry per content block, which lets parallel tool calls interleave with their results without ambiguity ([sessions note, addendum][n-sess-add]). The SDK's `*_end` events carry the authoritative item, so a block entry needs no reassembly ([SDK plan §3.4][sdk34]). Per-delta lines would multiply file size for a playback that only needs completed blocks, and a per-message line cannot place a tool result between two calls of the same message. The block is also the natural unit for agent decision 5's provenance label ([agent guide §10][ag10]). The guide's settling test, recording the capstone at all three granularities and comparing size, playback fidelity and resume code, runs in N35; the choice stays unless per-block playback loses information that per-delta keeps.
+
+**Result (N35, 2026-11-25): per-block stays, and HD1 is decided.** N35 recorded the capstone's three cases at all three granularities with test-only per-delta and per-message observers, beside the package's per-block log ([`granularity.json`](../../packages/harness/test/fixtures/capstone/granularity.json)). Each recorder wrote the model's output and the tool results of the same run, and the per-delta file was 3.5 to 3.6 times the per-block file in each case: 6,810 bytes and 69 lines against 1,889 bytes and 10 lines for the approved case, with 1,589 bytes and 6 lines per message. All three files played back to the same transcript as the package's rebuilt context, block for block. The only thing per-delta keeps beyond per-block is the stream's chunking, 56 delta boundaries and their times, and no playback reads it. Per-delta also needs the most resume code: its decoder has 29 code lines, against 18 per block and 12 per message. Per-message is smallest, but a message line holds every block of a step, so it cannot place a block's provenance label or a tool result between two calls of one message. The choice therefore stays one entry per content block, and [ADR 0013](../decisions/0013-log-entry-per-content-block.md) is no longer provisional.
 
 ### HD2. A lock file with a renewed lease, on local disk only (provisional)
 
@@ -840,7 +842,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N32](../todos/done/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
 | [N33](../todos/done/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
 | [N34](../todos/done/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |
-| [N35](../todos/ongoing/N35-harness-capstone.md) | Harness triage capstone, second-process resume and the granularity test (HD1) | N29, N30, N34, B19, B20 | M |
+| [N35](../todos/done/N35-harness-capstone.md) | Harness triage capstone, second-process resume and the granularity test (HD1) | N29, N30, N34, B19, B20 | M |
 | [N36](../todos/ready/N36-eval-reports-replay.md) | Eval package: reports, mini-swe-agent trajectories and the offline replay suite | N35 | M |
 | [N37](../todos/ready/N37-inspect-bridge.md) | Inspect bridge and the baseline runner (opt-in) | N36, N17 | M |
 | [N38](../todos/ready/N38-seed-suite-baseline.md) | Seed suite of 20 repository tasks and the first baseline run (HD8) | N37 | M |

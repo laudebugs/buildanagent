@@ -1116,3 +1116,11 @@ By default every component runs:
 | `effectStore` | `EffectStore` | `effectStoreConformance()` (`@buildanagent/agent-safety/testing`) |
 
 `runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend refuses non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`). None of the suites import Node modules, so local Node, Cloudflare, AWS and Vercel targets run the same cases. Pass your target's seam factories to `runPortabilityConformance(target)` to verify a new backend.
+
+## The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause
+
+`examples/triage-session.ts` runs the SDK's support-triage agent on the harness, with its tools in `examples/triage-tools.ts`. The registry holds two tools, `lookup_customer` and `escalate`, and no built-in tool, so each request offers those two and the output tool `submit_triage`. The pipeline allows the lookup and asks before an escalation. A deny rule added after the pause wins over an allow a person gave before it.
+
+`triageHarness({ model, signer, registry, policy })` builds the harness. `startTriage(run, ticket)` runs the first turn, which ends `awaiting_approval` when the model asks to escalate. `answerTriage(run, answers)` resumes the turn from any process that can open the session and load the key ring. The customer travels as the turn's host context, so the lookup reads the signed-in customer and never the model's arguments.
+
+The package's capstone test checks the rows of the harness plan's capstone table on a scripted model. It covers the approved, rejected and policy-changed cases, a playback that writes the same bytes as the log, HEAD after a checkout and a long session that masks older results and writes one summary. It also scans every entry and span for planted secrets, and kills the process after the pager accepts a page to check that the resume reconciles to `applied`. The CLI's tests resolve the same pause from a second `buildanagent rpc` process. The recorded sessions and their model pairs are in `test/fixtures/capstone/`, for an offline replay suite.
