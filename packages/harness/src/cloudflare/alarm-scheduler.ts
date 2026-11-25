@@ -100,6 +100,11 @@ async function deliver(
  * wake, and a time in the past is due at once. `cancel(id)` removes every pending wake of `id`. A wake is delivered
  * with the time it was asked for, never before that time by `now`, and at least once. The alarm handler runs for at
  * most 15 minutes, so a handler should do one step of work and ask for another wake rather than run a long turn.
+ *
+ * A due wake goes to the handlers registered when `alarm()` runs, and once they return it is deleted, even when none is
+ * registered. After an eviction the object's constructor runs before `alarm()`, so register every handler whose wakes
+ * must survive an eviction there, not when a session is opened. A lock's renewal wakes need no handler after an
+ * eviction, because the hold they renewed left memory with the object.
  */
 export function doAlarmScheduler(storage: DurableStorageLike, options: DoAlarmSchedulerOptions = {}): AlarmScheduler {
   const now = options.now ?? Date.now;
@@ -108,13 +113,14 @@ export function doAlarmScheduler(storage: DurableStorageLike, options: DoAlarmSc
   const { sql } = storage;
   sql.exec(WAKES_TABLE);
   return {
-    wake(at, sessionId) {
+    // Both are async so that a storage error rejects the promise the `Scheduler` contract returns instead of throwing.
+    async wake(at, sessionId) {
       const time = at.getTime();
-      if (Number.isNaN(time)) return Promise.reject(new TypeError("Scheduler.wake needs a valid date."));
+      if (Number.isNaN(time)) throw new TypeError("Scheduler.wake needs a valid date.");
       sql.exec("INSERT OR IGNORE INTO harness_wakes (wake_id, at, due) VALUES (?, ?, ?)", sessionId, time, time);
       return arm(storage);
     },
-    cancel(sessionId) {
+    async cancel(sessionId) {
       sql.exec("DELETE FROM harness_wakes WHERE wake_id = ?", sessionId);
       return arm(storage);
     },

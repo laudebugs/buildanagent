@@ -167,7 +167,8 @@ async function* summariesOf(sql: SqlStorageLike, userId: string): AsyncGenerator
 
 /**
  * A `SessionStore` in a Durable Object's SQLite storage: pass the object's `ctx.storage`. It follows every rule of the
- * interface and creates its table on first use. One object can hold many users' sessions, and a session under another
+ * interface and creates its table when it is made, so make it where the object's storage is ready, such as the
+ * object's constructor. One object can hold many users' sessions, and a session under another
  * user looks like one that was never created; most hosts still give each session, or each user, an object of its own,
  * so the object is also the session's single writer.
  *

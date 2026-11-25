@@ -165,6 +165,42 @@ async function checkHibernation(base: string, token: string): Promise<void> {
   socket.close(1000);
 }
 
+/** Deletes the Worker and the run's folder. After a failed run, a failed delete is printed, not thrown over it. */
+function cleanUp(dir: string, secrets: { ring: string; token: string }, runFailed: boolean): void {
+  try {
+    // `wrangler delete` asks before it deletes, and the answer goes in on standard input. It runs even when the
+    // deploy failed, because a failed deploy or secret may still have left the Worker behind.
+    wrangler(dir, ["delete", "--name", NAME], [secrets.ring, secrets.token], "y\n");
+    console.log(`deleted ${NAME}`);
+  } catch (error) {
+    // A delete that fails after the run failed, often because nothing was deployed, must not hide why the run failed.
+    if (!runFailed) throw error;
+    console.error(`The delete failed too; check the Workers list for ${NAME}.\n${String(error)}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+async function run(dir: string, secrets: { ring: string; token: string }): Promise<void> {
+  const base = await deploy(dir, secrets);
+  console.log(`deployed ${NAME}`);
+  const smoke = await get<Record<string, unknown>>(base, "/smoke", secrets.token);
+  assert.equal(smoke.evalBlocked, true);
+  assert.deepEqual(
+    [smoke.pi, smoke.fallback],
+    [
+      { valid: true, invalid: false },
+      { valid: true, invalid: false },
+    ],
+  );
+  assert.deepEqual(smoke.tools, ["echo"]);
+  console.log("passed   the workerd smoke test");
+  await checkCases(base, secrets.token);
+  await checkRaces(base, secrets.token);
+  await checkAlarm(base, secrets.token);
+  await checkHibernation(base, secrets.token);
+}
+
 async function main(): Promise<void> {
   refuseUnlessAsked();
   const dir = mkdtempSync(join(tmpdir(), "harness-cloudflare-live-"));
@@ -173,32 +209,12 @@ async function main(): Promise<void> {
     token: randomBytes(24).toString("base64url"),
   };
   try {
-    const base = await deploy(dir, secrets);
-    console.log(`deployed ${NAME}`);
-    const smoke = await get<Record<string, unknown>>(base, "/smoke", secrets.token);
-    assert.equal(smoke.evalBlocked, true);
-    assert.deepEqual(
-      [smoke.pi, smoke.fallback],
-      [
-        { valid: true, invalid: false },
-        { valid: true, invalid: false },
-      ],
-    );
-    assert.deepEqual(smoke.tools, ["echo"]);
-    console.log("passed   the workerd smoke test");
-    await checkCases(base, secrets.token);
-    await checkRaces(base, secrets.token);
-    await checkAlarm(base, secrets.token);
-    await checkHibernation(base, secrets.token);
-  } finally {
-    try {
-      // `wrangler delete` asks before it deletes, and the answer goes in on standard input.
-      wrangler(dir, ["delete", "--name", NAME], [secrets.ring, secrets.token], "y\n");
-      console.log(`deleted ${NAME}`);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    await run(dir, secrets);
+  } catch (error) {
+    cleanUp(dir, secrets, true);
+    throw error;
   }
+  cleanUp(dir, secrets, false);
 }
 
 await main();

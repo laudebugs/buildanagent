@@ -1127,7 +1127,7 @@ By default every component runs:
 | `SessionLock` | `doLock(storage)` | one row per held session: a random token and a lease |
 | `Scheduler` | `doAlarmScheduler(storage)` | one row per pending wake, with the object's one alarm set to the earliest |
 | `KeyStore` | `workerKeyStore(env.APPROVAL_KEYS)` | nothing: it reads a Worker secret or a Secrets Store binding |
-| Transport | `webSocketHibernation({ dispatcher })` | each socket's `initialize` and opened sessions, in the socket's attachment |
+| Transport | `webSocketHibernation({ dispatcher })` | each socket's `initialize` and opened, created or forked sessions, in the socket's attachment |
 
 ```ts
 import { type DurableStorageLike, doSqliteStore } from "@buildanagent/harness/cloudflare";
@@ -1144,7 +1144,7 @@ A Durable Object runs one event at a time, and SQL calls in it complete synchron
 
 ### A wake is a row until its handlers return, so a failed delivery comes back
 
-An object has one alarm, so `doAlarmScheduler()` stores every wake as a row and sets the alarm to the earliest. Call its `alarm()` from the object's `alarm()` method: it delivers each due wake to the `onWake()` handlers and deletes the wake once they return. A handler that throws keeps its wake, which is delivered again after `retryMs` (30 s by default), so a long outage can't use up Cloudflare's six alarm retries and lose the wake. Wakes are therefore at least once, as the `Scheduler` seam promises. The scheduler owns the object's alarm, so nothing else in the object may call `setAlarm()`. An alarm handler runs for at most 15 minutes, so a handler should run one step of a turn and ask for another wake.
+An object has one alarm, so `doAlarmScheduler()` stores every wake as a row and sets the alarm to the earliest. Call its `alarm()` from the object's `alarm()` method: it delivers each due wake to the `onWake()` handlers and deletes the wake once they return. A handler that throws keeps its wake, which is delivered again after `retryMs` (30 s by default), so a long outage can't use up Cloudflare's six alarm retries and lose the wake. Wakes are therefore at least once, as the `Scheduler` seam promises. A due wake is deleted once the handlers registered at that moment return, even when there are none, so register in the object's constructor every handler whose wakes must survive an eviction. The scheduler owns the object's alarm, so nothing else in the object may call `setAlarm()`. An alarm handler runs for at most 15 minutes, so a handler should run one step of a turn and ask for another wake.
 
 ### The key ring stays in a Worker secret, and no store object holds its text
 
@@ -1152,7 +1152,7 @@ An object has one alarm, so `doAlarmScheduler()` stores every wake as a row and 
 
 ### A client keeps its socket through hibernation, and the bridge replays its connection
 
-With the Hibernation API, the runtime may evict an idle object while its clients stay connected, and the next frame runs the constructor again with empty memory. `webSocketHibernation()` therefore records each connection's `initialize` and up to 8 opened sessions in the socket's attachment. When a frame arrives on a socket the object no longer serves, the bridge starts a new `webSocketTransport()` and replays the `initialize` and each `session/open` under ids of its own before that frame. A session that had no entries yet is created again. The client never sees the replay's answers, and its next command works as before. A running turn keeps the object in memory, so no turn spans an eviction.
+With the Hibernation API, the runtime may evict an idle object while its clients stay connected, and the next frame runs the constructor again with empty memory. `webSocketHibernation()` therefore records each connection's `initialize`, keeping only its opt-ins to experimental methods, and up to 8 sessions it opened, created or forked in the socket's attachment, bounded to fit Cloudflare's 16,384 serialized bytes. When a frame arrives on a socket the object no longer serves, the bridge starts a new `webSocketTransport()` and replays the `initialize` and each `session/open` under ids of its own before that frame. A session that had no entries yet is created again. The client never sees the replay's answers, and its next command works as before. A running turn keeps the object in memory, so no turn spans an eviction.
 
 ### The suite runs in workerd offline, and a live run on a real account is opt-in
 

@@ -3,6 +3,7 @@
 // which is what an object that left memory does when the next frame arrives. The real-socket case is in
 // cloudflare.test.ts; these cases check what the bridge keeps, bounds and refuses.
 import assert from "node:assert/strict";
+import { serialize } from "node:v8";
 import { createModel, type Model } from "@buildanagent/gateway";
 import { type HibernatableWebSocketLike, webSocketHibernation } from "@buildanagent/harness/cloudflare";
 import { createDispatcher, createHarness } from "@buildanagent/harness/server";
@@ -115,6 +116,54 @@ describe("webSocketHibernation", () => {
     );
     await until(() => answerTo(socket, 4) !== undefined, "the second turn/start");
     assert.equal(answerTo(socket, 4)?.result?.accepted, false);
+  });
+
+  test("a session the client forked is still open on its connection after an eviction", async () => {
+    const store = memoryStore();
+    const socket = new FakeSocket();
+    const bridge = objectOver(store);
+    await startedSession(socket, bridge);
+    await bridge.webSocketMessage(
+      socket,
+      frame({ jsonrpc: "2.0", id: 10, method: "session/open", params: { session: "s1", cwd: "/w" } }),
+    );
+    await until(() => answerTo(socket, 10) !== undefined, "session/open");
+    const head = answerTo(socket, 10)?.result?.head as string;
+    await bridge.webSocketMessage(
+      socket,
+      frame({ jsonrpc: "2.0", id: 11, method: "session/fork", params: { session: "s1", entryId: head } }),
+    );
+    await until(() => answerTo(socket, 11) !== undefined, "session/fork");
+    const forked = answerTo(socket, 11)?.result?.session as string;
+    assert.equal(typeof forked, "string");
+    const evicted = objectOver(store);
+    const input = [{ type: "text" as const, text: "on the fork" }];
+    await evicted.webSocketMessage(
+      socket,
+      frame({ jsonrpc: "2.0", id: 12, method: "turn/start", params: { session: forked, input } }),
+    );
+    await until(() => answerTo(socket, 12) !== undefined, "turn/start on the fork");
+    assert.equal(answerTo(socket, 12)?.result?.accepted, true);
+  });
+
+  test("the attachment keeps only the experimental opt-ins, and its largest form fits in 16,384 bytes", async () => {
+    const socket = new FakeSocket();
+    const bridge = objectOver(memoryStore());
+    bridge.accept(socket);
+    const wide = "\u4e00".repeat(512);
+    const capabilities = [...Array.from({ length: 40 }, (_, i) => `cap-${i}-${"x".repeat(600)}`), "session/fork"];
+    const init = { clientInfo: { name: wide, version: wide }, capabilities };
+    await bridge.webSocketMessage(socket, frame({ jsonrpc: "2.0", id: 1, method: "initialize", params: init }));
+    await until(() => answerTo(socket, 1) !== undefined, "initialize");
+    const attached = socket.attachment as { initialize?: { capabilities: string[] } };
+    assert.deepEqual(attached.initialize?.capabilities, ["session/fork"]);
+    // The largest state the bounds allow, in the two-byte strings V8 serializes at the most bytes per character.
+    const largest = {
+      v: 1,
+      initialize: { clientInfo: { name: wide, version: wide }, capabilities: ["session/checkout", "session/fork"] },
+      sessions: Array.from({ length: 8 }, (_, i) => ({ session: `${i}${"\u4e00".repeat(127)}`, cwd: wide })),
+    };
+    assert.ok(serialize(largest).length < 16_384, `${serialize(largest).length} bytes`);
   });
 
   test("a session created but never run is created again after an eviction", async () => {

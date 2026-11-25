@@ -1,5 +1,6 @@
 // The Cloudflare adapters refuse options they can't use before they touch the object's storage, so a storage stand-in
-// that records nothing is enough here; everything they do with real storage runs in workerd, in cloudflare.test.ts.
+// that records nothing is enough here, and one that fails shows how a storage error reaches the caller. Everything
+// they do with real storage runs in workerd, in cloudflare.test.ts.
 import assert from "node:assert/strict";
 import { isHarnessError } from "@buildanagent/harness";
 import { type DurableStorageLike, doAlarmScheduler, doLock, doSqliteStore } from "@buildanagent/harness/cloudflare";
@@ -34,4 +35,23 @@ test("doAlarmScheduler refuses a retry delay that is not a whole number of at le
   for (const retryMs of [0, -5, 2.5]) {
     assert.throws(() => doAlarmScheduler(untouched, { retryMs }), code("invalid_scheduler_options"));
   }
+});
+
+test("doAlarmScheduler's wake and cancel reject, not throw, when storage fails", async () => {
+  let made = false;
+  const failing: DurableStorageLike = {
+    ...untouched,
+    sql: {
+      exec: () => {
+        if (made) throw new Error("storage is full");
+        made = true;
+        return { toArray: () => [] };
+      },
+    },
+  };
+  const scheduler = doAlarmScheduler(failing);
+  const woken = scheduler.wake(new Date(0), "s1");
+  const cancelled = scheduler.cancel("s1");
+  await assert.rejects(woken, /storage is full/);
+  await assert.rejects(cancelled, /storage is full/);
 });

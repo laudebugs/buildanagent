@@ -7,12 +7,12 @@
  *
  * Eviction loses everything in memory, the dispatcher's connections included, so the bridge keeps what a connection
  * needs to carry on in the socket's attachment, which survives hibernation: the client's `initialize` and the sessions
- * it opened or created, never a frame's other content. When a frame arrives on a socket the object no longer serves,
+ * it opened, created or forked, never a frame's other content. When a frame arrives on a socket the object no longer serves,
  * the bridge starts a new transport and, before that frame, replays the `initialize` and each `session/open` (or
  * `session/create`, for a session with no entries yet) under ids of its own, whose answers it drops. The client sees
  * none of it and its next command works as before.
  */
-import type { ClientMessage, ServerMessage } from "@buildanagent/protocol";
+import { type ClientMessage, EXPERIMENTAL_METHODS, type ServerMessage } from "@buildanagent/protocol";
 import type { Connection, ConnectOptions, Dispatcher } from "../server/dispatcher.js";
 import type { Deliver } from "../server/outbox.js";
 import {
@@ -71,13 +71,21 @@ interface Attached {
   sessions: { readonly session: string; readonly cwd: string }[];
 }
 
-/** Bounds that keep an attachment far below Cloudflare's 16 KiB: at most 8 sessions, and short strings only. */
+/**
+ * Bounds that keep an attachment below Cloudflare's 16,384 serialized bytes. V8 writes a string at two bytes per
+ * UTF-16 unit at most, so the worst case is the client's name and version (2 × 512 units), 8 sessions of an id (128
+ * units, the 64 characters a session key may have) and a cwd (512 units), and the two experimental opt-ins: about
+ * 12.3 KB of strings, plus a few hundred bytes of keys and framing.
+ */
 const MAX_SESSIONS = 8;
 const MAX_TEXT = 512;
-const MAX_CAPABILITIES = 32;
+const MAX_SESSION_ID = 128;
 const RESTORE_ID = "$/hibernation/restore/";
 
 const isText = (value: unknown): value is string => typeof value === "string" && value.length <= MAX_TEXT;
+const isSessionId = (value: unknown): value is string => typeof value === "string" && value.length <= MAX_SESSION_ID;
+// Only the experimental methods' opt-ins change what a connection may do, so they are all the replay needs to keep.
+const isOptIn = (value: unknown): value is string => (EXPERIMENTAL_METHODS as readonly unknown[]).includes(value);
 
 /** The attachment as the bridge wrote it, or an empty state for anything else, so a foreign value is never trusted. */
 function attachedOf(value: unknown): Attached {
@@ -88,15 +96,15 @@ function attachedOf(value: unknown): Attached {
   if (Array.isArray(sessions)) {
     for (const item of sessions.slice(0, MAX_SESSIONS)) {
       const { session, cwd } = (item ?? {}) as { session?: unknown; cwd?: unknown };
-      if (isText(session) && isText(cwd)) state.sessions.push({ session, cwd });
+      if (isSessionId(session) && isText(cwd)) state.sessions.push({ session, cwd });
     }
   }
   const init = (initialize ?? {}) as { clientInfo?: { name?: unknown; version?: unknown }; capabilities?: unknown };
   const caps = init.capabilities;
-  if (isText(init.clientInfo?.name) && isText(init.clientInfo?.version) && Array.isArray(caps) && caps.every(isText)) {
+  if (isText(init.clientInfo?.name) && isText(init.clientInfo?.version) && Array.isArray(caps)) {
     state.initialize = {
       clientInfo: { name: init.clientInfo.name, version: init.clientInfo.version },
-      capabilities: caps.slice(0, MAX_CAPABILITIES),
+      capabilities: [...new Set(caps.filter(isOptIn))],
     };
   }
   return state;
@@ -168,6 +176,10 @@ class Recorder {
     } else if (method === "session/open" || method === "session/create") {
       const cwd = params?.cwd;
       this.#asked.set(message.id, (result) => this.#opened((result as { session?: unknown })?.session, cwd));
+    } else if (method === "session/fork") {
+      // A fork answers with a new session, stored with entries, that the connection now watches under its parent's cwd.
+      const cwd = this.#state.sessions.find((item) => item.session === params?.session)?.cwd;
+      this.#asked.set(message.id, (result) => this.#opened((result as { session?: unknown })?.session, cwd));
     }
   }
 
@@ -188,7 +200,7 @@ class Recorder {
   }
 
   #opened(session: unknown, cwd: unknown): void {
-    if (!isText(session) || !isText(cwd)) return;
+    if (!isSessionId(session) || !isText(cwd)) return;
     const others = this.#state.sessions.filter((item) => item.session !== session);
     this.#state.sessions = [...others, { session, cwd }].slice(-MAX_SESSIONS);
     this.#save();
@@ -271,8 +283,9 @@ function answerCode(code: number): number | undefined {
  * frame rules, bounds and close codes as anywhere else. The transport authenticates nobody: check the peer before
  * accepting its socket.
  *
- * The bridge records the client's `initialize` and up to 8 opened sessions in each socket's attachment, and after an
- * eviction replays them, as the module comment describes. A session with no entries is created again with its id and
+ * The bridge records the client's `initialize`, with only its opt-ins to experimental methods, and up to 8 opened,
+ * created or forked sessions in each socket's attachment, and after an eviction replays them, as the module comment
+ * describes. A session with no entries is created again with its id and
  * `cwd`. A turn never spans an eviction, because a running turn keeps the object in memory. The transport's
  * backpressure polls `bufferedAmount` on a timer, which also keeps the object in memory while a client reads slowly.
  */
