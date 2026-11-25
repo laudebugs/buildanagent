@@ -18,7 +18,7 @@ Run the safety package unchanged on local Node, Cloudflare, AWS and Vercel, with
 ## Context
 
 - [ADR 0033](../../decisions/0033-three-deployment-targets.md): four targets, one conformance suite.
-- [N45](../ready/N45-portability-conformance-suite.md) and [N46a](../ready/N46a-cloudflare-state-adapters.md), [N47a](../ongoing/N47a-aws-state-adapters.md), [N48a](../ready/N48a-vercel-state-adapters.md): the harness's suite and state adapters, which this todo's stores follow.
+- [N45](../ready/N45-portability-conformance-suite.md) and [N46a](../ready/N46a-cloudflare-state-adapters.md), [N47a](../done/N47a-aws-state-adapters.md), [N48a](../ready/N48a-vercel-state-adapters.md): the harness's suite and state adapters, which this todo's stores follow.
 - [Storage-and-wake note](../../research/deployment/storage-and-wake.md): at-least-once wakes, and why the store's insert-if-absent must be atomic.
 - [Cloudflare reference §12](../../reference/cloudflare-agents/guide.md#12-tests-run-in-workerd-with-a-mock-model): running tests in workerd.
 
