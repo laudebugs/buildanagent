@@ -18,7 +18,7 @@ Build the identity ADR 0034 describes: per-task installation tokens minted outsi
 ## Context
 
 - [ADR 0034](../../decisions/0034-github-app-identity.md): the decision.
-- [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md) (2026-11-25): a sandbox holds no credentials by default, and an authenticated action runs as a host-side tool. The E2B and Vercel backends refuse git routes, so a push from those backends runs as a host-side tool.
+- [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md) (2026-11-25): a sandbox holds no credentials by default. This todo's git route is one our own proxy runs, so it keeps the token on the host and fits that record; scope is unchanged. The E2B and Vercel backends refuse git routes, so a push from those backends runs as a host-side tool.
 - [GitHub, installation access tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app): token scope and the one-hour expiry.
 
 ## Scope
