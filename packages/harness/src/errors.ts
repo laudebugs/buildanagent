@@ -59,7 +59,10 @@ export type HarnessErrorCode =
   | "memory_path_refused"
   | "memory_corrupt"
   | "invalid_telemetry_options"
-  | "budget_unknown";
+  | "budget_unknown"
+  | "invalid_aws_options"
+  | "aws_write_incomplete"
+  | "invalid_wake_event";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -113,7 +116,10 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * MCP tool call ended without a result, because the server closed, timed out, asked for input or answered with an
  * error (`McpError`). `invalid_telemetry_options`: a span projection's or a budget meter's setting can't be used, such as a
  * negative cap or an empty hashing key. `budget_unknown`: a session with a cap has spent an unknown amount, so a budgeted
- * turn is refused.
+ * turn is refused. `invalid_aws_options`: an AWS adapter was given no SDK client, or a table, schedule group, ARN or
+ * secret id it can't use. `aws_write_incomplete`: DynamoDB left part of the DynamoDB store's batch write unprocessed
+ * after every retry, so its append committed nothing. `invalid_wake_event`: `deliverWake()` or `parseWakeEvent()` was
+ * given an event that is not a wake, or a wake that arrived far earlier than any schedule fires.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";

@@ -26,6 +26,9 @@ const PLANNED_ENTRIES = [
   "./memory/node",
   "./telemetry",
   "./server",
+  "./aws/dynamodb",
+  "./aws/scheduler",
+  "./aws/secrets-manager",
   "./ablation",
   "./testing",
 ];
