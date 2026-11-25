@@ -275,7 +275,7 @@ packages/
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
-                                "./credentials", "./extensions", "./extensions/node", "./memory", "./memory/node",
+                                "./credentials", "./cloudflare", "./extensions", "./extensions/node", "./memory", "./memory/node",
                                 "./telemetry", "./server", "./ablation", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
     src/context/                write cap, masking, summarizer, mid-turn, overflow retry, policy composer
@@ -284,6 +284,7 @@ packages/
     src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
     src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/ and docker/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
+    src/cloudflare/             Durable Object SQLite store and index, lock, alarm scheduler, Worker key store, hibernation (N46a)
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
     src/memory/                 memory extension: the memory tool, records, index, expiry, purge marks (HD17)
     src/telemetry/              projectSpans(), harness attribute names, budget meter

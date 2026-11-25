@@ -23,6 +23,8 @@ export type HarnessErrorCode =
   | "invalid_tool_options"
   | "invalid_permission_config"
   | "invalid_lock_options"
+  | "invalid_store_options"
+  | "invalid_scheduler_options"
   | "session_locked"
   | "session_read_only"
   | "entry_not_found"
@@ -79,7 +81,9 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * or a registry option is unusable, such as a name that breaks the canonical rule or an unknown source.
  * `invalid_tool_options`: the built-in tools were given a workspace root or a policy root that is not an absolute path.
  * `invalid_permission_config`: an allow rule makes the host callback unreachable (`PermissionConfigError`).
- * `invalid_lock_options`: a file lock was given a lease, renewal interval or host name it can't use. `session_locked`:
+ * `invalid_lock_options`: a file lock or a Durable Object lock was given a lease, renewal interval or host name it
+ * can't use. `invalid_store_options`: a Durable Object session store was given an entry bound it can't use.
+ * `invalid_scheduler_options`: an alarm scheduler was given a retry delay it can't use. `session_locked`:
  * another writer holds the session. `session_read_only`: a session opened without a lock was asked to write.
  * `entry_not_found`: an entry id is in no file of the session. `unsupported_format`: a session file's format can't be
  * read or migrated, its header names none, or the store can't read it as written. `invalid_turn_options`: a turn's
