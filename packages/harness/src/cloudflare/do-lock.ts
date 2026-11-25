@@ -9,6 +9,7 @@
  * can't both win even if a host ever let two callers interleave.
  */
 import { HarnessError } from "../errors.js";
+import { armRenewal } from "../session/lease-renewals.js";
 import type { LockHandle, SessionLock } from "../session/lock.js";
 import { type ProcessScheduler, processScheduler } from "../session/scheduler.js";
 import { checkKey, type SessionKey } from "../session/store.js";
@@ -105,11 +106,7 @@ class Hold implements LockHandle {
   }
 
   #arm(): void {
-    const { scheduler, renewMs } = this.#settings;
-    const at = new Date(Math.max(scheduler.now() + renewMs, this.#armedAt + 1));
-    this.#armedAt = at.getTime();
-    // A scheduler that refuses the wake leaves no renewal coming, so the hold reports itself lost and the writer stops.
-    scheduler.wake(at, this.#wakeId).catch(() => this.#lose());
+    this.#armedAt = armRenewal(this.#settings, this.#armedAt, this.#wakeId, () => this.#lose());
   }
 
   /** Extends the lease, only while this hold's token still holds it unlapsed. Any other outcome ends the hold. */
