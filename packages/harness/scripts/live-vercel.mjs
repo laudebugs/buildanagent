@@ -60,17 +60,25 @@ async function fresh() {
 }
 
 async function leaseLapsesOnTheDatabaseClock() {
+  // Empty the run's tables first, so a row an earlier check left cannot refuse the first acquire.
+  await fresh();
   const key = { userId: "live", sessionId: "lease" };
   const quiet = { now: Date.now, wake: async () => undefined, cancel: async () => undefined, onWake: () => () => {} };
   const first = await postgresLock(pool, { leaseMs: LEASE_MS, renewMs: LEASE_MS - 1, scheduler: quiet }).acquire(key);
   if (first === "would_block") throw new Error("the first acquire was refused");
-  const peer = postgresLock(pool, { leaseMs: LEASE_MS, renewMs: LEASE_MS - 1, scheduler: quiet });
-  if ((await peer.acquire(key)) !== "would_block") throw new Error("a live lease was taken");
-  await new Promise((done) => setTimeout(done, LEASE_MS + 500));
-  const taker = await peer.acquire(key);
-  if (taker === "would_block") throw new Error("a lapsed lease was not taken over");
-  if (!(taker.fence > first.fence)) throw new Error("the fence did not grow on takeover");
-  await taker.release();
+  let taker;
+  try {
+    const peer = postgresLock(pool, { leaseMs: LEASE_MS, renewMs: LEASE_MS - 1, scheduler: quiet });
+    if ((await peer.acquire(key)) !== "would_block") throw new Error("a live lease was taken");
+    await new Promise((done) => setTimeout(done, LEASE_MS + 500));
+    taker = await peer.acquire(key);
+    if (taker === "would_block") throw new Error("a lapsed lease was not taken over");
+    if (!(taker.fence > first.fence)) throw new Error("the fence did not grow on takeover");
+  } finally {
+    // A holder that fails a check still lets go, so the next check starts clean and no renewal timer keeps the run alive.
+    if (taker !== undefined && taker !== "would_block") await taker.release().catch(() => undefined);
+    await first.release().catch(() => undefined);
+  }
 }
 
 async function ledgerRoundTrip() {

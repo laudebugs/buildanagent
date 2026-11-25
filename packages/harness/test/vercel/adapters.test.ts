@@ -106,6 +106,19 @@ describe("postgresStore", () => {
     assert.equal((await collect(a.load(KEY))).length, 2);
   });
 
+  test("list leaves out a session whose last entry is corrupt and still lists the others", async () => {
+    const client = await fresh();
+    const store = postgresStore(client);
+    await store.append(KEY, [header]);
+    await store.append({ userId: "ada", sessionId: "bad" }, [header]);
+    await client.query("UPDATE harness_session_entries SET entry = $1 WHERE session_id = 'bad'", ["{not json"]);
+    const listed = await collect(store.list("ada"));
+    assert.deepEqual(
+      listed.map((summary) => summary.sessionId),
+      ["s1"],
+    );
+  });
+
   test("writers that set no expected tail both append, each at its own seq", async () => {
     const client = await fresh();
     await postgresStore(client).append(KEY, [header]);

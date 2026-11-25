@@ -4,7 +4,7 @@
  * try to write the same `seq`, so Postgres refuses one of them whole. This file imports no Node module.
  */
 import { isProtocolError, parseEntry, type SessionEntry } from "@buildanagent/protocol";
-import { HarnessError } from "../errors.js";
+import { HarnessError, isHarnessError } from "../errors.js";
 import { ConflictError } from "../session/errors.js";
 import {
   type AppendOptions,
@@ -167,8 +167,15 @@ async function* summaries(client: PgClientLike, userId: string): AsyncGenerator<
   );
   const found: SessionSummary[] = [];
   for (const row of rows) {
-    const summary = summaryOf(String(row.session_id), [parse(row.header), parse(row.last)]);
-    if (summary !== undefined) found.push({ ...summary, entryCount: toNumber(row.n) });
+    const sessionId = String(row.session_id);
+    const key = { userId, sessionId };
+    try {
+      const summary = summaryOf(sessionId, [parseStored(row.header, key, 0), parseStored(row.last, key, row.n)]);
+      if (summary !== undefined) found.push({ ...summary, entryCount: toNumber(row.n) });
+    } catch (error) {
+      // As the JSONL store does, hide a session that can't be read, so one bad row hides no other session.
+      if (!isHarnessError(error)) throw error;
+    }
   }
   yield* found.sort(byAge);
 }
@@ -183,7 +190,7 @@ async function* summaries(client: PgClientLike, userId: string): AsyncGenerator<
  * `INSERT` and the append plans again, so it never writes part of a batch. A load reads the entries present when it
  * began, a page at a time, and passes each through the protocol's parser: a log written in another format throws a
  * `HarnessError` with code `unsupported_format`, and an entry the parser refuses throws one with code `session_corrupt`.
- * The store has no torn lines, because Postgres writes a row whole or not at all, and it offers `loadRaw()`, which reads
+ * `list()` leaves out a session whose first or last entry can't be read, so one bad session hides no other. The store has no torn lines, because Postgres writes a row whole or not at all, and it offers `loadRaw()`, which reads
  * the same rows unparsed, for a migration.
  */
 export function postgresStore(client: PgClientLike, options: PostgresStoreOptions = {}): SessionStore {
