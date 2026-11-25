@@ -864,7 +864,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight portable seams (`EffectStore` is the eighth, ADR 0043) | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
 | [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
-| [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
+| [N47a](../todos/ongoing/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |

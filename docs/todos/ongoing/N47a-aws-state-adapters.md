@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `N47a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
-| Depends on | [N45](N45-portability-conformance-suite.md) |
+| Depends on | [N45](../done/N45-portability-conformance-suite.md) |
 | Size | M |
 
 ## Goal
@@ -57,7 +57,7 @@ Lambda stops at 900 s, so the runner must checkpoint and wake rather than run a 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [ ] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
