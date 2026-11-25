@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `N35` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N29](../done/N29-stdio-transport.md), [N30](N30-cli.md), [N34](N34-ablation-switches.md), [B19](../done/B19-triage-capstone.md), [B20](B20-versioning-docs.md) |
+| Depends on | [N29](../done/N29-stdio-transport.md), [N30](../done/N30-cli.md), [N34](../done/N34-ablation-switches.md), [B19](../done/B19-triage-capstone.md), [B20](../done/B20-versioning-docs.md) |
 | Size | M |
 
 ## Goal
