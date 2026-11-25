@@ -90,6 +90,26 @@ function failingInserts(client: PgClientLike, error: unknown, inserts: number): 
   };
 }
 
+describe("workflowScheduler cancel", () => {
+  test("a resumeHook that throws at once still lets every wake of the id be removed and every hook be tried", async () => {
+    const client = await fresh();
+    const tried: string[] = [];
+    const scheduler = workflowScheduler({
+      ledger: postgresWakeLedger(client),
+      start: async () => undefined,
+      resumeHook: ((token: string) => {
+        tried.push(token);
+        throw new Error("not async");
+      }) as never,
+    });
+    await scheduler.wake(new Date(START + 1_000), "s1");
+    await scheduler.wake(new Date(START + 2_000), "s1");
+    await scheduler.cancel("s1");
+    assert.equal(tried.length, 2);
+    assert.equal((await client.query("SELECT 1 FROM harness_wakes")).rows.length, 0);
+  });
+});
+
 describe("postgresStore", () => {
   test("of two writers expecting the same tail, exactly one appends and the other gets a ConflictError", async () => {
     const client = await fresh();

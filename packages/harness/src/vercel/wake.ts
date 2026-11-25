@@ -133,7 +133,10 @@ export function workflowScheduler(options: WorkflowSchedulerOptions): Scheduler 
       const removed = await ledger.removeAll(sessionId);
       await Promise.all(
         removed.map(({ at, nonce }) =>
-          resumeHook(wakeToken(sessionId, at, nonce), { cancel: true }).catch(() => undefined),
+          // A throw from resumeHook, sync or async, must not stop the other runs' hooks from resuming.
+          Promise.resolve()
+            .then(() => resumeHook(wakeToken(sessionId, at, nonce), { cancel: true }))
+            .catch(() => undefined),
         ),
       );
     },
