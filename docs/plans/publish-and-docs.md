@@ -171,6 +171,8 @@ DS4 stays as accepted: `main` deploys `docs.buildanagent.fyi` until the first st
 
 The sixteen sub-todos, with their dependencies, sizes and models, are in the table in [L12](../todos/ongoing/L12-docs-redesign.md). The nine owner questions, with the answers and the defaults the sub-todos assume, are in [L12](../todos/ongoing/L12-docs-redesign.md#owner-questions).
 
+**Note of 2026-11-25: a direct read of Lamina PDF widened the comparison and proposed seven more sub-todos.** A second study read the Lamina PDF repository itself, at `db8e3b0`, where the first judged a ten-item digest. [L12's comparison](../todos/ongoing/L12-docs-redesign.md#the-lamina-pdf-comparison) now marks each Lamina practice adopted, partly adopted, deferred or rejected, and names where it lives in this repository. The same read amended the five sub-todos that have not started (L12g, L12h, L12i, L12j and L12m) and proposed seven new ones, L12t to L12z, which L12's split table describes. All seven [await the owner](../todos/ongoing/L12-docs-redesign.md#seven-sub-todos-are-proposed-and-await-the-owner-2026-11-25), so the count of sub-todos above stays as written until the owner accepts or drops each one. One more proposal sits outside L12: [X5](../todos/ready/X5-repository-link-check.md), a check of the repository's relative links.
+
 #### One shared header source (L12p)
 
 The owner asked for one header with links across the book, the docs and the site (Docs, Manual, Site, GitHub) and a consistent mark and wordmark per site. The three apps use different markup (Starlight overrides in the docs, Astro layouts in the book and the site), so they share data, not components: the links, each site's wordmark text and the mark's SVG.
