@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { serialize } from "node:v8";
 import { createModel, type Model } from "@buildanagent/gateway";
 import { type HibernatableWebSocketLike, webSocketHibernation } from "@buildanagent/harness/cloudflare";
-import { createDispatcher, createHarness } from "@buildanagent/harness/server";
+import { createDispatcher, createHarness, type Dispatcher } from "@buildanagent/harness/server";
 import { memoryIndex, memoryStore, type SessionStore } from "@buildanagent/harness/session";
 import { createToolRegistry } from "@buildanagent/harness/tools";
 import { type ClientMessage, decode, encode, type ServerMessage } from "@buildanagent/protocol";
@@ -34,12 +34,17 @@ class FakeSocket implements HibernatableWebSocketLike {
   }
 }
 
-function objectOver(store: SessionStore, index = memoryIndex(), lock = memoryLock()) {
+function objectOver(
+  store: SessionStore,
+  index = memoryIndex(),
+  lock = memoryLock(),
+  wrap: (dispatcher: Dispatcher) => Dispatcher = (dispatcher) => dispatcher,
+) {
   const steps = Array.from({ length: 4 }, () => ({ content: [{ type: "text" as const, text: "ok" }] }));
   const model = createModel({ adapter: new ScriptedModel(steps), id: "scripted-model", retries: 0 }) as Model;
   const harness = createHarness({ registry: createToolRegistry(), model, system: "You check the bridge." });
   const dispatcher = createDispatcher({ harness, store, index, lock, userId: "owner" });
-  return webSocketHibernation({ dispatcher });
+  return webSocketHibernation({ dispatcher: wrap(dispatcher) });
 }
 
 async function until(condition: () => boolean, what: string): Promise<void> {
@@ -115,6 +120,33 @@ describe("webSocketHibernation", () => {
       frame({ jsonrpc: "2.0", id: 4, method: "turn/start", params: { session: "s1", input } }),
     );
     await until(() => answerTo(socket, 4) !== undefined, "the second turn/start");
+    assert.equal(answerTo(socket, 4)?.result?.accepted, false);
+  });
+
+  test("a replay step that throws leaves the client's next frame answered, not waiting", async () => {
+    const store = memoryStore();
+    const socket = new FakeSocket();
+    await startedSession(socket, objectOver(store));
+    const failing = (inner: Dispatcher): Dispatcher => ({
+      close: () => inner.close(),
+      connect: (send, options) => {
+        const connection = inner.connect(send, options);
+        return {
+          close: () => connection.close(),
+          receive: async (message) => {
+            if ("method" in message && message.method === "session/open") throw new Error("the store is restarting");
+            return connection.receive(message);
+          },
+        };
+      },
+    });
+    const evicted = objectOver(store, memoryIndex(), memoryLock(), failing);
+    const input = [{ type: "text" as const, text: "again" }];
+    await evicted.webSocketMessage(
+      socket,
+      frame({ jsonrpc: "2.0", id: 4, method: "turn/start", params: { session: "s1", input } }),
+    );
+    await until(() => answerTo(socket, 4) !== undefined, "an answer to the frame after the failed replay");
     assert.equal(answerTo(socket, 4)?.result?.accepted, false);
   });
 

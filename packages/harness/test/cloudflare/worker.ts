@@ -259,7 +259,9 @@ export class HarnessDO {
     const scheduler = doAlarmScheduler(this.ctx.storage, { retryMs: 200 });
     const sql = this.ctx.storage.sql;
     sql.exec("CREATE TABLE IF NOT EXISTS test_deliveries (wake_id TEXT, at INTEGER, outcome TEXT)");
-    scheduler.onWake((id, at) => {
+    scheduler.onWake(async (id, at) => {
+      // The first of a pair cancels the second, which is due in the same run.
+      if (id === "cancel-a") await scheduler.cancel("cancel-b");
       const [row] = sql.exec("SELECT COUNT(*) AS n FROM test_deliveries WHERE wake_id = ?", id).toArray();
       const tries = Number(row?.n ?? 0);
       const fail = id.startsWith("flaky") && tries === 0;
@@ -274,6 +276,14 @@ export class HarnessDO {
   async armWake(id: string, ms: number): Promise<number> {
     const at = Date.now() + ms;
     await this.#liveScheduler().wake(new Date(at), id);
+    return at;
+  }
+
+  /** Asks for two wakes at one instant, so both are due in the same alarm run. */
+  async armPair(first: string, second: string, ms: number): Promise<number> {
+    const at = Date.now() + ms;
+    await this.#liveScheduler().wake(new Date(at), first);
+    await this.#liveScheduler().wake(new Date(at), second);
     return at;
   }
 
@@ -309,6 +319,8 @@ export class HarnessDO {
         return Response.json(await this.raceAppend(param("id")));
       case "/alarm/arm":
         return Response.json(await this.armWake(param("id"), Number(param("ms"))));
+      case "/alarm/pair":
+        return Response.json(await this.armPair(param("first"), param("second"), Number(param("ms"))));
       case "/alarm/deliveries":
         return Response.json(await this.deliveries());
     }

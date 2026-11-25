@@ -257,10 +257,18 @@ async function replay(
   const ask = async (method: string, params: unknown): Promise<boolean> => {
     const id = `${RESTORE_ID}${count++}`;
     const answered = new Promise<ServerMessage>((resolve) => replies.set(id, resolve));
-    await connection.receive({ jsonrpc: "2.0", id, method, params } as ClientMessage);
+    try {
+      await connection.receive({ jsonrpc: "2.0", id, method, params } as ClientMessage);
+    } catch {
+      // A step that throws must not leave the client's frames waiting on a replay that never ends; they get the
+      // dispatcher's own answer for a session that is not open.
+      replies.delete(id);
+      return false;
+    }
     return "result" in (await answered);
   };
-  if (state.initialize !== undefined) await ask("initialize", state.initialize);
+  // Without an `initialize` the dispatcher refuses every open, so a failed one ends the replay.
+  if (state.initialize !== undefined && !(await ask("initialize", state.initialize))) return;
   for (const { session, cwd } of state.sessions) {
     // A session with no entries yet was only in the evicted dispatcher's memory, so it is created again.
     if (!(await ask("session/open", { session, cwd }))) await ask("session/create", { session, cwd });

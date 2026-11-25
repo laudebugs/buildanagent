@@ -69,6 +69,10 @@ function dueWakes(sql: SqlStorageLike, time: number): Due[] {
     .map((row) => ({ id: text(row, "wake_id"), at: integer(row, "at") }));
 }
 
+function stillPending(sql: SqlStorageLike, wake: Due): boolean {
+  return sql.exec("SELECT 1 FROM harness_wakes WHERE wake_id = ? AND at = ?", wake.id, wake.at).toArray().length > 0;
+}
+
 /** Runs every handler for one wake and reports whether all of them returned. */
 async function deliver(
   handlers: ReadonlySet<WakeHandler>,
@@ -133,6 +137,8 @@ export function doAlarmScheduler(storage: DurableStorageLike, options: DoAlarmSc
     },
     async alarm() {
       for (const wake of dueWakes(sql, now())) {
+        // An earlier handler in this run may have cancelled this wake, and a cancelled wake must not be delivered.
+        if (!stillPending(sql, wake)) continue;
         const ok = await deliver(handlers, wake, options.onError);
         // A wake cancelled during its delivery is already gone, and neither statement brings it back.
         if (ok) sql.exec("DELETE FROM harness_wakes WHERE wake_id = ? AND at = ?", wake.id, wake.at);

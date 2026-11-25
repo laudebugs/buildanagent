@@ -138,6 +138,16 @@ describe("the alarm scheduler on workerd's real alarm", () => {
   }, 30_000);
 });
 
+describe("a wake cancelled during an alarm run", () => {
+  test("is not delivered, though it was already due when the run began", async () => {
+    await get<number>("/alarm/pair?first=cancel-a&second=cancel-b&ms=100");
+    const [first] = await deliveriesOf("cancel-a", 1);
+    assert.ok(first, "the first wake never arrived");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    assert.deepEqual(await deliveriesOf("cancel-b", 0), []);
+  }, 30_000);
+});
+
 /** A client on a real WebSocket to the object, which collects every message the server sends. */
 async function connect() {
   assert.ok(worker, "Miniflare started");
