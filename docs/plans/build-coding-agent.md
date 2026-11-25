@@ -60,7 +60,7 @@ The agent serves one person. The model key is one secret held by the host and ad
 | `Scheduler.wake` | in-process timer | Durable Object alarm | EventBridge Scheduler one-time schedule | Workflow `sleep()` and hooks |
 | `KeyStore` | key file (HD5) | Worker secret or Secrets Store | Secrets Manager | secret environment variable |
 | `SandboxClient` | `srt`, Docker | Cloudflare Sandbox (E2B as a swap) | E2B | Vercel Sandbox |
-| `EgressPolicy` | HD15 proxy | per-host `interceptOutboundHttp()` / `interceptOutboundHttps()` on the Durable Object Container API; HTTPS design set by N50 and the owner | E2B egress Secrets | firewall `transform`, `subnets.allow` banned |
+| `EgressPolicy` | HD15 proxy | per-host `interceptOutboundHttp()` / `interceptOutboundHttps()` on the Durable Object Container API; HTTPS design set by N50; the owner rules on interception for the opt-in credential route, and for the default too if plain allowlisted HTTPS fails without it ([ADR 0060](../decisions/0060-sandboxes-hold-no-credentials-by-default.md)) | deny-all plus the policy's hosts; E2B egress Secrets as the opt-in | deny-all plus the policy's hosts; firewall `transform` as the opt-in, `subnets.allow` banned |
 | Transport | stdio | WebSocket on the Durable Object | Lambda response streaming | WebSocket (beta) or SSE |
 | `EffectStore` | `memoryEffectStore()` | Durable Object SQLite | DynamoDB, conditional put | Postgres, insert on conflict do nothing |
 
@@ -130,7 +130,7 @@ owner ── CLI / GitHub label ──► Worker (control plane, ingress, dedup)
 
 - **Control plane (W5).** A Worker accepts task requests, checks the sender, deduplicates by id and starts the task's Durable Object. For one user it needs no queue fairness or runner pool.
 - **Task runner (W4).** One Durable Object per task runs a harness session. Model calls are waits on `fetch`, which do not count against Workers' CPU limit; alarms run for at most 15 minutes, so a long turn ends each step with a wake ([portable agents report][pa-rt]).
-- **Sandbox (W2, N46b).** The sandbox gets the repository, the built-in tools' commands and an allowlist for package registries. It holds no credential; the egress route adds them.
+- **Sandbox (W2, N46b).** The sandbox gets the repository, the built-in tools' commands and an allowlist for package registries. It holds no credential; a route our own proxy runs, or a host-side tool, supplies one. [ADR 0060](../decisions/0060-sandboxes-hold-no-credentials-by-default.md) (2026-11-25) makes no credentials the default for every sandbox backend: a route our own proxy runs keeps the credential on the host, a route that a hosted provider injects is a narrow opt-in, and an action with no such route runs as a host-side tool.
 - **Delivery (W6).** The agent commits to `agent/<task-id>`, opens a draft pull request with a summary and a link to the session, and follows up on review comments through the webhook. Base-branch conflicts emit no webhook, so W6 checks for them before each follow-up ([portable agents report][pa-cca]).
 - **Side effects.** The agent's only outward writes are git pushes and GitHub API calls. Each runs through [E2](../todos/done/E2-effect-identity-crash-rule.md)'s `guardedWrite()`, which persists an effect record keyed by `effectKey()` before the call, so a replayed wake cannot open a second pull request ([server rollback report][sr]). Opening a pull request uses the business key repository + branch, so a regenerated turn maps to the same effect. *(Revised in plan review 2, 2026-11-19: the owner chose "E2 owns it; W6 uses it", replacing this plan's own key scheme.)*
 
@@ -166,7 +166,7 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [N44](../todos/done/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
 | [N45](../todos/done/N45-portability-conformance-suite.md) | One conformance suite over the eight seams (`EffectStore` added by ADR 0043); local implementations pass | N41, N42, N43, N44, E7 | M |
 | [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
-| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
+| [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's ruling after N50 on interception for the opt-in credential route, and for the default too if plain allowlisted HTTPS fails without it ([ADR 0060](../decisions/0060-sandboxes-hold-no-credentials-by-default.md)) | N45, N50 | M |
 | [N47a](../todos/done/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/done/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |

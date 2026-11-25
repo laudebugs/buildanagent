@@ -1,6 +1,6 @@
 # N46b: Cloudflare Sandbox backend and per-host outbound interception egress
 
-> **On hold (plan review 2, 2026-11-19): do not start until the owner rules on N50's proposed ADR, even once N50 is done.** `@cloudflare/sandbox` 1.0 removed `allowedHosts` and `outboundByHost`, and HTTPS egress without interception fails. [N50](N50-cloudflare-sandbox-egress.md) tests the replacement on a real sandbox and drafts an ADR.
+> **On hold (plan review 2, 2026-11-19): do not start until the owner rules on N50's proposed ADR, even once N50 is done.** `@cloudflare/sandbox` 1.0 removed `allowedHosts` and `outboundByHost`, and HTTPS egress without interception fails. [N50](N50-cloudflare-sandbox-egress.md) tests the replacement on a real sandbox and drafts an ADR. *Narrowed on 2026-11-25:* [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md) makes no credentials the default for every sandbox, so the ruling covers interception for the opt-in credential route only, unless N50 finds that plain allowlisted HTTPS also needs it.
 
 | Field | Value |
 | --- | --- |
@@ -27,7 +27,7 @@ Implement the Cloudflare side of the portable seams and pass the N45 conformance
 **In scope**
 
 - A `SandboxClient` on `@cloudflare/sandbox` 1.0.3 and the Durable Object Container API
-- `EgressPolicy` compiled to internet off plus per-host `interceptOutboundHttp()` and `interceptOutboundHttps()` handlers that add credentials outside the sandbox. The final design follows N50's findings and the owner's ADR decision, including the CA trust step for HTTPS and the 128-intercept-entry limit
+- `EgressPolicy` compiled to internet off plus exactly the policy's hosts, with no credential route unless the caller adds one ([ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md)); for an opt-in credential route, per-host `interceptOutboundHttp()` and `interceptOutboundHttps()` handlers that add credentials outside the sandbox. The final design follows N50's findings and the owner's ADR decision, including the CA trust step for HTTPS and the 128-intercept-entry limit
 - N45's egress cases (non-allowlisted host, loopback, metadata addresses) on this backend
 
 **Out of scope**
