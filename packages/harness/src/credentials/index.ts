@@ -5,6 +5,8 @@
  * appended. `compileEgressPolicy()` turns an `EgressPolicy`, which names credentials but never holds them, into the
  * proxy's allowlist and routes, and a `git` route limits git over HTTPS to listed repositories and branches. The proxy
  * is Node-only; the policy compiler, the git checks, the scrubber and the address check are portable.
+ *
+ * @module @buildanagent/harness/credentials
  */
 export { isAddressLiteral, isPublicAddress } from "./addresses.js";
 export {

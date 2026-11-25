@@ -3,6 +3,8 @@
  * over `.agents/memory/` and the index at the start of each run, and `readPurgeMarks()` gives the calls a delete marked,
  * for `purgeSession()` and `pruneSessions()`. The memory folder on disk needs Node's file system, so `fileMemoryFiles()`
  * has its own entry, `@buildanagent/harness/memory/node`.
+ *
+ * @module @buildanagent/harness/memory
  */
 export { type MemoryExtension, type MemoryExtensionOptions, memoryExtension } from "./extension.js";
 export type { MemoryFiles } from "./files.js";

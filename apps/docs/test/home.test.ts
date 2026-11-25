@@ -5,12 +5,10 @@ import { describe, test } from "vitest";
 import { DOCS_DIR } from "../src/plugins/pages.js";
 import { builtSite } from "./built.js";
 
-// The home page is design A, a grid of one card per package. These tests read its source and check that every card
-// leads somewhere real and that its install line is the Install page's. No build and no network.
-const REPO = fileURLToPath(new URL("../../../", import.meta.url));
+// The home page is design A, a grid of one card per package. These tests check that every card leads to a real page in
+// these docs and that its install line matches the Install page.
 const home = readFileSync(`${DOCS_DIR}index.mdx`, "utf8");
 const install = readFileSync(`${DOCS_DIR}start/install.mdx`, "utf8");
-
 const PACKAGES = [
   ["Gateway", "gateway"],
   ["SDK", "sdk"],
@@ -19,7 +17,6 @@ const PACKAGES = [
   ["Protocol", "protocol"],
   ["CLI", "cli"],
 ] as const;
-const README_URL = "https://github.com/laudebugs/buildanagent/blob/main/packages/";
 
 const cards = [...home.matchAll(/<LinkCard\s+title="([^"]+)"[^>]*\shref="([^"]+)"/g)].map((m) => ({
   title: m[1] ?? "",
@@ -50,11 +47,12 @@ describe("the home page", () => {
     }
   });
 
-  test("leads each of the other four packages to its README, which exists in the repository", () => {
+  test("leads each of the other four packages to its API reference page in the built docs", () => {
+    const site = builtSite();
     for (const [title, folder] of PACKAGES.slice(2)) {
       const card = cards.find((entry) => entry.title === title);
-      assert.equal(card?.href, `${README_URL}${folder}/README.md`);
-      assert.ok(existsSync(`${REPO}packages/${folder}/README.md`), `${folder} has no README`);
+      assert.equal(card?.href, `/reference/${folder}/`);
+      assert.ok(existsSync(`${site}/reference/${folder}/index.html`), `/reference/${folder}/ has no built page`);
     }
   });
 

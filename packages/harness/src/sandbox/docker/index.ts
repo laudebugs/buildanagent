@@ -8,6 +8,8 @@
  *
  * The container has no network, so a command reaches a host only through a proxy socket the caller mounts. The file calls
  * run in the host on the mounted folders, checked by their real path.
+ *
+ * @module @buildanagent/harness/sandbox/docker
  */
 import { HarnessError } from "../../errors.js";
 import { BackendSandbox } from "../base.js";

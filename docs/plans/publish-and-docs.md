@@ -215,6 +215,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12n](../todos/done/L12n-docs-writing-diagrams-callouts-tabs.md) | The diagram, callout and tab rules in `docs-writing.md`, first piece of the L12 docs redesign | None | S |
 | [L12a](../todos/done/L12a-docs-theme-foundation.md) | The docs app takes the book's theme: generated tokens, shared fonts, a Starlight mapping and contrast tests, first build step of the L12 docs redesign | None | M |
 | [L12d](../todos/done/L12d-docs-figure-pipeline.md) | The docs figure pipeline on the book's `svgkit`, with the `package-map` and `run-loop` figures | L12a | M |
+| [L12f](../todos/done/L12f-docs-api-reference-four-packages.md) | Generated API reference for `agent-safety`, `protocol`, `harness` and `cli`, with `sidebar: "modules"` on `harness` and six-package measurements | L12c | S to M |
 | [L12k](../todos/done/L12k-docs-fences-gateway-figures.md) | `file=` fences on the docs' inline examples, a gateway page and figures 3 to 6 | L12d | M |
 | [L12q](../todos/done/L12q-docs-examples.md) | The new tested examples the docs pages need: protocol, a harness sandbox and compaction, and an agent-safety bring-your-own-key guard | L12k | M |
 | [L12r](../todos/done/L12r-docs-body-font-inter.md) | The docs' body text in Inter, with Instrument Serif kept for titles, after the owner's decision of 2026-11-24 | L12a | S |

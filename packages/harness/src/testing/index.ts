@@ -2,6 +2,8 @@
  * `@buildanagent/harness/testing`: test doubles and conformance suites for the harness's components. The in-memory
  * sandbox, and the conformance suites of the sandbox, the session store, the scheduler and the key store, are here so
  * far.
+ *
+ * @module @buildanagent/harness/testing
  */
 export {
   FAKE_COMMANDS,

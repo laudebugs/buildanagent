@@ -58,20 +58,15 @@ describe("the built reference", { timeout: 180_000 }, () => {
   for (const pkg of API_PACKAGES) {
     test(`has a page for every export of ${pkg.name}`, async () => {
       const exports = await listExports(typeDocOptions(pkg));
-      assert.ok(exports.length > 20, "the package has exports");
+      assert.ok(exports.length > 0, `${pkg.name} has exports`);
       const missing = exports.filter((entry) => {
-        // A module is named for its import path, and Astro drops the leading @ from a page's address.
+        // Multi-entry packages place exports under their module path (with leading @ stripped by Astro); single-entry
+        // packages place exports directly under pkg.output.
         const folder = FOLDER[entry.kind];
         if (folder === undefined) return true;
+        const moduleSegment = entry.module === "" ? [] : [entry.module.replace(/^@/, "").toLowerCase()];
         return !existsSync(
-          join(
-            builtSite(),
-            pkg.output,
-            entry.module.replace(/^@/, "").toLowerCase(),
-            folder,
-            entry.name.toLowerCase(),
-            "index.html",
-          ),
+          join(builtSite(), pkg.output, ...moduleSegment, folder, entry.name.toLowerCase(), "index.html"),
         );
       });
       assert.deepEqual(
