@@ -1,0 +1,875 @@
+{
+  "start": [
+    {
+      "stamp": {
+        "sdkVersion": "0.1.0-alpha.36",
+        "api": "scripted",
+        "provider": "scripted",
+        "model": "triage-priced",
+        "providerVersion": "scripted",
+        "caps": {
+          "contextWindow": 200000,
+          "maxOutputTokens": 4000,
+          "images": true,
+          "reasoning": true
+        },
+        "recordedAt": "2026-11-25T09:00:00.000Z",
+        "expiresAt": "2027-11-25T00:00:00.000Z"
+      },
+      "request": {
+        "model": {
+          "api": "scripted",
+          "provider": "scripted",
+          "id": "triage-priced"
+        },
+        "context": {
+          "system": "You triage support tickets. Look the customer up first. Escalate only a ticket an on-call engineer must see. Submit the triage last.",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "user@example.com says checkout fails with a 500. Triage it."
+                }
+              ]
+            }
+          ],
+          "tools": [
+            {
+              "name": "lookup_customer",
+              "description": "Look up the signed-in customer's plan and open tickets.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "name": "escalate",
+              "description": "Escalate the ticket to the on-call engineer.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": ["reason"]
+              }
+            },
+            {
+              "name": "submit_triage",
+              "description": "Submit the triage: its category, priority and a one-line summary. Call it once, last.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "enum": ["bug", "billing", "question"]
+                  },
+                  "priority": {
+                    "enum": ["low", "medium", "high"]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["category", "priority", "summary"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "response": {
+        "events": [
+          {
+            "type": "start"
+          },
+          {
+            "type": "tool_input_start",
+            "index": 0
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "{}"
+          },
+          {
+            "type": "tool_input_end",
+            "index": 0,
+            "block": {
+              "type": "tool_call",
+              "callId": "call-1",
+              "name": "lookup_customer",
+              "input": {}
+            }
+          },
+          {
+            "type": "done",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_call",
+                  "callId": "call-1",
+                  "name": "lookup_customer",
+                  "input": {}
+                }
+              ],
+              "model": {
+                "api": "scripted",
+                "provider": "scripted",
+                "id": "triage-priced"
+              },
+              "stopReason": "tool_calls",
+              "usage": {
+                "uncachedInput": 200,
+                "cacheRead": 0,
+                "cacheWrite": {
+                  "5m": 0,
+                  "1h": 0
+                },
+                "output": 50,
+                "reasoning": 0,
+                "raw": null
+              },
+              "cost": {
+                "total": 0.00135,
+                "basis": "catalog",
+                "currency": "USD",
+                "catalogAsOf": "2026-11-01"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "stamp": {
+        "sdkVersion": "0.1.0-alpha.36",
+        "api": "scripted",
+        "provider": "scripted",
+        "model": "triage-priced",
+        "providerVersion": "scripted",
+        "caps": {
+          "contextWindow": 200000,
+          "maxOutputTokens": 4000,
+          "images": true,
+          "reasoning": true
+        },
+        "recordedAt": "2026-11-25T09:00:00.000Z",
+        "expiresAt": "2027-11-25T00:00:00.000Z"
+      },
+      "request": {
+        "model": {
+          "api": "scripted",
+          "provider": "scripted",
+          "id": "triage-priced"
+        },
+        "context": {
+          "system": "You triage support tickets. Look the customer up first. Escalate only a ticket an on-call engineer must see. Submit the triage last.",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "user@example.com says checkout fails with a 500. Triage it."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_call",
+                  "callId": "call-1",
+                  "name": "lookup_customer",
+                  "input": {}
+                }
+              ],
+              "model": {
+                "api": "scripted",
+                "provider": "scripted",
+                "id": "triage-priced"
+              },
+              "stopReason": "tool_calls",
+              "usage": {
+                "uncachedInput": 200,
+                "cacheRead": 0,
+                "cacheWrite": {
+                  "5m": 0,
+                  "1h": 0
+                },
+                "output": 50,
+                "reasoning": 0,
+                "raw": null
+              },
+              "cost": {
+                "total": 0.00135,
+                "basis": "catalog",
+                "currency": "USD",
+                "catalogAsOf": "2026-11-01"
+              }
+            },
+            {
+              "role": "tool",
+              "callId": "call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"plan\":\"pro\",\"openTickets\":2}"
+                }
+              ],
+              "isError": false
+            }
+          ],
+          "tools": [
+            {
+              "name": "lookup_customer",
+              "description": "Look up the signed-in customer's plan and open tickets.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "name": "escalate",
+              "description": "Escalate the ticket to the on-call engineer.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": ["reason"]
+              }
+            },
+            {
+              "name": "submit_triage",
+              "description": "Submit the triage: its category, priority and a one-line summary. Call it once, last.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "enum": ["bug", "billing", "question"]
+                  },
+                  "priority": {
+                    "enum": ["low", "medium", "high"]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["category", "priority", "summary"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "response": {
+        "events": [
+          {
+            "type": "start"
+          },
+          {
+            "type": "text_start",
+            "index": 0
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "Ever"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "y pr"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "o cu"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "stom"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "er i"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "s af"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "fect"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "ed, "
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "so I"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "'ll "
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "page"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": " the"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": " on-"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "call"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": " eng"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "inee"
+          },
+          {
+            "type": "text_delta",
+            "index": 0,
+            "delta": "r."
+          },
+          {
+            "type": "text_end",
+            "index": 0,
+            "block": {
+              "type": "text",
+              "text": "Every pro customer is affected, so I'll page the on-call engineer."
+            }
+          },
+          {
+            "type": "tool_input_start",
+            "index": 1
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "{\"re"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "ason"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "\":\"C"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "heck"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "out "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "retu"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "rns "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "500 "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "for "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "ever"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "y pr"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "o cu"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "stom"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "er.\""
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 1,
+            "delta": "}"
+          },
+          {
+            "type": "tool_input_end",
+            "index": 1,
+            "block": {
+              "type": "tool_call",
+              "callId": "call-2",
+              "name": "escalate",
+              "input": {
+                "reason": "Checkout returns 500 for every pro customer."
+              }
+            }
+          },
+          {
+            "type": "done",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Every pro customer is affected, so I'll page the on-call engineer."
+                },
+                {
+                  "type": "tool_call",
+                  "callId": "call-2",
+                  "name": "escalate",
+                  "input": {
+                    "reason": "Checkout returns 500 for every pro customer."
+                  }
+                }
+              ],
+              "model": {
+                "api": "scripted",
+                "provider": "scripted",
+                "id": "triage-priced"
+              },
+              "stopReason": "tool_calls",
+              "usage": {
+                "uncachedInput": 200,
+                "cacheRead": 0,
+                "cacheWrite": {
+                  "5m": 0,
+                  "1h": 0
+                },
+                "output": 50,
+                "reasoning": 0,
+                "raw": null
+              },
+              "cost": {
+                "total": 0.00135,
+                "basis": "catalog",
+                "currency": "USD",
+                "catalogAsOf": "2026-11-01"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "resume": [
+    {
+      "stamp": {
+        "sdkVersion": "0.1.0-alpha.36",
+        "api": "scripted",
+        "provider": "scripted",
+        "model": "triage-priced",
+        "providerVersion": "scripted",
+        "caps": {
+          "contextWindow": 200000,
+          "maxOutputTokens": 4000,
+          "images": true,
+          "reasoning": true
+        },
+        "recordedAt": "2026-11-25T09:00:00.000Z",
+        "expiresAt": "2027-11-25T00:00:00.000Z"
+      },
+      "request": {
+        "model": {
+          "api": "scripted",
+          "provider": "scripted",
+          "id": "triage-priced"
+        },
+        "context": {
+          "system": "You triage support tickets. Look the customer up first. Escalate only a ticket an on-call engineer must see. Submit the triage last.",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "user@example.com says checkout fails with a 500. Triage it."
+                }
+              ]
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_call",
+                  "callId": "call-1",
+                  "name": "lookup_customer",
+                  "input": {}
+                }
+              ],
+              "model": {
+                "api": "scripted",
+                "provider": "scripted",
+                "id": "triage-priced"
+              },
+              "stopReason": "tool_calls",
+              "usage": {
+                "uncachedInput": 200,
+                "cacheRead": 0,
+                "cacheWrite": {
+                  "5m": 0,
+                  "1h": 0
+                },
+                "output": 50,
+                "reasoning": 0,
+                "raw": null
+              },
+              "cost": {
+                "total": 0.00135,
+                "basis": "catalog",
+                "currency": "USD",
+                "catalogAsOf": "2026-11-01"
+              }
+            },
+            {
+              "role": "tool",
+              "callId": "call-1",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"plan\":\"pro\",\"openTickets\":2}"
+                }
+              ],
+              "isError": false
+            },
+            {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Every pro customer is affected, so I'll page the on-call engineer."
+                },
+                {
+                  "type": "tool_call",
+                  "callId": "call-2",
+                  "name": "escalate",
+                  "input": {
+                    "reason": "Checkout returns 500 for every pro customer."
+                  }
+                }
+              ],
+              "model": {
+                "api": "scripted",
+                "provider": "scripted",
+                "id": "triage-priced"
+              },
+              "stopReason": "tool_calls",
+              "usage": {
+                "uncachedInput": 200,
+                "cacheRead": 0,
+                "cacheWrite": {
+                  "5m": 0,
+                  "1h": 0
+                },
+                "output": 50,
+                "reasoning": 0,
+                "raw": null
+              },
+              "cost": {
+                "total": 0.00135,
+                "basis": "catalog",
+                "currency": "USD",
+                "catalogAsOf": "2026-11-01"
+              }
+            },
+            {
+              "role": "tool",
+              "callId": "call-2",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "paged the on-call engineer"
+                }
+              ],
+              "isError": false
+            }
+          ],
+          "tools": [
+            {
+              "name": "lookup_customer",
+              "description": "Look up the signed-in customer's plan and open tickets.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "name": "escalate",
+              "description": "Escalate the ticket to the on-call engineer.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": ["reason"]
+              }
+            },
+            {
+              "name": "submit_triage",
+              "description": "Submit the triage: its category, priority and a one-line summary. Call it once, last.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "enum": ["bug", "billing", "question"]
+                  },
+                  "priority": {
+                    "enum": ["low", "medium", "high"]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["category", "priority", "summary"]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "response": {
+        "events": [
+          {
+            "type": "start"
+          },
+          {
+            "type": "tool_input_start",
+            "index": 0
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "{\"ca"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "tego"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "ry\":"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "\"bug"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "\",\"p"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "rior"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "ity\""
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": ":\"hi"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "gh\","
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "\"sum"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "mary"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "\":\"C"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "heck"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "out "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "retu"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "rns "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "500 "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "for "
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "a pr"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "o cu"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "stom"
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "er.\""
+          },
+          {
+            "type": "tool_input_delta",
+            "index": 0,
+            "delta": "}"
+          },
+          {
+            "type": "tool_input_end",
+            "index": 0,
+            "block": {
+              "type": "tool_call",
+              "callId": "call-3",
+              "name": "submit_triage",
+              "input": {
+                "category": "bug",
+                "priority": "high",
+                "summary": "Checkout returns 500 for a pro customer."
+              }
+            }
+          },
+          {
+            "type": "done",
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "type": "tool_call",
+                  "callId": "call-3",
+                  "name": "submit_triage",
+                  "input": {
+                    "category": "bug",
+                    "priority": "high",
+                    "summary": "Checkout returns 500 for a pro customer."
+                  }
+                }
+              ],
+              "model": {
+                "api": "scripted",
+                "provider": "scripted",
+                "id": "triage-priced"
+              },
+              "stopReason": "tool_calls",
+              "usage": {
+                "uncachedInput": 200,
+                "cacheRead": 0,
+                "cacheWrite": {
+                  "5m": 0,
+                  "1h": 0
+                },
+                "output": 50,
+                "reasoning": 0,
+                "raw": null
+              },
+              "cost": {
+                "total": 0.00135,
+                "basis": "catalog",
+                "currency": "USD",
+                "catalogAsOf": "2026-11-01"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
