@@ -1,7 +1,8 @@
 /**
- * `HarnessError`: the harness's error for programmer errors and for a sandbox that can't do what it was asked. Four
+ * `HarnessError`: the harness's error for programmer errors and for a sandbox that can't do what it was asked. Five
  * subclasses keep their own names for the cases callers catch by class: `SandboxUnavailableError`,
- * `SandboxDeniedError`, `SandboxPolicyMismatchError` and `SandboxUnsupportedError`, all in `./sandbox`.
+ * `SandboxDeniedError`, `SandboxPolicyMismatchError`, `SandboxUnsupportedError` and `SandboxSecretUnresolvedError`, all
+ * in `./sandbox`.
  */
 
 /** Why a `HarnessError` was thrown. */
@@ -13,6 +14,7 @@ export type HarnessErrorCode =
   | "sandbox_io_failed"
   | "sandbox_policy_mismatch"
   | "sandbox_unsupported"
+  | "sandbox_secret_unresolved"
   | "egress_denied"
   | "egress_secret_unresolved"
   | "invalid_egress_options"
@@ -78,6 +80,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * neither a missing file nor a denial. `sandbox_policy_mismatch`: the policy a backend read back after it provisioned or
  * resumed a sandbox differs from the one requested (`SandboxPolicyMismatchError`). `sandbox_unsupported`: a sandbox was
  * asked to resume, snapshot or pause on a backend that lacks the capability (`SandboxUnsupportedError`).
+ * `sandbox_secret_unresolved`: a hosted backend found that a secret its egress rules name doesn't exist, so it refused to
+ * provision a sandbox whose requests would go out without the credential (`SandboxSecretUnresolvedError`).
  * `egress_secret_unresolved`: a credential an egress route names could not be read, or is not usable as a header
  * value, so the sandbox was not provisioned; the error names the credential, never its value.
  * `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe:

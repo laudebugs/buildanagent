@@ -1,6 +1,6 @@
 /**
- * The checks every backend runs on a command and its options before anything starts. It is portable, so a hosted
- * backend shares them without loading the Node-only process runner.
+ * The checks every backend runs on a command and its options before it starts anything. It is portable, so a hosted
+ * backend that imports no Node module can share it with the local ones.
  */
 import { HarnessError } from "../errors.js";
 import type { ExecOptions } from "./types.js";

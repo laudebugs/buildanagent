@@ -26,7 +26,7 @@ export type SandboxTier = "none" | "os" | "container" | "gvisor" | "microvm";
  * What a backend claims to stop. `mistakes`: the agent's own errors, such as a write outside the workspace.
  * `exfiltration`: sending data to a host that is not allowed. `hostile_process`: a process that is trying to escape.
  * A backend lists a stop only when its tier and its applied policy deliver it, which `stopsFor()` computes: only a
- * `microvm` stops a `hostile_process`, and none of the backends in this package is one.
+ * `microvm` stops a `hostile_process`, and of the backends in this package only the E2B one is.
  */
 export type SandboxStop = "mistakes" | "exfiltration" | "hostile_process";
 

@@ -12,6 +12,9 @@ The sections of README.md and every public export, generated from this package's
 - [A denied command becomes a signed request, and an approved one reruns once](README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
+- [The E2B backend runs each sandbox in a microVM that reaches only the policy's hosts](README.md#the-e2b-backend-runs-each-sandbox-in-a-microvm-that-reaches-only-the-policys-hosts)
+  - [Credential injection is a narrow opt-in, for scoped, short-lived, low-value tokens only](README.md#credential-injection-is-a-narrow-opt-in-for-scoped-short-lived-low-value-tokens-only)
+  - [A sandbox that fails or is disposed is killed, and E2B's timeout is the backstop](README.md#a-sandbox-that-fails-or-is-disposed-is-killed-and-e2bs-timeout-is-the-backstop)
 - [The Vercel backend runs each sandbox in a microVM that holds no credentials](README.md#the-vercel-backend-runs-each-sandbox-in-a-microvm-that-holds-no-credentials)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
 - [Credentials and sandboxes: the sandbox holds none, and an authenticated action runs on the host](README.md#credentials-and-sandboxes-the-sandbox-holds-none-and-an-authenticated-action-runs-on-the-host)
@@ -352,6 +355,7 @@ The sections of README.md and every public export, generated from this package's
 - `class SandboxDeniedError`: Thrown when the policy refuses a file read or write.
 - `interface SandboxPolicy`: What a sandbox may touch.
 - `class SandboxPolicyMismatchError`: Thrown when the policy a backend read back from what it applied differs from the policy it was asked for, after `provision()` or a resume.
+- `class SandboxSecretUnresolvedError`: Thrown by a hosted backend's `provision()` or `resume()` when a secret that its egress rules name doesn't exist.
 - `type SandboxStop`: What a backend claims to stop.
 - `type SandboxTier`: How strongly a backend confines a process.
 - `class SandboxUnavailableError`: Thrown by `provision()` when a backend can't start, such as a missing binary.
@@ -379,6 +383,35 @@ The sections of README.md and every public export, generated from this package's
 - `DOCKER_PROXY_SOCKET_PATH`: Where a command finds the proxy socket, when the caller mounts one.
 - `dockerSandbox()`: Builds the Docker backend.
 - `interface DockerSandboxOptions`: The options of `dockerSandbox()`.
+
+## Exports from `@buildanagent/harness/sandbox/e2b`
+
+- `compileE2BEgress()`: Compiles `policy` for E2B: `allowOut` is exactly `allow` plus each route's host, `denyOut` denies every other address, `dnsServers` is empty, `allowPublicTraffic` is `false`, and each header route becomes a rule on its host whose header is the placeholder for the credential's E2B secret.
+- `E2B_ALL_TRAFFIC`: The `denyOut` entry that stands for every IPv4 address, which E2B calls `ALL_TRAFFIC`.
+- `E2B_DEFAULT_DNS_SERVER`: The DNS server E2B opens to all traffic when `allowOut` holds a domain and `dnsServers` is left out.
+- `E2B_PROVISION_LABEL`: The metadata key that marks a sandbox with the provisioning attempt that created it, for the sweep after a failure.
+- `E2B_ROOT_LABEL`: The metadata key that records a sandbox's workspace root, which `resume()` reads back.
+- `interface E2BCommandHandle`: A command started in the background.
+- `interface E2BCommandResult`: A command's result.
+- `interface E2BCompiledEgress`: An `EgressPolicy` compiled for E2B.
+- `interface E2BConnectionOptions`: Connection options the backend passes to every SDK call.
+- `interface E2BCreateOptions`: The options of `Sandbox.create()` that the backend sets.
+- `interface E2BEgressOptions`: The options of `compileE2BEgress()`.
+- `type E2BHeaderScheme`: A word that may come before a secret's placeholder in its header, such as `Bearer`.
+- `interface E2BNetworkInfo`: The network configuration E2B reports for a running sandbox.
+- `interface E2BNetworkOptions`: The network configuration the backend sends to `Sandbox.create()`.
+- `interface E2BNetworkRule`: One header transform of a network rule, as the backend writes and reads it.
+- `interface E2BRunOptions`: The options of a background command, as the backend starts every command.
+- `e2bSandbox()`: The E2B backend.
+- `interface E2BSandboxApi`: The `Sandbox` class's static methods the backend calls.
+- `interface E2BSandboxClient`: The E2B backend's client: a `SandboxClient` that can resume and pause.
+- `interface E2BSandboxInfo`: What `getInfo()` reports about a sandbox, as far as the backend reads it.
+- `interface E2BSandboxInstance`: A sandbox instance.
+- `interface E2BSandboxOptions`: The options of `e2bSandbox()`.
+- `interface E2BSandboxPaginator`: A page of listed sandboxes.
+- `interface E2BSdk`: The SDK the backend runs on: `{ Sandbox, Secret }` from `e2b`, or a fake with the same shape.
+- `interface E2BSecretApi`: The `Secret` class's static methods the backend calls.
+- `interface E2BSecretReference`: One secret a compiled policy names.
 
 ## Exports from `@buildanagent/harness/sandbox/vercel`
 
