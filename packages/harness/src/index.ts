@@ -1,5 +1,6 @@
 /**
- * `@buildanagent/harness`, the buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop. The `memory`, `telemetry` and `ablation` subpaths are stubs that hold their place until their components are built.
+ * `@buildanagent/harness`, the buildanagent harness: the session log, context policy, tools, permissions, sandbox,
+ * credentials, extensions, memory, telemetry and ablation switches around the SDK's loop.
  *
  * @module @buildanagent/harness
  */
