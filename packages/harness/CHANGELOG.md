@@ -1,5 +1,18 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.37
+
+### Minor Changes
+
+- 6fcd051: Add `@buildanagent/harness/vercel` and `@buildanagent/harness/vercel/workflow`. `postgresStore()` and `postgresLock()` keep the session log and its writer lock in Postgres. `workflowScheduler()` turns each wake into a Vercel Workflow run that delivers in one step, and `envKeyStore()` reads the approval key ring from a secret environment variable. The entries take the Postgres client and the Workflow SDK's functions as arguments and import neither.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.37
+  - @buildanagent/gateway@0.1.0-alpha.37
+  - @buildanagent/protocol@0.1.0-alpha.37
+  - @buildanagent/sdk@0.1.0-alpha.37
+
 ## 0.1.0-alpha.36
 
 ### Minor Changes
