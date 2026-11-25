@@ -8,6 +8,7 @@ import { secretKeyStore } from "../session/secret-key-store.js";
 
 /** A Secrets Store binding as a Worker sees it: `get()` resolves with the secret's text. */
 export interface SecretsStoreSecretLike {
+  /** Resolves with the secret's text, or rejects when the secret doesn't exist. */
   get(): Promise<string>;
 }
 

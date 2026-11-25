@@ -25,9 +25,13 @@ import {
 
 /** A server-side WebSocket that the object accepted with `ctx.acceptWebSocket()`. */
 export interface HibernatableWebSocketLike {
+  /** 1 while the socket is open; 2 and 3 once it is closing or closed. */
   readonly readyState: number;
+  /** The bytes sent but not yet handed to the network, when the runtime reports them. */
   readonly bufferedAmount?: number;
+  /** Sends one text frame. */
   send(data: string): void;
+  /** Closes the socket, with a status code and a short reason when given. */
   close(code?: number, reason?: string): void;
   /** Keeps a structured-clone copy of `value` with the socket, through hibernation, until the socket closes. */
   serializeAttachment(value: unknown): void;
