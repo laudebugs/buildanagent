@@ -1,5 +1,12 @@
 # @buildanagent/protocol
 
+## 0.1.0-alpha.38
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.38
+  - @buildanagent/sdk@0.1.0-alpha.38
+
 ## 0.1.0-alpha.37
 
 ### Patch Changes
