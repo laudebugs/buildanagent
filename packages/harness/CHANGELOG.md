@@ -1,5 +1,18 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.36
+
+### Minor Changes
+
+- 0aa9bda: Export the eight-seam portability conformance suite from `@buildanagent/harness/testing` (`PORTABILITY_SEAMS`, `portabilityConformanceCases()`, `runPortabilityConformance()`). This release also exports standalone suites for locks (`lockConformanceCases()`, `runLockConformance()`), egress (`EGRESS_DENIED_TARGETS`, `egressConformanceCases()`, `runEgressConformance()`), and protocol transports (`transportConformanceCases()`, `runTransportConformance()`).
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.36
+  - @buildanagent/gateway@0.1.0-alpha.36
+  - @buildanagent/protocol@0.1.0-alpha.36
+  - @buildanagent/sdk@0.1.0-alpha.36
+
 ## 0.1.0-alpha.35
 
 ### Minor Changes
