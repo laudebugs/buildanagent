@@ -1,6 +1,8 @@
 /**
  * `@buildanagent/harness/memory/node`: the memory folder on disk. It needs Node's file system; the extension itself is
  * in the portable `@buildanagent/harness/memory`.
+ *
+ * @module @buildanagent/harness/memory/node
  */
 import { randomUUID } from "node:crypto";
 import { constants, type Dirent } from "node:fs";

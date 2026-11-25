@@ -6,7 +6,7 @@ import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import { createStarlightTypeDocPlugin } from "starlight-typedoc";
-import { API_PACKAGES, entryPoints, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
+import { API_PACKAGES, entryPoints, moduleSidebarGroup, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
 import { githubLink } from "./src/chrome.js";
 import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
@@ -49,7 +49,7 @@ const api = API_PACKAGES.map((pkg) => {
       // its import path by an `@module` tag in the entry file.
       typeDoc: { ...typeDoc, entryFileName: "index" },
     }),
-    group: sidebarGroup,
+    group: pkg.sidebar === "modules" ? moduleSidebarGroup(pkg) : sidebarGroup,
     label: pkg.label,
     output: pkg.output,
   };

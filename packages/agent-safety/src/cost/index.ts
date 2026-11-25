@@ -4,6 +4,8 @@
  * projected cost would pass the cap, and `guardedProvider()` applies it to every model of a provider. The projection
  * is the gateway's, so this cap and the SDK's `budgetUsd` agree. This subpath imports `ai`, an optional peer
  * dependency, and `@buildanagent/gateway`.
+ *
+ * @module @buildanagent/agent-safety/cost
  */
 export { BudgetExceeded, type BudgetRefusalCode, type BudgetRefusalInit, budgetRefusal } from "./budget-exceeded.js";
 export { type CostGuardOptions, costGuard, type GuardedCall } from "./cost-guard.js";

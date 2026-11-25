@@ -69,7 +69,7 @@ h2,
   text-wrap: balance;
 }
 
-/* Third-level headings and smaller take the body face, Inter, at weight 600, a weight Instrument Serif lacks. */
+/* Third-level headings and smaller take the body face, IBM Plex Sans, at weight 600, a weight Instrument Serif lacks. */
 h3,
 h4,
 h5,
@@ -79,7 +79,7 @@ h6 {
   text-wrap: balance;
 }
 
-/* Inter at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings of a page's content
+/* IBM Plex Sans at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings of a page's content
    sit well below the second-level heading: Starlight's 1.8rem third-level heading matched it by weight. The sizes are
    set here, not on Starlight's --sl-text-h3 to -h5 variables, because --sl-text-h4 and -h5 also size card titles, the
    "On this page" heading and the aside titles. Starlight wraps each content heading in a `.sl-heading-wrapper` that holds

@@ -6,6 +6,8 @@
  *
  * A store belongs to one object: give every tenant or session that must keep its own records its own object, or pass
  * records whose keys are already unique across tenants, as `effectKey()` makes them.
+ *
+ * @module @buildanagent/agent-safety/stores/cloudflare
  */
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";
