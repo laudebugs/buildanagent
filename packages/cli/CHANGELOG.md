@@ -1,5 +1,15 @@
 # @buildanagent/cli
 
+## 0.1.0-alpha.35
+
+### Patch Changes
+
+- Updated dependencies [c25b00d]
+  - @buildanagent/harness@0.1.0-alpha.35
+  - @buildanagent/gateway@0.1.0-alpha.35
+  - @buildanagent/protocol@0.1.0-alpha.35
+  - @buildanagent/sdk@0.1.0-alpha.35
+
 ## 0.1.0-alpha.34
 
 ### Patch Changes
