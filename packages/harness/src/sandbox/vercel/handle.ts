@@ -7,9 +7,9 @@
 import { scrubCutString, scrubString } from "../../credentials/scrub.js";
 import { HarnessError } from "../../errors.js";
 import { SandboxDeniedError, SandboxUnsupportedError } from "../errors.js";
+import { checkCommand, checkOptions } from "../exec-checks.js";
 import { isProtectedPath } from "../host-files.js";
 import { APPLY_STOPS, confirmPolicy } from "../policy.js";
-import { checkCommand, checkOptions } from "../process.js";
 import type {
   ExecOptions,
   ExecResult,

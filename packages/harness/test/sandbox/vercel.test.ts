@@ -189,7 +189,10 @@ describe("no credential value enters the sandbox", () => {
     const { fake, sandbox } = await withGithub();
     const vm = fake.live()[0];
     assert.ok(vm !== undefined);
-    vm.files.set(`${ROOT}/saved.json`, { kind: "file", data: bytes(`{"authorization":"${SECRET}","raw":"${SECRET.slice(7)}"}`) });
+    vm.files.set(`${ROOT}/saved.json`, {
+      kind: "file",
+      data: bytes(`{"authorization":"${SECRET}","raw":"${SECRET.slice(7)}"}`),
+    });
     const read = text(await sandbox.readFile("saved.json"));
     assert.equal(read, '{"authorization":"[REDACTED]","raw":"[REDACTED]"}');
     await sandbox.dispose();
