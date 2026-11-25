@@ -63,6 +63,12 @@ The sections of README.md and every public export, generated from this package's
   - [The key ring stays in a Worker secret, and no store object holds its text](README.md#the-key-ring-stays-in-a-worker-secret-and-no-store-object-holds-its-text)
   - [A client keeps its socket through hibernation, and the bridge replays its connection](README.md#a-client-keeps-its-socket-through-hibernation-and-the-bridge-replays-its-connection)
   - [The suite runs in workerd offline, and a live run on a real account is opt-in](README.md#the-suite-runs-in-workerd-offline-and-a-live-run-on-a-real-account-is-opt-in)
+- [On Vercel, Postgres holds the log and the lock, and each wake is one Workflow run](README.md#on-vercel-postgres-holds-the-log-and-the-lock-and-each-wake-is-one-workflow-run)
+  - [An append is one `INSERT`, and the primary key on `seq` is its compare-and-swap](README.md#an-append-is-one-insert-and-the-primary-key-on-seq-is-its-compare-and-swap)
+  - [A lock is a lease row on the database's clock, with a fence that only grows](README.md#a-lock-is-a-lease-row-on-the-databases-clock-with-a-fence-that-only-grows)
+  - [A wake is a Workflow run that sleeps, and its turn runs in one step](README.md#a-wake-is-a-workflow-run-that-sleeps-and-its-turn-runs-in-one-step)
+  - [The key ring comes from a secret environment variable, and nothing shows its value](README.md#the-key-ring-comes-from-a-secret-environment-variable-and-nothing-shows-its-value)
+  - [The live run checks the adapters against your own Postgres, and only you start it](README.md#the-live-run-checks-the-adapters-against-your-own-postgres-and-only-you-start-it)
 - [The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause](README.md#the-triage-capstone-runs-the-sdks-support-agent-on-the-harness-and-a-second-process-answers-its-pause)
 
 ## Exports from `@buildanagent/harness`
@@ -546,6 +552,38 @@ The sections of README.md and every public export, generated from this package's
 - `DEFAULT_ABLATION`: Baseline ablation configuration with every removable component enabled on the `"os"` sandbox tier.
 - `defaultAblation()`: Builds a complete `AblationConfig` from `DEFAULT_ABLATION` plus `overrides`, and validates it with `validateAblation()`.
 - `validateAblation()`: Checks fail-safe invariants on `config`.
+
+## Exports from `@buildanagent/harness/vercel`
+
+- `createPostgresHarnessTables()`: Creates the three tables of `POSTGRES_HARNESS_SCHEMA` where they are missing.
+- `DEFAULT_KEY_RING_VARIABLE`: The variable `envKeyStore()` reads when no name is given.
+- `deliverWake()`: Delivers one wake from inside a workflow step: it claims the wake if it is still in the ledger, calls `handler`, and then removes it.
+- `interface DeliverWakeOptions`: The options of `deliverWake()`.
+- `envKeyStore()`: A `KeyStore` whose `load()` reads the ring from one environment variable and parses it as `secretKeyStore()` does: JSON such as `{"current":"2026-11","keys":{"2026-11":"<base64url key>"}}`.
+- `interface EnvKeyStoreOptions`: The options of `envKeyStore()`.
+- `PgClientLike`: re-exported from `@buildanagent/agent-safety/stores/postgres`.
+- `POSTGRES_HARNESS_SCHEMA`: The statements that create the harness's three tables: `harness_session_entries` (one row per entry), `harness_session_locks` (one lease row per session) and `harness_wakes` (one row per pending wake).
+- `postgresLock()`: A `SessionLock` on one Postgres row per session, in the `harness_session_locks` table that `POSTGRES_HARNESS_SCHEMA` creates.
+- `interface PostgresLockHandle`: What `acquire()` returns: a `LockHandle` with the lease row's fencing number.
+- `interface PostgresLockOptions`: The options of `postgresLock()`.
+- `postgresStore()`: A `SessionStore` on Postgres, through any client with a `query(text, values)` method that resolves to `{ rows }`, such as `pg`'s `Pool`, Neon's serverless `Pool` or PGlite.
+- `interface PostgresStoreOptions`: The options of `postgresStore()`.
+- `postgresWakeLedger()`: A `WakeLedger` in the `harness_wakes` table that `POSTGRES_HARNESS_SCHEMA` creates.
+- `interface WakeLedger`: The wakes still pending, kept where every function instance can read them.
+- `interface WakeRequest`: What one wake run is started with.
+- `interface WakeSignal`: What `cancel()` sends to a waiting run's hook.
+- `wakeToken()`: The hook token of one wake: the id, encoded so it holds no `:`, the time and the nonce the ledger gave it.
+- `workflowScheduler()`: A `Scheduler` on Vercel Workflow.
+- `interface WorkflowSchedulerOptions`: The options of `workflowScheduler()`.
+
+## Exports from `@buildanagent/harness/vercel/workflow`
+
+- `runWakeWorkflow()`: Waits until `request.at`, unless `cancel()` resumes the run's hook first, and then calls `runtime.deliver` once.
+- `interface WakeHook`: The part of a Workflow SDK hook the run uses.
+- `type WakeOutcome`: How one wake run ended: it delivered the wake, a cancel ended it, or another run already held its token.
+- `interface WakeRequest`: What one wake run is started with.
+- `interface WakeSignal`: What `cancel()` sends to a waiting run's hook.
+- `interface WakeWorkflowRuntime`: What `runWakeWorkflow()` needs from the Workflow SDK and from your step.
 
 ## Exports from `@buildanagent/harness/testing`
 

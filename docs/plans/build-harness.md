@@ -276,7 +276,7 @@ packages/
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
                                 "./credentials", "./cloudflare", "./extensions", "./extensions/node", "./memory", "./memory/node",
-                                "./telemetry", "./server", "./ablation", "./testing"
+                                "./telemetry", "./server", "./ablation", "./vercel", "./vercel/workflow", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
     src/context/                write cap, masking, summarizer, mid-turn, overflow retry, policy composer
     src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch, grep, glob)
@@ -290,6 +290,7 @@ packages/
     src/telemetry/              projectSpans(), harness attribute names, budget meter
     src/completion/             completion checks and diff flags
     src/server/                 Dispatcher, inProcessTransport(), stdioTransport()
+    src/vercel/                 Postgres store, lock and wake ledger, Workflow scheduler, env key store; workflow.ts imports nothing
     src/ablation.ts             AblationConfig and its hash
     src/testing/                fakeSandbox(), memoryStore(), scriptedClient(), conformance suites
   cli/                          @buildanagent/cli        bin: buildanagent
@@ -867,7 +868,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's decision after N50 | N45, N50 | M |
 | [N47a](../todos/ready/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/ready/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
-| [N48a](../todos/ready/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
+| [N48a](../todos/done/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the hosted backends | N46b, N47b, N48b, N19 | S |
 | [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
@@ -888,7 +889,7 @@ Six suites run in `pnpm test`; each takes a factory, so a new implementation pas
 - **`SandboxClient`:** writes outside `writeRoots` are denied, network is denied unless allowlisted, the environment holds only `spawnEnv` names, and an unavailable backend throws `SandboxUnavailableError` rather than running unsandboxed. The fake runs it always; `srt` and Docker run it in `test:sandbox`.
 - **Protocol:** every fixture message validates against the generated schema and type-checks with `satisfies`, in both directions, and the framer round-trips U+2028 and U+2029 inside strings.
 - **MCP:** the client lists and calls tools on an in-process `@modelcontextprotocol/server` 2.4.0, on both protocol eras.
-- **Portability (all eight seams):** `@buildanagent/harness/testing` exports `runPortabilityConformance()` and `portabilityConformanceCases()` covering `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the protocol transport, and `EffectStore` (imported from `@buildanagent/agent-safety/testing`). The suite adds lease-only expiry for off-host locks, at-least-once wake checks, and egress denial for non-allowlisted hosts, loopback addresses, and cloud metadata endpoints. Local implementations pass all eight seams in `pnpm test` (`packages/harness/test/portability-conformance.test.ts`), and each cloud target runs the same suite in N46–N48. The Cloudflare target (N46a) runs it in workerd through Miniflare, one Durable Object per case, for the store, the lock, the scheduler, the key store, the transport and the effect store (`packages/harness/test/cloudflare/cloudflare.test.ts`).
+- **Portability (all eight seams):** `@buildanagent/harness/testing` exports `runPortabilityConformance()` and `portabilityConformanceCases()` covering `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the protocol transport, and `EffectStore` (imported from `@buildanagent/agent-safety/testing`). The suite adds lease-only expiry for off-host locks, at-least-once wake checks, and egress denial for non-allowlisted hosts, loopback addresses, and cloud metadata endpoints. Local implementations pass all eight seams in `pnpm test` (`packages/harness/test/portability-conformance.test.ts`), and each cloud target runs the same suite in N46–N48. The Cloudflare target (N46a) runs it in workerd through Miniflare, one Durable Object per case, for the store, the lock, the scheduler, the key store, the transport and the effect store (`packages/harness/test/cloudflare/cloudflare.test.ts`). The Vercel target's store, lock, scheduler, key store and effect store pass it offline in `packages/harness/test/vercel/vercel-target.test.ts`, on PGlite and an in-process stand-in for the Workflow SDK (N48a).
 
 ### 5.3 Playback and resume tests prove the log is the only source of truth
 
