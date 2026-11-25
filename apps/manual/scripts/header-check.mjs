@@ -400,8 +400,9 @@ async function phone(browser) {
     els.filter((e) => e.getBoundingClientRect().height > 0).map((e) => e.textContent.trim()),
   );
   check(
-    JSON.stringify(names) === JSON.stringify(["Contents", "Glossary", "Sources", "Notes"]),
-    `the menu lists Contents, Glossary, Sources and Notes (${names})`,
+    JSON.stringify(names) ===
+      JSON.stringify(["Contents", "Glossary", "Sources", "Docs", "Manual", "Site", "GitHub", "Notes"]),
+    `the menu lists Contents, Glossary, Sources, Docs, Manual, Site, GitHub and Notes (${names})`,
   );
   check(
     await page.evaluate(() => document.activeElement?.closest("[data-menu]") !== null),

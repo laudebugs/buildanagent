@@ -160,8 +160,9 @@ test("llms.txt lists every twin exactly once with an absolute address, and llms-
   );
 });
 
-test("the twins add well under a megabyte, and no twin is larger than its source and its examples allow", () => {
+test("the twins stay under 2.5 MB across all six packages", () => {
   const dist = builtSite();
   const total = pages.reduce((sum, page) => sum + statSync(twinFile(dist, page.url)).size, 0);
-  assert.ok(total < 1_000_000, `the twins total ${total} bytes`);
+  // 964 twins across six packages total ~1.28 MB; 2.5 MB leaves room for upcoming written guides while catching bloat.
+  assert.ok(total < 2_500_000, `the twins total ${total} bytes`);
 });

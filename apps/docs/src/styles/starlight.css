@@ -53,28 +53,56 @@
 
   --sl-font: var(--font-body);
   --sl-font-mono: var(--font-code);
-  --sl-line-height: var(--line-height-body);
+  /* The owner's mock sets body text at 1.65, so the docs do not use the book's --line-height-body (1.7). This line
+     height and the heading sizes below are plain numbers; every colour is a token. */
+  --sl-line-height: 1.65;
   --sl-content-width: var(--measure);
 }
 
-/* Instrument Serif has one weight, so headings stay at 400: a heavier weight would make the browser fake a bold. */
+/* Instrument Serif has one weight, so the page title and the second-level headings stay at 400: a heavier weight
+   would make the browser fake a bold. */
 h1,
 h2,
-h3,
-h4,
-h5,
-h6,
 .site-title {
   font-family: var(--font-display);
   font-weight: 400;
   text-wrap: balance;
 }
 
-/* The book's display face sets small for its size, so the smallest headings keep the body face, at a weight
-   Literata has. */
-.sl-markdown-content :is(h5, h6) {
+/* Third-level headings and smaller take the body face, IBM Plex Sans, at weight 600, a weight Instrument Serif lacks. */
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-body);
   font-weight: 600;
+  text-wrap: balance;
+}
+
+/* IBM Plex Sans at weight 600 reads heavier than Instrument Serif at the same size, so the sans headings of a page's content
+   sit well below the second-level heading: Starlight's 1.8rem third-level heading matched it by weight. The sizes are
+   set here, not on Starlight's --sl-text-h3 to -h5 variables, because --sl-text-h4 and -h5 also size card titles, the
+   "On this page" heading and the aside titles. Starlight wraps each content heading in a `.sl-heading-wrapper` that holds
+   the size for the line box, the anchor icon and em margins, so the wrapper takes the same size as its heading. The
+   rules are unlayered, so they beat Starlight's wider-viewport steps, and skip `.not-content` as Starlight's do. */
+.sl-markdown-content h3:not(:where(.not-content *)),
+.sl-markdown-content .sl-heading-wrapper.level-h3:not(:where(.not-content *)) {
+  font-size: 1.375rem;
+}
+
+.sl-markdown-content h4:not(:where(.not-content *)),
+.sl-markdown-content .sl-heading-wrapper.level-h4:not(:where(.not-content *)) {
+  font-size: 1.125rem;
+}
+
+.sl-markdown-content h5:not(:where(.not-content *)),
+.sl-markdown-content .sl-heading-wrapper.level-h5:not(:where(.not-content *)) {
+  font-size: 1.0625rem;
+}
+
+.sl-markdown-content h6:not(:where(.not-content *)),
+.sl-markdown-content .sl-heading-wrapper.level-h6:not(:where(.not-content *)) {
+  font-size: 1rem;
 }
 
 /* A Starlight button (LinkButton) is itself a `.not-content` anchor, so the rules below skip it as well as anything inside
@@ -147,8 +175,7 @@ h6,
   color: var(--color-link);
 }
 
-/* Starlight keeps code in a heading at the heading's size, which in the condensed display face makes it the largest
-   thing on the line. */
+/* Starlight keeps code in a heading at the heading's size, which makes it the largest thing on the line. */
 .sl-markdown-content :is(h1, h2, h3, h4, h5, h6) code {
   font-size: 0.8em;
 }

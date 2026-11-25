@@ -6,6 +6,8 @@
  * step before it and puts this one.
  *
  * Reads are consistent reads. The table needs one string partition key named `pk` and no sort key.
+ *
+ * @module @buildanagent/agent-safety/stores/dynamodb
  */
 import {
   type DynamoDBClient,

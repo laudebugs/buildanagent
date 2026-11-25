@@ -1,40 +1,46 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { SITE_CHROME, siteChromeLinks } from "@buildanagent/manual/site-chrome";
 import { test } from "vitest";
-import { mainDocsLink, mainDocsLinkFor, siteLinks } from "../src/chrome.js";
+import { docsWordmark, githubLink, logoMark, mainDocsLink, mainDocsLinkFor, siteLinks } from "../src/chrome.js";
+import { builtSite } from "./built.js";
 
-const SITE_COPY_URL = new URL("../../site/src/landing/copy.ts", import.meta.url);
-
-/** The `{ label, href }` entries of `nav` in the site's landing copy, in order. */
-function siteNav(): { label: string; href: string }[] {
-  const source = readFileSync(SITE_COPY_URL, "utf8");
-  const block = /nav:\s*\[([\s\S]*?)\],/.exec(source)?.[1] ?? "";
-  return [...block.matchAll(/label:\s*"([^"]+)",\s*href:\s*([^}]+?)\s*\}/g)].map((m) => ({
-    label: m[1] as string,
-    href: (m[2] as string).replace(/^"|"$/g, ""),
-  }));
-}
-
-test("the docs header lists the site's links in the site's order, with GitHub left to the social icon", () => {
-  const nav = siteNav();
+test("the docs header reads its links, mark and wordmark from the shared site-chrome source", () => {
+  const expected = siteChromeLinks("docs");
   assert.deepEqual(
-    nav.map((link) => link.label),
-    [...siteLinks.map((link) => link.label), "GitHub"],
+    [
+      ...siteLinks.map((link) => ({ label: link.label, href: link.href })),
+      { label: githubLink.label, href: githubLink.href },
+    ],
+    expected.map((link) => ({ label: link.label, href: link.href })),
   );
-});
-
-test("the docs header links to the same addresses as the site's header, and marks only Docs as current", () => {
-  const nav = siteNav();
-  for (const link of siteLinks) {
-    const theirs = nav.find((entry) => entry.label === link.label);
-    // The site's own link to itself is the relative "/", which the docs write as the site's origin.
-    const expected = theirs?.href === "/" ? "https://buildanagent.fyi" : theirs?.href;
-    assert.equal(link.href, expected, link.label);
-  }
   assert.deepEqual(
     siteLinks.filter((link) => link.current).map((link) => link.label),
     ["Docs"],
   );
+  assert.deepEqual(docsWordmark, SITE_CHROME.sites.docs);
+  assert.equal(logoMark, SITE_CHROME.mark.svg);
+});
+
+test("the built docs header renders every shared link and mark on both splash and content pages", () => {
+  for (const page of ["index.html", join("start", "install", "index.html")]) {
+    const html = readFileSync(join(builtSite(), page), "utf8");
+    const nav =
+      /<nav class="site-links[^"]*" aria-label="buildanagent sites"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
+    const rendered = [...nav.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(([, href, attrs, label]) => ({
+      href,
+      label: label?.trim(),
+      current: attrs?.includes('aria-current="true"') ?? false,
+    }));
+    assert.deepEqual(
+      rendered,
+      siteLinks.map((link) => ({ href: link.href, label: link.label, current: Boolean(link.current) })),
+      page,
+    );
+    assert.ok(html.includes(SITE_CHROME.mark.svg), `${page}: renders the shared inline mark`);
+    assert.ok(html.includes(`href="${githubLink.href}"`), `${page}: links to GitHub from the shared source`);
+  }
 });
 
 test("the 'Docs for main' link appears once the SDK is stable and not while only alphas exist", () => {

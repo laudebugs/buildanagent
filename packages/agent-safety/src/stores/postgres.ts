@@ -3,6 +3,8 @@
  * with a `query(text, values)` method that resolves to `{ rows }`, such as `pg`'s `Pool` or `Client` and PGlite. Every
  * change is one statement that Postgres runs atomically (`INSERT … ON CONFLICT`, or an `UPDATE … WHERE` on the
  * attempt), never a read followed by a write, so two processes can't both start one write.
+ *
+ * @module @buildanagent/agent-safety/stores/postgres
  */
 import type { EffectClaim, EffectRecord, EffectStore } from "../effect-store.js";
 import type { PlanLedger } from "../plan-approval.js";

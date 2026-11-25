@@ -2,6 +2,8 @@
  * `@buildanagent/harness/sandbox`: the sandbox interface, the unsafe `none` backend, `spawnEnv()`, the policy read-back and
  * capability helpers, and `escalation()`, the host's state machine for a denied command. The `srt` and Docker backends
  * have their own subpaths. `fakeSandbox()` and the conformance suite are in `./testing`.
+ *
+ * @module @buildanagent/harness/sandbox
  */
 
 export { ESCALATION_TOOL, type EscalationRecord } from "../session/escalation-log.js";

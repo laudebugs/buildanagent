@@ -1,27 +1,46 @@
 ---
+import { SITE_CHROME, siteChromeLinks } from "../design/site-chrome.js";
 import SearchBox from "./SearchBox.astro";
 import ThemeToggle from "./ThemeToggle.astro";
 
-// The site header, sticky on every page: 56 px on a desktop, one 52 px row on a phone (styles/header.css). On a phone the
-// three links move into a menu, with Notes on a chapter, and the search box moves into a panel under the row that a
-// search button opens. src/scripts/header.ts hides the phone header while a reader scrolls down and runs the menu and
-// the panel; without it the buttons stay hidden and the links and the search box show in a wrapped, shown header.
+// The site header, sticky on every page: 56 px on a desktop, one 52 px row on a phone (styles/header.css). On a phone
+// the book links and the shared cross-site links move into a menu, with Notes on a chapter, and the search box moves
+// into a panel under the row that a search button opens. src/scripts/header.ts hides the phone header while a reader
+// scrolls down and runs the menu and the panel; without it the buttons stay hidden and the links and the search box
+// show in a wrapped, shown header.
 //
-// The "settings" slot holds the reading settings: BaseLayout renders ReadingSettings.astro (the "Aa" button of design S1
-// and its panel) into it, so the button sits between the search and the theme toggle on a desktop and a phone alike.
+// The "settings" slot holds the reading settings: BaseLayout renders ReadingSettings.astro (the "Aa" button of design
+// S1 and its panel) into it, so the button sits between the search and the theme toggle on a desktop and a phone alike.
 // The wrapper is laid out as its contents, so the button is one of the tools' flex items; an empty slot is not drawn.
-const links = [
+const bookLinks = [
   { label: "Contents", href: "/" },
   { label: "Glossary", href: "/glossary/" },
   { label: "Sources", href: "/sources/" },
 ];
+const siteLinks = siteChromeLinks("manual", { selfHref: "/" });
+const wordmark = SITE_CHROME.sites.manual;
 ---
 
 <header class="site-header" data-site-header>
   <div class="page site-header__inner">
-    <a class="site-header__title" href="/">Build an agent</a>
-    <nav class="site-header__nav" aria-label="Site">
-      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    <a class="site-header__title" href="/">
+      <Fragment set:html={SITE_CHROME.mark.svg} />
+      <span class="site-header__wordmark" translate="no">
+        <span class="site-header__name">{wordmark.name}</span>
+        {wordmark.kind && <span class="site-header__kind">{wordmark.kind}</span>}
+      </span>
+    </a>
+    <nav class="site-header__nav" aria-label="Manual">
+      {bookLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+    <nav class="site-header__sites" aria-label="buildanagent sites">
+      {
+        siteLinks.map((link) => (
+          <a href={link.href} aria-current={link.current ? "true" : undefined}>
+            {link.label}
+          </a>
+        ))
+      }
     </nav>
     <div class="site-header__search" id="site-header-search" data-header-search>
       <SearchBox />
@@ -60,7 +79,16 @@ const links = [
   </div>
   <nav class="site-menu" id="site-menu" data-menu aria-label="Site" hidden>
     <div class="page site-menu__inner">
-      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+      {bookLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+      <div class="site-menu__sites">
+        {
+          siteLinks.map((link) => (
+            <a href={link.href} aria-current={link.current ? "true" : undefined}>
+              {link.label}
+            </a>
+          ))
+        }
+      </div>
       <button type="button" data-menu-notes hidden>Notes</button>
     </div>
   </nav>

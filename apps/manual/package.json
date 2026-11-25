@@ -9,6 +9,8 @@
     "./design/tokens": "./src/design/tokens.ts",
     "./design/contrast": "./src/design/contrast.ts",
     "./design/woff2": "./src/design/woff2.ts",
+    "./site-chrome": "./src/design/site-chrome.ts",
+    "./site-chrome.json": "./src/design/site-chrome.json",
     "./figures/svgkit": "./figures/lib/svgkit.ts",
     "./styles/figures.css": "./src/styles/figures.css"
   },
