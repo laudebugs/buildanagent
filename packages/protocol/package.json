@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/protocol",
-  "version": "0.1.0-alpha.37",
+  "version": "0.1.0-alpha.38",
   "description": "The wire types of the buildanagent harness: the session entry union, the client and server messages and their JSONL framing.",
   "license": "Apache-2.0 OR MIT",
   "repository": {

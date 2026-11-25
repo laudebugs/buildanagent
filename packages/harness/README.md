@@ -254,6 +254,36 @@ A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`.
 
 None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
 
+## Credentials and sandboxes: the sandbox holds none, and an authenticated action runs on the host
+
+A sandbox needs no credentials, so give it none. A push, a pull request or an authenticated API call runs as a tool in the harness's own process, behind the permission pipeline. A route the egress proxy runs also keeps the secret on the host. This section shows both, and when a hosted backend may add a credential.
+
+### An authenticated action is a host-side tool that the pipeline decides
+
+Register the action as a tool that runs in the harness's process, outside the sandbox. The model can call it, or your code can call it with `harness.invokeTool()`, which goes through the same pipeline and signed pause as a model call ([code calls](#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)). Either way, the [permission pipeline](#one-pipeline-decides-every-tool-call-and-a-call-no-rule-settles-is-denied-when-nobody-can-answer) allows, denies or asks a person first.
+
+The tool reads its credential on the host. For a push, mint a short-lived token for the one task, such as a GitHub App installation token narrowed to one repository, and never write it into the sandbox. Every code call that isn't denied returns `effectKey`, its effect identity. Send it to a service that takes an idempotency key. For a service that takes none, declare a business key, such as the repository and branch, so a replayed call keeps the same identity.
+
+### What the sandbox can and can't do
+
+Inside the sandbox, a command can read and write the policy's roots and run the project's tools. Through the backend's proxy, it reaches exactly the hosts in `network.allow`, such as a public package registry; on Docker that needs `proxySocket`. On its own, it can't push, call an authenticated API, read a secret from its environment or reach any other host. A route that you add to the [egress proxy](#the-egress-proxy-keeps-every-credential-outside-the-sandbox) lets it call one host with a credential, and a git route lets it push to listed branches. The secret then stays on the host, and the sandbox sees only a placeholder.
+
+### A hosted backend may inject a narrow credential, and only when you ask
+
+A hosted backend can ask its provider to add a credential outside the VM. Injection is off unless your egress policy holds a credential route. None of the backends above injects this way; a hosted backend that does documents its options in its own section.
+
+Use a credential route only for a narrow, scoped, short-lived or revocable, low-value credential. A repository-scoped token for one run, a read-only package-registry token and a model-API key with a spend limit all qualify. A credential that can spend money without a cap, push to a protected branch or reach production data stays in a host-side tool. Review, not code, enforces this rule, because a backend can't see how much a token can do. Check each route you add.
+
+A credential route has five costs:
+
+- The sandbox's trust store carries the provider's certificate authority. A provider may install it even without a route, but then it decrypts nothing.
+- The provider's proxy decrypts each request to the credentialed host, so it sees the request in plaintext and holds the secret.
+- Every process in the sandbox that sends a matching request gets the credential, with no placeholder to check. On some providers a match is any HTTPS request to the host, whatever its method or path.
+- A host that echoes request headers hands the credential back into the sandbox, and the harness can scrub only a secret it knows.
+- On some providers the harness reads the secret on the host at each provision and resume, and sends it to the provider.
+
+Neither the harness's egress proxy nor the `srt` backend's proxy intercepts TLS. The project's decision records give the reasons: [the sandbox holds no credentials](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0060-sandboxes-hold-no-credentials-by-default.md), [the loop runs outside it](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0036-loop-outside-sandbox-and-pr-approval.md) and [the local proxy intercepts no TLS](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0020-default-sandbox-backend.md). The next section shows how that proxy keeps a route's secret on the host.
+
 ## The egress proxy keeps every credential outside the sandbox
 
 `startEgressProxy({ allow, routes, log })` from `./credentials` starts a proxy on `127.0.0.1`, or on a Unix socket you give it (`socketPath`, which is what `dockerSandbox`'s `proxySocket` mounts). Nothing leaves the sandbox except through it. It refuses everything that isn't on its allowlist with a 403, and it writes one log record for each request: the host, the method, the status and the bytes, never a header or a body. Give the sandbox `proxy.url` as `HTTPS_PROXY`. On a Unix socket, `proxy.url` is `unix:<path>`, which is not a proxy URL, and the program inside the container connects to the socket itself.
