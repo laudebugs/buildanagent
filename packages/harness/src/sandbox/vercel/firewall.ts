@@ -136,7 +136,9 @@ function rulesFor(route: HeaderEgressRoute | undefined, value: string | undefine
   if (route !== undefined && value !== undefined) {
     rules.push({
       match: { method: route.methods.map((method) => method.toUpperCase()) },
-      transform: [{ headers: { [route.header.toLowerCase()]: value } }],
+      // The firewall terminates TLS for this host anyway, so the rule also pins `host`, which stops a request that
+      // names the allowed host in its SNI from reaching another virtual host behind it with the credential.
+      transform: [{ headers: { [route.header.toLowerCase()]: value, host: route.host } }],
     });
   }
   // A host reached only through a route takes only the route's methods, as the local proxy's routes do.
@@ -160,11 +162,14 @@ export async function compileFirewall(
   const routes = egress.routes.filter((route): route is HeaderEgressRoute => route.kind === "header");
   const values = await readSecrets(routes, options.secret);
   const hosts = [...new Set([...egress.allow, ...routes.map((route) => route.host)])];
-  const injections = routes.map((route) => ({
-    host: route.host,
-    header: route.header.toLowerCase(),
-    methods: route.methods.map((method) => method.toUpperCase()),
-  }));
+  const injections = routes.flatMap((route) => {
+    const methods = route.methods.map((method) => method.toUpperCase());
+    const header = route.header.toLowerCase();
+    return [
+      { host: route.host, header, methods },
+      ...(header === "host" ? [] : [{ host: route.host, header: "host", methods }]),
+    ];
+  });
   const secrets = [...values.values()];
   if (hosts.length === 0) {
     return { networkPolicy: "deny-all", hosts, injections, deniedSubnets: [], secrets };

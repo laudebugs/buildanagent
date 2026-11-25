@@ -7,8 +7,11 @@ import { type NetworkPolicy, Sandbox } from "@vercel/sandbox";
 
 /** A command that has finished in a Vercel sandbox. */
 export interface VercelFinishedCommand {
+  /** The command's exit code. */
   readonly exitCode: number;
+  /** Resolves with everything the command wrote to standard output. */
   stdout(): Promise<string>;
+  /** Resolves with everything the command wrote to standard error. */
   stderr(): Promise<string>;
 }
 
@@ -22,12 +25,19 @@ export interface VercelCommand {
 
 /** What the backend asks `runCommand()` to start. */
 export interface VercelRunParams {
+  /** The program to run. */
   readonly cmd: string;
+  /** Its arguments. */
   readonly args: string[];
+  /** The absolute working directory. */
   readonly cwd: string;
+  /** Always `true`: `runCommand()` resolves once the command starts. */
   readonly detached: true;
+  /** Always `false`: no command runs as root. */
   readonly sudo: false;
+  /** Cancels the start. */
   readonly signal?: AbortSignal;
+  /** Milliseconds after which Vercel kills the command with `SIGKILL`. */
   readonly timeoutMs?: number;
 }
 
@@ -37,9 +47,11 @@ export interface VercelSandboxInstance {
   readonly name: string;
   /** The network policy Vercel reports for the sandbox, with every injected header's value replaced. */
   readonly networkPolicy: NetworkPolicy | undefined;
+  /** Starts a command and resolves once it has started, without waiting for it to finish. */
   runCommand(params: VercelRunParams): Promise<VercelCommand>;
   /** Resolves with the file's bytes, or `null` when there is no file at `path`. */
   readFileToBuffer(file: { path: string }): Promise<Uint8Array | null>;
+  /** Writes each file at its absolute path, as the sandbox's default user. */
   writeFiles(files: { path: string; content: Uint8Array }[]): Promise<void>;
   /** Applies a new configuration, such as a network policy, to the running sandbox. */
   update(params: { networkPolicy: NetworkPolicy }): Promise<void>;
@@ -53,21 +65,27 @@ export interface VercelSandboxInstance {
 
 /** What the backend passes to `create()`. It never sets `env`, so the sandbox starts with no variable of the host's. */
 export interface VercelCreateParams {
+  /** The new sandbox's name. */
   readonly name: string;
+  /** The firewall policy, which holds the injected credentials, so it is never logged. */
   readonly networkPolicy: NetworkPolicy;
   /** Milliseconds before Vercel stops the sandbox on its own, whatever the host does. */
   readonly timeout: number;
+  /** Whether a stopped sandbox keeps its files. */
   readonly persistent: boolean;
   /** A snapshot to start from, for a resume. */
   readonly source?: { readonly type: "snapshot"; readonly snapshotId: string };
   /** The image to start from. Leaving it out uses Vercel's default image. */
   readonly image?: string;
+  /** The virtual CPUs. */
   readonly vcpus?: number;
+  /** Cancels the create. */
   readonly signal?: AbortSignal;
 }
 
 /** The two calls of `@vercel/sandbox`'s `Sandbox` class the backend makes. */
 export interface VercelSandboxSdk {
+  /** Creates a sandbox and starts its first session. */
   create(params: VercelCreateParams): Promise<VercelSandboxInstance>;
   /** Finds a sandbox by name. With `resume`, it starts its session again if it is stopped. */
   get(params: { name: string; resume?: boolean; signal?: AbortSignal }): Promise<VercelSandboxInstance>;
@@ -75,8 +93,11 @@ export interface VercelSandboxSdk {
 
 /** An access token for the Vercel API, with the team and project the sandboxes belong to. */
 export interface VercelCredentials {
+  /** A Vercel access token. */
   readonly token: string;
+  /** The team the sandboxes belong to. */
   readonly teamId: string;
+  /** The project the sandboxes belong to. */
   readonly projectId: string;
 }
 

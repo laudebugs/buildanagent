@@ -53,7 +53,7 @@ export interface VercelSandboxOptions {
   readonly persistent?: boolean;
   /** The image to start from. Leaving it out uses Vercel's default image. */
   readonly image?: string;
-  /** The virtual CPUs of each sandbox. Leaving it out uses Vercel's default. */
+  /** The virtual CPUs of each sandbox: 1, or an even number from 2 to 32. Leaving it out uses Vercel's default, 2. */
   readonly vcpus?: number;
   /** Makes the name of each new sandbox. Defaults to `harness-` and 16 random hex digits. */
   readonly name?: () => string;
@@ -75,7 +75,13 @@ function checkOptions(options: VercelSandboxOptions): void {
   const bad = (what: string) => new HarnessError("invalid_sandbox_options", `${what} is not usable`);
   const { timeoutMs, vcpus, secret, egress, image } = options;
   if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) throw bad("timeoutMs");
-  if (vcpus !== undefined && !(Number.isInteger(vcpus) && vcpus > 0)) throw bad("vcpus");
+  // Vercel provisions 1 vCPU or an even number from 2 to 32, as the plan allows.
+  if (
+    vcpus !== undefined &&
+    !(vcpus === 1 || (Number.isInteger(vcpus) && vcpus % 2 === 0 && vcpus >= 2 && vcpus <= 32))
+  ) {
+    throw bad("vcpus");
+  }
   if (image !== undefined && (typeof image !== "string" || image === "")) throw bad("image");
   if (secret !== undefined && typeof secret !== "function") throw bad("secret");
   if ((egress?.routes.length ?? 0) > 0 && secret === undefined) {

@@ -376,7 +376,7 @@ describe("egress is closed to everything the policy doesn't name", () => {
     assert.ok(create?.kind === "create" && typeof create.params.networkPolicy === "object");
     const rules = (create.params.networkPolicy.allow as Record<string, unknown[]>)["api.github.com"];
     assert.deepEqual(rules, [
-      { match: { method: ["GET"] }, transform: [{ headers: { authorization: SECRET } }] },
+      { match: { method: ["GET"] }, transform: [{ headers: { authorization: SECRET, host: "api.github.com" } }] },
       { response: { statusCode: 403 } },
     ]);
     const post = await run(sandbox, ["net-probe", "https://api.github.com/user", "POST"]);
@@ -569,18 +569,34 @@ describe("a sandbox that fails or is disposed is never left running", () => {
     assert.deepEqual(fake.live(), []);
   });
 
-  test("a stop that fails still deletes, and a delete that fails rejects dispose with what to do", async () => {
-    const stopFails = fakeVercel({ fail: new Set(["stop"]) });
-    const first = await backend(stopFails).provision({ root: ROOT }, policy());
-    await first.dispose();
-    assert.deepEqual(stopFails.live(), []);
+  test("dispose deletes without stopping first, so a persistent sandbox saves no snapshot that outlives it", async () => {
+    const fake = fakeVercel();
+    const sandbox = await backend(fake, { persistent: true }).provision({ root: ROOT }, policy());
+    await sandbox.dispose();
+    const kinds = fake.calls.map((call) => call.kind);
+    assert.ok(kinds.includes("delete"));
+    assert.equal(kinds.includes("stop"), false);
+    assert.deepEqual(fake.live(), []);
+  });
 
+  test("vcpus takes 1 or an even number from 2 to 32", () => {
+    for (const vcpus of [0, 3, 34, 1.5]) {
+      assert.throws(() => vercelSandbox({ vcpus }), { code: "invalid_sandbox_options" });
+    }
+    for (const vcpus of [1, 2, 8, 32]) vercelSandbox({ vcpus });
+  });
+
+  test("a delete that fails stops the sandbox and rejects dispose with what to do", async () => {
     const deleteFails = fakeVercel({ fail: new Set(["delete"]) });
     const second = await backend(deleteFails).provision({ root: ROOT }, policy());
     const error = await rejection(second.dispose());
     assert.equal((error as { code?: string }).code, "sandbox_io_failed");
     assert.match((error as Error).message, /delete it in the Vercel dashboard/);
     assert.equal(await rejection(second.dispose()), error, "a second dispose gets the same answer");
+    assert.ok(
+      deleteFails.calls.some((call) => call.kind === "stop"),
+      "the fallback stop ran",
+    );
   });
 
   test("a timeout and an abort kill the command", async () => {

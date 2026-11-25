@@ -417,11 +417,12 @@ export class VercelSandbox implements Sandbox {
     for (const running of [...this.#running]) running.cancel();
     await Promise.allSettled([...this.#kills]);
     const { vm } = this.#state;
-    // A stopped sandbox can't stop again, and the delete that follows removes it either way.
-    await vm.stop().catch(() => undefined);
+    // Deleting removes the sandbox and its sessions. Stopping first would make a persistent sandbox save a snapshot of
+    // its files, which outlives the delete, so the stop is only the fallback when the delete fails.
     try {
       await vm.delete();
     } catch (error) {
+      await vm.stop().catch(() => undefined);
       throw new HarnessError(
         "sandbox_io_failed",
         `the Vercel sandbox ${this.id} could not be deleted, so delete it in the Vercel dashboard`,
