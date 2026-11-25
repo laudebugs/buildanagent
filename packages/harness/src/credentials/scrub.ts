@@ -48,7 +48,7 @@ function base64Forms(text: string): string[] {
  * The forms a secret takes when something copies it: as written, percent-encoded, escaped inside JSON, and base64 (which
  * is how a Basic authorization header carries one). Longest first, so a secret that contains another is removed whole.
  */
-function forms(secrets: readonly string[]): string[] {
+export function secretForms(secrets: readonly string[]): string[] {
   const found = new Set<string>();
   for (const secret of secrets) {
     if (secret === "") continue;
@@ -71,7 +71,7 @@ function scrubText(text: string, patterns: readonly string[]): string {
 
 /** `text` with every form of each secret replaced, for a host-side tool that returns text it fetched. */
 export function scrubString(text: string, secrets: readonly string[]): string {
-  return scrubText(text, forms(secrets));
+  return scrubText(text, secretForms(secrets));
 }
 
 /**
@@ -79,7 +79,7 @@ export function scrubString(text: string, secrets: readonly string[]): string {
  * its end removed, so a secret that the cut split leaks none of its first characters.
  */
 export function scrubCutString(text: string, secrets: readonly string[]): string {
-  const patterns = forms(secrets);
+  const patterns = secretForms(secrets);
   const scrubbed = scrubText(text, patterns);
   let keep = scrubbed.length;
   for (const pattern of patterns) {
@@ -111,7 +111,7 @@ function scrubValue(value: unknown, patterns: readonly string[]): unknown {
  * every place it occurs, so pass real credentials. The input is not changed.
  */
 export function scrubSecrets<T extends SessionEntry>(entry: T, secrets: readonly string[]): T {
-  const patterns = forms(secrets);
+  const patterns = secretForms(secrets);
   if (patterns.length === 0) return { ...entry };
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(entry)) {

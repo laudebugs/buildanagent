@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/harness",
-  "version": "0.1.0-alpha.38",
+  "version": "0.1.0-alpha.39",
   "description": "The buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -81,6 +81,11 @@
       "source": "./src/sandbox/e2b/index.ts",
       "types": "./dist/sandbox/e2b/index.d.ts",
       "default": "./dist/sandbox/e2b/index.js"
+    },
+    "./sandbox/vercel": {
+      "source": "./src/sandbox/vercel/index.ts",
+      "types": "./dist/sandbox/vercel/index.d.ts",
+      "default": "./dist/sandbox/vercel/index.js"
     },
     "./credentials": {
       "source": "./src/credentials/index.ts",
@@ -208,6 +213,10 @@
         "types": "./dist/sandbox/e2b/index.d.ts",
         "default": "./dist/sandbox/e2b/index.js"
       },
+      "./sandbox/vercel": {
+        "types": "./dist/sandbox/vercel/index.d.ts",
+        "default": "./dist/sandbox/vercel/index.js"
+      },
       "./credentials": {
         "types": "./dist/credentials/index.d.ts",
         "default": "./dist/credentials/index.js"
@@ -279,7 +288,8 @@
     "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts",
     "live:cloudflare": "tsx test/cloudflare/live.ts",
     "e2b:live": "HARNESS_E2B_LIVE=1 tsx test/live/e2b-live.ts",
-    "live:vercel": "node scripts/live-vercel.mjs"
+    "live:vercel": "node scripts/live-vercel.mjs",
+    "live:vercel-sandbox": "tsx scripts/vercel-live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.83",
@@ -294,6 +304,7 @@
     "@aws-sdk/client-dynamodb": "3.1169.0",
     "@aws-sdk/client-scheduler": "3.1169.0",
     "@aws-sdk/client-secrets-manager": "3.1169.0",
+    "@vercel/sandbox": "3.9.1",
     "e2b": "2.63.0"
   },
   "peerDependenciesMeta": {
@@ -304,6 +315,9 @@
       "optional": true
     },
     "@aws-sdk/client-secrets-manager": {
+      "optional": true
+    },
+    "@vercel/sandbox": {
       "optional": true
     },
     "e2b": {
@@ -319,6 +333,7 @@
     "@modelcontextprotocol/server": "2.4.0",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/sdk-trace": "2.12.1",
+    "@vercel/sandbox": "3.9.1",
     "esbuild": "0.28.2",
     "e2b": "2.63.0",
     "json-rpc-2.0": "1.8.1",

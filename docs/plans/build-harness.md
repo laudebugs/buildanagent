@@ -276,7 +276,7 @@ packages/
     schema/session-entry.schema.json generated from entries.ts and committed
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
-                                "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker", "./sandbox/e2b",
+                                "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker", "./sandbox/e2b", "./sandbox/vercel",
                                 "./credentials", "./cloudflare", "./extensions", "./extensions/node", "./memory", "./memory/node",
                                 "./telemetry", "./server", "./aws/dynamodb", "./aws/scheduler",
                                 "./aws/secrets-manager", "./ablation", "./vercel", "./vercel/workflow", "./testing"
@@ -285,7 +285,7 @@ packages/
     src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch, grep, glob)
     src/mcp/                    McpConnection, per-server negotiation, McpManager
     src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
-    src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/, docker/ and e2b/
+    src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/, docker/, e2b/ and vercel/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
     src/cloudflare/             Durable Object SQLite store and index, lock, alarm scheduler, Worker key store, hibernation (N46a)
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
@@ -575,6 +575,7 @@ type ExecResult = { exitCode: number; stdout: string; stderr: string } | { denie
 declare function noneSandbox(options: { unsafe: true }): SandboxClient;
 declare function srtSandbox(options?: { binary?: string }): SandboxClient;        // ./sandbox/srt
 declare function dockerSandbox(options: { image: string; cpus?: number; memoryMb?: number }): SandboxClient; // ./sandbox/docker
+declare function vercelSandbox(options?: { sdk?: VercelSandboxSdk; egress?: EgressPolicy; secret?: (name: string) => Promise<string> }): SandboxClient; // ./sandbox/vercel (N48b)
 declare function spawnEnv(allow: string[], extra?: Record<string, string>): Record<string, string>; // PATH, temp HOME, TMPDIR, LANG
 declare function escalation(options: { approvalPolicy: ApprovalPolicy; approvals: Approvals; granular?: EscalationRule[] }): EscalationMachine;
 // Revision (N18): granular added; EscalationMachine is { approvalPolicy, transitions, run, pending, resolve }
@@ -599,6 +600,8 @@ declare function scrubSecrets(entry: SessionEntry, secrets: readonly string[]): 
 **Built by N43.** `@buildanagent/harness/sandbox` exports `stopsFor(tier, policy)`, `policyDifference(requested, applied)`, `confirmPolicy(client, sandbox, requested)`, `hasCapability()`, `resumeSandbox()`, `snapshotSandbox()` and `pauseSandbox()`, with `SandboxPolicyMismatchError` (code `sandbox_policy_mismatch`, field `field`) and `SandboxUnsupportedError` (code `sandbox_unsupported`, field `capability`). A client that claims a stop must read its policy back: `provision()` and `resumeSandbox()` compare the four policy fields as sets, throw on any difference, a narrower policy included, name only the field, and `provision()` disposes the sandbox first, where `resumeSandbox()` leaves a mismatched sandbox to its caller. Only a `microvm` stops a `hostile_process`, and a policy whose `network.allow` holds `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`. `srt` rereads its settings file, `none` claims no stop and so has no read-back, and the Docker backend reports the flags it sends and refuses a policy that allows a host when it has no `proxySocket`. The three local backends list no capability. The conformance suite in `@buildanagent/harness/testing` gains one capability case and two read-back cases, which is where N45 collects them.
 
 **Built by N47b.** `@buildanagent/harness/sandbox/e2b` exports `e2bSandbox(options)`, a `microvm` client that claims all three stops and lists `resume` and `pause`, and `compileE2BEgress(policy, { fill })`, which compiles an `EgressPolicy` to E2B's `allowOut`, `denyOut: ["0.0.0.0/0"]`, `dnsServers: []`, `allowPublicTraffic: false` and one header rule per route host holding `Secret.fill()` placeholders. `allowOut` is exactly the policy's hosts, and a wildcard, an address, a port, a deny list and a git route are refused, as is any route unless the caller sets `unscopedInjection: true`, because E2B injects into every request to the host. Provisioning calls `Secret.exists()` for every secret first and throws `SandboxSecretUnresolvedError` (code `sandbox_secret_unresolved`, from `./sandbox`), because E2B forwards a request without a header whose secret is missing. It then reads the network back from `getInfo()`, and a sandbox is killed on every failure path. The `e2b` SDK (2.63.0) is an optional peer, passed as `sdk` or imported on first use; the backend imports no Node module ([fact-check](reviews/fact-check-e2b-backend.md)).
+
+**Built by N48b.** `vercelSandbox()` in `@buildanagent/harness/sandbox/vercel` is the first hosted backend: tier `microvm`, all three stops, `resume` and `snapshot`, and `pause` when persistent. It compiles the `EgressPolicy` into Vercel's firewall policy, exactly the policy's hosts, `"deny-all"` when there are none, and, only as an opt-in, a `transform` rule per header route that adds a narrow, low-value credential outside the VM; by default the sandbox holds no credential and none is injected. It refuses a git route, a wildcard, a port, two routes on one host and `subnets.allow`, and it denies the private and link-local ranges. `provision()` reads the firewall policy back from Vercel, compares hosts, header names, methods and ranges, and deletes a sandbox that fails or is disposed. `@vercel/sandbox` 3.9.1 is an optional peer of the harness, imported by that subpath alone, and the backend takes the client as an option so tests run against an in-process fake. The opt-in live run waits for the owner ([N48b's Outcome](../todos/done/N48b-vercel-sandbox-backend.md#outcome)).
 
 **Built by N42.** `KeyStore.rotate()` and `prune()` are optional, so a store may have `load()` alone ([ADR 0035](../decisions/0035-read-only-key-store.md)). `secretKeyStore({ read })` in `@buildanagent/harness/session` is such a store: `read()` returns the secret's text, and `load()` calls it every time and parses it with `parseKeyRing()`, so a ring the platform rotated takes effect at the next load. It checks the ring through `hmacSigner()` and throws `invalid_key_store` for one it can't use. The module imports no Node module, so the per-target readers of N46a, N47a and N48a only supply `read`.
 
@@ -877,7 +880,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N47a](../todos/done/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/done/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
 | [N48a](../todos/done/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
-| [N48b](../todos/ready/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
+| [N48b](../todos/done/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the hosted backends | N46b, N47b, N48b, N19 | S |
 | [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
 
