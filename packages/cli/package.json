@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/cli",
-  "version": "0.1.0-alpha.39",
+  "version": "0.1.0-alpha.40",
   "description": "The buildanagent command line: runs the harness in a terminal.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
