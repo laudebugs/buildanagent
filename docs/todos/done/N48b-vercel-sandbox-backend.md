@@ -57,7 +57,7 @@ The pin is a major version behind 4.0.0, which was also more than a week old whe
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -89,5 +89,5 @@ The pin is a major version behind 4.0.0, which was also more than a week old whe
 **What could not be done**
 
 - **The live run was not run.** vercel.com is unreachable from the build session, which has no Vercel account. The owner runs `HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel-sandbox` once, and ticks the second acceptance box when it passes.
-- **Four claims stay ⚠️** in the fact-check log after it was settled against Vercel's docs: that the denied ranges leave DNS and allowed hosts working, that a `SIGKILL` ends a command's children, that the default image has `curl`, and the sandbox name rule. The live run checks the first three.
+- **Six claims stay ⚠️** in the fact-check log after it was settled against Vercel's docs: that the denied ranges leave DNS and allowed hosts working, that a `SIGKILL` ends a command's children, that the default image has `curl`, the sandbox name rule, the status Vercel sends for a taken name, and that Vercel applies `::ffff:0:0/96`. The live run checks the first three and the last.
 - **The process-tree conformance case skips**, because the fake can't fork and the host can't see the VM's processes.
