@@ -14,6 +14,7 @@
  */
 import type { EgressPolicy } from "../../credentials/egress-policy.js";
 import { HarnessError } from "../../errors.js";
+import { ConfirmedSandbox } from "../confirmed.js";
 import {
   SandboxDeniedError,
   SandboxPolicyMismatchError,
@@ -21,7 +22,6 @@ import {
   SandboxUnavailableError,
 } from "../errors.js";
 import { checkCommand, checkOptions } from "../exec-checks.js";
-import { APPLY_STOPS, confirmPolicy } from "../policy.js";
 import type {
   ExecOptions,
   ExecResult,
@@ -288,9 +288,8 @@ async function bounded(work: Promise<unknown>, ms: number): Promise<void> {
 }
 
 /** One provisioned or resumed E2B sandbox. */
-class E2BSandbox implements Sandbox {
+class E2BSandbox extends ConfirmedSandbox implements Sandbox {
   readonly id: string;
-  private applied: readonly SandboxStop[] = [];
   private state: "running" | "paused" | "disposed" = "running";
   private pausing = false;
   private disposing: Promise<void> | undefined;
@@ -310,25 +309,13 @@ class E2BSandbox implements Sandbox {
     root: string,
     network: E2BCompiledEgress,
   ) {
+    super();
     this.instance = instance;
     this.id = instance.sandboxId;
     this.context = context;
     this.policy = policy;
     this.root = root;
     this.network = network;
-  }
-
-  get stops(): readonly SandboxStop[] {
-    return this.applied;
-  }
-
-  /** Reads the policy back and checks it, or disposes the sandbox and throws on a difference. */
-  async confirm(client: SandboxClient, requested: SandboxPolicy): Promise<void> {
-    this.applied = await confirmPolicy(client, this, requested);
-  }
-
-  [APPLY_STOPS](stops: readonly SandboxStop[]): void {
-    this.applied = stops;
   }
 
   private live(): void {
