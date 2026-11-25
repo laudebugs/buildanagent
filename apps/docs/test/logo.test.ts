@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { test } from "vitest";
+import { docsWordmark, logoMark } from "../src/chrome.js";
 
 // The mark is drawn twice: public/favicon.svg, with heavier strokes for the tab, and the inline drawing in
 // SiteTitle.astro. The structure tests below always run. The render test draws the favicon at 16 pixels in headless
@@ -27,12 +28,17 @@ test("the favicon sets its own colours for light and dark, and draws the caret i
   assert.match(favicon, /<title>Build An Agent<\/title>/);
 });
 
-test("the header's mark is logo 3, with colours from the docs tokens", () => {
-  assert.match(title, /<rect x="7" y="7" width="50" height="50" rx="11"[^>]*stroke="currentColor"\s+stroke-width="5"/);
-  assert.match(title, /d="M21 23L34 32L21 41"[^>]*stroke="currentColor"\s+stroke-width="5"/);
-  assert.match(title, /d="M38 43H48"[^>]*stroke="var\(--color-accent\)" stroke-width="5"/);
-  assert.match(title, /<svg[^>]*aria-hidden="true"/, "the wordmark names the link, so the drawing is hidden");
-  assert.match(title, /Build An Agent<\/span> <span class="kind">docs<\/span>/);
+test("the header's mark is logo 3 from the shared chrome source, with colours from the docs tokens", () => {
+  assert.match(
+    logoMark,
+    /<rect x="7" y="7" width="50" height="50" rx="11"[^>]*stroke="currentColor"\s+stroke-width="5"/,
+  );
+  assert.match(logoMark, /d="M21 23L34 32L21 41"[^>]*stroke="currentColor"\s+stroke-width="5"/);
+  assert.match(logoMark, /d="M38 43H48"[^>]*stroke="var\(--color-accent\)" stroke-width="5"/);
+  assert.match(logoMark, /<svg[^>]*aria-hidden="true"/, "the wordmark names the link, so the drawing is hidden");
+  assert.deepEqual(docsWordmark, { name: "Build An Agent", kind: "docs" });
+  assert.match(title, /<Fragment set:html=\{logoMark\} \/>/);
+  assert.match(title, /\{docsWordmark\.name\}<\/span> <span class="kind">\{docsWordmark\.kind\}<\/span>/);
 });
 
 type Rgb = [number, number, number];

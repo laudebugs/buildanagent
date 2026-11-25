@@ -1171,7 +1171,6 @@ Claims of [the report](../../research/book/reading-settings.md)'s storage paragr
 | fix/manual-settings-storage-failure-16 | Corrects row 9: `check:save-offline` failed once on this branch and passed in three later runs, one of them with this branch's changes stashed; the cause is unknown | ✏️ | The run records of this session; no cause was found, so none is claimed |
 | fix/manual-settings-storage-failure-17 | Corrects row 12's "fails four tests": a probe that reads with `getItem` in place of writing fails "the probe writes and removes its own key, and only a refused write counts as unusable", "storage that refuses only writes shows the unsaved note on open, and the pick still applies", "Reset after a blocked probe keeps the unsaved note, though removeItem works" and "a page view that never opens the panel makes no storage write, and the probe runs once" | ✏️ | The mutation run of `test/reading-panel.test.ts` in this session: four failed, 35 passed |
 
-
 ## Checked while doing todo L12f (2026-11-24)
 
 Claims and build measurements for adding `@buildanagent/agent-safety`, `@buildanagent/protocol`, `@buildanagent/harness` and `@buildanagent/cli` to `apps/docs`'s generated API reference (`todo/L12f-api-reference-four-packages`).
@@ -1185,3 +1184,14 @@ Claims and build measurements for adding `@buildanagent/agent-safety`, `@buildan
 | L12f-5 | Every export of all six packages has a generated HTML page under `apps/docs/dist/reference/<folder>/` and passes `pnpm check:api-docs` | ✅ | `apps/docs/test/api-docs.test.ts` (14/14 tests passed, covering all six packages in `CHECKED_PACKAGES` and `API_PACKAGES`, including single-entry packages `protocol` and `cli`) |
 | L12f-6 | `listExports()` in `apps/docs/src/api/check.ts` handles single-entry packages (`protocol`, `cli`) whose declarations sit directly on `project.children` rather than under `ReflectionKind.Module` | ✅ | Read `apps/docs/src/api/check.ts` and ran `api-docs.test.ts`: both `@buildanagent/protocol` and `@buildanagent/cli` listed > 0 exports and matched their built HTML pages |
 | L12f-7 | `apps/docs/src/content/docs/reference/packages.md` links all six packages' API references (`/reference/gateway/`, `/reference/sdk/`, `/reference/agent-safety/`, `/reference/protocol/`, `/reference/harness/`, `/reference/cli/`) | ✅ | Read `apps/docs/src/content/docs/reference/packages.md` and verified by `starlight-links-validator` in the build |
+
+## One shared header source (L12p, 2026-11-24)
+
+Claims of [L12p](../../todos/done/L12p-shared-header-source.md), `apps/manual/README.md` and `apps/docs/README.md` on the shared header chrome.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| L12p-1 | `apps/manual/package.json` exports `./site-chrome` (`src/design/site-chrome.ts`) and `./site-chrome.json` (`src/design/site-chrome.json`), holding the shared brand, repository URL, four links (Docs, Manual, Site, GitHub), per-site wordmarks and inline prompt mark SVG | ✅ | `apps/manual/package.json` `exports`, `apps/manual/src/design/site-chrome.json`, `apps/manual/src/design/site-chrome.ts` and `apps/manual/test/site-chrome.test.ts` |
+| L12p-2 | `apps/manual`, `apps/docs` and `apps/site` all render their headers from `@buildanagent/manual/site-chrome` with no duplicate hard-coded links or inline mark SVGs | ✅ | `apps/manual/src/components/SiteHeader.astro`, `apps/docs/src/chrome.ts`, `apps/docs/astro.config.mjs`, `apps/docs/src/components/SiteTitle.astro`, `apps/site/src/landing/copy.ts` and `apps/site/src/landing/chrome.ts` |
+| L12p-3 | Each of the three apps tests its built header against `@buildanagent/manual/site-chrome` (`apps/manual/test/site-chrome.test.ts`, `apps/docs/test/chrome.test.ts`, `apps/site/test/landing.test.ts`) | ✅ | All three built-header tests run and pass in `pnpm --filter @buildanagent/{manual,docs,site} test` |
+| L12p-4 | The manual's sticky header keeps its 56 px desktop / 52 px phone heights, single viewport media query, reading-scale `clamp()` rules and token-only styles | ✅ | `apps/manual/test/header-static.test.ts`, `apps/manual/test/reading-settings.test.ts`, `apps/manual/test/styles.test.ts` and `apps/manual/test/build.test.ts` all pass |

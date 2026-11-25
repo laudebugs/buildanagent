@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { SITE_CHROME, siteChromeLinks } from "@buildanagent/manual/site-chrome";
 import { describe, inject, test } from "vitest";
 import { layers, NARROW_WIDTH } from "../figures/layers.js";
 import { Drawing } from "../figures/lib/draw.js";
@@ -76,18 +77,31 @@ describe("the landing page", () => {
     assert.ok(lead.split(/\s+/).length <= 50);
   });
 
-  test("links Docs, Manual, Site and GitHub in the header, in order", () => {
+  test("links Docs, Manual, Site and GitHub in the header, in order, from the shared site-chrome source", () => {
     const nav = /<nav aria-label="Main">([\s\S]*?)<\/nav>/.exec(html)?.[1] ?? "";
-    const links = [...nav.matchAll(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g)].map(([, href, label]) => ({ label, href }));
-    assert.deepEqual(links, [...copy.nav]);
+    const links = [...nav.matchAll(/<a href="([^"]+)"([^>]*)>([^<]+)<\/a>/g)].map(([, href, attrs, label]) => ({
+      label,
+      href,
+      current: attrs?.includes('aria-current="true"') ?? false,
+    }));
+    const expected = siteChromeLinks("site", { selfHref: "/" });
+    assert.deepEqual(
+      links,
+      expected.map((link) => ({ label: link.label, href: link.href, current: Boolean(link.current) })),
+    );
+    assert.deepEqual(
+      links.map(({ label, href }) => ({ label, href })),
+      [...copy.nav],
+    );
     assert.deepEqual(
       copy.nav.map((link) => link.label),
       ["Docs", "Manual", "Site", "GitHub"],
     );
   });
 
-  test("shows the wordmark and the inline mark in the header", () => {
+  test("shows the wordmark and the inline mark in the header from the shared site-chrome source", () => {
     const brand = /<a class="brand" href="\/">([\s\S]*?)<\/a>/.exec(html)?.[1] ?? "";
+    assert.ok(brand.includes(SITE_CHROME.mark.svg), "renders the shared inline mark");
     assert.match(brand, /<svg class="mark"[^>]*aria-hidden="true"/);
     assert.match(brand, /stroke="var\(--color-accent\)"/);
     assert.equal(
@@ -96,7 +110,7 @@ describe("the landing page", () => {
         .replace(/<[^>]+>/g, "")
         .replace(/\s+/g, " ")
         .trim(),
-      copy.brand,
+      SITE_CHROME.sites.site.name,
     );
   });
 
