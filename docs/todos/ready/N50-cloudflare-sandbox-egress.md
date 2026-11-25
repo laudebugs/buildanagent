@@ -1,5 +1,7 @@
 # N50: Verify Cloudflare Sandbox 1.0 egress on a real sandbox before N46b picks a design
 
+> **Narrowed (owner, 2026-11-25, [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md)).** A sandbox holds no credentials by default, and provider-side injection is a narrow opt-in. The owner's ruling that this todo prepares therefore covers TLS interception for the opt-in credential route only. Case (a) still matters most: if plain allowlisted HTTPS, such as `npm install`, fails without interception, the default itself needs a ruling on Cloudflare.
+
 | Field | Value |
 | --- | --- |
 | ID | `N50` |
@@ -20,6 +22,7 @@ On a real Cloudflare sandbox, find out how an allowlisted HTTPS request can leav
 - [Migrate from Sandbox SDK 0.x: outbound rules](https://developers.cloudflare.com/sandbox/sdk/migrate/outbound-traffic/): what replaced `outbound`, `outboundByHost`, `allowedHosts` and `interceptHttps` in 1.0.
 - [ADR 0020](../../decisions/0020-default-sandbox-backend.md) and [HD15](../../plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls): our current "no TLS interception" rule, which this todo may propose to change for the Cloudflare backend only.
 - [N46b](N46b-cloudflare-sandbox-backend.md): the backend that waits for this todo and the owner's decision.
+- [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md): no credentials in a sandbox by default, and provider-side injection only as a narrow opt-in, which narrows the proposed ADR below to that opt-in.
 
 ## Scope
 
@@ -34,7 +37,7 @@ Tests against `@cloudflare/sandbox` 1.0.3 and the Durable Object Container API, 
 
 Two outputs:
 - A short findings note under `docs/research/deployment/`, with its own fact-check file.
-- A proposed ADR text, for the owner to accept or reject, that would supersede ADR 0020's "no TLS interception" for the Cloudflare backend only.
+- A proposed ADR text, for the owner to accept or reject, that would allow TLS interception on the Cloudflare backend for an opt-in credential route only, as ADR 0060 allows it on E2B and Vercel. If case (a) fails, the text also proposes how the default reaches allowlisted HTTPS hosts.
 
 **Out of scope** (and which todo covers it)
 
@@ -72,7 +75,7 @@ The findings note and its fact-check under `docs/research/deployment/`, the AGEN
 
 - The live run costs money and needs an account; the owner provides the disposable project.
 - Cloudflare may change the Container API again; record the date and versions of every result.
-- The owner may reject TLS interception for Cloudflare. Then N46b needs another route for HTTPS, such as a reverse-proxy route outside the sandbox, or E2B behind `SandboxClient` (CA3).
+- The owner may reject TLS interception for Cloudflare. Then the opt-in needs another route, such as a reverse-proxy route outside the sandbox, or E2B behind `SandboxClient` (CA3), and authenticated actions stay host-side tools as ADR 0060 makes them by default.
 
 ## Definition of done
 
