@@ -1117,6 +1117,62 @@ By default every component runs:
 
 `runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend refuses non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`). None of the suites import Node modules, so local Node, Cloudflare, AWS and Vercel targets run the same cases. Pass your target's seam factories to `runPortabilityConformance(target)` to verify a new backend.
 
+## On Vercel, Postgres holds the log and the lock, and each wake is one Workflow run
+
+A Vercel Function stops after its maximum duration and starts cold on another instance, so a run's state and its wakes must live outside the function. `@buildanagent/harness/vercel` supplies four of the eight portable seams for that host, and each passes the portability suite offline. `postgresStore()` keeps the session log in Postgres, and `postgresLock()` keeps one lease row per session. `workflowScheduler()` turns each wake into a Vercel Workflow run, and `envKeyStore()` reads the approval key ring from a secret environment variable. The entry imports no Postgres driver and no Workflow SDK code: you pass in a client with `query(text, values)` that resolves to `{ rows }`, such as `pg`'s `Pool` or Neon's serverless `Pool`, and the SDK's own functions. The sandbox and egress seams on Vercel belong to the Vercel Sandbox backend, which this entry leaves out.
+
+Run `createPostgresHarnessTables(client)` once, or the statements in `POSTGRES_HARNESS_SCHEMA` as a migration, and build the seams over one client:
+
+```ts
+export async function vercelState(client: PgClientLike, env?: Readonly<Record<string, string | undefined>>) {
+  await createPostgresHarnessTables(client);
+  return {
+    store: postgresStore(client),
+    lock: postgresLock(client, { leaseMs: LEASE_MS }),
+    ledger: postgresWakeLedger(client),
+    keyStore: envKeyStore({ name: "HARNESS_KEY_RING", ...(env === undefined ? {} : { env }) }),
+  };
+}
+```
+
+### An append is one `INSERT`, and the primary key on `seq` is its compare-and-swap
+
+`postgresStore(client)` writes each entry as one row of `harness_session_entries`, keyed by user, session and `seq`, with the entry kept as the JSON text it was written as. An append reads the log's tail and the stored entries that share an id with the batch, then applies the same rules as every store: idempotency by id, `expectedLastId`, the header first and the 64 KiB bound. It writes the new entries in one multi-row `INSERT`. Two writers that read the same tail both try to write the same `seq`, so Postgres refuses one `INSERT` whole with a unique violation. The losing append plans again from what is now stored. A stale `expectedLastId` then throws `ConflictError`, and an append with no expected tail lands at the next `seq`; after five lost races it gives up with `ConflictError`. Each statement runs on its own, so the store needs no transaction and works through a pooled client. A `load()` reads the entries present when it began, 256 rows a page (`pageSize`), and the store also offers `loadRaw()`. Postgres writes a row whole or not at all, so the torn-line cases of the suite skip.
+
+### A lock is a lease row on the database's clock, with a fence that only grows
+
+`postgresLock(client, { leaseMs, renewMs })` takes a session with one `INSERT … ON CONFLICT … DO UPDATE … WHERE` statement. It inserts the row, or takes over a row whose lease has lapsed, under Postgres's row lock, so of many writers that race for one session exactly one gets a handle. A lapsed lease is the only staleness rule, because no host can check another host's process. The holder renews every `renewMs` (default 10 seconds, or a third of the 30-second lease) through a `ProcessScheduler`, which suits a function that holds the lock for one step. A renewal that finds another writer's token, or a lease already lapsed, ends the hold. `release()` frees the row only while it still carries the hold's token, so a late release never frees the next writer's lock.
+
+Clock skew cannot stretch a lease, for two reasons. First, the database's `clock_timestamp()` sets every lease's start and end, so writers on hosts whose clocks disagree still agree on when a lease lapses. Second, the holder times its own lease on a monotonic local clock from before it sent the statement, so `held()` turns `false` no later than the row's lease ends, whatever the network delay; it also turns `false` when renewals keep failing. Only a difference in how fast two clocks run can matter then, which is far smaller than any lease. Set `leaseMs` longer than the slowest step plus a renewal's round trip. Each handle is a `PostgresLockHandle` with a `fence`, a number that grows on every acquire of the session, because a released row keeps its count. Pass it to any resource that can refuse a lower number. The session log needs no fence: its expected-last-id check already refuses an append from a writer whose tail is out of date.
+
+### A wake is a Workflow run that sleeps, and its turn runs in one step
+
+`workflowScheduler({ ledger, start, resumeHook })` records each wake as a row of `harness_wakes` through `postgresWakeLedger(client)`, then starts one Workflow run with a `WakeRequest` of plain data: the id, the time and a hook token. The run's body is `runWakeWorkflow()` from `@buildanagent/harness/vercel/workflow`, which imports nothing, so the Workflow SDK's bundler can place it in a workflow bundle. It waits with the SDK's `sleep()` and races that sleep against a hook made with `createHook()`. When the time comes, it calls your step once, and the step calls `deliverWake()`. The turn therefore runs inside one step, and the engine records the step's result rather than replaying a model call: one step per `continueRun`, never the inner loop. Your app holds the workflow and the step:
+
+```ts
+export async function harnessWake(request: WakeRequest) {
+  "use workflow";
+  return runWakeWorkflow(request, { sleep, createHook, deliver: deliverHarnessWake });
+}
+
+export async function deliverHarnessWake(request: WakeRequest) {
+  "use step";
+  const { connect, onWake } = app;
+  if (connect === undefined || onWake === undefined) throw new Error("set app.connect and app.onWake first");
+  return deliverWake(request, { ledger: postgresWakeLedger(connect()), handler: onWake });
+}
+```
+
+Give the harness `workflowScheduler()` with `start: (request) => start(harnessWake, [request])` and `resumeHook`, both from `workflow/api`; `examples/vercel-wake.ts` holds the whole file. The ledger makes `cancel(id)` exact across instances. `cancel()` removes the id's rows, so a run that wakes later finds no row and delivers nothing, and it resumes each run's hook so the run ends at once instead of sleeping on. A wake is at-least-once. A wake asked for twice may start two runs, and the second finds the token taken and ends without delivering. A handler that throws leaves the row in place, so the SDK's retry of the step delivers it again, and the handler must treat a second delivery as harmless. Because the turn runs in a step, its function's maximum duration bounds one turn, and a cold start costs a reload of the log from Postgres; nothing waits in memory.
+
+### The key ring comes from a secret environment variable, and nothing shows its value
+
+`envKeyStore({ name })` is `secretKeyStore()` over one variable, by default `HARNESS_KEY_RING`, read at every `load()`. It has no `rotate()` or `prune()`, so change the variable with `vercel env` and redeploy, keeping an old key in the ring until no waiting request names it. A function reads the value its deployment was built with. A missing or empty variable throws `invalid_key_store` with the variable's name; a value that is not a usable ring throws it with fixed text and no cause. The store keeps no copy of the value, so neither its `inspect()` output, its JSON nor any error it throws holds the key.
+
+### The live run checks the adapters against your own Postgres, and only you start it
+
+`pnpm --filter @buildanagent/harness live:vercel` runs the suite's store, lock, key store and effect store cases against a real database, then checks that a lease lapses on the database's clock and that the wake ledger round-trips. It runs only with `HARNESS_LIVE_VERCEL=1` and `DATABASE_URL` set, so CI and `pnpm test` never start it. Build first with `pnpm --filter "@buildanagent/harness..." build`, and use the database's unpooled connection string, because the run sets a `search_path` on each connection. It reads `DATABASE_URL` only to connect and never prints it. It works in a schema of its own, `harness_live_<random>`, which it drops at the end, and its key store case uses a ring it makes, not yours. The Workflow side needs a deployed app: deploy `examples/vercel-wake.ts`, ask for a wake a minute ahead, and check that `onWake` ran once.
+
 ## The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause
 
 `examples/triage-session.ts` runs the SDK's support-triage agent on the harness, with its tools in `examples/triage-tools.ts`. The registry holds two tools, `lookup_customer` and `escalate`, and no built-in tool, so each request offers those two and the output tool `submit_triage`. The pipeline allows the lookup and asks before an escalation. A deny rule added after the pause wins over an allow a person gave before it.

@@ -27,6 +27,8 @@ const PLANNED_ENTRIES = [
   "./telemetry",
   "./server",
   "./ablation",
+  "./vercel",
+  "./vercel/workflow",
   "./testing",
 ];
 
