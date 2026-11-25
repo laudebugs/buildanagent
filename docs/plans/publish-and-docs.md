@@ -218,6 +218,8 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12f](../todos/done/L12f-docs-api-reference-four-packages.md) | Generated API reference for `agent-safety`, `protocol`, `harness` and `cli`, with `sidebar: "modules"` on `harness` and six-package measurements | L12c | S to M |
 | [L12k](../todos/done/L12k-docs-fences-gateway-figures.md) | `file=` fences on the docs' inline examples, a gateway page and figures 3 to 6 | L12d | M |
 | [L12q](../todos/done/L12q-docs-examples.md) | The new tested examples the docs pages need: protocol, a harness sandbox and compaction, and an agent-safety bring-your-own-key guard | L12k | M |
+| [L12r](../todos/done/L12r-docs-body-font-inter.md) | The docs' body text in Inter, with Instrument Serif kept for titles, after the owner's decision of 2026-11-24 | L12a | S |
+| [L12s](../todos/done/L12s-docs-body-font-plex.md) | The docs' body text in IBM Plex Sans in place of Inter, after the owner's decision of 2026-11-24 | L12r | S |
 | [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
 | [L14](../todos/done/L14-favicons.md) | The site's favicon on the manual and the docs, with a test in each app | L13 | S |
 
