@@ -106,7 +106,7 @@ async function deliver(
  * most 15 minutes, so a handler should do one step of work and ask for another wake rather than run a long turn.
  *
  * A due wake goes to the handlers registered when `alarm()` runs, and once they return it is deleted, even when none is
- * registered. After an eviction the object's constructor runs before `alarm()`, so register every handler whose wakes
+ * registered. A wake that a handler cancels during the same run is skipped. After an eviction the object's constructor runs before `alarm()`, so register every handler whose wakes
  * must survive an eviction there, not when a session is opened. A lock's renewal wakes need no handler after an
  * eviction, because the hold they renewed left memory with the object.
  */

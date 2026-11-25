@@ -59,7 +59,7 @@ Alarms run for at most 15 minutes, so a long turn must end each step with a wake
 ## Definition of done
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked (drafted with the skill; the review runs on the pull request)
+- [x] Prose drafted with `/anthropic-skills:writing` and reviewed with `/anthropic-skills:writing-review`, with the fixes applied and changed claims re-checked (the review's scores are in the pull request description)
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 
@@ -74,4 +74,4 @@ Alarms run for at most 15 minutes, so a long turn must end each step with a wake
 - `test/cloudflare/cloudflare.test.ts` runs every case of the portability suite in its own Durable Object in workerd through Miniflare, with outbound requests refused and asserted empty. Six seams pass there; the sandbox and egress seams belong to N46b, which is on hold. Four cases skip by design: the two torn-line cases and the key store's rotate and prune. The same file runs 16-request lock and append races, the real alarm with a retried wake, a real socket whose object lost its memory, and the smoke test, in which pi-schema, `@cfworker/json-schema` and the MCP client all work in workerd. So the fallback validator is not needed.
 - `examples/cloudflare-session-object.ts` builds a Durable Object's agent server from the adapters, and the test Worker serves its sockets with it.
 - The live run (`test/cloudflare/live.ts`, `packages/harness/docs/cloudflare-live-run.md`) needs `HARNESS_CLOUDFLARE_LIVE=1`, refuses under `CI`, deploys the test Worker under a random name behind a random token, and deletes it at the end. This session has no Cloudflare account, so the second acceptance box stays open until the owner runs it once and records the output.
-- New dev dependencies, all already in the lockfile: `@cfworker/json-schema` 4.1.6 and `esbuild` 0.28.2. `HarnessError` gains `invalid_store_options` and `invalid_scheduler_options`. Claims are logged as rows N46a-1 to N46a-24 in [the Cloudflare adapters fact-check](../../plans/reviews/fact-check-cloudflare-adapters.md).
+- New dev dependencies, all already in the lockfile: `@cfworker/json-schema` 4.1.6 and `esbuild` 0.28.2. `HarnessError` gains `invalid_store_options` and `invalid_scheduler_options`. Claims are logged as rows N46a-1 to N46a-27 in [the Cloudflare adapters fact-check](../../plans/reviews/fact-check-cloudflare-adapters.md).

@@ -1,5 +1,5 @@
-// A Durable Object's agent server: the session log, its writer lock and its wakes live in the object's own SQLite
-// storage, approvals are signed with the key ring in a Worker secret, and clients connect over hibernatable WebSockets.
+// A Durable Object's agent server. The session log, its writer lock and its wakes live in the object's own SQLite
+// storage. Approvals are signed with the key ring in a Worker secret, and clients connect over hibernatable WebSockets.
 import { hmacSigner } from "@buildanagent/agent-safety";
 import type { Model } from "@buildanagent/gateway";
 import {

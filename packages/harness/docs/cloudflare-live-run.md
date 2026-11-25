@@ -1,6 +1,6 @@
 # The Cloudflare live run checks the adapters on a real account, and only the owner starts it
 
-The offline tests run the Cloudflare adapters in workerd through Miniflare, which has real Durable Object storage, alarms and hibernatable sockets but never evicts an object and keeps every alarm on one machine. The live run closes that gap. It deploys the same test Worker to your own Cloudflare account under a new random name, runs the same checks against real Durable Objects, waits long enough for a real eviction, and deletes the Worker however the run ends. It never runs in CI, and no workflow calls it.
+The offline tests run the Cloudflare adapters in workerd through Miniflare, which has real Durable Object storage, alarms and hibernatable sockets. It never evicts an object, and it keeps every alarm on one machine. The live run closes that gap. It deploys the same test Worker to your own Cloudflare account under a new random name, runs the same checks against real Durable Objects, waits long enough for a real eviction, and deletes the Worker however the run ends. It never runs in CI, and no workflow calls it.
 
 ## What you need before you run it
 
