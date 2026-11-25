@@ -1,5 +1,18 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.35
+
+### Minor Changes
+
+- c25b00d: Add `@buildanagent/harness/ablation` (`AblationConfig`, `DEFAULT_ABLATION`, `defaultAblation()`, `validateAblation()`, `ablationHash()`, `credentialEnvOf()`) and wire `HarnessOptions.ablation` into `createHarness()` and `runTurn()` so every removable component can be switched off and its configuration hash stamped into `session_header.ablationHash`.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.35
+  - @buildanagent/gateway@0.1.0-alpha.35
+  - @buildanagent/protocol@0.1.0-alpha.35
+  - @buildanagent/sdk@0.1.0-alpha.35
+
 ## 0.1.0-alpha.34
 
 ### Patch Changes
