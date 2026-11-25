@@ -19,6 +19,7 @@ const PLANNED_ENTRIES = [
   "./sandbox",
   "./sandbox/srt",
   "./sandbox/docker",
+  "./sandbox/vercel",
   "./credentials",
   "./extensions",
   "./extensions/node",

@@ -14,6 +14,7 @@ export type HarnessErrorCode =
   | "sandbox_policy_mismatch"
   | "sandbox_unsupported"
   | "egress_denied"
+  | "egress_secret_unresolved"
   | "invalid_egress_options"
   | "unsafe_sandbox_not_acknowledged"
   | "invalid_sandbox_options"
@@ -72,6 +73,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * neither a missing file nor a denial. `sandbox_policy_mismatch`: the policy a backend read back after it provisioned or
  * resumed a sandbox differs from the one requested (`SandboxPolicyMismatchError`). `sandbox_unsupported`: a sandbox was
  * asked to resume, snapshot or pause on a backend that lacks the capability (`SandboxUnsupportedError`).
+ * `egress_secret_unresolved`: a credential an egress route names could not be read, or is not usable as a header
+ * value, so the sandbox was not provisioned; the error names the credential, never its value.
  * `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe:
  * true`. `invalid_sandbox_options`: a sandbox option, manifest or command is unusable. `invalid_spawn_env`:
  * `spawnEnv()` was given a name or value that can't be part of a clean environment. `duplicate_tool`: a tool registry

@@ -274,7 +274,7 @@ packages/
     schema/session-entry.schema.json generated from entries.ts and committed
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
-                                "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
+                                "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker", "./sandbox/vercel",
                                 "./credentials", "./extensions", "./extensions/node", "./memory", "./memory/node",
                                 "./telemetry", "./server", "./ablation", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
@@ -282,7 +282,7 @@ packages/
     src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch, grep, glob)
     src/mcp/                    McpConnection, per-server negotiation, McpManager
     src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
-    src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/ and docker/
+    src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/, docker/ and vercel/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
     src/memory/                 memory extension: the memory tool, records, index, expiry, purge marks (HD17)
@@ -569,6 +569,7 @@ type ExecResult = { exitCode: number; stdout: string; stderr: string } | { denie
 declare function noneSandbox(options: { unsafe: true }): SandboxClient;
 declare function srtSandbox(options?: { binary?: string }): SandboxClient;        // ./sandbox/srt
 declare function dockerSandbox(options: { image: string; cpus?: number; memoryMb?: number }): SandboxClient; // ./sandbox/docker
+declare function vercelSandbox(options?: { sdk?: VercelSandboxSdk; egress?: EgressPolicy; secret?: (name: string) => Promise<string> }): SandboxClient; // ./sandbox/vercel (N48b)
 declare function spawnEnv(allow: string[], extra?: Record<string, string>): Record<string, string>; // PATH, temp HOME, TMPDIR, LANG
 declare function escalation(options: { approvalPolicy: ApprovalPolicy; approvals: Approvals; granular?: EscalationRule[] }): EscalationMachine;
 // Revision (N18): granular added; EscalationMachine is { approvalPolicy, transitions, run, pending, resolve }
