@@ -3,10 +3,10 @@
  * `dispose()` that every caller waits on. A backend extends it and adds how it starts a command and what it cleans up.
  */
 import { HarnessError } from "../errors.js";
+import { ConfirmedSandbox } from "./confirmed.js";
 import { type HostFiles, workingDirectory } from "./host-files.js";
-import { APPLY_STOPS, confirmPolicy } from "./policy.js";
 import { checkCommand, checkOptions, type NodeModules } from "./process.js";
-import type { ExecOptions, ExecResult, Sandbox, SandboxClient, SandboxPolicy, SandboxStop } from "./types.js";
+import type { ExecOptions, ExecResult, Sandbox, SandboxPolicy } from "./types.js";
 
 /** The state a backend's sandbox is built on. */
 export interface BackendBase {
@@ -17,13 +17,13 @@ export interface BackendBase {
 }
 
 /** A sandbox that checks a command the same way, reads and writes files in the host, and disposes once. */
-export abstract class BackendSandbox implements Sandbox {
+export abstract class BackendSandbox extends ConfirmedSandbox implements Sandbox {
   private disposed = false;
   private disposing: Promise<void> | undefined;
-  private applied: readonly SandboxStop[] = [];
   private readonly base: BackendBase;
 
   protected constructor(base: BackendBase) {
+    super();
     this.base = base;
   }
 
@@ -61,21 +61,6 @@ export abstract class BackendSandbox implements Sandbox {
 
   /** Reads back the policy this sandbox applies, from what the backend wrote or will pass to each command. */
   abstract readBack(): Promise<SandboxPolicy>;
-
-  /** The stops the applied policy delivers, set by `confirm()` when the sandbox is provisioned. */
-  get stops(): readonly SandboxStop[] {
-    return this.applied;
-  }
-
-  /** Reads the policy back and checks it against `requested`, or disposes the sandbox and throws on a difference. */
-  async confirm(client: SandboxClient, requested: SandboxPolicy): Promise<void> {
-    this.applied = await confirmPolicy(client, this, requested);
-  }
-
-  /** Sets the stops a resumed sandbox's confirmed policy delivers, for `resumeSandbox()`. */
-  [APPLY_STOPS](stops: readonly SandboxStop[]): void {
-    this.applied = stops;
-  }
 
   async readFile(path: string): Promise<Uint8Array> {
     this.live();
