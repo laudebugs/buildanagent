@@ -11,6 +11,7 @@ import {
   type DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
+  type PutItemCommandInput,
   QueryCommand,
   type QueryCommandInput,
   type WriteRequest,
@@ -24,6 +25,7 @@ import {
   checkKey,
   DEFAULT_MAX_ENTRY_BYTES,
   type EntryInput,
+  encodeName,
   extendState,
   type LoadOptions,
   type LogState,
@@ -39,11 +41,10 @@ import {
   conditionFailed,
   type DynamoTableOptions,
   type Item,
-  itemKey,
+  type Layout,
+  layoutOf,
   num,
-  sortKey,
   str,
-  userPk,
 } from "./dynamodb-common.js";
 import { checkClient } from "./sdk.js";
 
@@ -161,16 +162,19 @@ function parsed(text: string): SessionEntry {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const cacheKey = (key: SessionKey) => `${userPk(key.userId).S}/${sortKey("h", key).S}`;
-
-const entryKey = (key: SessionKey, entry: SessionEntry, batch: string) =>
-  itemKey("e", key, `#${pad(entry.seq)}#${batch}`);
+const cacheKey = (key: SessionKey) => `${encodeName(key.userId)}/${encodeName(key.sessionId)}`;
 
 /** The head item that commits `fresh` as batch `batch`. */
-function headItem(key: SessionKey, head: Head | undefined, fresh: readonly SessionEntry[], batch: string) {
+function headItem(
+  layout: Layout,
+  key: SessionKey,
+  head: Head | undefined,
+  fresh: readonly SessionEntry[],
+  batch: string,
+) {
   const last = fresh.at(-1) as SessionEntry;
   return {
-    ...itemKey("h", key),
+    ...layout.itemKey("h", key),
     sessionId: { S: key.sessionId },
     batch: { S: batch },
     lastSeq: { N: String(last.seq) },
@@ -181,7 +185,9 @@ function headItem(key: SessionKey, head: Head | undefined, fresh: readonly Sessi
 }
 
 /** The condition a commit needs: no head yet, or the head this append read. */
-function commitCondition(head: Head | undefined) {
+function commitCondition(
+  head: Head | undefined,
+): Pick<PutItemCommandInput, "ConditionExpression" | "ExpressionAttributeNames" | "ExpressionAttributeValues"> {
   return head === undefined
     ? { ConditionExpression: "attribute_not_exists(#sk)", ExpressionAttributeNames: { "#sk": "sk" } }
     : {
@@ -214,17 +220,23 @@ class DynamoStore implements SessionStore {
   readonly #client: DynamoDBClient;
   readonly #table: string;
   readonly #maxBytes: number;
+  readonly #layout: Layout;
   readonly #cache = new Map<string, { readonly batch: string; readonly state: LogState }>();
 
-  constructor(client: DynamoDBClient, table: string, maxBytes: number) {
+  constructor(client: DynamoDBClient, table: string, maxBytes: number, layout: Layout) {
     this.#client = client;
     this.#table = table;
     this.#maxBytes = maxBytes;
+    this.#layout = layout;
+  }
+
+  #entryKey(key: SessionKey, entry: SessionEntry, batch: string) {
+    return this.#layout.itemKey("e", key, `#${pad(entry.seq)}#${batch}`);
   }
 
   async #head(key: SessionKey): Promise<Head | undefined> {
     const { Item } = await this.#client.send(
-      new GetItemCommand({ TableName: this.#table, Key: itemKey("h", key), ConsistentRead: true }),
+      new GetItemCommand({ TableName: this.#table, Key: this.#layout.itemKey("h", key), ConsistentRead: true }),
     );
     return headOf(Item as Item | undefined);
   }
@@ -246,7 +258,7 @@ class DynamoStore implements SessionStore {
     return this.#queryAll({
       KeyConditionExpression: "#pk = :pk AND begins_with(#sk, :prefix)",
       ExpressionAttributeNames: { "#pk": "pk", "#sk": "sk" },
-      ExpressionAttributeValues: { ":pk": userPk(key.userId), ":prefix": { S: prefix } },
+      ExpressionAttributeValues: { ":pk": this.#layout.userPk(key.userId), ":prefix": { S: prefix } },
       ...(projection === undefined ? {} : { ProjectionExpression: projection }),
     });
   }
@@ -258,10 +270,10 @@ class DynamoStore implements SessionStore {
       KeyConditionExpression: "#pk = :pk AND #sk BETWEEN :lo AND :hi",
       ExpressionAttributeNames: { "#pk": "pk", "#sk": "sk" },
       ExpressionAttributeValues: {
-        ":pk": userPk(key.userId),
-        ":lo": sortKey("e", key, `#${pad(from)}`),
+        ":pk": this.#layout.userPk(key.userId),
+        ":lo": this.#layout.sortKey("e", key, `#${pad(from)}`),
         // `~` sorts after every character of a batch id, so the range ends after the last entry's every batch.
-        ":hi": sortKey("e", key, `#${pad(head.lastSeq)}#~`),
+        ":hi": this.#layout.sortKey("e", key, `#${pad(head.lastSeq)}#~`),
       },
     });
     return walk(head, items.map(linkOf), from);
@@ -321,7 +333,7 @@ class DynamoStore implements SessionStore {
       fresh.map((entry) => ({
         PutRequest: {
           Item: {
-            ...entryKey(key, entry, batch),
+            ...this.#entryKey(key, entry, batch),
             seq: { N: String(entry.seq) },
             batch: { S: batch },
             prev: { S: prev },
@@ -334,7 +346,7 @@ class DynamoStore implements SessionStore {
   }
 
   #unstage(key: SessionKey, fresh: readonly SessionEntry[], batch: string): Promise<void> {
-    return this.#batchWrite(fresh.map((entry) => ({ DeleteRequest: { Key: entryKey(key, entry, batch) } })));
+    return this.#batchWrite(fresh.map((entry) => ({ DeleteRequest: { Key: this.#entryKey(key, entry, batch) } })));
   }
 
   /** Puts the head that names `batch`, if the head still names the batch this append read. */
@@ -343,7 +355,7 @@ class DynamoStore implements SessionStore {
       await this.#client.send(
         new PutItemCommand({
           TableName: this.#table,
-          Item: headItem(key, head, fresh, batch),
+          Item: headItem(this.#layout, key, head, fresh, batch),
           ...commitCondition(head),
           ReturnValuesOnConditionCheckFailure: "ALL_OLD",
         }),
@@ -410,8 +422,8 @@ class DynamoStore implements SessionStore {
   async delete(key: SessionKey): Promise<void> {
     checkKey(key);
     // The entry items are listed before the head goes, so a session created again under this key keeps its own.
-    const items = await this.#prefixed(key, sortKey("e", key, "#").S, "#pk, #sk");
-    await this.#client.send(new DeleteItemCommand({ TableName: this.#table, Key: itemKey("h", key) }));
+    const items = await this.#prefixed(key, this.#layout.sortKey("e", key, "#").S, "#pk, #sk");
+    await this.#client.send(new DeleteItemCommand({ TableName: this.#table, Key: this.#layout.itemKey("h", key) }));
     this.#cache.delete(cacheKey(key));
     await this.#batchWrite(
       items.map((item) => ({
@@ -448,5 +460,5 @@ export function dynamoStore(client: DynamoDBClient, options: DynamoStoreOptions)
       `dynamoStore() needs a maxEntryBytes that is a whole number from 1 to ${MAX_DYNAMO_ENTRY_BYTES}`,
     );
   }
-  return new DynamoStore(client, table, maxBytes);
+  return new DynamoStore(client, table, maxBytes, layoutOf("dynamoStore()", options));
 }

@@ -3,7 +3,7 @@
 // requests it sends.
 import assert from "node:assert/strict";
 import { type DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
-import { dynamoStore, MAX_DYNAMO_ENTRY_BYTES } from "@buildanagent/harness/aws/dynamodb";
+import { dynamoLock, dynamoStore, MAX_DYNAMO_ENTRY_BYTES } from "@buildanagent/harness/aws/dynamodb";
 import { ConflictError, type EntryInput, type SessionStore } from "@buildanagent/harness/session";
 import { beforeEach, describe, test } from "vitest";
 import { TABLE } from "./aws-target.js";
@@ -203,6 +203,25 @@ describe("dynamoStore", () => {
       .items(TABLE)
       .map((item) => `${item.pk?.S} ${item.sk?.S?.replace(/#[0-9a-f-]{36}$/, "#<batch>")}`);
     assert.deepEqual(keys, ["u#ada e#s1#000000000000#<batch>", "u#ada e#s1#000000000001#<batch>", "u#ada h#s1"]);
+  });
+
+  test("two namespaces in one table keep their sessions and their locks apart", async () => {
+    const staging = dynamoStore(dynamo.client, { tableName: TABLE, namespace: "staging" });
+    const prod = dynamoStore(dynamo.client, { tableName: TABLE, namespace: "prod" });
+    await staging.append(KEY, [header(), record("r1", "h1")]);
+    assert.deepEqual(await ids(prod), []);
+    assert.deepEqual(await collect(prod.list("ada")), []);
+    await prod.append(KEY, [header()]);
+    assert.deepEqual(await ids(staging), ["h1", "r1"]);
+    const lockOf = (namespace: string) => dynamoLock(dynamo.client, { tableName: TABLE, namespace });
+    const held = await lockOf("staging").acquire(KEY);
+    assert.notEqual(await lockOf("prod").acquire(KEY), "would_block");
+    assert.equal(await lockOf("staging").acquire(KEY), "would_block");
+    assert.notEqual(held, "would_block");
+    assert.ok(dynamo.items(TABLE).every((item) => /^n#(staging|prod)#u#ada$/.test(item.pk?.S ?? "")));
+    assert.throws(() => dynamoStore(dynamo.client, { tableName: TABLE, namespace: "Has#Hash" }), {
+      code: "invalid_aws_options",
+    });
   });
 
   test("refuses a missing client, a table name DynamoDB would refuse and an entry bound over the item limit", () => {

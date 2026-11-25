@@ -2,6 +2,9 @@
 // each block as a module beside this file. A block's own imports and declarations shadow these.
 import type * as gateway from "@buildanagent/gateway";
 import type * as harnessRoot from "@buildanagent/harness";
+import type * as awsDynamo from "@buildanagent/harness/aws/dynamodb";
+import type * as awsScheduler from "@buildanagent/harness/aws/scheduler";
+import type * as awsSecrets from "@buildanagent/harness/aws/secrets-manager";
 import type * as context from "@buildanagent/harness/context";
 import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
@@ -28,6 +31,27 @@ declare global {
   type PurgeMark = sessions.PurgeMark;
   type ToolRegistry = tools.ToolRegistry;
 
+  type AwsClients = {
+    dynamo: import("@aws-sdk/client-dynamodb").DynamoDBClient;
+    scheduler: import("@aws-sdk/client-scheduler").SchedulerClient;
+    secrets: import("@aws-sdk/client-secrets-manager").SecretsManagerClient;
+  };
+  type AwsNames = { table: string; runnerArn: string; schedulerRoleArn: string; keySecretId: string };
+  type SessionKey = sessions.SessionKey;
+  const awsSeams: (
+    clients: AwsClients,
+    names: AwsNames,
+  ) => {
+    store: sessions.SessionStore;
+    lock: sessions.SessionLock;
+    scheduler: sessions.Scheduler;
+    keys: import("@buildanagent/agent-safety").KeyStore;
+  };
+  const dynamoStore: typeof awsDynamo.dynamoStore;
+  const dynamoLock: typeof awsDynamo.dynamoLock;
+  const eventBridgeScheduler: typeof awsScheduler.eventBridgeScheduler;
+  const deliverWake: typeof awsScheduler.deliverWake;
+  const secretsManagerKeyStore: typeof awsSecrets.secretsManagerKeyStore;
   const clearPurgeMarks: typeof memory.clearPurgeMarks;
   const composeExtensions: typeof extensions.composeExtensions;
   const createApprovals: typeof sessions.createApprovals;

@@ -1,8 +1,9 @@
 /**
  * What the DynamoDB session store and lock share: the table's key layout, the option checks and how an AWS SDK error
- * is read. Both put one user's items in one partition, `pk = u#<user>`, and tell item kinds apart by the sort key's
- * prefix: `h#` for a session's head, `e#` for its entries and `l#` for its lock. User and session ids are written with
- * `encodeName()`, which never yields `#`, so no id can reach another id's items.
+ * is read. Both put one user's items in one partition, `pk = u#<user>`, or `n#<namespace>#u#<user>` under a namespace,
+ * and tell item kinds apart by the sort key's prefix: `h#` for a session's head, `e#` for its entries and `l#` for its
+ * lock. User and session ids are written with `encodeName()`, which never yields `#`, so no id can reach another id's
+ * items.
  */
 import { HarnessError } from "../errors.js";
 import { encodeName, type SessionKey } from "../session/store.js";
@@ -15,6 +16,11 @@ export interface DynamoTableOptions {
    * may share it.
    */
   readonly tableName: string;
+  /**
+   * A name that keeps these items apart from other deployments' items in the same table, such as `staging`: 1 to 32
+   * lower-case letters, digits, `_` or `-`. Default: none. The store and the lock of one deployment use the same one.
+   */
+  readonly namespace?: string;
 }
 
 /** A string attribute, as the SDK writes one. */
@@ -22,19 +28,31 @@ type S = { readonly S: string };
 /** An item as these adapters read it: every attribute they write is a string or a number. */
 export type Item = Record<string, { readonly S?: string; readonly N?: string }>;
 
-/** The partition of a user's items. */
-export const userPk = (userId: string): S => ({ S: `u#${encodeName(userId)}` });
+/** Where a session's items go in the table. */
+export interface Layout {
+  /** The partition of a user's items. */
+  readonly userPk: (userId: string) => S;
+  /** The sort key of a session's item of one kind. */
+  readonly sortKey: (kind: "h" | "e" | "l", key: SessionKey, rest?: string) => S;
+  /** The primary key of a session's item of one kind. */
+  readonly itemKey: (kind: "h" | "e" | "l", key: SessionKey, rest?: string) => { readonly pk: S; readonly sk: S };
+}
 
-/** The sort key of a session's item of one kind. */
-export const sortKey = (kind: "h" | "e" | "l", key: SessionKey, rest = ""): S => ({
-  S: `${kind}#${encodeName(key.sessionId)}${rest}`,
-});
+const NAMESPACE = /^[a-z0-9_-]{1,32}$/;
 
-/** The primary key of a session's item of one kind. */
-export const itemKey = (kind: "h" | "e" | "l", key: SessionKey, rest = "") => ({
-  pk: userPk(key.userId),
-  sk: sortKey(kind, key, rest),
-});
+/** The key layout for `options.namespace`. Throws `invalid_aws_options` for a namespace it can't use. */
+export function layoutOf(adapter: string, options: DynamoTableOptions): Layout {
+  const { namespace } = options;
+  if (namespace !== undefined && (typeof namespace !== "string" || !NAMESPACE.test(namespace))) {
+    throw new HarnessError("invalid_aws_options", `${adapter} needs a namespace of 1 to 32 of a-z, 0-9, _ or -`);
+  }
+  const prefix = namespace === undefined ? "" : `n#${namespace}#`;
+  const userPk = (userId: string): S => ({ S: `${prefix}u#${encodeName(userId)}` });
+  const sortKey = (kind: "h" | "e" | "l", key: SessionKey, rest = ""): S => ({
+    S: `${kind}#${encodeName(key.sessionId)}${rest}`,
+  });
+  return { userPk, sortKey, itemKey: (kind, key, rest) => ({ pk: userPk(key.userId), sk: sortKey(kind, key, rest) }) };
+}
 
 // DynamoDB's own rule for a table name: 3 to 255 of these characters.
 const TABLE_NAME = /^[a-zA-Z0-9_.-]{3,255}$/;

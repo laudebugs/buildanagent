@@ -77,6 +77,8 @@ describe("dynamoLock", () => {
     assert.equal(handle.held(), true);
     time += 1;
     assert.equal(handle.held(), false, "a peer whose clock runs 500 ms ahead may take the lease now");
+    time -= 1_000;
+    assert.equal(handle.held(), false, "a hold that reported false never reports true again");
   });
 
   test("a holder whose lease was taken over finds another token at its next renewal and stops", async () => {

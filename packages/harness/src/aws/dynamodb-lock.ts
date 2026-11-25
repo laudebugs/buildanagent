@@ -8,7 +8,15 @@ import { HarnessError } from "../errors.js";
 import type { LockHandle, SessionLock } from "../session/lock.js";
 import { type ProcessScheduler, processScheduler } from "../session/scheduler.js";
 import { checkKey, encodeName, type SessionKey } from "../session/store.js";
-import { checkTableName, conditionFailed, type DynamoTableOptions, itemKey, num, str } from "./dynamodb-common.js";
+import {
+  checkTableName,
+  conditionFailed,
+  type DynamoTableOptions,
+  type Layout,
+  layoutOf,
+  num,
+  str,
+} from "./dynamodb-common.js";
 import { checkClient } from "./sdk.js";
 
 const DEFAULT_LEASE_MS = 30_000;
@@ -62,7 +70,7 @@ function invalid(message: string): HarnessError {
  * The holder renews every `renewMs` through `scheduler`, with an update that needs the item to still hold its token, so
  * a holder that lost the lease can't extend a successor's. `held()` turns `false` when a renewal finds another token,
  * when the scheduler refuses a renewal, and when the holder's own clock comes within `maxClockSkewMs` of the lease end
- * it last wrote, whichever is first. `release()` clears the token on the same condition and keeps the item, so `fence`
+ * it last wrote, whichever is first, and once `false` it stays `false`. `release()` clears the token on the same condition and keeps the item, so `fence`
  * keeps growing.
  *
  * Lease ends are compared on the clock of the host that acquires, so the lease outlasts the holder's view of it only by
@@ -87,7 +95,8 @@ export function dynamoLock(client: DynamoDBClient, options: DynamoLockOptions): 
     );
   }
   const scheduler = options.scheduler ?? processScheduler({ now });
-  const settings: HoldSettings = { client, table, leaseMs, renewMs, skewMs, now, scheduler };
+  const layout = layoutOf("dynamoLock()", options);
+  const settings: HoldSettings = { client, table, layout, leaseMs, renewMs, skewMs, now, scheduler };
 
   return {
     async acquire(key) {
@@ -98,7 +107,7 @@ export function dynamoLock(client: DynamoDBClient, options: DynamoLockOptions): 
         const out = await client.send(
           new UpdateItemCommand({
             TableName: table,
-            Key: itemKey("l", key),
+            Key: layout.itemKey("l", key),
             UpdateExpression: "SET #token = :token, #leaseUntil = :until ADD #fence :one",
             ConditionExpression: "attribute_not_exists(#sk) OR #leaseUntil < :now",
             ExpressionAttributeNames: {
@@ -132,6 +141,7 @@ export function dynamoLock(client: DynamoDBClient, options: DynamoLockOptions): 
 interface HoldSettings {
   readonly client: DynamoDBClient;
   readonly table: string;
+  readonly layout: Layout;
   readonly leaseMs: number;
   readonly renewMs: number;
   readonly skewMs: number;
@@ -179,7 +189,9 @@ class LeaseHold implements DynamoLockHandle {
   }
 
   held(): boolean {
-    return this.#held && this.#settings.now() < this.#leaseUntil - this.#settings.skewMs;
+    // Once false it stays false, even if a late renewal then extends the lease, so a writer that stopped stays stopped.
+    if (this.#held && this.#settings.now() >= this.#leaseUntil - this.#settings.skewMs) this.#lose();
+    return this.#held;
   }
 
   #tick(): Promise<void> {
@@ -198,7 +210,7 @@ class LeaseHold implements DynamoLockHandle {
       await client.send(
         new UpdateItemCommand({
           TableName: table,
-          Key: itemKey("l", this.#key),
+          Key: this.#settings.layout.itemKey("l", this.#key),
           UpdateExpression: "SET #leaseUntil = :until",
           ConditionExpression: "#token = :token",
           ExpressionAttributeNames: { "#token": "token", "#leaseUntil": "leaseUntil" },
@@ -227,7 +239,7 @@ class LeaseHold implements DynamoLockHandle {
       await client.send(
         new UpdateItemCommand({
           TableName: table,
-          Key: itemKey("l", this.#key),
+          Key: this.#settings.layout.itemKey("l", this.#key),
           UpdateExpression: "SET #leaseUntil = :zero REMOVE #token",
           ConditionExpression: "#token = :token",
           ExpressionAttributeNames: { "#token": "token", "#leaseUntil": "leaseUntil" },
