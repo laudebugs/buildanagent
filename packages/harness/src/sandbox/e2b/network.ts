@@ -122,6 +122,17 @@ function secretFor(
   return { secret, route };
 }
 
+/** Records the credential a secret serves, and refuses a second credential on it, because its rules would send one's token for the other. */
+function bindSecret(secrets: Map<string, E2BSecretReference>, reference: E2BSecretReference, index: number): void {
+  const known = secrets.get(reference.secret);
+  if (known === undefined) secrets.set(reference.secret, reference);
+  else if (known.credential !== reference.credential) {
+    throw invalid(
+      `route ${index} and an earlier route name the credentials ${reference.credential} and ${known.credential} but share one E2B secret`,
+    );
+  }
+}
+
 /**
  * Compiles `policy` for E2B: `allowOut` is exactly `allow` plus each route's host, `denyOut` denies every other
  * address, `dnsServers` is empty, `allowPublicTraffic` is `false`, and each header route becomes a rule on its host whose header is the placeholder for
@@ -131,7 +142,8 @@ function secretFor(
  * - a git route, because E2B can't filter a push by ref;
  * - a host with a port or in upper case, because E2B matches names only on ports 80 and 443, and stores them in lower case;
  * - a route, unless `unscopedInjection` is `true`, because E2B doesn't check a route's method or path;
- * - two routes that set the same header on one host, and a secret name E2B would refuse.
+ * - two routes that set the same header on one host, two credentials that share one E2B secret, and a secret name
+ *   E2B would refuse.
  *
  * It never reads a credential: the compiled rules hold placeholders, which E2B's egress proxy resolves outside the
  * sandbox for each HTTPS request.
@@ -159,7 +171,7 @@ export function compileE2BEgress(policy: EgressPolicy, options: E2BEgressOptions
     if (headers.has(header)) throw invalid(`route ${index} sets a header that another route sets on the same host`);
     headers.set(header, headerValue(route, secret, options));
     rules.set(route.host, headers);
-    if (!secrets.has(secret)) secrets.set(secret, { secret, credential: route.credential });
+    bindSecret(secrets, { secret, credential: route.credential }, index);
   }
   const allowOut = [...new Set([...policy.allow, ...policy.routes.map((route) => route.host)])];
   const network: E2BNetworkOptions = closedNetwork(allowOut);

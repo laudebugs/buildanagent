@@ -488,11 +488,15 @@ test("dispose tries a failed kill again, and rejects when the kill never succeed
   assert.deepEqual(twice.fake.held(), []);
   assert.equal(twice.fake.log.kills.length, 3);
 
-  const stuck = setup({ killFailures: 10 });
+  const stuck = setup({ killFailures: 3 });
   const kept = await stuck.client.provision({ root: ROOT }, policyFor([]));
-  const error = await rejection(kept.dispose());
+  const [first, second] = [kept.dispose(), kept.dispose()];
+  const error = await rejection(first);
   assert.equal(codeOf(error), "sandbox_io_failed");
-  assert.equal(await rejection(kept.dispose()), error, "a second dispose gets the first one's outcome");
+  assert.equal(await rejection(second), error, "calls made together share one outcome");
+  assert.deepEqual(stuck.fake.held(), [kept.id], "E2B still holds the sandbox");
+  await kept.dispose();
+  assert.deepEqual(stuck.fake.held(), [], "a later dispose tries the kill again");
 });
 
 test("a paused sandbox that is disposed is killed, and a resume reattaches only after its secrets are checked", async () => {
@@ -529,10 +533,75 @@ test("a resume of a sandbox with no recorded workspace throws without waking it"
 test("a resumed sandbox's read-back is checked, and a wider one throws without killing it", async () => {
   const { fake, client } = setup();
   const sandbox = await client.provision({ root: ROOT }, policyFor(["allowed.test"]));
+  await pauseSandbox(client, sandbox);
   const error = await rejection(resumeSandbox(client, sandbox.id ?? "", policyFor(["allowed.test", "x.test"])));
   assert.equal((error as SandboxPolicyMismatchError).field, "network.allow");
   assert.deepEqual(fake.held(), [sandbox.id]);
+  assert.deepEqual(fake.log.connects, [], "a resume whose network differs woke the sandbox");
+  assert.equal(fake.vms.get(sandbox.id ?? "")?.state, "paused");
   await sandbox.dispose();
+});
+
+test("a resume of a sandbox whose network is not the policy's throws before waking it", async () => {
+  const { fake, client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  await pauseSandbox(client, sandbox);
+  const vm = fake.vms.get(sandbox.id ?? "");
+  assert.ok(vm !== undefined);
+  (vm as { network: unknown }).network = { ...(vm.network as object), allowPublicTraffic: true };
+  const refused = await rejection(resumeSandbox(client, sandbox.id ?? "", policyFor([])));
+  assert.equal((refused as SandboxPolicyMismatchError).field, "network.public");
+  assert.deepEqual(fake.log.connects, [], "a resume with public traffic on woke the sandbox");
+  assert.equal(vm.state, "paused");
+  await sandbox.dispose();
+});
+
+test("a pause that starts while a command is starting still ends that command", async () => {
+  const { fake, client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  const vm = fake.vms.get(sandbox.id ?? "");
+  const starting = rejection(sandbox.exec(["sleep", "30"], { env: {}, signal: never() }));
+  const pausing = pauseSandbox(client, sandbox);
+  assert.equal(codeOf(await starting), "invalid_sandbox_options");
+  await pausing;
+  assert.equal(vm?.processes.size, 0, "the command was started after the pause looked and carries on after a resume");
+  await sandbox.dispose();
+});
+
+test("the E2B API key the SDK reads from the host's environment is refused like one passed as apiKey", async () => {
+  const before = process.env.E2B_API_KEY;
+  process.env.E2B_API_KEY = API_KEY;
+  try {
+    const { client } = setup();
+    const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+    const attempt = await rejection(sandbox.exec(["echo", API_KEY], { env: {}, signal: never() }));
+    assert.equal(codeOf(attempt), "invalid_sandbox_options");
+    assert.ok(!String((attempt as Error).message).includes(API_KEY));
+    await sandbox.dispose();
+  } finally {
+    if (before === undefined) delete process.env.E2B_API_KEY;
+    else process.env.E2B_API_KEY = before;
+  }
+});
+
+test("two credentials that map to one E2B secret are refused, because one would send the other's token", () => {
+  const route = (credential: string, host: string) =>
+    ({
+      kind: "header",
+      route: host.replace(".", "-"),
+      host,
+      methods: ["GET"],
+      header: "authorization",
+      credential,
+    }) as const;
+  const options = { fill: (name: string) => `\${e2b.secrets.${name}}`, unscopedInjection: true };
+  assert.throws(
+    () => compileE2BEgress({ allow: [], routes: [route("API_KEY", "a.test"), route("api_key", "b.test")] }, options),
+    (error: unknown) => codeOf(error) === "invalid_egress_options",
+  );
+  assert.doesNotThrow(() =>
+    compileE2BEgress({ allow: [], routes: [route("API_KEY", "a.test"), route("API_KEY", "b.test")] }, options),
+  );
 });
 
 // What a command and a file call can't do.

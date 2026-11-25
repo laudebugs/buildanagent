@@ -8,7 +8,8 @@
  * provisions, and can pause and resume.
  *
  * The SDK is an optional peer: pass `sdk: { Sandbox, Secret }` from `e2b`, or install `e2b` and the backend loads it on
- * first use. The module imports no Node module, so it runs on any target the SDK runs on.
+ * first use. The module imports no Node module, so it runs on any target the SDK runs on; on a bundled target such as
+ * Workers, pass `sdk`, because the backend's own import of `e2b` is left for the runtime to resolve.
  *
  * @module @buildanagent/harness/sandbox/e2b
  */
@@ -83,7 +84,10 @@ export interface E2BSandboxOptions {
    * a sandbox nobody disposed. Defaults to 15 minutes. E2B caps it at 1 hour on Hobby and 24 hours on Pro.
    */
   readonly timeoutMs?: number;
-  /** The E2B API key, kept on the host. Without it, the SDK reads `E2B_API_KEY` from the host's environment. */
+  /**
+   * The E2B API key, kept on the host. Without it, the SDK reads `E2B_API_KEY` from the host's environment, and the
+   * backend refuses that value in a command, an environment value or a file too.
+   */
   readonly apiKey?: string;
   /** The E2B domain, for a self-hosted or BYOC deployment. */
   readonly domain?: string;
@@ -296,6 +300,8 @@ class E2BSandbox extends ConfirmedSandbox implements Sandbox {
   // Aborted by `dispose()` and by each `pause()`, which replaces it so a pause that fails leaves the sandbox usable.
   private stopped = new AbortController();
   private readonly running = new Set<E2BCommandHandle>();
+  // Start requests in flight, which `pause()` waits for so a command can't start in a VM that is about to pause.
+  private readonly starting = new Set<Promise<unknown>>();
   private readonly instance: E2BSandboxInstance;
   private readonly context: Context;
   private readonly policy: SandboxPolicy;
@@ -406,24 +412,31 @@ class E2BSandbox extends ConfirmedSandbox implements Sandbox {
     const limit = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
     const output = { stdout: new Capped(limit), stderr: new Capped(limit) };
     let handle: E2BCommandHandle;
+    // Taken before the start request, because a `pause()` that begins while it is in flight replaces `this.stopped`
+    // and can't see a handle that isn't in `running` yet.
+    const stopped = this.stopped.signal;
+    const start = this.instance.commands.run(script, {
+      background: true,
+      retainOutput: false,
+      cwd,
+      envs,
+      // The backend times the command itself, so E2B's own command timeout is off.
+      timeoutMs: 0,
+      onStdout: (data) => output.stdout.add(data),
+      onStderr: (data) => output.stderr.add(data),
+    });
+    this.starting.add(start);
     try {
-      handle = await this.instance.commands.run(script, {
-        background: true,
-        retainOutput: false,
-        cwd,
-        envs,
-        // The backend times the command itself, so E2B's own command timeout is off.
-        timeoutMs: 0,
-        onStdout: (data) => output.stdout.add(data),
-        onStderr: (data) => output.stderr.add(data),
-      });
+      handle = await start;
     } catch (error) {
       if (this.state === "disposed") throw disposedError();
       throw new HarnessError("sandbox_io_failed", "the E2B sandbox could not start the command", { cause: error });
+    } finally {
+      this.starting.delete(start);
     }
     this.running.add(handle);
     try {
-      const outcome = await settle(handle, options, this.stopped.signal);
+      const outcome = await settle(handle, options, stopped);
       // A command whose stream failed may still run, so it is killed like one that timed out.
       if (outcome.kind !== "done") await this.kill(handle);
       return this.result(outcome, output, options);
@@ -490,6 +503,8 @@ class E2BSandbox extends ConfirmedSandbox implements Sandbox {
       const stop = this.stopped;
       this.stopped = new AbortController();
       stop.abort();
+      // A start that was in flight settles into `running`, where the next line kills it.
+      await Promise.allSettled([...this.starting]);
       await Promise.all([...this.running].map((handle) => this.kill(handle)));
       if (this.state !== "running") return;
       await this.instance.pause();
@@ -507,7 +522,11 @@ class E2BSandbox extends ConfirmedSandbox implements Sandbox {
     if (this.disposing === undefined) {
       this.state = "disposed";
       this.stopped.abort();
-      this.disposing = killSandbox(this.context, this.id);
+      this.disposing = killSandbox(this.context, this.id).catch((error: unknown) => {
+        // A kill that never succeeded can be tried again by a later call.
+        this.disposing = undefined;
+        throw error;
+      });
     }
     return this.disposing;
   }
@@ -549,6 +568,16 @@ async function sweep(context: Context, label: string): Promise<void> {
 function provisionLabel(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * The key the SDK reads from the host's `E2B_API_KEY` when no `apiKey` option is given, so the guard that keeps it out
+ * of the sandbox covers that default too. Read defensively, because a target such as Workers has no `process`.
+ */
+function hostApiKey(): string | undefined {
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+  const key = env?.E2B_API_KEY;
+  return typeof key === "string" && key !== "" ? key : undefined;
 }
 
 /** Loads the SDK from the option, or imports `e2b`, or throws `SandboxUnavailableError`. */
@@ -610,7 +639,7 @@ class E2BClient implements E2BSandboxClient {
       this.loading = undefined;
       throw error;
     });
-    return { sdk, connection: this.connection, apiKey: this.options.apiKey };
+    return { sdk, connection: this.connection, apiKey: this.options.apiKey ?? hostApiKey() };
   }
 
   /** The network a policy compiles to, and the secrets its rules name. */
@@ -698,6 +727,10 @@ class E2BClient implements E2BSandboxClient {
     const root = info.metadata?.[E2B_ROOT_LABEL];
     // A sandbox this backend didn't create has no recorded root.
     checkRoot(root, policy);
+    // Before connect too: a network that isn't the policy's must not wake the sandbox, since a mismatch after the
+    // connect leaves it awake for the caller who holds it.
+    const applied = networkFromInfo(info, compiled.network);
+    if (!sameSet(applied.allow, policy.network.allow)) throw new SandboxPolicyMismatchError("network.allow");
     let instance: E2BSandboxInstance;
     try {
       instance = await context.sdk.Sandbox.connect(id, { ...this.connection, timeoutMs: this.lifetime });
