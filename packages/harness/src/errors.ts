@@ -61,7 +61,10 @@ export type HarnessErrorCode =
   | "invalid_telemetry_options"
   | "budget_unknown"
   | "invalid_store_options"
-  | "invalid_scheduler_options";
+  | "invalid_scheduler_options"
+  | "invalid_aws_options"
+  | "aws_write_incomplete"
+  | "invalid_wake_event";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -117,6 +120,10 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * negative cap or an empty hashing key. `budget_unknown`: a session with a cap has spent an unknown amount, so a budgeted
  * turn is refused. `invalid_store_options`: a session store's setting can't be used, such as a page size of zero.
  * `invalid_scheduler_options`: a scheduler was given something it can't use, such as a wake ledger with no methods.
+ * `invalid_aws_options`: an AWS adapter was given no SDK client, or a table, schedule group, ARN or secret id it can't
+ * use. `aws_write_incomplete`: DynamoDB left part of the DynamoDB store's batch write unprocessed after every retry, so
+ * its append committed nothing. `invalid_wake_event`: `deliverWake()` or `parseWakeEvent()` was given an event that is
+ * not a wake, or a wake that arrived far earlier than any schedule fires.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";
