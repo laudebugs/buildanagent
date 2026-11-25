@@ -245,14 +245,25 @@ export function stateOf(entries: readonly SessionEntry[]): LogState {
 
 /** A summary from a log's entries, or `undefined` for a log with no header. */
 export function summaryOf(sessionId: string, entries: readonly SessionEntry[]): SessionSummary | undefined {
-  const header = entries[0];
-  const last = entries.at(-1);
+  return summaryFromEnds(sessionId, entries[0], entries.at(-1), entries.length);
+}
+
+/**
+ * A summary from a log's first and last entries and its length, for a backend that can read those without the whole
+ * log, or `undefined` when the first entry is not a header.
+ */
+export function summaryFromEnds(
+  sessionId: string,
+  header: SessionEntry | undefined,
+  last: SessionEntry | undefined,
+  entryCount: number,
+): SessionSummary | undefined {
   if (header?.type !== "session_header" || last === undefined) return undefined;
   return {
     sessionId,
     startedAt: header.timestamp,
     lastEntryAt: last.timestamp,
-    entryCount: entries.length,
+    entryCount,
     harnessVersion: header.harnessVersion,
     sdkVersion: header.sdkVersion,
     ...(header.parent === undefined ? {} : { parent: header.parent }),

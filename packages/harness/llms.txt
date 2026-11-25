@@ -65,6 +65,12 @@ The sections of README.md and every public export, generated from this package's
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 - [Every removable component has one ablation switch and one header hash](README.md#every-removable-component-has-one-ablation-switch-and-one-header-hash)
 - [One portability suite tests all eight target seams](README.md#one-portability-suite-tests-all-eight-target-seams)
+- [On Cloudflare, one Durable Object holds the log, the lock, the wakes and the sockets](README.md#on-cloudflare-one-durable-object-holds-the-log-the-lock-the-wakes-and-the-sockets)
+  - [The store and the lock rely on one event at a time, and their SQL is conditional as well](README.md#the-store-and-the-lock-rely-on-one-event-at-a-time-and-their-sql-is-conditional-as-well)
+  - [A wake is a row until its handlers return, so a failed delivery comes back](README.md#a-wake-is-a-row-until-its-handlers-return-so-a-failed-delivery-comes-back)
+  - [The key ring stays in a Worker secret, and no store object holds its text](README.md#the-key-ring-stays-in-a-worker-secret-and-no-store-object-holds-its-text)
+  - [A client keeps its socket through hibernation, and the bridge replays its connection](README.md#a-client-keeps-its-socket-through-hibernation-and-the-bridge-replays-its-connection)
+  - [The suite runs in workerd offline, and a live run on a real account is opt-in](README.md#the-suite-runs-in-workerd-offline-and-a-live-run-on-a-real-account-is-opt-in)
 - [On AWS, DynamoDB, EventBridge Scheduler and Secrets Manager hold the harness's state](README.md#on-aws-dynamodb-eventbridge-scheduler-and-secrets-manager-hold-the-harnesss-state)
   - [The store commits a batch of any size with one conditional put of the session's head](README.md#the-store-commits-a-batch-of-any-size-with-one-conditional-put-of-the-sessions-head)
   - [The lock is one lease item, taken and renewed by conditional updates on the caller's clock](README.md#the-lock-is-one-lease-item-taken-and-renewed-by-conditional-updates-on-the-callers-clock)
@@ -452,6 +458,28 @@ The sections of README.md and every public export, generated from this package's
 - `REDACTED`: What replaces a secret.
 - `scrubSecrets()`: Returns a copy of `entry` with every secret replaced by `[REDACTED]`, in every string value and every key, at any depth.
 - `startEgressProxy()`: Starts the egress proxy on `127.0.0.1` with a port the system picks, or on `socketPath`.
+
+## Exports from `@buildanagent/harness/cloudflare`
+
+- `interface AlarmScheduler`: A `Scheduler` on a Durable Object's alarm, whose `alarm()` the object's own `alarm()` handler calls.
+- `CLOUDFLARE_PLATFORM_HINT`: Where a read-only Cloudflare key store's errors send the owner to rotate or prune keys.
+- `doAlarmScheduler()`: A `Scheduler` on the object's alarm: pass the object's `ctx.storage`, and call the scheduler's `alarm()` from the object's `alarm()` method.
+- `interface DoAlarmSchedulerOptions`: The options of `doAlarmScheduler()`.
+- `doLock()`: A `SessionLock` in a Durable Object's SQLite storage: pass the object's `ctx.storage`.
+- `interface DoLockOptions`: The options of `doLock()`.
+- `doSqliteIndex()`: A `SessionIndex` in a Durable Object's SQLite storage, beside `doSqliteStore()`, so a session's pointer survives the object leaving memory as its entries do.
+- `doSqliteStore()`: A `SessionStore` in a Durable Object's SQLite storage: pass the object's `ctx.storage`.
+- `interface DoSqliteStoreOptions`: The options of `doSqliteStore()`.
+- `interface DurableStorageLike`: The part of `DurableObjectStorage` the alarm scheduler uses besides SQL: the object's one alarm.
+- `interface HibernatableWebSocketLike`: A server-side WebSocket that the object accepted with `ctx.acceptWebSocket()`.
+- `interface SecretsStoreSecretLike`: A Secrets Store binding as a Worker sees it: `get()` resolves with the secret's text.
+- `interface SqlCursorLike`: What a SQL statement returns here: every row, each keyed by column name.
+- `interface SqlDurableStorageLike`: The part of `DurableObjectStorage` (`ctx.storage`) the store, the index and the lock use.
+- `interface SqlStorageLike`: The part of `SqlStorage` (`ctx.storage.sql`) the adapters use.
+- `webSocketHibernation()`: Serves the protocol over a Durable Object's hibernatable WebSockets.
+- `interface WebSocketHibernation`: The methods a Durable Object forwards its hibernatable WebSocket events to.
+- `interface WebSocketHibernationOptions`: The options of `webSocketHibernation()`.
+- `workerKeyStore()`: A read-only `KeyStore` over the key ring JSON in a Worker secret, such as `env.APPROVAL_KEYS`, or in a Secrets Store binding, whose `get()` it calls on every `load()`.
 
 ## Exports from `@buildanagent/harness/extensions`
 

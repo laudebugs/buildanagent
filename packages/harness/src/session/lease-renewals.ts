@@ -11,6 +11,22 @@ export function leaseId(key: SessionKey): string {
   return `lease:${encodeName(key.userId)}/${encodeName(key.sessionId)}`;
 }
 
+/**
+ * Asks `scheduler` for the next renewal at least `renewMs` ahead and at least 1 ms after the last one, and returns the
+ * time asked for. A scheduler that refuses the wake leaves no renewal coming, so `onRefused` runs and the hold reports
+ * itself lost.
+ */
+export function armRenewal(
+  { scheduler, renewMs }: { readonly scheduler: ProcessScheduler; readonly renewMs: number },
+  armedAt: number,
+  wakeId: string,
+  onRefused: () => void,
+): number {
+  const at = new Date(Math.max(scheduler.now() + renewMs, armedAt + 1));
+  scheduler.wake(at, wakeId).catch(onRefused);
+  return at.getTime();
+}
+
 /** What a `LeaseRenewals` needs from the lock handle that owns it. */
 export interface LeaseRenewalsOptions {
   readonly scheduler: ProcessScheduler;

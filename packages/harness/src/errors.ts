@@ -91,8 +91,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * or a registry option is unusable, such as a name that breaks the canonical rule or an unknown source.
  * `invalid_tool_options`: the built-in tools were given a workspace root or a policy root that is not an absolute path.
  * `invalid_permission_config`: an allow rule makes the host callback unreachable (`PermissionConfigError`).
- * `invalid_lock_options`: a file lock was given a lease, renewal interval or host name it can't use. `session_locked`:
- * another writer holds the session. `session_read_only`: a session opened without a lock was asked to write.
+ * `invalid_lock_options`: a file lock or a Durable Object lock was given a lease, renewal interval or host name it
+ * can't use. `session_locked`: another writer holds the session. `session_read_only`: a session opened without a lock was asked to write.
  * `entry_not_found`: an entry id is in no file of the session. `unsupported_format`: a session file's format can't be
  * read or migrated, its header names none, or the store can't read it as written. `invalid_turn_options`: a turn's
  * options can't be used, such as a tool allowlist that names a tool the registry lacks, or a hook that changed the
@@ -125,8 +125,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * MCP tool call ended without a result, because the server closed, timed out, asked for input or answered with an
  * error (`McpError`). `invalid_telemetry_options`: a span projection's or a budget meter's setting can't be used, such as a
  * negative cap or an empty hashing key. `budget_unknown`: a session with a cap has spent an unknown amount, so a budgeted
- * turn is refused. `invalid_store_options`: a session store's setting can't be used, such as a page size of zero.
- * `invalid_scheduler_options`: a scheduler was given something it can't use, such as a wake ledger with no methods.
+ * turn is refused. `invalid_store_options`: a session store's setting can't be used, such as a page size of zero or an entry bound a Durable Object row can't hold.
+ * `invalid_scheduler_options`: a scheduler was given something it can't use, such as a wake ledger with no methods or an alarm scheduler's retry delay of zero.
  * `invalid_aws_options`: an AWS adapter was given no SDK client, or a table, schedule group, ARN or secret id it can't
  * use. `aws_write_incomplete`: DynamoDB left part of the DynamoDB store's batch write unprocessed after every retry, so
  * its append committed nothing. `invalid_wake_event`: `deliverWake()` or `parseWakeEvent()` was given an event that is

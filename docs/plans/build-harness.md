@@ -277,7 +277,7 @@ packages/
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
                                 "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker", "./sandbox/e2b", "./sandbox/vercel",
-                                "./credentials", "./extensions", "./extensions/node", "./memory", "./memory/node",
+                                "./credentials", "./cloudflare", "./extensions", "./extensions/node", "./memory", "./memory/node",
                                 "./telemetry", "./server", "./aws/dynamodb", "./aws/scheduler",
                                 "./aws/secrets-manager", "./ablation", "./vercel", "./vercel/workflow", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
@@ -287,6 +287,7 @@ packages/
     src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
     src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/, docker/, e2b/ and vercel/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
+    src/cloudflare/             Durable Object SQLite store and index, lock, alarm scheduler, Worker key store, hibernation (N46a)
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
     src/memory/                 memory extension: the memory tool, records, index, expiry, purge marks (HD17)
     src/telemetry/              projectSpans(), harness attribute names, budget meter
@@ -415,7 +416,7 @@ declare function runTurn<H>(session: Session, harness: Harness<H>, options: Turn
 interface Scheduler { wake(at: Date, sessionId: string): Promise<void>; cancel(sessionId: string): Promise<void> } // at-least-once
 type WakeHandler = (sessionId: string, at: Date) => void | Promise<void>;
 interface ProcessScheduler extends Scheduler { onWake(handler: WakeHandler): () => void; now(): number }   // revision (N41): delivers in this process
-declare function processScheduler(options?: { now?; setTimer?; clearTimer?; onError? }): ProcessScheduler; // local default; DO alarms, EventBridge Scheduler and Workflow sleep in N46a–N48a
+declare function processScheduler(options?: { now?; setTimer?; clearTimer?; onError? }): ProcessScheduler; // local default; DO alarms (doAlarmScheduler, N46a), EventBridge Scheduler and Workflow sleep in N47a–N48a
 ```
 
 **Built by N41.** `Scheduler` and `processScheduler()` are in `@buildanagent/harness/session`. A wake never arrives before its time and may arrive twice, so every caller is idempotent. Asking twice for the same id and time is one wake, and `cancel(id)` drops every wake pending for that id. The id is only a key, so a second purpose prefixes it: `fileLock()` renews through `lease:<user>/<session>/<token>`. A lock takes an optional `scheduler` and otherwise makes its own timer-backed one, so `fileLock()` keeps working with no setup. The seam as sketched has no way to say who receives a wake, so the in-process scheduler adds `onWake()`, and `now()`, the clock a caller reads to ask for a wake at a time the scheduler agrees with; a cloud scheduler delivers through its host's own entry point and needs no such method. The harness has no approval-deadline timer to move: the policy keeps its own clock ([HD5](#hd5-the-harness-always-passes-hmacsigner-over-a-persistent-key-ring-accepted-with-sdk-d5)), and a run that wants a wake at a deadline asks for one with `wake()`. `@buildanagent/harness/testing` holds the scheduler conformance suite, which N45 collects.
@@ -874,7 +875,7 @@ No todo is size L. The longest dependency chain runs N1 → N2 → N3 → N4 →
 | [N43](../todos/done/N43-remote-sandbox-egress-policy.md) | Remote `SandboxClient` extensions and `EgressPolicy` compiled per backend | N15, N20 | M |
 | [N44](../todos/done/N44-web-stream-websocket-transport.md) | A WebSocket transport, and Web-stream cases for the stdio transport | N29 | M |
 | [N45](../todos/ready/N45-portability-conformance-suite.md) | One conformance suite over the eight portable seams (`EffectStore` is the eighth, ADR 0043) | N41, N42, N43, N44, E7 | M |
-| [N46a](../todos/ready/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test | N45 | M |
+| [N46a](../todos/done/N46a-cloudflare-state-adapters.md) | Cloudflare store, lock, scheduler, key store and workerd smoke test, in `@buildanagent/harness/cloudflare` (built; the opt-in live run waits for the owner) | N45 | M |
 | [N46b](../todos/ready/N46b-cloudflare-sandbox-backend.md) | Cloudflare Sandbox backend and per-host outbound interception egress, blocked on the owner's ruling after N50 on interception for the opt-in credential route, and for the default too if plain allowlisted HTTPS fails without it ([ADR 0060](../decisions/0060-sandboxes-hold-no-credentials-by-default.md)) | N45, N50 | M |
 | [N47a](../todos/done/N47a-aws-state-adapters.md) | DynamoDB store and lock, EventBridge Scheduler wake, Secrets Manager key store | N45 | M |
 | [N47b](../todos/done/N47b-e2b-sandbox-backend.md) | E2B backend and egress Secrets | N45 | M |
@@ -901,7 +902,7 @@ Six suites run in `pnpm test`; each takes a factory, so a new implementation pas
 - **`SandboxClient`:** writes outside `writeRoots` are denied, network is denied unless allowlisted, the environment holds only `spawnEnv` names, and an unavailable backend throws `SandboxUnavailableError` rather than running unsandboxed. The fake runs it always; `srt` and Docker run it in `test:sandbox`.
 - **Protocol:** every fixture message validates against the generated schema and type-checks with `satisfies`, in both directions, and the framer round-trips U+2028 and U+2029 inside strings.
 - **MCP:** the client lists and calls tools on an in-process `@modelcontextprotocol/server` 2.4.0, on both protocol eras.
-- **Portability (all eight seams):** `@buildanagent/harness/testing` exports `runPortabilityConformance()` and `portabilityConformanceCases()` covering `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the protocol transport, and `EffectStore` (imported from `@buildanagent/agent-safety/testing`). The suite adds lease-only expiry for off-host locks, at-least-once wake checks, and egress denial for non-allowlisted hosts, loopback addresses, and cloud metadata endpoints. Local implementations pass all eight seams in `pnpm test` (`packages/harness/test/portability-conformance.test.ts`), and each cloud target runs the same suite in N46–N48. The Vercel target's store, lock, scheduler, key store and effect store pass it offline in `packages/harness/test/vercel/vercel-target.test.ts`, on PGlite and an in-process stand-in for the Workflow SDK (N48a).
+- **Portability (all eight seams):** `@buildanagent/harness/testing` exports `runPortabilityConformance()` and `portabilityConformanceCases()` covering `SessionStore`, `SessionLock`, `Scheduler`, `KeyStore`, `SandboxClient`, `EgressPolicy`, the protocol transport, and `EffectStore` (imported from `@buildanagent/agent-safety/testing`). The suite adds lease-only expiry for off-host locks, at-least-once wake checks, and egress denial for non-allowlisted hosts, loopback addresses, and cloud metadata endpoints. Local implementations pass all eight seams in `pnpm test` (`packages/harness/test/portability-conformance.test.ts`), and each cloud target runs the same suite in N46–N48. The Cloudflare target (N46a) runs it in workerd through Miniflare, one Durable Object per case, for the store, the lock, the scheduler, the key store, the transport and the effect store (`packages/harness/test/cloudflare/cloudflare.test.ts`). The Vercel target's store, lock, scheduler, key store and effect store pass it offline in `packages/harness/test/vercel/vercel-target.test.ts`, on PGlite and an in-process stand-in for the Workflow SDK (N48a).
 
 ### 5.3 Playback and resume tests prove the log is the only source of truth
 
