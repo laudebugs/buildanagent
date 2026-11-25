@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [W2](W2-coding-tool-profile.md), [N46a](N46a-cloudflare-state-adapters.md), [N46b](N46b-cloudflare-sandbox-backend.md) |
+| Depends on | [W2](W2-coding-tool-profile.md), [N46a](../done/N46a-cloudflare-state-adapters.md), [N46b](N46b-cloudflare-sandbox-backend.md) |
 | Size | M |
 
 ## Goal

@@ -45,6 +45,8 @@ interface Env {
   readonly APPROVAL_KEYS_STORE?: SecretsStoreSecretLike;
   /** Set only on the live run, whose deployment is public: every request must carry it as `?token=`. */
   readonly LIVE_TOKEN?: string;
+  /** Set to "1" in the live run's config, so the Worker refuses every request until `LIVE_TOKEN` is set. */
+  readonly LIVE?: string;
 }
 
 interface Storage extends DurableStorageLike {
@@ -417,7 +419,8 @@ async function smoke(env: Env): Promise<Record<string, unknown>> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (env.LIVE_TOKEN !== undefined && url.searchParams.get("token") !== env.LIVE_TOKEN) {
+    const live = env.LIVE === "1" || env.LIVE_TOKEN !== undefined;
+    if (live && (env.LIVE_TOKEN === undefined || url.searchParams.get("token") !== env.LIVE_TOKEN)) {
       return new Response("forbidden", { status: 403 });
     }
     try {

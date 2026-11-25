@@ -52,6 +52,8 @@ async function deploy(dir: string, secrets: { ring: string; token: string }): Pr
     compatibility_flags: ["nodejs_compat"],
     durable_objects: { bindings: [{ name: "HarnessDO", class_name: "HarnessDO" }] },
     migrations: [{ tag: "v1", new_sqlite_classes: ["HarnessDO"] }],
+    // The Worker refuses every request until LIVE_TOKEN is set, so the public address is closed from the first deploy.
+    vars: { LIVE: "1" },
   };
   writeFileSync(join(dir, "wrangler.json"), JSON.stringify(config, null, 2));
   const hidden = [secrets.ring, secrets.token];
@@ -173,7 +175,16 @@ async function main(): Promise<void> {
   try {
     const base = await deploy(dir, secrets);
     console.log(`deployed ${NAME}`);
-    await get(base, "/smoke", secrets.token);
+    const smoke = await get<Record<string, unknown>>(base, "/smoke", secrets.token);
+    assert.equal(smoke.evalBlocked, true);
+    assert.deepEqual(
+      [smoke.pi, smoke.fallback],
+      [
+        { valid: true, invalid: false },
+        { valid: true, invalid: false },
+      ],
+    );
+    assert.deepEqual(smoke.tools, ["echo"]);
     console.log("passed   the workerd smoke test");
     await checkCases(base, secrets.token);
     await checkRaces(base, secrets.token);

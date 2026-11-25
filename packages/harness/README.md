@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry`, `ablation` and `testing` are built.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `cloudflare`, `extensions`, `memory`, `mcp`, `server`, `telemetry`, `ablation` and `testing` are built.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -1116,6 +1116,47 @@ By default every component runs:
 | `effectStore` | `EffectStore` | `effectStoreConformance()` (`@buildanagent/agent-safety/testing`) |
 
 `runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend refuses non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`). None of the suites import Node modules, so local Node, Cloudflare, AWS and Vercel targets run the same cases. Pass your target's seam factories to `runPortabilityConformance(target)` to verify a new backend.
+
+## On Cloudflare, one Durable Object holds the log, the lock, the wakes and the sockets
+
+`@buildanagent/harness/cloudflare` puts five of the portable seams in a Durable Object, so an agent server runs on Cloudflare with nothing outside the object but the model and the sandbox. Each adapter takes the object's `ctx.storage`, or its sockets, by their shape, so the module imports neither Node nor Cloudflare's own types. The storage must be SQLite-backed, which is what `new_sqlite_classes` in a Wrangler migration gives:
+
+| Seam | Adapter | What it keeps in the object |
+| --- | --- | --- |
+| `SessionStore` and `SessionIndex` | `doSqliteStore(storage)`, `doSqliteIndex(storage)` | one row per entry, and one per session pointer |
+| `SessionLock` | `doLock(storage)` | one row per held session: a random token and a lease |
+| `Scheduler` | `doAlarmScheduler(storage)` | one row per pending wake, with the object's one alarm set to the earliest |
+| `KeyStore` | `workerKeyStore(env.APPROVAL_KEYS)` | nothing: it reads a Worker secret or a Secrets Store binding |
+| Transport | `webSocketHibernation({ dispatcher })` | each socket's `initialize` and opened sessions, in the socket's attachment |
+
+```ts
+import { type DurableStorageLike, doSqliteStore } from "@buildanagent/harness/cloudflare";
+
+declare const storage: DurableStorageLike; // a SQLite-backed Durable Object's ctx.storage
+const store = doSqliteStore(storage);
+```
+
+`examples/cloudflare-session-object.ts` builds the whole server: a harness that signs approvals with the Worker secret's ring, and a dispatcher over the store, the index and the lock. The object's own `webSocketMessage()`, `webSocketClose()` and `webSocketError()` forward to `sockets`, and its `alarm()` calls `wakes.alarm()`.
+
+### The store and the lock rely on one event at a time, and their SQL is conditional as well
+
+A Durable Object runs one event at a time, and SQL calls in it complete synchronously. `doSqliteStore()` runs an append's reads, its checks and its inserts inside one `transactionSync()` with no `await` between them, so no other request runs in the middle and a failed append writes none of its batch. An append reads only the rows its batch names and the log's last row, so it costs the batch and not the log. `doLock()` takes a hold with one `INSERT … ON CONFLICT DO UPDATE … WHERE lease_until < now RETURNING`, so a second writer gets `"would_block"` at once, and only a lapsed lease is taken over. A lapsed lease is the only staleness rule, because an object has no process id to check. The tests send 16 concurrent requests to one object: one wins the lock, and one of 16 appends that expect the same tail is written while 15 get a `ConflictError`.
+
+### A wake is a row until its handlers return, so a failed delivery comes back
+
+An object has one alarm, so `doAlarmScheduler()` stores every wake as a row and sets the alarm to the earliest. Call its `alarm()` from the object's `alarm()` method: it delivers each due wake to the `onWake()` handlers and deletes the wake once they return. A handler that throws keeps its wake, which is delivered again after `retryMs` (30 s by default), so a long outage can't use up Cloudflare's six alarm retries and lose the wake. Wakes are therefore at least once, as the `Scheduler` seam promises. The scheduler owns the object's alarm, so nothing else in the object may call `setAlarm()`. An alarm handler runs for at most 15 minutes, so a handler should run one step of a turn and ask for another wake.
+
+### The key ring stays in a Worker secret, and no store object holds its text
+
+`workerKeyStore(secret)` wraps `secretKeyStore()` over a Worker secret's string or a Secrets Store binding's `get()`. It has no `rotate()` or `prune()`: change the ring with `wrangler secret put`, or `wrangler secrets-store secret update` for a binding, and pass `CLOUDFLARE_PLATFORM_HINT` to `rotateKeys()` and `pruneKeys()` so their error names those commands. The secret lives only inside the store's reader function, so `JSON.stringify()` of the store prints `{}`, and every error the store throws is fixed text with no cause.
+
+### A client keeps its socket through hibernation, and the bridge replays its connection
+
+With the Hibernation API, the runtime may evict an idle object while its clients stay connected, and the next frame runs the constructor again with empty memory. `webSocketHibernation()` therefore records each connection's `initialize` and up to 8 opened sessions in the socket's attachment. When a frame arrives on a socket the object no longer serves, the bridge starts a new `webSocketTransport()` and replays the `initialize` and each `session/open` under ids of its own before that frame. A session that had no entries yet is created again. The client never sees the replay's answers, and its next command works as before. A running turn keeps the object in memory, so no turn spans an eviction.
+
+### The suite runs in workerd offline, and a live run on a real account is opt-in
+
+`test/cloudflare/cloudflare.test.ts` runs every case of the portability suite in a Durable Object of its own, in workerd through Miniflare, with every outbound request refused and the refusals asserted empty. Six seams run there: the store, the lock, the scheduler, the key store, the transport through the hibernation bridge, and agent-safety's `durableObjectEffectStore()`. Four cases skip, each for a reason a Durable Object makes true: the two torn-line cases, because a row can't be torn, and rotate and prune, because the key store is read-only. The sandbox and egress seams belong to the Cloudflare sandbox backend. The same test file checks the real alarm, a socket whose object lost its memory, and a smoke test that loads pi-schema, `@cfworker/json-schema` and the MCP client inside workerd. [The live run](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/docs/cloudflare-live-run.md) deploys the same Worker to your own account, and never runs in CI.
 
 ## The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause
 
