@@ -1,13 +1,15 @@
 // The opt-in live run of the Vercel Sandbox backend on a real Vercel account. It never runs in CI or under `pnpm test`:
 // it does nothing unless HARNESS_VERCEL_LIVE=1 is set, and the owner runs it by hand.
 //
-//   HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel
+//   HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel-sandbox
 //
 // `@vercel/sandbox` finds its own credentials: the VERCEL_OIDC_TOKEN that `vercel env pull` writes for a linked
 // project. This script never reads, prints or passes them on. The credential it injects is a canary it makes itself, a
 // random value that is worth nothing, and it prints only check names and outcomes, with the canary scrubbed from every
-// message. Each sandbox it makes is deleted before it exits, and Vercel stops any it lost after ten minutes.
+// message. Each sandbox and snapshot it makes is deleted before it exits, and Vercel stops any sandbox it lost after ten
+// minutes.
 import { randomBytes } from "node:crypto";
+import { Snapshot } from "@vercel/sandbox";
 import type { EgressPolicy } from "../src/credentials/egress-policy.js";
 import { resumeSandbox, snapshotSandbox } from "../src/sandbox/policy.js";
 import type { ExecResult, Sandbox, SandboxPolicy } from "../src/sandbox/types.js";
@@ -117,12 +119,17 @@ async function lifecycleChecks(client: ReturnType<typeof vercelSandbox>, sandbox
   await check("a snapshot resumes into a sandbox that keeps its files", async () => {
     await sandbox.writeFile("kept.txt", new TextEncoder().encode("kept"));
     const id = await snapshotSandbox(client, sandbox);
-    const resumed = await resumeSandbox(client, id, policy(["example.com", "httpbin.org"]));
     try {
-      const kept = new TextDecoder().decode(await resumed.readFile("kept.txt"));
-      return kept === "kept" ? undefined : "the file changed";
+      const resumed = await resumeSandbox(client, id, policy(["example.com", "httpbin.org"]));
+      try {
+        const kept = new TextDecoder().decode(await resumed.readFile("kept.txt"));
+        return kept === "kept" ? undefined : "the file changed";
+      } finally {
+        await resumed.dispose();
+      }
     } finally {
-      await resumed.dispose();
+      // The snapshot outlives both sandboxes, so the run deletes it too.
+      await (await Snapshot.get({ snapshotId: id.slice("snapshot:".length) })).delete();
     }
   });
 }

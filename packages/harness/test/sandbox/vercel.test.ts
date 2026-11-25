@@ -16,6 +16,7 @@ import {
   VERCEL_DENIED_SUBNETS,
   type VercelSandboxInstance,
   type VercelSandboxOptions,
+  type VercelSandboxSdk,
   VercelSecretError,
   vercelSandbox,
 } from "@buildanagent/harness/sandbox/vercel";
@@ -629,3 +630,153 @@ describe("a sandbox that fails or is disposed is never left running", () => {
     assert.deepEqual(fake.live(), []);
   });
 });
+
+describe("cleanup, output and read-back edges", () => {
+  test("a persistent create that fails after Vercel made the sandbox is deleted without a stop", async () => {
+    const fake = fakeVercel({ failCreateAfterMaking: true });
+    await rejection(backend(fake, { persistent: true }).provision({ root: ROOT }, policy()));
+    const kinds = fake.calls.map((call) => call.kind);
+    assert.ok(kinds.includes("delete"));
+    assert.equal(kinds.includes("stop"), false, "a stop would make a persistent sandbox save a snapshot");
+    assert.deepEqual(fake.live(), []);
+  });
+
+  test("a create refused because the name is taken leaves the sandbox that has the name alone", async () => {
+    const fake = fakeVercel();
+    const client = vercelSandbox({ sdk: fake.sdk, name: () => "task-42" });
+    const first = await client.provision({ root: ROOT }, policy());
+    const error = await rejection(client.provision({ root: ROOT }, policy()));
+    assert.ok(error instanceof SandboxUnavailableError, String(error));
+    assert.deepEqual(
+      fake.live().map((vm) => vm.name),
+      ["task-42"],
+      "the first sandbox still runs",
+    );
+    await first.dispose();
+  });
+
+  test("a command's output is streamed and capped, never fetched whole", async () => {
+    const fake = fakeVercel();
+    const sandbox = await backend(fake).provision({ root: ROOT }, policy());
+    const result = await run(sandbox, ["flood"]);
+    assert.ok("stdout" in result);
+    assert.equal(result.truncated, true);
+    assert.equal(new TextEncoder().encode(result.stdout).length, 8 * 1024 * 1024);
+    const small = await sandbox.exec(["flood"], { env: {}, signal: never(), maxOutputBytes: 10 });
+    assert.ok("stdout" in small && small.stdout === "y\ny\ny\ny\ny\n" && small.truncated === true);
+    await sandbox.dispose();
+  });
+
+  test("an abort while the command is starting still kills it once it has started", async () => {
+    const fake = fakeVercel({ startDelayMs: 60 });
+    const sandbox = await backend(fake).provision({ root: ROOT }, policy());
+    const controller = new AbortController();
+    const aborted = rejection(sandbox.exec(["sleep", "30"], { env: {}, signal: controller.signal }));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    controller.abort(new Error("stop"));
+    assert.equal(((await aborted) as Error).message, "stop");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(fake.calls.filter((call) => call.kind === "kill").length, 1, "the started command was killed");
+    await sandbox.dispose();
+  });
+
+  test("readFile redacts a credential's encoded forms, as command output does", async () => {
+    const { fake, sandbox } = await withGithub();
+    const vm = fake.live()[0];
+    assert.ok(vm !== undefined);
+    const encoded = [encodeURIComponent(SECRET), btoa(SECRET).replace(/=+$/, "")];
+    vm.files.set(`${ROOT}/encoded.txt`, { kind: "file", data: bytes(encoded.join("\n")) });
+    const read = text(await sandbox.readFile("encoded.txt"));
+    assert.equal(read, "[REDACTED]\n[REDACTED]");
+    await sandbox.dispose();
+  });
+
+  test("a protected file of a nested write root can't be written through the outer root", async () => {
+    const fake = fakeVercel();
+    const nested: SandboxPolicy = {
+      readRoots: [],
+      writeRoots: ["/vercel/sandbox", `${ROOT}`],
+      network: { allow: [], deny: [] },
+    };
+    const sandbox = await backend(fake).provision({ root: ROOT }, nested);
+    const error = await rejection(sandbox.writeFile(`${ROOT}/.claude/settings.json`, bytes("x")));
+    assert.equal((error as { code?: string }).code, "sandbox_denied");
+    await sandbox.dispose();
+  });
+
+  test("a resume whose firewall update fails stops the sandbox, so it doesn't run on under the old policy", async () => {
+    const fake = fakeVercel();
+    const sandbox = await backend(fake).provision({ root: ROOT }, policy());
+    const failing = vercelSandbox({ sdk: fakeVercelFailingUpdate(fake), name: names() });
+    const error = await rejection(resumeSandbox(failing, sandbox.id ?? "", policy()));
+    assert.ok(error instanceof SandboxUnavailableError, String(error));
+    assert.equal(fake.live()[0]?.running, false, "the resumed sandbox was stopped");
+    await sandbox.dispose();
+  });
+
+  test("a reported forwarding rule fails the read-back and deletes the sandbox", async () => {
+    const fake = fakeVercel({
+      report: (r) =>
+        typeof r === "object"
+          ? {
+              ...r,
+              allow: {
+                ...(r.allow as object),
+                "api.github.com": [
+                  ...((r.allow as Record<string, unknown[]>)["api.github.com"] ?? []),
+                  { forwardURL: "https://proxy.example.com/" },
+                ],
+              } as NonNullable<Exclude<NetworkPolicy, string>["allow"]>,
+            }
+          : r,
+    });
+    const client = backend(fake, { egress: GITHUB, secret: async () => SECRET });
+    const error = await rejection(client.provision({ root: ROOT }, policy(["api.github.com"])));
+    assert.ok(error instanceof SandboxPolicyMismatchError, String(error));
+    assert.deepEqual(fake.live(), []);
+  });
+
+  test("a command or file holding a credential's base64 or percent-encoded form is refused too", async () => {
+    const { fake, sandbox } = await withGithub();
+    const before = fake.calls.length;
+    for (const form of [btoa(SECRET).replace(/=+$/, ""), encodeURIComponent(SECRET)]) {
+      const command = await rejection(sandbox.exec(["echo", form], { env: {}, signal: never() }));
+      assert.equal((command as { code?: string }).code, "invalid_sandbox_options");
+      const file = await rejection(sandbox.writeFile("t.txt", bytes(form)));
+      assert.equal((file as { code?: string }).code, "invalid_sandbox_options");
+    }
+    assert.equal(fake.calls.length, before, "nothing reached the VM");
+    await sandbox.dispose();
+  });
+
+  test("the denied ranges include the IPv4-mapped IPv6 range", () => {
+    assert.ok(VERCEL_DENIED_SUBNETS.includes("::ffff:0:0/96"));
+  });
+});
+
+/** The fake's client, with `update` on every instance it hands out failing. */
+function fakeVercelFailingUpdate(fake: FakeVercel): VercelSandboxSdk {
+  return {
+    create: (params) => fake.sdk.create(params),
+    get: async (params) => {
+      const vm = await fake.sdk.get(params);
+      return {
+        get name() {
+          return vm.name;
+        },
+        get networkPolicy() {
+          return vm.networkPolicy;
+        },
+        runCommand: (run) => vm.runCommand(run),
+        readFileToBuffer: (file) => vm.readFileToBuffer(file),
+        writeFiles: (files) => vm.writeFiles(files),
+        update: async () => {
+          throw new Error("update failed");
+        },
+        snapshot: () => vm.snapshot(),
+        stop: () => vm.stop(),
+        delete: () => vm.delete(),
+      };
+    },
+  };
+}

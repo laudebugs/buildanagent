@@ -14,7 +14,7 @@ import { HarnessError } from "../../errors.js";
 import { SandboxUnavailableError } from "../errors.js";
 import type { Sandbox, SandboxCapability, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type CompiledFirewall, compileFirewall, VERCEL_DENIED_SUBNETS } from "./firewall.js";
-import { guarded, VercelSandbox } from "./handle.js";
+import { guarded, sanitized, VercelSandbox } from "./handle.js";
 import { checkAbsolute, inside, normalize } from "./paths.js";
 import { type VercelCreateParams, type VercelSandboxSdk, vercelSandboxSdk } from "./sdk.js";
 
@@ -139,15 +139,27 @@ function firewallFor(backend: Backend, policy: SandboxPolicy): Promise<CompiledF
   });
 }
 
-/** Deletes the sandbox called `name` if it exists, for a create that failed after Vercel may have made it. */
+/**
+ * Deletes the sandbox called `name` if it exists, for a create that failed after Vercel may have made it. It deletes
+ * without stopping first, as `dispose()` does, because a persistent sandbox's stop saves a snapshot that outlives the
+ * delete, and it stops the sandbox only when the delete fails.
+ */
 async function deleteIfMade(sdk: VercelSandboxSdk, name: string): Promise<void> {
   try {
     const made = await sdk.get({ name });
-    await made.stop().catch(() => undefined);
-    await made.delete();
+    await made.delete().catch(() => made.stop());
   } catch {
     // Most often it was never made. Vercel stops one that was at its timeout either way.
   }
+}
+
+/**
+ * Whether Vercel answered the create with a client error, such as a name already taken, which makes no sandbox. The
+ * sandbox found by that name is then someone else's, so it must not be deleted.
+ */
+function refusedByVercel(error: unknown): boolean {
+  const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
+  return typeof status === "number" && status >= 400 && status < 500;
 }
 
 /** Creates the VM, or deletes what a failed create left and throws `SandboxUnavailableError`. */
@@ -167,7 +179,7 @@ async function createVm(backend: Backend, firewall: CompiledFirewall, snapshotId
   try {
     return await sdk.create(params);
   } catch (error) {
-    await deleteIfMade(sdk, name);
+    if (!refusedByVercel(error)) await deleteIfMade(sdk, name);
     // The request carried the credential values, so neither the message nor a cause may quote it.
     const message = error instanceof Error ? scrubString(error.message, guarded(firewall.secrets)) : "an unknown error";
     throw new SandboxUnavailableError("vercel", `the sandbox could not be created: ${message}`);
@@ -206,23 +218,35 @@ async function start(
   return finish(sandbox, backend, policy, manifest);
 }
 
-/** Reattaches to the sandbox called `name`, and applies the policy again with credentials read now. */
+/**
+ * Reattaches to the sandbox called `name`, and applies the policy again with credentials read now. A firewall update or
+ * a root that fails stops the sandbox before it throws, so it doesn't run on under its old policy with nobody holding
+ * a handle; a persistent sandbox keeps its files.
+ */
 async function reattach(backend: Backend, name: string, policy: SandboxPolicy): Promise<Sandbox> {
   if (!SANDBOX_NAME.test(name)) throw new HarnessError("invalid_sandbox_options", "the sandbox id is not usable");
   const root = policy.writeRoots[0] ?? policy.readRoots[0] ?? "";
   checkLayout(root, policy);
   const firewall = await firewallFor(backend, policy);
+  const secrets = guarded(firewall.secrets);
   const vm = await backend.sdk.get({ name, resume: true }).catch((error: unknown) => {
-    throw new SandboxUnavailableError("vercel", `the sandbox ${name} could not be found`, { cause: error });
+    throw new SandboxUnavailableError("vercel", `the sandbox ${name} could not be found`, {
+      cause: sanitized(error, secrets),
+    });
   });
-  await vm.update({ networkPolicy: firewall.networkPolicy }).catch((error: unknown) => {
-    const message = error instanceof Error ? scrubString(error.message, guarded(firewall.secrets)) : "an unknown error";
-    throw new SandboxUnavailableError("vercel", `the sandbox's network policy could not be applied: ${message}`);
-  });
-  const persistent = backend.options.persistent ?? false;
-  const sandbox = new VercelSandbox({ sdk: backend.sdk, vm, root, requested: policy, firewall, persistent });
-  await sandbox.prepareRoots();
-  return sandbox;
+  try {
+    await vm.update({ networkPolicy: firewall.networkPolicy }).catch((error: unknown) => {
+      const message = error instanceof Error ? scrubString(error.message, secrets) : "an unknown error";
+      throw new SandboxUnavailableError("vercel", `the sandbox's network policy could not be applied: ${message}`);
+    });
+    const persistent = backend.options.persistent ?? false;
+    const sandbox = new VercelSandbox({ sdk: backend.sdk, vm, root, requested: policy, firewall, persistent });
+    await sandbox.prepareRoots();
+    return sandbox;
+  } catch (error) {
+    await vm.stop().catch(() => undefined);
+    throw error;
+  }
 }
 
 /**

@@ -52,7 +52,7 @@ Harness plan §4 stage 8 table; README of the new adapter.
 
 ## Risks and open questions
 
-The pin is a major version behind 4.0.0; the upgrade is a later todo.
+The pin is a major version behind 4.0.0, which was also more than a week old when this todo was built (2026-11-12); the scope pins 3.9.1, and the upgrade is a later todo.
 
 ## Definition of done
 
@@ -70,7 +70,7 @@ The pin is a major version behind 4.0.0; the upgrade is a later todo.
 - `vercelSandbox({ sdk?, egress?, secret?, deniedSubnets?, timeoutMs?, persistent?, image?, vcpus?, name? })`: tier `microvm`, stops `mistakes`, `exfiltration` and `hostile_process`, capabilities `resume` and `snapshot`, plus `pause` when `persistent` is set.
 - `vercelSandboxSdk(credentials?)`, the real client, and the `VercelSandboxSdk`, `VercelSandboxInstance`, `VercelCommand`, `VercelFinishedCommand`, `VercelRunParams`, `VercelCreateParams` and `VercelCredentials` types, so a test passes a fake.
 - `checkVercelNetworkPolicy(policy)`, `VERCEL_DENIED_SUBNETS` and `VercelSecretError` (code `egress_secret_unresolved`, field `credential`), a new code in `HarnessErrorCode`.
-- `scripts/vercel-live.ts` (`pnpm --filter @buildanagent/harness live:vercel`), which does nothing unless `HARNESS_VERCEL_LIVE=1`.
+- `scripts/vercel-live.ts` (`pnpm --filter @buildanagent/harness live:vercel-sandbox`), which does nothing unless `HARNESS_VERCEL_LIVE=1`.
 
 **Decisions**
 
@@ -82,12 +82,12 @@ The pin is a major version behind 4.0.0; the upgrade is a later todo.
 - **The roots are checked on the file calls and the working directory, with each path resolved in the VM.** A command can still touch the whole VM, which holds nothing of the host's, so `mistakes` is claimed for the host's files.
 - **Every command, variable, path and file is scanned for each credential value and its bare token, and output and file reads are scrubbed.** [Trust the firewall alone: an echoing service hands the credential to the sandbox, and the log would keep it.]
 - **Dispose deletes without stopping first, because a persistent sandbox's stop saves a snapshot that outlives the delete; a failed provision deletes too, even after a create that failed once Vercel had made the sandbox.** A resume by name never deletes on a mismatch, as `resumeSandbox()` requires.
-- **The interception is Vercel's.** ADR 0020's no-TLS-interception rule governs our local proxy; the plan chose the firewall `transform` for Vercel, and the README names the vendor CA as a limit.
+- **The credential is injected in Vercel's proxy, which intercepts TLS.** Vercel's `transform` terminates TLS on a route's host with a per-sandbox CA that the VM's trust store carries, so Vercel's proxy holds the secret and sees plaintext to the allowed hosts. The owner accepted this for the hosted Vercel and E2B backends on 2026-11-25 ([ADR 0060](../../decisions/0060-hosted-sandbox-egress-proxy-injection.md)). ADR 0020's no-interception rule stays in force for our local proxy and the local backends. Cloudflare's N46b and N50 still wait on a separate ruling.
 
 **Mutation checks.** The builder broke 16 rules one at a time and ran `test/sandbox/vercel.test.ts` after each; every mutation failed between 1 and 13 tests: no secret scan, no delete on dispose, no output scrub, no file-read redaction, `"allow-all"` for an empty policy, no subnet check, no credential-rule check, no 403 rule, no cleanup after a failed create, no dispose after a failed provision, no real-path check, no kill on dispose, no host-set check, git routes allowed, and no `-i` on `env`.
 
 **What could not be done**
 
-- **The live run was not run.** vercel.com is unreachable from the build session, which has no Vercel account. The owner runs `HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel` once, and ticks the second acceptance box when it passes.
+- **The live run was not run.** vercel.com is unreachable from the build session, which has no Vercel account. The owner runs `HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel-sandbox` once, and ticks the second acceptance box when it passes.
 - **Four claims stay ⚠️** in the fact-check log after it was settled against Vercel's docs: that the denied ranges leave DNS and allowed hosts working, that a `SIGKILL` ends a command's children, that the default image has `curl`, and the sandbox name rule. The live run checks the first three.
 - **The process-tree conformance case skips**, because the fake can't fork and the host can't see the VM's processes.

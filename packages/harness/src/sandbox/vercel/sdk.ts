@@ -19,6 +19,10 @@ export interface VercelFinishedCommand {
 export interface VercelCommand {
   /** Waits for the command to finish. An aborted `signal` stops the wait, not the command. */
   wait(params?: { signal?: AbortSignal }): Promise<VercelFinishedCommand>;
+  /** Streams what the command writes, one piece at a time, and ends when the command does. */
+  logs(params?: {
+    signal?: AbortSignal;
+  }): AsyncIterable<{ readonly stream: "stdout" | "stderr"; readonly data: string }>;
   /** Sends the command a signal. */
   kill(signal?: "SIGKILL"): Promise<void>;
 }
@@ -35,7 +39,7 @@ export interface VercelRunParams {
   readonly detached: true;
   /** Always `false`: no command runs as root. */
   readonly sudo: false;
-  /** Cancels the start. */
+  /** Cancels the start. The backend never sets it, because a start cancelled after Vercel began the command can't kill it. */
   readonly signal?: AbortSignal;
   /** Milliseconds after which Vercel kills the command with `SIGKILL`. */
   readonly timeoutMs?: number;

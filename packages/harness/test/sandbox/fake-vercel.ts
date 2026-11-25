@@ -1,6 +1,6 @@
 // An in-process fake of the part of `@vercel/sandbox` the Vercel backend uses. Each VM has a file system in memory, with
 // folders and symlinks, and understands the few programs the backend and the conformance suite run: `env -i`, `echo`,
-// `env`, `true`, `false`, `sleep`, `mkdir -p`, `realpath -m` and `net-probe`. `net-probe <url> [method]` plays the
+// `env`, `true`, `false`, `sleep`, `flood`, `mkdir -p`, `realpath -m` and `net-probe`. `net-probe <url> [method]` plays the
 // firewall: it reaches a host only as the network policy it was given allows, applies the policy's rules in order, and
 // prints the headers a `transform` rule set. The VM reports its policy as `@vercel/sandbox` 3.9.1's
 // `fromAPINetworkPolicy()` does, with every injected header's value replaced and `response` rules left out.
@@ -50,6 +50,11 @@ export interface FakeVercelOptions {
   readonly fail?: ReadonlySet<"create" | "stop" | "delete" | "mkdir" | "write" | "update" | "get">;
   /** What the VM prints for `realpath`, after its own resolution, so a test can play a VM that lies. */
   readonly realpath?: (resolved: string) => string;
+  /**
+   * Milliseconds a command started through `env` takes to start. An abort of the start's signal in that time rejects
+   * `runCommand()` while the command keeps running, as a cancelled request to Vercel's API can.
+   */
+  readonly startDelayMs?: number;
 }
 
 /** The fake, and what it holds. */
@@ -158,11 +163,11 @@ export function firewall(policy: NetworkPolicy, url: string, method: string): Ve
 class FakeCommand implements VercelCommand {
   private killed = false;
   private readonly waiters = new Set<() => void>();
-  private readonly finished: Promise<VercelFinishedCommand>;
+  private readonly finished: Promise<Ran>;
   private readonly vm: FakeVm;
   private readonly calls: FakeCall[];
 
-  constructor(vm: FakeVm, calls: FakeCall[], body: (killed: () => Promise<void>) => Promise<VercelFinishedCommand>) {
+  constructor(vm: FakeVm, calls: FakeCall[], body: (killed: () => Promise<void>) => Promise<Ran>) {
     this.vm = vm;
     this.calls = calls;
     this.finished = body(() => new Promise<void>((resolve) => this.waiters.add(resolve)));
@@ -178,6 +183,14 @@ class FakeCommand implements VercelCommand {
     });
   }
 
+  async *logs(params?: { signal?: AbortSignal }): AsyncIterable<{ stream: "stdout" | "stderr"; data: string }> {
+    const finished = await this.finished;
+    for (const chunk of finished.chunks) {
+      params?.signal?.throwIfAborted();
+      yield chunk;
+    }
+  }
+
   async kill(): Promise<void> {
     this.calls.push({ kind: "kill", vm: this.vm.name });
     this.killed = true;
@@ -189,11 +202,35 @@ class FakeCommand implements VercelCommand {
   }
 }
 
-const done = (exitCode: number, stdout = "", stderr = ""): VercelFinishedCommand => ({
+/** A finished command, and the chunks its logs stream, in order. */
+type Ran = VercelFinishedCommand & { readonly chunks: readonly { stream: "stdout" | "stderr"; data: string }[] };
+
+const done = (exitCode: number, stdout = "", stderr = ""): Ran => ({
   exitCode,
   stdout: async () => stdout,
   stderr: async () => stderr,
+  chunks: [
+    ...(stdout === "" ? [] : [{ stream: "stdout" as const, data: stdout }]),
+    ...(stderr === "" ? [] : [{ stream: "stderr" as const, data: stderr }]),
+  ],
 });
+
+// How many 64 KiB chunks `flood` writes: 32 MiB, more than the default output cap holds.
+const FLOOD_CHUNKS = 512;
+
+/** A command that writes more than the host should ever hold, which `stdout()` refuses to fetch whole. */
+const flood = (): Ran => {
+  const chunk = "y\n".repeat(32 * 1024);
+  const tooBig = async (): Promise<string> => {
+    throw new Error("the output is too large to fetch whole");
+  };
+  return {
+    exitCode: 0,
+    stdout: tooBig,
+    stderr: tooBig,
+    chunks: Array.from({ length: FLOOD_CHUNKS }, () => ({ stream: "stdout" as const, data: chunk })),
+  };
+};
 
 /** Runs one program in `vm`, with `env` as its whole environment. */
 async function program(
@@ -202,13 +239,15 @@ async function program(
   env: Record<string, string>,
   options: FakeVercelOptions,
   killed: () => Promise<void>,
-): Promise<VercelFinishedCommand> {
+): Promise<Ran> {
   const [name = "", ...args] = argv;
   switch (name) {
     case "echo":
       return done(0, `${args.join(" ")}\n`);
     case "true":
       return done(0);
+    case "flood":
+      return flood();
     case "false":
       return done(1);
     case "env":
@@ -291,9 +330,25 @@ class FakeInstance implements VercelSandboxInstance {
     const { signal: _signal, ...recorded } = params;
     this.fake.calls.push({ kind: "run", vm: this.vm.name, params: structuredClone(recorded) });
     const { env, argv } = unwrap(params.cmd, params.args);
-    return new FakeCommand(this.vm, this.fake.calls, (killed) =>
+    const command = new FakeCommand(this.vm, this.fake.calls, (killed) =>
       program(this.vm, argv, env, this.fake.options, killed),
     );
+    const delay = this.fake.options.startDelayMs;
+    if (delay !== undefined && params.cmd === "env") {
+      // The command runs from here on, whatever happens to the request that started it.
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, delay);
+        params.signal?.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(timer);
+            reject(new Error("the request was aborted"));
+          },
+          { once: true },
+        );
+      });
+    }
+    return command;
   }
 
   async readFileToBuffer(file: { path: string }): Promise<Uint8Array | null> {
@@ -361,7 +416,10 @@ export function fakeVercel(options: FakeVercelOptions = {}): FakeVercel {
       const { signal: _signal, ...recorded } = params;
       state.calls.push({ kind: "create", params: structuredClone(recorded) });
       if (options.fail?.has("create")) throw new Error(`create failed for ${JSON.stringify(params.networkPolicy)}`);
-      if (state.vms.has(params.name)) throw new Error("a sandbox with this name exists");
+      if (state.vms.has(params.name)) {
+        // Vercel answers with an API error that carries the HTTP response, as `@vercel/sandbox`'s `APIError` does.
+        throw Object.assign(new Error("a sandbox with this name exists"), { response: { status: 409 } });
+      }
       const source = params.source === undefined ? undefined : state.snapshots.get(params.source.snapshotId);
       if (params.source !== undefined && source === undefined) throw new Error("snapshot_not_found");
       const files = source === undefined ? new Map<string, Node>([["/", { kind: "dir" }]]) : structuredClone(source);

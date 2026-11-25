@@ -223,7 +223,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts",
-    "live:vercel": "tsx scripts/vercel-live.ts"
+    "live:vercel-sandbox": "tsx scripts/vercel-live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.83",

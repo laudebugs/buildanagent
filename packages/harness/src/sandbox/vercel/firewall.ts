@@ -12,7 +12,8 @@ import { SandboxPolicyMismatchError } from "../errors.js";
 
 /**
  * The address ranges the compiled firewall policy denies by default: loopback, private, shared, link-local (which holds
- * the cloud metadata address 169.254.169.254) and the IPv6 unique-local, link-local and loopback ranges. Vercel's
+ * the cloud metadata address 169.254.169.254), the IPv6 unique-local, link-local and loopback ranges, and the
+ * IPv4-mapped IPv6 range, so a name whose AAAA record wraps one of the IPv4 ranges is refused too. Vercel's
  * firewall gives `subnets.deny` precedence over the allowed domains, so an allowed name that resolves to one of these is
  * still refused.
  */
@@ -27,6 +28,7 @@ export const VERCEL_DENIED_SUBNETS: readonly string[] = [
   "fc00::/7",
   "fe80::/10",
   "::1/128",
+  "::ffff:0:0/96",
 ];
 
 /** The thrown error for a credential the egress policy names but the host can't supply. */
@@ -248,7 +250,9 @@ function sameInjections(left: readonly FirewallInjection[], right: readonly Fire
  * The hosts the policy Vercel reports allows, checked against `expected`. `"allow-all"` reads back as `*`, which
  * `stopsFor()` treats as open egress. It throws `SandboxPolicyMismatchError` with the field `readBack` when Vercel
  * reports no policy, `network.allow` when the policy sets `subnets.allow`, and `settings` when the credential rules or
- * the denied ranges differ from what was sent. The message never names a host, a header or a value.
+ * the denied ranges differ from what was sent or a rule forwards requests to a proxy. The message never names a host, a
+ * header or a value. Vercel's read-back leaves out `response` rules, so the trailing 403 on a route-only host can't be
+ * compared.
  */
 export function readBackHosts(reported: NetworkPolicy | undefined, expected: CompiledFirewall): string[] {
   if (reported === undefined) throw new SandboxPolicyMismatchError("readBack");
@@ -260,6 +264,13 @@ export function readBackHosts(reported: NetworkPolicy | undefined, expected: Com
   if (typeof reported !== "object" || reported === null) throw new SandboxPolicyMismatchError("readBack");
   checkReportedSubnets(reported.subnets, expected);
   const allow = reported.allow ?? [];
+  // A forwarding rule sends requests through a proxy the policy never named, which could add or keep anything.
+  if (
+    !Array.isArray(allow) &&
+    Object.values(allow).some((rules) => rules.some((rule) => rule.forwardURL !== undefined))
+  ) {
+    throw new SandboxPolicyMismatchError("settings");
+  }
   const injections = Array.isArray(allow) ? [] : reportedInjections(allow);
   if (!sameInjections(injections, expected.injections)) throw new SandboxPolicyMismatchError("settings");
   return Array.isArray(allow) ? [...allow] : Object.keys(allow);

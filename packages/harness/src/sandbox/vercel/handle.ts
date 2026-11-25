@@ -4,7 +4,7 @@
  * variable and file is scanned for the credential values the firewall injects, which never enter the sandbox. The
  * underlying `@vercel/sandbox` object lives in a private field, so the handle serializes to its id alone.
  */
-import { scrubCutString, scrubString } from "../../credentials/scrub.js";
+import { scrubCutString, scrubString, secretForms } from "../../credentials/scrub.js";
 import { HarnessError } from "../../errors.js";
 import { SandboxDeniedError, SandboxUnsupportedError } from "../errors.js";
 import { checkCommand, checkOptions } from "../exec-checks.js";
@@ -21,7 +21,7 @@ import type {
 } from "../types.js";
 import { type CompiledFirewall, readBackHosts } from "./firewall.js";
 import { inside, normalize, parentOf, relativeTo, resolveAgainst } from "./paths.js";
-import type { VercelCommand, VercelFinishedCommand, VercelSandboxInstance, VercelSandboxSdk } from "./sdk.js";
+import type { VercelCommand, VercelSandboxInstance, VercelSandboxSdk } from "./sdk.js";
 
 const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
 // Vercel stops a command on its own this long after the host's timeout, in case the host's kill never arrives.
@@ -38,6 +38,15 @@ export interface HandleState {
   readonly requested: SandboxPolicy;
   readonly firewall: CompiledFirewall;
   readonly persistent: boolean;
+}
+
+/** One output stream of a command. */
+type Stream = "stdout" | "stderr";
+
+/** What is kept of one output stream: its text so far and that text's size in UTF-8 bytes. */
+interface Kept {
+  text: string;
+  bytes: number;
 }
 
 /** A command that is still running, which `dispose()` ends. */
@@ -79,11 +88,14 @@ function indexOfBytes(data: Uint8Array, needle: Uint8Array, from = 0): number {
   return -1;
 }
 
-/** `data` with each secret's UTF-8 bytes replaced by `[REDACTED]`, longest secret first. */
+/**
+ * `data` with each secret replaced by `[REDACTED]`, in the same forms a command's output is scrubbed of: as written,
+ * percent-encoded, JSON-escaped and in base64, longest first.
+ */
 function redactBytes(data: Uint8Array, secrets: readonly string[]): Uint8Array {
   let result = data;
   const marker = ENCODER.encode("[REDACTED]");
-  for (const secret of [...secrets].sort((a, b) => b.length - a.length)) {
+  for (const secret of secretForms(secrets)) {
     const needle = ENCODER.encode(secret);
     const parts: Uint8Array[] = [];
     let from = 0;
@@ -151,9 +163,10 @@ export class VercelSandbox implements Sandbox {
     if (this.#disposed) throw new HarnessError("sandbox_disposed", "the sandbox was disposed");
   }
 
-  /** Throws unless no string holds a credential value, before anything is sent to the sandbox. */
+  /** Throws unless no string holds a credential value, as written or encoded, before anything is sent to the sandbox. */
   #refuseSecrets(texts: readonly string[], what: string): void {
-    if (texts.some((text) => this.#secrets.some((secret) => text.includes(secret)))) {
+    const forms = secretForms(this.#secrets);
+    if (texts.some((text) => forms.some((form) => text.includes(form)))) {
       throw new HarnessError("invalid_sandbox_options", `${what} holds the value of a credential the firewall injects`);
     }
   }
@@ -224,13 +237,16 @@ export class VercelSandbox implements Sandbox {
     return real;
   }
 
-  /** Throws `SandboxDeniedError` unless `path` lies in one of `roots` and, for a write, is not a protected file. */
+  /**
+   * Throws `SandboxDeniedError` unless `path` lies in one of `roots` and, for a write, is not a protected file. With
+   * nested roots, a path protected under any root that holds it is refused, so an outer root can't reach an inner one's.
+   */
   #check(path: string, kind: SandboxDenial["kind"], roots: readonly string[], target: string): void {
     const holding = roots.map(normalize).filter((root) => inside(root, path));
     if (holding.length === 0) {
       throw new SandboxDeniedError({ kind, target, reason: "the path is outside the sandbox's roots" });
     }
-    if (kind === "filesystem_write" && holding.every((root) => isProtectedPath(relativeTo(root, path)))) {
+    if (kind === "filesystem_write" && holding.some((root) => isProtectedPath(relativeTo(root, path)))) {
       throw new SandboxDeniedError({ kind, target, reason: "the path is a protected file" });
     }
   }
@@ -248,7 +264,7 @@ export class VercelSandbox implements Sandbox {
   async writeFile(path: string, data: Uint8Array): Promise<void> {
     this.#live();
     if (!(data instanceof Uint8Array)) throw new HarnessError("invalid_sandbox_options", "file data is a Uint8Array");
-    if (this.#secrets.some((secret) => indexOfBytes(data, ENCODER.encode(secret)) >= 0)) {
+    if (secretForms(this.#secrets).some((form) => indexOfBytes(data, ENCODER.encode(form)) >= 0)) {
       throw new HarnessError(
         "invalid_sandbox_options",
         "the file holds the value of a credential the firewall injects",
@@ -330,14 +346,18 @@ export class VercelSandbox implements Sandbox {
         );
       }
       const backstop = options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs + BACKSTOP_MS };
+      // The start takes no abort signal: one that cancels the request after Vercel began the command would leave it
+      // running with nothing to kill it, so a stop waits for the start and kills the command then.
       this.#state.vm
-        .runCommand({ cmd: "env", args, cwd, detached: true, sudo: false, signal: controller.signal, ...backstop })
+        .runCommand({ cmd: "env", args, cwd, detached: true, sudo: false, ...backstop })
         .then(async (command) => {
           started = command;
           // A stop that came while the command was starting could not kill it then.
           if (done) return this.#kill(command);
+          const output = this.#collect(command, limit, controller.signal);
+          output.catch(() => undefined);
           const finished = await command.wait({ signal: controller.signal });
-          const result = await this.#result(finished, limit);
+          const result = this.#result(finished.exitCode, await output, limit);
           finish(() => resolve(result));
         })
         .catch((error: unknown) =>
@@ -359,15 +379,29 @@ export class VercelSandbox implements Sandbox {
     void kill.then(() => this.#kills.delete(kill));
   }
 
+  /**
+   * Reads the command's output as it streams, keeping at most one piece past `limit` bytes of each stream and dropping
+   * the rest, so a command that writes without end can't fill the host's memory.
+   */
+  async #collect(command: VercelCommand, limit: number, signal: AbortSignal): Promise<Record<Stream, Kept>> {
+    const kept: Record<Stream, Kept> = { stdout: { text: "", bytes: 0 }, stderr: { text: "", bytes: 0 } };
+    for await (const { stream, data } of command.logs({ signal })) {
+      const part = kept[stream];
+      if (part === undefined || part.bytes > limit) continue;
+      part.text += data;
+      part.bytes += ENCODER.encode(data).length;
+    }
+    return kept;
+  }
+
   /** A finished command's result, capped and with every credential value scrubbed from its output. */
-  async #result(finished: VercelFinishedCommand, limit: number): Promise<ExecResult> {
-    const [stdout, stderr] = await Promise.all([finished.stdout(), finished.stderr()]);
-    const out = capped(stdout, limit);
-    const err = capped(stderr, limit);
+  #result(exitCode: number, output: Record<Stream, Kept>, limit: number): ExecResult {
+    const out = capped(output.stdout.text, limit);
+    const err = capped(output.stderr.text, limit);
     const scrub = (part: { text: string; truncated: boolean }) =>
       part.truncated ? scrubCutString(part.text, this.#secrets) : scrubString(part.text, this.#secrets);
     return {
-      exitCode: finished.exitCode,
+      exitCode,
       stdout: scrub(out),
       stderr: scrub(err),
       ...(out.truncated || err.truncated ? { truncated: true } : {}),
