@@ -202,7 +202,7 @@ Inside the sandbox, a command can read and write the policy's roots and run the 
 
 A hosted backend can ask its provider to add a credential outside the VM. Injection is off unless your egress policy holds a credential route. None of the backends above injects this way; a hosted backend that does documents its options in its own section.
 
-Use a credential route only for a narrow, scoped, short-lived or revocable, low-value credential. A repository-scoped token for one run, a read-only package-registry token and a model-API key with a spend limit all qualify. A credential that can spend money without a cap, push to a protected branch or reach production data stays in a host-side tool. Nothing in the code enforces this rule, because a backend can't see how much a token can do, so review each route you add.
+Use a credential route only for a narrow, scoped, short-lived or revocable, low-value credential. A repository-scoped token for one run, a read-only package-registry token and a model-API key with a spend limit all qualify. A credential that can spend money without a cap, push to a protected branch or reach production data stays in a host-side tool. Review, not code, enforces this rule, because a backend can't see how much a token can do. Check each route you add.
 
 A credential route has five costs:
 
