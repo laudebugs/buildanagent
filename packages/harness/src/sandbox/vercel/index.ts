@@ -12,6 +12,7 @@ import type { EgressPolicy } from "../../credentials/egress-policy.js";
 import { scrubString } from "../../credentials/scrub.js";
 import { HarnessError } from "../../errors.js";
 import { SandboxUnavailableError } from "../errors.js";
+import { sameEntries } from "../policy.js";
 import type { Sandbox, SandboxCapability, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type CompiledFirewall, compileFirewall, VERCEL_DENIED_SUBNETS } from "./firewall.js";
 import { guarded, sanitized, VercelSandbox } from "./handle.js";
@@ -89,13 +90,6 @@ function checkOptions(options: VercelSandboxOptions): void {
   }
 }
 
-/** Whether two lists hold the same entries, ignoring order and repeats. */
-function sameSet(left: readonly string[], right: readonly string[]): boolean {
-  const a = new Set(left);
-  const b = new Set(right);
-  return a.size === b.size && [...a].every((entry) => b.has(entry));
-}
-
 /** The egress policy for `policy`: the configured one, which must name the same hosts, or the bare allowlist. */
 function egressFor(policy: SandboxPolicy, configured: EgressPolicy | undefined): EgressPolicy {
   const { allow, deny } = policy.network;
@@ -104,7 +98,7 @@ function egressFor(policy: SandboxPolicy, configured: EgressPolicy | undefined):
   }
   if (configured === undefined) return { allow: [...allow], routes: [] };
   const hosts = [...configured.allow, ...configured.routes.map((route) => route.host)];
-  if (!sameSet(hosts, allow)) {
+  if (!sameEntries(hosts, allow)) {
     throw new HarnessError(
       "invalid_sandbox_options",
       "the policy's network.allow must list exactly the hosts of the egress policy, its routes' hosts included",

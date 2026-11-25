@@ -16,6 +16,7 @@ import type {
   SandboxStop,
   WorkspaceManifest,
 } from "../sandbox/types.js";
+import { normalize } from "../sandbox/vercel/paths.js";
 
 /** The options of `fakeSandbox()`. */
 export interface FakeSandboxOptions {
@@ -82,16 +83,6 @@ const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
 // What a real backend keeps of each stream when the caller names no cap.
 const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
-
-function normalize(path: string): string {
-  const parts: string[] = [];
-  for (const part of path.split("/")) {
-    if (part === "" || part === ".") continue;
-    if (part === "..") parts.pop();
-    else parts.push(part);
-  }
-  return `/${parts.join("/")}`;
-}
 
 /** The lines of `text` that match, as `grep -n -H` prints them. */
 function matchingLines(file: string, text: string, pattern: RegExp): string {
