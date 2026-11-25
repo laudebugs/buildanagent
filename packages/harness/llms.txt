@@ -57,6 +57,7 @@ The sections of README.md and every public export, generated from this package's
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 - [Every removable component has one ablation switch and one header hash](README.md#every-removable-component-has-one-ablation-switch-and-one-header-hash)
 - [One portability suite tests all eight target seams](README.md#one-portability-suite-tests-all-eight-target-seams)
+- [The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause](README.md#the-triage-capstone-runs-the-sdks-support-agent-on-the-harness-and-a-second-process-answers-its-pause)
 
 ## Exports from `@buildanagent/harness`
 

@@ -16,7 +16,7 @@ Turn one SDK run into log entries: write the user entry durably before the first
 ## Context
 
 - [N3](../done/N3-session-store.md): the store is keyed by `{ userId, sessionId }`, so pass the session's key on every call; `append` takes entries without `seq` and returns them with it
-- [HD1](../../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-provisional): the decision and its evidence
+- [HD1](../../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-decided-by-n35): the decision and its evidence
 - [build-harness.md §3.6](../../plans/build-harness.md#36-needs-from-the-sdk-plan): seams and needs 5 and 12
 - [SDK plan §3.4](../../plans/build-sdk.md#34-the-seams-p2-consumes): authoritative end events, header stamp
 - [harness guide §2](../../guides/agent-harness.md#2-the-session-log-should-be-one-append-only-tree-of-typed-entries-with-head-a-writer-lock-and-pauses-as-entries): user entry first; model id and loadout on entries; one log per subagent

@@ -703,4 +703,19 @@ Claims about `@modelcontextprotocol/client`, `@modelcontextprotocol/server` and 
 | N52-38 | The todo's Scope and Tasks cap the index at 25 KiB, the reading row N52-4 records | Todo Scope, Tasks | ✅ | `MEMORY_INDEX_MAX_BYTES` is 25 \* 1024 in `src/memory/index-text.ts`; the todo cites row N52-4 for the unit. |
 | N52-39 | A `delete` of a file that is not a memory record returns "exists and is not a memory record, so it was left alone", leaves the file in place and writes no purge marks | README, `remove()` in `tool.ts` | ✅ | `remove()` returns the refusal when `store.get()` is `"invalid"`, as `create()` does; `edges.test.ts` ("a hand-written file that is not a memory record is not deleted…") fails without the fix. |
 
-**Totals:** 554 claims: 432 ✅, 82 ✏️, 40 ⚠️.
+## N35: the harness capstone and HD1's result (branch `claude/pensive-babbage-n4nhie`)
+
+Checked on 2026-11-25 against the branch's own test run (`npx vitest run test/capstone.test.ts` in `packages/harness`), whose report is committed as `packages/harness/test/fixtures/capstone/granularity.json`.
+
+| # | Claim | Where | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
+| N35-1 | The per-delta file of each case is 3.5 to 3.6 times its per-block file | HD1 result | ✏️ | `granularity.json`: 6,810 / 1,889 = 3.61, 6,831 / 1,910 = 3.58, 6,898 / 1,977 = 3.49. Corrects the first draft of the HD1 result, which said 3.6 times in each case. |
+| N35-2 | In the approved case the per-delta file has 6,810 bytes and 69 lines, the per-block file 1,889 bytes and 10 lines, and the per-message file 1,589 bytes and 6 lines | HD1 result, ADR 0013 | ✅ | `granularity.json`, `approved.bytes` and `approved.lines`. |
+| N35-3 | All three files play back to the same transcript as the package's rebuilt context, block for block | HD1 result, ADR 0013 | ✅ | The HD1 test in `test/capstone.test.ts` asserts `deepEqual` between each decoder's output and `session.toContext()`'s assistant and tool messages, for all three cases. |
+| N35-4 | Per-delta keeps 56 delta boundaries beyond per-block in each case, and no playback reads them | HD1 result, ADR 0013 | ✅ | `granularity.json`, `deltas`: 56 in each case. `contextOf()` in `src/session/rebuild.ts` and `#replay()` in `src/server/dispatcher.ts` read entries only; the log holds no delta. |
+| N35-5 | The per-delta decoder has 29 code lines, the per-block decoder 18 and the per-message decoder 12 | HD1 result, ADR 0013 | ✅ | `granularity.json`, `decoderLines`, counted by `decoderLines()` in `test/capstone/granularity.ts` between the `decoder:` markers, blank lines and comments left out. |
+| N35-6 | A per-message line holds every block of a step, so it cannot place one block's provenance label or a tool result between two calls of one message | HD1 result, ADR 0013 | ⚠️ | Our inference from the per-message recorder's shape (`perMessage()` writes one line per `model_call_end`); the capstone makes one call per step, so it does not exercise two calls in one message. |
+| N35-7 | The preamble of the capstone's two tools and its system prompt is 148 tokens, against 2,052 with the six built-ins | Todo Outcome | ✅ | Printed by the tool-surface test: `preambleTokens({ system: SYSTEM_PROMPT })` on `triageRegistry()` and on `builtinRegistry()` from `examples/lib/workspace.ts`. |
+| N35-8 | `initialize` answers with the SDK's `CAPABILITIES`, and the session header records the same list | Todo Outcome | ✅ | `#initialize()` in `src/server/dispatcher.ts` returns `[...CAPABILITIES, ...(capabilities ?? [])]`; `recordSessionStart()` in `src/session/runner.ts` writes `[...CAPABILITIES]`; the capstone's `initialize` test asserts both. |
+
+**Totals:** 562 claims: 438 ✅, 83 ✏️, 41 ⚠️.

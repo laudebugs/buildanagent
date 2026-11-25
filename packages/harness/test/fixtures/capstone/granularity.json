@@ -1,0 +1,49 @@
+{
+  "decoderLines": {
+    "perDelta": 29,
+    "perBlock": 18,
+    "perMessage": 12
+  },
+  "approved": {
+    "bytes": {
+      "perDelta": 6810,
+      "perBlock": 1889,
+      "perMessage": 1589,
+      "packageLog": 7656
+    },
+    "lines": {
+      "perDelta": 69,
+      "perBlock": 10,
+      "perMessage": 6
+    },
+    "deltas": 56
+  },
+  "rejected": {
+    "bytes": {
+      "perDelta": 6831,
+      "perBlock": 1910,
+      "perMessage": 1610,
+      "packageLog": 7317
+    },
+    "lines": {
+      "perDelta": 69,
+      "perBlock": 10,
+      "perMessage": 6
+    },
+    "deltas": 56
+  },
+  "policy_changed": {
+    "bytes": {
+      "perDelta": 6898,
+      "perBlock": 1977,
+      "perMessage": 1677,
+      "packageLog": 7699
+    },
+    "lines": {
+      "perDelta": 69,
+      "perBlock": 10,
+      "perMessage": 6
+    },
+    "deltas": 56
+  }
+}
