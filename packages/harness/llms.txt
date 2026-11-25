@@ -12,7 +12,7 @@ The sections of README.md and every public export, generated from this package's
 - [A denied command becomes a signed request, and an approved one reruns once](README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
-- [The Vercel backend runs each sandbox in a microVM whose firewall holds the credentials](README.md#the-vercel-backend-runs-each-sandbox-in-a-microvm-whose-firewall-holds-the-credentials)
+- [The Vercel backend runs each sandbox in a microVM that holds no credentials](README.md#the-vercel-backend-runs-each-sandbox-in-a-microvm-that-holds-no-credentials)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
 - [The egress proxy keeps every credential outside the sandbox](README.md#the-egress-proxy-keeps-every-credential-outside-the-sandbox)
 - [An egress policy names a credential and never holds one](README.md#an-egress-policy-names-a-credential-and-never-holds-one)

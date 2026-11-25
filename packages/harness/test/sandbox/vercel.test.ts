@@ -133,6 +133,40 @@ describe("the portability suite's sandbox and egress seams", () => {
   });
 });
 
+/** Every network policy the backend sent Vercel, on create and on update. */
+const sentPolicies = (fake: FakeVercel) =>
+  fake.calls.flatMap((call) => {
+    if (call.kind === "create") return [call.params.networkPolicy];
+    return call.kind === "update" ? [call.policy] : [];
+  });
+
+describe("by default the sandbox holds no credential and none is injected", () => {
+  const cases: [string, EgressPolicy | undefined][] = [
+    ["no egress policy", undefined],
+    ["an egress policy with no route", { allow: ["registry.npmjs.org"], routes: [] }],
+  ];
+  for (const [what, egress] of cases) {
+    test(`${what} calls no secret(), sends no secret to Vercel and injects nothing`, async () => {
+      const fake = fakeVercel();
+      let reads = 0;
+      const secret = async () => {
+        reads += 1;
+        return SECRET;
+      };
+      const client = backend(fake, { ...(egress === undefined ? {} : { egress }), secret });
+      const sandbox = await client.provision({ root: ROOT }, policy(["registry.npmjs.org"]));
+      const resumed = await resumeSandbox(client, sandbox.id ?? "", policy(["registry.npmjs.org"]));
+      assert.equal(reads, 0, "no credential was read");
+      const expected = { allow: { "registry.npmjs.org": [] }, subnets: { deny: [...VERCEL_DENIED_SUBNETS] } };
+      assert.deepEqual(sentPolicies(fake), [expected, expected], "the create and the resume sent no transform rule");
+      const probe = await run(sandbox, ["net-probe", "https://registry.npmjs.org/"]);
+      assert.ok("stdout" in probe && probe.stdout === "{}", "the firewall adds no header");
+      assert.deepEqual(resumed.stops, ["mistakes", "exfiltration", "hostile_process"]);
+      await sandbox.dispose();
+    });
+  }
+});
+
 describe("no credential value enters the sandbox", () => {
   test("the credential reaches only the firewall's transform rule, never a command, a file or the create call's other fields", async () => {
     const { fake, sandbox } = await withGithub();

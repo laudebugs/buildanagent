@@ -1,7 +1,8 @@
 /**
  * `@buildanagent/harness/sandbox/vercel`: the microVM-tier backend on Vercel Sandbox. Each sandbox is a Firecracker VM
  * whose only way out is Vercel's firewall, which the backend sets to exactly the policy's hosts and to deny-all when
- * the policy names none. A header route's credential is put in a firewall `transform` rule, which adds the header
+ * the policy names none. By default the sandbox holds no credential and needs none: authenticated work runs as host-side
+ * tools. As a narrow opt-in, a header route's credential is put in a firewall `transform` rule, which adds the header
  * outside the VM, so no credential value enters the sandbox's environment, files or command lines. `provision()` reads
  * the firewall policy back from Vercel and throws on any difference, and a sandbox that fails or is disposed is
  * deleted. It needs `@vercel/sandbox` 3.9.1, an optional peer dependency.
@@ -37,13 +38,17 @@ export interface VercelSandboxOptions {
   readonly sdk?: VercelSandboxSdk;
   /**
    * The hosts and credential routes the sandbox may use. Its hosts, those in `allow` and those of its routes, must be
-   * exactly the `network.allow` of each policy `provision()` is given. Without it, `network.allow` is the whole
-   * allowlist and no credential is injected. A git route is refused, because the firewall can't filter git's refs.
+   * exactly the `network.allow` of each policy `provision()` is given. Without it, or with no route, `network.allow` is
+   * the whole allowlist and no credential is read or injected, which is the default to keep. A route is an opt-in for a
+   * scoped, revocable or short-lived, low-value token only: Vercel's firewall then intercepts TLS to the route's host
+   * with a per-sandbox CA in the VM's trust store, and Vercel's proxy holds the secret and sees those requests in plain
+   * text. A git route is refused, because the firewall can't filter git's refs.
    */
   readonly egress?: EgressPolicy;
   /**
    * Reads a credential that a route names, on the host, when a sandbox is provisioned or resumed. It resolves with the
-   * header's whole value, such as `Bearer ghp_…` for an `authorization` header. Needed when `egress` has a route.
+   * header's whole value, such as `Bearer ghp_…` for an `authorization` header. Needed when `egress` has a route, and
+   * never called when it has none.
    */
   readonly secret?: (name: string) => Promise<string>;
   /** Address ranges the firewall refuses, even for an allowed host that resolves to one. Defaults to `VERCEL_DENIED_SUBNETS`. */
@@ -247,8 +252,9 @@ async function reattach(backend: Backend, name: string, policy: SandboxPolicy): 
  * Builds the Vercel Sandbox backend: tier `microvm`, claiming `mistakes`, `exfiltration` and `hostile_process`.
  *
  * `provision()` compiles the policy's network into a firewall policy that allows exactly its hosts, denies every other
- * host and the ranges in `deniedSubnets`, and is `"deny-all"` when it names no host. It reads each credential an `egress`
- * route names, and a credential that can't be read throws `VercelSecretError`, which names it, before anything is made.
+ * host and the ranges in `deniedSubnets`, and is `"deny-all"` when it names no host. By default nothing is injected and
+ * no credential is read. Only when an `egress` route opts in does it read each credential the route names, and a
+ * credential that can't be read throws `VercelSecretError`, which names it, before anything is made.
  * It then creates the sandbox with no environment variable, makes the write roots, reads the firewall policy back from
  * Vercel and throws `SandboxPolicyMismatchError` on any difference, and writes the manifest's files. A failure after the
  * sandbox was made deletes it. The roots are checked on the file calls and on a command's working directory, against

@@ -160,9 +160,27 @@ Five limits are worth knowing:
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
 
-## The Vercel backend runs each sandbox in a microVM whose firewall holds the credentials
+## The Vercel backend runs each sandbox in a microVM that holds no credentials
 
-`vercelSandbox(options)` from `./sandbox/vercel` provisions a Vercel Sandbox, a Firecracker microVM, for each sandbox. Its only way out is Vercel's firewall, and the backend sets that firewall to exactly the policy's hosts. A credential never enters the VM: the firewall adds it to a request's header outside the VM, on the hosts and methods a route names. The backend needs `@vercel/sandbox` 3.9.1, an optional peer dependency, so install it beside the harness. Only this subpath imports it.
+`vercelSandbox(options)` from `./sandbox/vercel` provisions a Vercel Sandbox, a Firecracker microVM, for each sandbox. Its only way out is Vercel's firewall, and the backend sets that firewall to exactly the policy's hosts. By default the sandbox holds no credential and needs none: do authenticated work, such as a push or a call to a paid API, as a host-side tool behind the permission pipeline ([ADR 0036](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0036-loop-outside-sandbox-and-pr-approval.md)). The backend needs `@vercel/sandbox` 3.9.1, an optional peer dependency, so install it beside the harness. Only this subpath imports it.
+
+The code below provisions a sandbox that can reach the npm registry and nothing else:
+
+```ts
+import { vercelSandbox } from "@buildanagent/harness/sandbox/vercel";
+
+const client = vercelSandbox();
+const sandbox = await client.provision({ root: "/vercel/sandbox/repo" }, { readRoots: ["/vercel/sandbox/repo"], writeRoots: ["/vercel/sandbox/repo"], network: { allow: ["registry.npmjs.org"], deny: [] } });
+```
+
+With no credential route, the backend never calls the `secret` option, sends Vercel no secret and adds no header to any request.
+
+**Credential injection is a narrow opt-in.** An `egress` policy with a header route makes the firewall add a credential to that route's requests, outside the VM, through a `transform` rule. Use it only for a scoped token that is revocable or short-lived and worth little, such as a repository-scoped token for one run, a read-only registry token, or a model-API key with a spend limit. A credential that can spend money without a cap, push to a protected branch or reach production data stays host-side. Review enforces that rule, not code ([ADR 0060](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions)). The opt-in has four costs:
+
+- **Vercel intercepts TLS on the route's host.** Its firewall terminates TLS there with a CA made for each sandbox, which Vercel adds to the VM's system certificates, so every program in the sandbox trusts that CA. Our local proxy never intercepts TLS.
+- **Vercel's proxy holds the secret** and sees each request to that host in plain text.
+- **The host reads the secret** through `secret(name)` at every provision and every resume.
+- **An echoing host hands the credential back.** A service that returns the request's headers gives the credential to the process that called it. The backend scrubs it from what comes back to the host, but the process has seen it.
 
 The code below gives a sandbox one route to the GitHub API. The firewall sets `authorization` on each `GET` to `api.github.com`, and pins its `host` header to that name. The policy's `network.allow` lists the same host:
 
@@ -187,7 +205,7 @@ A policy that names no host compiles to `"deny-all"`, so a sandbox reaches nothi
 
 `provision()` creates the sandbox with no environment variable, makes the write roots and fetches the firewall policy back from Vercel by the sandbox's name. Vercel reports each injected header's name and hides its value, so the read-back compares the hosts, the header names, the methods and the denied ranges. Any difference throws `SandboxPolicyMismatchError`: an extra or wildcard host, `subnets.allow`, a missing or extra credential rule, a rule that forwards requests to a proxy, or no policy at all. Vercel's read-back leaves out `response` rules, so it can't confirm the 403 that keeps a route-only host to the route's methods; the live run checks that one by sending a refused method. The backend claims `mistakes`, `exfiltration` and `hostile_process`, at tier `microvm`.
 
-The backend sends no credential value into the VM. Each command runs as `env -i -- NAME=value… command`, so it sees only the variables it was given. The backend never asks Vercel for `sudo`, though the default image has `sudo` installed, so a process can still become root inside its own VM. `exec`, `readFile` and `writeFile` refuse any argument, variable, path or file content that holds a credential's value, or the token after its scheme, such as the `ghp_…` of `Bearer ghp_…`, as written, percent-encoded, JSON-escaped or in base64. A service that echoes the request's headers back still hands the credential to the process that called it. The backend therefore scrubs every credential, in the same four forms, from a command's output and from the bytes `readFile` returns, replacing it with `[REDACTED]`. A command's output streams to the host, which keeps at most `maxOutputBytes` of each stream (8 MiB by default) and drops the rest, so a command that writes without end can't fill the host's memory. The handle serializes to `{ id }` alone, so a saved session never carries the SDK object or its Vercel token.
+When a route injects a credential, the backend still sends no credential value into the VM. Each command runs as `env -i -- NAME=value… command`, so it sees only the variables it was given. The backend never asks Vercel for `sudo`, though the default image has `sudo` installed, so a process can still become root inside its own VM. `exec`, `readFile` and `writeFile` refuse any argument, variable, path or file content that holds a credential's value, or the token after its scheme, such as the `ghp_…` of `Bearer ghp_…`, as written, percent-encoded, JSON-escaped or in base64. Because an echoing service hands a credential back, the backend scrubs every credential, in the same four forms, from a command's output and from the bytes `readFile` returns, replacing it with `[REDACTED]`. A command's output streams to the host, which keeps at most `maxOutputBytes` of each stream (8 MiB by default) and drops the rest, so a command that writes without end can't fill the host's memory. The handle serializes to `{ id }` alone, so a saved session never carries the SDK object or its Vercel token.
 
 The roots apply to the file calls and to a command's working directory. Each path is resolved inside the VM with `realpath`, so a symlink that leads out of a root is refused, and `writeFile` refuses the protected files that `srt` and Docker guard, such as `.bashrc` and `.git/hooks`. A command itself can read and write the whole VM, which holds nothing of the host's.
 
@@ -197,8 +215,8 @@ The backend lists `resume` and `snapshot`, and `pause` when `persistent` is set.
 
 Four limits are worth knowing:
 
-- **The firewall is Vercel's, and it intercepts TLS on a route's host.** The backend reads its policy back, but Vercel enforces it. The firewall matches names by TLS SNI. For a host with a route, it terminates TLS with a CA made for each sandbox, which Vercel adds to the VM's system certificates, so every program in the sandbox trusts that CA. Vercel's proxy therefore holds the credential and sees each request to that host in plain text. Our local proxy never intercepts TLS. The owner accepted injection in the provider's proxy, interception included, for the hosted Vercel and E2B backends on 2026-11-25 ([ADR 0060](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0060-hosted-sandbox-egress-proxy-injection.md)). On a host with no route, it reads only the SNI, so a client can name an allowed host there and send another host header, which Vercel calls domain fronting; a route's rule pins `host`, so it closes that gap on the route's methods.
-- **A route serves every process.** Any process in the VM that sends the route's method to the route's host gets the credential added. Where the local proxy asks for a placeholder first, the firewall adds the credential to any request that matches.
+- **The firewall is Vercel's.** The backend reads its policy back, but Vercel enforces it. The firewall matches names by TLS SNI. On a host with no route, it reads only the SNI, so a client can name an allowed host there and send another host header, which Vercel calls domain fronting; a route's rule pins `host`, so it closes that gap on the route's methods.
+- **A route serves every process.** With the opt-in, any process in the VM that sends the route's method to the route's host gets the credential added. Where the local proxy asks for a placeholder first, the firewall adds the credential to any request that matches.
 - **A file call costs two or three commands.** `realpath`, and for a write `mkdir -p`, run before the read or write, so a hostile process could still swap a link in between.
 - **The process tree is unchecked.** A stop sends `SIGKILL` to the command through Vercel's API, and whether that reaches the command's children is unverified. The fake can't fork, so the conformance case that checks it skips, and the live run has no way to see the VM's processes from the host.
 
