@@ -33,7 +33,6 @@ export const CONFIG = {
     SecretString: "a Secrets Manager response field",
     UpdateItem: "a DynamoDB API action",
     at: "a WakeEvent field",
-    held: "a LockHandle method",
     InvalidParams: "an error code the protocol package exports",
     QueueFull: "an error code the protocol package exports",
     Readable: "a Node stream class",
