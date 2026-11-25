@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
-| Depends on | [N46b](N46b-cloudflare-sandbox-backend.md), [N47b](N47b-e2b-sandbox-backend.md), [N48b](N48b-vercel-sandbox-backend.md), [N19](N19-sandbox-measurement.md) |
+| Depends on | [N46b](N46b-cloudflare-sandbox-backend.md), [N47b](../done/N47b-e2b-sandbox-backend.md), [N48b](N48b-vercel-sandbox-backend.md), [N19](N19-sandbox-measurement.md) |
 | Size | S |
 
 ## Goal
