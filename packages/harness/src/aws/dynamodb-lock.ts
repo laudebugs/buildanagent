@@ -204,7 +204,7 @@ class LeaseHold implements DynamoLockHandle {
     return this.#renewing;
   }
 
-  /** Extends the lease if the item still holds this token. Any error but a false condition is retried on the next tick. */
+  /** Extends the lease if the item still holds this token. Any other error is retried on the next tick. */
   async #renew(): Promise<void> {
     const { client, table, leaseMs, now } = this.#settings;
     const until = now() + leaseMs;

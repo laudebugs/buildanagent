@@ -66,9 +66,10 @@ function atExpression(ms: number): string {
  * A `Scheduler` whose wakes are EventBridge Scheduler one-time schedules. `wake(at, sessionId)` creates a schedule
  * named from a hash of the session id and the wake's time, so asking twice for the same id and time is one wake. The
  * schedule's `at()` expression is `at` rounded up to the second, or five seconds from now when that is sooner, so a
- * wake in the past arrives at once and the service never meets a time it sees as past. Its input is a `WakeEvent` that carries the exact time asked for, its flexible time window
- * is off, and it deletes itself after it runs. `cancel(sessionId)` lists the group's schedules whose names start with
- * that id's hash and deletes each one, so a schedule that already ran and deleted itself is no error.
+ * wake in the past arrives at once and the service never meets a time it sees as past. Its input is a `WakeEvent` that
+ * carries the exact time asked for, its flexible time window is off, and it deletes itself after it runs.
+ * `cancel(sessionId)` lists the group's schedules whose names start with that id's hash and deletes each one, so a
+ * schedule that already ran and deleted itself is no error.
  *
  * EventBridge Scheduler invokes a target within the minute its expression names, so a wake can reach the runner up to
  * 59 seconds before its `at()` second and up to a minute after it. `deliverWake()` holds an early wake back until its
@@ -218,7 +219,8 @@ export async function deliverWake(
   const now = options.now ?? Date.now;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const maxEarlyMs = options.maxEarlyMs ?? DEFAULT_MAX_EARLY_MS;
-  // A NaN would turn the refusal off, since no number is greater than NaN, and a negative bound would refuse on-time wakes.
+  // A NaN would turn the refusal off, since no number is greater than NaN, and a negative bound would refuse on-time
+  // wakes.
   if (!Number.isFinite(maxEarlyMs) || maxEarlyMs < 0) {
     throw new HarnessError(
       "invalid_aws_options",
