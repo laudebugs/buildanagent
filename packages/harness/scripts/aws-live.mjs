@@ -119,6 +119,7 @@ try {
 /** Deletes every item under this run's namespaces, which no other run shares, and returns how many it found. */
 async function cleanUp() {
   let found = 0;
+  let left = 0;
   let start;
   do {
     const page = await dynamo.send(
@@ -136,17 +137,22 @@ async function cleanUp() {
     for (let i = 0; i < keys.length; i += 25) {
       let pending = keys.slice(i, i + 25).map((Key) => ({ DeleteRequest: { Key } }));
       for (let attempt = 0; pending.length > 0 && attempt < 8; attempt += 1) {
+        if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt));
         const out = await dynamo.send(new BatchWriteItemCommand({ RequestItems: { [table]: pending } }));
         pending = out.UnprocessedItems?.[table] ?? [];
       }
+      left += pending.length;
     }
     start = page.LastEvaluatedKey;
   } while (start !== undefined);
-  return found;
+  return { found, left };
 }
 
 const removed = await cleanUp().then(
-  (count) => `removed the ${count} items of run ${run}`,
+  ({ found, left }) =>
+    left === 0
+      ? `removed the ${found} items of run ${run}`
+      : `removed ${found - left} of ${found} items of run ${run}; delete the ${left} left, keys starting n#${run}-, by hand`,
   (error) =>
     `could not remove the items of run ${run}: ${error?.name ?? "error"}; delete keys starting n#${run}- by hand`,
 );

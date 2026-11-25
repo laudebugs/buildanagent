@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/harness/aws/secrets-manager`: a read-only `KeyStore` over an AWS Secrets Manager secret. It reads the
  * approval key ring with `GetSecretValue` on every `load()` and never writes, because the owner rotates the secret with
- * Secrets Manager's own tooling (ADR 0035).
+ * Secrets Manager's own tooling.
  *
  * @module @buildanagent/harness/aws/secrets-manager
  */

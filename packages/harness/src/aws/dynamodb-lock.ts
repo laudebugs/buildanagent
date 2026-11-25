@@ -70,12 +70,14 @@ function invalid(message: string): HarnessError {
  * The holder renews every `renewMs` through `scheduler`, with an update that needs the item to still hold its token, so
  * a holder that lost the lease can't extend a successor's. `held()` turns `false` when a renewal finds another token,
  * when the scheduler refuses a renewal, and when the holder's own clock comes within `maxClockSkewMs` of the lease end
- * it last wrote, whichever is first, and once `false` it stays `false`. `release()` clears the token on the same condition and keeps the item, so `fence`
- * keeps growing.
+ * it last wrote, whichever is first, and once `false` it stays `false`. `release()` clears the token on the same
+ * condition and keeps the item, so `fence` keeps growing.
  *
  * Lease ends are compared on the clock of the host that acquires, so the lease outlasts the holder's view of it only by
  * the clock skew between them. Keep `leaseMs` above `renewMs`, plus the slowest renewal, plus `maxClockSkewMs`. A
- * lock is a liveness guard, not the only fence: the store's `expectedLastId` still refuses a second writer.
+ * lock is a liveness guard, not the only fence: the store's `expectedLastId` still refuses a second writer. The default
+ * `renewMs` is a third of `leaseMs` and the default skew is 1 second, so a `leaseMs` of 1.5 seconds or less needs an
+ * explicit `maxClockSkewMs`.
  */
 export function dynamoLock(client: DynamoDBClient, options: DynamoLockOptions): SessionLock {
   checkClient("dynamoLock()", client);

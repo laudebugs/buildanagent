@@ -465,7 +465,8 @@ class DynamoStore implements SessionStore {
  * keys name the append's own random batch id, then puts the head on the condition that it still names the batch the
  * append read. The head is the commit: a reader follows it from batch to batch, so items that no head reaches are
  * never read as the log. An append that loses the race deletes its items, and one whose process dies leaves them
- * until `delete()`. A lost response is retried by the SDK, and the store tells its own retried commit by the batch id
+ * until `delete()`, which, like `append()`, belongs under the session's `SessionLock`: an append staged during a
+ * delete may leave its items behind. A lost response is retried by the SDK, and the store tells its own retried commit by the batch id
  * the failed condition returns, or, when another writer committed on top first, by that writer's items naming the
  * append's batch as the one before theirs.
  *
