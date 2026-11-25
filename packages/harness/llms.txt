@@ -57,6 +57,13 @@ The sections of README.md and every public export, generated from this package's
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 - [Every removable component has one ablation switch and one header hash](README.md#every-removable-component-has-one-ablation-switch-and-one-header-hash)
 - [One portability suite tests all eight target seams](README.md#one-portability-suite-tests-all-eight-target-seams)
+- [On AWS, DynamoDB, EventBridge Scheduler and Secrets Manager hold the harness's state](README.md#on-aws-dynamodb-eventbridge-scheduler-and-secrets-manager-hold-the-harnesss-state)
+  - [The store commits a batch of any size with one conditional put of the session's head](README.md#the-store-commits-a-batch-of-any-size-with-one-conditional-put-of-the-sessions-head)
+  - [The lock is one lease item, taken and renewed by conditional updates on the caller's clock](README.md#the-lock-is-one-lease-item-taken-and-renewed-by-conditional-updates-on-the-callers-clock)
+  - [A wake is a one-time schedule, and `deliverWake()` holds an early one until its time](README.md#a-wake-is-a-one-time-schedule-and-deliverwake-holds-an-early-one-until-its-time)
+  - [The key store reads AWSCURRENT, and no error it throws holds the secret](README.md#the-key-store-reads-awscurrent-and-no-error-it-throws-holds-the-secret)
+  - [Each seam needs a few IAM actions on one resource](README.md#each-seam-needs-a-few-iam-actions-on-one-resource)
+  - [The opt-in live run checks the adapters against the owner's account](README.md#the-opt-in-live-run-checks-the-adapters-against-the-owners-account)
 - [On Vercel, Postgres holds the log and the lock, and each wake is one Workflow run](README.md#on-vercel-postgres-holds-the-log-and-the-lock-and-each-wake-is-one-workflow-run)
   - [An append is one `INSERT`, and the primary key on `seq` is its compare-and-swap](README.md#an-append-is-one-insert-and-the-primary-key-on-seq-is-its-compare-and-swap)
   - [A lock is a lease row on the database's clock, with a fence that only grows](README.md#a-lock-is-a-lease-row-on-the-databases-clock-with-a-fence-that-only-grows)
@@ -513,6 +520,31 @@ The sections of README.md and every public export, generated from this package's
 - `interface WebSocketMessageEvent`: A message event as the transport reads it: `data` is a string for a text frame and anything else for binary.
 - `interface WebSocketOptions`: What `webSocketTransport()` takes besides the dispatcher and the socket.
 - `webSocketTransport()`: Serves one client over one open WebSocket, one JSON-RPC 2.0 message per text frame, and resolves once the client is gone or the transport stops.
+
+## Exports from `@buildanagent/harness/aws/dynamodb`
+
+- `dynamoLock()`: A `SessionLock` on a DynamoDB table with a string partition key `pk` and a string sort key `sk`, which may be the session store's own table.
+- `interface DynamoLockHandle`: A hold on a DynamoDB lease.
+- `interface DynamoLockOptions`: The options of `dynamoLock()`.
+- `dynamoStore()`: A `SessionStore` on a DynamoDB table with a string partition key `pk` and a string sort key `sk`.
+- `interface DynamoStoreOptions`: The options of `dynamoStore()`.
+- `interface DynamoTableOptions`: The options both DynamoDB adapters take.
+- `MAX_DYNAMO_ENTRY_BYTES`: The largest `maxEntryBytes` the store accepts, so an entry's item stays under DynamoDB's 400 KB item limit.
+
+## Exports from `@buildanagent/harness/aws/scheduler`
+
+- `deliverWake()`: Delivers one wake to `handler`, never before its time on this host's clock.
+- `interface DeliverWakeOptions`: The options of `deliverWake()`.
+- `eventBridgeScheduler()`: A `Scheduler` whose wakes are EventBridge Scheduler one-time schedules.
+- `interface EventBridgeSchedulerOptions`: The options of `eventBridgeScheduler()`.
+- `parseWakeEvent()`: Reads a `WakeEvent` from what the target received: the event object a Lambda function is invoked with, or its JSON text.
+- `WAKE_EVENT_TYPE`: The `type` field of a wake's input, so a runner that takes other events can tell a wake apart.
+- `interface WakeEvent`: The input each schedule sends its target: the session id and the time the wake was asked for.
+
+## Exports from `@buildanagent/harness/aws/secrets-manager`
+
+- `secretsManagerKeyStore()`: A `KeyStore` with `load()` only, over the Secrets Manager secret `secretId`.
+- `interface SecretsManagerKeyStoreOptions`: The options of `secretsManagerKeyStore()`.
 
 ## Exports from `@buildanagent/harness/ablation`
 
