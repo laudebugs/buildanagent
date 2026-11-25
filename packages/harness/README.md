@@ -160,6 +160,61 @@ Five limits are worth knowing:
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
 
+## The E2B backend runs each sandbox in a microVM that reaches only the policy's hosts
+
+`e2bSandbox()` from `./sandbox/e2b` provisions each sandbox as an E2B Firecracker microVM, reached through the `e2b` SDK. E2B leaves a sandbox's egress open unless the sandbox denies it, so this backend closes it: the sandbox reaches exactly the hosts in the policy's `network.allow`, by name, and nothing else. An `EgressPolicy` adds credentials as E2B Secrets, which E2B's egress proxy injects outside the sandbox. Provisioning fails when one of those secrets doesn't exist, because E2B would otherwise send the request without it.
+
+The SDK is an optional peer dependency, pinned at `e2b` 2.63.0. Pass `{ Sandbox, Secret }` from `e2b` as `sdk`, or install `e2b` and let the backend import it on first use. The backend imports no Node module, so it runs wherever the SDK runs; on a bundled target such as Workers, pass `sdk`, because the backend's own import of `e2b` is left for the runtime to resolve. The code below provisions a sandbox whose requests to `api.github.com` carry the E2B secret `github_token`:
+
+```ts
+import { e2bSandbox } from "@buildanagent/harness/sandbox/e2b";
+import { Sandbox, Secret } from "e2b";
+const route = { kind: "header", route: "github", host: "api.github.com", methods: ["GET"], header: "authorization", credential: "GITHUB_TOKEN" } as const;
+const client = e2bSandbox({ sdk: { Sandbox, Secret }, egress: { allow: [], routes: [route] }, unscopedInjection: true, schemes: { GITHUB_TOKEN: "Bearer" } });
+const sandbox = await client.provision({ root: "/home/user/workspace" }, { readRoots: [], writeRoots: ["/home/user/workspace"], network: { allow: ["api.github.com"], deny: [] } });
+```
+
+Every sandbox is created with three network settings:
+
+- `denyOut: ["0.0.0.0/0"]`, so every address that `allowOut` doesn't name is denied;
+- `dnsServers: []`, because E2B otherwise opens every port of `8.8.8.8` once `allowOut` holds a name. E2B routes an allowed name by its Host header or TLS SNI, so a program needs only an `/etc/hosts` entry with any public address, which the template should carry;
+- `allowOut` set to exactly the policy's hosts, with no package registry or other host added for you.
+
+`provision()` refuses, with `invalid_sandbox_options` and a message that never quotes the entry, what E2B would widen. It refuses a wildcard, an address or a range, a port, a name in upper case and a non-empty `network.deny`. E2B lets an allowed entry win over a denied one and matches a name only on ports 80 and 443, so none of them could be enforced as written.
+
+### A credential is an E2B Secret that E2B adds outside the sandbox, on its host only
+
+The backend compiles `egress` with `compileE2BEgress()`, which runs every check of `compileEgressPolicy()` first. Each header route becomes a rule on its host that sets the route's header to the placeholder `Secret.fill()` returns for the credential's secret. A `schemes` entry puts a word such as `Bearer` before it. The secret's name defaults to the credential's name in lower case, so `GITHUB_TOKEN` reads the secret `github_token`, and `secretName` can map it otherwise. The egress policy's `allow` and its routes' hosts together must equal the policy's `network.allow`.
+
+The backend never reads, holds or logs a secret's value. You store the value in your E2B project with `Secret.create()`, from a trusted process outside the sandbox, and the sandbox's configuration holds only the placeholder. E2B's proxy resolves it for each HTTPS request to the rule's host. Plain HTTP gets no header.
+
+Before it creates a sandbox, `provision()` calls `Secret.exists()` for each secret the rules name. A missing secret throws `SandboxSecretUnresolvedError`, code `sandbox_secret_unresolved`, whose `secret` and `credential` fields hold the two names. E2B checks a secret only when a request uses it, and then forwards the request with the header dropped, so a misspelled name would otherwise surface as a 401 from the host. A secret deleted after the check is still dropped silently. A secrets API that can't answer throws `SandboxUnavailableError`, and nothing is created.
+
+E2B's injection is wider than a local route in three ways, and the backend makes you accept or avoid each:
+
+- **Every method, path and process.** E2B adds the header to every HTTPS request to the host, from every process in the sandbox. The backend refuses a policy with a route unless `unscopedInjection` is `true`. To scope a credential by method, reach the host through our own egress proxy instead, through E2B's SOCKS5 proxy option.
+- **No git route.** E2B can't filter a push by ref, so a git route is refused.
+- **TLS interception by E2B.** E2B decrypts requests to a host with a rule, with a certificate authority it adds to the sandbox's trust store. The harness's own proxy never intercepts TLS (HD15); this backend relies on E2B's.
+
+### A sandbox that fails or is disposed is killed, and E2B's timeout is the backstop
+
+The backend reads the network back from E2B's `getInfo()` after it creates a sandbox and before it returns one. The read-back reports `0.0.0.0/0` as allowed when nothing denies every address, and adds the DNS servers E2B opens. A difference throws `SandboxPolicyMismatchError`. A deny list other than `0.0.0.0/0` gives the field `network.deny`, rules other than the compiled ones give `egress.rules`, and a SOCKS5 proxy gives `egress.proxy`. The roots read back from the backend's own record, which its file calls enforce.
+
+A sandbox is killed on every path that doesn't hand it to you: a failed manifest write, a failed read-back and a mismatch. A create whose reply is lost may still have made a sandbox. Each create therefore carries a random label in its metadata, and the backend kills any sandbox listed with that label. `dispose()` tries a failed kill three times, then rejects with `sandbox_io_failed`. Each sandbox also has a lifetime, `timeoutMs` (15 minutes by default), after which E2B kills it even if this process died first.
+
+The client claims `mistakes`, `exfiltration` and `hostile_process`, because a microVM with a closed allowlist delivers all three by `stopsFor()`. It lists the `resume` and `pause` capabilities, but not `snapshot`. A resume checks the secrets before it reconnects, so a paused sandbox whose secret is gone stays paused. A resume also reads the workspace root from the sandbox's metadata, and a sandbox with none is paused again and refused.
+
+A command runs as `bash -l -c` with every template variable unset except the ones you pass, whose values travel in the request and never on the command line. A timeout, an abort or `dispose()` kills the command, and the backend also kills its process group. The backend refuses a command, an environment value or a file that holds the E2B API key you passed as `apiKey`.
+
+Four limits are worth knowing:
+
+- **The roots are checked by path, not by real path.** A file call outside the roots is denied, but a symlink inside the workspace can lead a call elsewhere in the VM. Commands may write anywhere in the VM. The VM is the boundary, and the host's files are never in it.
+- **A process tree may outlive its command.** The backend kills the process group only when E2B made the command a group leader, which has not been checked on a real sandbox.
+- **The template is trusted.** Its own environment variables and files reach every command, so a template must hold no credential. Pin it by id or tag.
+- **The read-back trusts E2B's report.** The read-back reads the configuration E2B reports, not traffic.
+
+The conformance suite, the egress cases and the portability suite's sandbox and egress seams run offline against an in-process fake of the SDK in `test/sandbox/e2b.test.ts`. `pnpm --filter @buildanagent/harness e2b:live` runs them on a real account. It needs `HARNESS_E2B_LIVE=1` and `E2B_API_KEY`, never runs in CI, and creates and deletes its own throwaway secret.
+
 ## A backend that claims a stop reads its policy back, and one that can't resume says so
 
 A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy throws too.
@@ -231,7 +286,7 @@ The compiler refuses anything that isn't plainly allowed, with the code `invalid
 
 The scan for credential-shaped strings is defence in depth. The field allowlist and the upper-case credential name are the real guards, and a token that starts mid-word, like `acme/ghp_…`, or is base64-encoded passes the scan.
 
-The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`, and `srtSandbox()` keeps its own proxy.
+The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`: `srtSandbox()` keeps its own proxy, and `e2bSandbox()` takes one as its `egress` option and compiles it for E2B.
 
 ## A git route lets a push reach listed branches and nothing else
 

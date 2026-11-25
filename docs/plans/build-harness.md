@@ -274,7 +274,7 @@ packages/
     schema/session-entry.schema.json generated from entries.ts and committed
   harness/                      @buildanagent/harness
     package.json                exports: ".", "./session", "./session/jsonl", "./context", "./context/file", "./tools", "./mcp",
-                                "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker",
+                                "./permissions", "./sandbox", "./sandbox/srt", "./sandbox/docker", "./sandbox/e2b",
                                 "./credentials", "./extensions", "./extensions/node", "./memory", "./memory/node",
                                 "./telemetry", "./server", "./ablation", "./testing"
     src/session/                SessionStore (memory, jsonl), SessionLock, runner, rebuild, replay
@@ -282,7 +282,7 @@ packages/
     src/tools/                  ToolRegistry, tool search, built-ins (read, write, edit, bash, fetch, grep, glob)
     src/mcp/                    McpConnection, per-server negotiation, McpManager
     src/permissions/            rules, PermissionPipeline, approvals, code-initiated calls, KeyStore, sticky allowances
-    src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/ and docker/
+    src/sandbox/                SandboxClient, none backend, spawnEnv, escalation; srt/, docker/ and e2b/
     src/credentials/            EgressProxy, sentinel routes, proxiedFetch, secret scrubber
     src/extensions/             Extension, composition, TrustStore, extensions.lock.json, skills, context files
     src/memory/                 memory extension: the memory tool, records, index, expiry, purge marks (HD17)
