@@ -18,22 +18,6 @@
 }
 
 @font-face {
-  font-family: "Inter";
-  src: url("/fonts/inter/inter-roman.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("/fonts/inter/inter-italic.woff2") format("woff2");
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-}
-
-@font-face {
   font-family: "Manual Code";
   src: url("/fonts/manual-code/manual-code-roman.woff2") format("woff2");
   font-style: normal;
@@ -49,9 +33,72 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans/IBMPlexSans-Regular-Latin1.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  unicode-range:
+    U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+FB01-FB02;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans/IBMPlexSans-Italic-Latin1.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  unicode-range:
+    U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+FB01-FB02;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans/IBMPlexSans-SemiBold-Latin1.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  unicode-range:
+    U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+02C6, U+02DA, U+02DC, U+2013-2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044, U+20AC, U+2122, U+2212, U+FB01-FB02;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+  font-style: normal;
+  font-weight: 400;
+  size-adjust: 100%;
+  ascent-override: 102.5%;
+  descent-override: 27.5%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans Fallback";
+  src: local("Arial Italic"), local("Liberation Sans Italic"), local("Helvetica Oblique");
+  font-style: italic;
+  font-weight: 400;
+  size-adjust: 98.4%;
+  ascent-override: 104.2%;
+  descent-override: 27.9%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans Fallback";
+  src: local("Arial Bold"), local("Liberation Sans Bold"), local("Helvetica Bold");
+  font-style: normal;
+  font-weight: 600;
+  size-adjust: 96.4%;
+  ascent-override: 106.3%;
+  descent-override: 28.5%;
+  line-gap-override: 0%;
+}
+
 :root {
   --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --font-body: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "IBM Plex Sans Fallback", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-code: "Manual Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --size-title: clamp(2.75rem, 1.8696rem + 3.913vw, 5rem);
   --size-section: clamp(1.875rem, 1.6304rem + 1.087vw, 2.5rem);

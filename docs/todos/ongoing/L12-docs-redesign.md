@@ -82,6 +82,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12o | The docs home page redesign: it leads readers to the quick starts of the gateway, SDK, agent-safety, protocol, harness and CLI, as design A: six package cards and no illustration | L12a, L12b | M | Sonnet |
 | L12p | One shared header source for the book, the docs and the site: links Docs, Manual, Site and GitHub, plus each site's mark and wordmark ([DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22)) | L12b | S to M | Sonnet (Opus if it touches a shared package's build) |
 | L12r | Body text in Inter, titles in Instrument Serif, after the owner's decision of 2026-11-24 | L12a | S | Sonnet |
+| L12s | Body text in IBM Plex Sans in place of Inter, after the owner's decision of 2026-11-24 | L12r | S | Sonnet |
 
 **Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e, L12f and L12p. L12g, L12h and L12i run in sequence, with L12j, L12k and L12o beside them. L12l and L12m go last.
 
