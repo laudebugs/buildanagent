@@ -53,14 +53,55 @@ export function sanitized(error: unknown, secrets: readonly string[]): Error {
   return copy;
 }
 
-/** Whether `data` holds `secret`'s UTF-8 bytes anywhere. */
-function holdsBytes(data: Uint8Array, secret: string): boolean {
-  const needle = ENCODER.encode(secret);
-  outer: for (let start = 0; start + needle.length <= data.length; start += 1) {
-    for (let at = 0; at < needle.length; at += 1) if (data[start + at] !== needle[at]) continue outer;
-    return true;
+// The shortest part of a header value worth looking for on its own, so a short scheme word redacts nothing.
+const MIN_TOKEN = 8;
+
+/**
+ * The values to keep out of the sandbox and scrub from what it returns: each header value, and the token after its
+ * scheme, such as the `ghp_…` of `Bearer ghp_…`, which a command could carry without the scheme.
+ */
+export function guarded(values: readonly string[]): string[] {
+  const found = new Set<string>();
+  for (const value of values) {
+    found.add(value);
+    const token = /^[A-Za-z][A-Za-z0-9_-]* (.+)$/.exec(value)?.[1]?.trim();
+    if (token !== undefined && token.length >= MIN_TOKEN) found.add(token);
   }
-  return false;
+  return [...found];
+}
+
+/** Where `needle` starts in `data` at or after `from`, or -1. */
+function indexOfBytes(data: Uint8Array, needle: Uint8Array, from = 0): number {
+  outer: for (let start = from; start + needle.length <= data.length; start += 1) {
+    for (let at = 0; at < needle.length; at += 1) if (data[start + at] !== needle[at]) continue outer;
+    return start;
+  }
+  return -1;
+}
+
+/** `data` with each secret's UTF-8 bytes replaced by `[REDACTED]`, longest secret first. */
+function redactBytes(data: Uint8Array, secrets: readonly string[]): Uint8Array {
+  let result = data;
+  const marker = ENCODER.encode("[REDACTED]");
+  for (const secret of [...secrets].sort((a, b) => b.length - a.length)) {
+    const needle = ENCODER.encode(secret);
+    const parts: Uint8Array[] = [];
+    let from = 0;
+    for (let at = indexOfBytes(result, needle); at >= 0; at = indexOfBytes(result, needle, from)) {
+      parts.push(result.subarray(from, at), marker);
+      from = at + needle.length;
+    }
+    if (parts.length === 0) continue;
+    parts.push(result.subarray(from));
+    const joined = new Uint8Array(parts.reduce((size, part) => size + part.length, 0));
+    let offset = 0;
+    for (const part of parts) {
+      joined.set(part, offset);
+      offset += part.length;
+    }
+    result = joined;
+  }
+  return result;
 }
 
 /** The text kept of one stream: at most `limit` UTF-8 bytes, backing up over a character the cut split. */
@@ -89,7 +130,7 @@ export class VercelSandbox implements Sandbox {
   constructor(state: HandleState) {
     this.#state = state;
     this.id = state.vm.name;
-    this.#secrets = state.firewall.secrets;
+    this.#secrets = guarded(state.firewall.secrets);
   }
 
   get stops(): readonly SandboxStop[] {
@@ -200,13 +241,14 @@ export class VercelSandbox implements Sandbox {
     const data = await this.#call(() => this.#state.vm.readFileToBuffer({ path: real }));
     this.#live();
     if (data === null) throw new HarnessError("sandbox_not_found", `no file at ${path}`);
-    return new Uint8Array(data);
+    // A process in the sandbox could have saved a credential that an allowed service echoed back.
+    return redactBytes(new Uint8Array(data), this.#secrets);
   }
 
   async writeFile(path: string, data: Uint8Array): Promise<void> {
     this.#live();
     if (!(data instanceof Uint8Array)) throw new HarnessError("invalid_sandbox_options", "file data is a Uint8Array");
-    if (this.#secrets.some((secret) => holdsBytes(data, secret))) {
+    if (this.#secrets.some((secret) => indexOfBytes(data, ENCODER.encode(secret)) >= 0)) {
       throw new HarnessError(
         "invalid_sandbox_options",
         "the file holds the value of a credential the firewall injects",

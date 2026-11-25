@@ -14,7 +14,7 @@ import { HarnessError } from "../../errors.js";
 import { SandboxUnavailableError } from "../errors.js";
 import type { Sandbox, SandboxCapability, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type CompiledFirewall, compileFirewall, VERCEL_DENIED_SUBNETS } from "./firewall.js";
-import { VercelSandbox } from "./handle.js";
+import { guarded, VercelSandbox } from "./handle.js";
 import { checkAbsolute, inside, normalize } from "./paths.js";
 import { type VercelCreateParams, type VercelSandboxSdk, vercelSandboxSdk } from "./sdk.js";
 
@@ -163,7 +163,7 @@ async function createVm(backend: Backend, firewall: CompiledFirewall, snapshotId
   } catch (error) {
     await deleteIfMade(sdk, name);
     // The request carried the credential values, so neither the message nor a cause may quote it.
-    const message = error instanceof Error ? scrubString(error.message, firewall.secrets) : "an unknown error";
+    const message = error instanceof Error ? scrubString(error.message, guarded(firewall.secrets)) : "an unknown error";
     throw new SandboxUnavailableError("vercel", `the sandbox could not be created: ${message}`);
   }
 }
@@ -210,7 +210,7 @@ async function reattach(backend: Backend, name: string, policy: SandboxPolicy): 
     throw new SandboxUnavailableError("vercel", `the sandbox ${name} could not be found`, { cause: error });
   });
   await vm.update({ networkPolicy: firewall.networkPolicy }).catch((error: unknown) => {
-    const message = error instanceof Error ? scrubString(error.message, firewall.secrets) : "an unknown error";
+    const message = error instanceof Error ? scrubString(error.message, guarded(firewall.secrets)) : "an unknown error";
     throw new SandboxUnavailableError("vercel", `the sandbox's network policy could not be applied: ${message}`);
   });
   const persistent = backend.options.persistent ?? false;

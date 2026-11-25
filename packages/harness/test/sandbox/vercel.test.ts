@@ -175,6 +175,26 @@ describe("no credential value enters the sandbox", () => {
     await sandbox.dispose();
   });
 
+  test("the token after the header's scheme is guarded on its own, in a command and in a file", async () => {
+    const { sandbox } = await withGithub();
+    const token = SECRET.slice("Bearer ".length);
+    const command = await rejection(sandbox.exec(["curl", "-u", `x:${token}`], { env: {}, signal: never() }));
+    assert.equal((command as { code?: string }).code, "invalid_sandbox_options");
+    const file = await rejection(sandbox.writeFile("t.txt", bytes(token)));
+    assert.equal((file as { code?: string }).code, "invalid_sandbox_options");
+    await sandbox.dispose();
+  });
+
+  test("a file a process saved with an echoed credential reads back redacted", async () => {
+    const { fake, sandbox } = await withGithub();
+    const vm = fake.live()[0];
+    assert.ok(vm !== undefined);
+    vm.files.set(`${ROOT}/saved.json`, { kind: "file", data: bytes(`{"authorization":"${SECRET}","raw":"${SECRET.slice(7)}"}`) });
+    const read = text(await sandbox.readFile("saved.json"));
+    assert.equal(read, '{"authorization":"[REDACTED]","raw":"[REDACTED]"}');
+    await sandbox.dispose();
+  });
+
   test("a credential a service echoes back is scrubbed from the command's output", async () => {
     const { sandbox } = await withGithub();
     const echoed = await run(sandbox, ["net-probe", "https://api.github.com/user"]);
