@@ -15,6 +15,7 @@ The sections of README.md and every public export, generated from this package's
 - [The E2B backend runs each sandbox in a microVM that reaches only the policy's hosts](README.md#the-e2b-backend-runs-each-sandbox-in-a-microvm-that-reaches-only-the-policys-hosts)
   - [Credential injection is a narrow opt-in, for scoped, short-lived, low-value tokens only](README.md#credential-injection-is-a-narrow-opt-in-for-scoped-short-lived-low-value-tokens-only)
   - [A sandbox that fails or is disposed is killed, and E2B's timeout is the backstop](README.md#a-sandbox-that-fails-or-is-disposed-is-killed-and-e2bs-timeout-is-the-backstop)
+- [The Vercel backend runs each sandbox in a microVM that holds no credentials](README.md#the-vercel-backend-runs-each-sandbox-in-a-microvm-that-holds-no-credentials)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
 - [Credentials and sandboxes: the sandbox holds none, and an authenticated action runs on the host](README.md#credentials-and-sandboxes-the-sandbox-holds-none-and-an-authenticated-action-runs-on-the-host)
   - [An authenticated action is a host-side tool that the pipeline decides](README.md#an-authenticated-action-is-a-host-side-tool-that-the-pipeline-decides)
@@ -411,6 +412,22 @@ The sections of README.md and every public export, generated from this package's
 - `interface E2BSdk`: The SDK the backend runs on: `{ Sandbox, Secret }` from `e2b`, or a fake with the same shape.
 - `interface E2BSecretApi`: The `Secret` class's static methods the backend calls.
 - `interface E2BSecretReference`: One secret a compiled policy names.
+
+## Exports from `@buildanagent/harness/sandbox/vercel`
+
+- `checkVercelNetworkPolicy()`: Throws `invalid_egress_options` unless `policy` keeps egress closed to everything it doesn't name: it refuses `"allow-all"`, a `subnets.allow` (whose ranges go around the domain allowlist and its credential rules), a wildcard domain and a `forwardURL` rule.
+- `VERCEL_DENIED_SUBNETS`: The address ranges the compiled firewall policy denies by default: loopback, private, shared, link-local (which holds the cloud metadata address 169.254.169.254), the IPv6 unique-local, link-local and loopback ranges, and the IPv4-mapped IPv6 range, so a name whose AAAA record wraps one of the IPv4 ranges is refused too.
+- `interface VercelCommand`: A command started in a Vercel sandbox with `detached: true`.
+- `interface VercelCreateParams`: What the backend passes to `create()`.
+- `interface VercelCredentials`: An access token for the Vercel API, with the team and project the sandboxes belong to.
+- `interface VercelFinishedCommand`: A command that has finished in a Vercel sandbox.
+- `interface VercelRunParams`: What the backend asks `runCommand()` to start.
+- `vercelSandbox()`: Builds the Vercel Sandbox backend: tier `microvm`, claiming `mistakes`, `exfiltration` and `hostile_process`.
+- `interface VercelSandboxInstance`: A Vercel sandbox, as the backend uses it.
+- `interface VercelSandboxOptions`: The options of `vercelSandbox()`.
+- `vercelSandboxSdk()`: The real `@vercel/sandbox` client.
+- `interface VercelSandboxSdk`: The two calls of `@vercel/sandbox`'s `Sandbox` class the backend makes.
+- `class VercelSecretError`: The thrown error for a credential the egress policy names but the host can't supply.
 
 ## Exports from `@buildanagent/harness/credentials`
 
