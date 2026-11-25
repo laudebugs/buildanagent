@@ -1,6 +1,8 @@
 /**
  * `@buildanagent/harness/session/jsonl`: the file-backed session store and writer lock, kept apart from the portable
  * session entry.
+ *
+ * @module @buildanagent/harness/session/jsonl
  */
 
 export { type FileIndexOptions, fileIndex } from "./file-index.js";

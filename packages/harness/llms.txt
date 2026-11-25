@@ -55,6 +55,7 @@ The sections of README.md and every public export, generated from this package's
   - [Code runs a side effect through the same pipeline and pause as the model, with no model call](README.md#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
+- [Every removable component has one ablation switch and one header hash](README.md#every-removable-component-has-one-ablation-switch-and-one-header-hash)
 - [One portability suite tests all eight target seams](README.md#one-portability-suite-tests-all-eight-target-seams)
 
 ## Exports from `@buildanagent/harness`
@@ -508,6 +509,14 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/ablation`
 
+- `interface AblationConfig`: Switches for every removable component of the harness.
+- `interface AblationExtensions`: Per-tier switches for the three extension tiers.
+- `ablationHash()`: Computes a deterministic `sha256:` digest of `config` to stamp into `session_header.ablationHash`.
+- `type AblationOverrides`: Partial overrides accepted by `defaultAblation()`.
+- `credentialEnvOf()`: Returns the credential environment entries allowed under `config`.
+- `DEFAULT_ABLATION`: Baseline ablation configuration with every removable component enabled on the `"os"` sandbox tier.
+- `defaultAblation()`: Builds a complete `AblationConfig` from `DEFAULT_ABLATION` plus `overrides`, and validates it with `validateAblation()`.
+- `validateAblation()`: Checks fail-safe invariants on `config`.
 
 ## Exports from `@buildanagent/harness/testing`
 

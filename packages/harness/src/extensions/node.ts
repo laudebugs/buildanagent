@@ -2,6 +2,8 @@
  * `@buildanagent/harness/extensions/node`: loading the extensions a project supplies, with the trust file and the lock
  * file, and the lock file's MCP tool pins. It needs Node's file system; the portable parts are in
  * `@buildanagent/harness/extensions`.
+ *
+ * @module @buildanagent/harness/extensions/node
  */
 
 export { contextFiles, type FoundContextFiles, planFileSource } from "./context-files-node.js";

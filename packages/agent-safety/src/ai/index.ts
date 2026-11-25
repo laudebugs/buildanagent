@@ -3,6 +3,8 @@
  * the model, `signedToolApproval()` makes every approval signed and fail closed on resume, and
  * `settleDeniedApprovals()` keeps a stored chat consistent after such a denial, and `repairInterruptedWrite()` hands
  * the model an interrupted write as `unknown`.
+ *
+ * @module @buildanagent/agent-safety/ai
  */
 export { repairInterruptedWrite } from "./interrupted-write.js";
 export { settleDeniedApprovals } from "./settle-denied.js";

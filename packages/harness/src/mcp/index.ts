@@ -4,6 +4,8 @@
  * and changes a session's tools only between turns, with each tool's definition checked against a pin.
  * `connectMcpServer()` connects one server without registering anything. The stdio transport is Node-only; the HTTP and
  * SSE transports run on any runtime with `fetch`, and resolve and pin each address themselves on Node.
+ *
+ * @module @buildanagent/harness/mcp
  */
 export { connectMcpServer } from "./connection.js";
 export { type McpCallFailure, McpError } from "./errors.js";

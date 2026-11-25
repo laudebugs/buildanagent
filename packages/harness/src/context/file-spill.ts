@@ -2,6 +2,8 @@
  * The spill store that keeps each capped tool result in a file, one per call, in a folder per session. It uses Node's
  * file system, loaded with `process.getBuiltinModule()` when a result is written or read, so importing it costs a
  * portable bundle nothing. It has its own entry, `@buildanagent/harness/context/file`.
+ *
+ * @module @buildanagent/harness/context/file
  */
 import { HarnessError } from "../errors.js";
 import { encodeName, type SessionKey } from "../session/store.js";

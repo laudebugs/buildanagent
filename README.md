@@ -16,7 +16,7 @@ The repo is documentation only for now. The research compares vendor agent SDKs,
 |---|---|
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute: pnpm setup, exact pins, one pull request per change, the document review rule and the licence of contributions |
 | [SECURITY.md](SECURITY.md) | How to report a vulnerability privately, and what is in scope |
-| [docs/guidelines/](docs/guidelines/README.md) | The coding and documentation rules for our packages: strict, portable TypeScript; one home per concept and small functions; offline, deterministic tests; plain-English docs and tested examples |
+| [docs/guidelines/](docs/guidelines/README.md) | The coding and documentation rules for our packages (strict, portable TypeScript; one home per concept and small functions; offline, deterministic tests; plain-English docs and tested examples), plus guidelines for building and evaluating model-assisted workflows on structured data |
 | [docs/plans/](docs/plans/) | The plans and roadmap: SDK references, comparison, skills, build guides, implementation plans, and the [personal cloud coding agent](docs/plans/build-coding-agent.md) that is the first agent to build, the multi-user [agent platform](docs/plans/build-agent-platform.md) that follows it, and the plan to [close seven SDK gaps](docs/plans/close-sdk-gaps.md) with a standalone safety package first |
 | [docs/plans/build-book.md](docs/plans/build-book.md) | The plan for a public textbook on building an agent, at `apps/manual` and manual.buildanagent.fyi: two parts, checked listings from `verify/`, generated figures, and 52 todos |
 | [apps/site/](apps/site/) | The website for buildanagent.fyi: a landing page and a page for the gateway and one for the SDK, with links to the docs and the repository |

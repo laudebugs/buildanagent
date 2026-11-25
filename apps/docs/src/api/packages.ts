@@ -29,28 +29,43 @@ export interface ApiPackage extends CheckedPackage {
   readonly label: string;
   /** The path under `src/content/docs/` that the generated pages are written to. */
   readonly output: string;
+  /**
+   * Whether the sidebar lists every export (`"full"`, the default) or one link per entry-point module (`"modules"`).
+   * A package with many entry points uses `"modules"` so its sidebar stays under the 200 KiB HTML page budget while
+   * every export still gets a generated page and a Markdown twin.
+   */
+  readonly sidebar?: "full" | "modules";
 }
 
 /** The packages the reference covers, in the order the sidebar lists them. */
 export const API_PACKAGES: readonly ApiPackage[] = [
   { name: "@buildanagent/gateway", folder: "gateway", label: "Gateway API", output: "reference/gateway" },
   { name: "@buildanagent/sdk", folder: "sdk", label: "SDK API", output: "reference/sdk" },
+  // Its tsconfig.json includes its tests, and TypeScript 6 reads the AI SDK's tool approval types in them differently
+  // from TypeScript 7, so TypeDoc reads its sources alone.
+  {
+    name: "@buildanagent/agent-safety",
+    folder: "agent-safety",
+    label: "Agent safety API",
+    output: "reference/agent-safety",
+    tsconfig: "agent-safety.tsconfig.json",
+  },
+  { name: "@buildanagent/protocol", folder: "protocol", label: "Protocol API", output: "reference/protocol" },
+  {
+    name: "@buildanagent/harness",
+    folder: "harness",
+    label: "Harness API",
+    output: "reference/harness",
+    sidebar: "modules",
+  },
+  { name: "@buildanagent/cli", folder: "cli", label: "CLI API", output: "reference/cli" },
 ];
 
 /**
- * Every package the undocumented-export check covers: the ones the reference covers, then the protocol, harness, CLI and
- * agent-safety packages. Those four will publish after the gateway and SDK, so their TSDoc is held to the same rule
- * now, but the docs site generates no reference pages for them until they do.
+ * Every package the undocumented-export check covers. All six published packages now have generated reference pages,
+ * so the checked set matches `API_PACKAGES`.
  */
-export const CHECKED_PACKAGES: readonly CheckedPackage[] = [
-  ...API_PACKAGES,
-  { name: "@buildanagent/protocol", folder: "protocol" },
-  { name: "@buildanagent/harness", folder: "harness" },
-  { name: "@buildanagent/cli", folder: "cli" },
-  // Its tsconfig.json includes its tests, and TypeScript 6 reads the AI SDK's tool approval types in them differently
-  // from TypeScript 7, so TypeDoc reads its sources alone.
-  { name: "@buildanagent/agent-safety", folder: "agent-safety", tsconfig: "agent-safety.tsconfig.json" },
-];
+export const CHECKED_PACKAGES: readonly CheckedPackage[] = API_PACKAGES;
 
 /** The TypeDoc validation the check and the generated reference share. */
 export const VALIDATION = { notExported: false, invalidLink: true, notDocumented: true } as const;
@@ -63,10 +78,42 @@ export const BLOCK_TAGS = [...OptionDefaults.blockTags, "@stable"] as const;
 
 /** The absolute source file of every entry in the package's `exports` map, in the map's order. */
 export function entryPoints(pkg: CheckedPackage): string[] {
-  const manifest = JSON.parse(readFileSync(join(REPO_ROOT, "packages", pkg.folder, "package.json"), "utf8")) as {
+  const manifest = readManifest(pkg);
+  return Object.values(manifest.exports).map((entry) => resolve(REPO_ROOT, "packages", pkg.folder, entry.source));
+}
+
+/**
+ * A sidebar group listing one link per entry-point module in `pkg`'s `exports` map, used when `pkg.sidebar` is
+ * `"modules"` so large packages stay inside the HTML page budget. Requires a multi-entry package because single-entry
+ * packages have no per-module subdirectories.
+ */
+export function moduleSidebarGroup(pkg: ApiPackage): {
+  label: string;
+  collapsed: boolean;
+  items: { label: string; link: string }[];
+} {
+  const manifest = readManifest(pkg);
+  const subpaths = Object.keys(manifest.exports);
+  if (subpaths.length <= 1) {
+    throw new Error(`sidebar: "modules" requires a multi-entry package (${pkg.name} has ${subpaths.length})`);
+  }
+  const items = subpaths.map((subpath) => {
+    if (subpath !== "." && !subpath.startsWith("./")) {
+      throw new Error(`unexpected export key "${subpath}" in ${pkg.name}`);
+    }
+    const mod = subpath === "." ? pkg.name : `${pkg.name}/${subpath.replace(/^\.\//, "")}`;
+    return {
+      label: mod,
+      link: `/${pkg.output}/${mod.replace(/^@/, "").toLowerCase()}/`,
+    };
+  });
+  return { label: pkg.name, collapsed: false, items };
+}
+
+function readManifest(pkg: CheckedPackage): { exports: Record<string, { source: string }> } {
+  return JSON.parse(readFileSync(join(REPO_ROOT, "packages", pkg.folder, "package.json"), "utf8")) as {
     exports: Record<string, { source: string }>;
   };
-  return Object.values(manifest.exports).map((entry) => resolve(REPO_ROOT, "packages", pkg.folder, entry.source));
 }
 
 /** The package's tsconfig, which resolves its own and its sibling packages' sources through the `source` condition. */

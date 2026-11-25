@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry` and `testing` are built. `ablation` is an empty stub that holds its place until its component arrives.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry`, `ablation` and `testing` are built.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -1074,6 +1074,31 @@ The owner rotates such a ring with the platform's own tooling: add a new key and
 `keyStoreConformanceCases(factory)` and `runKeyStoreConformance(factory)` in `@buildanagent/harness/testing` check a store with five cases. `load()` returns a usable ring, returns the same ring twice, and gives a ring that signs and verifies through `hmacSigner()`. `rotate()` keeps the old key loadable, and `prune()` keeps the current and in-use keys and returns the ids it removed. The rotate and prune cases skip with a reason when a store leaves the methods out. Run `runKeyStoreConformance(factory)` against any store you write.
 
 
+
+## Every removable component has one ablation switch and one header hash
+
+`@buildanagent/harness/ablation` defines `AblationConfig`—one switch per removable component—along with `DEFAULT_ABLATION`, `defaultAblation()`, `validateAblation()`, `ablationHash()` and `credentialEnvOf()`. `AblationConfig` omits the session log, permission pipeline and protocol because they form the harness's non-removable spine.
+
+Build a config with `defaultAblation(overrides)` and pass `ablation` to `createHarness()` to stamp `ablationHash(ablation)` into `session_header.ablationHash` and `ablation.sandbox` into `env_stamp.sandbox`. Safety components fail safe when turned off: `credentialProxy: false` makes `credentialEnvOf()` return `{}` so tools receive no credentials, and `sandbox: "none"` throws `unsafe_sandbox_not_acknowledged` unless you pass `unsafe: true`.
+
+By default every component runs:
+
+| Flag | Default | When off (or changed) |
+| --- | --- | --- |
+| `context.write_cap` | `true` | Stores tool results uncapped without spilling. |
+| `context.mask` | `true` | Leaves older tool results unmasked in the request view. |
+| `context.summarize` | `true` | Skips between-turn summarization. |
+| `context.mid_turn` | `true` | Skips mid-turn compaction. |
+| `context.overflow_retry` | `true` | Skips overflow retry on the turn. |
+| `mcp` | `true` | Omits MCP tools, turn boundaries and MCP-tier extension records. |
+| `extensions.inProcess` | `true` | Omits in-process extension tools and extension records. |
+| `extensions.mcp` | `true` | Omits MCP-tier extension tools, turn boundaries and extension records. |
+| `extensions.skills` | `true` | Omits skills from the harness and skips `skill_loaded` entries. |
+| `toolSearch` | `true` | Omits `tool_search` from active tools. |
+| `credentialProxy` | `true` | Returns `{}` from `credentialEnvOf()` so tools receive no credentials. |
+| `telemetry` | `true` | Drops events to harness and turn observers. |
+| `completionCheck` | `true` | Skips post-turn `completion_check` entries. |
+| `sandbox` | `"os"` | Sets `env_stamp.sandbox` to the chosen tier; `"none"` requires `unsafe: true`. |
 
 ## One portability suite tests all eight target seams
 

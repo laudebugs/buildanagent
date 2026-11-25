@@ -8,3 +8,7 @@ dist/
 # The API reference that TypeDoc writes at build time
 src/content/docs/reference/gateway/
 src/content/docs/reference/sdk/
+src/content/docs/reference/agent-safety/
+src/content/docs/reference/protocol/
+src/content/docs/reference/harness/
+src/content/docs/reference/cli/

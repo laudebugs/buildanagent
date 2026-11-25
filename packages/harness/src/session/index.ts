@@ -3,6 +3,8 @@
  * never imports the harness, and this entry re-exports it for code that already imports the harness. It holds the
  * store interface, `memoryStore()` and the read-only `secretKeyStore()`, and nothing that needs Node. `jsonlStore()` is in
  * `@buildanagent/harness/session/jsonl`.
+ *
+ * @module @buildanagent/harness/session
  */
 
 export type {

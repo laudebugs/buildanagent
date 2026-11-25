@@ -839,7 +839,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N31](../todos/done/N31-telemetry-projection.md) | Telemetry projection from the log, with the budget meter | N7, N13, B17 | M |
 | [N32](../todos/done/N32-completion-check.md) | Completion check and diff flags (HD10) | N15, N6 | M |
 | [N33](../todos/done/N33-retention-schema-docs.md) | Retention settings and the transcript schema page (HD11) | N5, N2 | S |
-| [N34](../todos/ready/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |
+| [N34](../todos/done/N34-ablation-switches.md) | Ablation switches and the ablation hash | N10, N14, N20, N21, N23, N25, N31, N32 | M |
 | [N35](../todos/ready/N35-harness-capstone.md) | Harness triage capstone, second-process resume and the granularity test (HD1) | N29, N30, N34, B19, B20 | M |
 | [N36](../todos/ready/N36-eval-reports-replay.md) | Eval package: reports, mini-swe-agent trajectories and the offline replay suite | N35 | M |
 | [N37](../todos/ready/N37-inspect-bridge.md) | Inspect bridge and the baseline runner (opt-in) | N36, N17 | M |
