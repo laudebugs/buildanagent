@@ -18,8 +18,8 @@ import {
   SandboxSecretUnresolvedError,
   SandboxUnavailableError,
 } from "../errors.js";
+import { checkCommand, checkOptions } from "../exec-checks.js";
 import { APPLY_STOPS, confirmPolicy } from "../policy.js";
-import { checkCommand, checkOptions } from "../process.js";
 import type {
   ExecOptions,
   ExecResult,
@@ -74,7 +74,7 @@ export interface E2BSandboxOptions {
    * `e2b` on first use and throws `SandboxUnavailableError` when the package is missing.
    */
   readonly sdk?: E2BSdk | (() => Promise<E2BSdk>);
-  /** The template to start from, by name or id. Pin it by id or tag. Defaults to `base`. */
+  /** The template to start from. Pin it to a build as `<template>:<build_id>`, because a tag can move. Defaults to `base`. */
   readonly template?: string;
   /**
    * How long a sandbox lives, in milliseconds, after which E2B kills it even if this process has died: the backstop for

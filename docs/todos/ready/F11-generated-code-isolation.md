@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent platform §5.2](../../plans/build-agent-platform.md#52-stage-f-b-connects-the-engine-and-ships-m8) |
 | Round / milestone | Round F (build the agent platform), M8 |
-| Depends on | [N43](N43-remote-sandbox-egress-policy.md), [N46b](N46b-cloudflare-sandbox-backend.md), [N47b](../ongoing/N47b-e2b-sandbox-backend.md) |
+| Depends on | [N43](N43-remote-sandbox-egress-policy.md), [N46b](N46b-cloudflare-sandbox-backend.md), [N47b](../done/N47b-e2b-sandbox-backend.md) |
 | Size | M |
 
 ## Goal
