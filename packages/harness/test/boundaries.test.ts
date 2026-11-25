@@ -79,8 +79,9 @@ test("no entry but ./sandbox/vercel reaches @vercel/sandbox", () => {
 });
 
 test("the hosted sandbox SDKs are optional peers, never dependencies", () => {
-  assert.deepEqual(Object.keys(manifest.peerDependencies ?? {}).sort(), OPTIONAL_PEERS);
+  // Other adapters (the AWS ones) add their own optional peers, so this checks only the hosted sandbox SDKs.
   for (const peer of OPTIONAL_PEERS) {
+    assert.ok(manifest.peerDependencies?.[peer] !== undefined, `${peer} is a peer`);
     assert.equal(manifest.peerDependenciesMeta?.[peer]?.optional, true, peer);
     assert.equal(manifest.dependencies?.[peer], undefined, peer);
   }
