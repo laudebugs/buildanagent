@@ -40,11 +40,15 @@ describe("eventBridgeScheduler", () => {
     );
   });
 
-  test("a wake whose time has passed is scheduled for the next second, and its input keeps the time asked for", async () => {
+  test("a wake whose time has passed or is under five seconds off goes five seconds ahead, and keeps the time asked for", async () => {
     const now = START + 400;
     const fake = fakeScheduler({ now: () => now });
-    await eventBridgeScheduler(fake.client, { ...options, now: () => now }).wake(new Date(START - 60_000), "s1");
-    assert.equal(fake.sent[0]?.input.ScheduleExpression, "at(2026-11-24T00:00:01)");
+    const scheduler = eventBridgeScheduler(fake.client, { ...options, now: () => now });
+    await scheduler.wake(new Date(START - 60_000), "s1");
+    // Five seconds covers request latency and a host clock behind AWS's, so the service never meets a past time.
+    assert.equal(fake.sent[0]?.input.ScheduleExpression, "at(2026-11-24T00:00:06)");
+    await scheduler.wake(new Date(START + 2_000), "s1");
+    assert.equal(fake.sent[1]?.input.ScheduleExpression, "at(2026-11-24T00:00:06)");
     assert.equal(JSON.parse(fake.sent[0]?.input.Target.Input).at, "2026-11-23T23:59:00.000Z");
   });
 
@@ -127,6 +131,16 @@ describe("deliverWake", () => {
       () => deliverWake(event(START + 71_000), () => assert.fail("must not run"), { now: () => START }),
       { code: "invalid_wake_event" },
     );
+  });
+
+  test("a maxEarlyMs that is not a finite number of at least 0 is refused, so NaN can't turn the early check off", async () => {
+    for (const maxEarlyMs of [Number.NaN, -1, Number.POSITIVE_INFINITY]) {
+      await assert.rejects(
+        () =>
+          deliverWake(event(START + 3_600_000), () => assert.fail("must not run"), { now: () => START, maxEarlyMs }),
+        { code: "invalid_aws_options" },
+      );
+    }
   });
 
   test("an event that is not a wake is refused without quoting it", () => {

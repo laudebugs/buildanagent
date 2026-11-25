@@ -29,7 +29,7 @@ const SAFE_ERROR_NAME = /^[A-Za-z]{1,64}$/;
 /**
  * A `KeyStore` with `load()` only, over the Secrets Manager secret `secretId`. The secret's string value is the JSON
  * ring that `secretKeyStore()` reads, such as `{"current":"2026-11","keys":{"2026-11":"<key>"}}`, with each key 32 or
- * more random bytes in unpadded base64url. `load()` reads the `AWSCURRENT` version every time and keeps no copy, so a
+ * more random bytes in unpadded base64url. `load()` reads the version labelled `versionStage` (default `AWSCURRENT`) every time and keeps no copy, so a
  * value put with `aws secretsmanager put-secret-value` takes effect at the next load. Keep an old key in the new value
  * until no waiting approval names it.
  *

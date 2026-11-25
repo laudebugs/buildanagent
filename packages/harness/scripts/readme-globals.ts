@@ -47,6 +47,7 @@ declare global {
     scheduler: sessions.Scheduler;
     keys: import("@buildanagent/agent-safety").KeyStore;
   };
+  const AFTER_LEASE_MS: number;
   const dynamoStore: typeof awsDynamo.dynamoStore;
   const dynamoLock: typeof awsDynamo.dynamoLock;
   const eventBridgeScheduler: typeof awsScheduler.eventBridgeScheduler;

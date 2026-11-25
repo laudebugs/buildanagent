@@ -365,8 +365,28 @@ class DynamoStore implements SessionStore {
       const failed = conditionFailed(error);
       if (failed === undefined) throw error;
       // The SDK resends a put whose response was lost, and the resent put meets the head this append already wrote.
-      return str(failed.item, "batch") === batch;
+      if (str(failed.item, "batch") === batch) return true;
+      // Or another writer read that head and committed on top before the resend, so the resent put meets its head.
+      return this.#builtOn(key, fresh, batch);
     }
+  }
+
+  /**
+   * Whether some writer staged entries on top of `batch`. A writer names a batch as `prev` only after reading a head
+   * that names it, so one such item proves `batch` was committed, and its items are the log, not leftovers to delete.
+   */
+  async #builtOn(key: SessionKey, fresh: readonly SessionEntry[], batch: string): Promise<boolean> {
+    const next = pad((fresh.at(-1) as SessionEntry).seq + 1);
+    const items = await this.#queryAll({
+      KeyConditionExpression: "#pk = :pk AND #sk BETWEEN :lo AND :hi",
+      ExpressionAttributeNames: { "#pk": "pk", "#sk": "sk" },
+      ExpressionAttributeValues: {
+        ":pk": this.#layout.userPk(key.userId),
+        ":lo": this.#layout.sortKey("e", key, `#${next}#`),
+        ":hi": this.#layout.sortKey("e", key, `#${next}#~`),
+      },
+    });
+    return items.some((item) => str(item, "prev") === batch);
   }
 
   async append(key: SessionKey, inputs: readonly EntryInput[], options?: AppendOptions): Promise<SessionEntry[]> {
@@ -395,8 +415,9 @@ class DynamoStore implements SessionStore {
 
   load(key: SessionKey, options?: LoadOptions): AsyncIterable<SessionEntry> {
     checkKey(key);
-    const fromSeq = options?.fromSeq;
-    const from = fromSeq !== undefined && Number.isFinite(fromSeq) ? Math.max(0, Math.ceil(fromSeq)) : 0;
+    const fromSeq = options?.fromSeq ?? 0;
+    // As in the other stores, an entry is yielded when `seq >= fromSeq`, so a NaN yields none and Infinity none.
+    const from = Number.isNaN(fromSeq) ? Number.POSITIVE_INFINITY : Math.max(0, Math.ceil(fromSeq));
     const texts = this.#texts(key, from);
     return (async function* () {
       for await (const text of texts) yield parsed(text);
@@ -413,9 +434,10 @@ class DynamoStore implements SessionStore {
 
   list(userId: string): AsyncIterable<SessionSummary> {
     checkKey({ userId, sessionId: "-" });
-    const heads = this.#prefixed({ userId, sessionId: "-" }, "h#");
+    // The query starts at the first next(), as the other stores' reads do, so an iterable never read sends nothing.
+    const heads = () => this.#prefixed({ userId, sessionId: "-" }, "h#");
     return (async function* () {
-      yield* (await heads).map(summaryFrom).sort(byAge);
+      yield* (await heads()).map(summaryFrom).sort(byAge);
     })();
   }
 
@@ -444,7 +466,8 @@ class DynamoStore implements SessionStore {
  * append read. The head is the commit: a reader follows it from batch to batch, so items that no head reaches are
  * never read as the log. An append that loses the race deletes its items, and one whose process dies leaves them
  * until `delete()`. A lost response is retried by the SDK, and the store tells its own retried commit by the batch id
- * the failed condition returns.
+ * the failed condition returns, or, when another writer committed on top first, by that writer's items naming the
+ * append's batch as the one before theirs.
  *
  * The store keeps the state of the 64 sessions used last and checks it against the head on every append, so another
  * process's commit is seen at once. Two writers still need a `SessionLock`; without one, the head's condition makes

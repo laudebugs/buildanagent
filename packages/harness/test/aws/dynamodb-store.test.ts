@@ -57,6 +57,24 @@ function racing(client: DynamoDBClient, before: () => Promise<unknown>): DynamoD
   } as unknown as DynamoDBClient;
 }
 
+/**
+ * A client whose next head commit takes effect and loses its response, then lets `between()` run before the SDK's
+ * resend, as another process that reads the new head and commits on top in that gap would.
+ */
+function lostThenOvertaken(client: DynamoDBClient, between: () => Promise<unknown>): DynamoDBClient {
+  let armed = true;
+  return {
+    async send(command: { input: { Item?: { sk?: { S?: string } } } }) {
+      if (armed && command instanceof PutItemCommand && command.input.Item?.sk?.S?.startsWith("h#")) {
+        armed = false;
+        await client.send(command as never);
+        await between();
+      }
+      return client.send(command as never);
+    },
+  } as unknown as DynamoDBClient;
+}
+
 const entryItems = (dynamo: ReturnType<typeof fakeDynamoDb>) =>
   dynamo.items(TABLE).filter((item) => item.sk?.S?.startsWith("e#"));
 
@@ -133,6 +151,19 @@ describe("dynamoStore", () => {
     assert.deepEqual(await ids(store), ["h1", "r1"]);
   });
 
+  test("a commit whose response was lost keeps its entries when another writer committed on top before the resend", async () => {
+    const other = dynamoStore(dynamo.client, { tableName: TABLE });
+    await other.append(KEY, [header()]);
+    const store = dynamoStore(
+      lostThenOvertaken(dynamo.client, () => other.append(KEY, [record("r2", "r1")], { expectedLastId: "r1" })),
+      { tableName: TABLE },
+    );
+    const written = await store.append(KEY, [record("r1", "h1")], { expectedLastId: "h1" });
+    assert.equal(written[0]?.seq, 1);
+    assert.deepEqual(await ids(other), ["h1", "r1", "r2"], "the overtaken batch's entries are still the log");
+    assert.deepEqual(await ids(dynamoStore(dynamo.client, { tableName: TABLE })), ["h1", "r1", "r2"]);
+  });
+
   test("writes DynamoDB leaves unprocessed are sent again until every one is stored", async () => {
     const store = dynamoStore(dynamo.client, { tableName: TABLE });
     dynamo.leaveUnprocessed(2);
@@ -169,6 +200,24 @@ describe("dynamoStore", () => {
     const head = dynamo.items(TABLE).find((item) => item.sk?.S === "h#s1");
     dynamo.put(TABLE, { ...head, batch: { S: "a-batch-no-item-has" } } as never);
     await assert.rejects(() => ids(store), { code: "session_corrupt" });
+  });
+
+  test("a fromSeq of NaN or Infinity yields no entries, as the memory and JSONL stores do", async () => {
+    const store = dynamoStore(dynamo.client, { tableName: TABLE });
+    await store.append(KEY, [header(), record("r1", "h1")]);
+    for (const fromSeq of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      assert.deepEqual(await collect(store.load(KEY, { fromSeq })), []);
+    }
+    assert.deepEqual((await collect(store.load(KEY, { fromSeq: Number.NEGATIVE_INFINITY }))).length, 2);
+  });
+
+  test("list sends no query until it is iterated, so a failed query never goes unhandled", async () => {
+    const store = dynamoStore(dynamo.client, { tableName: TABLE });
+    const before = dynamo.sent.length;
+    const sessions = store.list("ada");
+    assert.equal(dynamo.sent.length, before, "nothing was sent before the first next()");
+    assert.deepEqual(await collect(sessions), []);
+    assert.equal(dynamo.sent.at(-1), "Query");
   });
 
   test("loadRaw returns the entries as they were written", async () => {

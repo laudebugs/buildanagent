@@ -45,6 +45,9 @@ export interface EventBridgeSchedulerOptions {
 // EventBridge Scheduler's rule for a schedule or group name: 1 to 64 of these characters.
 const NAME = /^[0-9a-zA-Z_.-]{1,64}$/;
 const SECOND = 1_000;
+// How far ahead of this host's clock a schedule for a past or present time is set, so request latency and a host
+// clock a few seconds behind AWS's never send a time the service already sees as past.
+const PAST_MARGIN_MS = 5_000;
 
 const invalid = (message: string) => new HarnessError("invalid_aws_options", `eventBridgeScheduler() ${message}`);
 
@@ -62,8 +65,8 @@ function atExpression(ms: number): string {
 /**
  * A `Scheduler` whose wakes are EventBridge Scheduler one-time schedules. `wake(at, sessionId)` creates a schedule
  * named from a hash of the session id and the wake's time, so asking twice for the same id and time is one wake. The
- * schedule's `at()` expression is `at` rounded up to the second, or the next second when that has passed, so a wake in
- * the past arrives at once. Its input is a `WakeEvent` that carries the exact time asked for, its flexible time window
+ * schedule's `at()` expression is `at` rounded up to the second, or five seconds from now when that is sooner, so a
+ * wake in the past arrives at once and the service never meets a time it sees as past. Its input is a `WakeEvent` that carries the exact time asked for, its flexible time window
  * is off, and it deletes itself after it runs. `cancel(sessionId)` lists the group's schedules whose names start with
  * that id's hash and deletes each one, so a schedule that already ran and deleted itself is no error.
  *
@@ -106,8 +109,8 @@ async function createWake(client: SchedulerClient, settings: Settings, at: Date,
   const time = at.getTime();
   if (Number.isNaN(time)) throw new TypeError("Scheduler.wake needs a valid date.");
   if (typeof sessionId !== "string" || sessionId === "") throw new TypeError("Scheduler.wake needs a session id.");
-  // EventBridge Scheduler reads whole seconds, and a time that has passed goes to the next second.
-  const fireAt = Math.max(Math.ceil(time / SECOND) * SECOND, Math.floor(settings.now() / SECOND) * SECOND + SECOND);
+  // EventBridge Scheduler reads whole seconds, and a time that has passed, or is about to, goes a margin ahead.
+  const fireAt = Math.ceil(Math.max(time, settings.now() + PAST_MARGIN_MS) / SECOND) * SECOND;
   const input: WakeEvent = { type: WAKE_EVENT_TYPE, version: 1, sessionId, at: new Date(time).toISOString() };
   const { targetArn, roleArn, groupName, deadLetterArn } = settings;
   try {
@@ -215,6 +218,13 @@ export async function deliverWake(
   const now = options.now ?? Date.now;
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const maxEarlyMs = options.maxEarlyMs ?? DEFAULT_MAX_EARLY_MS;
+  // A NaN would turn the refusal off, since no number is greater than NaN, and a negative bound would refuse on-time wakes.
+  if (!Number.isFinite(maxEarlyMs) || maxEarlyMs < 0) {
+    throw new HarnessError(
+      "invalid_aws_options",
+      "deliverWake() needs a maxEarlyMs that is a finite number of at least 0",
+    );
+  }
   const early = at.getTime() - now();
   if (early > maxEarlyMs) throw badEvent(`it arrived ${early} ms before its time, more than ${maxEarlyMs} ms early`);
   // A sleep can end a little early, so the clock is read again until the wake's time has come.

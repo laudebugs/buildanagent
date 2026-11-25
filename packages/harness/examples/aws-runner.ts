@@ -38,14 +38,18 @@ export function awsSeams(clients: AwsClients, names: AwsNames) {
 // A wake names one id, so the runner packs the user and the session into it and unpacks them when the wake arrives.
 export const wakeId = (key: SessionKey) => JSON.stringify([key.userId, key.sessionId]);
 
+// The lock's default lease is 30 seconds, so a wake this far off finds a crashed holder's lease lapsed.
+const AFTER_LEASE_MS = 35_000;
+
 // #region handler
 export function wakeHandler(seams: ReturnType<typeof awsSeams>, resume: (key: SessionKey) => Promise<void>) {
   return (event: unknown) =>
     deliverWake(event, async (id) => {
       const [userId, sessionId] = JSON.parse(id) as [string, string];
       const lock = await seams.lock.acquire({ userId, sessionId });
-      // Another invocation holds the session, so this wake is a duplicate and has nothing to do.
-      if (lock === "would_block") return;
+      // Another invocation holds the session: one that asked for this wake and hasn't let go yet, one that crashed with
+      // its lease still live, or a duplicate. A wake after the lease could end comes again, so no step is left undone.
+      if (lock === "would_block") return seams.scheduler.wake(new Date(Date.now() + AFTER_LEASE_MS), id);
       try {
         await resume({ userId, sessionId });
       } finally {

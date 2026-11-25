@@ -1165,9 +1165,9 @@ A lapsed lease is the only staleness signal, because no host can check another h
 
 ### A wake is a one-time schedule, and `deliverWake()` holds an early one until its time
 
-`eventBridgeScheduler()` turns `wake(at, id)` into an EventBridge Scheduler one-time schedule in `groupName` (default `default`). The schedule invokes `targetArn`, the runner, through `roleArn`, and an optional `deadLetterArn` receives a wake whose every invocation failed. The schedule's name is a SHA-256 hash of the id plus the wake's time in milliseconds, so the name never holds the id, and asking twice for the same id and time is one wake. Its `at()` expression is in UTC, rounded up to the second, or the next second for a time that has passed. Its flexible time window is off, and it deletes itself once it has run. Its input is a `WakeEvent`, `{ type: "buildanagent.wake", version: 1, sessionId, at }`, which keeps the exact time asked for. `cancel(id)` lists the group's schedules whose names start with the id's hash and deletes each one. It reads every page before it deletes anything, and a schedule that has already run is no error.
+`eventBridgeScheduler()` turns `wake(at, id)` into an EventBridge Scheduler one-time schedule in `groupName` (default `default`). The schedule invokes `targetArn`, the runner, through `roleArn`, and an optional `deadLetterArn` receives a wake whose every invocation failed. The schedule's name is a SHA-256 hash of the id plus the wake's time in milliseconds, so the name never holds the id, and asking twice for the same id and time is one wake. Its `at()` expression is in UTC, rounded up to the second, or five seconds from now for a time sooner than that, so request latency and a host clock a little behind AWS's never send a time the service sees as past. Its flexible time window is off, and it deletes itself once it has run. Its input is a `WakeEvent`, `{ type: "buildanagent.wake", version: 1, sessionId, at }`, which keeps the exact time asked for. `cancel(id)` lists the group's schedules whose names start with the id's hash and deletes each one. It reads every page before it deletes anything, and a schedule that has already run is no error.
 
-EventBridge Scheduler invokes a target with 60-second precision, so a wake can reach the runner before its time. The runner passes each event to `deliverWake(event, handler)`, which reads it with `parseWakeEvent()`, waits until the wake's time on the host's clock and then calls the handler. It refuses, with `invalid_wake_event`, an event that is not a wake or one more than `maxEarlyMs` (70 seconds) early. Give the function a timeout longer than that wait plus its own work. A wake is at-least-once, so the handler must treat a second wake as harmless, as the example's does:
+EventBridge Scheduler invokes a target with 60-second precision, so a wake can reach the runner before its time. The runner passes each event to `deliverWake(event, handler)`, which reads it with `parseWakeEvent()`, waits until the wake's time on the host's clock and then calls the handler. It refuses, with `invalid_wake_event`, an event that is not a wake or one more than `maxEarlyMs` (70 seconds) early, and refuses a `maxEarlyMs` that is not a finite number of at least 0 with `invalid_aws_options`. Give the function a timeout longer than that wait plus its own work. A wake is at-least-once, so the handler must treat a second wake as harmless. A wake can also meet the session's lock still held, by the invocation that asked for it or by one that crashed with its lease live, so the example's handler asks for another wake after the lease could end instead of dropping it:
 
 ```ts
 export function wakeHandler(seams: ReturnType<typeof awsSeams>, resume: (key: SessionKey) => Promise<void>) {
@@ -1175,8 +1175,9 @@ export function wakeHandler(seams: ReturnType<typeof awsSeams>, resume: (key: Se
     deliverWake(event, async (id) => {
       const [userId, sessionId] = JSON.parse(id) as [string, string];
       const lock = await seams.lock.acquire({ userId, sessionId });
-      // Another invocation holds the session, so this wake is a duplicate and has nothing to do.
-      if (lock === "would_block") return;
+      // Another invocation holds the session: one that asked for this wake and hasn't let go yet, one that crashed with
+      // its lease still live, or a duplicate. A wake after the lease could end comes again, so no step is left undone.
+      if (lock === "would_block") return seams.scheduler.wake(new Date(Date.now() + AFTER_LEASE_MS), id);
       try {
         await resume({ userId, sessionId });
       } finally {
