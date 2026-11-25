@@ -2,7 +2,7 @@
  * POSIX path handling for a sandbox whose files live in a remote Linux VM, so the host's own `node:path` can't be used:
  * it would apply Windows rules on a Windows host. It is pure and portable.
  */
-import { HarnessError } from "../../errors.js";
+import { HarnessError } from "../errors.js";
 
 /** Whether `path` is absolute and holds nothing a remote shell or API could read as more than a path. */
 export function isUsablePath(path: unknown): path is string {

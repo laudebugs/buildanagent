@@ -1,6 +1,6 @@
 // An in-process fake of the part of `@vercel/sandbox` the Vercel backend uses. Each VM has a file system in memory, with
 // folders and symlinks, and understands the few programs the backend and the conformance suite run: `env -i`, `echo`,
-// `env`, `true`, `false`, `sleep`, `flood`, `mkdir -p`, `realpath -m` and `net-probe`. `net-probe <url> [method]` plays the
+// `env`, `true`, `false`, `sleep [seconds [printed-first]]`, `flood`, `mkdir -p`, `realpath -m` and `net-probe`. `net-probe <url> [method]` plays the
 // firewall: it reaches a host only as the network policy it was given allows, applies the policy's rules in order, and
 // prints the headers a `transform` rule set. The VM reports its policy as `@vercel/sandbox` 3.9.1's
 // `fromAPINetworkPolicy()` does, with every injected header's value replaced and `response` rules left out.
@@ -167,10 +167,20 @@ class FakeCommand implements VercelCommand {
   private readonly vm: FakeVm;
   private readonly calls: FakeCall[];
 
-  constructor(vm: FakeVm, calls: FakeCall[], body: (killed: () => Promise<void>) => Promise<Ran>) {
+  /** Output a command printed before it ended, which `logs()` streams ahead of the finished command's chunks. */
+  private readonly early: { stream: "stdout" | "stderr"; data: string }[] = [];
+
+  constructor(
+    vm: FakeVm,
+    calls: FakeCall[],
+    body: (killed: () => Promise<void>, emit: (data: string) => void) => Promise<Ran>,
+  ) {
     this.vm = vm;
     this.calls = calls;
-    this.finished = body(() => new Promise<void>((resolve) => this.waiters.add(resolve)));
+    this.finished = body(
+      () => new Promise<void>((resolve) => this.waiters.add(resolve)),
+      (data) => void this.early.push({ stream: "stdout", data }),
+    );
   }
 
   wait(params?: { signal?: AbortSignal }): Promise<VercelFinishedCommand> {
@@ -184,6 +194,7 @@ class FakeCommand implements VercelCommand {
   }
 
   async *logs(params?: { signal?: AbortSignal }): AsyncIterable<{ stream: "stdout" | "stderr"; data: string }> {
+    for (const chunk of this.early) yield chunk;
     const finished = await this.finished;
     for (const chunk of finished.chunks) {
       params?.signal?.throwIfAborted();
@@ -239,6 +250,7 @@ async function program(
   env: Record<string, string>,
   options: FakeVercelOptions,
   killed: () => Promise<void>,
+  emit: (data: string) => void,
 ): Promise<Ran> {
   const [name = "", ...args] = argv;
   switch (name) {
@@ -258,6 +270,7 @@ async function program(
           .join(""),
       );
     case "sleep": {
+      if (args[1] !== undefined) emit(`${args[1]}\n`);
       const ms = Number(args[0]) * 1000;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const slept = new Promise<"slept">((resolve) => {
@@ -330,8 +343,8 @@ class FakeInstance implements VercelSandboxInstance {
     const { signal: _signal, ...recorded } = params;
     this.fake.calls.push({ kind: "run", vm: this.vm.name, params: structuredClone(recorded) });
     const { env, argv } = unwrap(params.cmd, params.args);
-    const command = new FakeCommand(this.vm, this.fake.calls, (killed) =>
-      program(this.vm, argv, env, this.fake.options, killed),
+    const command = new FakeCommand(this.vm, this.fake.calls, (killed, emit) =>
+      program(this.vm, argv, env, this.fake.options, killed, emit),
     );
     const delay = this.fake.options.startDelayMs;
     if (delay !== undefined && params.cmd === "env") {

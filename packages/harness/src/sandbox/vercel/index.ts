@@ -14,10 +14,10 @@ import { scrubString } from "../../credentials/scrub.js";
 import { HarnessError } from "../../errors.js";
 import { SandboxUnavailableError } from "../errors.js";
 import { sameEntries } from "../policy.js";
+import { checkAbsolute, inside, normalize } from "../posix-paths.js";
 import type { Sandbox, SandboxCapability, SandboxClient, SandboxPolicy, WorkspaceManifest } from "../types.js";
 import { type CompiledFirewall, compileFirewall, VERCEL_DENIED_SUBNETS } from "./firewall.js";
 import { guarded, sanitized, VercelSandbox } from "./handle.js";
-import { checkAbsolute, inside, normalize } from "./paths.js";
 import { type VercelCreateParams, type VercelSandboxSdk, vercelSandboxSdk } from "./sdk.js";
 
 export { checkVercelNetworkPolicy, VERCEL_DENIED_SUBNETS, VercelSecretError } from "./firewall.js";
@@ -262,7 +262,9 @@ async function reattach(backend: Backend, name: string, policy: SandboxPolicy): 
  *
  * It can `resume` and `snapshot`, and also `pause` when `persistent` is set. A resume by a sandbox's `id` reattaches to
  * it, and a resume by a snapshot's id starts a new sandbox from it. Both apply the policy's firewall again, with each
- * credential read anew, and resolve relative paths against the policy's first write root.
+ * credential read anew, and resolve relative paths against the policy's first write root. A resume id is trusted as
+ * given: a name that isn't a sandbox this backend made is resumed too, and its firewall replaced, so keep the ids in
+ * session data the host wrote and the Vercel project to the harness's own sandboxes.
  */
 export function vercelSandbox(options: VercelSandboxOptions = {}): SandboxClient {
   checkOptions(options);

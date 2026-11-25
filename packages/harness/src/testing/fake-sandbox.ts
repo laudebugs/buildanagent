@@ -6,6 +6,7 @@
 import { HarnessError } from "../errors.js";
 import { SandboxDeniedError, SandboxUnavailableError } from "../sandbox/errors.js";
 import { confirmPolicy } from "../sandbox/policy.js";
+import { normalize } from "../sandbox/posix-paths.js";
 import type {
   ExecOptions,
   ExecResult,
@@ -16,7 +17,6 @@ import type {
   SandboxStop,
   WorkspaceManifest,
 } from "../sandbox/types.js";
-import { normalize } from "../sandbox/vercel/paths.js";
 
 /** The options of `fakeSandbox()`. */
 export interface FakeSandboxOptions {

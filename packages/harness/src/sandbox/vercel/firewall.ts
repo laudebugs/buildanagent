@@ -97,6 +97,10 @@ function checkHosts(egress: EgressPolicy): void {
     if (!FIREWALL_HOST.test(route.host)) {
       throw invalid(`the host of route ${index} must be a lower-case host name with no port for the Vercel firewall`);
     }
+    // A rule pins `host` beside the route's header, so a route that sets `host` itself would send the host name where
+    // the credential belongs, and the read-back, which compares header names only, could not tell.
+    if (route.header.toLowerCase() === "host")
+      throw invalid(`route ${index} sets the host header, which the firewall pins`);
     // The firewall applies the rules for a host in order, so a second route on one host could never be told apart.
     if (seen.has(route.host)) throw invalid(`route ${index} shares its host with another route`);
     seen.add(route.host);

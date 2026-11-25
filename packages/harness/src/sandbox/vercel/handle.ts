@@ -10,6 +10,7 @@ import { SandboxDeniedError, SandboxUnsupportedError } from "../errors.js";
 import { checkCommand, checkOptions } from "../exec-checks.js";
 import { isProtectedPath } from "../host-files.js";
 import { APPLY_STOPS, confirmPolicy } from "../policy.js";
+import { inside, normalize, parentOf, relativeTo, resolveAgainst } from "../posix-paths.js";
 import type {
   ExecOptions,
   ExecResult,
@@ -20,7 +21,6 @@ import type {
   SandboxStop,
 } from "../types.js";
 import { type CompiledFirewall, readBackHosts } from "./firewall.js";
-import { inside, normalize, parentOf, relativeTo, resolveAgainst } from "./paths.js";
 import type { VercelCommand, VercelSandboxInstance, VercelSandboxSdk } from "./sdk.js";
 
 const DEFAULT_MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
@@ -48,6 +48,8 @@ interface Kept {
   text: string;
   bytes: number;
 }
+
+const emptyKept = (): Record<Stream, Kept> => ({ stdout: { text: "", bytes: 0 }, stderr: { text: "", bytes: 0 } });
 
 /** A command that is still running, which `dispose()` ends. */
 interface Running {
@@ -315,6 +317,8 @@ export class VercelSandbox implements Sandbox {
   #run(args: string[], cwd: string, options: ExecOptions): Promise<ExecResult> {
     const controller = new AbortController();
     const limit = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
+    // Held here so a timeout can return what the command printed before it, as the local backend does.
+    const kept = emptyKept();
     let started: VercelCommand | undefined;
     let done = false;
     return new Promise<ExecResult>((resolve, reject) => {
@@ -341,7 +345,11 @@ export class VercelSandbox implements Sandbox {
       if (options.timeoutMs !== undefined) {
         const note = `timed out after ${options.timeoutMs} ms\n`;
         timer = setTimeout(
-          () => stop(() => resolve({ exitCode: 124, stdout: "", stderr: note, timedOut: true })),
+          () =>
+            stop(() => {
+              const partial = this.#result(124, kept, limit);
+              resolve({ ...partial, stderr: `${partial.stderr}${note}`, timedOut: true });
+            }),
           options.timeoutMs,
         );
       }
@@ -354,7 +362,7 @@ export class VercelSandbox implements Sandbox {
           started = command;
           // A stop that came while the command was starting could not kill it then.
           if (done) return this.#kill(command);
-          const output = this.#collect(command, limit, controller.signal);
+          const output = this.#collect(command, kept, limit, controller.signal);
           output.catch(() => undefined);
           const finished = await command.wait({ signal: controller.signal });
           const result = this.#result(finished.exitCode, await output, limit);
@@ -383,8 +391,12 @@ export class VercelSandbox implements Sandbox {
    * Reads the command's output as it streams, keeping at most one piece past `limit` bytes of each stream and dropping
    * the rest, so a command that writes without end can't fill the host's memory.
    */
-  async #collect(command: VercelCommand, limit: number, signal: AbortSignal): Promise<Record<Stream, Kept>> {
-    const kept: Record<Stream, Kept> = { stdout: { text: "", bytes: 0 }, stderr: { text: "", bytes: 0 } };
+  async #collect(
+    command: VercelCommand,
+    kept: Record<Stream, Kept>,
+    limit: number,
+    signal: AbortSignal,
+  ): Promise<Record<Stream, Kept>> {
     for await (const { stream, data } of command.logs({ signal })) {
       const part = kept[stream];
       if (part === undefined || part.bytes > limit) continue;
@@ -395,7 +407,7 @@ export class VercelSandbox implements Sandbox {
   }
 
   /** A finished command's result, capped and with every credential value scrubbed from its output. */
-  #result(exitCode: number, output: Record<Stream, Kept>, limit: number): ExecResult {
+  #result(exitCode: number, output: Record<Stream, Kept>, limit: number) {
     const out = capped(output.stdout.text, limit);
     const err = capped(output.stderr.text, limit);
     const scrub = (part: { text: string; truncated: boolean }) =>

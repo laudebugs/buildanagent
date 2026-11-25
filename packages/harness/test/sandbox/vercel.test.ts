@@ -325,12 +325,28 @@ describe("egress is closed to everything the policy doesn't name", () => {
     await sandbox.dispose();
   });
 
-  test("a wildcard, a port, an upper-case host, an address and a git route are refused before anything is made", async () => {
+  test("a wildcard, a port, an upper-case host, an address, a git route and a host-header route are refused before anything is made", async () => {
     const cases: [VercelSandboxOptions["egress"], string[]][] = [
       [{ allow: ["*.example.com"], routes: [] }, ["*.example.com"]],
       [{ allow: ["example.com:8443"], routes: [] }, ["example.com:8443"]],
       [{ allow: ["Example.com"], routes: [] }, ["Example.com"]],
       [{ allow: ["169.254.169.254"], routes: [] }, ["169.254.169.254"]],
+      [
+        {
+          allow: [],
+          routes: [
+            {
+              kind: "header",
+              route: "api",
+              host: "api.example.com",
+              header: "Host",
+              credential: "TOKEN",
+              methods: ["GET"],
+            },
+          ],
+        },
+        ["api.example.com"],
+      ],
       [
         {
           allow: [],
@@ -639,12 +655,16 @@ describe("a sandbox that fails or is disposed is never left running", () => {
     const sandbox = await backend(fake).provision({ root: ROOT }, policy());
     const timed = await sandbox.exec(["sleep", "30"], { env: {}, signal: never(), timeoutMs: 50 });
     assert.ok("exitCode" in timed && timed.exitCode === 124 && timed.timedOut === true);
+    const partial = await sandbox.exec(["sleep", "30", "progress"], { env: {}, signal: never(), timeoutMs: 50 });
+    assert.ok("exitCode" in partial && partial.exitCode === 124 && partial.timedOut === true);
+    assert.equal(partial.stdout, "progress\n", "what a command printed before its timeout is returned");
+    assert.match(partial.stderr, /timed out after 50 ms/);
     const controller = new AbortController();
     const aborted = rejection(sandbox.exec(["sleep", "30"], { env: {}, signal: controller.signal }));
     await new Promise((resolve) => setTimeout(resolve, 20));
     controller.abort(new Error("stop"));
     assert.equal(((await aborted) as Error).message, "stop");
-    assert.equal(fake.calls.filter((call) => call.kind === "kill").length, 2);
+    assert.equal(fake.calls.filter((call) => call.kind === "kill").length, 3);
     const run = fake.calls.find((call) => call.kind === "run" && call.params.args.includes("sleep"));
     assert.ok(run?.kind === "run" && run.params.timeoutMs === 5050, "Vercel holds a backstop past the host's timeout");
     await sandbox.dispose();
