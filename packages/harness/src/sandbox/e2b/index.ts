@@ -1,11 +1,14 @@
 /**
  * `@buildanagent/harness/sandbox/e2b`: the E2B backend, a Firecracker microVM per sandbox, reached through the `e2b`
  * SDK. Egress is closed by default: the sandbox reaches exactly the hosts of its policy, by name, and nothing else.
- * By default the sandbox holds no credentials: authenticated work belongs in host-side tools. An `EgressPolicy` with a
- * credential route opts in to E2B Secrets that E2B's egress proxy injects outside the sandbox, keyed on host, for
- * scoped, short-lived, low-value tokens only, and provisioning fails when a secret doesn't exist, because E2B would
- * silently send the request without it. It claims all three stops, reads its network policy back from E2B after it
- * provisions, and can pause and resume.
+ *
+ * By default the sandbox holds no credentials, and authenticated work belongs in host-side tools. An `EgressPolicy`
+ * with a credential route opts in to E2B Secrets, which E2B's egress proxy injects outside the sandbox, keyed on host.
+ * Use that only for scoped, short-lived, low-value tokens. Provisioning fails when a secret doesn't exist, because E2B
+ * would silently send the request without it.
+ *
+ * The backend claims all three stops, reads the network policy back from E2B after it provisions, and can pause and
+ * resume.
  *
  * The SDK is an optional peer: pass `sdk: { Sandbox, Secret }` from `e2b`, or install `e2b` and the backend loads it on
  * first use. The module imports no Node module, so it runs on any target the SDK runs on; on a bundled target such as

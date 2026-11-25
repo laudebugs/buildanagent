@@ -11,7 +11,7 @@
 
 ## Goal
 
-Implement the E2B (used on AWS, and as Cloudflare's swap) side of the portable seams and pass the N45 conformance suite, so our harness runs on E2B (used on AWS, and as Cloudflare's swap) as ADR 0033 requires.
+Implement the sandbox seam on E2B, the sandbox for the AWS target and Cloudflare's swap, and pass the N45 conformance suite, so our harness runs on E2B as ADR 0033 requires.
 
 ## Context
 
@@ -70,7 +70,7 @@ E2B injects into every process that calls an allowed host, so method scoping nee
 - `e2bSandbox(options)`: a `microvm` `SandboxClient` that claims `mistakes`, `exfiltration` and `hostile_process` and lists `resume` and `pause`. It takes the SDK as `sdk` (`{ Sandbox, Secret }` from `e2b`, or a loader) and otherwise imports `e2b` on first use. `e2b` 2.63.0 is an optional peer and a dev dependency, and the module imports no Node module.
 - `compileE2BEgress(policy, { fill, secretName?, schemes?, unscopedInjection? })`: an `EgressPolicy` compiled to `allowOut` (exactly `allow` plus route hosts), `denyOut: ["0.0.0.0/0"]`, `dnsServers: []`, `allowPublicTraffic: false` and one header rule per host holding `Secret.fill()` placeholders.
 - `SandboxSecretUnresolvedError` (code `sandbox_secret_unresolved`, fields `backend`, `secret`, `credential`) in `./sandbox`, thrown before any sandbox is created or woken when `Secret.exists()` says a named secret is missing.
-- A read-back from `getInfo()` that reports open egress, DNS servers, extra deny entries, extra or literal rules, a SOCKS5 proxy and public URLs as a mismatch; a metadata label and sweep that kills a sandbox a lost create reply left; a kill retried three times on dispose; a pause that kills running commands first; a resume that checks the secrets and the recorded root before it reconnects.
+- A read-back from `getInfo()` that reports open egress, DNS servers, extra deny entries, extra or literal rules, a SOCKS5 proxy and public URLs as a mismatch; a metadata label and sweep that kills a sandbox a lost create reply left; a kill retried three times on dispose; a pause that kills running commands first; a resume that checks the secrets, the recorded root and the network before it reconnects.
 - `test/sandbox/e2b.test.ts` runs the sandbox and egress conformance suites and the portability suite's sandbox and egress seams against an in-process fake of the SDK (`test/sandbox/fake-e2b.ts`), plus escape tests for each rule; `test/sandbox/e2b-types.test.ts` checks that the real SDK fits the structural type. `pnpm --filter @buildanagent/harness e2b:live` runs `test/live/e2b-live.ts` on a real account.
 
 **Decisions**
