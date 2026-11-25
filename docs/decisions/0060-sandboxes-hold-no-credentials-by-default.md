@@ -8,7 +8,7 @@
 
 HD15 and [ADR 0020](0020-default-sandbox-backend.md) chose a local credential proxy that adds credentials on reverse-proxy routes and filters all other egress by name, with no TLS interception. [ADR 0036](0036-loop-outside-sandbox-and-pr-approval.md) keeps the loop outside the sandbox and decides that "The sandbox holds no credentials". The open question was whether the hosted backends may rely on the injection their provider ships instead of a route we run.
 
-The two backends' pull requests checked what each provider does against its pinned package and docs:
+The two backends' pull requests checked what each provider does, as of November 2026, against its pinned package and docs:
 
 - **E2B.** A rule's header holds the placeholder that `Secret.fill()` returns, and E2B's egress proxy swaps it for the stored secret outside the sandbox, on HTTPS to the rule's host only ([E2B fact-check][e2b-fc], row N47b-18). For that host, E2B intercepts TLS with its own CA in the sandbox's trust store (row N47b-24). It injects into every request to the host, whatever the method, path or process (row N47b-21).
 - **Vercel.** A firewall `transform` rule sets a header on a matching request before it leaves the VM, and its `match` can name the method ([Vercel fact-check][vercel-fc], rows N48b-8 and N48b-13). The firewall terminates TLS, with a CA it adds to each sandbox, only for a domain with a transformation, forwarding or direct-response rule (row N48b-14). The backend reads each value on the host through `secret()` at each provision and resume, and sends it to Vercel's API ([harness README, Vercel section][vercel-readme]).
@@ -31,7 +31,7 @@ Both injectors are wider than our local routes, so the owner chose a default tha
 
 **Our local backends, `srt` and Docker, keep ADR 0020's rule: no TLS interception.**
 
-This record does not decide Cloudflare, but it narrows the question. With no credentials as the default, N46b and [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) need the owner's ruling on TLS interception only for the opt-in. N50 must still measure whether plain allowlisted HTTPS, such as `npm install`, works without interception on Sandbox SDK 1.0. If it doesn't, the default itself needs a ruling on Cloudflare.
+This record does not decide Cloudflare, but it narrows the question. With no credentials as the default, N46b and [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) need the owner's ruling on TLS interception only for the opt-in. N50 must still measure whether plain allowlisted HTTPS, such as `npm install`, works without interception on Sandbox SDK 1.0, the current major version as of November 2026. If it doesn't, the default itself needs a ruling on Cloudflare.
 
 Nor does this record decide what a backend may claim about stopping a hostile process. ADR 0020 says "No backend claims to stop a hostile process", yet both hosted backends report the `stops` that N43's `stopsFor()` computes, which include `hostile_process` for a microVM. This record leaves that tension open.
 

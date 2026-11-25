@@ -186,13 +186,13 @@ None of this authenticates a caller. The read-back shows that the sandbox applie
 
 ## Credentials and sandboxes: the sandbox holds none, and an authenticated action runs on the host
 
-A sandbox needs no credentials, so give it none. A push, a pull request, an authenticated API call, a private registry or a cloud CLI runs as a tool in the harness's own process, behind the permission pipeline. This section shows how, and when a hosted backend may add a credential instead.
+A sandbox needs no credentials, so give it none. A push, a pull request or an authenticated API call runs as a tool in the harness's own process, behind the permission pipeline. A route the egress proxy runs also keeps the secret on the host. This section shows both, and when a hosted backend may add a credential.
 
 ### An authenticated action is a host-side tool that the pipeline decides
 
 Register the action as a tool that runs in the harness's process, outside the sandbox. The model can call it, or your code can call it with `harness.invokeTool()`, which goes through the same pipeline and signed pause as a model call ([code calls](#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)). Either way, the [permission pipeline](#one-pipeline-decides-every-tool-call-and-a-call-no-rule-settles-is-denied-when-nobody-can-answer) allows, denies or asks a person first.
 
-The tool reads its credential on the host. For a push, mint a short-lived token for the one task, such as a GitHub App installation token narrowed to one repository, and never write it into the sandbox. Every code call that isn't denied returns `effectKey`, its effect identity. Pass it to a service that takes an idempotency key, so a replayed call can't open a second pull request.
+The tool reads its credential on the host. For a push, mint a short-lived token for the one task, such as a GitHub App installation token narrowed to one repository, and never write it into the sandbox. Every code call that isn't denied returns `effectKey`, its effect identity. Send it to a service that takes an idempotency key. For a service that takes none, declare a business key, such as the repository and branch, so a replayed call keeps the same identity.
 
 ### What the sandbox can and can't do
 
