@@ -160,6 +160,50 @@ Five limits are worth knowing:
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
 
+## The Vercel backend runs each sandbox in a microVM whose firewall holds the credentials
+
+`vercelSandbox(options)` from `./sandbox/vercel` provisions a Vercel Sandbox, a Firecracker microVM, for each sandbox. Its only way out is Vercel's firewall, and the backend sets that firewall to exactly the policy's hosts. A credential never enters the VM: the firewall adds it to a request's header outside the VM, on the hosts and methods a route names. The backend needs `@vercel/sandbox` 3.9.1, an optional peer dependency, so install it beside the harness. Only this subpath imports it.
+
+The code below gives a sandbox one route to the GitHub API. The firewall sets `authorization` on each `GET` to `api.github.com`, and the policy's `network.allow` lists the same host:
+
+```ts
+import { vercelSandbox } from "@buildanagent/harness/sandbox/vercel";
+
+const route = { kind: "header", route: "github", host: "api.github.com", methods: ["GET"], header: "authorization", credential: "GITHUB_TOKEN" } as const;
+const client = vercelSandbox({ egress: { allow: [], routes: [route] }, secret: async (name) => `Bearer ${process.env[name]}` });
+const sandbox = await client.provision({ root: "/vercel/sandbox/repo" }, { readRoots: ["/vercel/sandbox/repo"], writeRoots: ["/vercel/sandbox/repo"], network: { allow: ["api.github.com"], deny: [] } });
+```
+
+`secret(name)` runs on the host when a sandbox is provisioned or resumed, and it resolves with the header's whole value, scheme included. A credential that can't be read, is empty or holds a control character throws `VercelSecretError` (code `egress_secret_unresolved`) before any sandbox is made. The error's `credential` field and its message name the credential, never its value.
+
+The backend compiles the `EgressPolicy` into Vercel's `networkPolicy` and refuses what the firewall can't enforce as written, with the code `invalid_egress_options`:
+
+- a wildcard, an address, a port or an upper-case host, because the firewall matches each name exactly and ignores ports;
+- two routes on one host, because the firewall applies the first rule a request matches;
+- a git route, because the firewall can't read git's ref list;
+- `subnets.allow`, which lets traffic go around the domain allowlist, and `"allow-all"`. `checkVercelNetworkPolicy(policy)` runs the same check on a policy you build yourself.
+
+A policy that names no host compiles to `"deny-all"`, so a sandbox reaches nothing by default. Any other policy also denies the loopback, private, shared and link-local ranges in `VERCEL_DENIED_SUBNETS`, which holds the cloud metadata address 169.254.169.254. A host reached only through a route takes only the route's methods, and the firewall answers 403 to any other. A host that is also in `allow` passes the other methods without a credential. With `egress` set, the policy's `network.allow` must list exactly its hosts, the routes' hosts included, so a route can't widen the allowlist.
+
+`provision()` creates the sandbox with no environment variable, makes the write roots and fetches the firewall policy back from Vercel by the sandbox's name. Vercel reports each injected header's name and hides its value, so the read-back compares the hosts, the header names, the methods and the denied ranges. Any difference throws `SandboxPolicyMismatchError`: an extra or wildcard host, `subnets.allow`, a missing or extra credential rule, or no policy at all. The backend claims `mistakes`, `exfiltration` and `hostile_process`, at tier `microvm`.
+
+Nothing the backend sends into the VM holds a credential's value. Each command runs as `env -i -- NAME=value… command`, so it sees only the variables it was given, and never with `sudo`. `exec`, `readFile` and `writeFile` refuse a command, a variable, a working directory, a path or a file that holds a credential's value, or the token after its scheme, such as the `ghp_…` of `Bearer ghp_…`. A service that echoes the request's headers back still hands the credential to the process that called it. The backend therefore scrubs every credential from a command's output and from the bytes `readFile` returns, replacing it with `[REDACTED]`. The handle serializes to `{ id }` alone, so a saved session never carries the SDK object or its Vercel token.
+
+The roots apply to the file calls and to a command's working directory. Each path is resolved inside the VM with `realpath`, so a symlink that leads out of a root is refused, and `writeFile` refuses the protected files that `srt` and Docker guard, such as `.bashrc` and `.git/hooks`. A command itself can read and write the whole VM, which holds nothing of the host's.
+
+A sandbox that fails is deleted, and so is one you dispose. A create that fails, even after Vercel made the sandbox, a failure making the roots, a read-back mismatch and a manifest file that can't be written all delete it before `provision()` throws. `dispose()` kills each running command, stops the sandbox and deletes it. A delete that fails rejects with `sandbox_io_failed` and the sandbox's name, so you can delete it in the Vercel dashboard. Vercel also stops every sandbox at its `timeoutMs`, 30 minutes by default, which ends one the host lost. A command's timeout kills it with `SIGKILL` and resolves with exit code 124, and Vercel holds a backstop 5 seconds later.
+
+The backend lists `resume` and `snapshot`, and `pause` when `persistent` is set. A resume by a sandbox's `id` reattaches to it, and `snapshotSandbox()` returns an id, starting `snapshot:`, from which a resume starts a new sandbox. Both apply the policy's firewall again with each credential read anew, so a rotated credential takes effect, and both resolve relative paths against the policy's first write root.
+
+Four limits are worth knowing:
+
+- **The firewall is Vercel's.** The backend reads its policy back, but Vercel enforces it. The firewall matches names by TLS SNI and injects a header by intercepting TLS with a CA it puts in each sandbox, which our local proxy chose not to do.
+- **A route serves every process.** Any process in the VM that sends the route's method to the route's host gets the credential added. The local proxy asks for a placeholder first; the firewall does not.
+- **A file call costs two or three commands.** `realpath`, and for a write `mkdir -p`, run before the read or write, so a hostile process could still swap a link in between.
+- **The process tree is unchecked.** A stop sends `SIGKILL` to the command through Vercel's API, and whether that reaches the command's children is unverified. The fake can't fork, so the conformance case that checks it skips, and the live run has no way to see the VM's processes from the host.
+
+The package's tests run the portability suite's sandbox and egress seams against an in-process fake of `@vercel/sandbox`, with a firewall that applies the compiled policy, and a test for each rule above that tries to break it. The opt-in live run, `HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel`, runs the same checks on real VMs in your Vercel account. It uses the credentials `@vercel/sandbox` finds itself, such as the `VERCEL_OIDC_TOKEN` that `vercel env pull` writes, and never reads or prints them. It injects a random canary in place of a real credential, deletes every sandbox it makes, and never runs in CI.
+
 ## A backend that claims a stop reads its policy back, and one that can't resume says so
 
 A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy throws too.
@@ -180,7 +224,7 @@ A client that claims a stop but gives its sandbox no read-back, or one whose rea
 
 `stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`, and the message names the cause, such as that the policy allows all hosts, so the sandbox cannot stop exfiltration. `srtSandbox()` and `dockerSandbox()` both claim `mistakes` and `exfiltration`, so `provision()` refuses a policy that allows every host on either.
 
-A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
+A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused. The Vercel backend lists `resume` and `snapshot`, and `pause` when it is persistent.
 
 None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
 
@@ -231,7 +275,7 @@ The compiler refuses anything that isn't plainly allowed, with the code `invalid
 
 The scan for credential-shaped strings is defence in depth. The field allowlist and the upper-case credential name are the real guards, and a token that starts mid-word, like `acme/ghp_…`, or is base64-encoded passes the scan.
 
-The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`, and `srtSandbox()` keeps its own proxy.
+The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`, and `srtSandbox()` keeps its own proxy. `vercelSandbox()` takes one as its `egress` option and compiles it for Vercel's firewall.
 
 ## A git route lets a push reach listed branches and nothing else
 

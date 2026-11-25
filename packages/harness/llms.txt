@@ -12,6 +12,7 @@ The sections of README.md and every public export, generated from this package's
 - [A denied command becomes a signed request, and an approved one reruns once](README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
+- [The Vercel backend runs each sandbox in a microVM whose firewall holds the credentials](README.md#the-vercel-backend-runs-each-sandbox-in-a-microvm-whose-firewall-holds-the-credentials)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
 - [The egress proxy keeps every credential outside the sandbox](README.md#the-egress-proxy-keeps-every-credential-outside-the-sandbox)
 - [An egress policy names a credential and never holds one](README.md#an-egress-policy-names-a-credential-and-never-holds-one)
@@ -361,6 +362,22 @@ The sections of README.md and every public export, generated from this package's
 - `DOCKER_PROXY_SOCKET_PATH`: Where a command finds the proxy socket, when the caller mounts one.
 - `dockerSandbox()`: Builds the Docker backend.
 - `interface DockerSandboxOptions`: The options of `dockerSandbox()`.
+
+## Exports from `@buildanagent/harness/sandbox/vercel`
+
+- `checkVercelNetworkPolicy()`: Throws `invalid_egress_options` unless `policy` keeps egress closed to everything it doesn't name: it refuses `"allow-all"`, a `subnets.allow` (whose ranges go around the domain allowlist and its credential rules), a wildcard domain and a `forwardURL` rule.
+- `VERCEL_DENIED_SUBNETS`: The address ranges the compiled firewall policy denies by default: loopback, private, shared, link-local (which holds the cloud metadata address 169.254.169.254) and the IPv6 unique-local, link-local and loopback ranges.
+- `interface VercelCommand`: A command started in a Vercel sandbox with `detached: true`.
+- `interface VercelCreateParams`: What the backend passes to `create()`.
+- `interface VercelCredentials`: An access token for the Vercel API, with the team and project the sandboxes belong to.
+- `interface VercelFinishedCommand`: A command that has finished in a Vercel sandbox.
+- `interface VercelRunParams`: What the backend asks `runCommand()` to start.
+- `vercelSandbox()`: Builds the Vercel Sandbox backend: tier `microvm`, claiming `mistakes`, `exfiltration` and `hostile_process`.
+- `interface VercelSandboxInstance`: A Vercel sandbox, as the backend uses it.
+- `interface VercelSandboxOptions`: The options of `vercelSandbox()`.
+- `vercelSandboxSdk()`: The real `@vercel/sandbox` client.
+- `interface VercelSandboxSdk`: The two calls of `@vercel/sandbox`'s `Sandbox` class the backend makes.
+- `class VercelSecretError`: The thrown error for a credential the egress policy names but the host can't supply.
 
 ## Exports from `@buildanagent/harness/credentials`
 
