@@ -1099,3 +1099,20 @@ By default every component runs:
 | `telemetry` | `true` | Drops events to harness and turn observers. |
 | `completionCheck` | `true` | Skips post-turn `completion_check` entries. |
 | `sandbox` | `"os"` | Sets `env_stamp.sandbox` to the chosen tier; `"none"` requires `unsafe: true`. |
+
+## One portability suite tests all eight target seams
+
+`@buildanagent/harness/testing` exports `portabilityConformanceCases()` and `runPortabilityConformance()` to verify all eight portable seams of a deployment target. The module also exports standalone runners for the seven harness seams, while `effectStore` reuses `effectStoreConformance()` from `@buildanagent/agent-safety/testing`:
+
+| Target field | Seam | Standalone runner |
+| --- | --- | --- |
+| `store` | `SessionStore` | `runStoreConformance()` |
+| `lock` | `SessionLock` | `runLockConformance()` |
+| `scheduler` | `Scheduler` | `runSchedulerConformance()` |
+| `keyStore` | `KeyStore` | `runKeyStoreConformance()` |
+| `sandbox` | `SandboxClient` | `runSandboxConformance()` |
+| `egress` | `EgressPolicy` | `runEgressConformance()` |
+| `transport` | Protocol transport | `runTransportConformance()` |
+| `effectStore` | `EffectStore` | `effectStoreConformance()` (`@buildanagent/agent-safety/testing`) |
+
+`runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend refuses non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`). None of the suites import Node modules, so local Node, Cloudflare, AWS and Vercel targets run the same cases. Pass your target's seam factories to `runPortabilityConformance(target)` to verify a new backend.

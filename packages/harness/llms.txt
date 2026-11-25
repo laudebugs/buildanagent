@@ -56,6 +56,7 @@ The sections of README.md and every public export, generated from this package's
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 - [Every removable component has one ablation switch and one header hash](README.md#every-removable-component-has-one-ablation-switch-and-one-header-hash)
+- [One portability suite tests all eight target seams](README.md#one-portability-suite-tests-all-eight-target-seams)
 
 ## Exports from `@buildanagent/harness`
 
@@ -520,6 +521,15 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/testing`
 
 - `interface DeliveredWake`: One wake a scheduler delivered.
+- `type EffectStoreFactory`: Makes a fresh, empty `EffectStore` for each conformance case.
+- `EGRESS_DENIED_TARGETS`: Target URLs every egress backend must refuse: a non-allowlisted host, loopback addresses and cloud metadata endpoints.
+- `type EgressCase`: One case of the egress conformance suite.
+- `egressConformanceCases()`: The egress conformance cases, exported for the local proxy and every hosted sandbox backend.
+- `type EgressConformanceReport`: The report the egress conformance suite returns.
+- `interface EgressDeniedTarget`: One target URL that an egress backend must refuse.
+- `type EgressFactory`: Makes a fresh egress backend (or attaches to one) for each case.
+- `interface EgressProbeResult`: Outcome of one outbound request probe against an egress backend.
+- `interface EgressUnderTest`: What an egress factory returns for one conformance run.
 - `FAKE_COMMANDS`: The commands the fake runs, in the form `[name, ...arguments]`: `echo` prints its arguments, `env` prints the environment it was given as `NAME=value` lines, `cat <path>` prints a file, `write <path> <text>` writes one, `true` and `false` exit with 0 and 1, `sleep <seconds>` waits and honours the timeout and the signal, and `net-probe <host>` reaches a host only if the policy allows it.
 - `fakeSandbox()`: Builds a fake backend with the tier `os` and the stops `mistakes` and `exfiltration`, because it enforces the policy's file roots and network allowlist in memory.
 - `interface FakeSandboxClient`: A fake backend, and what it has seen.
@@ -529,11 +539,27 @@ The sections of README.md and every public export, generated from this package's
 - `type KeyStoreConformanceReport`: What `runKeyStoreConformance()` reports.
 - `type KeyStoreFactory`: Makes a fresh store for each case.
 - `interface KeyStoreUnderTest`: What a factory returns: the store under test.
+- `type LockCase`: One case of the lock conformance suite.
+- `lockConformanceCases()`: The lock conformance cases, each run against a fresh lock from `factory`.
+- `type LockConformanceReport`: The report the lock conformance suite returns.
+- `type LockFactory`: Makes a fresh session lock for each case.
+- `interface LockLeaseHarness`: Lease-expiry hooks supplied by a lock factory.
+- `interface LockUnderTest`: What a lock factory returns for one case.
+- `PORTABILITY_SEAMS`: The eight portable seams covered by `portabilityConformanceCases()`.
+- `type PortabilityCase`: One case of the portability conformance suite, prefixed with its seam name.
+- `portabilityConformanceCases()`: Collects conformance cases for every seam supplied in `target`, each named `<seam>: <case>`.
+- `type PortabilityConformanceReport`: The report returned by `runPortabilityConformance()`.
+- `type PortabilitySeam`: Name of one of the eight portable seams.
+- `interface PortabilityTarget`: Factories for the portable seams a deployment target implements.
 - `interface RecordedExec`: One command the fake received, with what the caller passed.
+- `runEgressConformance()`: Runs every egress conformance case and reports which passed, skipped and failed.
 - `runKeyStoreConformance()`: Runs every case and reports which passed, which skipped and which failed.
+- `runLockConformance()`: Runs every lock conformance case and reports which passed, skipped and failed.
+- `runPortabilityConformance()`: Runs every conformance case for `target` and returns which passed, skipped and failed.
 - `runSandboxConformance()`: Runs every case against backends from `factory` and reports which passed, which skipped with a reason and which failed.
 - `runSchedulerConformance()`: Runs every case and reports which passed, which skipped and which failed.
 - `runStoreConformance()`: Runs every case and reports which passed, which skipped with a reason and which failed.
+- `runTransportConformance()`: Runs every transport conformance case and reports which passed, skipped and failed.
 - `type SandboxCase`: One case of the sandbox conformance suite, which a runner can register as a test of its own.
 - `sandboxConformanceCases()`: The cases, for a backend from `factory`.
 - `interface SandboxConformanceOptions`: The options of the suite.
@@ -550,3 +576,8 @@ The sections of README.md and every public export, generated from this package's
 - `type StoreConformanceReport`: The report the store conformance suite returns: which cases passed, which skipped with a reason and which failed.
 - `type StoreFactory`: Makes a fresh store for each case.
 - `interface StoreUnderTest`: What a factory returns: a fresh, empty store, and optionally a way to tear a log's last line.
+- `type TransportCase`: One case of the transport conformance suite.
+- `transportConformanceCases()`: The transport conformance cases, each run against a fresh transport from `factory`.
+- `type TransportConformanceReport`: The report the transport conformance suite returns.
+- `type TransportFactory`: Makes a fresh connected transport backed by a scripted harness dispatcher for each case.
+- `interface TransportUnderTest`: One live JSON-RPC 2.0 client connection attached to a harness dispatcher.
