@@ -21,6 +21,11 @@ import { inAddressRange, isAddressLiteral } from "../../src/credentials/addresse
 // - a rule's headers are added only to HTTPS requests to its host, each `${e2b.secrets.<name>}` is replaced with the
 //   stored value outside the sandbox, and a header whose secret is missing is dropped while the request still goes out.
 //
+// - a sandbox's public URLs take traffic from anyone unless it was created with `allowPublicTraffic: false`, which
+//   `getInfo()` reports back;
+// - `pause()` freezes the VM with its processes, which carry on after `connect()`;
+// - `exec` reads a first word that starts with `-` as its own option, as bash's builtin does, unless `--` comes first.
+//
 // Loopback reaches the VM itself, where nothing listens, and the fake gives the VM no IPv6 route.
 
 /** One request a host outside the sandbox received, with the headers it saw. */
@@ -64,6 +69,10 @@ export interface FakeE2BOptions {
   readonly infoFails?: boolean;
   /** `Sandbox.list()` rejects. */
   readonly listFails?: boolean;
+  /** A command's `wait()` rejects with no exit code, as when its stream drops, while the process keeps running. */
+  readonly waitDrops?: boolean;
+  /** A command's `kill()` and the group kill never settle, as when the VM stops answering. */
+  readonly killHangs?: boolean;
 }
 
 const DEFAULT_TEMPLATE_ENV = {
@@ -112,7 +121,9 @@ function unquote(text: string): string[] | undefined {
 }
 
 /** The variables the backend's prelude keeps, and the program it runs, or `undefined` for any other string. */
-function parseScript(cmd: string): { keep: readonly string[] | undefined; argv: string[] } | undefined {
+function parseScript(
+  cmd: string,
+): { keep: readonly string[] | undefined; argv: string[]; execOption?: string } | undefined {
   const exec = cmd.lastIndexOf("; exec ");
   if (exec < 0) {
     const argv = unquote(cmd);
@@ -121,13 +132,16 @@ function parseScript(cmd: string): { keep: readonly string[] | undefined; argv: 
   // The prelude keeps only the listed variables when it also unsets the rest; without the unset it keeps them all.
   const prelude = cmd.slice(0, exec);
   const pattern = /case "\$__harness_name" in ([A-Za-z0-9_|]+)\) ;; \*\) unset "\$__harness_name"/.exec(prelude)?.[1];
-  if (pattern === undefined && /^for __harness_name in/.test(prelude)) {
-    const argv = unquote(cmd.slice(exec + "; exec ".length));
-    return argv === undefined ? undefined : { keep: undefined, argv };
-  }
-  const argv = unquote(cmd.slice(exec + "; exec ".length));
-  if (pattern === undefined || argv === undefined) return undefined;
-  return { keep: pattern === "_" ? [] : pattern.split("|"), argv };
+  const rest = cmd.slice(exec + "; exec ".length);
+  const ended = rest.startsWith("-- ");
+  const argv = unquote(ended ? rest.slice(3) : rest);
+  if (argv === undefined) return undefined;
+  // Without `--`, bash's `exec` takes a first word such as `-l`, quoted or not, as one of its own options.
+  const execOption = !ended && argv[0]?.startsWith("-") ? argv[0] : undefined;
+  const more = execOption === undefined ? {} : { execOption };
+  if (pattern === undefined && /^for __harness_name in/.test(prelude)) return { keep: undefined, argv, ...more };
+  if (pattern === undefined) return undefined;
+  return { keep: pattern === "_" ? [] : pattern.split("|"), argv, ...more };
 }
 
 interface Network {
@@ -199,6 +213,12 @@ export class FakeE2B {
         connect: (id) => this.connect(id),
         kill: (id) => this.kill(id),
         list: (opts) => this.list(opts.query.metadata),
+        getInfo: async (id) => {
+          await later();
+          const vm = this.vms.get(id);
+          if (vm === undefined || vm.state === "killed") throw sdkError("SandboxNotFoundError", "no such sandbox");
+          return this.info(vm);
+        },
       },
       Secret: {
         exists: async (name) => {
@@ -328,23 +348,29 @@ export class FakeE2B {
       },
       getInfo: async (): Promise<E2BSandboxInfo> => {
         await later();
-        if (this.options.infoFails) throw sdkError("SandboxError", "getInfo failed");
         if (vm.state === "killed") throw sdkError("SandboxNotFoundError", "no such sandbox");
-        const network = this.options.reported ? this.options.reported(structuredClone(vm.network)) : vm.network;
-        return {
-          sandboxId: vm.id,
-          state: vm.state,
-          metadata: { ...vm.metadata },
-          network: structuredClone(network) as E2BSandboxInfo["network"],
-        };
+        return this.info(vm);
       },
       pause: async () => {
         await later();
         this.running(vm);
+        // A pause snapshots the VM's memory, so every process is frozen with it and carries on after `connect()`.
         vm.state = "paused";
-        for (const process of vm.processes.values()) process.kill();
         return true;
       },
+    };
+  }
+
+  /** What `getInfo()` reports. A sandbox created without `allowPublicTraffic` gets the project default, public. */
+  private info(vm: Vm): E2BSandboxInfo {
+    if (this.options.infoFails) throw sdkError("SandboxError", "getInfo failed");
+    const applied = { allowPublicTraffic: true, ...(vm.network as object) };
+    const network = this.options.reported ? this.options.reported(structuredClone(applied)) : applied;
+    return {
+      sandboxId: vm.id,
+      state: vm.state === "killed" ? "paused" : vm.state,
+      metadata: { ...vm.metadata },
+      network: structuredClone(network) as E2BSandboxInfo["network"],
     };
   }
 
@@ -372,9 +398,13 @@ export class FakeE2B {
       settle(code);
       vm.processes.delete(pid);
     })();
+    const hangs = this.options.killHangs === true;
+    // The group kill's own stream stays up, so the test sees only the command it watches drop.
+    const drops = this.options.waitDrops === true && !cmd.startsWith("kill -KILL");
     return {
       pid,
       wait: async () => {
+        if (drops) throw sdkError("ConnectError", "the command's stream was reset");
         const code = await exit;
         if (code === 0) return { exitCode: 0 };
         throw sdkError("CommandExitError", `exit status ${code}`, {
@@ -384,11 +414,23 @@ export class FakeE2B {
       },
       kill: async () => {
         await later();
+        if (hangs) return new Promise<boolean>(() => {});
+        // envd answers only while the VM runs, so a paused sandbox's processes can't be killed.
+        this.running(vm);
         const running = vm.processes.has(pid);
         process.kill();
         return running;
       },
     };
+  }
+
+  /** Plays the backend's process-group kill, or returns `undefined` for any other string. */
+  private groupKill(vm: Vm, cmd: string): Promise<number> | number | undefined {
+    const group = /^kill -KILL -- -(\d+) 2>\/dev\/null; true$/.exec(cmd);
+    if (group === null) return undefined;
+    if (this.options.killHangs) return new Promise<number>(() => {});
+    vm.processes.get(Number(group[1]))?.kill();
+    return 0;
   }
 
   /** Runs one program and resolves with its exit code. */
@@ -400,12 +442,15 @@ export class FakeE2B {
     killed: () => boolean,
     exit: Promise<number>,
   ): Promise<number> {
-    if (/^kill -KILL -- -\d+ 2>\/dev\/null; true$/.test(cmd)) return 0;
+    const group = this.groupKill(vm, cmd);
+    if (group !== undefined) return group;
     const parsed = parseScript(cmd);
     if (parsed === undefined) {
       io.err("bash: the fake runs only the backend's command strings\n");
       return 2;
     }
+    // `exec -l` runs nothing and the shell exits 0; `exec -c`, `-a` and the rest change how the program starts.
+    if (parsed.execOption !== undefined) return parsed.execOption === "-l" && parsed.argv.length === 1 ? 0 : 2;
     const env = commandEnv(this.options.templateEnv ?? DEFAULT_TEMPLATE_ENV, opts, parsed.keep);
     const [program, ...args] = parsed.argv;
     if (program === "sleep") {

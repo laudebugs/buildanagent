@@ -24,6 +24,8 @@ export interface E2BNetworkOptions {
   allowOut: string[];
   denyOut: string[];
   dnsServers: string[];
+  /** `false` makes the sandbox's public URLs refuse a request without its traffic access token. */
+  allowPublicTraffic: false;
   rules?: Record<string, E2BNetworkRule[]>;
 }
 
@@ -34,6 +36,7 @@ export interface E2BNetworkInfo {
   readonly dnsServers?: readonly string[] | undefined;
   readonly rules?: Readonly<Record<string, readonly E2BNetworkRule[]>> | undefined;
   readonly egressProxy?: unknown;
+  readonly allowPublicTraffic?: boolean | undefined;
 }
 
 /** What `getInfo()` reports about a sandbox, as far as the backend reads it. */
@@ -118,6 +121,8 @@ export interface E2BSandboxApi {
   connect(sandboxId: string, opts: E2BConnectionOptions & { timeoutMs?: number }): Promise<E2BSandboxInstance>;
   /** Kills a running or paused sandbox, and resolves `false` when E2B no longer has it. */
   kill(sandboxId: string, opts?: E2BConnectionOptions): Promise<boolean>;
+  /** Reports a sandbox's state, metadata and network by its id, without waking it. */
+  getInfo(sandboxId: string, opts?: E2BConnectionOptions): Promise<E2BSandboxInfo>;
   /** Lists the sandboxes whose metadata matches. */
   list(opts: E2BConnectionOptions & { query: { metadata: Record<string, string> } }): E2BSandboxPaginator;
 }

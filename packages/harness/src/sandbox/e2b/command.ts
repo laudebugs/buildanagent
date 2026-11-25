@@ -34,7 +34,8 @@ export function commandString(command: readonly string[], keep: readonly string[
   const prelude =
     `for ${LOOP_VARIABLE} in $(compgen -e); do case "$${LOOP_VARIABLE}" in ${pattern}) ;; ` +
     `*) unset "$${LOOP_VARIABLE}" 2>/dev/null ;; esac; done; unset ${LOOP_VARIABLE}`;
-  return `${prelude}; exec ${command.map(quoteWord).join(" ")}`;
+  // `--` ends `exec`'s own options, which a first word such as `-l` would otherwise be read as, quoted or not.
+  return `${prelude}; exec -- ${command.map(quoteWord).join(" ")}`;
 }
 
 /** The string that kills the process group a command leads, which ends what it started when E2B made it a leader. */

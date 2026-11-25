@@ -13,7 +13,7 @@ The sections of README.md and every public export, generated from this package's
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
 - [The E2B backend runs each sandbox in a microVM that reaches only the policy's hosts](README.md#the-e2b-backend-runs-each-sandbox-in-a-microvm-that-reaches-only-the-policys-hosts)
-  - [A credential is an E2B Secret that E2B adds outside the sandbox, on its host only](README.md#a-credential-is-an-e2b-secret-that-e2b-adds-outside-the-sandbox-on-its-host-only)
+  - [Credential injection is a narrow opt-in, for scoped, short-lived, low-value tokens only](README.md#credential-injection-is-a-narrow-opt-in-for-scoped-short-lived-low-value-tokens-only)
   - [A sandbox that fails or is disposed is killed, and E2B's timeout is the backstop](README.md#a-sandbox-that-fails-or-is-disposed-is-killed-and-e2bs-timeout-is-the-backstop)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
 - [The egress proxy keeps every credential outside the sandbox](README.md#the-egress-proxy-keeps-every-credential-outside-the-sandbox)
@@ -368,7 +368,7 @@ The sections of README.md and every public export, generated from this package's
 
 ## Exports from `@buildanagent/harness/sandbox/e2b`
 
-- `compileE2BEgress()`: Compiles `policy` for E2B: `allowOut` is exactly `allow` plus each route's host, `denyOut` denies every other address, `dnsServers` is empty, and each header route becomes a rule on its host whose header is the placeholder for the credential's E2B secret.
+- `compileE2BEgress()`: Compiles `policy` for E2B: `allowOut` is exactly `allow` plus each route's host, `denyOut` denies every other address, `dnsServers` is empty, `allowPublicTraffic` is `false`, and each header route becomes a rule on its host whose header is the placeholder for the credential's E2B secret.
 - `E2B_ALL_TRAFFIC`: The `denyOut` entry that stands for every IPv4 address, which E2B calls `ALL_TRAFFIC`.
 - `E2B_DEFAULT_DNS_SERVER`: The DNS server E2B opens to all traffic when `allowOut` holds a domain and `dnsServers` is left out.
 - `E2B_PROVISION_LABEL`: The metadata key that marks a sandbox with the provisioning attempt that created it, for the sweep after a failure.

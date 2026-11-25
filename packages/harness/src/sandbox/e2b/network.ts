@@ -5,7 +5,8 @@
  * E2B leaves egress open unless a sandbox denies it, matches an `allowOut` domain only on ports 80 and 443, opens all
  * traffic to its DNS servers once `allowOut` holds a domain, and lets an allow entry win over a deny entry. So the
  * backend sends `denyOut: ["0.0.0.0/0"]`, `dnsServers: []` and an `allowOut` of exactly the policy's hosts, and refuses
- * what E2B would widen: a wildcard, an address, a port and a deny list.
+ * what E2B would widen: a wildcard, an address, a port and a deny list. E2B also lets anyone who knows a sandbox's public
+ * URL reach a server inside it unless the sandbox is private, so the backend sends `allowPublicTraffic: false`.
  */
 
 import { isAddressLiteral } from "../../credentials/addresses.js";
@@ -123,7 +124,7 @@ function secretFor(
 
 /**
  * Compiles `policy` for E2B: `allowOut` is exactly `allow` plus each route's host, `denyOut` denies every other
- * address, `dnsServers` is empty, and each header route becomes a rule on its host whose header is the placeholder for
+ * address, `dnsServers` is empty, `allowPublicTraffic` is `false`, and each header route becomes a rule on its host whose header is the placeholder for
  * the credential's E2B secret. It checks the policy as `compileEgressPolicy()` does, and refuses, with
  * `invalid_egress_options`, what E2B can't enforce:
  *
@@ -148,29 +149,39 @@ export function compileE2BEgress(policy: EgressPolicy, options: E2BEgressOptions
       "E2B adds a route's header to every HTTPS request to its host, whatever the method or path; set unscopedInjection: true to accept that",
     );
   }
-  const rules: Record<string, Record<string, string>> = {};
+  // Maps, because a host such as `constructor` is a valid DNS name and an object literal would inherit it.
+  const rules = new Map<string, Map<string, string>>();
   const secrets = new Map<string, E2BSecretReference>();
   for (const [index, entry] of policy.routes.entries()) {
     const { secret, route } = secretFor(entry, index, options);
     const header = route.header.toLowerCase();
-    const headers = rules[route.host] ?? {};
-    if (header in headers) throw invalid(`route ${index} sets a header that another route sets on the same host`);
-    headers[header] = headerValue(route, secret, options);
-    rules[route.host] = headers;
+    const headers = rules.get(route.host) ?? new Map<string, string>();
+    if (headers.has(header)) throw invalid(`route ${index} sets a header that another route sets on the same host`);
+    headers.set(header, headerValue(route, secret, options));
+    rules.set(route.host, headers);
     if (!secrets.has(secret)) secrets.set(secret, { secret, credential: route.credential });
   }
   const allowOut = [...new Set([...policy.allow, ...policy.routes.map((route) => route.host)])];
-  const network: E2BNetworkOptions = { allowOut, denyOut: [E2B_ALL_TRAFFIC], dnsServers: [] };
-  const hosts = Object.keys(rules);
-  if (hosts.length > 0) {
-    network.rules = Object.fromEntries(hosts.map((host) => [host, [{ transform: { headers: { ...rules[host] } } }]]));
+  const network: E2BNetworkOptions = closedNetwork(allowOut);
+  if (rules.size > 0) {
+    network.rules = Object.fromEntries(
+      [...rules].map(([host, headers]) => [host, [{ transform: { headers: Object.fromEntries(headers) } }]]),
+    );
   }
   return { network, secrets: [...secrets.values()] };
 }
 
+/** Every address denied but `allowOut`, no DNS server, and public URLs that need the sandbox's traffic token. */
+const closedNetwork = (allowOut: readonly string[]): E2BNetworkOptions => ({
+  allowOut: [...allowOut],
+  denyOut: [E2B_ALL_TRAFFIC],
+  dnsServers: [],
+  allowPublicTraffic: false,
+});
+
 /** The network configuration for a policy with no credential routes: its hosts, and nothing else. */
 export function plainNetwork(allow: readonly string[]): E2BCompiledEgress {
-  return { network: { allowOut: [...allow], denyOut: [E2B_ALL_TRAFFIC], dnsServers: [] }, secrets: [] };
+  return { network: closedNetwork(allow), secrets: [] };
 }
 
 /** Whether `entry` in `allowOut` is a domain, which opens E2B's DNS servers, rather than an address or a range. */
@@ -202,7 +213,8 @@ function sameRules(
  * The network half of a policy, read from what E2B reports for a sandbox. `allow` is `allowOut`, plus `0.0.0.0/0`
  * when nothing denies every address, plus the DNS servers E2B opens when `allowOut` holds a domain (`8.8.8.8` when E2B
  * reports none). It throws `SandboxPolicyMismatchError` with the field `network.deny` for a deny list other than
- * `0.0.0.0/0`, `egress.rules` for rules other than `expected`'s, and `egress.proxy` for a SOCKS5 proxy.
+ * `0.0.0.0/0`, `egress.rules` for rules other than `expected`'s, `egress.proxy` for a SOCKS5 proxy, and
+ * `network.public` unless E2B reports the sandbox's public URLs as private.
  */
 export function networkFromInfo(info: E2BSandboxInfo, expected: E2BNetworkOptions): SandboxPolicy["network"] {
   const network: E2BNetworkInfo = info.network ?? {};
@@ -213,6 +225,8 @@ export function networkFromInfo(info: E2BSandboxInfo, expected: E2BNetworkOption
     throw new SandboxPolicyMismatchError("egress.proxy");
   }
   if (!sameRules(expected.rules, network.rules)) throw new SandboxPolicyMismatchError("egress.rules");
+  // A missing value means the project's default, which is public unless the project changed it.
+  if (network.allowPublicTraffic !== false) throw new SandboxPolicyMismatchError("network.public");
   const allow = [...allowOut];
   // `allowInternetAccess: false` denies every address as `denyOut: ["0.0.0.0/0"]` does, and `allowOut` still wins.
   const closed = denyOut.includes(E2B_ALL_TRAFFIC) || info.allowInternetAccess === false;

@@ -144,6 +144,7 @@ test("a sandbox is created with allowOut exactly the policy's hosts, every other
     allowOut: ["allowed.test", "example.org"],
     denyOut: ["0.0.0.0/0"],
     dnsServers: [],
+    allowPublicTraffic: false,
   });
   assert.equal(create?.opts.lifecycle.onTimeout, "kill");
   assert.equal(create?.opts.timeoutMs, 15 * 60 * 1000);
@@ -513,7 +514,7 @@ test("a paused sandbox that is disposed is killed, and a resume reattaches only 
   assert.deepEqual(fake.held(), []);
 });
 
-test("a resume of a sandbox with no recorded workspace pauses it again and throws", async () => {
+test("a resume of a sandbox with no recorded workspace throws without waking it", async () => {
   const { fake, client } = setup();
   const sandbox = await client.provision({ root: ROOT }, policyFor([]));
   const vm = fake.vms.get(sandbox.id ?? "");
@@ -560,7 +561,7 @@ test("a command's environment values travel in envs and never on its command lin
   const run = fake.log.runs.at(-1);
   assert.equal(run?.envs.MARKER, "value-on-the-wire");
   assert.ok(!run?.cmd.includes("value-on-the-wire"));
-  assert.match(run?.cmd ?? "", /exec 'env'$/);
+  assert.match(run?.cmd ?? "", /exec -- 'env'$/);
   await sandbox.dispose();
 });
 
@@ -629,4 +630,121 @@ test("a missing e2b package or an sdk without the needed calls makes the backend
   assert.equal(codeOf(rejection(Promise.resolve())), undefined);
   assert.throws(() => e2bSandbox({ timeoutMs: 10 }), /timeoutMs/);
   assert.throws(() => e2bSandbox({ template: "" }), /template/);
+});
+
+// Found in the first review round: each case below failed before its fix.
+
+test("a sandbox's public URLs need E2B's traffic token, and a read-back that reports them public fails", async () => {
+  const { fake, client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor(["allowed.test"]));
+  assert.equal(fake.log.creates[0]?.opts.network.allowPublicTraffic, false);
+  await sandbox.dispose();
+  for (const reported of [true, undefined]) {
+    const open = setup({ reported: (n) => ({ ...(n as object), allowPublicTraffic: reported }) });
+    const error = await rejection(open.client.provision({ root: ROOT }, policyFor(["allowed.test"])));
+    assert.equal((error as SandboxPolicyMismatchError).field, "network.public", String(reported));
+    assert.deepEqual(open.fake.held(), []);
+  }
+  assert.equal(compileE2BEgress({ allow: [], routes: [] }, { fill: (name) => name }).network.allowPublicTraffic, false);
+});
+
+test("a command whose first word starts with - is a program name, not an option of bash's exec", async () => {
+  const { client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  for (const command of [["-l"], ["-c", "env"], ["-a", "name", "echo"]]) {
+    const result = await sandbox.exec(command, { env: {}, signal: never() });
+    assert.ok(
+      !("denied" in result) && result.exitCode === 127,
+      `${JSON.stringify(command)}: ${JSON.stringify(result)}`,
+    );
+  }
+  await sandbox.dispose();
+});
+
+test("a command whose stream drops is killed before exec rejects", async () => {
+  const { fake, client } = setup({ waitDrops: true });
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  const vm = fake.vms.get(sandbox.id ?? "");
+  assert.equal(
+    codeOf(await rejection(sandbox.exec(["sleep", "30"], { env: {}, signal: never() }))),
+    "sandbox_io_failed",
+  );
+  assert.equal(vm?.processes.size, 0, "the command still runs");
+  await sandbox.dispose();
+});
+
+test("a pause kills the running commands first, so none of them carries on after a resume", async () => {
+  const { fake, client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  const vm = fake.vms.get(sandbox.id ?? "");
+  const running = rejection(sandbox.exec(["sleep", "30"], { env: {}, signal: never() }));
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await pauseSandbox(client, sandbox);
+  assert.equal(codeOf(await running), "invalid_sandbox_options");
+  assert.equal(vm?.processes.size, 0, "the command is frozen in the paused VM and would carry on");
+  await sandbox.dispose();
+});
+
+test("a dispose during a pause leaves the sandbox disposed", async () => {
+  const { client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  const pausing = rejection(sandbox.pause?.() ?? Promise.resolve());
+  await sandbox.dispose();
+  await pausing;
+  assert.equal(codeOf(await rejection(sandbox.readFile("a.txt"))), "sandbox_disposed");
+});
+
+test("a timeout returns within a bounded time when the kill itself never answers", async () => {
+  const { client } = setup({ killHangs: true });
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  const started = Date.now();
+  const timed = await sandbox.exec(["sleep", "30"], { env: {}, signal: never(), timeoutMs: 50 });
+  assert.ok(!("denied" in timed) && timed.timedOut === true);
+  assert.ok(Date.now() - started < 10_000);
+  await sandbox.dispose();
+}, 15_000);
+
+test("a route host named after an Object.prototype member compiles as a host, every time", () => {
+  const route = {
+    kind: "header",
+    route: "r",
+    host: "constructor",
+    methods: ["GET"],
+    header: "authorization",
+    credential: "TOKEN",
+  } as const;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const compiled = compileE2BEgress(
+      { allow: [], routes: [route] },
+      { fill: (name) => `\${e2b.secrets.${name}}`, unscopedInjection: true },
+    );
+    assert.deepEqual(compiled.network.rules?.constructor, [
+      { transform: { headers: { authorization: `\${e2b.secrets.token}` } } },
+    ]);
+  }
+  assert.equal((Object as unknown as Record<string, unknown>).authorization, undefined);
+});
+
+test("a resume refused before it connects leaves a running sandbox running and a paused one paused", async () => {
+  const { fake, client } = setup();
+  const sandbox = await client.provision({ root: ROOT }, policyFor([]));
+  const other = { readRoots: ["/srv"], writeRoots: ["/srv"], network: { allow: [], deny: [] } };
+  assert.equal(codeOf(await rejection(resumeSandbox(client, sandbox.id ?? "", other))), "invalid_sandbox_options");
+  assert.equal(fake.vms.get(sandbox.id ?? "")?.state, "running", "a resume paused another holder's running sandbox");
+  assert.deepEqual(fake.log.connects, [], "a resume that can't adopt the sandbox shouldn't wake it");
+  await sandbox.dispose();
+});
+
+test("by default a sandbox holds no credential: no egress option, or one with no routes, makes no rule and no secrets call", async () => {
+  for (const clientOptions of [{}, { egress: { allow: ["allowed.test"], routes: [] } }]) {
+    const { fake, client } = setup({ secrets: { github_token: SECRET_VALUE } }, clientOptions);
+    const sandbox = await client.provision({ root: ROOT }, policyFor(["allowed.test"]));
+    assert.deepEqual(fake.log.exists, [], "the secrets API was called");
+    const network = fake.log.creates[0]?.opts.network;
+    assert.equal(network?.rules, undefined);
+    assert.ok(!JSON.stringify(fake.log.creates).includes("e2b.secrets"), "a placeholder was sent");
+    assert.ok(await reaches(sandbox, "https://allowed.test/"));
+    assert.deepEqual(fake.log.received.at(-1)?.headers, {}, "a header was injected");
+    await sandbox.dispose();
+  }
 });
