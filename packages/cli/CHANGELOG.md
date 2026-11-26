@@ -1,5 +1,66 @@
 # @buildanagent/cli
 
+## 0.1.0-alpha.40
+
+### Patch Changes
+
+- Updated dependencies [ff2ff26]
+- Updated dependencies [3d843de]
+  - @buildanagent/harness@0.1.0-alpha.40
+  - @buildanagent/gateway@0.1.0-alpha.40
+  - @buildanagent/protocol@0.1.0-alpha.40
+  - @buildanagent/sdk@0.1.0-alpha.40
+
+## 0.1.0-alpha.39
+
+### Patch Changes
+
+- Updated dependencies [c2a139a]
+  - @buildanagent/harness@0.1.0-alpha.39
+  - @buildanagent/gateway@0.1.0-alpha.39
+  - @buildanagent/protocol@0.1.0-alpha.39
+  - @buildanagent/sdk@0.1.0-alpha.39
+
+## 0.1.0-alpha.38
+
+### Patch Changes
+
+- Updated dependencies [f28951d]
+  - @buildanagent/harness@0.1.0-alpha.38
+  - @buildanagent/gateway@0.1.0-alpha.38
+  - @buildanagent/protocol@0.1.0-alpha.38
+  - @buildanagent/sdk@0.1.0-alpha.38
+
+## 0.1.0-alpha.37
+
+### Patch Changes
+
+- Updated dependencies [6fcd051]
+  - @buildanagent/harness@0.1.0-alpha.37
+  - @buildanagent/gateway@0.1.0-alpha.37
+  - @buildanagent/protocol@0.1.0-alpha.37
+  - @buildanagent/sdk@0.1.0-alpha.37
+
+## 0.1.0-alpha.36
+
+### Patch Changes
+
+- Updated dependencies [0aa9bda]
+  - @buildanagent/harness@0.1.0-alpha.36
+  - @buildanagent/gateway@0.1.0-alpha.36
+  - @buildanagent/protocol@0.1.0-alpha.36
+  - @buildanagent/sdk@0.1.0-alpha.36
+
+## 0.1.0-alpha.35
+
+### Patch Changes
+
+- Updated dependencies [c25b00d]
+  - @buildanagent/harness@0.1.0-alpha.35
+  - @buildanagent/gateway@0.1.0-alpha.35
+  - @buildanagent/protocol@0.1.0-alpha.35
+  - @buildanagent/sdk@0.1.0-alpha.35
+
 ## 0.1.0-alpha.34
 
 ### Patch Changes

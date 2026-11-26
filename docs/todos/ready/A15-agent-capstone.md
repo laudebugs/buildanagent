@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 3](../../plans/build-agent.md#43-stage-3-runs-the-three-roles-as-linked-turns-and-proves-the-workflow-in-a-capstone) |
 | Round / milestone | Round A (build agent), M7b |
-| Depends on | [A14](A14-bundle-hash-overlays.md), [N35](N35-harness-capstone.md) |
+| Depends on | [A14](A14-bundle-hash-overlays.md), [N35](../done/N35-harness-capstone.md) |
 | Size | M |
 
 ## Goal

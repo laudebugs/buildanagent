@@ -1,5 +1,41 @@
 # @buildanagent/agent-safety
 
+## 0.1.0-alpha.40
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.40
+
+## 0.1.0-alpha.39
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.39
+
+## 0.1.0-alpha.38
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.38
+
+## 0.1.0-alpha.37
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.37
+
+## 0.1.0-alpha.36
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.36
+
+## 0.1.0-alpha.35
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.35
+
 ## 0.1.0-alpha.34
 
 ### Patch Changes

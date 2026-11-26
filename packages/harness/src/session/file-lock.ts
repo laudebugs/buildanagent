@@ -9,6 +9,7 @@ import { hostname } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { HarnessError } from "../errors.js";
+import { LeaseRenewals, leaseId } from "./lease-renewals.js";
 import type { LockHandle, SessionLock } from "./lock.js";
 import { type ProcessScheduler, processScheduler } from "./scheduler.js";
 import { checkKey, encodeName, type SessionKey } from "./store.js";
@@ -266,57 +267,29 @@ interface HoldOptions {
   readonly leaseId: string;
 }
 
-/** The scheduler id of a session's lease renewals, prefixed so it never meets a wake the host asks for the session. */
-function leaseId(key: SessionKey): string {
-  return `lease:${encodeName(key.userId)}/${encodeName(key.sessionId)}`;
-}
-
 class Hold implements LockHandle {
   readonly token: string;
   #held = true;
-  #renewing: Promise<void> | undefined;
   readonly #path: string;
   readonly #options: HoldOptions;
-  // Each hold's own id, so a hold that loses its lock never cancels the wake of a newer hold on the same session.
-  readonly #wakeId: string;
-  readonly #stopListening: () => void;
-  // The time of the renewal wake this hold is waiting for. A duplicate of a delivered wake carries an older time.
-  #armedAt = 0;
+  readonly #renewals: LeaseRenewals;
 
   constructor(path: string, token: string, options: HoldOptions) {
     this.token = token;
     this.#path = path;
     this.#options = options;
-    this.#wakeId = `${options.leaseId}/${token}`;
-    this.#stopListening = options.scheduler.onWake((id, at) => {
-      if (id !== this.#wakeId || at.getTime() !== this.#armedAt || !this.#held) return;
-      this.#arm();
-      void this.#tick();
+    this.#renewals = new LeaseRenewals({
+      scheduler: options.scheduler,
+      renewMs: options.renewMs,
+      wakeId: `${options.leaseId}/${token}`,
+      held: () => this.#held,
+      renew: () => this.#renew(),
+      lose: () => this.#lose(),
     });
-    this.#arm();
-  }
-
-  /** Asks the scheduler for the next renewal. The scheduler may wake twice, so a wake only counts at the time asked for. */
-  #arm(): void {
-    // Each ask has its own time, even when the clock has not moved, so a wake delivered twice is told from the next.
-    const { scheduler, renewMs } = this.#options;
-    const at = new Date(Math.max(scheduler.now() + renewMs, this.#armedAt + 1));
-    this.#armedAt = at.getTime();
-    // A scheduler that refuses the wake leaves no renewal coming, so the hold reports itself lost and the writer stops.
-    scheduler.wake(at, this.#wakeId).catch(() => this.#lose());
   }
 
   held(): boolean {
     return this.#held;
-  }
-
-  #tick(): Promise<void> {
-    if (!this.#held || this.#renewing !== undefined) return Promise.resolve();
-    const renewal = this.#renew().finally(() => {
-      this.#renewing = undefined;
-    });
-    this.#renewing = renewal;
-    return renewal;
   }
 
   /**
@@ -345,14 +318,13 @@ class Hold implements LockHandle {
 
   #lose(): void {
     this.#held = false;
-    this.#stopListening();
-    this.#options.scheduler.cancel(this.#wakeId).catch(() => undefined);
+    this.#renewals.stop();
   }
 
   async release(): Promise<void> {
     this.#lose();
     // A renewal in progress finishes first, so it can't touch the lock after it is gone.
-    await this.#renewing;
+    await this.#renewals.idle();
     const current = parseRecord((await readText(this.#path)) ?? "");
     if (current?.token === this.token) await rm(this.#path, { force: true });
   }

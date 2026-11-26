@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/harness",
-  "version": "0.1.0-alpha.34",
+  "version": "0.1.0-alpha.40",
   "description": "The buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop.",
   "license": "Apache-2.0 OR MIT",
   "repository": {
@@ -77,10 +77,25 @@
       "types": "./dist/sandbox/docker/index.d.ts",
       "default": "./dist/sandbox/docker/index.js"
     },
+    "./sandbox/e2b": {
+      "source": "./src/sandbox/e2b/index.ts",
+      "types": "./dist/sandbox/e2b/index.d.ts",
+      "default": "./dist/sandbox/e2b/index.js"
+    },
+    "./sandbox/vercel": {
+      "source": "./src/sandbox/vercel/index.ts",
+      "types": "./dist/sandbox/vercel/index.d.ts",
+      "default": "./dist/sandbox/vercel/index.js"
+    },
     "./credentials": {
       "source": "./src/credentials/index.ts",
       "types": "./dist/credentials/index.d.ts",
       "default": "./dist/credentials/index.js"
+    },
+    "./cloudflare": {
+      "source": "./src/cloudflare/index.ts",
+      "types": "./dist/cloudflare/index.d.ts",
+      "default": "./dist/cloudflare/index.js"
     },
     "./extensions": {
       "source": "./src/extensions/index.ts",
@@ -112,10 +127,35 @@
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.js"
     },
+    "./aws/dynamodb": {
+      "source": "./src/aws/dynamodb.ts",
+      "types": "./dist/aws/dynamodb.d.ts",
+      "default": "./dist/aws/dynamodb.js"
+    },
+    "./aws/scheduler": {
+      "source": "./src/aws/scheduler.ts",
+      "types": "./dist/aws/scheduler.d.ts",
+      "default": "./dist/aws/scheduler.js"
+    },
+    "./aws/secrets-manager": {
+      "source": "./src/aws/secrets-manager.ts",
+      "types": "./dist/aws/secrets-manager.d.ts",
+      "default": "./dist/aws/secrets-manager.js"
+    },
     "./ablation": {
       "source": "./src/ablation.ts",
       "types": "./dist/ablation.d.ts",
       "default": "./dist/ablation.js"
+    },
+    "./vercel": {
+      "source": "./src/vercel/index.ts",
+      "types": "./dist/vercel/index.d.ts",
+      "default": "./dist/vercel/index.js"
+    },
+    "./vercel/workflow": {
+      "source": "./src/vercel/workflow.ts",
+      "types": "./dist/vercel/workflow.d.ts",
+      "default": "./dist/vercel/workflow.js"
     },
     "./testing": {
       "source": "./src/testing/index.ts",
@@ -169,9 +209,21 @@
         "types": "./dist/sandbox/docker/index.d.ts",
         "default": "./dist/sandbox/docker/index.js"
       },
+      "./sandbox/e2b": {
+        "types": "./dist/sandbox/e2b/index.d.ts",
+        "default": "./dist/sandbox/e2b/index.js"
+      },
+      "./sandbox/vercel": {
+        "types": "./dist/sandbox/vercel/index.d.ts",
+        "default": "./dist/sandbox/vercel/index.js"
+      },
       "./credentials": {
         "types": "./dist/credentials/index.d.ts",
         "default": "./dist/credentials/index.js"
+      },
+      "./cloudflare": {
+        "types": "./dist/cloudflare/index.d.ts",
+        "default": "./dist/cloudflare/index.js"
       },
       "./extensions": {
         "types": "./dist/extensions/index.d.ts",
@@ -197,9 +249,29 @@
         "types": "./dist/server/index.d.ts",
         "default": "./dist/server/index.js"
       },
+      "./aws/dynamodb": {
+        "types": "./dist/aws/dynamodb.d.ts",
+        "default": "./dist/aws/dynamodb.js"
+      },
+      "./aws/scheduler": {
+        "types": "./dist/aws/scheduler.d.ts",
+        "default": "./dist/aws/scheduler.js"
+      },
+      "./aws/secrets-manager": {
+        "types": "./dist/aws/secrets-manager.d.ts",
+        "default": "./dist/aws/secrets-manager.js"
+      },
       "./ablation": {
         "types": "./dist/ablation.d.ts",
         "default": "./dist/ablation.js"
+      },
+      "./vercel": {
+        "types": "./dist/vercel/index.d.ts",
+        "default": "./dist/vercel/index.js"
+      },
+      "./vercel/workflow": {
+        "types": "./dist/vercel/workflow.d.ts",
+        "default": "./dist/vercel/workflow.js"
       },
       "./testing": {
         "types": "./dist/testing/index.d.ts",
@@ -213,7 +285,11 @@
     "prepublishOnly": "node ../../scripts/refuse-local-publish.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts"
+    "test:sandbox": "HARNESS_TEST_SANDBOX=1 vitest run test/sandbox/srt.test.ts test/sandbox/docker.test.ts",
+    "live:cloudflare": "tsx test/cloudflare/live.ts",
+    "e2b:live": "HARNESS_E2B_LIVE=1 tsx test/live/e2b-live.ts",
+    "live:vercel": "node scripts/live-vercel.mjs",
+    "live:vercel-sandbox": "tsx scripts/vercel-live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.83",
@@ -224,11 +300,45 @@
     "@earendil-works/pi-schema": "1.5.2",
     "@modelcontextprotocol/client": "2.4.0"
   },
+  "peerDependencies": {
+    "@aws-sdk/client-dynamodb": "3.1169.0",
+    "@aws-sdk/client-scheduler": "3.1169.0",
+    "@aws-sdk/client-secrets-manager": "3.1169.0",
+    "@vercel/sandbox": "3.9.1",
+    "e2b": "2.63.0"
+  },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-dynamodb": {
+      "optional": true
+    },
+    "@aws-sdk/client-scheduler": {
+      "optional": true
+    },
+    "@aws-sdk/client-secrets-manager": {
+      "optional": true
+    },
+    "@vercel/sandbox": {
+      "optional": true
+    },
+    "e2b": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "3.1169.0",
+    "@aws-sdk/client-scheduler": "3.1169.0",
+    "@aws-sdk/client-secrets-manager": "3.1169.0",
+    "@cfworker/json-schema": "4.1.6",
+    "@electric-sql/pglite": "0.5.16",
     "@modelcontextprotocol/server": "2.4.0",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/sdk-trace": "2.12.1",
+    "@vercel/sandbox": "3.9.1",
+    "esbuild": "0.28.2",
+    "e2b": "2.63.0",
     "json-rpc-2.0": "1.8.1",
-    "miniflare": "5.20261103.0-beta"
+    "miniflare": "5.20261103.0-beta",
+    "pg": "8.23.1",
+    "workflow": "5.6.1"
   }
 }

@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [W8](W8-cloud-mode-evals.md), [N48a](N48a-vercel-state-adapters.md), [N48b](N48b-vercel-sandbox-backend.md) |
+| Depends on | [W8](W8-cloud-mode-evals.md), [N48a](../done/N48a-vercel-state-adapters.md), [N48b](../done/N48b-vercel-sandbox-backend.md) |
 | Size | M |
 
 ## Goal

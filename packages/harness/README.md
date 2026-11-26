@@ -2,7 +2,7 @@
 
 The harness wraps the SDK's loop with what a coding agent needs around it: a session log that survives a crash, a context policy, tools, permissions, a sandbox and credentials kept out of it. Use it to run an agent whose every turn is recorded and can be resumed, checked and replayed.
 
-Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `extensions`, `memory`, `mcp`, `server`, `telemetry`, `ablation` and `testing` are built.
+Each removable component has its own subpath, so you import only what you use and an ablation can drop the rest. `session`, `context`, `tools`, `permissions`, `sandbox`, `credentials`, `cloudflare`, `extensions`, `memory`, `mcp`, `server`, `telemetry`, `ablation` and `testing` are built, and so are the three AWS adapters under `aws/`.
 
 ## Install the alpha with `pnpm add @buildanagent/harness@alpha`
 
@@ -13,6 +13,8 @@ pnpm add @buildanagent/harness@alpha
 ```
 
 All six buildanagent packages share one version, and the harness depends on that exact version of the gateway, the SDK, the protocol and `@buildanagent/agent-safety`. Name the tag: a plain `pnpm add @buildanagent/harness` installs `0.0.0-bootstrap.0`, a deprecated placeholder, because `latest` stays on it until the first stable release.
+
+The AWS SDK clients are optional peers, so a host off AWS never installs them. Each AWS subpath needs only its own client, at the release its tests run against: `./aws/dynamodb` needs `@aws-sdk/client-dynamodb`, `./aws/scheduler` needs `@aws-sdk/client-scheduler` and `./aws/secrets-manager` needs `@aws-sdk/client-secrets-manager`, each 3.1169.0.
 
 ## The session log holds twenty-one entry types
 
@@ -160,6 +162,141 @@ Five limits are worth knowing:
 
 The same opt-in tests run the conformance suite and the lock-down cases against a real daemon, with a pinned Node image, and fail on a skipped case. Without Docker, the other tests check the flags and the unavailable paths with a fake client.
 
+## The E2B backend runs each sandbox in a microVM that reaches only the policy's hosts
+
+`e2bSandbox()` from `./sandbox/e2b` provisions each sandbox as an E2B Firecracker microVM, reached through the `e2b` SDK. E2B leaves a sandbox's egress open unless the sandbox denies it, so this backend closes it: the sandbox reaches exactly the hosts in the policy's `network.allow`, by name, and nothing else.
+
+By default the sandbox holds no credentials and needs none. Do authenticated work, such as a push, an API call that spends money or a read of production data, in host-side tools behind the permission pipeline, with the loop outside the sandbox (ADR 0036, and ADR 0060 in `docs/decisions/`). Without an `egress` option, or with an `EgressPolicy` that has no routes, the backend creates no E2B rule, calls no secrets API and injects nothing.
+
+The SDK is an optional peer dependency, pinned at `e2b` 2.63.0. Pass `{ Sandbox, Secret }` from `e2b` as `sdk`, or install `e2b` and let the backend import it on first use. The backend imports no Node module, so it runs wherever the SDK runs; on a bundled target such as Workers, pass `sdk`, because the backend's own import of `e2b` is left for the runtime to resolve. The code below provisions a sandbox that reaches `registry.npmjs.org` and holds no credential:
+
+```ts
+import { e2bSandbox } from "@buildanagent/harness/sandbox/e2b";
+import { Sandbox, Secret } from "e2b";
+const client = e2bSandbox({ sdk: { Sandbox, Secret } });
+const sandbox = await client.provision({ root: "/home/user/workspace" }, { readRoots: [], writeRoots: ["/home/user/workspace"], network: { allow: ["registry.npmjs.org"], deny: [] } });
+```
+
+The backend creates every sandbox with four network settings:
+
+- `denyOut: ["0.0.0.0/0"]`, so every address that `allowOut` doesn't name is denied;
+- `dnsServers: []`, because E2B otherwise opens every port of `8.8.8.8` once `allowOut` holds a name. E2B routes an allowed name by its Host header or TLS SNI, so a program needs only an `/etc/hosts` entry with any public address, which the template should carry;
+- `allowOut` set to exactly the policy's hosts, with no package registry or other host added for you;
+- `allowPublicTraffic: false`, because otherwise a sandbox takes the project's default, which in a project made before October 30, 2026 is public. On a public sandbox, anyone who knows its URL can reach any server a process inside it starts, which is a way in and a way out that bypasses the egress allowlist.
+
+`provision()` refuses what E2B would widen, with `invalid_sandbox_options` and a message that never quotes the entry: a wildcard, an address or a range, a port, a name in upper case and a non-empty `network.deny`. E2B lets an allowed entry win over a denied one and matches a name only on ports 80 and 443, so none of them could be enforced as written.
+
+### Credential injection is a narrow opt-in, for scoped, short-lived, low-value tokens only
+
+A credential route in `egress` opts a sandbox into provider-side injection: E2B's egress proxy adds a credential, stored as an E2B Secret, to requests to one host, outside the sandbox. It is off unless the policy has a route. Use it only for a token that is scoped, revocable or short-lived, and low in value, such as a repo-scoped token for one run, a read-only registry token or a model-API key with a spend limit. Anything that can spend money without a cap, push to a protected branch or reach production data stays in a host-side tool. Documentation and review enforce that limit; the code does not (ADR 0060).
+
+The opt-in has four costs, and the backend makes you accept or avoid each:
+
+- **Every method, path and process.** E2B adds the header to every HTTPS request to the host, from every process in the sandbox. The backend refuses a policy with a route unless `unscopedInjection` is `true`. To scope a credential by method, reach the host through our own egress proxy instead, through E2B's SOCKS5 proxy option. A git route is refused, because E2B can't filter a push by ref.
+- **E2B holds the secret.** The value lives in your E2B project, and E2B's proxy resolves it for each request.
+- **E2B intercepts TLS.** E2B decrypts requests to a host with a rule, so its proxy sees their plaintext, and the sandbox's trust store carries E2B's certificate authority. The owner accepted this for the hosted backends on 2026-11-25 (ADR 0060). The harness's own proxy and the local backends still never intercept TLS (HD15).
+- **A missing secret is dropped silently.** E2B forwards the request with the header left out, so provisioning checks every secret first (below). A secret deleted after that check is still dropped silently.
+
+The backend compiles `egress` with `compileE2BEgress()`, which runs every check of `compileEgressPolicy()` first. Each header route becomes a rule on its host that sets the route's header to the placeholder `Secret.fill()` returns for the credential's secret. A `schemes` entry puts a word such as `Bearer` before it. The secret's name defaults to the credential's name in lower case, so `GITHUB_TOKEN` reads the secret `github_token`, and `secretName` can map it otherwise. Two credentials may not share one secret, so a policy can't give routes to two credentials whose names differ only in case, unless `secretName` maps them apart. The egress policy's `allow` and its routes' hosts together must equal the policy's `network.allow`. The code below opts a sandbox into one read-only token for `api.github.com`:
+
+```ts
+import { e2bSandbox } from "@buildanagent/harness/sandbox/e2b";
+import { Sandbox, Secret } from "e2b";
+const route = { kind: "header", route: "github", host: "api.github.com", methods: ["GET"], header: "authorization", credential: "GITHUB_TOKEN" } as const;
+const client = e2bSandbox({ sdk: { Sandbox, Secret }, egress: { allow: [], routes: [route] }, unscopedInjection: true, schemes: { GITHUB_TOKEN: "Bearer" } });
+const sandbox = await client.provision({ root: "/home/user/workspace" }, { readRoots: [], writeRoots: ["/home/user/workspace"], network: { allow: ["api.github.com"], deny: [] } });
+```
+
+The backend never reads, holds or logs a secret's value. You store the value in your E2B project with `Secret.create()`, from a trusted process outside the sandbox, and the sandbox's configuration holds only the placeholder. E2B's proxy resolves it for each HTTPS request to the rule's host. Plain HTTP gets no header.
+
+Before it creates a sandbox, `provision()` calls `Secret.exists()` for each secret the rules name. A missing secret throws `SandboxSecretUnresolvedError`, code `sandbox_secret_unresolved`, whose `secret` and `credential` fields hold the two names. Without the check, a misspelled name would surface only as a 401 from the host. A secrets API that can't answer throws `SandboxUnavailableError`, and nothing is created.
+
+### A sandbox that fails or is disposed is killed, and E2B's timeout is the backstop
+
+The backend reads the network back from E2B's `getInfo()` after it creates a sandbox and before it returns one. The read-back reports `0.0.0.0/0` as allowed when nothing denies every address, and adds the DNS servers E2B opens. A difference throws `SandboxPolicyMismatchError`. A deny list other than `0.0.0.0/0` gives the field `network.deny`, rules other than the compiled ones give `egress.rules`, a SOCKS5 proxy gives `egress.proxy`, and public URLs that E2B doesn't report as private give `network.public`. The roots read back from the backend's own record, which its file calls enforce.
+
+The backend kills a sandbox on every path that doesn't hand it to you: a failed manifest write, a failed read-back and a mismatch. A create whose reply is lost may still have made a sandbox. Each create therefore carries a random label in its metadata, and the backend kills any sandbox listed with that label. `dispose()` tries a failed kill three times, then rejects with `sandbox_io_failed`. Each sandbox also has a lifetime, `timeoutMs` (15 minutes by default), after which E2B kills it even if this process died first.
+
+The client claims `mistakes`, `exfiltration` and `hostile_process`, because a microVM with a closed allowlist delivers all three by `stopsFor()`. A hostile process must escape a Firecracker VM on E2B's hosts, which hold none of yours; ADR 0020's "no backend claims to stop a hostile process" was written of the local backends, which share the host's kernel. It lists the `resume` and `pause` capabilities, but not `snapshot`. A pause first kills every running command, because E2B keeps a paused VM's processes and they would carry on after a resume. Before it reconnects, a resume checks the secrets, reads the workspace root from the sandbox's metadata and compares the sandbox's network with the policy. A resume refused for any of these reasons leaves the sandbox as it was, so it neither wakes a paused sandbox nor pauses a running one.
+
+A command runs as `bash -l -c` with every template variable unset except the ones you pass, whose values travel in the request and never on the command line. A timeout, an abort, a lost command stream or `dispose()` kills the command, and the backend also kills its process group. An exec waits at most 5 seconds for that kill, so a VM that stops answering can't hold a timeout or an abort. A first word that starts with `-` is a program's name, never an option of the shell's `exec`. E2B's own command timeout is off, so a command left running by a host process that crashed ends with the sandbox's `timeoutMs`. The backend refuses a command, an environment value or a file that holds the E2B API key, whether you passed it as `apiKey` or the SDK reads it from the host's `E2B_API_KEY`.
+
+Four limits are worth knowing:
+
+- **The roots are checked by path, not by real path.** A file call outside the roots is denied, but a symlink inside the workspace can lead a call elsewhere in the VM. Commands may write anywhere in the VM. The VM is the boundary, and the host's files are never in it.
+- **A process tree may outlive its command.** The backend kills the process group only when E2B made the command a group leader, which has not been checked on a real sandbox.
+- **The template is trusted.** Its own environment variables and files reach every command, so a template must hold no credential. Pin it to a build as `<template>:<build_id>`, because a tag can move.
+- **The read-back trusts E2B's report.** It compares the configuration E2B reports, not the traffic a sandbox sends.
+
+The conformance suite, the egress cases and the portability suite's sandbox and egress seams run offline against an in-process fake of the SDK in `test/sandbox/e2b.test.ts`. `pnpm --filter @buildanagent/harness e2b:live` runs them on a real account. It needs `HARNESS_E2B_LIVE=1` and `E2B_API_KEY`, never runs in CI, and creates and deletes its own throwaway secret.
+
+## The Vercel backend runs each sandbox in a microVM that holds no credentials
+
+`vercelSandbox(options)` from `./sandbox/vercel` provisions a Vercel Sandbox, a Firecracker microVM, for each sandbox. Its only way out is Vercel's firewall, and the backend sets that firewall to exactly the policy's hosts. By default the sandbox holds no credential and needs none: do authenticated work, such as a push or a call to a paid API, as a host-side tool behind the permission pipeline ([ADR 0036](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0036-loop-outside-sandbox-and-pr-approval.md)). The backend needs `@vercel/sandbox` 3.9.1, an optional peer dependency, so install it beside the harness. Only this subpath imports it.
+
+The code below provisions a sandbox that can reach the npm registry and nothing else:
+
+```ts
+import { vercelSandbox } from "@buildanagent/harness/sandbox/vercel";
+
+const client = vercelSandbox();
+const sandbox = await client.provision({ root: "/vercel/sandbox/repo" }, { readRoots: ["/vercel/sandbox/repo"], writeRoots: ["/vercel/sandbox/repo"], network: { allow: ["registry.npmjs.org"], deny: [] } });
+```
+
+With no credential route, the backend never calls the `secret` option, sends Vercel no secret and adds no header to any request.
+
+**Credential injection is a narrow opt-in.** An `egress` policy with a header route makes the firewall add a credential to that route's requests, outside the VM, through a `transform` rule. Use it only for a scoped token that is revocable or short-lived and worth little, such as a repository-scoped token for one run, a read-only registry token, or a model-API key with a spend limit. A credential that can spend money without a cap, push to a protected branch or reach production data stays host-side. Review enforces that rule, not code ([ADR 0060](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0060-sandboxes-hold-no-credentials-by-default.md)). The opt-in has four costs:
+
+- **Vercel intercepts TLS on the route's host.** Its firewall terminates TLS there with a CA made for each sandbox, which Vercel adds to the VM's system certificates, so every program in the sandbox trusts that CA. Our local proxy never intercepts TLS.
+- **Vercel's proxy holds the secret** and sees each request to that host in plain text.
+- **The host reads the secret** through `secret(name)` at every provision and every resume.
+- **An echoing host hands the credential back.** A service that returns the request's headers gives the credential to the process that called it. The backend scrubs it from what comes back to the host, but the process has seen it.
+
+The code below gives a sandbox one route to the GitHub API. The firewall sets `authorization` on each `GET` to `api.github.com`, and pins its `host` header to that name. The policy's `network.allow` lists the same host:
+
+```ts
+import { vercelSandbox } from "@buildanagent/harness/sandbox/vercel";
+
+const route = { kind: "header", route: "github", host: "api.github.com", methods: ["GET"], header: "authorization", credential: "GITHUB_TOKEN" } as const;
+const client = vercelSandbox({ egress: { allow: [], routes: [route] }, secret: async (name) => `Bearer ${process.env[name]}` });
+const sandbox = await client.provision({ root: "/vercel/sandbox/repo" }, { readRoots: ["/vercel/sandbox/repo"], writeRoots: ["/vercel/sandbox/repo"], network: { allow: ["api.github.com"], deny: [] } });
+```
+
+`secret(name)` runs on the host when a sandbox is provisioned or resumed, and it resolves with the header's whole value, scheme included. A credential that can't be read, is empty or holds a control character throws `VercelSecretError` (code `egress_secret_unresolved`) before any sandbox is made. The error's `credential` field and its message name the credential, never its value.
+
+The backend compiles the `EgressPolicy` into Vercel's `networkPolicy` and refuses what the firewall can't enforce as written, with the code `invalid_egress_options`:
+
+- a wildcard, an address, a port or an upper-case host, because the firewall matches each name exactly and ignores ports;
+- two routes on one host, because the firewall applies the first rule a request matches;
+- a route whose header is `host`, because the rule pins `host` to the route's host, which would replace the credential;
+- a git route, because the firewall can't read git's ref list;
+- `subnets.allow`, which lets traffic go around the domain allowlist, and `"allow-all"`. `checkVercelNetworkPolicy(policy)` runs the same check on a policy you build yourself.
+
+A policy that names no host compiles to `"deny-all"`, so a sandbox reaches nothing by default. Any other policy also denies the loopback, private, shared and link-local ranges in `VERCEL_DENIED_SUBNETS`, which holds the cloud metadata address 169.254.169.254, and the IPv4-mapped IPv6 range, so an address that wraps one of those IPv4 ranges is refused too. A host reached only through a route takes only the route's methods, and the firewall answers 403 to any other. A host that is also in `allow` passes the other methods without a credential. With `egress` set, the policy's `network.allow` must list exactly its hosts, the routes' hosts included, so a route can't widen the allowlist.
+
+`provision()` creates the sandbox with no environment variable, makes the write roots and fetches the firewall policy back from Vercel by the sandbox's name. Vercel reports each injected header's name and hides its value, so the read-back compares the hosts, the header names, the methods and the denied ranges. Any difference throws `SandboxPolicyMismatchError`: an extra or wildcard host, `subnets.allow`, a missing or extra credential rule, a rule that forwards requests to a proxy, or no policy at all. Vercel's read-back leaves out `response` rules, so it can't confirm the 403 that keeps a route-only host to the route's methods. The live run checks that one by sending a refused method. The backend claims `mistakes`, `exfiltration` and `hostile_process`, at tier `microvm`.
+
+When a route injects a credential, the backend still sends no credential value into the VM. Each command runs as `env -i -- NAME=value… command`, so it sees only the variables it was given. The backend never asks Vercel for `sudo`, though the default image has `sudo` installed, so a process can still become root inside its own VM. `exec`, `readFile` and `writeFile` refuse any argument, variable, path or file content that holds a credential's value, or the token after its scheme, such as the `ghp_…` of `Bearer ghp_…`, as written, percent-encoded, JSON-escaped or in base64.
+
+Because an echoing service hands a credential back, the backend scrubs every credential, in the same four forms, from a command's output and from the bytes `readFile` returns, replacing it with `[REDACTED]`.
+
+A command's output streams to the host, which keeps at most `maxOutputBytes` of each stream (8 MiB by default) and drops the rest, so a command that writes without end can't fill the host's memory. The handle serializes to `{ id }` alone, so a saved session never carries the SDK object or its Vercel token.
+
+The roots apply to the file calls and to a command's working directory. Each path is resolved inside the VM with `realpath`, so a symlink that leads out of a root is refused, and `writeFile` refuses the protected files that `srt` and Docker guard, such as `.bashrc` and `.git/hooks`. A command itself can read and write the whole VM, which holds nothing of the host's.
+
+A sandbox that fails is deleted, and so is one you dispose. `provision()` deletes the sandbox before it throws on any of four failures: a create that fails, even after Vercel made the sandbox; a write root it can't make; a read-back mismatch; and a manifest file it can't write. A create that Vercel refuses with a client error, such as a name already taken, made nothing, so the backend deletes nothing: the sandbox with that name belongs to someone else. `dispose()` kills each running command and deletes the sandbox, which removes its sessions. It doesn't stop the sandbox first, because a persistent sandbox would then save a snapshot of its files that outlives the delete. A delete that fails stops the sandbox instead and rejects with `sandbox_io_failed` and the sandbox's name, so you can delete it in the Vercel dashboard. Vercel also stops every sandbox at its `timeoutMs`, 30 minutes by default, which ends one the host lost. A command's timeout kills it with `SIGKILL` and resolves with exit code 124, the output it printed so far and a timeout note in `stderr`, and Vercel holds a backstop 5 seconds later.
+
+The backend lists `resume` and `snapshot`, and `pause` when `persistent` is set. A resume by a sandbox's `id` reattaches to it, and `snapshotSandbox()` returns an id, starting `snapshot:`, from which a resume starts a new sandbox. The backend trusts a resume `id` as given: a name that isn't one of its own sandboxes is resumed too and gets the policy's firewall, so keep the ids to session data the host wrote. Both apply the policy's firewall again with each credential read anew, so a rotated credential takes effect, and both resolve relative paths against the policy's first write root. A resume by `id` whose firewall update or write roots fail stops the sandbox before it throws, so the sandbox doesn't run on under its old policy with no handle to dispose it; a persistent one keeps its files. Vercel can't resume a sandbox that isn't persistent once it stops. Without `persistent`, a resume by `id` therefore reattaches only while the sandbox runs, and `snapshotSandbox()` stops it, which leaves its handle good only for `dispose()`.
+
+The backend has four limits:
+
+- **The firewall is Vercel's.** The backend reads its policy back, but Vercel enforces it. The firewall matches names by TLS SNI. On a host with no route, it reads only the SNI, so a client can name an allowed host there and send another host header, which Vercel calls domain fronting; a route's rule pins `host`, so it closes that gap on the route's methods.
+- **A route serves every process.** With the opt-in, any process in the VM that sends the route's method to the route's host gets the credential added. Where the local proxy asks for a placeholder first, the firewall adds the credential to any request that matches.
+- **A file call costs two or three commands.** `realpath`, and for a write `mkdir -p`, run before the read or write, so a hostile process could still swap a link in between.
+- **The process tree is unchecked.** A stop sends `SIGKILL` to the command through Vercel's API, and whether that reaches the command's children is unverified. The fake can't fork, so the conformance case that checks it skips, and the live run has no way to see the VM's processes from the host.
+
+The package's tests run the portability suite's sandbox and egress seams against an in-process fake of `@vercel/sandbox`, with a firewall that applies the compiled policy, and a test for each rule above that tries to break it. The opt-in live run, `HARNESS_VERCEL_LIVE=1 pnpm --filter @buildanagent/harness live:vercel-sandbox`, runs the same checks on real VMs in your Vercel account. It uses the credentials `@vercel/sandbox` finds itself, such as the `VERCEL_OIDC_TOKEN` that `vercel env pull` writes, and never reads or prints them. It injects a random canary in place of a real credential, deletes every sandbox and snapshot it makes, and never runs in CI.
+
 ## A backend that claims a stop reads its policy back, and one that can't resume says so
 
 A backend that claims a stop reads back the policy it applied, and `provision()` compares it with the request before it returns. `srtSandbox()` rereads its settings file from disk, and `dockerSandbox()` reports the mounts and flags it creates each container with. If any field differs, `provision()` disposes the sandbox and throws `SandboxPolicyMismatchError`, so nothing runs under a policy you didn't ask for. The check treats `readRoots`, `writeRoots`, `network.allow` and `network.deny` as sets, and a narrower policy throws too.
@@ -180,9 +317,39 @@ A client that claims a stop but gives its sandbox no read-back, or one whose rea
 
 `stopsFor(tier, policy)` computes the stops that an applied policy delivers. Only a `microvm` stops a `hostile_process`. A policy that allows `*`, `0.0.0.0/0` or `::/0` loses `exfiltration`, and a root of `/` loses `mistakes`. A client that claims a stop its applied policy doesn't deliver is refused with the field `stops`, and the message names the cause, such as that the policy allows all hosts, so the sandbox cannot stop exfiltration. `srtSandbox()` and `dockerSandbox()` both claim `mistakes` and `exfiltration`, so `provision()` refuses a policy that allows every host on either.
 
-A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused.
+A hosted backend can also list `capabilities`: `resume`, `snapshot` and `pause`. Call them through `resumeSandbox(client, id, policy)`, `snapshotSandbox(client, sandbox)` and `pauseSandbox(client, sandbox)`. A resume reads the policy back as `provision()` does and sets the handle's `stops` from it. Unlike `provision()`, a resume that finds a mismatch throws and leaves the sandbox alone, because disposing it would destroy a paused sandbox and its work: the caller decides whether to dispose. A capability the client doesn't list rejects with `SandboxUnsupportedError`, code `sandbox_unsupported`. The `none`, `srt` and Docker backends list none, so a resume, a snapshot or a pause on them is always refused. The Vercel backend lists `resume` and `snapshot`, and `pause` when it is persistent.
 
 None of this authenticates a caller. The read-back shows that the sandbox applies the policy you asked for, and the host still decides who may ask.
+
+## Credentials and sandboxes: the sandbox holds none, and an authenticated action runs on the host
+
+A sandbox needs no credentials, so give it none. A push, a pull request or an authenticated API call runs as a tool in the harness's own process, behind the permission pipeline. A route the egress proxy runs also keeps the secret on the host. This section shows both, and when a hosted backend may add a credential.
+
+### An authenticated action is a host-side tool that the pipeline decides
+
+Register the action as a tool that runs in the harness's process, outside the sandbox. The model can call it, or your code can call it with `harness.invokeTool()`, which goes through the same pipeline and signed pause as a model call ([code calls](#code-runs-a-side-effect-through-the-same-pipeline-and-pause-as-the-model-with-no-model-call)). Either way, the [permission pipeline](#one-pipeline-decides-every-tool-call-and-a-call-no-rule-settles-is-denied-when-nobody-can-answer) allows, denies or asks a person first.
+
+The tool reads its credential on the host. For a push, mint a short-lived token for the one task, such as a GitHub App installation token narrowed to one repository, and never write it into the sandbox. Every code call that isn't denied returns `effectKey`, its effect identity. Send it to a service that takes an idempotency key. For a service that takes none, declare a business key, such as the repository and branch, so a replayed call keeps the same identity.
+
+### What the sandbox can and can't do
+
+Inside the sandbox, a command can read and write the policy's roots and run the project's tools. Through the backend's proxy, it reaches exactly the hosts in `network.allow`, such as a public package registry; on Docker that needs `proxySocket`. On its own, it can't push, call an authenticated API, read a secret from its environment or reach any other host. A route that you add to the [egress proxy](#the-egress-proxy-keeps-every-credential-outside-the-sandbox) lets it call one host with a credential, and a git route lets it push to listed branches. The secret then stays on the host, and the sandbox sees only a placeholder.
+
+### A hosted backend may inject a narrow credential, and only when you ask
+
+A hosted backend can ask its provider to add a credential outside the VM. Injection is off unless your egress policy holds a credential route. None of the backends above injects this way; a hosted backend that does documents its options in its own section.
+
+Use a credential route only for a narrow, scoped, short-lived or revocable, low-value credential. A repository-scoped token for one run, a read-only package-registry token and a model-API key with a spend limit all qualify. A credential that can spend money without a cap, push to a protected branch or reach production data stays in a host-side tool. Review, not code, enforces this rule, because a backend can't see how much a token can do. Check each route you add.
+
+A credential route has five costs:
+
+- The sandbox's trust store carries the provider's certificate authority. A provider may install it even without a route, but then it decrypts nothing.
+- The provider's proxy decrypts each request to the credentialed host, so it sees the request in plaintext and holds the secret.
+- Every process in the sandbox that sends a matching request gets the credential, with no placeholder to check. On some providers a match is any HTTPS request to the host, whatever its method or path.
+- A host that echoes request headers hands the credential back into the sandbox, and the harness can scrub only a secret it knows.
+- On some providers the harness reads the secret on the host at each provision and resume, and sends it to the provider.
+
+Neither the harness's egress proxy nor the `srt` backend's proxy intercepts TLS. The project's decision records give the reasons: [the sandbox holds no credentials](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0060-sandboxes-hold-no-credentials-by-default.md), [the loop runs outside it](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0036-loop-outside-sandbox-and-pr-approval.md) and [the local proxy intercepts no TLS](https://github.com/laudebugs/buildanagent/blob/main/docs/decisions/0020-default-sandbox-backend.md). The next section shows how that proxy keeps a route's secret on the host.
 
 ## The egress proxy keeps every credential outside the sandbox
 
@@ -231,7 +398,7 @@ The compiler refuses anything that isn't plainly allowed, with the code `invalid
 
 The scan for credential-shaped strings is defence in depth. The field allowlist and the upper-case credential name are the real guards, and a token that starts mid-word, like `acme/ghp_…`, or is base64-encoded passes the scan.
 
-The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`, and `srtSandbox()` keeps its own proxy.
+The policy holds names, the proxy reads each value on the host, and the sandbox sees only a random placeholder, so no credential value enters a sandbox. The policy does not authenticate a caller: any process that knows the placeholder can use the route. `EgressPolicy` is not yet part of `SandboxPolicy`: `srtSandbox()` keeps its own proxy, and `e2bSandbox()` and `vercelSandbox()` each take one as their `egress` option and compile it for E2B's and Vercel's firewalls.
 
 ## A git route lets a push reach listed branches and nothing else
 
@@ -1068,7 +1235,7 @@ It does not check the input against the tool's schema, because your code, not a 
 
 ### A read-only secret can hold the key ring instead
 
-On a serverless host the harness can read its key but not write it, so `secretKeyStore({ read })` from `@buildanagent/harness/session` is a `KeyStore` with `load()` only. `read()` returns the secret's text, the JSON ring that `parseKeyRing()` reads, such as `{"current":"2026-11","keys":{"2026-11":"<key>"}}` with each key at least 32 random bytes in unpadded base64url. `load()` calls `read()` every time and keeps no copy, so a ring the platform rotated takes effect at the next load. `load()` throws `invalid_key_store` for a `read()` that fails or returns a non-string, and for a ring that is not JSON, holds a key that is not base64url or is shorter than 32 bytes, or names a `current` it lacks. The error's message is fixed text and the error has no cause, so it never holds the secret's text, a key id, a key or the error `read()` threw. To find which rule a ring breaks, check the secret itself. The store imports no Node module, so a Cloudflare, AWS or Vercel adapter only has to supply `read` (N46a, N47a and N48a build those).
+On a serverless host the harness can read its key but not write it, so `secretKeyStore({ read })` from `@buildanagent/harness/session` is a `KeyStore` with `load()` only. `read()` returns the secret's text, the JSON ring that `parseKeyRing()` reads, such as `{"current":"2026-11","keys":{"2026-11":"<key>"}}` with each key at least 32 random bytes in unpadded base64url. `load()` calls `read()` every time and keeps no copy, so a ring the platform rotated takes effect at the next load. `load()` throws `invalid_key_store` for a `read()` that fails or returns a non-string, and for a ring that is not JSON, holds a key that is not base64url or is shorter than 32 bytes, or names a `current` it lacks. The error's message is fixed text and the error has no cause, so it never holds the secret's text, a key id, a key or the error `read()` threw. To find which rule a ring breaks, check the secret itself. The store imports no Node module, so a Cloudflare, AWS or Vercel adapter only has to supply `read`. On AWS, `secretsManagerKeyStore()` is that adapter ([below](#on-aws-dynamodb-eventbridge-scheduler-and-secrets-manager-hold-the-harnesss-state)).
 
 The owner rotates such a ring with the platform's own tooling: add a new key and make it current, then remove an old key once no waiting request names it. `rotateKeys(store)` and `pruneKeys(store, inUse)` call a store's `rotate()` and `prune()` when it has them. On a store without them they reject with `key_store_read_only`, whose message names the platform's secret tooling (by default "such as wrangler secret put, aws secretsmanager put-secret-value or vercel env"; pass `platformHint` for your own text). 
 `keyStoreConformanceCases(factory)` and `runKeyStoreConformance(factory)` in `@buildanagent/harness/testing` check a store with five cases. `load()` returns a usable ring, returns the same ring twice, and gives a ring that signs and verifies through `hmacSigner()`. `rotate()` keeps the old key loadable, and `prune()` keeps the current and in-use keys and returns the ids it removed. The rotate and prune cases skip with a reason when a store leaves the methods out. Run `runKeyStoreConformance(factory)` against any store you write.
@@ -1099,3 +1266,233 @@ By default every component runs:
 | `telemetry` | `true` | Drops events to harness and turn observers. |
 | `completionCheck` | `true` | Skips post-turn `completion_check` entries. |
 | `sandbox` | `"os"` | Sets `env_stamp.sandbox` to the chosen tier; `"none"` requires `unsafe: true`. |
+
+## One portability suite tests all eight target seams
+
+`@buildanagent/harness/testing` exports `portabilityConformanceCases()` and `runPortabilityConformance()` to verify all eight portable seams of a deployment target. The module also exports standalone runners for the seven harness seams, while `effectStore` reuses `effectStoreConformance()` from `@buildanagent/agent-safety/testing`:
+
+| Target field | Seam | Standalone runner |
+| --- | --- | --- |
+| `store` | `SessionStore` | `runStoreConformance()` |
+| `lock` | `SessionLock` | `runLockConformance()` |
+| `scheduler` | `Scheduler` | `runSchedulerConformance()` |
+| `keyStore` | `KeyStore` | `runKeyStoreConformance()` |
+| `sandbox` | `SandboxClient` | `runSandboxConformance()` |
+| `egress` | `EgressPolicy` | `runEgressConformance()` |
+| `transport` | Protocol transport | `runTransportConformance()` |
+| `effectStore` | `EffectStore` | `effectStoreConformance()` (`@buildanagent/agent-safety/testing`) |
+
+`runEgressConformance()` checks `EGRESS_DENIED_TARGETS` so every backend refuses non-allowlisted hosts, loopback addresses (`127.0.0.1`, `[::1]`, `localhost`) and cloud metadata endpoints (`169.254.169.254`, `[fd00:ec2::254]`, `metadata.google.internal`, `100.100.100.200`). None of the suites import Node modules, so local Node, Cloudflare, AWS and Vercel targets run the same cases. Pass your target's seam factories to `runPortabilityConformance(target)` to verify a new backend.
+
+## On Cloudflare, one Durable Object holds the log, the lock, the wakes and the sockets
+
+`@buildanagent/harness/cloudflare` puts five of the portable seams in a Durable Object, so an agent server runs on Cloudflare with nothing outside the object but the model and the sandbox. Each adapter takes the object's `ctx.storage`, or its sockets, by their shape, so the module imports neither Node nor Cloudflare's own types. The storage must be SQLite-backed, which is what `new_sqlite_classes` in a Wrangler migration gives:
+
+| Seam | Adapter | What it keeps in the object |
+| --- | --- | --- |
+| `SessionStore` and `SessionIndex` | `doSqliteStore(storage)`, `doSqliteIndex(storage)` | one row per entry, and one per session pointer |
+| `SessionLock` | `doLock(storage)` | one row per held session: a random token and a lease |
+| `Scheduler` | `doAlarmScheduler(storage)` | one row per pending wake, with the object's one alarm set to the earliest |
+| `KeyStore` | `workerKeyStore(env.APPROVAL_KEYS)` | nothing: it reads a Worker secret or a Secrets Store binding |
+| Transport | `webSocketHibernation({ dispatcher })` | each socket's `initialize` and opened, created or forked sessions, in the socket's attachment |
+
+```ts
+import { type DurableStorageLike, doSqliteStore } from "@buildanagent/harness/cloudflare";
+
+declare const storage: DurableStorageLike; // a SQLite-backed Durable Object's ctx.storage
+const store = doSqliteStore(storage);
+```
+
+`examples/cloudflare-session-object.ts` builds the whole server: a harness that signs approvals with the Worker secret's ring, and a dispatcher over the store, the index and the lock. The object's own `webSocketMessage()`, `webSocketClose()` and `webSocketError()` forward to `sockets`, and its `alarm()` calls `wakes.alarm()`.
+
+### The store and the lock rely on one event at a time, and their SQL is conditional as well
+
+A Durable Object runs one event at a time, and SQL calls in it complete synchronously. `doSqliteStore()` runs an append's reads, its checks and its inserts inside one `transactionSync()` with no `await` between them, so no other request runs in the middle and a failed append writes none of its batch. An append reads only the rows its batch names and the log's last row, so it costs the batch and not the log. `doLock()` takes a hold with one `INSERT … ON CONFLICT DO UPDATE … WHERE lease_until < now RETURNING`, so a second writer gets `"would_block"` at once, and only a lapsed lease is taken over. A lapsed lease is the only staleness rule, because an object has no process id to check. The tests send 16 concurrent requests to one object: one wins the lock, and one of 16 appends that expect the same tail is written while 15 get a `ConflictError`.
+
+### A wake is a row until its handlers return, so a failed delivery comes back
+
+An object has one alarm, so `doAlarmScheduler()` stores every wake as a row and sets the alarm to the earliest. Call its `alarm()` from the object's `alarm()` method: it delivers each due wake to the `onWake()` handlers and deletes the wake once they return. A handler that throws keeps its wake, which is delivered again after `retryMs` (30 s by default), so a long outage can't use up Cloudflare's six alarm retries and lose the wake. Wakes are therefore at least once, as the `Scheduler` seam promises. A wake that an earlier handler cancels in the same run is skipped, not delivered. A due wake is deleted once the handlers registered at that moment return, even when there are none, so register in the object's constructor every handler whose wakes must survive an eviction. The scheduler owns the object's alarm, so nothing else in the object may call `setAlarm()`. An alarm handler runs for at most 15 minutes, so a handler should run one step of a turn and ask for another wake.
+
+### The key ring stays in a Worker secret, and no store object holds its text
+
+`workerKeyStore(secret)` wraps `secretKeyStore()` over a Worker secret's string or a Secrets Store binding's `get()`. It has no `rotate()` or `prune()`: change the ring with `wrangler secret put`, or `wrangler secrets-store secret update` for a binding, and pass `CLOUDFLARE_PLATFORM_HINT` to `rotateKeys()` and `pruneKeys()` so their error names those commands. The secret lives only inside the store's reader function, so `JSON.stringify()` of the store prints `{}`, and every error the store throws is fixed text with no cause.
+
+### A client keeps its socket through hibernation, and the bridge replays its connection
+
+With the Hibernation API, the runtime may evict an idle object while its clients stay connected, and the next frame runs the constructor again with empty memory. `webSocketHibernation()` therefore records each connection's `initialize`, keeping only its opt-ins to experimental methods, and up to 8 sessions it opened, created or forked in the socket's attachment, bounded to fit Cloudflare's 16,384 serialized bytes. When a frame arrives on a socket the object no longer serves, the bridge starts a new `webSocketTransport()` and replays the `initialize` and each `session/open` under ids of its own before that frame. A session that had no entries yet is created again. The client never sees the replay's answers, and its next command works as before. A running turn keeps the object in memory, so no turn spans an eviction.
+
+### The suite runs in workerd offline, and a live run on a real account is opt-in
+
+`test/cloudflare/cloudflare.test.ts` runs every case of the portability suite in a Durable Object of its own, in workerd through Miniflare, with every outbound request refused and the refusals asserted empty. Six seams run there: the store, the lock, the scheduler, the key store, the transport through the hibernation bridge, and agent-safety's `durableObjectEffectStore()`. Four cases skip, each for a reason a Durable Object makes true: the two torn-line cases, because a row can't be torn, and rotate and prune, because the key store is read-only. The sandbox and egress seams belong to the Cloudflare sandbox backend. The same test file checks the real alarm, a socket whose object lost its memory, and a smoke test that loads pi-schema, `@cfworker/json-schema` and the MCP client inside workerd. [The live run](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/docs/cloudflare-live-run.md) deploys the same Worker to your own account, and never runs in CI.
+
+## On AWS, DynamoDB, EventBridge Scheduler and Secrets Manager hold the harness's state
+
+A Lambda function keeps no disk and no timer between invocations, and it stops after 900 seconds, so a harness on AWS keeps its session log, its lock, its wakes and its key ring in AWS services. Three subpaths supply four seams, and each adapter takes an AWS SDK v3 client that the host makes, so the adapters never read credentials themselves. The AWS target passes the portability suite offline, against in-process fakes of the three services, and an opt-in live run checks the adapters against a real account:
+
+| Subpath | Export | Seam | AWS service |
+| --- | --- | --- | --- |
+| `./aws/dynamodb` | `dynamoStore(client, { tableName })` | `SessionStore` | DynamoDB |
+| `./aws/dynamodb` | `dynamoLock(client, { tableName })` | `SessionLock` | DynamoDB |
+| `./aws/scheduler` | `eventBridgeScheduler(client, { targetArn, roleArn })` | `Scheduler` | EventBridge Scheduler |
+| `./aws/secrets-manager` | `secretsManagerKeyStore(client, { secretId })` | `KeyStore` | Secrets Manager |
+
+The effect store, the fifth state seam, is `dynamoEffectStore()` in `@buildanagent/agent-safety/stores/dynamodb`. The example in `examples/aws-runner.ts` builds the four seams from the host's clients:
+
+```ts
+export function awsSeams(clients: AwsClients, names: AwsNames) {
+  return {
+    store: dynamoStore(clients.dynamo, { tableName: names.table }),
+    lock: dynamoLock(clients.dynamo, { tableName: names.table }),
+    scheduler: eventBridgeScheduler(clients.scheduler, { targetArn: names.runnerArn, roleArn: names.schedulerRoleArn }),
+    keys: secretsManagerKeyStore(clients.secrets, { secretId: names.keySecretId }),
+  };
+}
+```
+
+### The store commits a batch of any size with one conditional put of the session's head
+
+A DynamoDB transaction holds at most 100 actions, but `migrateSession()` and `purgeSession()` append a whole log in one call, so the store stages and then commits instead of using a transaction, and an append is whole whatever its size. `dynamoStore()` needs a table with a string partition key `pk` and a string sort key `sk`, which the lock may share. A user's sessions share one partition, and an optional `namespace`, such as `staging`, keeps one deployment's items apart from another's in the same table. Each session has a head item and one item per entry, and every read is strongly consistent. An append runs in two steps:
+
+1. **Stage.** It writes the batch's entries as new items, 25 to a `BatchWriteItem`, each under a sort key that names the append's own random batch id. It resends any request that DynamoDB leaves unprocessed, and after eight tries it throws `aws_write_incomplete`.
+2. **Commit.** It puts the head on the condition that the head is absent or still names the batch the append read. The new head names this batch, and every entry item names the batch before it, so a reader walks from the head back through the log.
+
+A reader follows only the head, so items that no head reaches are never read as the log. A writer that loses the commit deletes its staged items. It then reads the log again and appends after the winner, or throws a `ConflictError` when its `expectedLastId` went stale. A process that dies between the two steps leaves orphan items, which `load()` skips and `delete()` removes. Like every write, `delete()` belongs under the session's lock, because an append staged during a delete may leave its items behind. When a response is lost and the SDK resends the commit, the store recognises its own put by the batch id that the failed condition returns. It caches the log state of the 64 sessions used last and checks the cache against the head on every append, so another process's commit is seen at once. An entry's item must stay under DynamoDB's 400 KB limit, so `maxEntryBytes` may be at most `MAX_DYNAMO_ENTRY_BYTES` (300 KiB). The store has no torn line to skip, so the suite's two torn-line cases skip.
+
+### The lock is one lease item, taken and renewed by conditional updates on the caller's clock
+
+`dynamoLock()` keeps one lease item per session. Each change to the item is one `UpdateItem`, and its condition decides the race:
+
+- **Acquire** needs the item to be absent, released, or past its `leaseUntil` on the caller's clock. It writes a new token and a lease end of `now() + leaseMs`, and adds one to the item's `fence`. Otherwise `acquire()` returns `"would_block"` at once. Of many acquires at once, DynamoDB lets exactly one condition pass.
+- **Renew** runs every `renewMs` through a `ProcessScheduler`, by default one of the lock's own. It needs the item to still hold this hold's token, so a holder that lost its lease can't extend a successor's.
+- **Release** clears the token on the same condition and keeps the item, so `fence` only grows. `DynamoLockHandle.fence` gives the number to a host that guards another system's writes, so that system can refuse an older writer.
+- **Lost responses.** The SDK resends an acquire whose response was lost. The resent update fails its condition, and the lock reads its own token in the returned item and keeps the hold.
+
+A lapsed lease is the only staleness signal, because no host can check another host's process. Lease ends are compared on the clock of the host that acquires, so clock skew between hosts shortens the lease. `held()` therefore turns `false` `maxClockSkewMs` (default 1 second) before the lease end on the holder's own clock, and once `false` it stays `false`. It also turns `false` when a renewal finds another token or the scheduler refuses a renewal. Set `leaseMs` above `renewMs` plus the slowest renewal plus `maxClockSkewMs`. The defaults are a 30-second lease renewed every 10 seconds, and `dynamoLock()` refuses a `renewMs` plus `maxClockSkewMs` that reaches `leaseMs`. The lock does not depend on DynamoDB's time to live, because TTL deletes an expired item only within a few days. The lock is a liveness guard and not the only fence: the store's `expectedLastId` still refuses a second writer.
+
+### A wake is a one-time schedule, and `deliverWake()` holds an early one until its time
+
+`eventBridgeScheduler()` turns `wake(at, id)` into an EventBridge Scheduler one-time schedule in `groupName` (default `default`). The schedule invokes `targetArn`, the runner, through `roleArn`, and an optional `deadLetterArn` receives a wake whose every invocation failed. The schedule's name is a SHA-256 hash of the id plus the wake's time in milliseconds, so the name never holds the id, and asking twice for the same id and time is one wake. Its `at()` expression is in UTC and rounded up to the second. A time sooner than five seconds from now becomes five seconds from now. Request latency and a host clock a little behind AWS's therefore never send a time the service sees as past. Its flexible time window is off, and it deletes itself once it has run. Its input is a `WakeEvent`, `{ type: "buildanagent.wake", version: 1, sessionId, at }`, which keeps the exact time asked for. `cancel(id)` lists the group's schedules whose names start with the id's hash and deletes each one. It reads every page before it deletes anything, and a schedule that has already run is no error.
+
+EventBridge Scheduler invokes a target with 60-second precision, so a wake can reach the runner before its time. The runner passes each event to `deliverWake(event, handler)`, which reads it with `parseWakeEvent()`, waits until the wake's time on the host's clock and then calls the handler. It refuses, with `invalid_wake_event`, an event that is not a wake or one more than `maxEarlyMs` (70 seconds) early, and refuses a `maxEarlyMs` that is not a finite number of at least 0 with `invalid_aws_options`. Give the function a timeout longer than that wait plus its own work. A wake is at-least-once, so the handler must treat a second wake as harmless. A wake can also meet the session's lock still held, either by the invocation that asked for it or by one that crashed with its lease live. The example's handler then asks for another wake after the lease could end instead of dropping it:
+
+```ts
+export function wakeHandler(seams: ReturnType<typeof awsSeams>, resume: (key: SessionKey) => Promise<void>) {
+  return (event: unknown) =>
+    deliverWake(event, async (id) => {
+      const [userId, sessionId] = JSON.parse(id) as [string, string];
+      const lock = await seams.lock.acquire({ userId, sessionId });
+      // Another invocation holds the session: one that asked for this wake and hasn't let go yet, one that crashed with
+      // its lease still live, or a duplicate. A wake after the lease could end comes again, so no step is left undone.
+      if (lock === "would_block") return seams.scheduler.wake(new Date(Date.now() + AFTER_LEASE_MS), id);
+      try {
+        await resume({ userId, sessionId });
+      } finally {
+        await lock.release();
+      }
+    });
+}
+```
+
+Because Lambda stops at 900 seconds, a long task must checkpoint and wake: each invocation runs one step from the log, asks for a wake and returns. The lock's renewals stay on an in-process timer, because a 10-second renewal is finer than the scheduler's minute.
+
+### The key store reads AWSCURRENT, and no error it throws holds the secret
+
+`secretsManagerKeyStore()` is a `KeyStore` with `load()` only. Each `load()` calls `GetSecretValue` for the `AWSCURRENT` version, or `versionStage`, and parses the secret's string as `secretKeyStore()` does. Rotate with `aws secretsmanager put-secret-value`, which makes the new value `AWSCURRENT` and the old one `AWSPREVIOUS`. Keep an old key in the new value until no waiting approval names it. `rotateKeys()` and `pruneKeys()` reject with `key_store_read_only`. A failed `load()` throws `invalid_key_store` with fixed text plus the AWS error's name, such as `AccessDeniedException`, and only a name of letters alone is repeated. The error has no cause, because an SDK error's message can repeat request parameters. A value that is binary, or a string that is not a usable ring, is refused with fixed text that quotes none of it. The SDK marks `SecretString` as sensitive, so its own logger redacts the value.
+
+### Each seam needs a few IAM actions on one resource
+
+Give the runner's role these actions and no others:
+
+| Seam | Actions | Resource |
+| --- | --- | --- |
+| `dynamoStore()` | `dynamodb:GetItem`, `PutItem`, `Query`, `BatchWriteItem`, `DeleteItem` | the table's ARN |
+| `dynamoLock()` | `dynamodb:UpdateItem` | the table's ARN |
+| `eventBridgeScheduler()` | `scheduler:CreateSchedule`, `scheduler:DeleteSchedule` | `arn:aws:scheduler:<region>:<account>:schedule/<group>/*` |
+| `eventBridgeScheduler()` | `scheduler:ListSchedules` | `*`, because the action has no resource type |
+| `eventBridgeScheduler()` | `iam:PassRole` on `roleArn`, with `iam:PassedToService` set to `scheduler.amazonaws.com` | the scheduler role's ARN |
+| `secretsManagerKeyStore()` | `secretsmanager:GetSecretValue`, plus `kms:Decrypt` on a customer managed key | the secret's ARN |
+
+The scheduler role that `roleArn` names trusts `scheduler.amazonaws.com` and may call `lambda:InvokeFunction` on the runner. Where users share a table, a `dynamodb:LeadingKeys` condition can limit each role to its own partitions. The runner never needs `secretsmanager:PutSecretValue`, so it can't change the key ring.
+
+### The opt-in live run checks the adapters against the owner's account
+
+`scripts/aws-live.mjs` runs the suite's store, lock and key store cases against a real table and a real secret, and checks that a wake becomes one self-deleting schedule that a cancel removes. It runs only when the owner starts it, never in CI or in `pnpm test`: it refuses to start unless `HARNESS_AWS_LIVE=1` is set, and whenever `CI` is set. It needs a table with `pk` and `sk`, a secret that holds a ring, a schedule target and a scheduler role:
+
+```sh
+pnpm --filter "@buildanagent/harness..." build
+HARNESS_AWS_LIVE=1 HARNESS_AWS_TABLE=<table> HARNESS_AWS_SECRET_ID=<secret> \
+  HARNESS_AWS_SCHEDULER_TARGET_ARN=<runner arn> HARNESS_AWS_SCHEDULER_ROLE_ARN=<role arn> \
+  node packages/harness/scripts/aws-live.mjs
+```
+
+The AWS SDK finds credentials and the region in the usual places, such as `AWS_PROFILE` and `AWS_REGION`, and `HARNESS_AWS_SCHEDULER_GROUP` names a schedule group other than `default`. The script prints case names, verdicts and error messages, never a value it read from AWS. It writes under namespaces of its own run and deletes them at the end, so its role also needs `dynamodb:Scan` and `scheduler:GetSchedule`. The run exits 0 when every case passed.
+
+## On Vercel, Postgres holds the log and the lock, and each wake is one Workflow run
+
+A Vercel Function stops after its maximum duration and starts cold on another instance, so a run's state and its wakes must live outside the function. `@buildanagent/harness/vercel` supplies four of the eight portable seams for that host, and each passes the portability suite offline. `postgresStore()` keeps the session log in Postgres, and `postgresLock()` keeps one lease row per session. `workflowScheduler()` turns each wake into a Vercel Workflow run, and `envKeyStore()` reads the approval key ring from a secret environment variable. The entry imports no Postgres driver and no Workflow SDK code: you pass in a client with `query(text, values)` that resolves to `{ rows }`, such as `pg`'s `Pool` or Neon's serverless `Pool`, and the SDK's own functions. The sandbox and egress seams on Vercel belong to the Vercel Sandbox backend, which this entry leaves out.
+
+**Why Postgres.** Three Postgres properties carry the store and the lock. First, the store's compare-and-swap on the last entry is one `INSERT` against the primary key on user, session and `seq`. Second, the lease and its fence are one atomic `INSERT … ON CONFLICT DO UPDATE … WHERE`, timed on the database's clock. Third, the same schema runs on any Postgres. The [harness plan](https://github.com/laudebugs/buildanagent/blob/main/docs/plans/build-harness.md#48-stage-8-makes-the-harness-portable-to-cloudflare-aws-and-vercel-added-2026-11-18) names a Postgres store and lock for Vercel, and the [portable-agents report](https://github.com/laudebugs/buildanagent/blob/main/docs/research/deployment/portable-agents.md)'s Vercel row lists "Marketplace Postgres or Redis, or a Workflow SDK world" without a reason to pick one. A Redis or Vercel KV store would be a separate adapter behind the same interfaces, and it must pass the same conformance suite, `runPortabilityConformance()`.
+
+Run `createPostgresHarnessTables(client)` once, or the statements in `POSTGRES_HARNESS_SCHEMA` as a migration, and build the seams over one client:
+
+```ts
+export async function vercelState(client: PgClientLike, env?: Readonly<Record<string, string | undefined>>) {
+  await createPostgresHarnessTables(client);
+  return {
+    store: postgresStore(client),
+    lock: postgresLock(client, { leaseMs: LEASE_MS }),
+    ledger: postgresWakeLedger(client),
+    keyStore: envKeyStore({ name: "HARNESS_KEY_RING", ...(env === undefined ? {} : { env }) }),
+  };
+}
+```
+
+### An append is one `INSERT`, and the primary key on `seq` is its compare-and-swap
+
+`postgresStore(client)` writes each entry as one row of `harness_session_entries`, keyed by user, session and `seq`, with the entry kept as the JSON text it was written as. An append reads the log's tail and the stored entries that share an id with the batch in one statement, so both come from one snapshot, then applies the same rules as every store: idempotency by id, `expectedLastId`, the header first and the 64 KiB bound. It writes the new entries in one multi-row `INSERT`. Two writers that read the same tail both try to write the same `seq`, so Postgres refuses one `INSERT` whole with a unique violation. The losing append plans again from what is now stored. A stale `expectedLastId` then throws `ConflictError`, and an append with no expected tail lands at the next `seq`; after five lost races it gives up with `ConflictError`. Each statement runs on its own, so the store needs no transaction and works through a pooled client.
+
+A `load()` reads the entries present when it began, 256 rows a page (`pageSize`), and passes each through the protocol's parser, as the JSONL store does: a log in another format throws `unsupported_format`, so you know to run `migrateSession()`, and a row the parser refuses throws `session_corrupt`. `loadRaw()` reads the same rows unparsed. Postgres writes a row whole or not at all, so the torn-line cases of the suite skip.
+
+### A lock is a lease row on the database's clock, with a fence that only grows
+
+`postgresLock(client, { leaseMs, renewMs })` takes a session with one `INSERT … ON CONFLICT … DO UPDATE … WHERE` statement. It inserts the row, or takes over a row whose lease has lapsed, under Postgres's row lock, so of many writers that race for one session exactly one gets a handle. A lapsed lease is the only staleness rule, because no host can check another host's process. The holder renews every `renewMs` (default 10 seconds, or a third of the 30-second lease) through a `ProcessScheduler`, which suits a function that holds the lock for one step. A renewal that finds another writer's token, or a lease already lapsed, ends the hold. `release()` frees the row only while it still carries the hold's token, so a late release never frees the next writer's lock.
+
+Clock skew cannot stretch a lease, for two reasons. First, the database's `clock_timestamp()` sets every lease's start and end, so writers on hosts whose clocks disagree still agree on when a lease lapses. Second, the holder times its own lease on a monotonic local clock from before it sent the statement, so `held()` turns `false` no later than the row's lease ends, whatever the network delay; it also turns `false` when renewals keep failing. Only a difference in how fast two clocks run can matter then, which is far smaller than any lease. Keep `renewMs` well below `leaseMs`, so a renewal's round trip to the database fits inside the lease. Each handle is a `PostgresLockHandle` with a `fence`, a number that grows on every acquire of the session, because a released row keeps its count. Pass it to any resource that can refuse a lower number. The session log needs no fence: its expected-last-id check already refuses an append from a writer whose tail is out of date.
+
+### A wake is a Workflow run that sleeps, and its turn runs in one step
+
+`workflowScheduler({ ledger, start, resumeHook })` records each wake as a row of `harness_wakes` through `postgresWakeLedger(client)`, then starts one Workflow run with a `WakeRequest` of plain data: the id, the time, the row's nonce and a hook token made from all three. The run's body is `runWakeWorkflow()` from `@buildanagent/harness/vercel/workflow`, which imports nothing, so the Workflow SDK's bundler can place it in a workflow bundle. It waits with the SDK's `sleep()` and races that sleep against a hook made with `createHook()`. When the time comes, it calls your step once, and the step calls `deliverWake()`. The turn therefore runs inside one step, and the engine records the step's result rather than replaying a model call: one step per `continueRun`, never the inner loop. Your app holds the workflow and the step:
+
+```ts
+export async function harnessWake(request: WakeRequest) {
+  "use workflow";
+  return runWakeWorkflow(request, { sleep, createHook, deliver: deliverHarnessWake });
+}
+
+export async function deliverHarnessWake(request: WakeRequest) {
+  "use step";
+  const { connect, onWake } = app;
+  if (connect === undefined || onWake === undefined) throw new Error("set app.connect and app.onWake first");
+  return deliverWake(request, { ledger: postgresWakeLedger(connect()), handler: onWake });
+}
+```
+
+Give the harness `workflowScheduler()` with `start: (request) => start(harnessWake, [request])` and `resumeHook`, both from `workflow/api`; `examples/vercel-wake.ts` holds the whole file. The ledger makes `cancel(id)` exact across instances. `cancel()` removes the id's rows, so a run that wakes later finds no row and delivers nothing, and it resumes each run's hook so the run ends at once instead of sleeping on; such a run reports `"cancelled"`.
+
+A wake is at-least-once. A wake asked for twice while it is pending keeps its row's nonce, so it may start two runs, and the second finds the token taken and ends without delivering. A wake asked for again after a cancel, or by its own handler, gets a new nonce and so a new token, so its run never meets the old run's hook and the old run's delivery never removes it. A handler that throws leaves the row in place, so the SDK's retry of the step delivers it again, and the handler must treat a second delivery as harmless. A row whose retries all fail stays until `cancel()` removes it. The id is the ledger's only key, as with every `Scheduler`, so a host that serves several users puts the user in the id. Because the turn runs in a step, its function's maximum duration bounds one turn, and a cold start costs a reload of the log from Postgres; nothing waits in memory.
+
+### The key ring comes from a secret environment variable, and nothing shows its value
+
+`envKeyStore({ name })` is `secretKeyStore()` over one variable, by default `HARNESS_KEY_RING`, read at every `load()`. It has no `rotate()` or `prune()`, so change the variable with `vercel env` and redeploy, keeping an old key in the ring until no waiting request names it. A function reads the value its deployment was built with. A missing or empty variable throws `invalid_key_store` with the variable's name; a value that is not a usable ring throws it with fixed text and no cause. The store keeps no copy of the value, so neither its `inspect()` output, its JSON nor any error it throws holds the key.
+
+### The live run checks the adapters against your own Postgres, and only you start it
+
+`pnpm --filter @buildanagent/harness live:vercel` runs the suite's store, lock, key store and effect store cases against a real database, then checks that a lease lapses on the database's clock and that the wake ledger round-trips. It runs only with `HARNESS_LIVE_VERCEL=1` and `DATABASE_URL` set, so CI and `pnpm test` never start it. Build first with `pnpm --filter "@buildanagent/harness..." build`, and use the database's unpooled connection string, because the run sets a `search_path` on each connection. It stops before it creates a table if a connection is not in its own schema, and it names that schema in every table it empties. It reads `DATABASE_URL` only to connect and never prints it. It works in a schema of its own, `harness_live_<random>`, which it drops at the end, and its key store case uses a ring it makes, not yours. The Workflow side needs a deployed app: deploy `examples/vercel-wake.ts`, ask for a wake a minute ahead, and check that `onWake` ran once.
+
+## The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause
+
+`examples/triage-session.ts` runs the SDK's support-triage agent on the harness, with its tools in `examples/triage-tools.ts`. The registry holds two tools, `lookup_customer` and `escalate`, and no built-in tool, so each request offers those two and the output tool `submit_triage`. The pipeline allows the lookup and asks before an escalation. A deny rule added after the pause wins over an allow a person gave before it.
+
+`triageHarness({ model, signer, registry, policy })` builds the harness. `startTriage(run, ticket)` runs the first turn, which ends `awaiting_approval` when the model asks to escalate. `answerTriage(run, answers)` resumes the turn from any process that can open the session and load the key ring. The customer travels as the turn's host context, so the lookup reads the signed-in customer and never the model's arguments.
+
+The package's capstone test checks the rows of the harness plan's capstone table on a scripted model. It covers the approved, rejected and policy-changed cases, a byte-identical playback, a checkout and a long session that compacts once. It also scans every entry and span for planted secrets, and kills the process after the pager accepts a page to check that the resume reconciles to `applied`. The CLI's tests resolve the same pause from a second `buildanagent rpc` process. The recorded sessions and their model pairs are in `test/fixtures/capstone/`, for an offline replay suite.

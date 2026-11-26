@@ -16,7 +16,7 @@ Define every `SessionEntry` type from §3.2 on the SDK's transcript types, in `@
 ## Context
 
 - [build-harness.md §3.2](../../plans/build-harness.md#32-session-log-api): the entry union
-- [HD1](../../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-provisional) and [HD11](../../plans/build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-accepted): the decision and its evidence
+- [HD1](../../plans/build-harness.md#hd1-one-entry-per-content-block-written-from-the-sdks-end-events-decided-by-n35) and [HD11](../../plans/build-harness.md#hd11-keep-transcripts-until-the-owner-sets-a-retention-period-and-keep-the-entry-base-stable-accepted): the decision and its evidence
 - [harness guide §2](../../guides/agent-harness.md#2-the-session-log-should-be-one-append-only-tree-of-typed-entries-with-head-a-writer-lock-and-pauses-as-entries): the typed tree, entries for every state change
 - [ADR 0013](../../decisions/0013-log-entry-per-content-block.md), [ADR 0018](../../decisions/0018-retention-and-transcript-schema.md): the decision records
 

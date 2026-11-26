@@ -1,4 +1,4 @@
-/** The sandbox's four named errors, each a `HarnessError` with its own code and its own fields. */
+/** The sandbox's five named errors, each a `HarnessError` with its own code and its own fields. */
 import { HarnessError } from "../errors.js";
 import type { SandboxCapability, SandboxDenial } from "./types.js";
 
@@ -68,5 +68,31 @@ export class SandboxUnsupportedError extends HarnessError {
   constructor(capability: SandboxCapability, tier: string) {
     super("sandbox_unsupported", `this ${tier}-tier sandbox backend can't ${capability}`);
     this.capability = capability;
+  }
+}
+
+/**
+ * Thrown by a hosted backend's `provision()` or `resume()` when a secret that its egress rules name doesn't exist. The
+ * provider would still forward each request to the host, only without the credential, so the backend refuses before it
+ * creates or wakes a sandbox. The message and the fields hold names only, never a credential's value.
+ */
+export class SandboxSecretUnresolvedError extends HarnessError {
+  override readonly name = "SandboxSecretUnresolvedError";
+  /** The backend, such as `e2b`. */
+  readonly backend: string;
+  /** The provider's name for the secret, such as `github_token`. */
+  readonly secret: string;
+  /** The `EgressPolicy` credential name the secret stands for, such as `GITHUB_TOKEN`. */
+  readonly credential: string;
+
+  constructor(backend: string, secret: string, credential: string, options?: ErrorOptions) {
+    super(
+      "sandbox_secret_unresolved",
+      `the ${backend} secret ${JSON.stringify(secret)} for the credential ${credential} does not exist, so no sandbox was started`,
+      options,
+    );
+    this.backend = backend;
+    this.secret = secret;
+    this.credential = credential;
   }
 }

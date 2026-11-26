@@ -1,7 +1,8 @@
 /**
- * `HarnessError`: the harness's error for programmer errors and for a sandbox that can't do what it was asked. Four
+ * `HarnessError`: the harness's error for programmer errors and for a sandbox that can't do what it was asked. Five
  * subclasses keep their own names for the cases callers catch by class: `SandboxUnavailableError`,
- * `SandboxDeniedError`, `SandboxPolicyMismatchError` and `SandboxUnsupportedError`, all in `./sandbox`.
+ * `SandboxDeniedError`, `SandboxPolicyMismatchError`, `SandboxUnsupportedError` and `SandboxSecretUnresolvedError`, all
+ * in `./sandbox`.
  */
 
 /** Why a `HarnessError` was thrown. */
@@ -13,7 +14,9 @@ export type HarnessErrorCode =
   | "sandbox_io_failed"
   | "sandbox_policy_mismatch"
   | "sandbox_unsupported"
+  | "sandbox_secret_unresolved"
   | "egress_denied"
+  | "egress_secret_unresolved"
   | "invalid_egress_options"
   | "unsafe_sandbox_not_acknowledged"
   | "invalid_sandbox_options"
@@ -59,7 +62,12 @@ export type HarnessErrorCode =
   | "memory_path_refused"
   | "memory_corrupt"
   | "invalid_telemetry_options"
-  | "budget_unknown";
+  | "budget_unknown"
+  | "invalid_store_options"
+  | "invalid_scheduler_options"
+  | "invalid_aws_options"
+  | "aws_write_incomplete"
+  | "invalid_wake_event";
 
 // A registered symbol, so the guard still works when two copies of the package are bundled.
 const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
@@ -72,6 +80,10 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * neither a missing file nor a denial. `sandbox_policy_mismatch`: the policy a backend read back after it provisioned or
  * resumed a sandbox differs from the one requested (`SandboxPolicyMismatchError`). `sandbox_unsupported`: a sandbox was
  * asked to resume, snapshot or pause on a backend that lacks the capability (`SandboxUnsupportedError`).
+ * `sandbox_secret_unresolved`: a hosted backend found that a secret its egress rules name doesn't exist, so it refused to
+ * provision a sandbox whose requests would go out without the credential (`SandboxSecretUnresolvedError`).
+ * `egress_secret_unresolved`: a credential an egress route names could not be read, or is not usable as a header
+ * value, so the sandbox was not provisioned; the error names the credential, never its value.
  * `unsafe_sandbox_not_acknowledged`: `noneSandbox()` was called without `unsafe:
  * true`. `invalid_sandbox_options`: a sandbox option, manifest or command is unusable. `invalid_spawn_env`:
  * `spawnEnv()` was given a name or value that can't be part of a clean environment. `duplicate_tool`: a tool registry
@@ -79,8 +91,8 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * or a registry option is unusable, such as a name that breaks the canonical rule or an unknown source.
  * `invalid_tool_options`: the built-in tools were given a workspace root or a policy root that is not an absolute path.
  * `invalid_permission_config`: an allow rule makes the host callback unreachable (`PermissionConfigError`).
- * `invalid_lock_options`: a file lock was given a lease, renewal interval or host name it can't use. `session_locked`:
- * another writer holds the session. `session_read_only`: a session opened without a lock was asked to write.
+ * `invalid_lock_options`: a file lock or a Durable Object lock was given a lease, renewal interval or host name it
+ * can't use. `session_locked`: another writer holds the session. `session_read_only`: a session opened without a lock was asked to write.
  * `entry_not_found`: an entry id is in no file of the session. `unsupported_format`: a session file's format can't be
  * read or migrated, its header names none, or the store can't read it as written. `invalid_turn_options`: a turn's
  * options can't be used, such as a tool allowlist that names a tool the registry lacks, or a hook that changed the
@@ -113,7 +125,12 @@ const HARNESS_ERROR = Symbol.for("buildanagent.harness.HarnessError");
  * MCP tool call ended without a result, because the server closed, timed out, asked for input or answered with an
  * error (`McpError`). `invalid_telemetry_options`: a span projection's or a budget meter's setting can't be used, such as a
  * negative cap or an empty hashing key. `budget_unknown`: a session with a cap has spent an unknown amount, so a budgeted
- * turn is refused.
+ * turn is refused. `invalid_store_options`: a session store's setting can't be used, such as a page size of zero or an entry bound a Durable Object row can't hold.
+ * `invalid_scheduler_options`: a scheduler was given something it can't use, such as a wake ledger with no methods or an alarm scheduler's retry delay of zero.
+ * `invalid_aws_options`: an AWS adapter was given no SDK client, or a table, schedule group, ARN or secret id it can't
+ * use. `aws_write_incomplete`: DynamoDB left part of the DynamoDB store's batch write unprocessed after every retry, so
+ * its append committed nothing. `invalid_wake_event`: `deliverWake()` or `parseWakeEvent()` was given an event that is
+ * not a wake, or a wake that arrived far earlier than any schedule fires.
  */
 export class HarnessError extends Error {
   override readonly name: string = "HarnessError";

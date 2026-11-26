@@ -1,5 +1,84 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.40
+
+### Minor Changes
+
+- ff2ff26: Add `@buildanagent/harness/cloudflare`: `doSqliteStore()` and `doSqliteIndex()` keep the session log and its pointers in a Durable Object's SQLite storage, `doLock()` makes the object a session's single writer with a lease, `doAlarmScheduler()` puts wakes on the object's alarm, `workerKeyStore()` reads the approval key ring from a Worker secret or a Secrets Store binding, and `webSocketHibernation()` serves the protocol over hibernatable WebSockets and replays a connection after the object is evicted. `HarnessError` gains the codes `invalid_store_options` and `invalid_scheduler_options`.
+- 3d843de: Add `vercelSandbox()` in `@buildanagent/harness/sandbox/vercel`, a microVM backend on Vercel Sandbox. Its firewall allows exactly the policy's hosts and is `"deny-all"` when the policy names none. By default the sandbox holds no credential and none is injected; as a narrow opt-in, a header route's credential is added by the firewall's `transform` rule outside the VM, so no credential value enters the sandbox. `provision()` reads the firewall policy back from Vercel and throws on any difference, and a sandbox that fails or is disposed is deleted. `@vercel/sandbox` 3.9.1 is a new optional peer dependency, needed only by this subpath. The harness error codes gain `egress_secret_unresolved`.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.40
+  - @buildanagent/gateway@0.1.0-alpha.40
+  - @buildanagent/protocol@0.1.0-alpha.40
+  - @buildanagent/sdk@0.1.0-alpha.40
+
+## 0.1.0-alpha.39
+
+### Minor Changes
+
+- c2a139a: Add the E2B sandbox backend, `e2bSandbox()` in `@buildanagent/harness/sandbox/e2b`, with `e2b` 2.63.0 as an optional peer. Each sandbox reaches only its policy's hosts and holds no credentials by default. An `EgressPolicy` with a credential route opts in to E2B's egress-proxy Secrets, which `compileE2BEgress()` compiles. When a secret the rules name doesn't exist, provisioning throws the new `SandboxSecretUnresolvedError` (code `sandbox_secret_unresolved`).
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.39
+  - @buildanagent/gateway@0.1.0-alpha.39
+  - @buildanagent/protocol@0.1.0-alpha.39
+  - @buildanagent/sdk@0.1.0-alpha.39
+
+## 0.1.0-alpha.38
+
+### Minor Changes
+
+- f28951d: Add the AWS state adapters, each on an AWS SDK v3 client the host passes in. `@buildanagent/harness/aws/dynamodb` holds `dynamoStore()`, a `SessionStore` that commits a batch of any size with one conditional put of the session's head, and `dynamoLock()`, a lease-item `SessionLock` with a growing fence and a clock-skew margin. `@buildanagent/harness/aws/scheduler` holds `eventBridgeScheduler()`, which turns each wake into a self-deleting one-time schedule, and `deliverWake()`, which holds an early wake until its time. `@buildanagent/harness/aws/secrets-manager` holds `secretsManagerKeyStore()`, a read-only `KeyStore` whose errors never hold the secret. The three AWS SDK clients are optional peers at 3.1169.0, and `HarnessErrorCode` gains `invalid_aws_options`, `aws_write_incomplete` and `invalid_wake_event`.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.38
+  - @buildanagent/gateway@0.1.0-alpha.38
+  - @buildanagent/protocol@0.1.0-alpha.38
+  - @buildanagent/sdk@0.1.0-alpha.38
+
+## 0.1.0-alpha.37
+
+### Minor Changes
+
+- 6fcd051: Add `@buildanagent/harness/vercel` and `@buildanagent/harness/vercel/workflow`. `postgresStore()` and `postgresLock()` keep the session log and its writer lock in Postgres. `workflowScheduler()` turns each wake into a Vercel Workflow run that delivers in one step, and `envKeyStore()` reads the approval key ring from a secret environment variable. The entries take the Postgres client and the Workflow SDK's functions as arguments and import neither.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.37
+  - @buildanagent/gateway@0.1.0-alpha.37
+  - @buildanagent/protocol@0.1.0-alpha.37
+  - @buildanagent/sdk@0.1.0-alpha.37
+
+## 0.1.0-alpha.36
+
+### Minor Changes
+
+- 0aa9bda: Export the eight-seam portability conformance suite from `@buildanagent/harness/testing` (`PORTABILITY_SEAMS`, `portabilityConformanceCases()`, `runPortabilityConformance()`). This release also exports standalone suites for locks (`lockConformanceCases()`, `runLockConformance()`), egress (`EGRESS_DENIED_TARGETS`, `egressConformanceCases()`, `runEgressConformance()`), and protocol transports (`transportConformanceCases()`, `runTransportConformance()`).
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.36
+  - @buildanagent/gateway@0.1.0-alpha.36
+  - @buildanagent/protocol@0.1.0-alpha.36
+  - @buildanagent/sdk@0.1.0-alpha.36
+
+## 0.1.0-alpha.35
+
+### Minor Changes
+
+- c25b00d: Add `@buildanagent/harness/ablation` (`AblationConfig`, `DEFAULT_ABLATION`, `defaultAblation()`, `validateAblation()`, `ablationHash()`, `credentialEnvOf()`) and wire `HarnessOptions.ablation` into `createHarness()` and `runTurn()` so every removable component can be switched off and its configuration hash stamped into `session_header.ablationHash`.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.35
+  - @buildanagent/gateway@0.1.0-alpha.35
+  - @buildanagent/protocol@0.1.0-alpha.35
+  - @buildanagent/sdk@0.1.0-alpha.35
+
 ## 0.1.0-alpha.34
 
 ### Patch Changes

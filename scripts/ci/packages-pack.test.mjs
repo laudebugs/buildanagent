@@ -348,12 +348,18 @@ const SOURCE_CONDITION_FAILURES = [
 
 // The entries that fail to import in this install, which holds no optional peer, because they exist to wrap one: the
 // safety package's `./byok` imports `@ai-sdk/anthropic` and `@ai-sdk/openai` at load, and its `./cost` imports `ai`,
-// as its README says, and its `./stores/dynamodb` imports `@aws-sdk/client-dynamodb`. The failure must be ERR_MODULE_NOT_FOUND naming one of the package's declared optional peers.
+// as its README says, and its `./stores/dynamodb` imports `@aws-sdk/client-dynamodb`. The harness's `./aws/dynamodb`,
+// `./aws/scheduler` and `./aws/secrets-manager` import `@aws-sdk/client-dynamodb`, `@aws-sdk/client-scheduler` and
+// `@aws-sdk/client-secrets-manager`, and its `./sandbox/vercel` imports `@vercel/sandbox`. The failure must be ERR_MODULE_NOT_FOUND naming one of the package's declared optional peers.
 // Every other entry, the root entry included, must import. An entry listed here that imports again fails the test.
 const OPTIONAL_PEER_FAILURES = [
   "@buildanagent/agent-safety/byok",
   "@buildanagent/agent-safety/cost",
   "@buildanagent/agent-safety/stores/dynamodb",
+  "@buildanagent/harness/sandbox/vercel",
+  "@buildanagent/harness/aws/dynamodb",
+  "@buildanagent/harness/aws/scheduler",
+  "@buildanagent/harness/aws/secrets-manager",
 ];
 
 for (const conditions of [[], ["--conditions=source"]]) {

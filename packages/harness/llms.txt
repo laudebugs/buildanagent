@@ -12,7 +12,15 @@ The sections of README.md and every public export, generated from this package's
 - [A denied command becomes a signed request, and an approved one reruns once](README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once)
 - [The srt backend confines each command with Anthropic's OS sandbox](README.md#the-srt-backend-confines-each-command-with-anthropics-os-sandbox)
 - [The Docker backend runs each command in a locked-down container](README.md#the-docker-backend-runs-each-command-in-a-locked-down-container)
+- [The E2B backend runs each sandbox in a microVM that reaches only the policy's hosts](README.md#the-e2b-backend-runs-each-sandbox-in-a-microvm-that-reaches-only-the-policys-hosts)
+  - [Credential injection is a narrow opt-in, for scoped, short-lived, low-value tokens only](README.md#credential-injection-is-a-narrow-opt-in-for-scoped-short-lived-low-value-tokens-only)
+  - [A sandbox that fails or is disposed is killed, and E2B's timeout is the backstop](README.md#a-sandbox-that-fails-or-is-disposed-is-killed-and-e2bs-timeout-is-the-backstop)
+- [The Vercel backend runs each sandbox in a microVM that holds no credentials](README.md#the-vercel-backend-runs-each-sandbox-in-a-microvm-that-holds-no-credentials)
 - [A backend that claims a stop reads its policy back, and one that can't resume says so](README.md#a-backend-that-claims-a-stop-reads-its-policy-back-and-one-that-cant-resume-says-so)
+- [Credentials and sandboxes: the sandbox holds none, and an authenticated action runs on the host](README.md#credentials-and-sandboxes-the-sandbox-holds-none-and-an-authenticated-action-runs-on-the-host)
+  - [An authenticated action is a host-side tool that the pipeline decides](README.md#an-authenticated-action-is-a-host-side-tool-that-the-pipeline-decides)
+  - [What the sandbox can and can't do](README.md#what-the-sandbox-can-and-cant-do)
+  - [A hosted backend may inject a narrow credential, and only when you ask](README.md#a-hosted-backend-may-inject-a-narrow-credential-and-only-when-you-ask)
 - [The egress proxy keeps every credential outside the sandbox](README.md#the-egress-proxy-keeps-every-credential-outside-the-sandbox)
 - [An egress policy names a credential and never holds one](README.md#an-egress-policy-names-a-credential-and-never-holds-one)
 - [A git route lets a push reach listed branches and nothing else](README.md#a-git-route-lets-a-push-reach-listed-branches-and-nothing-else)
@@ -56,6 +64,27 @@ The sections of README.md and every public export, generated from this package's
   - [The key ring is a 0600 file outside the log and the sandbox](README.md#the-key-ring-is-a-0600-file-outside-the-log-and-the-sandbox)
   - [A read-only secret can hold the key ring instead](README.md#a-read-only-secret-can-hold-the-key-ring-instead)
 - [Every removable component has one ablation switch and one header hash](README.md#every-removable-component-has-one-ablation-switch-and-one-header-hash)
+- [One portability suite tests all eight target seams](README.md#one-portability-suite-tests-all-eight-target-seams)
+- [On Cloudflare, one Durable Object holds the log, the lock, the wakes and the sockets](README.md#on-cloudflare-one-durable-object-holds-the-log-the-lock-the-wakes-and-the-sockets)
+  - [The store and the lock rely on one event at a time, and their SQL is conditional as well](README.md#the-store-and-the-lock-rely-on-one-event-at-a-time-and-their-sql-is-conditional-as-well)
+  - [A wake is a row until its handlers return, so a failed delivery comes back](README.md#a-wake-is-a-row-until-its-handlers-return-so-a-failed-delivery-comes-back)
+  - [The key ring stays in a Worker secret, and no store object holds its text](README.md#the-key-ring-stays-in-a-worker-secret-and-no-store-object-holds-its-text)
+  - [A client keeps its socket through hibernation, and the bridge replays its connection](README.md#a-client-keeps-its-socket-through-hibernation-and-the-bridge-replays-its-connection)
+  - [The suite runs in workerd offline, and a live run on a real account is opt-in](README.md#the-suite-runs-in-workerd-offline-and-a-live-run-on-a-real-account-is-opt-in)
+- [On AWS, DynamoDB, EventBridge Scheduler and Secrets Manager hold the harness's state](README.md#on-aws-dynamodb-eventbridge-scheduler-and-secrets-manager-hold-the-harnesss-state)
+  - [The store commits a batch of any size with one conditional put of the session's head](README.md#the-store-commits-a-batch-of-any-size-with-one-conditional-put-of-the-sessions-head)
+  - [The lock is one lease item, taken and renewed by conditional updates on the caller's clock](README.md#the-lock-is-one-lease-item-taken-and-renewed-by-conditional-updates-on-the-callers-clock)
+  - [A wake is a one-time schedule, and `deliverWake()` holds an early one until its time](README.md#a-wake-is-a-one-time-schedule-and-deliverwake-holds-an-early-one-until-its-time)
+  - [The key store reads AWSCURRENT, and no error it throws holds the secret](README.md#the-key-store-reads-awscurrent-and-no-error-it-throws-holds-the-secret)
+  - [Each seam needs a few IAM actions on one resource](README.md#each-seam-needs-a-few-iam-actions-on-one-resource)
+  - [The opt-in live run checks the adapters against the owner's account](README.md#the-opt-in-live-run-checks-the-adapters-against-the-owners-account)
+- [On Vercel, Postgres holds the log and the lock, and each wake is one Workflow run](README.md#on-vercel-postgres-holds-the-log-and-the-lock-and-each-wake-is-one-workflow-run)
+  - [An append is one `INSERT`, and the primary key on `seq` is its compare-and-swap](README.md#an-append-is-one-insert-and-the-primary-key-on-seq-is-its-compare-and-swap)
+  - [A lock is a lease row on the database's clock, with a fence that only grows](README.md#a-lock-is-a-lease-row-on-the-databases-clock-with-a-fence-that-only-grows)
+  - [A wake is a Workflow run that sleeps, and its turn runs in one step](README.md#a-wake-is-a-workflow-run-that-sleeps-and-its-turn-runs-in-one-step)
+  - [The key ring comes from a secret environment variable, and nothing shows its value](README.md#the-key-ring-comes-from-a-secret-environment-variable-and-nothing-shows-its-value)
+  - [The live run checks the adapters against your own Postgres, and only you start it](README.md#the-live-run-checks-the-adapters-against-your-own-postgres-and-only-you-start-it)
+- [The triage capstone runs the SDK's support agent on the harness, and a second process answers its pause](README.md#the-triage-capstone-runs-the-sdks-support-agent-on-the-harness-and-a-second-process-answers-its-pause)
 
 ## Exports from `@buildanagent/harness`
 
@@ -332,6 +361,7 @@ The sections of README.md and every public export, generated from this package's
 - `class SandboxDeniedError`: Thrown when the policy refuses a file read or write.
 - `interface SandboxPolicy`: What a sandbox may touch.
 - `class SandboxPolicyMismatchError`: Thrown when the policy a backend read back from what it applied differs from the policy it was asked for, after `provision()` or a resume.
+- `class SandboxSecretUnresolvedError`: Thrown by a hosted backend's `provision()` or `resume()` when a secret that its egress rules name doesn't exist.
 - `type SandboxStop`: What a backend claims to stop.
 - `type SandboxTier`: How strongly a backend confines a process.
 - `class SandboxUnavailableError`: Thrown by `provision()` when a backend can't start, such as a missing binary.
@@ -360,6 +390,51 @@ The sections of README.md and every public export, generated from this package's
 - `dockerSandbox()`: Builds the Docker backend.
 - `interface DockerSandboxOptions`: The options of `dockerSandbox()`.
 
+## Exports from `@buildanagent/harness/sandbox/e2b`
+
+- `compileE2BEgress()`: Compiles `policy` for E2B: `allowOut` is exactly `allow` plus each route's host, `denyOut` denies every other address, `dnsServers` is empty, `allowPublicTraffic` is `false`, and each header route becomes a rule on its host whose header is the placeholder for the credential's E2B secret.
+- `E2B_ALL_TRAFFIC`: The `denyOut` entry that stands for every IPv4 address, which E2B calls `ALL_TRAFFIC`.
+- `E2B_DEFAULT_DNS_SERVER`: The DNS server E2B opens to all traffic when `allowOut` holds a domain and `dnsServers` is left out.
+- `E2B_PROVISION_LABEL`: The metadata key that marks a sandbox with the provisioning attempt that created it, for the sweep after a failure.
+- `E2B_ROOT_LABEL`: The metadata key that records a sandbox's workspace root, which `resume()` reads back.
+- `interface E2BCommandHandle`: A command started in the background.
+- `interface E2BCommandResult`: A command's result.
+- `interface E2BCompiledEgress`: An `EgressPolicy` compiled for E2B.
+- `interface E2BConnectionOptions`: Connection options the backend passes to every SDK call.
+- `interface E2BCreateOptions`: The options of `Sandbox.create()` that the backend sets.
+- `interface E2BEgressOptions`: The options of `compileE2BEgress()`.
+- `type E2BHeaderScheme`: A word that may come before a secret's placeholder in its header, such as `Bearer`.
+- `interface E2BNetworkInfo`: The network configuration E2B reports for a running sandbox.
+- `interface E2BNetworkOptions`: The network configuration the backend sends to `Sandbox.create()`.
+- `interface E2BNetworkRule`: One header transform of a network rule, as the backend writes and reads it.
+- `interface E2BRunOptions`: The options of a background command, as the backend starts every command.
+- `e2bSandbox()`: The E2B backend.
+- `interface E2BSandboxApi`: The `Sandbox` class's static methods the backend calls.
+- `interface E2BSandboxClient`: The E2B backend's client: a `SandboxClient` that can resume and pause.
+- `interface E2BSandboxInfo`: What `getInfo()` reports about a sandbox, as far as the backend reads it.
+- `interface E2BSandboxInstance`: A sandbox instance.
+- `interface E2BSandboxOptions`: The options of `e2bSandbox()`.
+- `interface E2BSandboxPaginator`: A page of listed sandboxes.
+- `interface E2BSdk`: The SDK the backend runs on: `{ Sandbox, Secret }` from `e2b`, or a fake with the same shape.
+- `interface E2BSecretApi`: The `Secret` class's static methods the backend calls.
+- `interface E2BSecretReference`: One secret a compiled policy names.
+
+## Exports from `@buildanagent/harness/sandbox/vercel`
+
+- `checkVercelNetworkPolicy()`: Throws `invalid_egress_options` unless `policy` keeps egress closed to everything it doesn't name: it refuses `"allow-all"`, a `subnets.allow` (whose ranges go around the domain allowlist and its credential rules), a wildcard domain and a `forwardURL` rule.
+- `VERCEL_DENIED_SUBNETS`: The address ranges the compiled firewall policy denies by default: loopback, private, shared, link-local (which holds the cloud metadata address 169.254.169.254), the IPv6 unique-local, link-local and loopback ranges, and the IPv4-mapped IPv6 range, so a name whose AAAA record wraps one of the IPv4 ranges is refused too.
+- `interface VercelCommand`: A command started in a Vercel sandbox with `detached: true`.
+- `interface VercelCreateParams`: What the backend passes to `create()`.
+- `interface VercelCredentials`: An access token for the Vercel API, with the team and project the sandboxes belong to.
+- `interface VercelFinishedCommand`: A command that has finished in a Vercel sandbox.
+- `interface VercelRunParams`: What the backend asks `runCommand()` to start.
+- `vercelSandbox()`: Builds the Vercel Sandbox backend: tier `microvm`, claiming `mistakes`, `exfiltration` and `hostile_process`.
+- `interface VercelSandboxInstance`: A Vercel sandbox, as the backend uses it.
+- `interface VercelSandboxOptions`: The options of `vercelSandbox()`.
+- `vercelSandboxSdk()`: The real `@vercel/sandbox` client.
+- `interface VercelSandboxSdk`: The two calls of `@vercel/sandbox`'s `Sandbox` class the backend makes.
+- `class VercelSecretError`: The thrown error for a credential the egress policy names but the host can't supply.
+
 ## Exports from `@buildanagent/harness/credentials`
 
 - `interface CompiledEgressPolicy`: A compiled policy: the `allow` and `routes` options of `startEgressProxy()`.
@@ -383,6 +458,28 @@ The sections of README.md and every public export, generated from this package's
 - `REDACTED`: What replaces a secret.
 - `scrubSecrets()`: Returns a copy of `entry` with every secret replaced by `[REDACTED]`, in every string value and every key, at any depth.
 - `startEgressProxy()`: Starts the egress proxy on `127.0.0.1` with a port the system picks, or on `socketPath`.
+
+## Exports from `@buildanagent/harness/cloudflare`
+
+- `interface AlarmScheduler`: A `Scheduler` on a Durable Object's alarm, whose `alarm()` the object's own `alarm()` handler calls.
+- `CLOUDFLARE_PLATFORM_HINT`: Where a read-only Cloudflare key store's errors send the owner to rotate or prune keys.
+- `doAlarmScheduler()`: A `Scheduler` on the object's alarm: pass the object's `ctx.storage`, and call the scheduler's `alarm()` from the object's `alarm()` method.
+- `interface DoAlarmSchedulerOptions`: The options of `doAlarmScheduler()`.
+- `doLock()`: A `SessionLock` in a Durable Object's SQLite storage: pass the object's `ctx.storage`.
+- `interface DoLockOptions`: The options of `doLock()`.
+- `doSqliteIndex()`: A `SessionIndex` in a Durable Object's SQLite storage, beside `doSqliteStore()`, so a session's pointer survives the object leaving memory as its entries do.
+- `doSqliteStore()`: A `SessionStore` in a Durable Object's SQLite storage: pass the object's `ctx.storage`.
+- `interface DoSqliteStoreOptions`: The options of `doSqliteStore()`.
+- `interface DurableStorageLike`: The part of `DurableObjectStorage` the alarm scheduler uses besides SQL: the object's one alarm.
+- `interface HibernatableWebSocketLike`: A server-side WebSocket that the object accepted with `ctx.acceptWebSocket()`.
+- `interface SecretsStoreSecretLike`: A Secrets Store binding as a Worker sees it: `get()` resolves with the secret's text.
+- `interface SqlCursorLike`: What a SQL statement returns here: every row, each keyed by column name.
+- `interface SqlDurableStorageLike`: The part of `DurableObjectStorage` (`ctx.storage`) the store, the index and the lock use.
+- `interface SqlStorageLike`: The part of `SqlStorage` (`ctx.storage.sql`) the adapters use.
+- `webSocketHibernation()`: Serves the protocol over a Durable Object's hibernatable WebSockets.
+- `interface WebSocketHibernation`: The methods a Durable Object forwards its hibernatable WebSocket events to.
+- `interface WebSocketHibernationOptions`: The options of `webSocketHibernation()`.
+- `workerKeyStore()`: A read-only `KeyStore` over the key ring JSON in a Worker secret, such as `env.APPROVAL_KEYS`, or in a Secrets Store binding, whose `get()` it calls on every `load()`.
 
 ## Exports from `@buildanagent/harness/extensions`
 
@@ -506,6 +603,31 @@ The sections of README.md and every public export, generated from this package's
 - `interface WebSocketOptions`: What `webSocketTransport()` takes besides the dispatcher and the socket.
 - `webSocketTransport()`: Serves one client over one open WebSocket, one JSON-RPC 2.0 message per text frame, and resolves once the client is gone or the transport stops.
 
+## Exports from `@buildanagent/harness/aws/dynamodb`
+
+- `dynamoLock()`: A `SessionLock` on a DynamoDB table with a string partition key `pk` and a string sort key `sk`, which may be the session store's own table.
+- `interface DynamoLockHandle`: A hold on a DynamoDB lease.
+- `interface DynamoLockOptions`: The options of `dynamoLock()`.
+- `dynamoStore()`: A `SessionStore` on a DynamoDB table with a string partition key `pk` and a string sort key `sk`.
+- `interface DynamoStoreOptions`: The options of `dynamoStore()`.
+- `interface DynamoTableOptions`: The options both DynamoDB adapters take.
+- `MAX_DYNAMO_ENTRY_BYTES`: The largest `maxEntryBytes` the store accepts, so an entry's item stays under DynamoDB's 400 KB item limit.
+
+## Exports from `@buildanagent/harness/aws/scheduler`
+
+- `deliverWake()`: Delivers one wake to `handler`, never before its time on this host's clock.
+- `interface DeliverWakeOptions`: The options of `deliverWake()`.
+- `eventBridgeScheduler()`: A `Scheduler` whose wakes are EventBridge Scheduler one-time schedules.
+- `interface EventBridgeSchedulerOptions`: The options of `eventBridgeScheduler()`.
+- `parseWakeEvent()`: Reads a `WakeEvent` from what the target received: the event object a Lambda function is invoked with, or its JSON text.
+- `WAKE_EVENT_TYPE`: The `type` field of a wake's input, so a runner that takes other events can tell a wake apart.
+- `interface WakeEvent`: The input each schedule sends its target: the session id and the time the wake was asked for.
+
+## Exports from `@buildanagent/harness/aws/secrets-manager`
+
+- `secretsManagerKeyStore()`: A `KeyStore` with `load()` only, over the Secrets Manager secret `secretId`.
+- `interface SecretsManagerKeyStoreOptions`: The options of `secretsManagerKeyStore()`.
+
 ## Exports from `@buildanagent/harness/ablation`
 
 - `interface AblationConfig`: Switches for every removable component of the harness.
@@ -517,9 +639,50 @@ The sections of README.md and every public export, generated from this package's
 - `defaultAblation()`: Builds a complete `AblationConfig` from `DEFAULT_ABLATION` plus `overrides`, and validates it with `validateAblation()`.
 - `validateAblation()`: Checks fail-safe invariants on `config`.
 
+## Exports from `@buildanagent/harness/vercel`
+
+- `createPostgresHarnessTables()`: Creates the three tables of `POSTGRES_HARNESS_SCHEMA` where they are missing.
+- `DEFAULT_KEY_RING_VARIABLE`: The variable `envKeyStore()` reads when no name is given.
+- `deliverWake()`: Delivers one wake from inside a workflow step: it claims the wake if it is still in the ledger, calls `handler`, and then removes it.
+- `interface DeliverWakeOptions`: The options of `deliverWake()`.
+- `envKeyStore()`: A `KeyStore` whose `load()` reads the ring from one environment variable and parses it as `secretKeyStore()` does: JSON such as `{"current":"2026-11","keys":{"2026-11":"<base64url key>"}}`.
+- `interface EnvKeyStoreOptions`: The options of `envKeyStore()`.
+- `PgClientLike`: re-exported from `@buildanagent/agent-safety/stores/postgres`.
+- `POSTGRES_HARNESS_SCHEMA`: The statements that create the harness's three tables: `harness_session_entries` (one row per entry), `harness_session_locks` (one lease row per session) and `harness_wakes` (one row per pending wake).
+- `postgresLock()`: A `SessionLock` on one Postgres row per session, in the `harness_session_locks` table that `POSTGRES_HARNESS_SCHEMA` creates.
+- `interface PostgresLockHandle`: What `acquire()` returns: a `LockHandle` with the lease row's fencing number.
+- `interface PostgresLockOptions`: The options of `postgresLock()`.
+- `postgresStore()`: A `SessionStore` on Postgres, through any client with a `query(text, values)` method that resolves to `{ rows }`, such as `pg`'s `Pool`, Neon's serverless `Pool` or PGlite.
+- `interface PostgresStoreOptions`: The options of `postgresStore()`.
+- `postgresWakeLedger()`: A `WakeLedger` in the `harness_wakes` table that `POSTGRES_HARNESS_SCHEMA` creates.
+- `interface WakeLedger`: The wakes still pending, kept where every function instance can read them.
+- `interface WakeRequest`: What one wake run is started with.
+- `interface WakeSignal`: What `cancel()` sends to a waiting run's hook.
+- `wakeToken()`: The hook token of one wake: the id, encoded so it holds no `:`, the time and the nonce the ledger gave it.
+- `workflowScheduler()`: A `Scheduler` on Vercel Workflow.
+- `interface WorkflowSchedulerOptions`: The options of `workflowScheduler()`.
+
+## Exports from `@buildanagent/harness/vercel/workflow`
+
+- `runWakeWorkflow()`: Waits until `request.at`, unless `cancel()` resumes the run's hook first, and then calls `runtime.deliver` once.
+- `interface WakeHook`: The part of a Workflow SDK hook the run uses.
+- `type WakeOutcome`: How one wake run ended: it delivered the wake, a cancel ended it, or another run already held its token.
+- `interface WakeRequest`: What one wake run is started with.
+- `interface WakeSignal`: What `cancel()` sends to a waiting run's hook.
+- `interface WakeWorkflowRuntime`: What `runWakeWorkflow()` needs from the Workflow SDK and from your step.
+
 ## Exports from `@buildanagent/harness/testing`
 
 - `interface DeliveredWake`: One wake a scheduler delivered.
+- `type EffectStoreFactory`: Makes a fresh, empty `EffectStore` for each conformance case.
+- `EGRESS_DENIED_TARGETS`: Target URLs every egress backend must refuse: a non-allowlisted host, loopback addresses and cloud metadata endpoints.
+- `type EgressCase`: One case of the egress conformance suite.
+- `egressConformanceCases()`: The egress conformance cases, exported for the local proxy and every hosted sandbox backend.
+- `type EgressConformanceReport`: The report the egress conformance suite returns.
+- `interface EgressDeniedTarget`: One target URL that an egress backend must refuse.
+- `type EgressFactory`: Makes a fresh egress backend (or attaches to one) for each case.
+- `interface EgressProbeResult`: Outcome of one outbound request probe against an egress backend.
+- `interface EgressUnderTest`: What an egress factory returns for one conformance run.
 - `FAKE_COMMANDS`: The commands the fake runs, in the form `[name, ...arguments]`: `echo` prints its arguments, `env` prints the environment it was given as `NAME=value` lines, `cat <path>` prints a file, `write <path> <text>` writes one, `true` and `false` exit with 0 and 1, `sleep <seconds>` waits and honours the timeout and the signal, and `net-probe <host>` reaches a host only if the policy allows it.
 - `fakeSandbox()`: Builds a fake backend with the tier `os` and the stops `mistakes` and `exfiltration`, because it enforces the policy's file roots and network allowlist in memory.
 - `interface FakeSandboxClient`: A fake backend, and what it has seen.
@@ -529,11 +692,27 @@ The sections of README.md and every public export, generated from this package's
 - `type KeyStoreConformanceReport`: What `runKeyStoreConformance()` reports.
 - `type KeyStoreFactory`: Makes a fresh store for each case.
 - `interface KeyStoreUnderTest`: What a factory returns: the store under test.
+- `type LockCase`: One case of the lock conformance suite.
+- `lockConformanceCases()`: The lock conformance cases, each run against a fresh lock from `factory`.
+- `type LockConformanceReport`: The report the lock conformance suite returns.
+- `type LockFactory`: Makes a fresh session lock for each case.
+- `interface LockLeaseHarness`: Lease-expiry hooks supplied by a lock factory.
+- `interface LockUnderTest`: What a lock factory returns for one case.
+- `PORTABILITY_SEAMS`: The eight portable seams covered by `portabilityConformanceCases()`.
+- `type PortabilityCase`: One case of the portability conformance suite, prefixed with its seam name.
+- `portabilityConformanceCases()`: Collects conformance cases for every seam supplied in `target`, each named `<seam>: <case>`.
+- `type PortabilityConformanceReport`: The report returned by `runPortabilityConformance()`.
+- `type PortabilitySeam`: Name of one of the eight portable seams.
+- `interface PortabilityTarget`: Factories for the portable seams a deployment target implements.
 - `interface RecordedExec`: One command the fake received, with what the caller passed.
+- `runEgressConformance()`: Runs every egress conformance case and reports which passed, skipped and failed.
 - `runKeyStoreConformance()`: Runs every case and reports which passed, which skipped and which failed.
+- `runLockConformance()`: Runs every lock conformance case and reports which passed, skipped and failed.
+- `runPortabilityConformance()`: Runs every conformance case for `target` and returns which passed, skipped and failed.
 - `runSandboxConformance()`: Runs every case against backends from `factory` and reports which passed, which skipped with a reason and which failed.
 - `runSchedulerConformance()`: Runs every case and reports which passed, which skipped and which failed.
 - `runStoreConformance()`: Runs every case and reports which passed, which skipped with a reason and which failed.
+- `runTransportConformance()`: Runs every transport conformance case and reports which passed, skipped and failed.
 - `type SandboxCase`: One case of the sandbox conformance suite, which a runner can register as a test of its own.
 - `sandboxConformanceCases()`: The cases, for a backend from `factory`.
 - `interface SandboxConformanceOptions`: The options of the suite.
@@ -550,3 +729,8 @@ The sections of README.md and every public export, generated from this package's
 - `type StoreConformanceReport`: The report the store conformance suite returns: which cases passed, which skipped with a reason and which failed.
 - `type StoreFactory`: Makes a fresh store for each case.
 - `interface StoreUnderTest`: What a factory returns: a fresh, empty store, and optionally a way to tear a log's last line.
+- `type TransportCase`: One case of the transport conformance suite.
+- `transportConformanceCases()`: The transport conformance cases, each run against a fresh transport from `factory`.
+- `type TransportConformanceReport`: The report the transport conformance suite returns.
+- `type TransportFactory`: Makes a fresh connected transport backed by a scripted harness dispatcher for each case.
+- `interface TransportUnderTest`: One live JSON-RPC 2.0 client connection attached to a harness dispatcher.

@@ -2,6 +2,9 @@
 // each block as a module beside this file. A block's own imports and declarations shadow these.
 import type * as gateway from "@buildanagent/gateway";
 import type * as harnessRoot from "@buildanagent/harness";
+import type * as awsDynamo from "@buildanagent/harness/aws/dynamodb";
+import type * as awsScheduler from "@buildanagent/harness/aws/scheduler";
+import type * as awsSecrets from "@buildanagent/harness/aws/secrets-manager";
 import type * as context from "@buildanagent/harness/context";
 import type * as file from "@buildanagent/harness/context/file";
 import type * as extensions from "@buildanagent/harness/extensions";
@@ -16,6 +19,8 @@ import type * as sessions from "@buildanagent/harness/session";
 import type * as jsonl from "@buildanagent/harness/session/jsonl";
 import type * as telemetry from "@buildanagent/harness/telemetry";
 import type * as tools from "@buildanagent/harness/tools";
+import type * as vercel from "@buildanagent/harness/vercel";
+import type * as vercelWorkflow from "@buildanagent/harness/vercel/workflow";
 import type * as protocol from "@buildanagent/protocol";
 import type * as sdk from "@buildanagent/sdk";
 
@@ -27,7 +32,30 @@ declare global {
   type Model = gateway.Model;
   type PurgeMark = sessions.PurgeMark;
   type ToolRegistry = tools.ToolRegistry;
+  type PgClientLike = vercel.PgClientLike;
+  type WakeRequest = vercel.WakeRequest;
 
+  type AwsClients = {
+    dynamo: import("@aws-sdk/client-dynamodb").DynamoDBClient;
+    scheduler: import("@aws-sdk/client-scheduler").SchedulerClient;
+    secrets: import("@aws-sdk/client-secrets-manager").SecretsManagerClient;
+  };
+  type AwsNames = { table: string; runnerArn: string; schedulerRoleArn: string; keySecretId: string };
+  type SessionKey = sessions.SessionKey;
+  const awsSeams: (
+    clients: AwsClients,
+    names: AwsNames,
+  ) => {
+    store: sessions.SessionStore;
+    lock: sessions.SessionLock;
+    scheduler: sessions.Scheduler;
+    keys: import("@buildanagent/agent-safety").KeyStore;
+  };
+  const AFTER_LEASE_MS: number;
+  const dynamoStore: typeof awsDynamo.dynamoStore;
+  const dynamoLock: typeof awsDynamo.dynamoLock;
+  const eventBridgeScheduler: typeof awsScheduler.eventBridgeScheduler;
+  const secretsManagerKeyStore: typeof awsSecrets.secretsManagerKeyStore;
   const clearPurgeMarks: typeof memory.clearPurgeMarks;
   const composeExtensions: typeof extensions.composeExtensions;
   const createApprovals: typeof sessions.createApprovals;
@@ -57,12 +85,25 @@ declare global {
   const pruneSessions: typeof jsonl.pruneSessions;
   const recordsOf: typeof extensions.recordsOf;
   const registerExtensionTools: typeof extensions.registerExtensionTools;
+  const createPostgresHarnessTables: typeof vercel.createPostgresHarnessTables;
+  // Both targets export a `deliverWake()`, so the README's examples see the two as overloads.
+  const deliverWake: typeof awsScheduler.deliverWake & typeof vercel.deliverWake;
+  const envKeyStore: typeof vercel.envKeyStore;
+  const postgresLock: typeof vercel.postgresLock;
+  const postgresStore: typeof vercel.postgresStore;
+  const postgresWakeLedger: typeof vercel.postgresWakeLedger;
+  const runWakeWorkflow: typeof vercelWorkflow.runWakeWorkflow;
+  // The Workflow SDK's two in-workflow functions, as the Vercel wake example imports them from `workflow`.
+  const sleep: (until: Date) => Promise<void>;
+  const createHook: vercelWorkflow.WakeWorkflowRuntime["createHook"];
 
   const loggedEntries: protocol.SessionEntry[];
   const projectSpans: typeof telemetry.projectSpans;
   const createBudgetMeter: typeof telemetry.createBudgetMeter;
 
+  const LEASE_MS: number;
   const SYSTEM: string;
+  const app: { connect?: () => PgClientLike; onWake?: (sessionId: string, at: Date) => Promise<void> };
   const audit: (entry: unknown) => void;
   const client: sandbox.SandboxClient;
   const controller: AbortController;

@@ -39,7 +39,7 @@ const isStringList = (value: unknown): value is readonly string[] =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 
 /** Whether two lists hold the same entries, ignoring order and repeats. */
-function sameEntries(left: readonly string[], right: readonly string[]): boolean {
+export function sameEntries(left: readonly string[], right: readonly string[]): boolean {
   const a = new Set(left);
   const b = new Set(right);
   return a.size === b.size && [...a].every((entry) => b.has(entry));
