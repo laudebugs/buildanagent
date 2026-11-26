@@ -11,14 +11,9 @@ The transports authenticate nobody. Whoever holds a transport's streams or socke
 
 `createDispatcher()` from `@buildanagent/harness/server` takes a harness, a session store, an index, a lock and the user's id. `inProcessTransport()` connects a client that runs in the same process. Its `request()` resolves with the result of a command, or rejects with an `RpcFailure` that holds the error code and message.
 
-This client answers every approval request with `allow`. `onMessage()` hears the server's notifications and requests, and `respond()` answers a request. Its type allows only the result type of that request's method, so an approval cannot be answered with a tool result:
+This client answers every approval request with `allow`. `onMessage()` hears the server's notifications and requests, and `respond()` answers a request. Its type allows only the result type of that request's method, so an approval cannot be answered with a tool result. The client then says who it is, creates a session and starts a turn:
 
-```ts file="packages/harness/examples/in-process-client.ts" region="connect"
-```
-
-A client then says who it is, creates a session and starts a turn.:
-
-```ts file="packages/harness/examples/in-process-client.ts" region="turn"
+```ts file="packages/harness/examples/in-process-client.ts" region="client"
 ```
 
 `turn/start` answers first with a disposition: `{ accepted: true, turn }`, or `{ accepted: false, reason }`. The reason is `busy` when this dispatcher already runs a turn in the session, `locked` when another process holds the session's lock, and `invalid` for a session the connection never created or opened. The turn's events follow as `event` notifications, and every turn ends with one `turn/settled`.
