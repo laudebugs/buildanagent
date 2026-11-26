@@ -31,6 +31,8 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 - **MUST:** put a sentence that says what the code does before every code block.
 - **MUST:** a code block of more than five lines comes from a tested example file, which [examples.md](examples.md) governs, so the docs never show code that no longer runs. Until the first `examples/` folder exists, a README may show a longer block; [Known gaps](README.md#known-gaps) tracks it.
 
+- **MUST:** show a terminal session only from a transcript, a file under `packages/<pkg>/transcripts/` that a test in that package runs and compares with the command's real output, so a page never shows output the command no longer prints. A `console` fence, or a shell block with a `$ ` prompt, that names no transcript fails the docs test. An install line has no prompt and is not a session.
+
 ## Draw a diagram where a picture answers faster
 
 The docs' [figure pipeline](../../apps/docs/README.md#draw-a-figure-with-a-script-and-the-build-inlines-it) checks that every figure has alt text and a caption and that no colour falls outside the theme tokens. A reviewer applies the other rules, and reads the alt text for its point, by hand.

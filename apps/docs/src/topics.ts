@@ -34,6 +34,9 @@ export interface ApiTopic {
   readonly group: TopicItem;
 }
 
+/** The tabs of the written docs, in order: each has pages of its own, and the generated API tabs follow them. */
+export const WRITTEN_TOPICS = ["SDK & gateway", "Protocol", "CLI"] as const;
+
 /**
  * The pages no sidebar item names but that belong to a topic, as glob patterns by topic id. TypeDoc writes each
  * package's module page without a sidebar entry, so the plugin would refuse it as a page in no topic; naming the
@@ -51,7 +54,7 @@ export function unlistedPages(apis: readonly ApiTopic[]): Record<string, string[
 export function topics(apis: readonly ApiTopic[]): Topic[] {
   return [
     {
-      label: "SDK & gateway",
+      label: WRITTEN_TOPICS[0],
       link: "start/what-the-sdk-is",
       icon: "open-book",
       items: [
@@ -94,7 +97,7 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
       ],
     },
     {
-      label: "Protocol",
+      label: WRITTEN_TOPICS[1],
       link: "protocol/quick-start",
       icon: "random",
       items: [
@@ -109,7 +112,7 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
       ],
     },
     {
-      label: "CLI",
+      label: WRITTEN_TOPICS[2],
       link: "cli/quick-start",
       icon: "rocket",
       items: [

@@ -48,10 +48,8 @@ describe("the home page", () => {
   });
 
   test("leads the protocol and the CLI to their quick starts, which exist and are in the sidebar", () => {
-    for (const [title, target] of [
-      ["Protocol", "/protocol/quick-start/"],
-      ["CLI", "/cli/quick-start/"],
-    ] as const) {
+    for (const [title, folder] of PACKAGES.filter(([name]) => name === "Protocol" || name === "CLI")) {
+      const target = `/${folder}/quick-start/`;
       const card = cards.find((entry) => entry.title === title);
       assert.equal(card?.href, target);
       const slug = target.replace(/^\/|\/$/g, "");
@@ -62,7 +60,7 @@ describe("the home page", () => {
 
   test("leads the harness and agent safety to their API reference pages in the built docs", () => {
     const site = builtSite();
-    for (const [title, folder] of [PACKAGES[2], PACKAGES[3]]) {
+    for (const [title, folder] of PACKAGES.filter(([name]) => name === "Harness" || name === "Agent safety")) {
       const card = cards.find((entry) => entry.title === title);
       assert.equal(card?.href, `/reference/${folder}/`);
       assert.ok(existsSync(`${site}/reference/${folder}/index.html`), `/reference/${folder}/ has no built page`);

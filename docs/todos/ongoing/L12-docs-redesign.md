@@ -72,11 +72,11 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12d | The figure pipeline and figures 1 and 2, `package-map` and `run-loop` | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
 | L12e | The version tag, the `next.` banner, the `@alpha` install-line test, the "Docs for main" link | L12b | S | Sonnet |
 | L12f | The API reference for the four packages and its measurements | L12c | S to M | Sonnet |
-| L12g | The protocol and CLI pages, their examples and figure 9, plus a quick start for each package and CLI transcripts from real runs ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25)) | L12d, L12f | M | Sonnet |
+| L12g | The protocol and CLI pages, their examples and figure 9, plus a quick start for each package and CLI transcripts from real runs ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25); [done](../done/L12g-docs-protocol-cli-pages.md)) | L12d, L12f | M | Sonnet |
 | L12h | Harness pages, part 1 (overview, sessions, context, tools) and figure 7, plus the harness quick start and a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25)) | L12g | M | Sonnet |
 | L12i | Harness pages, part 2 (permissions, sandbox, server, extensions) and figure 8, plus a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25)) | L12h | M | Sonnet (Opus for any run of the sandbox and credentials example) |
 | L12j | The agent-safety pages and examples, plus a quick start and a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25)) | L12f | M | Sonnet |
-| L12k | `file=` fences on the existing pages, the gateway page and figures 3 to 6 | L12d | M | Sonnet |
+| L12k | `file=` fences on the existing pages, the gateway page and figures 3 to 6 ([done](../done/L12k-docs-fences-gateway-figures.md)) | L12d | M | Sonnet |
 | L12l | Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if 9a is yes, `context7.json` | L12b | M | Sonnet |
 | L12m | The CSP `_headers` file with script hashes, a stated `style-src` decision, a 1,900-character limit on the CSP line, and its test ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25)) | L12b, L12l | S to M | Opus (security) |
 | L12n | The docs-writing.md rules for diagrams, callouts and tabs | None | S | Sonnet |
@@ -95,7 +95,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 
 **Order.** Start with L12n and L12a. L12b, L12c and L12d follow in parallel, then L12e, L12f and L12p. L12g, L12h and L12i run in sequence, with L12j, L12k and L12o beside them. L12l and L12m go last.
 
-**Where the order stands (2026-11-25).** Every sub-todo from L12a to L12s is merged except L12g, L12h, L12i, L12j and L12m, and L12m still waits on question 9b. L12g starts the remaining sequence, and L12j can run beside it.
+**Where the order stands (2026-11-25).** Every sub-todo from L12a to L12s is merged except L12h, L12i, L12j and L12m, and L12m still waits on question 9b. L12g, which started the remaining sequence, is done in its pull request; L12h follows it, and L12j can run beside it.
 
 **Order of the proposed sub-todos, for those the owner accepts.** L12w comes first, because it depends on nothing and fixes pages readers already see. L12x and L12z can follow at any time. L12t lands before L12h to L12j write their "Problems and fixes" sections, so each entry can link its code. L12u and L12v wait for the package pages, and L12y waits for the owner to commit the workflow step. A dropped sub-todo changes nothing in this order.
 
@@ -112,6 +112,8 @@ L12o no longer depends on L12d: the owner chose package cards without an illustr
 **L12f progress (2026-11-24).** L12f is done in [its own todo](../done/L12f-docs-api-reference-four-packages.md). `API_PACKAGES` in `apps/docs/src/api/packages.ts` now generates references for all six published packages, and the 30 entry points that lacked `@module` tags now carry them so TypeDoc names every module by its import path.
 
 Setting `sidebar: "modules"` on `@buildanagent/harness` keeps all 965 built pages inside the 200 KiB budget. Full leaf links across its 20 entry points (446 pages) pushed 27 harness pages over 200 KiB (largest 233,112 bytes / 227.6 KiB) and grew `dist/` to 129 MB. Module-only sidebar links cut harness's largest page to 94,510 bytes (92.3 KiB) and `dist/` to 70 MB while still generating every export page and Markdown twin. Across the full six-package build, the largest page is `reference/sdk/buildanagent/sdk/interfaces/continueoptions/index.html` (146,947 bytes / 143.5 KiB), the mean page is 61,907 bytes, Pagefind is 4.9 MB, the 964 Markdown twins total 1,281,177 bytes, and a warm build takes ~23 s. [The fact-check log](../../plans/reviews/fact-check-publish-and-docs.md) records the verified claims in rows `L12f-1` to `L12f-7`.
+
+**L12g progress (2026-11-26).** L12g is done in [its own todo](../done/L12g-docs-protocol-cli-pages.md). The docs have a "Protocol" and a "CLI" topic with five pages, figure 9 (`protocol-clients`) and a quick start for each package. The two home cards lead to the quick starts, and each package's reference index links its quick start through the `@module` comment, with an absolute address because that TSDoc also reaches readers outside the docs. Five transcripts of real CLI runs live in `packages/cli/transcripts/`, a CLI test re-runs them, and a docs test fails on a typed session. Friction: the CLI reports `0.0.0` as the harness version (todo L12g1), and the binary cannot reach a scripted model, so no transcript shows a turn.
 
 **L12p progress (2026-11-24).** L12p is done in [its own todo](../done/L12p-shared-header-source.md). `apps/manual` exports `./site-chrome` from `src/design/site-chrome.json`, holding the brand, repository URL, cross-site links (Docs, Manual, Site, GitHub), site wordmarks and inline prompt mark. `apps/manual`, `apps/docs` and `apps/site` all render their headers from that single source and test the built header against it. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12p-1` to `L12p-4`.
 

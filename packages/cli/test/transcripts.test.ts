@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { spawnEnv } from "@buildanagent/harness/sandbox";
+import { SDK_VERSION } from "@buildanagent/sdk";
 import { afterAll, test } from "vitest";
 
 // The terminal sessions the docs show are files in transcripts/, and this test runs each command and compares what it
@@ -10,13 +11,12 @@ import { afterAll, test } from "vitest";
 //
 //   REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts
 //
-// A transcript is the command line after a `$ ` prompt, then standard output, then standard error, exactly as the
+// A transcript is the command line after a `$ ` prompt, with any environment variable the run needs before it, then standard output, then standard error, exactly as the
 // binary wrote them. Each run starts from a cleared environment and an empty home folder, like bin.test.ts.
 const BIN = fileURLToPath(new URL("../src/bin.ts", import.meta.url));
 const SOURCE_CONDITION = fileURLToPath(new URL("./source-condition.mjs", import.meta.url));
 const TRANSCRIPTS = new URL("../transcripts/", import.meta.url);
 const TSX = import.meta.resolve("tsx");
-const SDK_MANIFEST = new URL("../../sdk/package.json", import.meta.url);
 const MODEL = "anthropic:claude-sonnet-5-5";
 const PROMPT = "Why does the login test fail?";
 // The one line a client writes to open a conversation, the same one the protocol's quick-start example writes.
@@ -57,25 +57,29 @@ const quote = (word: string) => (/^[\w./:@=-]+$/.test(word) ? word : `'${word}'`
 
 /** The line the transcript starts with: the command as a reader would type it. */
 function commandLine(run: Transcript): string {
-  const command = ["buildanagent", ...run.args].map(quote).join(" ");
+  // An environment variable the run needs is part of the command, so a reader who pastes it gets the same output.
+  const variables = Object.entries(run.env ?? {}).map(([name, value]) => `${name}=${quote(value)}`);
+  const command = [...variables, "buildanagent", ...run.args.map(quote)].join(" ");
   return run.input === undefined ? `$ ${command}` : `$ echo '${run.input.trimEnd()}' | ${command}`;
 }
 
 /** The SDK's version changes with every release, so a transcript names it as a placeholder, not as a number. */
 function withoutVersion(text: string): string {
-  const { version } = JSON.parse(readFileSync(SDK_MANIFEST, "utf8")) as { version: string };
-  return text.replaceAll(`"sdkVersion":"${version}"`, '"sdkVersion":"<version>"');
+  return text.replaceAll(`"sdkVersion":"${SDK_VERSION}"`, '"sdkVersion":"<version>"');
 }
 
 function record(run: Transcript): { text: string; status: number | null } {
   const env = spawnEnv([]);
   homes.push(env.HOME as string);
+  const home = env.HOME as string;
   const child = spawnSync(
     process.execPath,
     ["--conditions=source", "--import", SOURCE_CONDITION, "--import", TSX, BIN, ...run.args],
     { encoding: "utf8", env: { ...env, ...run.env }, input: run.input ?? "" },
   );
-  return { text: withoutVersion(`${commandLine(run)}\n${child.stdout}${child.stderr}`), status: child.status };
+  const text = withoutVersion(`${commandLine(run)}\n${child.stdout}${child.stderr}`);
+  assert.ok(!text.includes(home), `${run.name} shows this run's home folder`);
+  return { text, status: child.status };
 }
 
 for (const run of RUNS) {
@@ -100,6 +104,7 @@ test("a transcript starts with a prompt and shows no home folder, so it reads th
   for (const run of RUNS) {
     const text = readFileSync(new URL(`${run.name}.txt`, TRANSCRIPTS), "utf8");
     assert.ok(text.startsWith("$ buildanagent") || text.startsWith("$ echo "), run.name);
-    assert.ok(text.endsWith("\n") && !text.includes("/Users/") && !text.includes("/tmp/"), run.name);
+    assert.ok(text.endsWith("\n"), run.name);
+    assert.doesNotMatch(text, /\/(?:Users|home|tmp|private|var\/folders)\//, `${run.name} shows a machine's path`);
   }
 });

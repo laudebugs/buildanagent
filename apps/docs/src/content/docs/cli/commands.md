@@ -32,6 +32,12 @@ On a machine with no sessions, `sessions list` says so on standard error and exi
 ```console file="packages/cli/transcripts/sessions-empty.txt"
 ```
 
+## Fix a stuck lock or change the approval keys
+
+Only one process writes a session at a time, and it holds the session's lock. `buildanagent session unlock <session> --force` removes the lock when you know its writer is gone. Without `--force` it removes nothing and exits 2, because two writers in one log would corrupt it.
+
+Each pause for approval is signed with a key from a key ring. `buildanagent keys rotate` adds a key and makes it current, and the older keys still check the requests they signed. `buildanagent keys prune` removes every older key that no waiting request names.
+
 ## Serve the protocol with rpc
 
 `buildanagent rpc` serves the harness's protocol to one client over standard input and output, one JSON-RPC message per line. It authenticates nobody, so run it only where you trust every process that can reach those streams. The [protocol quick start](/protocol/quick-start/) writes a client for it.

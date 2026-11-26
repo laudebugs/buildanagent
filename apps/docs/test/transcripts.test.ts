@@ -3,7 +3,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
 import { exampleSource, isTranscript, parseExampleRef, REPO_ROOT } from "../src/plugins/example-code.js";
-import { readPages } from "../src/plugins/pages.js";
+import { readPages, splitFences } from "../src/plugins/pages.js";
 import { isTypedSession, namesTranscript } from "./typed-session.js";
 
 // A terminal session on a docs page comes from a transcript that a test in the package re-runs (for the CLI,
@@ -65,5 +65,14 @@ test("the rule finds a typed session however it is written, and spares an instal
     session("console", "$ x", 'file="packages/cli/transcripts/help.txt"'),
   ]) {
     assert.ok(!isTypedSession(fence), JSON.stringify(fence));
+  }
+});
+
+test("a fence language with a hyphen is read whole, so a shell-session fence is caught", () => {
+  for (const lang of ["sh-session", "shell-session", "console"]) {
+    const { fences: found } = splitFences(`Run it:\n\n\`\`\`${lang}\nbuildanagent --help\n\`\`\`\n`, false);
+    assert.equal(found[0]?.lang, lang);
+    assert.equal(found[0]?.meta, "");
+    assert.ok(found[0] !== undefined && isTypedSession(found[0]), lang);
   }
 });

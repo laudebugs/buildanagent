@@ -5,7 +5,7 @@ import { describe, test } from "vitest";
 import { API_PACKAGES } from "../src/api/packages.js";
 import { exampleSource, parseExampleRef } from "../src/plugins/example-code.js";
 import { type Page, readPages } from "../src/plugins/pages.js";
-import { type TopicItem, topics } from "../src/topics.js";
+import { type TopicItem, topics, WRITTEN_TOPICS } from "../src/topics.js";
 
 // The rules of docs/guidelines/docs-writing.md that a program can check, run over every page.
 const pages = readPages();
@@ -132,10 +132,10 @@ describe("the sidebar", () => {
     assert.ok(typo);
   });
 
-  test("puts the topics in the order SDK & gateway, Protocol, CLI, then one API topic for each package", () => {
+  test("puts the written topics first, then one API topic for each package", () => {
     assert.deepEqual(
       topicList.map((topic) => topic.label),
-      ["SDK & gateway", "Protocol", "CLI", ...API_PACKAGES.map((pkg) => pkg.label)],
+      [...WRITTEN_TOPICS, ...API_PACKAGES.map((pkg) => pkg.label)],
     );
   });
 
@@ -161,11 +161,11 @@ describe("the sidebar", () => {
   test("ends every page with a link to the next page in its topic", () => {
     // The last page of a topic points back to where a reader starts, or on to the package's API reference.
     const lastTargets: Record<string, string> = {
-      "SDK & gateway": "start/first-agent",
-      Protocol: "reference/protocol",
-      CLI: "reference/cli",
+      [WRITTEN_TOPICS[0]]: "start/first-agent",
+      [WRITTEN_TOPICS[1]]: "reference/protocol",
+      [WRITTEN_TOPICS[2]]: "reference/cli",
     };
-    for (const topic of topicList.slice(0, 3)) {
+    for (const topic of topicList.slice(0, WRITTEN_TOPICS.length)) {
       const order = slugsOf(topic.items);
       for (const slug of order) {
         const page = pages.find((candidate) => candidate.path.replace(/\.mdx?$/, "") === slug);

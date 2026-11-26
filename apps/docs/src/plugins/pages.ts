@@ -143,7 +143,7 @@ export function splitFences(rest: string, mdx: boolean): { body: string; fences:
   for (let i = 0; i < raw.length; i += 1) {
     // A fence may be indented, as in a list item, and use backticks or tildes; it closes on a line of the same
     // character that is at least as long.
-    const open = /^\s*(`{3,}|~{3,})(\w*)\s*(.*)$/.exec(raw[i] ?? "");
+    const open = /^\s*(`{3,}|~{3,})([\w-]*)\s*(.*)$/.exec(raw[i] ?? "");
     if (open === null) {
       const span = mdx ? codeSpan(raw, i) : 0;
       if (span > 0) {

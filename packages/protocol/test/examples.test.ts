@@ -1,5 +1,5 @@
-// Runs the examples in examples/: the quick start, reading a chunked stream, reading a session file, and writing requests and reading
-// replies. Each one takes its input from the test and sends nothing anywhere.
+// Runs the examples in examples/: the quick start, reading a chunked stream, reading a session file, and writing
+// requests and reading replies. Each one takes its input from the test and sends nothing anywhere.
 import assert from "node:assert/strict";
 import { DEFAULT_MAX_LINE_BYTES, decode, isProtocolError, type ServerMessage } from "@buildanagent/protocol";
 import { test } from "vitest";

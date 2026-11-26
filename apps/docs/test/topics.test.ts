@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, test } from "vitest";
 import { API_PACKAGES, moduleSidebarGroup } from "../src/api/packages.js";
 import { readPages } from "../src/plugins/pages.js";
+import { WRITTEN_TOPICS } from "../src/topics.js";
 import { builtSite } from "./built.js";
 
 // A page embeds the links of its own topic only. These tests read the built pages and fail when a page grows past its
@@ -11,8 +12,6 @@ import { builtSite } from "./built.js";
 
 /** The most HTML one built page may hold, in bytes. The measurement behind it is in the umbrella todo. */
 const BUDGET_BYTES = 200 * 1024; // 200 KiB, 204,800 bytes
-
-const SDK_TOPIC = "SDK & gateway";
 
 /** Every built HTML file's path under the build folder, with its size. */
 function builtPages(): { path: string; bytes: number }[] {
@@ -69,7 +68,7 @@ describe("the topics", () => {
       const tabs = topicTabs(html(page.path.replace(/\.mdx?$/, "")));
       assert.deepEqual(
         tabs.labels,
-        [SDK_TOPIC, "Protocol", "CLI", ...API_PACKAGES.map((pkg) => pkg.label)],
+        [...WRITTEN_TOPICS, ...API_PACKAGES.map((pkg) => pkg.label)],
         `${page.path} shows the wrong tabs`,
       );
       assert.equal(tabs.current.length, 1, `${page.path} must have one current topic`);

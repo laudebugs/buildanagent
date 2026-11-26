@@ -16,7 +16,7 @@ Make `buildanagent rpc` answer `initialize` with the harness's real version, and
 ## Context
 
 - `packages/harness/src/create-harness.ts` (`harnessVersion: options.harnessVersion ?? "0.0.0"`) and `packages/cli/src/host.ts`, where the CLI builds its harness without the option.
-- `packages/cli/transcripts/rpc-initialize.txt`: the committed transcript shows `"version":"0.0.0"`. The docs page works around the gap by describing the answer without that number.
+- `packages/cli/transcripts/rpc-initialize.txt`: the committed transcript shows `"version":"0.0.0"`. The protocol quick start says the number is a known bug.
 
 ## Scope
 

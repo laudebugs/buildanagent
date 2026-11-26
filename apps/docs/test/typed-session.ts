@@ -1,7 +1,13 @@
 import { isTranscript, parseExampleRef } from "../src/plugins/example-code.js";
 
 /** The fence languages that mean a terminal session whatever the code holds. */
-const SESSION_LANGS: ReadonlySet<string> = new Set(["console", "terminal", "shellsession", "sh-session"]);
+const SESSION_LANGS: ReadonlySet<string> = new Set([
+  "console",
+  "terminal",
+  "shellsession",
+  "shell-session",
+  "sh-session",
+]);
 
 /** The fence languages in which a line that starts with a `$ ` prompt marks a typed session. */
 const SHELL_LANGS: ReadonlySet<string> = new Set(["", "bash", "sh", "shell", "zsh", "text", "txt", "plaintext"]);
