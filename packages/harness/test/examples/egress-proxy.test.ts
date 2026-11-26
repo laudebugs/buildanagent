@@ -33,7 +33,7 @@ test("the log never holds the credential", async () => {
 });
 
 test("a policy that holds a credential-shaped string is refused with invalid_egress_options", () => {
-  const policy = { allow: ["ghp_abcdefghijklmnopqrstuvwxyz0123456789"], routes: [] };
+  const policy = { allow: ["Bearer not-a-real-token"], routes: [] };
   try {
     compileEgressPolicy(policy, { secret });
     assert.fail("the policy should have been refused");

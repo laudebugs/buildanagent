@@ -9,7 +9,7 @@ The permission pipeline is the harness's one decision point for tool calls. Ever
 
 ## A deny rule beats every mode
 
-A rule names a tool and may add a reason. The pipeline checks hooks first, then deny rules, ask rules, the mode, allow rules and a callback you supply. A deny at any step ends the decision, so a deny rule wins over every mode, including `bypass`, which allows whatever no hook or rule stopped.
+A rule names a tool and may add a reason. The pipeline checks hooks first, then deny rules, then the `read_only` limit, then ask rules, the mode, allow rules and a callback you supply. A deny at any step ends the decision, so a deny rule wins over every mode, including `bypass`, which allows whatever no hook or rule stopped.
 
 This pipeline lets a support agent look a customer up, asks a person before it pages an engineer and refuses any `rm` command. The `interactive` setting says whether a person can answer a question:
 
@@ -31,11 +31,11 @@ The pipeline fails closed. A hook that throws, an input that cannot be hashed an
 
 ## A mode changes what the rules leave open
 
-A mode is a standing setting for the whole pipeline. Rules still apply under every mode.
+A mode is a standing setting for the whole pipeline. Deny rules apply under every mode. Shadow mode skips ask rules and hook questions, because nothing runs and no person could answer.
 
 - **`default`** adds nothing.
 - **`accept_edits`** allows the edit tools: `write`, `edit`, `multi_edit` and `apply_patch`.
-- **`read_only`** allows `read`, `grep` and `glob` and denies every other tool, whatever an allow rule says.
+- **`read_only`** allows `read`, `grep` and `glob` and denies every other tool. It decides before ask rules and allow rules, so a tool with either is still denied.
 - **`bypass`** allows whatever no hook, deny rule or ask rule stopped.
 - **`shadow`** records each call and returns a fixed result, once you wrap the tools with the pipeline's shadow wrapper, so no tool runs.
 
@@ -43,7 +43,7 @@ A mode is a standing setting for the whole pipeline. Rules still apply under eve
 
 A rule can add `paths`, globs matched against the path fields of a call's input, and `commandPrefix`, the leading words of a shell command. The pipeline splits a command on `&&`, `||`, `;`, pipes and newlines. An allow rule must cover every part, so a rule for `git status` does not allow `git status && rm -rf /`.
 
-The command reader has limits. It does not follow aliases, shell functions, variables, here-documents or a script that the command writes first. An allow rule never covers a command with a substitution it cannot read, and a command nested more than three levels deep counts as a match for every deny and ask rule that has a `commandPrefix` for its tool. Run untrusted commands in a [sandbox](/harness/sandbox/) as well.
+The command reader has limits. It does not follow aliases, shell functions, variables, here-documents or a script that the command writes first. An allow rule with a `commandPrefix` never covers a command that hides commands in a substitution, because the rule cannot read all of its parts. An allow rule for the whole tool, with no `commandPrefix`, still allows it. A command nested more than three levels deep counts as a match for every deny and ask rule that has a `commandPrefix` for its tool. Run untrusted commands in a [sandbox](/harness/sandbox/) as well.
 
 ## An ask becomes a signed pause that any process can resume
 

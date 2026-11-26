@@ -11,11 +11,11 @@ import { createToolRegistry } from "@buildanagent/harness/tools";
 
 // #region rules
 /** The agent's rules. `interactive` says whether a person can answer a question. */
-export function supportPipeline(mode: PermissionMode, interactive = true): PermissionPipeline {
+export function supportPipeline(options: { mode: PermissionMode; interactive: boolean }): PermissionPipeline {
   return createPermissionPipeline(
     {
-      mode,
-      interactive,
+      mode: options.mode,
+      interactive: options.interactive,
       policyVersion: "support-1",
       allow: [{ tool: "lookup_customer" }],
       ask: [{ tool: "escalate", reason: "An on-call engineer will be paged." }],

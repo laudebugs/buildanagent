@@ -44,7 +44,7 @@ export async function tryProxy(secret: (name: string) => Promise<string>): Promi
     // The proxy refuses a host that is not in `allow` before it opens a connection.
     const refusal = await proxy.fetch("https://evil.example/").then(
       () => "reached it",
-      (error: Error) => error.message,
+      (error: unknown) => (error instanceof Error ? error.message : String(error)),
     );
     // #endregion
     return { placeholder: proxy.sentinels.git, refusal, records };

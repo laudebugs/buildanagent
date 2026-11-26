@@ -5,7 +5,7 @@ description: How a dispatcher serves protocol commands over a harness, starts tu
 
 You will connect a client, such as an editor or a script, to a harness and start its turns with protocol messages. You need this when a program other than your own loop must drive the agent and answer its questions.
 
-The transports authenticate nobody. Whoever holds a transport's streams or socket acts as the dispatcher's user, so give a transport only to a client you trust. The dispatcher is the object that serves the protocol's commands over a harness, and the [protocol](/protocol/quick-start/) is the set of messages a client sends. Both need a harness from [the quick start](/harness/quick-start/).
+Check who is connecting before you hand a transport its streams or socket. The transports authenticate nobody, so whoever holds them acts as the dispatcher's user and can answer approval requests. For a WebSocket, check the caller's identity and its `Origin` header first, because the transport makes no such check. A web page in the user's browser can open a socket to a local server, and without the check it could approve your agent's tool calls. The dispatcher is the object that serves the protocol's commands over a harness, and the [protocol](/protocol/quick-start/) is the set of messages a client sends. Both need a harness from [the quick start](/harness/quick-start/).
 
 ## A client in the same process needs no framing
 
@@ -16,13 +16,15 @@ This client answers every approval request with `allow`. `onMessage()` hears the
 ```ts file="packages/harness/examples/in-process-client.ts" region="client"
 ```
 
+This handler allows every request, which suits only a scripted example. A real client shows the person the request's `tool`, sends the `allow` or `deny` the person chose, and sets `by` after it has authenticated that person.
+
 `turn/start` answers first with a disposition: `{ accepted: true, turn }`, or `{ accepted: false, reason }`. The reason is `busy` when this dispatcher already runs a turn in the session, `locked` when another process holds the session's lock, and `invalid` for a session the connection never created or opened. The turn's events follow as `event` notifications, and every turn ends with one `turn/settled`.
 
 ## A request for a person goes to every watching client
 
 When a call needs a person, as [Permissions](/harness/permissions/) describes, the turn ends and the dispatcher sends `approval/request` to every connection that watches the session. It sends the request only after the log holds the `approval_requested` entry, so a client that hears of a request can always find it in the log.
 
-The first answer wins. The dispatcher withdraws the same question from every other connection with `$/cancelRequest` and ignores a later answer. An answer resumes the paused turn as a turn of its own, once the session is free. The `by` field of an answer passes through unchecked, so the transport is where you authenticate clients.
+The first answer wins. The dispatcher withdraws the same question from every other connection with `$/cancelRequest` and ignores a later answer. An answer resumes the paused turn as a turn of its own, once the session is free. The `by` field of an answer passes through unchecked, so authenticate clients before you give them a transport.
 
 Nothing holds a session open while a client thinks. A client that never answers costs one entry in a table until its connection closes, and the request stays in the log. A client that joins later finds waiting requests in the `initialize` response and is asked again when it opens the session.
 
@@ -32,7 +34,7 @@ Nothing holds a session open while a client thinks. A client that never answers 
 
 The dispatcher bounds what a slow client can cost, whichever transport it uses:
 
-- **Commands.** A connection holds at most 128 unanswered commands. The 129th gets the error `QueueFull`.
+- **Commands.** A connection holds at most 128 unanswered commands. The 129th gets the JSON-RPC error `-32001` with the message "the queue holds 128 commands; send again later".
 - **Events.** While a slow client keeps messages waiting, at most 128 live events wait with them. The server drops the rest and sends an `events_dropped` marker that says how many.
 - **Never dropped.** Responses, requests the server sends, `turn/settled` and the marker always go out.
 

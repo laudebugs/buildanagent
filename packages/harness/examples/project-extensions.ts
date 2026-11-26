@@ -8,8 +8,8 @@ import {
 
 // #region load
 /** The extensions of the project at `root`, if the host trusts it and the files still match the lock file. */
-export function loadExtensions(root: string, trusted: boolean): Promise<ProjectExtensions> {
-  const trust = realPathTrustStore(trusted ? [root] : []);
+export function loadExtensions(root: string, options: { trusted: boolean }): Promise<ProjectExtensions> {
+  const trust = realPathTrustStore(options.trusted ? [root] : []);
   return loadProjectExtensions(root, { trust, headless: false });
 }
 // #endregion

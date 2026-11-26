@@ -5,7 +5,7 @@ description: How a sandbox policy limits the folders and hosts a command may tou
 
 You will run an agent's commands in a confined workspace and keep credentials out of it. You need this when an agent runs shell commands, installs packages or reaches the web.
 
-A sandbox holds no credentials. A push or an authenticated API call runs as a tool in the harness's own process, behind the [permission pipeline](/harness/permissions/), and the sandbox never sees the secret. A sandbox is a confined place where commands run, and a credential is a secret such as an API key or a token.
+A sandbox is a confined place where commands run, and a credential is a secret such as an API key or a token. The secret stays on the host, and the sandbox sees at most a placeholder. An authenticated action, such as a push or an API call, runs as a tool in the harness's own process behind the [permission pipeline](/harness/permissions/), or through an egress route on the host that adds the secret for the sandbox.
 
 ## A policy lists the folders and hosts a sandbox may touch
 
@@ -49,7 +49,7 @@ The `none` tier runs a command as you, with the machine's files and network, so 
 
 `escalation()` from `@buildanagent/harness/sandbox` decides what happens when a sandbox denies a command. The policy `never` asks nobody. Under `on-request`, the harness writes a signed request, and a person's verified answer lets the command run once more in a fresh sandbox. Only the path or host that was denied is added, and the rerun runs at most once. Escalation uses the same signed pause as [permissions](/harness/permissions/).
 
-Some denials are never offered for widening: a path of `/`, a host with a wildcard, and any host that the policy's own deny list closes. The package README lists them all.
+Some denials are never offered for widening: a path of `/`, a host with a wildcard, and any host that the policy's own deny list closes. The [package README](https://github.com/laudebugs/buildanagent/blob/main/packages/harness/README.md#a-denied-command-becomes-a-signed-request-and-an-approved-one-reruns-once) lists them all.
 
 ## The egress proxy keeps credentials on the host
 
@@ -57,7 +57,7 @@ Egress is traffic that leaves the sandbox. The egress proxy is a program on the 
 
 The proxy refuses every host that is not on its allowlist with a 403, and it writes one log record per request: the host, the method, the status and the byte count. A record never holds a header, a body or a secret. The proxy also resolves each name itself and refuses a name that points at a private, loopback or link-local address, which includes the cloud metadata address `169.254.169.254`.
 
-A route lets a sandboxed tool call one host with a credential. The sandbox sends its request to the proxy and puts a random placeholder, called a sentinel, where the credential goes. The proxy checks the route, the method and the sentinel, swaps in the real secret and forwards the request over HTTPS. It reads the secret from the host for every request, so a rotated key takes effect at once.
+A route lets a command in the sandbox call one host without holding its credential: the host adds it. The sandbox sends its request to the proxy and puts a random placeholder, called a sentinel, where the credential goes. The proxy checks the route, the method and the sentinel, swaps in the real secret and forwards the request over HTTPS. It reads the secret from the host for every request, so a rotated key takes effect at once.
 
 ::figure[The sandbox reaches the web only through the egress proxy]{id="sandbox-egress" alt="The sandbox reaches the web only through a proxy on the host, which holds the secrets and refuses hosts that are not listed."}
 

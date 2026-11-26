@@ -29,14 +29,14 @@ function project(): { root: string; file: string } {
 
 test("a project the host does not trust loads nothing and says why", async () => {
   const { root } = project();
-  const loaded = await loadExtensions(root, false);
+  const loaded = await loadExtensions(root, { trusted: false });
   assert.equal(loaded.extensions.length, 0);
   assert.match(loaded.notices[0] ?? "", /the project extensions of .* are skipped: the project is not trusted$/);
 });
 
 test("a trusted project with no lock file loads its extension and says it is not pinned", async () => {
   const { root } = project();
-  const loaded = await loadExtensions(root, true);
+  const loaded = await loadExtensions(root, { trusted: true });
   assert.deepEqual(
     loaded.extensions.map((extension) => extension.name),
     ["audit"],
@@ -47,7 +47,7 @@ test("a trusted project with no lock file loads its extension and says it is not
 test("a pinned extension loads without a notice", async () => {
   const { root } = project();
   await pinProjectExtensions(root);
-  const loaded = await loadExtensions(root, true);
+  const loaded = await loadExtensions(root, { trusted: true });
   assert.equal(loaded.extensions.length, 1);
   assert.deepEqual(loaded.notices, []);
 });
@@ -56,7 +56,7 @@ test("an extension whose files changed after pinning is refused with extension_h
   const { root, file } = project();
   await pinProjectExtensions(root);
   writeFileSync(file, source("2.0.0"));
-  await assert.rejects(loadExtensions(root, true), (error: unknown) => {
+  await assert.rejects(loadExtensions(root, { trusted: true }), (error: unknown) => {
     assert.ok(isHarnessError(error));
     assert.equal(error.code, "extension_hash_mismatch");
     assert.equal(error.message, 'the extension "audit" is refused: its files changed since they were pinned');

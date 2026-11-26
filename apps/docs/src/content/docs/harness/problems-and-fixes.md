@@ -1,9 +1,9 @@
 ---
 title: Problems and fixes
-description: Twenty-one problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
+description: Twenty-two problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
 ---
 
-You will find twenty-one problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
+You will find twenty-two problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
 
 ## Sessions
 
@@ -135,7 +135,7 @@ If the writer died on the same host, you need not remove anything: its lock beco
 
 **Cause.** The proxy allows only the names in its `allow` list, over HTTPS, on port 443 unless the entry adds a port. The word after the colon says which rule refused: not_allowed for a host that is not listed, only_https for a plain HTTP request and address_literal for a host written as an address.
 
-**Fix.** Add the exact host name to `allow`, or to a route, and use HTTPS. An address literal can never be listed, so use the host's name.
+**Fix.** For a host the sandbox should only tunnel to, add its exact name to `allow` and use HTTPS. For a host that carries a credential, send the request to the route's address on the proxy, `<proxy.url>/<route>/path`, because a request to the host's real URL is refused. Keep a git route's host out of `allow`, which the policy refuses. An address literal can never be listed, so use the host's name.
 
 ### `compileEgressPolicy()` throws `invalid_egress_options`
 
@@ -155,13 +155,21 @@ If the writer died on the same host, you need not remove anything: its lock beco
 
 **Fix.** For `busy`, wait for the running turn's `turn/settled` notification and send the command again. For `locked`, wait until the other writer closes its session, or stop that process. For `invalid`, call `session/create` or `session/open` on the same connection first.
 
-### A client misses events and a command fails with `QueueFull`
+### A client misses events and a command fails with `-32001`
 
-**You see.** A client that reads slowly loses live events, and a marker takes their place that says how many were dropped. A client that sends faster than it reads gets the error `QueueFull`.
+**You see.** A client that reads slowly loses live events, and a marker takes their place that says how many were dropped. A client that sends faster than it reads gets the JSON-RPC error `-32001` with the message `the queue holds 128 commands; send again later`.
 
 **Cause.** Each connection queues at most 128 unanswered commands and at most 128 waiting live events. The server drops live events past the second bound and refuses commands past the first.
 
 **Fix.** Read each message as it arrives. To catch up after a gap, send `session/open` with `fromSeq` one past the last entry you received. The server replays the entries from the log, and you drop by sequence number any entry you get twice.
+
+### An approval is answered by a client you did not expect
+
+**You see.** A tool call that should have waited for you was approved, and the answer's `by` names someone who was not at the keyboard, or a name you never set.
+
+**Cause.** The transports authenticate nobody. Whoever holds the streams or the socket acts as the dispatcher's user, and the dispatcher passes `by` on as the client sent it. A web page in a browser can open a WebSocket to a local server, so a socket handed over without a check lets that page answer.
+
+**Fix.** Check the caller's identity and its `Origin` header before you hand a WebSocket to `webSocketTransport()`, and close the socket of a caller you do not know. Set `by` yourself after you have authenticated the approver. The [server page](/harness/server/) says more.
 
 ## Extensions
 
