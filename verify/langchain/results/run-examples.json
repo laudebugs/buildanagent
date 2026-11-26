@@ -97,5 +97,14 @@
     "ms": 1622,
     "modelCalls": 0,
     "tail": "ok - recalling an unexpired record leaves it in the store\nok - after the expiry the recall tool returns nothing\nok - the model never sees the expired fact\nok - the recall tool deleted the expired record from the store\nok - the store holds no record under that namespace\nok - the first thread's checkpoint is still there\nok - the first thread's log still holds the fact\nok - the agents ran only remember, recall and recall"
+  },
+  {
+    "id": "12-thread-owner",
+    "file": "/home/runner/work/buildanagent/buildanagent/verify/langchain/examples/12-thread-owner.ts",
+    "outcome": "ran",
+    "exit": 0,
+    "ms": 895,
+    "modelCalls": 0,
+    "tail": "ok - Ada's first call reaches the model\nok - Bob's call with Ada's thread id is refused\nok - Bob's call with an id nobody created is refused\nok - Bob's two calls get the same response, so neither tells him that Ada's thread exists\nok - only Ada's two calls reached the model; Bob's never did\nok - Ada's next call resumes her thread\nok - Ada's second request carries her first exchange and the new question\nok - Ada's thread holds only her own four messages"
   }
 ]
