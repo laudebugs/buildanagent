@@ -28,9 +28,10 @@ Add a script that fails when a relative link or an anchor in a tracked Markdown 
 
 **In scope**
 
-- `scripts/ci/markdown-links.mjs`: for every tracked `*.md` file, resolve each relative link to a tracked path and each `#anchor` to a heading in its target.
+- `scripts/ci/markdown-links.mjs`: for every tracked `*.md` file, resolve each relative link to a tracked file or directory and each `#anchor` to a heading in its target.
+- A rule for links into gitignored paths. `docs/reference/claude-agent-sdk/README.md` links its `source/` mirror, which `.gitignore` leaves out, so the link resolves locally after `pnpm run fetch-docs` but not in CI. The checker accepts a link into a gitignored path and says so in its report, or the link moves into code formatting.
 - A `pnpm check:links` script in the root `package.json`.
-- A list of skipped paths with a reason for each: the mirrored upstream docs under `docs/reference/*/source/`, and generated or vendored folders.
+- A list of skipped paths with a reason for each: the mirrored upstream docs under `docs/reference/*/source/`, the vendored skill under `.agents/skills/anatomy/`, other generated or vendored folders, and the page sources under `apps/docs/src/content/` and `apps/manual/src/content/`, whose links are site routes such as `/concepts/approvals/` that the apps' own checks resolve.
 - Fixes for the broken links the first run finds.
 
 **Out of scope**
@@ -43,7 +44,7 @@ Add a script that fails when a relative link or an anchor in a tracked Markdown 
 
 - [ ] Run a first pass over the repository and record how many links break, by folder.
 - [ ] Write `scripts/ci/markdown-links.mjs`: list tracked `*.md` files with `git ls-files`, skip fenced code, resolve relative paths, and build each target's anchors with GitHub's slug rule.
-- [ ] Write `scripts/ci/markdown-links.test.mjs` with a passing and a failing fixture for a missing file, a missing anchor, a repeated heading and a link inside a code fence.
+- [ ] Write `scripts/ci/markdown-links.test.mjs` with a passing and a failing fixture for a missing file, a missing anchor, a repeated heading, a link to a directory, a link into a gitignored path and a link inside a code fence.
 - [ ] Fix the broken links, or add a skipped path with its reason.
 - [ ] Add `check:links` to the root `package.json`, and list it in AGENTS.md's "Before you commit" and its `.github/workflows/` entry.
 - [ ] Hand the owner the one line for `ci.yml` (`- run: pnpm check:links`), in the pull request description.

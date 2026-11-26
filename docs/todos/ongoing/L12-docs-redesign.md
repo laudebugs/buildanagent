@@ -15,7 +15,7 @@ Redesign the docs site at `docs.buildanagent.fyi` so it looks like the book at `
 
 The owner's part: Q1, Q3 and Q5 are answered (2026-11-22), the manager set the defaults for Q2, Q4, Q6 to Q8 and 9a that day, and only question 9b holds anything back (L12m).
 
-Status of L12o (2026-11-23): the docs home page is rebuilt as design A, a centred welcome with the install line and a grid of six package cards (`index.mdx`, `starlight.css`, `test/home.test.ts`). The gateway and SDK cards lead to the Install and first-agent pages; the harness, agent-safety, protocol and CLI cards lead to their READMEs on GitHub, because the docs have no quick start for them until L12g to L12i land, and then those four cards move to the new pages. L12o depends only on L12a and L12b: the owner chose a design with no illustration (manager's message, 2026-11-23), so it needs no figure from L12d.
+Status of L12o (2026-11-23): the docs home page is rebuilt as design A, a centred welcome with the install line and a grid of six package cards (`index.mdx`, `starlight.css`, `test/home.test.ts`). The gateway and SDK cards lead to the Install and first-agent pages; the harness, agent-safety, protocol and CLI cards lead to their READMEs on GitHub, because the docs have no quick start for them until L12g to L12j land, and then those four cards move to the new pages. Since L12f (2026-11-24), those four cards lead to their API reference pages in the docs instead, and `home.test.ts` checks that. L12o depends only on L12a and L12b: the owner chose a design with no illustration (manager's message, 2026-11-23), so it needs no figure from L12d.
 
 Status of L12c (2026-11-23): done on `todo/L12c-sidebar-topics`. `starlight-sidebar-topics` 0.9.0 (released 2026-09-03; peers `@astrojs/starlight >=0.42.0` and `astro ^7.2.10`) splits the sidebar into "SDK & gateway" and one topic per package's generated reference, "Gateway API" and "SDK API". The plan names a single "API reference" topic, but a shared API topic still put all 253 reference links on every reference page, and the largest page stayed at 174,620 bytes. One topic per package is what keeps L12f's four packages inside the budget.
 
@@ -86,7 +86,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12r | Body text in Inter, titles in Instrument Serif, after the owner's decision of 2026-11-24 | L12a | S | Sonnet |
 | L12s | Body text in IBM Plex Sans in place of Inter, after the owner's decision of 2026-11-24 | L12r | S | Sonnet |
 | L12t | **Proposed.** An error-code reference: one entry for each code in each package's error-code union, and a table page | L12f | M | Sonnet |
-| L12u | **Proposed.** An Output view beside the code, from a committed file that the example's test rewrites and compares | L12k | M | Opus (design tooling: a fence attribute, the twin rule and the output files) |
+| L12u | **Proposed.** An Output view beside the code, from a committed file that the example's test rewrites and compares | L12k; L12g to L12j for the four packages' quick starts | M | Opus (design tooling: a fence attribute, the twin rule and the output files) |
 | L12v | **Proposed.** Docs for coding agents: an `AGENTS.md` snippet per package, a "Use with a coding agent" page and the guides' Markdown inside each tarball | L12l; L12g to L12j for the four packages' content | M | Opus for the tarball change (it reaches npm); Sonnet for the page and the snippets |
 | L12w | **Proposed.** Reader-facing checks on package READMEs and `package.json` metadata, and a check that every example is shown or listed as unused | None | M | Sonnet |
 | L12x | **Proposed.** A changelog page, a versioning-policy page and a glossary | L12c | S | Sonnet |
@@ -146,7 +146,7 @@ L12t to L12z come from the same direct read. The owner has seen the list and has
 
 **L12t: an error-code reference. Proposed (2026-11-25), awaiting the owner.**
 
-- **Gap.** Each of the six published packages exports an error-code union: `GatewayErrorCode`, `SdkErrorCode`, `SafetyErrorCode`, `ProtocolErrorCode`, `HarnessErrorCode` and `CliErrorCode`. No written page explains a code, so a reader meets the codes only as a union in the generated reference.
+- **Gap.** Each of the six published packages exports an error-code union: `GatewayErrorCode`, `SdkErrorCode`, `SafetyErrorCode`, `ProtocolErrorCode`, `HarnessErrorCode` and `CliErrorCode`. No page lists the codes or explains each one. Only `testing/offline.md` names one, `model_requests_disabled`, so a reader meets the rest only as a union in the generated reference.
 - **Done when.** Every member of each union has an entry that says what happened, why and how to fix it. No entry names a code its union lacks. One table page lists the codes by package, and the entries' sources live beside each package.
 - **Enforced by.** A test reads each union's members from the package's declaration files and compares them with the entries, in both directions. The Markdown twins cover the new pages.
 - **Open.** The todo decides whether the two narrower unions, the gateway's `ModelErrorCode` and the SDK's `RecordingErrorCode`, get entries.
@@ -165,7 +165,7 @@ L12t to L12z come from the same direct read. The owner has seen the list and has
 
 **L12w: reader-facing checks on READMEs, metadata and examples. Proposed (2026-11-25), awaiting the owner.**
 
-- **Gap.** [docs-writing.md](../../guidelines/docs-writing.md) covers each package's README, yet `scripts/package-docs.mjs` runs no prose rule on one, and `packages/harness/README.md` names internal ids today (`HD16`, `N54`, `N46a`). Also, none of the seven `package.json` files has `keywords` or `bugs`, and the content test checks only that a page has a description. Last, no check finds an example file that no page shows, and the only line-limit check found is the capstone's (`packages/sdk/test/capstone.test.ts`).
+- **Gap.** [docs-writing.md](../../guidelines/docs-writing.md) covers each package's README, yet `scripts/package-docs.mjs` runs no prose rule on one, and `packages/harness/README.md` names internal ids today (`HD15`, `HD16` and `N54` at `c5772662`). Also, none of the seven `package.json` files has `keywords` or `bugs`, and the content test checks only that a page has a description. Last, no check finds an example file that no page shows, and the only line-limit check found is the capstone's (`packages/sdk/test/capstone.test.ts`).
 - **Done when.** The READMEs pass the docs pages' rules for banned words and internal ids, with sentence and paragraph limits where a measurement shows they fit a README. No `package.json` description holds an internal id, every published package has `keywords` and `bugs`, and page descriptions stay within 160 characters. Every file in `packages/*/examples/` is shown on a page or listed with a reason, stays within 100 lines and imports only public entry points.
 - **Enforced by.** `scripts/package-docs.mjs`, which each published package's `test` already runs, and one new docs test for unused examples. The todo first counts the violations and fixes them, then turns each rule strict, the order Lamina PDF followed. The metadata change needs a changeset.
 
@@ -189,7 +189,7 @@ L12t to L12z come from the same direct read. The owner has seen the list and has
 
 ## Acceptance criteria
 
-L12 is done when every sub-todo in the split table is done and these hold on `main`. The table holds L12a to L12s today. Each of L12t to L12z joins it only if the owner accepts it, and a dropped one changes nothing here:
+L12 is done when every accepted sub-todo in the split table is done and these hold on `main`. Today that means L12a to L12s. Each proposed row, L12t to L12z, counts only once the owner accepts it, and a dropped row leaves the table:
 
 - [x] `pnpm --filter @buildanagent/docs test` and `pnpm check:api-docs` pass, with the tests covering all six packages.
 - [ ] `apps/docs/src/styles/tokens.css` is generated from `docs/design/book-tokens.json`, and a test fails when it is stale.
@@ -259,12 +259,12 @@ Each row gives a decision: **adopted** (it works here today), **partly adopted**
 | Internal ids kept out of reader text and package metadata | `Q1k-internal-ids-out-of-reader-text.md`, `W3c-package-metadata.md` | Partly adopted | The content test covers the docs pages and `pnpm check:ids` covers comments in `packages/*/src`. READMEs and `package.json` descriptions wait for L12w |
 | Example rules checked by tools, and every example shown or listed as unused | `Q1c-examples-checks.md`; `crates/laminapdf/examples/UNUSED.md` | Partly adopted | [examples.md](../../guidelines/examples.md) states the rules, and one test checks the capstone's length. L12w holds the checks |
 | Package metadata written for users | `W3c-package-metadata.md` | Partly adopted | The descriptions read well; no package has `keywords` or `bugs`. L12w |
-| API friction that examples expose is fixed in the API | `Q1d-example-api-cleanups.md` | Partly adopted | A recorded step in L12g to L12j (amended 2026-11-25) |
+| API friction that examples expose is fixed in the API | `Q1d-example-api-cleanups.md` | Deferred | A recorded step in L12g to L12j (amended 2026-11-25) |
 | Each quick start is a real program, and no page shows a test file | `Q1e-quick-start-apps.md`, `Q4e-rust-and-cli-first-runs.md` | Partly adopted | The fence test admits only example files. The four new packages get quick starts in L12g, L12h and L12j |
-| Troubleshooting written symptom first, by area | `Q1j-recipes-and-troubleshooting.md`, `Q4h-troubleshooting-by-area.md` | Partly adopted | "Problems and fixes" sections in L12h to L12j (amended 2026-11-25) |
-| Command-line output comes from real runs | `Q4a-cli-output-from-real-runs.md`; `fixtures/cli/transcripts/`, `apps/docs/test/transcripts.test.mjs` | Partly adopted | A requirement of L12g (amended 2026-11-25) |
+| Troubleshooting written symptom first, by area | `Q1j-recipes-and-troubleshooting.md`, `Q4h-troubleshooting-by-area.md` | Deferred | "Problems and fixes" sections in L12h to L12j (amended 2026-11-25) |
+| Command-line output comes from real runs | `Q4a-cli-output-from-real-runs.md`; `fixtures/cli/transcripts/`, `apps/docs/test/transcripts.test.mjs` | Deferred | A requirement of L12g (amended 2026-11-25) |
 | Usage pages linked from the generated reference | `Q4o-usage-pages-for-document-and-builder.md` | Partly adopted | The guides exist. The links are a follow-up to L12f, in L12g to L12j and L12x |
-| A strict CSP, with code colours as classes | `Q4i-code-colours-by-class.md`; `apps/docs/README.md` | Partly adopted | L12m, which waits on question 9b: script hashes, a rebuild-and-compare test, a `style-src` decision and the line limit |
+| A strict CSP, with code colours as classes | `Q4i-code-colours-by-class.md`; `apps/docs/README.md` | Deferred | The docs send no CSP today. L12m, which waits on question 9b, holds the script hashes, a rebuild-and-compare test, a `style-src` decision and the line limit |
 | Version-matched docs inside the package | `L5a-agent-docs.md`; `packages/sdk/package.json` (`files`) | Partly adopted | Each tarball ships `llms.txt`. L12v would add the guides |
 | One crawler policy, with `noindex` off production | `W3a-crawl-and-index-rules.md` | Partly adopted | `scripts/ci/site-stage-dist.mjs` sets `X-Robots-Tag`. No `robots.txt`; L12z |
 | A moved page keeps its old address | `Q1h-docs-story.md`; `apps/docs/README.md` | Deferred | L12z. `astro.config.mjs` has no `redirects` and no test guards a published path. The 2026-11-22 table said "Adopt" |
