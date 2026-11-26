@@ -414,7 +414,10 @@ describe("parseBumps and manifestProblems", () => {
       { name: "@s/a", version: "1.1.0" },
       { name: "b", version: "2.0.1-beta.1" },
     ]);
-    for (const bad of ["", "b", "b@latest", "@s/a", "B@1.0.0", "../x@1.0.0"]) assert.throws(() => parseBumps(bad), bad);
+    assert.throws(() => parseBumps(""), { message: "no bumps were planned" });
+    for (const bad of ["b", "b@latest", "@s/a", "B@1.0.0", "../x@1.0.0"]) {
+      assert.throws(() => parseBumps(bad), { message: `${bad} isn't a planned bump` });
+    }
   });
 
   test("accepts exactly apply's rewrite with the planned versions", () => {
