@@ -1,6 +1,8 @@
-// The error messages that the docs' Problems and fixes page quotes, so a reworded message fails here before it
-// misleads a reader who searches the page for it.
+// The error messages that the docs' Problems and fixes page quotes. Each test makes the package throw the message and
+// checks that the page quotes it, so a reworded message, or an edited quote, fails here before it misleads a reader
+// who searches the page for it.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   canonicalInputHash,
   guardedWrite,
@@ -13,14 +15,28 @@ import { assertNoDefaultProvider, explicitProvider } from "@buildanagent/agent-s
 import { budgetRefusal, costGuard, guardedProvider, memorySpend } from "@buildanagent/agent-safety/cost";
 import { customProvider, generateText } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
-import { test } from "vitest";
+import { afterEach, test } from "vitest";
 
-/** The code and message of the `SafetyError` that `attempt` throws or rejects with. */
-async function thrown(attempt: () => unknown): Promise<{ code: unknown; message: string }> {
+const PAGE = readFileSync(
+  new URL("../../../apps/docs/src/content/docs/agent-safety/problems-and-fixes.md", import.meta.url),
+  "utf8",
+);
+
+afterEach(() => {
+  // `assertNoDefaultProvider()` makes the setting read-only but leaves it configurable, so a test can remove it.
+  delete (globalThis as { AI_SDK_DEFAULT_PROVIDER?: unknown }).AI_SDK_DEFAULT_PROVIDER;
+});
+
+/**
+ * The code and message of the `SafetyError` that `attempt` throws or rejects with. The page must quote the message, or
+ * `quoted` when the page quotes only part of it or writes a placeholder for a name.
+ */
+async function thrown(attempt: () => unknown, quoted?: string): Promise<{ code: unknown; message: string }> {
   try {
     await attempt();
   } catch (error) {
     const { code, message } = error as { code: unknown; message: string };
+    assert.ok(PAGE.includes(quoted ?? message), `the Problems and fixes page does not quote: ${quoted ?? message}`);
     return { code, message };
   }
   throw new Error("nothing was thrown");
@@ -78,7 +94,7 @@ test("key ring text that is not JSON is refused without quoting it", async () =>
 
 test("a key that is not base64url is refused by its id", async () => {
   const text = JSON.stringify({ current: "a", keys: { a: "not base64url!" } });
-  assert.deepEqual(await thrown(() => parseKeyRing(text)), {
+  assert.deepEqual(await thrown(() => parseKeyRing(text), "must be unpadded base64url"), {
     code: "invalid_key_ring",
     message: `the key "a" must be unpadded base64url`,
   });
@@ -119,17 +135,23 @@ test("a key with surrounding whitespace is refused", async () => {
 
 const stubFetch = (async () => new Response("{}")) as typeof fetch;
 
-test("a call that sets its own credential header is refused before it is sent", async () => {
+function callWith(headers: Record<string, string>) {
   const provider = explicitProvider({ provider: "anthropic", apiKey: "user-key", baseURL: BASE_URL, fetch: stubFetch });
-  const call = (headers: Record<string, string>) =>
-    generateText({ model: provider("claude-haiku-5-5"), prompt: "Hi", headers, maxRetries: 0 });
-  assert.deepEqual(await thrown(() => call({ "x-api-key": "other-key" })), {
+  return () => generateText({ model: provider("claude-haiku-5-5"), prompt: "Hi", headers, maxRetries: 0 });
+}
+
+test("a call that sets another x-api-key is refused before it is sent", async () => {
+  assert.deepEqual(await thrown(callWith({ "x-api-key": "other-key" })), {
     code: "egress_refused",
     message: "egressGuard refused a model request: its x-api-key header differs from the configured key",
   });
-  assert.deepEqual(await thrown(() => call({ authorization: "Bearer other-key" })), {
+});
+
+test("a call that adds a second credential header is refused before it is sent", async () => {
+  const quoted = "it carries a second credential header, authorization";
+  assert.deepEqual(await thrown(callWith({ authorization: "Bearer other-key" }), quoted), {
     code: "egress_refused",
-    message: "egressGuard refused a model request: it carries a second credential header, authorization",
+    message: `egressGuard refused a model request: ${quoted}`,
   });
 });
 

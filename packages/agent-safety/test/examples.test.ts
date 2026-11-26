@@ -1,6 +1,7 @@
-// Runs the examples in examples/: the quick start's refund tool, the signed approval check, the refund that a
-// regenerated turn can't repeat, the refund plan a person signs once, the run that stops at its USD cap, and the call on the user's own key under a cap. The model is a
-// MockLanguageModelV4 or a stub transport and the payment API a stub, so nothing leaves the process.
+// Runs the examples in examples/: the quick start's refund tool, the signed approval check, the outcome tool, the refund
+// that a regenerated turn can't repeat, the refund plan a person signs once, the run that stops at its USD cap, and the
+// call on the user's own key under a cap. The model is a MockLanguageModelV4 or a stub transport and the payment API a
+// stub, so nothing leaves the process.
 import assert from "node:assert/strict";
 import { hmacSigner, lintPlan, memoryEffectStore, planCard, signPlan } from "@buildanagent/agent-safety";
 import { testSigner } from "@buildanagent/agent-safety/testing";
@@ -11,7 +12,7 @@ import { pauseForApproval, refusalBeforeRun } from "../examples/approval-check.j
 import { cappedAnswer } from "../examples/capped-answer.js";
 import { declinedRefund, refund } from "../examples/outcome-tool.js";
 import { answererForKey } from "../examples/own-key-capped.js";
-import { type Payments as QuickPayments, RefundDeclined, refundTool } from "../examples/quick-start.js";
+import { type RefundApi, RefundDeclined, refundTool } from "../examples/quick-start.js";
 import { type Payments, type RefundInput, refundOnce } from "../examples/refund-once.js";
 import { refundPlan } from "../examples/refund-plan.js";
 
@@ -154,7 +155,9 @@ test("a missing key is refused before any request", async () => {
   assert.equal(transport.sent.length, 0);
 });
 
-function quickPayments(declines = false): QuickPayments & { readonly keys: string[] } {
+const quickScope = (toolCallId: string) => ({ tenant: "ada", session: "chat-1", branch: "main", toolCallId });
+
+function quickPayments(declines = false): RefundApi & { readonly keys: string[] } {
   const keys: string[] = [];
   return {
     keys,
@@ -167,7 +170,7 @@ function quickPayments(declines = false): QuickPayments & { readonly keys: strin
 }
 
 test("the quick start's refund tells the model that the refund took effect, in a sentence, a payload and a flag", async () => {
-  const rendered = await refundTool(memoryEffectStore(), quickPayments(), "call-1", {
+  const rendered = await refundTool(memoryEffectStore(), quickScope("call-1"), quickPayments(), {
     orderId: "o-42",
     amountCents: 1250,
   });
@@ -183,14 +186,14 @@ test("the quick start's regenerated turn gets the first outcome back and sends n
   const store = memoryEffectStore();
   const payments = quickPayments();
   const input = { orderId: "o-42", amountCents: 1250 };
-  const first = await refundTool(store, payments, "call-1", input);
-  const second = await refundTool(store, payments, "call-2", input);
+  const first = await refundTool(store, quickScope("call-1"), payments, input);
+  const second = await refundTool(store, quickScope("call-2"), payments, input);
   assert.deepEqual(second, first);
   assert.equal(payments.keys.length, 1);
 });
 
 test("the quick start's declined refund is a not_applied outcome that the model may retry", async () => {
-  const rendered = await refundTool(memoryEffectStore(), quickPayments(true), "call-1", {
+  const rendered = await refundTool(memoryEffectStore(), quickScope("call-1"), quickPayments(true), {
     orderId: "o-42",
     amountCents: 1250,
   });
@@ -207,14 +210,14 @@ test("the quick start's declined refund is a not_applied outcome that the model 
 test("the quick start's refund that fails in an unexpected way throws, and a later call returns unknown and sends nothing", async () => {
   const store = memoryEffectStore();
   const input = { orderId: "o-42", amountCents: 1250 };
-  const broken: QuickPayments = {
+  const broken: RefundApi = {
     refund: async () => {
       throw new Error("connection reset");
     },
   };
-  await assert.rejects(refundTool(store, broken, "call-1", input), /connection reset/);
+  await assert.rejects(refundTool(store, quickScope("call-1"), broken, input), /connection reset/);
   const payments = quickPayments();
-  const later = await refundTool(store, payments, "call-2", input);
+  const later = await refundTool(store, quickScope("call-2"), payments, input);
   assert.equal(later.payload.kind, "unknown");
   assert.equal(later.payload.reason, "REPORT_FAILED");
   assert.equal(payments.keys.length, 0);
@@ -267,4 +270,18 @@ test("the AI SDK tool converts the outcome to an error-json result that holds th
   const value = result?.type === "error-json" ? (result.value as { message: string; kind: string }) : undefined;
   assert.equal(value?.kind, "not_applied");
   assert.match(value?.message ?? "", /^The refund_create call did not take effect/);
+});
+
+test("the same pause and answer verify a second time, so the host must take the pause out when it resumes", async () => {
+  const signer = testSigner();
+  const pending = await pauseForApproval(refundCall, signer);
+  assert.equal(await refusalBeforeRun(pending, "allow", refundCall, signer), undefined);
+  assert.equal(await refusalBeforeRun(pending, "allow", refundCall, signer), undefined);
+});
+
+test("a person's answer is not signed: flipping a stored denial to allow still verifies", async () => {
+  const signer = testSigner();
+  const pending = await pauseForApproval(refundCall, signer);
+  assert.equal(await refusalBeforeRun(pending, "deny", refundCall, signer), "denied");
+  assert.equal(await refusalBeforeRun(pending, "allow", refundCall, signer), undefined);
 });

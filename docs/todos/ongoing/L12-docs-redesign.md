@@ -119,7 +119,7 @@ Setting `sidebar: "modules"` on `@buildanagent/harness` keeps all 965 built page
 
 **L12i progress (2026-11-26).** L12i is done in [its own todo](../done/L12i-docs-harness-pages-2.md) and merged in pull request #437: the Harness topic gains four pages (permissions, sandbox and credentials, server and clients, extensions), figure 8, `sandbox-egress`, and fourteen new Problems and fixes entries, each naming its error code where it has one. It found three rough edges beyond those in todo L12h1, recorded in todo L12i1.
 
-**L12j progress (2026-11-26).** L12j is done in [its own todo](../done/L12j-docs-agent-safety-pages.md): the docs gain an "Agent safety" topic with six pages, among them a quick start that the home card leads to and a Problems and fixes page with fourteen entries. It found three rough edges in the package's API, recorded in the todo's outcome.
+**L12j progress (2026-11-26).** L12j is done in [its own todo](../done/L12j-docs-agent-safety-pages.md): the docs gain an "Agent safety" topic with six pages, among them a quick start that the home card leads to and a Problems and fixes page with fourteen entries. It found three rough edges in the package's API, recorded in todo L12j1.
 
 **L12p progress (2026-11-24).** L12p is done in [its own todo](../done/L12p-shared-header-source.md). `apps/manual` exports `./site-chrome` from `src/design/site-chrome.json`, holding the brand, repository URL, cross-site links (Docs, Manual, Site, GitHub), site wordmarks and inline prompt mark. `apps/manual`, `apps/docs` and `apps/site` all render their headers from that single source and test the built header against it. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12p-1` to `L12p-4`.
 

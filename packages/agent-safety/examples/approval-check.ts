@@ -1,5 +1,7 @@
-// A refund that waits for a person, and the check that runs before it does. The pause is signed over the tool call's id,
-// name and input, so a call that was edited while it waited, or a pause that was forged, runs nothing.
+// A refund that waits for a person, and the check that runs before it does. The pause is signed over the tool call's
+// id, name and input, so a pause that was forged, or a call that was edited while it waited, runs nothing. The person's
+// answer is not signed, and the check keeps no state: the host must store the pause, take it out when it resumes and
+// let it expire, because the same pause and answer verify again and `createdAt` is not signed.
 import {
   type ApprovalSigner,
   type PendingCall,

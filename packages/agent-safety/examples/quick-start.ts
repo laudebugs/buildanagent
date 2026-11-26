@@ -2,6 +2,7 @@
 // outcome, and the write gets its identity before it runs, so a regenerated turn finds the first refund instead of
 // sending a second one.
 import {
+  type EffectScope,
   type EffectStore,
   guardedWrite,
   type RenderedOutcome,
@@ -10,7 +11,7 @@ import {
 } from "@buildanagent/agent-safety";
 
 /** What the model asks the refund tool for. */
-export interface RefundInput {
+export interface RefundRequest {
   readonly orderId: string;
   readonly amountCents: number;
 }
@@ -19,21 +20,24 @@ export interface RefundInput {
 export class RefundDeclined extends Error {}
 
 /** The part of a payment API the tool uses: create a refund, deduped by an idempotency key. */
-export interface Payments {
-  refund(input: RefundInput, idempotencyKey: string): Promise<{ id: string }>;
+export interface RefundApi {
+  refund(input: RefundRequest, idempotencyKey: string): Promise<{ id: string }>;
 }
 
 // #region tool
-/** Issues the refund at most once and returns what the model reads: a sentence, a payload and an error flag. */
+/**
+ * Issues the refund at most once and returns what the model reads: a sentence, a payload and an error flag.
+ * `scope` says who asked: the tenant, the session, the branch and the model's tool call.
+ */
 export async function refundTool(
   store: EffectStore,
-  payments: Payments,
-  toolCallId: string,
-  input: RefundInput,
+  scope: EffectScope,
+  payments: RefundApi,
+  input: RefundRequest,
 ): Promise<RenderedOutcome> {
   const outcome = await guardedWrite({
     store,
-    scope: { tenant: "ada", session: "chat-1", branch: "main", toolCallId },
+    scope,
     businessKey: `refund:${input.orderId}`,
     operation: "refund_create",
     input,

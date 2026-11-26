@@ -5,7 +5,7 @@ description: Problems you may hit with write outcomes, signed approvals, guarded
 
 You will find fourteen problems, each written from what you see to why it happens and how to fix it. You need this page when an agent-safety call throws, or when a write or an approval does not behave as you expected.
 
-Every error here is a `SafetyError`, which carries a `code` property. The entries name that code, and `isSafetyError()` recognises such an error even when two copies of the package are loaded.
+Twelve entries are thrown errors, each a `SafetyError` that carries a `code` property; `isSafetyError()` recognises one even when two copies of the package are loaded. The two entries under approvals that name `signature_invalid` and `input_changed` are different: `verifyResolution()` throws nothing, and returns `ok: false` with a `cause`.
 
 ## Write outcomes and hashes
 

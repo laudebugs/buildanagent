@@ -3,9 +3,9 @@ title: The cost cap
 description: How a cost guard refuses a model call that could pass a USD cap before the call is sent, and how to cap one run or a whole session.
 ---
 
-You will stop an agent loop at a spending cap in US dollars, without overshooting it by one call. You need this when a loop can run many model calls, and one expensive call near the end could cost more than the budget left.
+You will stop an agent loop before the model call that would pass a spending cap in US dollars. You need this when a loop can run many model calls, and one expensive call near the end could cost more than the budget left.
 
-A loop that checks its spend after each response stops only once a response has already crossed the cap. The AI SDK's `stopWhen` counts steps, not dollars. A cost guard checks before the call instead: it projects the most the call can cost and refuses to send it if the spend so far plus that projection would pass the cap.
+A loop that checks its spend after each response stops only once a response has already crossed the cap. The AI SDK's `stopWhen` counts steps, not dollars. A cost guard checks before the call instead: it projects a high estimate of what the call can cost and refuses to send it if the spend so far plus that projection would pass the cap.
 
 ## Build every model from the guarded provider
 
@@ -24,11 +24,19 @@ This function builds a guard with a cap of 0.5 USD, wraps a provider in it and a
 
 ## Read what the guard projects
 
-The projection prices every input token at the model's dearest input rate and adds the call's output limit at the output rate. That limit is the call's `maxOutputTokens`, or the catalog's limit for the model when the call sets none. Pass `maxOutputTokens` to `costGuard()` to price such calls at a lower limit. The prices come from the gateway's catalog, the same one the SDK's `budgetUsd` uses, so both caps agree on what a call can cost.
+The projection prices every input token at the model's dearest input rate and adds the call's output limit at the output rate.
+
+The input side is an estimate, not a bound. The guard counts 2.5 characters to a token as of November 2026, which errs high on Anthropic's tokenizer, and it uses the usage that an earlier call reported where it can. That limit is the call's `maxOutputTokens`, or the catalog's limit for the model when the call sets none. Pass `maxOutputTokens` to `costGuard()` to price such calls at a lower limit. The prices come from the gateway's catalog, the same one the SDK's `budgetUsd` uses, so both caps agree on what a call can cost.
 
 A call that sets no output limit is projected at the model's full limit. In the example's test, a call on Haiku passes a 0.5 USD cap and a call on Sonnet is refused before anything is sent, because Sonnet's full output limit alone costs more than a dollar at catalog prices.
 
-After each call, the guard adds what the response reported to the spend. It prices the usage with the catalog and, for a stream, reads it from the `finish` part. A call that ends before it reports usage is charged its projection, the most it could have cost.
+After each call, the guard adds what the response reported to the spend. It prices the usage with the catalog and, for a stream, reads it from the `finish` part. Three cases charge the projection instead:
+
+- A call whose abort signal stopped it while the request was in flight, because the provider may already have generated tokens.
+- A stream that is cancelled or breaks before its `finish` part.
+- A stream that reports an `error` part and never finishes.
+
+Any other error before a response arrives, such as a dropped connection or a 5xx, is charged nothing, because the guard cannot tell whether the provider billed the call. The guard under-counts when it was billed. Where a lost response may have cost money, add its cost to your `Spend` from the provider's usage report, or keep headroom under the cap.
 
 ## Two codes say why a call was refused
 
@@ -43,6 +51,6 @@ After a response that reported no usage, the guard also refuses every later call
 
 The guard keeps the spend in a `Spend`, an object with `get()` and `add(usd)`. Where the `Spend` lives decides what the cap covers. A fresh `memorySpend()` for each run caps that run. A `Spend` that every run of the session reads, such as a row in your database, caps the session. Pass both guards to `guardedProvider()` as a list, and a call goes out only when each of them allows it.
 
-Calls that run at the same time through one guard share its cap, because the guard holds each call's projection against the cap until the call's cost is known. The guard sees only the calls that pass through it. Another process that adds to the same session `Spend` is counted once its `add()` has finished, not while its call is in flight.
+Calls that run at the same time through one guard share its cap, because the guard holds each call's projection against the cap until the call's cost is known. The guard sees only the calls that pass through it. Another process that adds to the same session `Spend` is counted once its `add()` has finished, not while its call is in flight, so a session cap shared by several processes can be passed.
 
 Next, see how the [own-key guard](/agent-safety/own-key/) keeps each call on the user's own key.

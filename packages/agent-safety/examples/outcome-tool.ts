@@ -1,5 +1,6 @@
 // An AI SDK refund tool that reports a declined card as a typed outcome. The tool returns the outcome from `execute`,
-// and `toModelOutput` hands the model its sentence and its fields as one tool result, with the provider's error flag set.
+// and `toModelOutput` hands the model its sentence and its fields as one tool result, with the provider's error flag
+// set.
 import { type WriteOutcome, writeOutcome } from "@buildanagent/agent-safety";
 import { toAiToolResult } from "@buildanagent/agent-safety/ai";
 import { jsonSchema, tool } from "ai";

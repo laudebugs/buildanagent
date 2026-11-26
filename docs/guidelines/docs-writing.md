@@ -39,7 +39,7 @@ A "Problems and fixes" page is where a reader lands from an error message or an 
 - **MUST:** give each entry a heading that names the symptom, then three paragraphs that begin `**You see.**`, `**Cause.**` and `**Fix.**`, in that order. Plain paragraphs may follow the Fix.
 - **MUST:** keep at least three entries on the page.
 - **MUST:** name the error code the reader sees where there is one.
-- **MUST:** make every error code an entry names a member of a package's error-code union, for example `HarnessErrorCode`.
+- **MUST:** make every error code an entry names a member of a package's error-code union, for example `HarnessErrorCode`. A result that is returned and not thrown, such as the cause of `verifyResolution()`, is a cause, not a code; only the agent-safety page may name one, from `RejectionCause`.
 - **SHOULD:** quote the message the reader sees, as the code produces it.
 
 ## Draw a diagram where a picture answers faster
