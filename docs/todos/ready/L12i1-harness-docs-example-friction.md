@@ -1,4 +1,4 @@
-# L12i1: Remove three rough edges that the harness permission, sandbox and server examples show
+# L12i1: Decide and fix three rough edges in the harness permission, sandbox and server examples, and one stale comment
 
 | Field | Value |
 | --- | --- |
@@ -11,7 +11,12 @@
 
 ## Goal
 
-Remove three rough edges that the new harness pages work around. `createPermissionPipeline()` takes a tool registry even when every rule names a tool by its name, so `permission-rules.ts` passes an empty one. No example fires the in-process client's approval handler, because its scripted turn calls no tool. `fakeSandbox()` reports the `os` tier, so its example reads like a real operating-system sandbox's.
+Decide and fix these rough edges, which the new harness pages work around:
+
+- `createPermissionPipeline()` takes a tool registry even when every rule names a tool by its name, so `permission-rules.ts` passes an empty one.
+- No example fires the in-process client's approval handler, because its scripted turn calls no tool.
+- `fakeSandbox()` reports the `os` tier, so its example reads like a real operating-system sandbox's.
+- The comment on `SandboxStop` in `packages/harness/src/sandbox/types.ts` says only the E2B backend stops `hostile_process`, but `vercel/index.ts` and `e2b/index.ts` both claim it. Fixing a comment in `src` needs a changeset, so it waits for this todo.
 
 ## Context
 

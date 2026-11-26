@@ -3,7 +3,7 @@ title: Problems and fixes
 description: Problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
 ---
 
-You will find twenty-three problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
+You will find twenty-four problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
 
 ## Sessions
 
@@ -102,6 +102,14 @@ If the writer died on the same host, you need not remove anything: its lock beco
 **Cause.** The pipeline has `interactive: false` and no rule names the tool, so the call is denied. The [permissions page](/harness/permissions/) explains why.
 
 **Fix.** Add an allow rule for the tool. If a person can answer, set `interactive: true` and the call asks instead.
+
+### `createPermissionPipeline()` throws `invalid_permission_config`
+
+**You see.** `createPermissionPipeline()` throws a `PermissionConfigError`, a `HarnessError` with the code `invalid_permission_config`. The message reads `allow[0] allows every call to escalate, so the host callback could never decide one; narrow the rule with paths or a commandPrefix, or remove it`.
+
+**Cause.** The configuration sets a host callback and also an allow rule that covers every call to a registered tool. The allow rule settles each call first, so the callback would never run for that tool.
+
+**Fix.** Narrow the allow rule with `paths` or a `commandPrefix`, or remove it and let the callback decide. Deny rules, hooks and a callback with no allow rules start without error.
 
 ### Answering an approval throws `approval_unavailable`
 

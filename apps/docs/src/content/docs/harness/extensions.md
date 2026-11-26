@@ -35,19 +35,19 @@ This function puts the project at `root` in the trust store only when the host s
 
 A lock file pins each extension folder to a hash of its files. After a person has read the extensions, `pinProjectExtensions(root)` writes `.agents/extensions.lock.json`.
 
-The trust store compares a project's real path, never the spelling you wrote, because a link can point somewhere else after you trust it. Once the lock file exists, the loader hashes every folder before it imports any of them, and refuses a folder whose files changed, that the file does not list, or that the file lists and the project no longer holds. The refusal is `extension_hash_mismatch`, and none of the project's extensions load. With no lock file, the extensions load and a notice says they are not pinned.
+The trust store compares a project's real path, never the spelling you wrote, because a link can point somewhere else after you trust it. Once the lock file exists, the loader hashes every folder before it imports any of them. It refuses a folder whose files changed, one the file does not list, and one the file lists that the project no longer holds. The refusal is `extension_hash_mismatch`, and none of the project's extensions load. With no lock file, the extensions load and a notice says they are not pinned.
 
 The pin has two limits. It covers the files inside each folder, not what an extension imports from outside it. And the lock file sits inside the project, so anyone who can edit the project can pin their own changes. The pin catches a change nobody meant, not an attacker who holds the project.
 
 ## A skill is a file the model reads when it needs it
 
-A skill is a folder under `.agents/skills/` with a `SKILL.md` file whose first lines give a `name` and a `description`. `discoverSkills()` finds skills in the working folder and every folder above it up to the repository root, and it needs a trust store as well, because a skill's name and description enter the system prompt.
+A skill is a folder under `.agents/skills/` with a `SKILL.md` file whose first lines give a `name` and a `description`. `discoverSkills()` finds skills in the working folder and every folder above it up to the repository root, and it needs the trust store as well. A skill's name and description enter the system prompt, so an untrusted checkout must not reach it.
 
 The prompt lists only each skill's name, description and path. The model loads a skill by reading its `SKILL.md` with the `read` tool, and the turn then records a `skill_loaded` entry. A skill is text the model may follow.
 
 ## Project context files lead every request, labelled untrusted
 
-`AGENTS.md` and `CLAUDE.md` files, read from the repository root down to the working folder, give the model a project's instructions. `contextFiles()` reads them whether or not the project is trusted, because they are text and not code. Untrusted text still reaches the model's prompt, so a hostile project can try to steer the agent. The harness only labels the text. The harness puts them at the start of the first user message of each request, inside a section labelled as the project's text and not the user's.
+`AGENTS.md` and `CLAUDE.md` files, read from the repository root down to the working folder, give the model a project's instructions. `contextFiles()` reads them whether or not the project is trusted, because they are text and not code. Untrusted text still reaches the model's prompt, so a hostile project can try to steer the agent, and the harness only labels it. The harness puts the files at the start of the first user message of each request, inside a section labelled as the project's text and not the user's.
 
 Each file is cut at 64 KiB, and the block holds 128 KiB in all. Past that, the outermost files are left out first and the block names them. A link that leaves the project is skipped, so a cloned repository cannot point `AGENTS.md` at a private file and send it to the model provider.
 

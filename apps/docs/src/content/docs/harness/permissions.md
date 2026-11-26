@@ -17,9 +17,9 @@ A rule names a tool and may add a reason. The pipeline decides in this order, an
 4. **Ask rules.**
 5. **The mode**, a standing setting such as `bypass`.
 6. **Allow rules.**
-7. **The host callback**, an optional function that decides what no rule settled.
+7. **The host callback**, an optional function that decides what no rule settled. With a callback set, an allow rule that covers every call to a registered tool makes `createPermissionPipeline()` throw `invalid_permission_config`, because the callback could never decide a call to that tool.
 
-A deny rule therefore wins over every mode, including `bypass`. This pipeline lets a support agent look a customer up, asks a person before it pages an engineer and refuses any `rm` command. The `interactive` setting says whether a person can answer a question:
+A deny rule therefore wins over every mode, including `bypass`. The example pipeline lets a support agent look a customer up, asks a person before it pages an engineer and refuses any `rm` command. The `interactive` setting says whether a person can answer a question:
 
 ```ts file="packages/harness/examples/permission-rules.ts" region="rules"
 ```
@@ -44,7 +44,7 @@ Mode `default` adds nothing to the rules. Deny rules apply under every mode, and
 - **`read_only`** denies every tool outside its read-only list, before it reads ask rules or allow rules. The list is `read`, `grep` and `glob` unless you set `readOnlyTools`. A listed tool with an ask rule still asks.
 - **`accept_edits`** allows the edit tools, `write`, `edit`, `multi_edit` and `apply_patch` unless you set `editTools`.
 - **`bypass`** allows whatever no hook, deny rule or ask rule stopped.
-- **`shadow`** records each call and returns a fixed result, once you wrap the tools with the pipeline's shadow wrapper, so no tool runs.
+- **`shadow`** skips ask rules and hook questions, because nothing runs and no person could answer. It records each call and returns a fixed result, once you wrap the tools with the pipeline's shadow wrapper.
 
 ## Rules can read paths and shell commands
 

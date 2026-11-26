@@ -36,7 +36,7 @@ Nothing holds a session open while a person decides. A client that never answers
 
 ## Two transports carry the same messages to another process, and the dispatcher bounds each client
 
-`stdioTransport()` serves one client over a pair of byte streams, such as a program's standard input and output. Each message is one line, and the output carries protocol lines only, so send diagnostics to the standard error stream. `webSocketTransport()` serves one client on one WebSocket, with one JSON message in each text frame.
+`stdioTransport()` serves one client over a pair of byte streams, such as a program's standard input and output. Each message is one line, and the output carries protocol lines only, so send diagnostics to the standard error stream. `webSocketTransport()` serves one client on one WebSocket, with one JSON message in each text frame. Check the caller first, as the warning above says.
 
 Whichever transport a client uses, the dispatcher bounds what a slow client can cost:
 

@@ -158,6 +158,7 @@ test("the packages define the codes that the harness pages name", () => {
     "invalid_egress_options",
     "extension_hash_mismatch",
     "invalid_extension",
+    "invalid_permission_config",
   ]) {
     assert.ok(defined.has(code), code);
   }

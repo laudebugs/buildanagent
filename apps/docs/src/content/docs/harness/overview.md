@@ -23,7 +23,7 @@ Each part of the harness lives under its own import path, so you import only the
 - **Permissions**, `@buildanagent/harness/permissions`: decides each tool call with rules, modes and hooks. See [Permissions](/harness/permissions/).
 - **Sandbox and credentials**, `@buildanagent/harness/sandbox` and `/credentials`: run commands in a confined workspace and keep credentials out of it. See [Sandbox and credentials](/harness/sandbox/).
 - **The `server` import path**, `@buildanagent/harness/server`: builds the harness with `createHarness()` and serves clients over the protocol, the messages that a client, such as an editor or the CLI, uses to drive a harness. See [Server and clients](/harness/server/) and [Protocol](/protocol/quick-start/).
-- **Extensions, memory and telemetry**, `@buildanagent/harness/extensions`, `/memory` and `/telemetry`: add hooks and tools, keep long-term memory and project the log to OpenTelemetry spans. See [Extensions](/harness/extensions/) for the first.
+- **Extensions, memory and telemetry**, `@buildanagent/harness/extensions`, `/memory` and `/telemetry`: add hooks and tools, keep long-term memory and project the log to OpenTelemetry spans. See [Extensions](/harness/extensions/) for the extensions.
 
 The `cloudflare` and `vercel` paths and the `aws/dynamodb`, `aws/scheduler` and `aws/secrets-manager` paths hold the adapters that run the harness on those platforms, such as session stores, locks and secret storage. The [API reference](/reference/harness/) documents every path, including the parts these guides do not cover yet.
 

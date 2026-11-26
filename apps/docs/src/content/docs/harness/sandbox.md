@@ -1,11 +1,11 @@
 ---
-title: A sandbox confines commands and holds no credentials
-description: How a sandbox policy limits the folders and hosts a command may touch, what each backend stops, and how the egress proxy keeps credentials on the host.
+title: A sandbox confines commands and keeps credentials out
+description: How a sandbox policy limits the folders and hosts a command may touch, what each backend stops, and how the egress proxy keeps credentials on the host where you use it.
 ---
 
 You will run an agent's commands in a confined workspace and keep credentials out of it. You need this when an agent runs shell commands, installs packages or reaches the web.
 
-A sandbox is a confined place where commands run, and a credential is a secret such as an API key or a token. By default a sandbox holds no credentials. An authenticated action, such as a push or an API call, runs as a tool in the harness's own process behind the [permission pipeline](/harness/permissions/), or through a route of the egress proxy.
+A sandbox is a confined place where commands run, and a credential is a secret such as an API key or a token. By default a sandbox holds no credentials, and you choose whether any reaches it. An authenticated action, such as a push or an API call, runs as a tool in the harness's own process behind the [permission pipeline](/harness/permissions/), or through a route of the egress proxy.
 
 With the egress proxy on the host, the secret stays on the host and the sandbox holds a placeholder. A hosted backend given a credential route behaves differently: it sends the secret to its provider, which adds it outside the sandbox. Both cases are explained below.
 
@@ -38,7 +38,7 @@ A backend that enforces a policy also reads it back, so `provision()` can compar
 
 ## A backend says what it stops
 
-A tier is the strength class of a backend: `none`, `os`, `container` or `microvm`. Each backend reports its tier and the stops it claims.
+A tier is the strength class of a backend, such as `none`, `os`, `container` or `microvm`. The type also names `gvisor`, a user-space kernel, which no backend here uses. Each backend reports its tier and the stops it claims.
 
 - `mistakes` are the agent's own errors, such as a write outside the workspace.
 - `exfiltration` is sending data to a host that is not allowed.
@@ -63,8 +63,8 @@ Some denials are never offered for widening: a path of `/`, a host with a wildca
 
 Egress is traffic that leaves the sandbox. The egress proxy is a program on the host that the sandbox's web requests go through. Not every backend uses it:
 
-- `dockerSandbox()` uses a proxy you start and wire in through `proxySocket`, a Unix socket on the host.
-- `srtSandbox()` runs a proxy of its own.
+- `dockerSandbox()` reaches a proxy you start with `startEgressProxy()` through `proxySocket`, a Unix socket on the host. That proxy may carry credential routes.
+- `srtSandbox()` runs a proxy of its own, which allows hosts and takes no credential routes.
 - `e2bSandbox()` and `vercelSandbox()` take the same egress policy as their `egress` option and compile it into the provider's firewall. No proxy runs on your host.
 
 The egress proxy enforces route limits that the firewalls do not. E2B adds a route's header to every HTTPS request to the route's host, from every process in the sandbox, whatever the method or path, so it needs `unscopedInjection: true`. Both E2B and Vercel refuse a git route, a route for git over HTTPS, with `invalid_egress_options`.
@@ -102,6 +102,7 @@ The message reads `the egress proxy refused evil.example: not_allowed`. The sand
 
 ## What the egress proxy does not stop
 
+- **A hosted backend's provider holds the secret.** `e2bSandbox()` and `vercelSandbox()` read each route's credential on the host and give it to the provider, which adds it outside the sandbox. The placeholder-only guarantee below holds for the egress proxy, not for them.
 - **An allowed credential can still act.** The sandbox holds a placeholder, but it can ask the proxy to use the real secret on that route's host and methods. Scope each route to what the task needs. Use a route only for a narrow, short-lived, low-value credential, such as a repository-scoped token for one run. A credential that can spend money without a cap or reach production data stays in a host-side tool.
 - **The proxy does not read responses or inspect TLS.** A route to a service that echoes request headers hands the secret back to the sandbox, so do not route to one.
 - **Any process on the host can reach a loopback proxy.** Only a process that knows a route's placeholder can use the route. A Unix socket narrows access to the socket file's permissions.
