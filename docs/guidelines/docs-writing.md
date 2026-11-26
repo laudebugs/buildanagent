@@ -32,6 +32,16 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 - **MUST:** a code block of more than five lines comes from a tested example file, which [examples.md](examples.md) governs, so the docs never show code that no longer runs. Until the first `examples/` folder exists, a README may show a longer block; [Known gaps](README.md#known-gaps) tracks it.
 - **MUST:** show a terminal session only from a transcript, a file under `packages/<pkg>/transcripts/` that a test in that package re-runs and compares with the command's real output. The docs test fails on any terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt.
 
+## Write problems from the symptom the reader sees
+
+A "Problems and fixes" page is where a reader lands from an error message or an odd result, so each entry starts from that symptom. `apps/docs/test/problems.test.ts` checks the shape and the codes.
+
+- **MUST:** give each entry a heading that names the symptom, then three paragraphs that begin `**You see.**`, `**Cause.**` and `**Fix.**`, in that order. Plain paragraphs may follow the Fix.
+- **MUST:** keep at least three entries on the page.
+- **MUST:** name the error code the reader sees where there is one.
+- **MUST:** make every error code an entry names a member of a package's error-code union, for example `HarnessErrorCode`.
+- **SHOULD:** quote the message the reader sees, as the code produces it.
+
 ## Draw a diagram where a picture answers faster
 
 The docs' [figure pipeline](../../apps/docs/README.md#draw-a-figure-with-a-script-and-the-build-inlines-it) checks that every figure has alt text and a caption and that no colour falls outside the theme tokens. A reviewer applies the other rules, and reads the alt text for its point, by hand.

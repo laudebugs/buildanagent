@@ -9,7 +9,7 @@ import { builtSite } from "./built.js";
 // npm, where a site-relative path would lead nowhere. A preview build therefore links to the production page.
 const SITE = "https://docs.buildanagent.fyi";
 
-for (const folder of ["protocol", "cli"]) {
+for (const folder of ["harness", "protocol", "cli"]) {
   test(`the ${folder} reference index links the ${folder} quick start, which is a page of these docs`, () => {
     const page = `${folder}/quick-start`;
     assert.ok(existsSync(`${DOCS_DIR}${page}.md`), `${page} has no page`);
@@ -17,3 +17,10 @@ for (const folder of ["protocol", "cli"]) {
     assert.ok(index.includes(`href="${SITE}/${page}/"`), `the ${folder} reference index lacks the quick-start link`);
   });
 }
+
+// The harness has many entry points, so its index lists modules and takes its link from a README file. The package's own
+// module page carries the same link through its `@module` comment.
+test("the harness module page links the harness quick start through its @module comment", () => {
+  const module = readFileSync(`${builtSite()}/reference/harness/buildanagent/harness/index.html`, "utf8");
+  assert.ok(module.includes(`href="${SITE}/harness/quick-start/"`), "the harness module page lacks the link");
+});

@@ -18,6 +18,7 @@ export async function codingAgent(
   setup: { readonly workspace: string; readonly spillDir: string; readonly key: SessionKey },
 ) {
   const { workspace, spillDir, key } = setup;
+  // #region tools
   const policy: SandboxPolicy = { readRoots: [], writeRoots: [workspace], network: { allow: [], deny: [] } };
   const sandbox = await client.provision({ root: workspace }, policy);
   const spill = fileSpillStore({ dir: spillDir });
@@ -25,5 +26,6 @@ export async function codingAgent(
   const spills = (path: string) => spill.read(key, path);
   for (const tool of builtinTools(sandbox, proxy, { root: workspace, policy, spills })) registry.register(tool);
   const harness = createHarness({ registry, model, system: SYSTEM, context: createContextPolicy({ spill }) });
+  // #endregion
   return { sandbox, harness };
 }
