@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [W8](W8-cloud-mode-evals.md), [N47a](N47a-aws-state-adapters.md), [N47b](../done/N47b-e2b-sandbox-backend.md) |
+| Depends on | [W8](W8-cloud-mode-evals.md), [N47a](../done/N47a-aws-state-adapters.md), [N47b](../done/N47b-e2b-sandbox-backend.md) |
 | Size | M |
 
 ## Goal

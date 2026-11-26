@@ -34,7 +34,7 @@ Add a voice and realtime section to three SDK references: the [OpenAI Agents SDK
 
 - New `verify/` examples: [T46](../done/T46-example-realtime-session.md) and [T47](../done/T47-example-voice-pipeline.md); an ADK `runLive` example is one of U20's three optional examples and has no todo
 - The other five references, whose SDKs ship no voice agent as of November 2026
-- The book's section: [T38](T38-section-voice-and-realtime.md)
+- The book's section: [T38](../done/T38-section-voice-and-realtime.md)
 
 ## Tasks
 

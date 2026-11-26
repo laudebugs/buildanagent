@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [N44](N44-web-stream-websocket-transport.md), [W5](W5-control-plane-ingress.md) |
+| Depends on | [N44](../done/N44-web-stream-websocket-transport.md), [W5](W5-control-plane-ingress.md) |
 | Size | M |
 
 ## Goal

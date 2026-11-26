@@ -60,7 +60,7 @@ Every document goes through the same five steps before it merges, whoever or wha
 2. **Fact-check** every factual claim against its primary source: the repo at a recorded tag or commit, the pinned `.d.ts`, the official docs or the paper. Log each claim in the round's fact-check file as ✅ confirmed, ✏️ corrected or ⚠️ unverified, with the reason. Correct a wrong claim in place and give the correction its own row, so every change stays visible.
 3. **Review** the whole document with `/anthropic-skills:writing-review`, not just the changed parts.
 4. **Fix** every finding with `/anthropic-skills:writing`, or record why you left it.
-5. **Re-check** every claim a fix touched against its source, and confirm that every relative link and anchor resolves.
+5. **Re-check** every claim a fix touched against its source, and confirm that every relative link and anchor resolves (`pnpm check:links`).
 
 Record the review's rubric scores, before and after, in the pull request description.
 
@@ -120,7 +120,7 @@ Rules that apply throughout:
 
 The repo is a pnpm workspace. Run every command from the repo root unless a README says otherwise.
 
-- **Toolchain.** Node 22 (`.nvmrc`) and pnpm 10.34.9 (`packageManager` in `package.json`). Install with `pnpm install` at the root; never use npm or yarn, and never commit a `package-lock.json`.
+- **Toolchain.** Node 22 (`.nvmrc`) and pnpm 10.34.9 (`packageManager` in `package.json`). Install with `pnpm install` at the root; never use npm or yarn, and never commit a `package-lock.json`. Bun is not a supported runtime or package manager; `.bun-version` pins the exact version a 2026-11-26 measurement tested (CI plan §3h), kept only so that measurement can be repeated against the same build.
 - **Workspace layout.** `pnpm-workspace.yaml` lists `apps/*`, `packages/*` and `verify/*`. Shared dev tools (TypeScript, tsx, Vitest, `@types/node`, Biome) live in the root `package.json`. Each package declares only the runtime dependencies it imports, because pnpm does not hoist undeclared packages.
 - **Versions.** Pin every dependency exactly (`.npmrc` sets `save-exact`). Choose releases at least one week old (changed from two weeks on 2026-11-18). One exception overrides the age rule: when a pinned dependency has a known vulnerability, move it to the latest release that fixes it, however new, and record the alert in the upgrade commit. Allow dependency build scripts only through `onlyBuiltDependencies` in `pnpm-workspace.yaml`.
 - **TypeScript.** ESM everywhere (`"type": "module"`). Packages extend `tsconfig.packages.json`, which adds seven strict flags to `tsconfig.base.json` (strict, ES2024); `verify/*` extends the base only. Harness scripts are `.mjs`; example programs are `.ts`, run with tsx.
@@ -130,7 +130,7 @@ The repo is a pnpm workspace. Run every command from the repo root unless a READ
 - **Our packages follow the guidelines.** Code in `packages/` follows [`docs/guidelines/`](docs/guidelines/README.md): strict and portable TypeScript, one error class per package, named and documented exports, small functions, offline and deterministic tests, plain-English package docs and tested examples. Read the guideline for your change before you start, and update the guideline in its own pull request if you think a rule is wrong.
 - **Never patch code just to make a test pass.** When a test fails, find out why: fix the product if it is wrong, or change the test and say why in the commit message ([maintainability](docs/guidelines/maintainability.md#never-patch-code-just-to-make-a-test-pass)).
 - **Comments say why, without todo ids.** A comment explains an invariant, a decision or a workaround. An internal comment may cite a decision by id (`D3`, `HD15`); an exported symbol's TSDoc may not, because users read it. Todo ids belong in commit messages and plans, not in `packages/*/src`.
-- **Before you commit.** `pnpm check`, `pnpm typecheck` and `pnpm test` must pass, and so must the four maintainability checks, `pnpm check:deps`, `pnpm check:duplicates`, `pnpm check:unused` and `pnpm check:ids`, when you changed `packages/`. Give every export of the gateway, the SDK, agent-safety, the protocol, the harness and the CLI a TSDoc comment, because `pnpm check:api-docs` fails without one.
+- **Before you commit.** `pnpm check`, `pnpm typecheck`, `pnpm test` and `pnpm check:links` must pass, and so must the four maintainability checks, `pnpm check:deps`, `pnpm check:duplicates`, `pnpm check:unused` and `pnpm check:ids`, when you changed `packages/`. Give every export of the gateway, the SDK, agent-safety, the protocol, the harness and the CLI a TSDoc comment, because `pnpm check:api-docs` fails without one.
 
 ## Git
 

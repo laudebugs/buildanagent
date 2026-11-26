@@ -420,7 +420,7 @@ The boundary question from the research, which pieces the harness owns, is alrea
 [ft-loop]: ../comparison/feature-table.md#loop-control-default-caps-range-from-1-step-to-500-model-calls
 [ft-out]: ../comparison/feature-table.md#output-structured-output-everywhere-though-adk-only-logs-a-schema-violation
 [pi-fc]: ../reference/pi/fact-check.md#six-findings-one-site-issue-two-home-folder-and-credential-defaults-and-three-doc-gaps
-[lc-fc]: ../reference/langchain/fact-check.md#eight-findings-seven-doc-errors-and-one-testing-gap
+[lc-fc]: ../reference/langchain/fact-check.md#nine-findings-seven-doc-errors-one-testing-gap-and-one-probe
 [v-fc]: ../reference/vercel-ai-sdk/fact-check.md#eight-findings-seven-doc-errors-one-gap-in-the-tables
 [oa-fc-t1]: ../reference/openai-agents-sdk/fact-check.md#tier-1-178-of-182-sources-compile-and-none-has-an-api-error
 [cp-fc-err]: ../reference/copilot-sdk/fact-check.md#doc-errors-code-or-claims-that-dont-match-the-release

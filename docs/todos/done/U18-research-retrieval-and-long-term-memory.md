@@ -13,7 +13,7 @@
 
 ## Goal
 
-Research retrieval and long-term memory so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a chapter, todo [T36](../ready/T36-chapter-retrieval-and-long-term-memory.md). **Research question:** When should an agent retrieve (through tools, keyword or vector search) instead of carrying context, how should memory that outlives a task be written, recalled and forgotten, and what do our eight SDKs offer for each in TypeScript?
+Research retrieval and long-term memory so the book can teach it from checked sources instead of memory. The owner chose to cover it (2026-11-19), and the repo has little on it. The result feeds a chapter, todo [T36](../done/T36-chapter-retrieval-and-long-term-memory.md). **Research question:** When should an agent retrieve (through tools, keyword or vector search) instead of carrying context, how should memory that outlives a task be written, recalled and forgotten, and what do our eight SDKs offer for each in TypeScript?
 
 ## Context
 

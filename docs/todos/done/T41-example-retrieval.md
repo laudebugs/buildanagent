@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/vercel-ai-sdk/examples/` s
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T36's todo, [T36](../ready/T36-chapter-retrieval-and-long-term-memory.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T36's todo, [T36](../done/T36-chapter-retrieval-and-long-term-memory.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 - [U18's report](../../research/memory/retrieval-and-memory.md#three-new-examples-would-give-the-chapter-its-listings-led-by-t41s-keyword-search), the recommended form and its four checks

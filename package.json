@@ -21,6 +21,7 @@
     "check:duplicates": "jscpd --config .jscpd.json",
     "check:unused": "knip --no-progress",
     "check:ids": "node scripts/ci/todo-ids.mjs",
+    "check:links": "node scripts/ci/markdown-links.mjs",
     "check:api-docs": "pnpm --filter @buildanagent/docs check:api-docs"
   },
   "devDependencies": {

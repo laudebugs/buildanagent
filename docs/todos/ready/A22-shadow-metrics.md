@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent §4, Stage 5](../../plans/build-agent.md#45-stage-5-builds-the-rollout-machinery-that-shadow-canary-and-release-will-need) |
 | Round / milestone | Round A (build agent), M7b |
-| Depends on | [A13](A13-triage-workflow.md), [A17](A17-eval-tasks-graders.md), [N31](N31-telemetry-projection.md) |
+| Depends on | [A13](A13-triage-workflow.md), [A17](A17-eval-tasks-graders.md), [N31](../done/N31-telemetry-projection.md) |
 | Size | M |
 
 ## Goal

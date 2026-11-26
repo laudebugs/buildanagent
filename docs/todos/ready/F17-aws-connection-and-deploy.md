@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build agent platform §5.3](../../plans/build-agent-platform.md#53-stage-f-c-is-m9-aws-and-our-own-sdk) |
 | Round / milestone | Round F (build the agent platform), M9 |
-| Depends on | [F16](F16-platform-v1-end-to-end.md), [N47a](N47a-aws-state-adapters.md) |
+| Depends on | [F16](F16-platform-v1-end-to-end.md), [N47a](../done/N47a-aws-state-adapters.md) |
 | Size | M |
 
 ## Goal
