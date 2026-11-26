@@ -30,9 +30,12 @@ export function entriesOf(body: string): { heading: string; paragraphs: string[]
     });
 }
 
-/** The string literals of every exported `...ErrorCode` union in `source`, such as `HarnessErrorCode`. */
+/**
+ * The string literals of every exported `...ErrorCode` union in `source`, such as `HarnessErrorCode`, and of the agent
+ * safety package's `RejectionCause`, which `verifyResolution()` returns where a throwing call would carry a code.
+ */
 export function errorCodesIn(source: string): string[] {
-  const unions = source.matchAll(/export type \w*ErrorCode =([^;]*);/g);
+  const unions = source.matchAll(/export type (?:\w*ErrorCode|RejectionCause) =([^;]*);/g);
   return [...unions].flatMap((union) =>
     [...(union[1] ?? "").matchAll(/"([a-z]+(?:_[a-z]+)+)"/g)].map((m) => m[1] ?? ""),
   );
@@ -162,4 +165,31 @@ test("the packages define the codes that the harness pages name", () => {
   ]) {
     assert.ok(defined.has(code), code);
   }
+});
+
+test("the packages define the codes that the agent-safety pages name", () => {
+  const defined = definedCodes();
+  for (const code of [
+    "invalid_outcome",
+    "invalid_input",
+    "invalid_key_ring",
+    "invalid_effect",
+    "invalid_byok_config",
+    "default_provider",
+    "egress_refused",
+    "budget_exceeded",
+    "unknown_price",
+    "signature_invalid",
+    "input_changed",
+    "call_mismatch",
+  ]) {
+    assert.ok(defined.has(code), code);
+  }
+});
+
+test("an approval's rejection cause counts as a code, and other unions do not", () => {
+  const defined = new Set(
+    errorCodesIn('export type RejectionCause = | "malformed" | "input_changed";\nexport type Retry = "same_key";'),
+  );
+  assert.deepEqual([...defined], ["input_changed"]);
 });

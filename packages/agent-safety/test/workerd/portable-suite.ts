@@ -13,6 +13,7 @@ import "../hash.test.js";
 import "../outcome-types.test.js";
 import "../pending-types.test.js";
 import "../plan-approval.test.js";
+import "../problem-messages.test.js";
 import "../run-plan.test.js";
 import "../stores/memory.test.js";
 import { runRegistered } from "./mini-vitest.js";

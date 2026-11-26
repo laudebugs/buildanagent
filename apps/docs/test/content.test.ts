@@ -148,8 +148,8 @@ describe("the sidebar", () => {
   });
 
   test("links each topic to a page of its own: a listed page for the written docs, its package's index for an API tab", () => {
-    const [written, harness, protocol, cli, ...apiTopics] = topicList;
-    for (const topic of [written, harness, protocol, cli]) {
+    const [written, harness, safety, protocol, cli, ...apiTopics] = topicList;
+    for (const topic of [written, harness, safety, protocol, cli]) {
       assert.ok(topic && slugsOf(topic.items)[0] === topic.link, `${topic?.label} must link to its first page`);
     }
     assert.deepEqual(
@@ -163,8 +163,9 @@ describe("the sidebar", () => {
     const lastTargets: Record<string, string> = {
       [WRITTEN_TOPICS[0]]: "start/first-agent",
       [WRITTEN_TOPICS[1]]: "reference/harness",
-      [WRITTEN_TOPICS[2]]: "reference/protocol",
-      [WRITTEN_TOPICS[3]]: "reference/cli",
+      [WRITTEN_TOPICS[2]]: "reference/agent-safety",
+      [WRITTEN_TOPICS[3]]: "reference/protocol",
+      [WRITTEN_TOPICS[4]]: "reference/cli",
     };
     for (const topic of topicList.slice(0, WRITTEN_TOPICS.length)) {
       const order = slugsOf(topic.items);
