@@ -35,6 +35,7 @@ client.onMessage((message) => {
 await client.request("initialize", { clientInfo: { name: "cli", version: "1" }, capabilities: [] });
 const { session } = await client.request("session/create", { cwd: "/work" });
 const disposition = await client.request("turn/start", { session, input: [{ type: "text", text: "Hi" }] });
+
 // #endregion
 
 export { client, disposition, session };
