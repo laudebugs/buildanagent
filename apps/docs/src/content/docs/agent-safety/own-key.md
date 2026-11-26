@@ -9,7 +9,7 @@ An agent that bills the wrong account fails silently: the call succeeds, and som
 
 The address is whatever `baseURL` you pass, and any https host that meets the rules below is accepted. An app that takes a base URL from a user can therefore still send that user's key where the user points. Choose the address in your code.
 
-A model built any other way, such as with `createAnthropic()` or the `gateway` that `ai` exports, is not checked, so build every model with `explicitProvider()`. Neither function is a security boundary against your own code: code that can write to `globalThis` can install any provider before the assertion runs.
+A model built any other way, such as with `createAnthropic()` or the `gateway` that `ai` exports, is not checked, so build every model with `explicitProvider()`. Neither `explicitProvider()` nor `assertNoDefaultProvider()` is a security boundary against your own code: code that can write to `globalThis` can install any provider before the assertion runs.
 
 ## Three defaults can pick another key
 

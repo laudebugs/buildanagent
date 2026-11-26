@@ -65,7 +65,7 @@ export async function refundTool(
 
 // #region run
 /** Asks for the same refund twice, as a regenerated turn does, and returns the text the model reads each time. */
-export async function refundTwice(api: RefundApi): Promise<string[]> {
+export async function refundTwice(api: RefundApi): Promise<[string, string]> {
   const store = memoryEffectStore();
   const input = { orderId: "o-42", amountCents: 1250 };
   const scope = (toolCallId: string) => ({ tenant: "ada", session: "chat-1", branch: "main", toolCallId });

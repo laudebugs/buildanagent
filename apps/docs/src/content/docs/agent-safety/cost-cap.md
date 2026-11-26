@@ -5,7 +5,11 @@ description: How a cost guard refuses a model call whose estimated cost could pa
 
 You will stop an agent loop before the model call that would pass a spending cap in US dollars. You need this when a loop can run many model calls, and one expensive call near the end could cost more than the budget left.
 
-The cap is a pre-call estimate, not a hard limit. The input side of the estimate can run low, a call lost to a network error is charged nothing, and a session total shared by several processes can be passed. The sections below say when.
+The cap is a pre-call estimate, not a hard limit. It can be passed in three ways, and the sections below say when:
+
+- The input side of the estimate can run low.
+- A call lost to a network error is charged nothing.
+- A session total shared by several processes can be passed.
 
 A loop that checks its spend after each response stops only once a response has already crossed the cap. The AI SDK's `stopWhen` counts steps, not dollars. A cost guard checks before the call instead. It projects the most the call can cost, using an input estimate that can run low, and it refuses to send the call if the spend so far plus that projection would pass the cap.
 

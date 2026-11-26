@@ -290,6 +290,6 @@ test("the quick start's run asks twice and gets the same text twice from one req
   const payments = quickPayments();
   const [first, second] = await refundTwice(payments);
   assert.equal(first, second);
-  assert.match(first ?? "", /^The refund_create call took effect\./);
+  assert.match(first, /^The refund_create call took effect\./);
   assert.equal(payments.keys.length, 1);
 });
