@@ -49,3 +49,11 @@ test("a fence keeps its other attributes, and gets the file's name as its title 
   assert.equal(rewriteMeta('file="packages/sdk/examples/a.ts" region="run" {2-3}', ref), '{2-3} title="a.ts"');
   assert.equal(rewriteMeta('file="packages/sdk/examples/a.ts" title="Mine"', ref), 'title="Mine"');
 });
+
+test("a transcript fence is read like an example file but gets no title", () => {
+  const ref = { file: "packages/cli/transcripts/help.txt" };
+  assert.match(exampleSource(ref), /^\$ buildanagent --help\n/);
+  assert.equal(rewriteMeta('file="packages/cli/transcripts/help.txt"', ref), "");
+  assert.throws(() => exampleSource({ file: "packages/cli/transcripts/../src/bin.ts" }), /not a file under/);
+  assert.throws(() => exampleSource({ file: "packages/cli/transcripts/a/b.txt" }), /not a file under/);
+});

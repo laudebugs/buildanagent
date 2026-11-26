@@ -1,0 +1,46 @@
+---
+title: CLI quick start
+description: Install the buildanagent command, check that it runs and run one turn from your own program.
+---
+
+You will install the `buildanagent` command, check that it runs and run one turn from a program of your own. You need this to script the harness from a terminal or a test.
+
+## Install the command
+
+The CLI needs Node 22.19 or later. Install it and [the gateway](/concepts/the-gateway/), which the program below imports, with the `alpha` tag that npm serves for every release until the first stable one:
+
+```bash
+pnpm add @buildanagent/cli@alpha @buildanagent/gateway@alpha
+```
+
+The package installs the `buildanagent` command, which `pnpm exec buildanagent` runs from your project. On a machine with no sessions, `sessions list` shows that the command runs and has nothing stored yet:
+
+```console file="packages/cli/transcripts/sessions-empty.txt"
+```
+
+## Run one turn from a program
+
+`runCli()` runs one command line and resolves with its exit status. A `CliIo` supplies the output, a line reader, the environment and the working folder. This function runs `run --json` on a `model` you build the way [your first agent](/start/first-agent/) does, and parses the output, one JSON object per line:
+
+```ts file="packages/cli/examples/run-json.ts"
+```
+
+The command line names its model with `--model`, but a program hands `runCli()` a model it built.
+
+## Read the result
+
+The first line is `{"type":"session",...}` with the session's id. Each event of the turn follows, and the last line is `{"type":"settled",...}` with the reason the turn stopped and its cost. The exit status says how the turn ended: 0 for `done`, 1 for any other reason and 3 when the turn waits for a person. This page shows no sample of the lines, because each holds ids and times that change on every run.
+
+## See why a command refuses to run
+
+A command that calls a model refuses to start without `--model`. Exit status 2 means the command could not run as given, and the message says why:
+
+```console file="packages/cli/transcripts/no-model.txt"
+```
+
+A model needs its provider's key, read from `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. Without the key, the command exits 2 again:
+
+```console file="packages/cli/transcripts/no-key.txt"
+```
+
+Next, see every [command and exit status](/cli/commands/).

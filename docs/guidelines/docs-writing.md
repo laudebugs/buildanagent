@@ -30,6 +30,7 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 
 - **MUST:** put a sentence that says what the code does before every code block.
 - **MUST:** a code block of more than five lines comes from a tested example file, which [examples.md](examples.md) governs, so the docs never show code that no longer runs. Until the first `examples/` folder exists, a README may show a longer block; [Known gaps](README.md#known-gaps) tracks it.
+- **MUST:** show a terminal session only from a transcript, a file under `packages/<pkg>/transcripts/` that a test in that package re-runs and compares with the command's real output. The docs test fails on any terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt.
 
 ## Draw a diagram where a picture answers faster
 

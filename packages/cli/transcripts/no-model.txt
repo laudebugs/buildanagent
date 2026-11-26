@@ -1,0 +1,2 @@
+$ buildanagent run 'Why does the login test fail?'
+buildanagent: this command calls a model: pass --model <provider>:<model id>, such as anthropic:claude-sonnet-5-5

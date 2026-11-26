@@ -1,0 +1,2 @@
+$ buildanagent run --model anthropic:claude-sonnet-5-5 'Why does the login test fail?'
+buildanagent: --model anthropic:… reads its key from ANTHROPIC_API_KEY, which is not set

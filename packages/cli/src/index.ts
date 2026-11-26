@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/cli`, the buildanagent command line, which runs the harness in a terminal. `runCli()` runs one
  * command line against the terminal a `CliIo` describes, which is what the `buildanagent` binary does with the
- * process's own streams.
+ * process's own streams. Start with the [quick start](https://docs.buildanagent.fyi/cli/quick-start/).
  *
  * @module @buildanagent/cli
  */

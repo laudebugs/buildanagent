@@ -1,9 +1,10 @@
-// Runs the examples in examples/: reading a chunked stream, reading a session file, and writing requests and reading
-// replies. Each one takes its input from the test and sends nothing anywhere.
+// Runs the examples in examples/: the quick start, reading a chunked stream, reading a session file, and writing
+// requests and reading replies. Each one takes its input from the test and sends nothing anywhere.
 import assert from "node:assert/strict";
 import { DEFAULT_MAX_LINE_BYTES, decode, isProtocolError, type ServerMessage } from "@buildanagent/protocol";
 import { test } from "vitest";
 import { describeServerMessage, requestLines } from "../examples/client-requests.js";
+import { initializeLine, readInitializeAnswer } from "../examples/quick-start.js";
 import { summarizeSession } from "../examples/read-session-file.js";
 import { readStream } from "../examples/read-stream.js";
 import { FIXTURES } from "./fixtures.js";
@@ -119,4 +120,32 @@ test("a CRLF session file counts its entries and numbers its unreadable lines", 
   const summary = summarizeSession(file);
   assert.deepEqual(summary.counts, { session_header: 1, turn_start: 1, message_block: 1 });
   assert.deepEqual(summary.unreadableLines, [3]);
+});
+
+const INITIALIZE_LINE =
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"clientInfo":{"name":"my-editor","version":"1.0.0"},"capabilities":[]}}\n';
+
+test("the quick start writes initialize as one line, the one the CLI transcript sends", () => {
+  assert.equal(initializeLine("my-editor", "1.0.0"), INITIALIZE_LINE);
+});
+
+test("the quick start reads the server's answer to initialize, whatever else the stream holds before it", () => {
+  const result = {
+    serverInfo: { name: "buildanagent", version: "0.0.0", sdkVersion: "1.0.0", specVersion: "v1" },
+    capabilities: ["abort_v1"],
+    experimental: ["session/fork"],
+    pending: [],
+  };
+  const output = `${JSON.stringify(NOTIFICATIONS[0])}\n${JSON.stringify({ jsonrpc: "2.0", id: 1, result })}\n`;
+  assert.deepEqual(readInitializeAnswer(bytes(output)), result);
+});
+
+test("the quick start refuses an error answer, a stream with no answer and a line that is not a message", () => {
+  const refused = JSON.stringify({ jsonrpc: "2.0", id: 1, error: { code: -32600, message: "no" } });
+  assert.throws(() => readInitializeAnswer(bytes(`${refused}\n`)), /the server refused initialize: no/);
+  assert.throws(() => readInitializeAnswer(bytes(`${JSON.stringify(NOTIFICATIONS[0])}\n`)), /wrote no answer/);
+  assert.throws(
+    () => readInitializeAnswer(bytes("{not json\n")),
+    (error) => isProtocolError(error) && error.code === "invalid_json",
+  );
 });

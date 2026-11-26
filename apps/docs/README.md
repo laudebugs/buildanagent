@@ -13,14 +13,27 @@ Pages live in `src/content/docs/`, and the explicit sidebar in `src/topics.ts` n
 
 ## Show an example file
 
-A fence with a `file` attribute takes its code from a file under a package's `examples/` folder, so the docs never show code that no longer runs. `region` picks a `// #region` of the file:
+A fence with a `file` attribute takes its code from a file under a package's `examples/` folder, so the docs never show code that no longer runs. A terminal session takes a transcript instead, as [the next section](#show-a-terminal-session-from-a-transcript) explains. `region` picks a `// #region` of the file:
 
 ````md
 ```ts file="packages/sdk/examples/order-agent.ts" region="run"
 ```
 ````
 
-The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import. `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
+The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` or `transcripts/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import. `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
+
+## Show a terminal session from a transcript
+
+A terminal session is never typed into a page. A `console` fence takes its text from a transcript, a file under a package's `transcripts/` folder, and shows it with no title:
+
+````md
+```console file="packages/cli/transcripts/help.txt"
+```
+````
+
+A transcript is the command after a `$ ` prompt, then what the command printed. The CLI's `packages/cli/test/transcripts.test.ts` runs each command, compares the output with its file and fails when the output changes. To accept a change, rerun it with `REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts`.
+
+The docs' own `test/transcripts.test.ts` fails on a terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt. It also fails on a committed transcript that no page shows. An install line has no prompt, so it is no session, and `test/install-lines.test.ts` checks it instead.
 
 ## Draw a figure with a script, and the build inlines it
 
@@ -62,11 +75,11 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Eight tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Ten tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test, the topics test, the chrome test and the reference-links test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
 
 ## Sidebar topics keep each page small
 
-A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway" holds the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
+A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway", "Protocol" and "CLI" hold the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
 
 To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
 
