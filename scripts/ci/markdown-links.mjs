@@ -23,10 +23,13 @@
 //   correct, and a usage with no definition at all is a different, much rarer bug this check doesn't catch.
 //
 // Known gaps, none seen in this repository's tracked Markdown as of November 2026, so none is worth the added
-// parsing risk for now: nested brackets inside link text (`[see [1]](x.md)`), an unescaped `)` inside a link's own
-// target or title, an indented (inside a list item) or `~~~` fenced block (`prose()`, shared with
-// scripts/package-docs.mjs, blanks only a `` ` `` fence that starts at column 0), and a heading written with
-// setext underlines (`===`/`---`) or indented 1-3 spaces (only `#`-style, unindented headings are read).
+// parsing risk for now:
+// - nested brackets inside link text (`[see [1]](x.md)`);
+// - an unescaped `)` inside a link's own target or title;
+// - an indented (inside a list item) or `~~~` fenced block (`prose()`, shared with scripts/package-docs.mjs, blanks
+//   only a `` ` `` fence that starts at column 0);
+// - a heading written with setext underlines (`===`/`---`) or indented 1-3 spaces (only `#`-style, unindented
+//   headings are read).
 //
 // GitHub's anchors use `slugify` from `../markdown-text.mjs`, the same rule scripts/package-docs.mjs's own
 // `headingAnchors` uses for a README's level-2 and level-3 headings. This check reads a document's headings at
