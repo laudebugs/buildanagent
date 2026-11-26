@@ -1,5 +1,11 @@
 # @buildanagent/sdk
 
+## 0.1.0-alpha.42
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.42
+
 ## 0.1.0-alpha.41
 
 ### Patch Changes
