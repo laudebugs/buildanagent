@@ -203,7 +203,20 @@ The owner asked whether the repository supports Bun. It didn't: `package.json`'s
 
 **A first pass used `bun x` without `--bun`, which runs a tool through its own `#!/usr/bin/env node` shebang under Node, not Bun; that pass's "all clean" claim for the packages and `apps/manual` was wrong, because it had measured Node twice. The numbers below are the corrected, `--bun`-forced run.** `bun test`, which is Bun's own test runner rather than a shebang-launched tool, was unaffected by this mistake; its findings stood.
 
-**Six of eight `verify/*` harnesses run clean** (`vercel-ai-sdk`, `claude-agent-sdk`, `openai-agents-sdk`, `pi`, `google-adk`, `langchain`); `copilot-sdk` refuses the same way under both runtimes, needing Linux's `unshare -rn`; `cloudflare-agents` is gap 1 below.
+**Six of eight `verify/*` harnesses run clean,** each re-checked by typecheck and example count:
+
+| Harness | Examples | Result |
+| --- | --- | --- |
+| `vercel-ai-sdk` | 17 | 17 ran, typecheck clean |
+| `claude-agent-sdk` | 10 | 10 ran, typecheck clean |
+| `openai-agents-sdk` | 14 | 14 ran, typecheck clean |
+| `pi` | 8 | 8 ran, typecheck clean |
+| `google-adk` | 9 | 9 ran, typecheck clean |
+| `langchain` | 11 | 11 ran, typecheck clean |
+| `cloudflare-agents` | 13 | 0 ran (gap 1, below) |
+| `copilot-sdk` | 10 | refuses the same way under both runtimes, needing Linux's `unshare -rn` |
+
+**Every one of the 15 `scripts/ci/*.test.mjs` files ran under `bun test`, compared against Node.** Six surface one of the nine gaps below (`catalog-staleness`: gap 4; `changeset-gate`: gap 7; `fact-check-log`: gap 8; `live-run`: gap 9; `sdk-updates`: gap 6; `transcripts`: a duplicate of gap 1). Two more failed under Bun on first look but turned out, on checking, to be pre-existing and unrelated to the runtime: `packages-pack` fails identically under Node, `Cannot find module '.../corepack/v1/pnpm/10.34.9/bin/pnpm.cjs'`, a local corepack cache/network issue; `sites-workflows` fails the same 3 of 188 tests under Node too, `date: illegal option -- d`, because its `docs-deploy.yml` step runs GNU `date -u -d '+60 seconds' ...` and this machine's `/bin/date` is BSD date, which has no `-d`. The remaining 7 (`markdown-links`, `release`, `results-drift`, `site-deploy`, `todo-ids`, `version-commit`, `version-pr`) run clean under both.
 
 **No package is clean, and the published packages carry most of the real gaps:**
 
