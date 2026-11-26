@@ -13,7 +13,7 @@
 
 ## Goal
 
-Add a script that fails when a relative link or an anchor in a tracked Markdown file leads nowhere, and run it in `ci.yml`. AGENTS.md's step 5 tells every author to "confirm that every relative link and anchor resolves", and nothing checks it outside the three apps. The todo board makes broken links likely, because every todo's file moves from `ready/` to `ongoing/` to `done/` while plans and other todos link to it by path.
+Add a script that fails when a relative link or an anchor in a tracked Markdown file leads nowhere, and run it in `ci.yml`. AGENTS.md's step 5 tells every author to "confirm that every relative link and anchor resolves", and nothing checks it outside the docs and the book, whose own checks cover only their pages. The todo board makes broken links likely, because every todo's file moves from `ready/` to `ongoing/` to `done/` while plans and other todos link to it by path.
 
 ## Context
 
