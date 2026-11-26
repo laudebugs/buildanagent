@@ -1,0 +1,124 @@
+{
+  "format": 2,
+  "example": "12-thread-owner",
+  "file": "verify/langchain/examples/12-thread-owner.ts",
+  "harness": "verify/langchain",
+  "pin": "langchain@1.6.6",
+  "mock": "@langchain/core@1.4.1",
+  "events": [
+    {
+      "kind": "request",
+      "line": 26,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "I am Ada."
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 26,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Nice to meet you, Ada."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "request",
+      "line": 26,
+      "model": "model-1",
+      "repeated": 2,
+      "messages": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Who am I?"
+            }
+          ]
+        }
+      ],
+      "tools": []
+    },
+    {
+      "kind": "response",
+      "line": 26,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "You are Ada."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 40,
+      "message": "Ada's first call starts a thread and reaches the model",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 41,
+      "message": "Bob's call with Ada's thread id is refused",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 42,
+      "message": "Bob's call with an id nobody created is refused",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 43,
+      "message": "Bob's two refusals are word for word the same, so neither confirms that Ada's thread exists",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 47,
+      "message": "only Ada's two calls reached the model; Bob's never did",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 48,
+      "message": "Ada's next call resumes her thread",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 49,
+      "message": "Ada's second request carries her first exchange and the new question",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 52,
+      "message": "Ada's thread holds only her own four messages",
+      "pass": true
+    }
+  ]
+}
