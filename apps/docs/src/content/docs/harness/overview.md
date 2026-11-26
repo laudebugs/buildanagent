@@ -29,6 +29,8 @@ The `cloudflare` and `vercel` paths and the `aws/dynamodb`, `aws/scheduler` and 
 
 ## Turn a part off to see what it adds
 
-Each removable part has a switch under `@buildanagent/harness/ablation`. Pass the switches to `createHarness()` and it turns the parts off, then records a hash of them in the session header. The log therefore shows which parts a session ran without. The session log, the permissions and the protocol have no switch, because they form the harness's fixed core.
+Each removable part has a switch under `@buildanagent/harness/ablation`. Pass the switches to `createHarness()` and it records a hash of them in the session header, so the log shows which parts a session ran without. It also turns off the MCP and in-process extension tools, the extension records, turn boundaries, `tool_search`, skills, telemetry observers, overflow retries and completion checks.
+
+The context layers are the exception: `createHarness()` cannot reach into a policy you built. Pass `layers: ablation.context` to `createContextPolicy()` as well. Without it the header's hash says the layers were off while they ran. The session log, the permissions and the protocol have no switch, because they form the harness's fixed core.
 
 Next, learn how [sessions](/harness/sessions/) keep a conversation.
