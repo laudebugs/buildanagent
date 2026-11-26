@@ -43,7 +43,7 @@
 
 - [x] `scripts/ci/sdk-updates.test.mjs` passes under both Node and Bun.
 - [x] Each `assert.throws` call validates the thrown error, not just a message string.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node (`pnpm check` and `pnpm typecheck` pass locally; CI runs the root `pnpm test`, which stops at `verify/copilot-sdk` on macOS for lack of `unshare`)
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node.
 
 ## Tests
 
@@ -61,7 +61,7 @@ The existing `sdk-updates.test.mjs` is rewritten in place; no new test file.
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step (the root `pnpm test` is the exception, as the acceptance criteria note; CI runs it)
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
