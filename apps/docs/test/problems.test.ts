@@ -53,6 +53,23 @@ function definedCodes(): Set<string> {
   return codes;
 }
 
+/** The JSON-RPC codes the protocol defines, by name, read from its `ErrorCodes` object. */
+export function wireCodesIn(source: string): Map<string, number> {
+  const body = /export const ErrorCodes = \{([^}]*)\}/.exec(source)?.[1] ?? "";
+  return new Map([...body.matchAll(/^\s*(\w+): (-\d+),/gm)].map((m) => [m[1] ?? "", Number(m[2])]));
+}
+
+/** What a page names of the wire: the backticked JSON-RPC numbers it lacks in `wire`, and the key names it uses. */
+export function wireProblems(text: string, wire: ReadonlyMap<string, number>): string[] {
+  const values = new Set(wire.values());
+  const numbers = [...text.matchAll(/`(-\d{5})`/g)].map((m) => Number(m[1])).filter((code) => !values.has(code));
+  const names = [...text.matchAll(/`(\w+)`/g)].map((m) => m[1] ?? "").filter((name) => wire.has(name));
+  return [
+    ...numbers.map((code) => `${code} is no protocol code`),
+    ...names.map((name) => `${name} is a key, not the code`),
+  ];
+}
+
 /** The snake_case words in backticks that `text` names and `defined` lacks. */
 export function unknownCodes(text: string, defined: ReadonlySet<string>): string[] {
   return [...text.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map((m) => m[1] ?? "").filter((code) => !defined.has(code));
@@ -87,7 +104,31 @@ for (const page of problemPages) {
       assert.deepEqual(unknownCodes(text, defined), [], `"${entry.heading}" names a code that no package defines`);
     }
   });
+
+  test(`${page.path} names a JSON-RPC error by a number that the protocol defines, never by its key`, () => {
+    const wire = wireCodesIn(readFileSync(join(REPO_ROOT, "packages/protocol/src/jsonrpc.ts"), "utf8"));
+    assert.ok(wire.size > 0);
+    for (const entry of entries) {
+      const text = [entry.heading, ...entry.paragraphs].join("\n");
+      assert.deepEqual(wireProblems(text, wire), [], `"${entry.heading}" names the wire wrongly`);
+    }
+  });
 }
+
+test("a JSON-RPC number outside the protocol's codes, or a key used for one, fails", () => {
+  const wire = wireCodesIn("export const ErrorCodes = {\n  QueueFull: -32001,\n  SessionLocked: -32002,\n} as const;");
+  assert.deepEqual(
+    [...wire],
+    [
+      ["QueueFull", -32001],
+      ["SessionLocked", -32002],
+    ],
+  );
+  assert.deepEqual(wireProblems("`-32001` and `-32009` and `QueueFull`", wire), [
+    "-32009 is no protocol code",
+    "QueueFull is a key, not the code",
+  ]);
+});
 
 test("the entry reader splits a page into entries and stops at the next section", () => {
   const body = "## Area\n\n### One\n\n**You see.** a\n\n**Cause.** b\n\n**Fix.** c\n\n## Other\n\ntext\n";
@@ -110,6 +151,14 @@ test("the packages define the codes that the harness pages name", () => {
     "entry_not_found",
     "duplicate_tool",
     "invalid_turn_options",
+    "approval_unavailable",
+    "approval_not_pending",
+    "unsafe_sandbox_not_acknowledged",
+    "egress_denied",
+    "invalid_egress_options",
+    "extension_hash_mismatch",
+    "invalid_extension",
+    "invalid_permission_config",
   ]) {
     assert.ok(defined.has(code), code);
   }

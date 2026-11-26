@@ -21,6 +21,7 @@ const store = memoryStore();
 const index = memoryIndex();
 const lock = fileLock({ dir: `${tmpdir()}/in-process-client-locks` });
 
+// #region client
 const client = inProcessTransport(createDispatcher({ harness, store, index, lock, userId: "ada" }));
 client.onMessage((message) => {
   // "event" and "turn/settled" notifications, and the server's requests, which carry an id.
@@ -32,5 +33,7 @@ client.onMessage((message) => {
 await client.request("initialize", { clientInfo: { name: "cli", version: "1" }, capabilities: [] });
 const { session } = await client.request("session/create", { cwd: "/work" });
 const disposition = await client.request("turn/start", { session, input: [{ type: "text", text: "Hi" }] });
+
+// #endregion
 
 export { client, disposition, session };

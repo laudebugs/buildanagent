@@ -40,4 +40,4 @@ An MCP server is a program that offers tools over the Model Context Protocol, a 
 
 Deferring keeps a server with many tools from filling every request with their definitions. Set `exposure: "direct"` on a server to send all of its tools every time.
 
-Next, find a fix in [problems and fixes](/harness/problems-and-fixes/).
+Next, decide which calls may run with [permissions](/harness/permissions/).

@@ -8,6 +8,7 @@ import type { AgentEvent } from "@buildanagent/sdk";
 
 const SYSTEM = "You are a careful coding agent.";
 
+// #region audit
 /** A harness that runs the audit extension first, then `other`, with both extensions' tools in `registry`. */
 export async function auditedHarness(
   registry: ToolRegistry,
@@ -26,3 +27,4 @@ export async function auditedHarness(
   const extensionRecords = await recordsOf([audit, other]);
   return createHarness({ registry, model, system: SYSTEM, interceptors, observers, extensionRecords });
 }
+// #endregion

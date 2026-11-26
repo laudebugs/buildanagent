@@ -1,9 +1,9 @@
 ---
 title: Problems and fixes
-description: Ten problems you may hit with sessions, context and tools, each from what you see, to its cause, to its fix.
+description: Problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
 ---
 
-You will find ten problems that sessions, context and tools cause, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent behaves in a way you did not expect.
+You will find twenty-four problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
 
 ## Sessions
 
@@ -92,5 +92,125 @@ If the writer died on the same host, you need not remove anything: its lock beco
 **Cause.** A tool with that name is already in the registry.
 
 **Fix.** Give each tool its own name. A tool from an extension or the client replaces a built-in tool of the same name only when it passes `override: true`. Any other repeat of a name throws.
+
+## Permissions
+
+### A tool call is denied and the reason says nobody can be asked
+
+**You see.** A call to a tool does not run. Its denial reads `No rule covers this call and nobody can be asked, so it is refused.`, and the log's permission decision entry for the call carries the same reason.
+
+**Cause.** The pipeline has `interactive: false` and no rule names the tool, so the call is denied. The [permissions page](/harness/permissions/) explains why.
+
+**Fix.** Add an allow rule for the tool. If a person can answer, set `interactive: true` and the call asks instead.
+
+### `createPermissionPipeline()` throws `invalid_permission_config`
+
+**You see.** `createPermissionPipeline()` throws a `PermissionConfigError`, a `HarnessError` with the code `invalid_permission_config`. The message reads `allow[0] allows every call to escalate, so the host callback could never decide one; narrow the rule with paths or a commandPrefix, or remove it`.
+
+**Cause.** The configuration sets a host callback and also an allow rule that covers every call to a registered tool. The allow rule settles each call first, so the callback would never run for that tool.
+
+**Fix.** Narrow the allow rule with `paths` or a `commandPrefix`, or remove it and let the callback decide. Deny rules, hooks and a callback with no allow rules start without error.
+
+### Answering an approval throws `approval_unavailable`
+
+**You see.** `resolve()` on the object that `createApprovals()` returns throws a `HarnessError` with the code `approval_unavailable` and the message `the harness has no signer, so no approval can be checked`.
+
+**Cause.** The harness was built without a `signer`. A signer signs each pause and checks each answer, so a harness without one cannot tell a real request from a forged one.
+
+**Fix.** Pass a signer to `createHarness()`, such as `hmacSigner()` from `@buildanagent/sdk`, built from a key ring that every process which may answer can load.
+
+### Answering an approval throws `approval_not_pending`
+
+**You see.** `resolve()` throws a `HarnessError` with the code `approval_not_pending`. The message reads `no request <id> is waiting in this session`, or `request <id> is answered twice in one resume` when one call holds two answers for the same request.
+
+**Cause.** The request id is not waiting. Another process may have answered it already, the call may have a result, or the id may belong to another session.
+
+**Fix.** Call `pending()` on the same object to list the requests that still wait, and answer one of those. Pass one answer for each request in a call.
+
+## Sandbox and credentials
+
+### `noneSandbox()` throws `unsafe_sandbox_not_acknowledged`
+
+**You see.** `noneSandbox()` throws a `HarnessError` with the code `unsafe_sandbox_not_acknowledged` and the message `noneSandbox confines nothing, so it needs { unsafe: true } to say the caller knows`.
+
+**Cause.** The `none` backend runs each command as you, with your files and network, so it asks you to say so. TypeScript flags the missing option, and JavaScript gets this error.
+
+**Fix.** Pass `{ unsafe: true }` only on a machine that is already disposable. Otherwise choose a backend that confines commands, such as `srtSandbox()` or `dockerSandbox()`, as the [sandbox page](/harness/sandbox/) shows.
+
+### A request through the egress proxy fails with `egress_denied`
+
+**You see.** A fetch through the proxy rejects with a `HarnessError` with the code `egress_denied` and a message such as `the egress proxy refused evil.example: not_allowed`. A tunnel from the sandbox gets a 403.
+
+**Cause.** The proxy allows only the names in its `allow` list, over HTTPS, on port 443 unless the entry adds a port. The word after the colon says which rule refused: not_allowed for a host that is not listed, only_https for a plain HTTP request and address_literal for a host written as an address.
+
+**Fix.** For a host the sandbox should only tunnel to, add its exact name to `allow` and use HTTPS. For a host that carries a credential, send the request to the route's address on the proxy, `<proxy.url>/<route>/path`, because a request to the host's real URL is refused. Keep a git route's host out of `allow`, which the policy refuses. An address literal can never be listed, so use the host's name.
+
+### `compileEgressPolicy()` throws `invalid_egress_options`
+
+**You see.** `compileEgressPolicy()` throws a `HarnessError` with the code `invalid_egress_options`. One message reads `the egress policy holds what looks like a credential; name it in a route's credential instead`.
+
+**Cause.** The policy holds a secret where only a name belongs, or breaks another rule. A string that starts like a token, such as `ghp_` or `sk-` with a long body, is refused. A wildcard in `allow`, a credential name that is not upper case and a git route whose host is also in `allow` are refused too. The message names the place of the entry and never its value.
+
+**Fix.** Put the secret on the host and write only its upper-case name in the route's `credential`, such as `GITHUB_TOKEN`. Pass a `secret` function to `compileEgressPolicy()` that reads the value there.
+
+### Provisioning a hosted sandbox throws `invalid_egress_options` for a git route
+
+**You see.** `provision()` on the backend from `vercelSandbox()` or `e2bSandbox()` throws a `HarnessError` with the code `invalid_egress_options`. On Vercel the message reads `route 0 is a git route, and the Vercel firewall can't enforce its ref filter`. On E2B it reads `route 0 is a git route, and E2B can't filter a push by ref; reach git through the egress proxy`.
+
+**Cause.** A provider's firewall cannot read a push's branch names, so it cannot enforce a git route's `pushRefs`. Only the host proxy can.
+
+**Fix.** Remove the git route from the policy you pass to the hosted backend. Push through a host-side tool behind the [permission pipeline](/harness/permissions/), as the [sandbox page](/harness/sandbox/) describes.
+
+## Server and clients
+
+### `turn/start` answers `accepted: false`
+
+**You see.** A client's `turn/start` resolves with `{ accepted: false, reason: "busy" }` or `{ accepted: false, reason: "locked" }`, and no events follow.
+
+**Cause.** The reason `busy` means this dispatcher already runs a turn, a checkout or a fork in that session. The reason `locked` means another process holds the session's lock. A reason of `invalid` means the connection never created or opened the session.
+
+**Fix.** For `busy`, wait for the running turn's `turn/settled` notification and send the command again. For `locked`, wait until the other writer closes its session, or stop that process. For `invalid`, call `session/create` or `session/open` on the same connection first.
+
+### A client misses events and a command fails with `-32001`
+
+**You see.** A client that reads slowly loses live events, and a marker takes their place that says how many were dropped. A client that sends faster than it reads gets the JSON-RPC error `-32001` with the message `the queue holds 128 commands; send again later`.
+
+**Cause.** Each connection queues at most `queueSize` unanswered commands and at most `queueSize` waiting live events, 128 each by default. The server drops live events past the second bound and refuses commands past the first.
+
+**Fix.** Read each message as it arrives. To catch up after a gap, send `session/open` with `fromSeq` one past the last entry you received. The server replays the entries from the log, and you drop by sequence number any entry you get twice. To hold more, raise `queueSize` in `createDispatcher()`, but a client that reads each message at once never reaches the limit.
+
+### An approval is answered by a client you did not expect
+
+**You see.** A tool call that should have waited for you was approved, and the answer's `by` names someone who was not at the keyboard, or a name you never set.
+
+**Cause.** The transports authenticate nobody. Whoever holds the streams or the socket acts as the dispatcher's user, and the dispatcher passes `by` on as the client sent it. A web page in a browser can open a WebSocket to a local server, so a socket handed over without a check lets that page answer.
+
+**Fix.** Check the caller's identity and its `Origin` header before you hand a WebSocket to `webSocketTransport()`, and close the socket of a caller you do not know. Set `by` yourself after you have authenticated the approver. The [server page](/harness/server/) says more.
+
+## Extensions
+
+### A project's extension does not load and a notice says it is skipped
+
+**You see.** The extension never runs. The load result holds a notice that reads `the project extensions of <path> are skipped: the project is not trusted`, or `... are skipped: this run is headless`.
+
+**Cause.** A project's extensions run in your process, so `loadProjectExtensions()` loads none of them unless the trust store holds the project's real path. A headless run skips them as well, even in a trusted project.
+
+**Fix.** Read the extensions, then add the project to the trust store you pass in. For a headless run you have decided to allow, also pass `loadInHeadless: true`.
+
+### Loading throws `extension_hash_mismatch`
+
+**You see.** `loadProjectExtensions()` throws a `HarnessError` with the code `extension_hash_mismatch`. The message reads `the extension "audit" is refused: its files changed since they were pinned`, `the extension "audit" is refused: the lock file does not list it`, or `the extension "audit" is pinned but the project no longer holds it`. None of the project's extensions load.
+
+**Cause.** The project has a lock file that pins each extension folder to a hash of its files, and a folder no longer matches it. A process that already imported a changed folder also refuses it, with the message `changed after this process loaded it; restart the process to load the new files`.
+
+**Fix.** Read what changed. If you accept it, run `pinProjectExtensions(root)` again to write a new lock file. If a process imported the older files, restart it.
+
+### Composing extensions throws `invalid_extension`
+
+**You see.** `composeExtensions()` or `registerExtensionTools()` throws a `HarnessError` with the code `invalid_extension`. The message reads `two extensions are named "audit"` or `an extension needs a name and a version`.
+
+**Cause.** Each extension needs a unique name and a version, because the session log records them by name.
+
+**Fix.** Give every extension a distinct `name` and a `version`. A project extension whose module does not export a name and a version throws the same code.
 
 Next, browse the [harness API reference](/reference/harness/).

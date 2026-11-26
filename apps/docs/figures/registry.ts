@@ -12,6 +12,7 @@ export const FIGURE_IDS = [
   "package-map",
   "protocol-clients",
   "run-loop",
+  "sandbox-egress",
   "session-log",
   "stop-reasons",
   "stream-and-transcript",
