@@ -110,6 +110,13 @@ test("the packages define the codes that the harness pages name", () => {
     "entry_not_found",
     "duplicate_tool",
     "invalid_turn_options",
+    "approval_unavailable",
+    "approval_not_pending",
+    "unsafe_sandbox_not_acknowledged",
+    "egress_denied",
+    "invalid_egress_options",
+    "extension_hash_mismatch",
+    "invalid_extension",
   ]) {
     assert.ok(defined.has(code), code);
   }
