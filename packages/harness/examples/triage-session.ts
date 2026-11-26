@@ -53,10 +53,14 @@ export interface TriageRun {
 
 /** Triages `ticket` for the signed-in customer. The turn ends `awaiting_approval` when the model asks to escalate. */
 export function startTriage(run: TriageRun, ticket: string, extra: Extra<log.TurnOptions> = {}) {
+  // #region pause
   return log.runTurn(run.session, run.harness, { ...extra, ...limits, input: ticket, hostContext: run.app });
+  // #endregion
 }
 
 /** Answers the paused escalation for the same customer, from this process or any other, and finishes the turn. */
 export function answerTriage(run: TriageRun, answers: Resolution[], extra: Extra<log.ResolveOptions> = {}) {
+  // #region answer
   return log.createApprovals(run.harness).resolve(run.session, answers, { ...extra, ...limits, hostContext: run.app });
+  // #endregion
 }

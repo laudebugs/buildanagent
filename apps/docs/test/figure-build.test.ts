@@ -37,6 +37,7 @@ test("the pages place the eight figures", () => {
     "package-map",
     "protocol-clients",
     "run-loop",
+    "sandbox-egress",
     "session-log",
     "stop-reasons",
     "stream-and-transcript",
