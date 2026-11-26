@@ -26,6 +26,20 @@ function findTsc(): string {
   throw new Error("no tsc found above the package");
 }
 
+/**
+ * The folder of the `node` that `tsc`'s `#!/usr/bin/env node` should find. Under Node it is the running binary's folder.
+ * Under Bun the running binary is `bun`, so it is the first folder on the inherited PATH that holds a `node`; only that
+ * one folder is passed on.
+ */
+function nodeDir(): string {
+  if (process.versions.bun === undefined) return dirname(process.execPath);
+  const dir = (process.env.PATH ?? "")
+    .split(delimiter)
+    .find((entry) => entry !== "" && existsSync(join(entry, "node")));
+  if (dir === undefined) throw new Error("no node found on PATH");
+  return dir;
+}
+
 function jsFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -43,9 +57,9 @@ const withoutComments = (source: string): string =>
 
 test("the emitted JavaScript imports nothing outside the package", () => {
   // The workspace packages it takes types from may not be built, so the build reads their source, as the tests do. The
-  // environment is cleared, as for every spawned process, keeping only the folder of the running `node` on PATH.
+  // environment is cleared, as for every spawned process, keeping only the folder of a `node` on PATH.
   const env = {
-    PATH: [dirname(process.execPath), "/usr/bin", "/bin"].join(delimiter),
+    PATH: [nodeDir(), "/usr/bin", "/bin"].join(delimiter),
     HOME: out,
     TMPDIR: out,
     LANG: "C.UTF-8",
