@@ -35,7 +35,7 @@ export interface ApiTopic {
 }
 
 /** The tabs of the written docs, in order: each has pages of its own, and the generated API tabs follow them. */
-export const WRITTEN_TOPICS = ["SDK & gateway", "Protocol", "CLI"] as const;
+export const WRITTEN_TOPICS = ["SDK & gateway", "Harness", "Protocol", "CLI"] as const;
 
 /**
  * The pages no sidebar item names but that belong to a topic, as glob patterns by topic id. TypeDoc writes each
@@ -98,6 +98,24 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
     },
     {
       label: WRITTEN_TOPICS[1],
+      link: "harness/quick-start",
+      icon: "setting",
+      items: [
+        {
+          label: "Harness",
+          items: [
+            { label: "Quick start", slug: "harness/quick-start" },
+            { label: "What the harness adds", slug: "harness/overview" },
+            { label: "Sessions", slug: "harness/sessions" },
+            { label: "Context", slug: "harness/context" },
+            { label: "Tools", slug: "harness/tools" },
+            { label: "Problems and fixes", slug: "harness/problems-and-fixes" },
+          ],
+        },
+      ],
+    },
+    {
+      label: WRITTEN_TOPICS[2],
       link: "protocol/quick-start",
       icon: "random",
       items: [
@@ -112,7 +130,7 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
       ],
     },
     {
-      label: WRITTEN_TOPICS[2],
+      label: WRITTEN_TOPICS[3],
       link: "cli/quick-start",
       icon: "rocket",
       items: [

@@ -18,16 +18,14 @@ export async function codingAgent(
   setup: { readonly workspace: string; readonly spillDir: string; readonly key: SessionKey },
 ) {
   const { workspace, spillDir, key } = setup;
-  // #region sandbox
+  // #region tools
   const policy: SandboxPolicy = { readRoots: [], writeRoots: [workspace], network: { allow: [], deny: [] } };
   const sandbox = await client.provision({ root: workspace }, policy);
-  // #endregion
-  // #region tools
   const spill = fileSpillStore({ dir: spillDir });
   const registry = createToolRegistry();
   const spills = (path: string) => spill.read(key, path);
   for (const tool of builtinTools(sandbox, proxy, { root: workspace, policy, spills })) registry.register(tool);
-  // #endregion
   const harness = createHarness({ registry, model, system: SYSTEM, context: createContextPolicy({ spill }) });
+  // #endregion
   return { sandbox, harness };
 }

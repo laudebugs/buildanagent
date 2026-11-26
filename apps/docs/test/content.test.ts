@@ -148,8 +148,8 @@ describe("the sidebar", () => {
   });
 
   test("links each topic to a page of its own: a listed page for the written docs, its package's index for an API tab", () => {
-    const [written, protocol, cli, ...apiTopics] = topicList;
-    for (const topic of [written, protocol, cli]) {
+    const [written, harness, protocol, cli, ...apiTopics] = topicList;
+    for (const topic of [written, harness, protocol, cli]) {
       assert.ok(topic && slugsOf(topic.items)[0] === topic.link, `${topic?.label} must link to its first page`);
     }
     assert.deepEqual(
@@ -162,8 +162,9 @@ describe("the sidebar", () => {
     // The last page of a topic points back to where a reader starts, or on to the package's API reference.
     const lastTargets: Record<string, string> = {
       [WRITTEN_TOPICS[0]]: "start/first-agent",
-      [WRITTEN_TOPICS[1]]: "reference/protocol",
-      [WRITTEN_TOPICS[2]]: "reference/cli",
+      [WRITTEN_TOPICS[1]]: "reference/harness",
+      [WRITTEN_TOPICS[2]]: "reference/protocol",
+      [WRITTEN_TOPICS[3]]: "reference/cli",
     };
     for (const topic of topicList.slice(0, WRITTEN_TOPICS.length)) {
       const order = slugsOf(topic.items);

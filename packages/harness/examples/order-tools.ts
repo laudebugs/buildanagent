@@ -1,10 +1,11 @@
 // Two read-only tools in a harness's registry, and a turn that offers the model only one of them. The registry holds
 // every tool of the app, and each turn's `tools` list picks the ones its requests send.
+
+import type { Model } from "@buildanagent/gateway";
 import { createHarness } from "@buildanagent/harness/server";
 import { runTurn, type Session } from "@buildanagent/harness/session";
 import { createToolRegistry, type ToolRegistry } from "@buildanagent/harness/tools";
 import { defineTool, type ToolDefinition } from "@buildanagent/sdk";
-import type { Model } from "@buildanagent/gateway";
 
 /** What the tools read from your own order store. */
 export interface OrderStore {
@@ -40,7 +41,11 @@ export function orderRegistry(store: OrderStore): ToolRegistry {
 
 /** Asks one question in `session`, with `order_status` as the only tool the model is offered. */
 export function askAboutStatus(session: Session, model: Model, store: OrderStore, input: string) {
-  const harness = createHarness({ registry: orderRegistry(store), model, system: "You answer questions about orders." });
+  const harness = createHarness({
+    registry: orderRegistry(store),
+    model,
+    system: "You answer questions about orders.",
+  });
   // #region offer
   return runTurn(session, harness, { input, tools: ["order_status"] });
   // #endregion

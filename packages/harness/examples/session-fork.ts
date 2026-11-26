@@ -1,7 +1,7 @@
 // Trying another question from an earlier point of a conversation. `fork()` starts a new session from one entry of the
 // log: the new session shares every entry up to that point with the old one and writes its own after it. The old
 // session stays as it was, so you can compare the two answers.
-import { type Harness } from "@buildanagent/harness/server";
+import type { Harness } from "@buildanagent/harness/server";
 import { runTurn, type Session } from "@buildanagent/harness/session";
 
 /** What a fork shares with its parent and what it wrote itself. */
