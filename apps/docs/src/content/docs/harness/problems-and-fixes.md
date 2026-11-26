@@ -13,7 +13,9 @@ You will find ten problems that sessions, context and tools cause, each written 
 
 **Cause.** Another writer holds the session's lock. It is often your own process: an earlier `openSession()` for the same key that never reached `close()`.
 
-**Fix.** Close every session in a `finally` block, as the [quick start](/harness/quick-start/) does. If the other writer has died on the same host, its lock becomes free once the lease lapses, 30 seconds by default. A lock held from another host is never taken over, because this host cannot tell whether that process still runs. To remove a lock before then, call `unlockSession()` from `@buildanagent/harness/session/jsonl`, or run `buildanagent session unlock <session> --force` for the CLI's own sessions. Do this only when you know the writer is gone.
+**Fix.** Close every session in a `finally` block, as the [quick start](/harness/quick-start/) does. Remove a lock by hand only when you know its writer is gone, because removing the lock of a live writer lets two writers into one log. Call `unlockSession()` from `@buildanagent/harness/session/jsonl`, or run `buildanagent session unlock <session> --force` for the CLI's own sessions.
+
+If the writer died on the same host, you need not remove anything: its lock becomes free once the lease lapses, 30 seconds by default. A lock from another host is never taken over, because this host cannot tell whether that process still runs.
 
 ### `runTurn()` throws `session_read_only`
 
@@ -53,7 +55,7 @@ You will find ten problems that sessions, context and tools cause, each written 
 
 **You see.** The model's view of a tool result ends with `[output cut: the first N of M bytes are shown; the full text is in <path>]`, with real numbers and a real path. The agent misses what the cut part held.
 
-**Cause.** The harness runs a context policy, and its write cap, layer 1, cuts a result over about 64 KiB and saves the full text to the spill store.
+**Cause.** The write cap, layer 1 of the context policy you passed to `createHarness({ context })`, cuts a result over about 64 KiB and saves the full text to the spill store.
 
 **Fix.** Give the agent a way to read the saved file. The built-in `read` tool opens spill files when you pass `spills`, as the [tools page](/harness/tools/) shows. To keep more of each result in the request, raise `writeCapBytes` in `createContextPolicy()` and the store's `maxEntryBytes` with it, because a store refuses an entry over 64 KiB.
 
@@ -69,7 +71,7 @@ You will find ten problems that sessions, context and tools cause, each written 
 
 **You see.** After many turns, the agent no longer knows a file name or an error message that you gave it early on.
 
-**Cause.** The harness runs a context policy, which summarized the older messages because the context passed its budget. The summary left the detail out. The log still holds the original messages.
+**Cause.** The context policy you passed to `createHarness({ context })` summarized the older messages because the context passed its budget. The summary left the detail out. The log still holds the originals.
 
 **Fix.** Ask the summary to keep what matters with `summarize: { focus: "file names and error messages" }`, and raise `budgetTokens` if the model's window allows. To see what the model read, call `session.toContext()`. The original messages stay readable with `session.playback()` until you delete the session.
 

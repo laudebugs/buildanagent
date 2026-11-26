@@ -3,23 +3,23 @@ title: Context keeps a long conversation inside the window
 description: How the harness rebuilds the conversation from the log and keeps it small with five layers, from a write cap to a summary.
 ---
 
-You will see what the model reads on each turn and how the harness keeps a long conversation inside the model's window. You need this when your agent runs tools with long output or talks for more than a few turns.
+You will see what the model reads on each turn and how the harness keeps a long conversation inside the model's window, the most text it accepts in one request. You need this when your agent runs tools with long output or talks for many turns.
 
 ## The model reads what the log holds
 
-The context is everything one request sends to the model: the system prompt and the conversation so far. The window is the most text a model accepts in one request, counted in tokens, the units a model counts text in. A turn that passes no `history` builds its context from the log with `session.toContext()`, which returns the messages in order and the system prompt of the latest `turn_start` entry.
+The context is everything one request sends to the model: the system prompt and the conversation so far. The window is counted in tokens, the units a model counts text in. A turn that passes no `history` builds its context from the log with `session.toContext()`, which returns the messages in order and the system prompt of the latest `turn_start` entry.
 
-The harness shrinks the context the model reads and leaves the entries it wrote alone. One layer, the write cap, changes what a new entry holds: it stores a cut tool result in the log, and the full text goes to a file.
+The harness shrinks the context the model reads and leaves the entries it wrote alone. One layer, the write cap, changes what a new entry holds: it stores a cut tool result in the log, and the full text goes to a spill store, which writes a file for each result when you use `fileSpillStore()`.
 
 ## Five layers keep the context small
 
-`createContextPolicy()` builds the layers, and `createHarness({ ..., context })` applies them to every turn. A harness built with no `context` option runs none of the layers and sends the whole conversation each time. The defaults below apply inside a policy you build. Layers 1 and 2 call no model. Layers 3 to 5 ask a model for a summary.
+`createContextPolicy()` builds the layers, and `createHarness({ ..., context })` applies them to every turn. A harness built with no `context` option runs none of the layers and sends the whole conversation each time. The defaults below apply inside a policy you build. Layers 1 and 2 call no model. Layers 3 to 5 ask a model for a summary. The budget is the number of tokens the context may reach before layer 3 summarizes it.
 
-- **Layer 1, the write cap.** After each tool call, it cuts a result that is over about 64 KiB, keeps the first part and saves the full text to a file.
-- **Layer 2, masking.** Before each model call, it shrinks older tool results to their first 500 characters and a line that says where the full text is.
-- **Layer 3, the summary.** At the start of a turn whose context is over its budget, the number of tokens it may reach, it replaces the older messages with a summary and keeps the newest ones as they were.
-- **Layer 4, mid-turn.** Inside a turn, when a call would pass 90% of a small window, it writes a summary and goes on from it.
-- **Layer 5, overflow retry.** After the provider refuses a request as too large, it writes a summary and retries once.
+- **Layer 1, the write cap.** After each tool call, the write cap cuts a result that is over about 64 KiB, keeps the first part and saves the full text to the spill store.
+- **Layer 2, masking.** Before each model call, masking shrinks older tool results to their first 500 characters and a line that says where the full text is.
+- **Layer 3, the summary.** At the start of a turn whose context is over its budget, the summary layer replaces the older messages with a summary and keeps the newest ones as they were.
+- **Layer 4, mid-turn.** Inside a turn, when a call would pass 90% of a small window, the mid-turn layer writes a summary and goes on from it.
+- **Layer 5, overflow retry.** After the provider refuses a request as too large, the retry layer writes a summary and retries once.
 
 In a policy, all five layers are on by default, except layer 4, which is on only for windows under 128,000 tokens. A single turn can fill a smaller window. Turn a layer off with `layers: { write_cap: false }` and the matching name.
 
@@ -44,11 +44,11 @@ The function below asks each question in one session and then reads the log for 
 ```ts file="packages/harness/examples/compaction.ts" region="report"
 ```
 
-In the example's test, two long questions fill the budget, and the third turn starts with a summary. Five of the log's 23 entries come before the first kept entry. The next request reads the summary and the newest messages instead of those five, and all 23 stay in the log.
+When two long questions fill the budget, the third turn starts with a summary. The report's `replacedEntries` counts the entries before the first kept one: the next request no longer reads them, and they stay in the log.
 
 ## A summary replaces entries in the context, not in the log
 
-A summary never edits or removes an entry, and the entries it replaces stay readable in the log. The write cap is the one layer whose full text is outside the log: it is in the spill file. `session.toContext()` starts from the latest `compaction` entry: its summary as a user message, then the kept messages, then everything written after it. A re-run from an entry before the compaction rebuilds the original context from the file.
+A summary never edits or removes an entry, and the entries it replaces stay readable in the log. The write cap is the one layer whose full text is outside the log: it is in the spill store. `session.toContext()` starts from the latest `compaction` entry: its summary as a user message, then the kept messages, then everything written after it. A re-run from an entry before the compaction rebuilds the original context from the file.
 
 The summary call costs money, so the harness records it as a `usage` entry with the source `summary` before it writes the `compaction` entry. Set `summarize.capUsd` and the harness skips the summary when the session's spend plus the call's projected cost would pass the cap. A failed summary never fails the turn.
 

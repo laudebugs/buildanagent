@@ -2,4 +2,4 @@
 "@buildanagent/harness": patch
 ---
 
-Link the harness's reference module page to its quick start
+Link the `@buildanagent/harness` reference to the quick start
