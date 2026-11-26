@@ -63,25 +63,27 @@ None added; this todo is a measurement, not a code change. The existing test sui
 - [CI plan §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) (new section).
 - The CI plan's §4 todo table.
 - AGENTS.md's "Toolchain" bullet, naming `.bun-version` and that Bun stays unsupported.
+- [`docs/plans/reviews/fact-check-ci.md`](../../plans/reviews/fact-check-ci.md) (new log), for §3h's three external claims.
 
 ## Outcome
 
-- **Bun stays unsupported.** No code change makes anything run under it; this todo is purely the measurement [CI plan §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) records, with `.bun-version` pinning the exact build tested (`1.4.4`, published 2026-10-22).
-- **Clean:** all seven packages and `evals` typecheck and test cleanly under Bun, matching Node test for test. `apps/manual`'s suite passes 818 of 818. Seven of eight `verify/*` harnesses run clean; `copilot-sdk` refuses the same way under both runtimes.
-- **Six real gaps**, each confirmed absent under Node on the same machine: `verify/cloudflare-agents` fails outright against Miniflare; `tsx`'s loader doesn't register under Bun; `node:assert`'s `throws(fn, "")` rejects an empty message Node accepts; `changeset-gate.mjs` relies on a `readdir` order Node happens to return but Bun doesn't, a latent bug independent of Bun; a fact-check table cell's escaped-backslash parsing differs between the two engines; a spawned transcript capture didn't finish inside its timeout.
-- **Left unconfirmed:** `scripts/ci/live-run.test.mjs` failed 7 of its tests under Bun, but its own run (real timers, a cost-cap retry loop) didn't finish a clean Node comparison before this measurement closed. Recorded as unconfirmed, not as a seventh gap.
-- Three proposals for the owner, none applied: keep Bun unsupported and treat this as the answer; if support is wanted later, split it into one todo per gap above rather than one large todo; add a Bun CI job only once enough gaps are fixed that it would pass.
+- **Bun stays unsupported, and the gap isn't small.** No code change makes anything run under it; this todo is purely the measurement [CI plan §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) records, with `.bun-version` pinning the exact build tested (`1.4.4`, published 2026-10-22).
+- **A first pass measured Node twice and reported everything clean.** `bun x tsc`/`bun x vitest run` run a tool through its own `#!/usr/bin/env node` shebang, which Bun follows under Node unless given `--bun`. The high code review caught this; §3h's numbers are the corrected, `--bun`-forced run.
+- **No package is clean under real Bun.** `gateway` (4 of 496 fail), `sdk` (28 of 735), `agent-safety` (28 of 445), `harness` (34 of 1,847, plus a jump from 104 to 160 skipped), `protocol` (1 of 54), `cli` (5 of 83). `evals` (2 of 2) and `apps/manual` (817 of 818) are close to clean. Six of eight `verify/*` harnesses run clean; `cloudflare-agents` is the largest single gap (below); `copilot-sdk` refuses the same way under both runtimes.
+- **Nine real gaps, full detail in §3h.** The two biggest by test count: Miniflare (Cloudflare's local Workers simulator) doesn't work under Bun, breaking `verify/cloudflare-agents` and most of `agent-safety`'s Cloudflare-backed tests; and Bun has no `module.registerHooks`, breaking every `book-examples.test.ts` that goes through `scripts/transcripts/source-condition.mjs`. The other seven: `@earendil-works/pi-schema` doesn't resolve under Bun's `source`-condition handling; `tsx`'s loader doesn't register; a subprocess spawned with an allowlisted environment can't find `node` on `PATH`; `node:assert.throws(fn, "")` is rejected (which also surfaced a pre-existing bug in that test, unrelated to Bun: it was never checking the thrown error at all); a directory listing's order differs (a fragile test assertion, not a real behavior bug); a `String.raw` fixture gets mangled by Bun's own transpiler, in test source, not product code; and `scripts/ci/live-run.test.mjs`'s 5 confirmed Bun-only failures plus a separate, pre-existing hang under Node that the first pass mistook for "too slow to compare."
+- **~26 of `harness`'s failures are not individually root-caused.** The scope ran out before finishing them; some are likely instances of the two biggest gaps, some may be new.
+- Three proposals for the owner, none applied: keep Bun unsupported, since the gaps are large enough that supporting it is a real project, not a quick fix; if pursued, split by gap, not as one todo; a Bun CI job isn't realistic until most of the above lands.
 
 ## Risks and open questions
 
-- **`scripts/ci/live-run.test.mjs`** failed 7 of its tests under Bun, but its own run is long enough (real timers, a cost-cap retry loop) that a clean Node comparison did not finish inside this measurement. Recorded as unconfirmed in §3h; re-run both before trusting the count.
-- **The `fact-check-log.mjs` and `transcripts.mjs` findings are not root-caused**, only reproduced and isolated to one fixture or one subprocess each. Someone who wants Bun support would need to dig further.
+- **~26 of `harness`'s failures are not individually root-caused**, only grouped by test file. Someone who wants Bun support would need to dig further, and may find more than nine gaps once they do.
+- **The Node baseline is Node 24.19.0, this machine's version, not `.nvmrc`'s pinned 22.** A different Node minor could in principle behave differently; not checked.
 - **Who decides.** The owner decides whether any found gap is worth its own fix-it todo, and whether Bun support is worth pursuing further than this measurement.
 
 ## Definition of done
 
-- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit created this file directly in `ongoing/` (Status `ongoing`), not moved from `ready/` — the todo was written and claimed in the same commit, so there was no separate `ready/` state to move from
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
