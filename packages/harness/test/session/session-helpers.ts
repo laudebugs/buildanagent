@@ -9,6 +9,9 @@ import { type Backend, memoryBackend } from "./memory-backend.js";
 
 export { type Backend, memoryBackend, memoryLock } from "./memory-backend.js";
 
+/** A scripted model answer that says `text`. */
+export const say = (text: string) => ({ usage: {}, content: [{ type: "text" as const, text }] });
+
 export const KEY: SessionKey = { userId: "ada", sessionId: "s1" };
 
 const dirs: string[] = [];

@@ -3,7 +3,9 @@ title: What the harness adds to the loop
 description: The parts the harness wraps around the SDK's loop, the import path of each part and the page to read for it.
 ---
 
-The SDK's loop runs an agent until it stops and hands back the result. The harness wraps that loop with a session log, a context policy, a registry of tools, permissions, a sandbox and credentials kept outside it. You read this page to learn which part to reach for.
+You will learn what the harness adds around the SDK's loop, which import path holds each part and which page to read next. You need this before you pick parts for an agent that must keep its sessions, handle long conversations and act on files.
+
+The SDK's loop runs an agent until it stops and hands back the result. The harness wraps that loop with a session log, a context policy, a registry of tools, permissions, a sandbox and credentials kept outside it. An import path is the name you import a part from, such as `@buildanagent/harness/session`.
 
 ## A turn is one run, written into the log
 

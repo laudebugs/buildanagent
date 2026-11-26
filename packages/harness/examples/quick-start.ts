@@ -52,6 +52,8 @@ export async function askTwice(model: Model, folder: string, key: SessionKey): P
     // #endregion
     return { answers: [answerOf(first), answerOf(second)], entryTypes };
   } finally {
+    // #region close
     await session.close();
+    // #endregion
   }
 }

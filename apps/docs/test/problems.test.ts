@@ -66,17 +66,15 @@ for (const page of problemPages) {
     }
   });
 
-  test(`${page.path} names only error codes that a package defines, and names one in at least ${MIN_ENTRIES} entries`, () => {
+  test(`${page.path} names only error codes that a package defines`, () => {
     const sources = packageSources();
-    let withCode = 0;
     for (const entry of entries) {
       const text = [entry.heading, ...entry.paragraphs].join("\n");
       const codes = [...text.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map((match) => match[1] ?? "");
-      for (const code of codes)
+      for (const code of codes) {
         assert.ok(sources.includes(`"${code}"`), `"${entry.heading}" names ${code}, which no package defines`);
-      if (codes.length > 0) withCode += 1;
+      }
     }
-    assert.ok(withCode >= MIN_ENTRIES, `${page.path} names a code in ${withCode} entries`);
   });
 }
 

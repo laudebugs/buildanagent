@@ -38,7 +38,10 @@ A turn is one input and everything the agent does until it stops: the model call
 ```ts file="packages/harness/examples/quick-start.ts" region="turns"
 ```
 
-The second request to the model carries three messages: the first question, its answer and the new question. The example closes the session in a `finally` block, which releases the lock.
+The second request to the model carries three messages: the first question, its answer and the new question. The example closes the session in a `finally` block, so a turn that throws still releases the lock:
+
+```ts file="packages/harness/examples/quick-start.ts" region="close"
+```
 
 ## Read the log
 
@@ -56,6 +59,6 @@ After two turns the log holds 15 entries. The first turn starts with three entri
 - `usage`: the tokens and the cost of the model call.
 - `turn_end`: the turn's stop reason and its step count.
 
-A new process can open the same key with the same folder and run a third turn. The harness rebuilds the conversation from these 15 entries, so the model answers as if the process had never stopped.
+A new process can open the same key with the same folder and run a third turn. The harness rebuilds the conversation from these 15 entries, so that turn's request carries the two earlier questions and answers before the new question.
 
 Next, see [what the harness adds to the loop](/harness/overview/).

@@ -1,4 +1,4 @@
-# L12h1: Remove two workarounds that the harness examples need
+# L12h1: Remove three workarounds that the harness examples need
 
 | Field | Value |
 | --- | --- |
@@ -11,7 +11,7 @@
 
 ## Goal
 
-Remove two workarounds that every harness example carries. The harness ships a file-backed `SessionLock` only, so an example with no files writes its own in-memory lock (`examples/lib/check.ts` and the session tests each hold a copy). A `TurnResult` has no answer text, so the quick start writes `answerOf()` to join the text blocks of the last message.
+Remove three workarounds that the harness examples carry. The harness ships a file-backed `SessionLock` only, so an example with no files writes its own in-memory lock (`examples/lib/check.ts` and the session tests each hold a copy). A `TurnResult` has no answer text, so the quick start writes `answerOf()` to join the text blocks of the last message.
 
 ## Context
 
@@ -24,6 +24,7 @@ Remove two workarounds that every harness example carries. The harness ships a f
 
 - Decide whether `@buildanagent/harness/session` exports a `memoryLock()` next to `memoryStore()` and `memoryIndex()`, and export it with a test and a changeset if so.
 - Decide whether a turn's result should carry its answer text, and add it if so.
+- Decide whether the registry takes typed tool definitions without a cast and a loop.
 - Replace the copies in the examples and tests.
 
 **Out of scope**

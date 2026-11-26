@@ -17,13 +17,13 @@ The log keeps every original entry, so the harness shrinks the context the model
 
 - **Layer 1, the write cap.** After each tool call, it cuts a result that is over about 64 KiB, keeps the first part and saves the full text to a file.
 - **Layer 2, masking.** Before each model call, it shrinks older tool results to their first 500 characters and a line that says where the full text is.
-- **Layer 3, the summary.** At the start of a turn whose context is over its budget, it replaces the older messages with a summary and keeps the newest ones as they were.
+- **Layer 3, the summary.** At the start of a turn whose context is over its budget, the number of tokens it may reach, it replaces the older messages with a summary and keeps the newest ones as they were.
 - **Layer 4, mid-turn.** Inside a turn, when a call would pass 90% of a small window, it writes a summary and goes on from it.
 - **Layer 5, overflow retry.** After the provider refuses a request as too large, it writes a summary and retries once.
 
 All five layers are on by default, except layer 4, which is on only for windows under 128,000 tokens. A single turn can fill a smaller window. Turn a layer off with `layers: { write_cap: false }` and the matching name.
 
-Layer 1 saves the full text to a `spill` store, so a policy with the write cap on and no `spill` throws `invalid_context_options`. `fileSpillStore()` writes one file for each cut result. Layer 2 moves its cutoff once every eight messages, so the start of the request stays the same between moves and the provider's prompt cache keeps hitting.
+Layer 1 saves the full text to a `spill` store, so a policy with the write cap on and no `spill` throws `invalid_context_options`. `fileSpillStore()` writes one file for each cut result. Layer 2 moves its cutoff once every eight messages, so the start of the request stays the same between moves. A provider's prompt cache, which reuses the unchanged start of a request it has already seen, therefore keeps hitting.
 
 The budget of layer 3 defaults to the smaller of the model's window less 16,384 tokens and 200,000 tokens. The harness keeps about the newest 20,000 tokens word for word.
 

@@ -36,9 +36,9 @@ A crash can leave a tool call with no result in the log. Before it writes anythi
 ```ts file="packages/harness/examples/session-fork.ts" region="fork"
 ```
 
-The fork gets a new session id, and the original session is unchanged. In the example's test, a fork at the end of the first turn shares that turn's nine entries with its parent and adds six of its own.
+The fork gets a new session id, and the original session is unchanged. In the figure, `chat-1` holds its header, turn 1 and turn 2. The fork's header names `chat-1` as its parent and turn 1 as the entry the fork follows, and the fork's own new turn comes after it. Turn 2 stays in `chat-1`. In the example's test, a fork at the end of the first turn shares that turn's nine entries with its parent and adds six of its own.
 
-::figure[A fork shares the first turn and writes its own after it]{id="session-log" alt="A fork gets its own file. Its header names the parent session chat-1 and the point after turn 1, so the fork shares turn 1 with chat-1 and adds a new turn of its own. Turn 2 stays in chat-1."}
+::figure[A fork shares the first turn and writes its own after it]{id="session-log" alt="A fork shares the parent session's first turn and writes its own turn after it."}
 
 Two other moves change where a session goes. `checkout(id)` appends an entry that moves HEAD to `id`, and a later append follows that entry, so the abandoned branch stays in the log. `revert(id)` writes the same kind of file as a fork and points the session at it: the old file keeps every entry, but the entries after `id` are no longer part of the session. `child()` starts the log of a subagent as its own session and shares nothing with the parent's conversation.
 

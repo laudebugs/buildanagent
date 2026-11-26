@@ -9,12 +9,12 @@ A tool is a name, a description the model reads, an input schema and a function;
 
 ## The registry holds every tool
 
-The registry is the one place that names every tool, wherever it comes from. Permission rules, tool search and the session log all read its description of each tool. This function registers two read-only tools over your own order store:
+The registry is the one place that names every tool, wherever it comes from. Permission rules, the session log and tool search, which lets the model look up tools that a request did not send, all read its description of each tool. This function registers two read-only tools over your own order store:
 
 ```ts file="packages/harness/examples/order-tools.ts" region="registry"
 ```
 
-A registration names the tool's source. A tool you register yourself uses `builtin`. The other sources are `extension`, `client` and `mcp:<server>`. The registry checks each name once, at registration: 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. A second tool with a taken name throws a `DuplicateToolError`, and an extension replaces a built-in only with `override: true`.
+A registration names the tool's source. A tool you register yourself uses `builtin`. The other sources are `extension`, `client` and `mcp:<server>`. The registry checks each name once, at registration: 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. A second tool with a taken name throws a `DuplicateToolError`. A tool from an extension or the client replaces a built-in of the same name only with `override: true`, and replaces nothing else.
 
 ## A turn offers only the tools you name
 

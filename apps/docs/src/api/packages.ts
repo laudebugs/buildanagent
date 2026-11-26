@@ -35,6 +35,11 @@ export interface ApiPackage extends CheckedPackage {
    * every export still gets a generated page and a Markdown twin.
    */
   readonly sidebar?: "full" | "modules";
+  /**
+   * A Markdown file, relative to this folder, that TypeDoc puts on the package's reference index. A package with one entry
+   * point shows its `@module` comment there; one with many shows only a list of modules, so its quick-start link goes here.
+   */
+  readonly readme?: string;
 }
 
 /** The packages the reference covers, in the order the sidebar lists them. */
@@ -57,6 +62,7 @@ export const API_PACKAGES: readonly ApiPackage[] = [
     label: "Harness API",
     output: "reference/harness",
     sidebar: "modules",
+    readme: "readmes/harness.md",
   },
   { name: "@buildanagent/cli", folder: "cli", label: "CLI API", output: "reference/cli" },
 ];

@@ -8,9 +8,7 @@ import { createToolRegistry } from "@buildanagent/harness/tools";
 import { ScriptedModel } from "@buildanagent/sdk/testing";
 import { test } from "vitest";
 import { askFrom } from "../../examples/session-fork.js";
-import { KEY, memoryBackend } from "../session/session-helpers.js";
-
-const say = (text: string) => ({ usage: {}, content: [{ type: "text" as const, text }] });
+import { KEY, memoryBackend, say } from "../session/session-helpers.js";
 
 test("a fork shares the first turn, adds its own entries and leaves the parent's log alone", async () => {
   const adapter = new ScriptedModel([say("One."), say("Two."), say("Fork answer.")]);
@@ -33,5 +31,16 @@ test("a fork shares the first turn, adds its own entries and leaves the parent's
   const request = adapter.calls[2]?.context.messages ?? [];
   assert.equal(request.length, 3);
   assert.equal((await session.path()).length, before);
+  await session.close();
+});
+
+test("a fork at an id the session lacks throws entry_not_found and names the id", async () => {
+  const adapter = new ScriptedModel([say("One.")]);
+  const model = createModel({ adapter, id: "scripted-model", retries: 0 }) as Model;
+  const harness = createHarness({ registry: createToolRegistry(), model, system: "You help." });
+  const session = await openSession({ ...memoryBackend(), key: KEY });
+  await assert.rejects(session.fork("nope"), { code: "entry_not_found", message: /has no entries to branch from yet/ });
+  await runTurn(session, harness, { input: "First question." });
+  await assert.rejects(session.fork("nope"), { code: "entry_not_found", message: "no entry nope in the session s1" });
   await session.close();
 });
