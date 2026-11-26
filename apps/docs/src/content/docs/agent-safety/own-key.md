@@ -13,6 +13,12 @@ In `ai` 7.0.173, as of November 2026, three paths let a call use a credential th
 
 ## Build the provider from the user's key
 
+The `./byok` subpath needs the optional peers `@ai-sdk/anthropic` and `@ai-sdk/openai`, which the package pins to exactly 4.0.105 and 4.0.118 as of November 2026. The example also uses `ai` and `./cost`. Install them with the package:
+
+```bash
+pnpm add @buildanagent/agent-safety@alpha ai@7.0.173 @ai-sdk/anthropic@4.0.105 @ai-sdk/openai@4.0.118
+```
+
 `explicitProvider()` builds an Anthropic or OpenAI provider from the `apiKey` and `baseURL` you pass, and from nothing else. Both are required, so the provider never reads the environment. The first function below builds the provider for one user's key and caps its calls:
 
 ```ts file="packages/agent-safety/examples/own-key-capped.ts" region="provider"
@@ -27,7 +33,9 @@ Build the answerer once for each key and keep it. Its spend is what the cap coun
 
 ## Refuse string model ids at startup
 
-`assertNoDefaultProvider()` sets the AI SDK's default provider to one that refuses every model. After that, `generateText`, `streamText` or a `prepareStep` that names a model by string throws a `SafetyError` with the code `default_provider` before any request. Call it once at startup. It leaves the setting read-only, so later code that assigns another default provider throws instead of reopening the path. If another default provider is already set, it throws `default_provider` too.
+`assertNoDefaultProvider()` sets the AI SDK's default provider to one that refuses every model. After that, `generateText`, `streamText` or a `prepareStep` that names a model by string throws a `SafetyError` with the code `default_provider` before any request. Call it once at startup. It defines the setting as read-only, so later code that assigns another default provider throws in strict mode, which every ES module uses, and is ignored silently in sloppy mode.
+
+The property stays configurable, so code can still delete it. Treat this as a second tripwire only, and rely on the startup call. If another default provider is already set, it throws `default_provider` too.
 
 A model you build any other way, such as with `createAnthropic()` or the `gateway` that `ai` exports, is not checked. Build every model with `explicitProvider()`.
 

@@ -13,9 +13,9 @@ Twelve entries are thrown errors, each a `SafetyError` that carries a `code` pro
 
 **You see.** `writeOutcome()` throws a `SafetyError` with the code `invalid_outcome` and the message `a write outcome's reason must be upper snake case and at most 63 characters, got "card declined"`.
 
-**Cause.** A `reason` is a stable code for machines to match. It must be upper snake case, start with a letter, end with a letter or a digit, and have at most 63 characters.
+**Cause.** A `reason` is a stable code for machines to match. It may hold only upper-case letters, digits and underscores, must start with a letter, must end with a letter or a digit, and must have 3 to 63 characters. The message names only the upper-case and length rules, so a short reason such as `OK` fails with the same text.
 
-**Fix.** Write the reason as `CARD_DECLINED`. Put the sentence for people in `next` or `currentState`.
+**Fix.** Write the reason as `CARD_DECLINED`, with lower-case words joined by underscores in upper case and at least three characters. Put the sentence for people in `next` or `currentState`.
 
 ### `writeOutcome()` throws `invalid_outcome` about a retry rule
 

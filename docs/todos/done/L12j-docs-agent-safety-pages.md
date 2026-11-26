@@ -80,4 +80,4 @@ The L12 todo's table and "L12j progress", and the plan's todo table.
 - **Problems and fixes.** Fourteen entries in four areas (outcomes and hashes, approvals and keys, guarded writes, model calls and the cost cap), each naming its code. Twelve entries name a thrown `SafetyError` code, a member of `SafetyErrorCode`. Two name a cause that `verifyResolution()` returns, a member of `RejectionCause` (`signature_invalid` and `input_changed`, with `call_mismatch` mentioned): it throws nothing. `problems.test.ts` lets only the agent-safety page name a cause.
 - **Scope.** Plans (`runPlan()`), the durable effect stores and the Cloudflare adapters stay in the README; the pages link to it.
 - **Friction.** Three rough edges, recorded in [L12j1](../ready/L12j1-agent-safety-docs-example-friction.md): `onError` must return an outcome for every error, so the quick start rethrows; `verifyResolution()` reports a denial as `ok: true`, so the approval example merges the decision and the cause; and `signedToolApproval()` has no tested example.
-- Claims are in the fact-check log, rows L12j-1 to L12j-61.
+- Claims are in the fact-check log, rows L12j-1 to L12j-64.

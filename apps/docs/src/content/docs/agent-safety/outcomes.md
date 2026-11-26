@@ -37,7 +37,7 @@ Every outcome needs `operation` and `next`, which tells the model what to do now
 
 `writeOutcome()` throws a `SafetyError` with the code `invalid_outcome` when a field breaks a rule. The [Problems and fixes](/agent-safety/problems-and-fixes/) page lists the messages. The rules are:
 
-- A `reason` is upper snake case of at most 63 characters, such as `CARD_DECLINED`.
+- A `reason` holds upper-case letters, digits and underscores, starts with a letter, ends with a letter or a digit and has 3 to 63 characters, such as `CARD_DECLINED`.
 - No optional text field and no listed effect is blank.
 - The effects agree with the kind: a `not_applied` outcome lists none, an `applied` one lists nothing in `reverted`, and a `compensated` one lists nothing in `applied`.
 - A `partial` or `unknown` outcome uses `same_key` only with an `effectKey`, because without one a retry could take effect twice.
@@ -54,7 +54,13 @@ Send all three to the model. Some SDKs show the model only the text or only the 
 
 ## Return an outcome from an AI SDK tool
 
-The `./ai` subpath hands outcomes to the Vercel AI SDK, the `ai` package. It is tested against exactly `ai` 7.0.173 and `@ai-sdk/provider-utils` 5.0.81, as of November 2026, and any other release gets a peer warning. Return the outcome from your tool's `execute`, and convert it in `toModelOutput`. The tool below always reports the declined card:
+The `./ai` subpath hands outcomes to the Vercel AI SDK, the `ai` package. It needs the optional peers `ai` and `@ai-sdk/provider-utils`, which the package pins to exactly 7.0.173 and 5.0.81 as of November 2026, so any other release gets a peer warning. Install them beside the package:
+
+```bash
+pnpm add @buildanagent/agent-safety@alpha ai@7.0.173 @ai-sdk/provider-utils@5.0.81
+```
+
+Return the outcome from your tool's `execute`, and convert it in `toModelOutput`. The tool below always reports the declined card:
 
 ```ts file="packages/agent-safety/examples/outcome-tool.ts" region="tool"
 ```

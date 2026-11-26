@@ -15,7 +15,7 @@ The package needs Node 22 or later. Install it with the `alpha` tag, which npm s
 pnpm add @buildanagent/agent-safety@alpha
 ```
 
-The root entry imports no other package, so this example needs nothing else.
+The root entry imports no other package, so this example needs nothing else. The other pages use subpaths that need the AI SDK, and each says which packages to add.
 
 ## Write the refund tool
 

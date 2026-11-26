@@ -15,6 +15,12 @@ The guard also caps language models only. `guardedProvider()` passes embedding, 
 
 ## Cap a run at 50 cents
 
+The `./cost` subpath needs the optional peer `ai`, which the package pins to exactly 7.0.173 as of November 2026, and it imports the gateway's price catalog. Install them with the package:
+
+```bash
+pnpm add @buildanagent/agent-safety@alpha ai@7.0.173
+```
+
 This function builds a guard with a cap of 0.5 USD, wraps a provider in it and answers a prompt. When the guard refuses a call, `budgetRefusal()` finds the refusal and the function says why the run stopped:
 
 ```ts file="packages/agent-safety/examples/capped-answer.ts" region="answer"
