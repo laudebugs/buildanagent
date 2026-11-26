@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X13` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [CI §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) |
 | Round / milestone | Round X (CI) |
 | Depends on | X6 |
@@ -34,15 +34,15 @@
 
 ## Tasks
 
-- [ ] Read the two fixtures at `scripts/ci/fact-check-log.test.mjs:92,102` and what each is meant to test.
-- [ ] Rewrite each to avoid a literal non-ASCII character inside `String.raw`.
-- [ ] Confirm the rewritten fixtures still produce the same expected output under Node.
-- [ ] Run `fact-check-log.test.mjs` under both `node --test` and `bun test`.
+- [x] Read the two fixtures at `scripts/ci/fact-check-log.test.mjs:92,102` and what each is meant to test.
+- [x] Rewrite each to avoid a literal non-ASCII character inside `String.raw`.
+- [x] Confirm the rewritten fixtures still produce the same expected output under Node.
+- [x] Run `fact-check-log.test.mjs` under both `node --test` and `bun test`.
 
 ## Acceptance criteria
 
-- [ ] `scripts/ci/fact-check-log.test.mjs` passes under both Node and Bun.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node.
+- [x] `scripts/ci/fact-check-log.test.mjs` passes under both Node and Bun.
+- [ ] `pnpm check` and `pnpm typecheck` pass locally under Node. Root `pnpm test` is unticked: it stops at `verify/copilot-sdk`, which needs Linux's `unshare`, so it can't run on this Mac; CI runs it.
 
 ## Tests
 
@@ -52,15 +52,23 @@ The existing `fact-check-log.test.mjs` is rewritten in place; no new test file.
 
 - [CI plan §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26), gap 8.
 
+## Outcome
+
+- **The two fixtures are now ordinary double-quoted strings.** `scripts/ci/fact-check-log.test.mjs` lines 91 and 102 held `` String.raw`...✅...` ``. Bun 1.4.4 rewrites a non-ASCII character inside a `String.raw` template into the six-character text `\u2705` before `String.raw` reads it, so the two tests failed under Bun. The new strings double their backslashes (commit `b0fff06a`).
+- **The tests read the same input.** Under Node each new string is `===` to its old `String.raw` value. `fact-check-log.mjs` is unchanged.
+- **Both runtimes pass.** Before: `bun test` gave 22 pass, 2 fail. After: `node --test` passes 24 of 24, and `bun test` passes 24 of 24 in three runs (Bun 1.4.4).
+- **`RANGE_SEP` has the same pattern and works by accident.** `fact-check-log.mjs` line 45 writes `–` and `—` inside `String.raw`, and Bun rewrites them to escapes. The string goes to `RegExp`, which reads those escapes as the same dashes (`new RegExp(s).test(" – ")` is true under both runtimes), so the script behaves the same. It relies on that by luck, not design; [CI §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) records it.
+- **Root `pnpm test` was not run here.** It stops at `verify/copilot-sdk`, which needs Linux's `unshare`; CI runs it.
+
 ## Risks and open questions
 
 - None expected; this is a small, mechanical test fix.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check` and `pnpm typecheck` pass locally; pushed after each meaningful step. Root `pnpm test` is unticked: it stops at `verify/copilot-sdk` (needs `unshare`), so CI runs it.
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
