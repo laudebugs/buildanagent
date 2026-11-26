@@ -1,6 +1,5 @@
-// A refund tool that tells the model exactly what happened and can't refund an order twice. Every write gets a typed
-// outcome, and the write gets its identity before it runs, so a regenerated turn finds the first refund instead of
-// sending a second one.
+// A refund tool whose every result is a typed outcome the model can read. The write gets its effect key before it runs,
+// so a regenerated turn finds the first refund instead of sending a second one.
 import {
   type EffectScope,
   type EffectStore,

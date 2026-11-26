@@ -5,7 +5,9 @@ description: How agent safety keeps every model call on the user's own key and a
 
 You will build model calls that carry one user's key to one address and nothing else, and that count against a cap. You need this when users bring their own provider keys and a call that falls back to your key would bill you or another user.
 
-An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. The `./byok` subpath, short for bring your own key, closes the paths that allow it.
+An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. The `./byok` subpath, short for bring your own key, closes the paths that allow it for every model built with `explicitProvider()`, and for string model ids once you call `assertNoDefaultProvider()` at startup.
+
+A model built any other way, such as with `createAnthropic()` or the `gateway` that `ai` exports, is not checked, so build every model with `explicitProvider()`. Neither function is a security boundary against your own code: code that can write to `globalThis` can install any provider before the assertion runs.
 
 ## Three defaults can pick another key
 
@@ -37,8 +39,6 @@ Build the answerer once for each key and keep it. Its spend is what the cap coun
 
 The property stays configurable, so code can still delete it. Treat this as a second tripwire only, and rely on the startup call. If another default provider is already set, it throws `default_provider` too.
 
-A model you build any other way, such as with `createAnthropic()` or the `gateway` that `ai` exports, is not checked. Build every model with `explicitProvider()`.
-
 ## What a bad key or address throws
 
 `explicitProvider()` throws `invalid_byok_config` for a missing key, a key with surrounding whitespace or a control character, and a base URL that is not safe. The base URL must use https, with plain http allowed only on a loopback host for a local proxy. It must not be Vercel AI Gateway, and a Cloudflare AI Gateway address must name the provider's own endpoint.
@@ -49,7 +49,7 @@ Every provider that `explicitProvider()` builds sends its requests through `egre
 
 - The request goes to another origin, or outside the base URL's path.
 - Its credential header is missing or differs from the configured key. That header is `x-api-key` for Anthropic and `authorization: Bearer` for OpenAI.
-- It carries a second credential header, such as `authorization` beside an Anthropic key.
+- It carries a second credential header, such as `authorization` beside an Anthropic key. The one exception is the `cf-aig-authorization` header that carries a `gatewayToken`, when you configure one for a Cloudflare AI Gateway.
 
 The guard never follows a redirect, because Node's `fetch` forwards `x-api-key` to a redirect's new host. The package README covers Cloudflare AI Gateway, including its token and the `byok_only` setting that `checkModelRoutes()` verifies at deploy time.
 

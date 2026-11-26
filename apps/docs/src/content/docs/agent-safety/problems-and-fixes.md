@@ -57,23 +57,23 @@ Twelve entries are thrown errors, each a `SafetyError` that carries a `code` pro
 
 **Cause.** The secret's text must be a JSON object, `{"current":"2026-11","keys":{"2026-11":"<key>"}}`, with each key as unpadded base64url. The message hides the parser's own error, because that error can quote the key.
 
-**Fix.** Store the ring as that JSON object in your platform's secret store, and read it whole. A key that is not base64url throws the same code with the message `the key "<id>" must be unpadded base64url`.
+**Fix.** Store the ring as that JSON object in your platform's secret store. A key that is not base64url throws the same code with the message `the key "<id>" must be unpadded base64url`.
 
 ### An approval is refused with `signature_invalid` after a restart
 
 **You see.** `verifyResolution()` returns `ok: false` with the cause `signature_invalid` for an approval that a person gave, and the call never runs.
 
-**Cause.** The pause was signed in another process, or before a restart, and the verifying signer lacks the key that signed it. An `ephemeralSigner()` makes a random key that lives only in its process, so no other process can verify its signatures. On a serverless host the process that paused is often gone before the person answers.
+**Cause.** The pending request was signed in another process, or before a restart, and the verifying signer lacks the key that signed it. A request that someone edited after it was stored fails the same way. An `ephemeralSigner()` makes a random key that lives only in its process, so no other process can verify its signatures. On a serverless host the process that paused is often gone before the person answers.
 
-**Fix.** Sign with `hmacSigner()` over a key ring from your platform's secret store. Keep an old key in the ring until no unanswered pause names it.
+**Fix.** Sign with `hmacSigner()` over a key ring from your platform's secret store. Keep an old key in the ring until no unanswered pending request names it.
 
 ### An approval is refused with `input_changed`
 
 **You see.** `verifyResolution()` returns `ok: false` with the cause `input_changed`, though the person allowed the call.
 
-**Cause.** The input the host is about to run does not hash to the input that was signed. Someone edited the call while it waited, or the host rebuilt the input in a different shape, such as a changed amount.
+**Cause.** The input the host is about to run does not hash to the input that was signed. Someone edited the call while it waited, or the host rebuilt the input with a different value, such as a changed amount.
 
-**Fix.** Run the call with exactly the input the person saw. If the input must change, sign a new pause and ask again. A `call_mismatch` cause means the call id or the tool's name differs, and the fix is the same.
+**Fix.** Run the call with exactly the input the person saw. If the input must change, sign a new pending request and ask again. A `call_mismatch` cause means the call id or the tool's name differs, and the fix is the same.
 
 ## Guarded writes
 

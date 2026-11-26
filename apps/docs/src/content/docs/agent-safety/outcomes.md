@@ -20,11 +20,11 @@ The outcome's `kind` says what happened, and its `retry` rule says whether tryin
 The four retry rules mean this:
 
 - `never`: do not retry; tell the user or hand the task to a person.
-- `same_key`: retry with the same effect key, so the write takes effect at most once.
+- `same_key`: retry with the same effect key, the hash that names one write, so the write takes effect at most once.
 - `new_operation_only`: start a new operation, and only if the user still wants it.
 - `reconcile_first`: check what happened before any retry.
 
-A tool may choose a retry rule other than the default, but only one its kind allows. An `applied` outcome allows only `never`, and an `unknown` outcome never allows `new_operation_only`, because the first attempt may already have taken effect. TypeScript rejects a rule the kind does not allow, and so does `writeOutcome()` at runtime.
+A tool may choose a retry rule other than the default, but only one its kind allows. An `applied` outcome allows only `never`, and an `unknown` outcome never allows `new_operation_only`, because the first attempt may already have taken effect. TypeScript rejects a rule the kind does not allow when the kind is a literal. `writeOutcome()` rejects it at runtime.
 
 ## Build an outcome with `writeOutcome()`
 
@@ -33,7 +33,7 @@ A tool may choose a retry rule other than the default, but only one its kind all
 ```ts file="packages/agent-safety/examples/outcome-tool.ts" region="declined"
 ```
 
-Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail. `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. `effectKey` names the write for a retry, and `reason` is a stable code for the cause.
+Every outcome needs `operation` and `next`, which tells the model what to do now. Optional fields add detail. The fields `applied`, `reverted` and `notReversible` list effects, `currentState` gives one line the model can trust, and `avoid` adds what the model must not do. `effectKey` names the write for a retry, and `reason` is a stable code for the cause.
 
 `writeOutcome()` throws a `SafetyError` with the code `invalid_outcome` when a field breaks a rule. The [Problems and fixes](/agent-safety/problems-and-fixes/) page lists the messages. The rules are:
 
@@ -54,7 +54,7 @@ Send all three to the model. Some SDKs show the model only the text or only the 
 
 ## Return an outcome from an AI SDK tool
 
-The `./ai` subpath hands outcomes to the Vercel AI SDK, the `ai` package. It needs the optional peers `ai` and `@ai-sdk/provider-utils`, which the package pins to exactly 7.0.173 and 5.0.81 as of November 2026, so any other release gets a peer warning. Install them beside the package:
+The `./ai` subpath hands outcomes to the Vercel AI SDK, the `ai` package. It needs the optional peers `ai` and `@ai-sdk/provider-utils`, which the package pins to exactly 7.0.173 and 5.0.81 as of November 2026, so any other release may warn at install. Install them beside the package:
 
 ```bash
 pnpm add @buildanagent/agent-safety@alpha ai@7.0.173 @ai-sdk/provider-utils@5.0.81

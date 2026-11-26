@@ -19,14 +19,14 @@ The root entry imports no other package, so this example needs nothing else. The
 
 ## Write the refund tool
 
-The tool below refunds an order through a payment API. The API dedupes by an idempotency key, a string that tells it to ignore a second request with the same key. `guardedWrite()` makes that key from the tool's business key, `refund:` plus the order id, so the key is the same on every attempt to refund that order:
+The tool below refunds an order through a payment API. The API dedupes by an idempotency key, a string that tells it to ignore a second request with the same key. The tool's business key names the real-world operation, here `refund:` plus the order id. `guardedWrite()` hashes the tenant and the business key into one effect key. Every attempt to refund that order for that tenant sends the same key:
 
 ```ts file="packages/agent-safety/examples/quick-start.ts" region="tool"
 ```
 
-The example keeps its records in `memoryEffectStore()`, which lives and dies with the process. A restarted process forgets every record, including the knowledge that an earlier attempt was rejected or left unknown. The same key still reaches the payment API, which ignores a repeat only inside its own idempotency window, and an API with no idempotency keys would refund twice. A store that drops records early has the same effect.
+The example keeps its records in `memoryEffectStore()`, which lives and dies with the process. A restarted process forgets every record, including the knowledge that an earlier attempt was rejected or left unknown. The same key still reaches the payment API, which ignores a repeat only inside its idempotency window, the time it remembers a key. An API with no idempotency keys would refund twice.
 
-Where a crash must not repeat a write, pass a durable store and keep its records longer than that window; the [package README](https://github.com/laudebugs/buildanagent/blob/main/packages/agent-safety/README.md) lists the stores for Durable Object SQLite, DynamoDB and Postgres.
+Where a crash must not repeat a write, pass a durable store and keep its records longer than that window. The [package README](https://github.com/laudebugs/buildanagent/blob/main/packages/agent-safety/README.md) lists the stores for Durable Object SQLite, DynamoDB and Postgres.
 
 The `scope` says who asked: the tenant (one user), the session, the branch of the conversation and the model's tool call id. `guardedWrite()` writes a record before it calls `run`, and settles the record with the outcome after. The outcome is what `renderOutcome()` turns into the tool's result.
 
