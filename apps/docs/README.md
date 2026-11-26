@@ -31,7 +31,9 @@ A terminal session is never typed into a page. A `console` fence takes its text 
 ```
 ````
 
-A transcript is the command after a `$ ` prompt, then what the command printed. `packages/cli/test/transcripts.test.ts` runs each command, compares the output with its file and fails when the output changes, until `REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts` rewrites it. `test/transcripts.test.ts` here fails on a terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt. It also fails on a committed transcript that no page shows. An install line has no prompt, so it is no session, and `test/install-lines.test.ts` checks it instead.
+A transcript is the command after a `$ ` prompt, then what the command printed. The CLI's `packages/cli/test/transcripts.test.ts` runs each command, compares the output with its file and fails when the output changes. To accept a change, rerun it with `REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts`.
+
+The docs' own `test/transcripts.test.ts` fails on a terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt. It also fails on a committed transcript that no page shows. An install line has no prompt, so it is no session, and `test/install-lines.test.ts` checks it instead.
 
 ## Draw a figure with a script, and the build inlines it
 
@@ -73,7 +75,7 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Eight tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test and the topics test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Ten tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test, the topics test, the chrome test and the reference-links test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
 
 ## Sidebar topics keep each page small
 

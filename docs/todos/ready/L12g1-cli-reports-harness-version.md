@@ -51,7 +51,7 @@ The transcript, the changeset, the note on `serverInfo.version` in `apps/docs/sr
 
 ## Risks and open questions
 
-None.
+- **How does the CLI learn the harness version?** It cannot import the harness's `package.json` by a relative path, because the maintainability checks forbid relative imports between packages. Task 1 settles the route, through a public export of the harness or another way those checks allow.
 
 ## Definition of done
 

@@ -76,8 +76,8 @@ Give the protocol and the CLI the written pages the gateway and the SDK have: a 
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check` and `pnpm typecheck` pass locally, and so do the protocol, CLI and docs suites; root `pnpm test` stops in `verify/copilot-sdk` on this machine, which needs `unshare -rn`, so CI ran the rest; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request: the first, high, found 15 findings and all were fixed; the second round's medium review found 18 items, of which 7 were fixed and the rest explained, and its low review found 3, all fixed
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores, before and after, in the pull request description
 
 ## Outcome
 
