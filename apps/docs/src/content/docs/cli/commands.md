@@ -7,12 +7,13 @@ You will learn what each `buildanagent` command does and how a script reads its 
 
 ## Read the exit status
 
-The exit status tells a script how a command ended:
+The exit status tells a script how a command ended. `run` reports how its turn stopped, and the stop reason is the reason a turn ended, such as `done`, an error or the budget:
 
 - **0:** the turn ended `done`.
-- **1:** the turn ended any other way, such as an error or the budget.
-- **2:** the command could not run as given: a wrong command line, a missing key, model or session, or a session another process is writing.
+- **1:** the turn ended with any other stop reason.
 - **3:** a call waits for a person. `run` never asks, so answer it with `resume`.
+
+Every command uses status 2 for a command that could not run as given: a wrong command line, a missing key, model or session, or a session another process is writing. `chat` and `resume` exit 0 when input ends, whatever their last turn did, so a script reads their turns from the session instead.
 
 ## Run, chat and resume
 
@@ -36,7 +37,14 @@ On a machine with no sessions, `sessions list` says so on standard error and exi
 
 Only one process writes a session at a time, and it holds the session's lock. `buildanagent session unlock <session> --force` removes the lock when you know its writer is gone. Without `--force` it removes nothing and exits 2, because two writers in one log would corrupt it.
 
-Each pause for approval is signed with a key from a key ring. `buildanagent keys rotate` adds a key and makes it current, and the older keys still check the requests they signed. `buildanagent keys prune` removes every older key that no waiting request names.
+Each pause for approval is signed with a key from a key ring, the set of signing keys the CLI keeps beside the sessions. `buildanagent keys rotate` adds a key and makes it current, and the older keys still check the requests they signed. `buildanagent keys prune` removes every older key that no waiting request names.
+
+## Read the full help
+
+`buildanagent --help` lists every command and option:
+
+```console file="packages/cli/transcripts/help.txt"
+```
 
 ## Serve the protocol with rpc
 

@@ -13,10 +13,12 @@ The CLI needs Node 22.19 or later. Install it with the `alpha` tag, which npm se
 pnpm add @buildanagent/cli@alpha
 ```
 
-The package installs the `buildanagent` command, which `pnpm exec buildanagent` runs from your project. This is what `--help` prints:
+The package installs the `buildanagent` command, which `pnpm exec buildanagent` runs from your project. On a machine with no sessions, `sessions list` shows that the command runs and has nothing stored yet:
 
-```console file="packages/cli/transcripts/help.txt"
+```console file="packages/cli/transcripts/sessions-empty.txt"
 ```
+
+`buildanagent --help` lists every command and option, and the [commands page](/cli/commands/) shows what it prints.
 
 ## Run one turn from a program
 
@@ -29,7 +31,7 @@ Make the model the way [your first agent](/start/first-agent/) does. The command
 
 ## Read the result
 
-The first line is `{"type":"session",...}` with the session's id. Each event of the turn follows, and the last line is `{"type":"settled",...}` with the stop reason and the cost. The exit status says how the turn ended: 0 for `done`, 1 for any other stop reason and 3 when a call waits for a person.
+The first line is `{"type":"session",...}` with the session's id. Each event of the turn follows, and the last line is `{"type":"settled",...}` with the reason the turn stopped and its cost. The exit status says how the turn ended: 0 for `done`, 1 for any other reason and 3 when a call waits for a person.
 
 ## See why a command refuses to run
 

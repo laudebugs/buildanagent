@@ -7,7 +7,7 @@ You will see how a client talks to the harness: which requests it writes, which 
 
 ## Any program that writes JSON lines is a client
 
-Every message is a JSON-RPC 2.0 message on one line. The harness serves one client over the standard input and output of `buildanagent rpc`, so an editor, a script or a program in another language can drive it. The server reads each command and hands it to the harness, which runs the sessions and the turns. It writes the answers and events back.
+Every message is a JSON-RPC 2.0 message, the standard way to call methods with JSON ([specification](https://www.jsonrpc.org/specification)), written on one line. The harness serves one client over the standard input and output of `buildanagent rpc`, so an editor, a script or a program in another language can drive it. The server reads each command and hands it to the harness, which runs the sessions and the turns. It writes the answers and events back.
 
 ::figure[Any program that reads and writes JSON lines can drive the harness]{id="protocol-clients" alt="Three kinds of client, an editor, a script and a program in another language, write JSON-RPC lines to the input of buildanagent rpc. The command passes each message to the harness, which runs the sessions and the turns."}
 
@@ -18,7 +18,7 @@ A client sends `initialize`, then `session/create` or `session/open`, then `turn
 ```ts file="packages/protocol/examples/client-requests.ts" region="requests"
 ```
 
-`turn/start` answers with a disposition: `{ accepted: true, turn }`, or `{ accepted: false, reason }` with a reason of `busy`, `locked` or `invalid`. Every accepted turn ends with a `turn/settled` notification that carries the stop reason.
+`turn/start` answers with a disposition, which says whether the server took the turn: `{ accepted: true, turn }`, or `{ accepted: false, reason }` with a reason of `busy`, `locked` or `invalid`. Every accepted turn ends with a `turn/settled` notification that carries the stop reason.
 
 ## Read what the server sends
 

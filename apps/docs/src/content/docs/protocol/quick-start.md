@@ -33,11 +33,11 @@ It returns the server's `InitializeResult` and throws when the server answers wi
 
 ## Run both against a harness
 
-The CLI's `rpc` command serves the protocol over its standard input and output. It refuses to start without `--model` and a key in the provider's variable, but `initialize` makes no model call, so the transcript sets a key that is not real. Use your own key when you run turns. Sending the line that `initializeLine("my-editor", "1.0.0")` writes gets the server's answer:
+The CLI's `rpc` command serves the protocol over its standard input and output. It refuses to start without `--model` and a key in the provider's variable, but `initialize` makes no model call, so the session below sets a key that is not real. Use your own key when you run turns. Sending the line that `initializeLine("my-editor", "1.0.0")` writes gets the server's answer:
 
 ```console file="packages/cli/transcripts/rpc-initialize.txt"
 ```
 
-The answer names the server and the SDK version it runs, which the transcript shows as `<version>` where your install prints its own. It lists the capabilities the server supports and the two experimental methods a client must opt into. `pending` is empty because no request waits for an answer. The server's own `version` reads `0.0.0` because of a known bug: the CLI does not yet pass the harness's version on.
+The answer names the server and the SDK version it runs, which the session shows as `<version>` where your install prints its own. It lists the capabilities the server supports and the two experimental methods a client must opt into. `pending` is empty because no request waits for an answer. As of November 2026, the server's own `version` reads `0.0.0` because of a known bug: the CLI does not yet pass the harness's version on.
 
 Next, see how a client [opens a session and starts a turn](/protocol/messages/).

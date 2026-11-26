@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "vitest";
 import { exampleSource, isTranscript, parseExampleRef, REPO_ROOT } from "../src/plugins/example-code.js";
-import { readPages, splitFences } from "../src/plugins/pages.js";
+import { DOCS_DIR, readPages, splitFences } from "../src/plugins/pages.js";
 import { isTypedSession, namesTranscript } from "./typed-session.js";
 
 // A terminal session on a docs page comes from a transcript that a test in the package re-runs (for the CLI,
@@ -74,5 +74,37 @@ test("a fence language with a hyphen is read whole, so a shell-session fence is 
     assert.equal(found[0]?.lang, lang);
     assert.equal(found[0]?.meta, "");
     assert.ok(found[0] !== undefined && isTypedSession(found[0]), lang);
+  }
+});
+
+test("the quick start's note that the server reports version 0.0.0 holds only while the transcript still shows it", () => {
+  // The note describes a known bug in the CLI. When the CLI is fixed and the transcript is rewritten, this fails until
+  // the sentence goes, so the page cannot go on describing a bug that is gone.
+  const page = readFileSync(`${DOCS_DIR}protocol/quick-start.md`, "utf8");
+  const transcript = exampleSource({ file: "packages/cli/transcripts/rpc-initialize.txt" });
+  const notesBug = page.includes("reads `0.0.0` because of a known bug");
+  assert.equal(transcript.includes('"version":"0.0.0"'), notesBug, "the note and the transcript disagree");
+  assert.ok(notesBug === false || /As of [A-Z][a-z]+ \d{4}/.test(page), "the note needs an as-of date");
+});
+
+test("fences of every shape keep the language and meta they had before hyphenated languages were allowed", () => {
+  const cases: [string, string, string][] = [
+    ["```ts", "ts", ""],
+    ["```TS", "TS", ""],
+    ["```", "", ""],
+    ["```bash", "bash", ""],
+    ['```ts file="packages/sdk/examples/a.ts" region="run"', "ts", 'file="packages/sdk/examples/a.ts" region="run"'],
+    ["```ts {2-3}", "ts", "{2-3}"],
+    ['```console title="x"', "console", 'title="x"'],
+    ["~~~json", "json", ""],
+    ["  ```sh", "sh", ""],
+    ["````md", "md", ""],
+    ["```c++", "c", "++"],
+  ];
+  for (const [open, lang, meta] of cases) {
+    const close = open.trim().startsWith("~") ? "~~~" : open.trim().match(/^`+/)?.[0];
+    const { fences: found } = splitFences(`Intro:\n\n${open}\ncode\n${close}\n`, false);
+    assert.equal(found.length, 1, open);
+    assert.deepEqual([found[0]?.lang, found[0]?.meta, found[0]?.code], [lang, meta, "code"], open);
   }
 });
