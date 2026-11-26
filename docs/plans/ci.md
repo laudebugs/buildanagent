@@ -248,8 +248,8 @@ The owner asked whether the repository supports Bun. It didn't: `package.json`'s
 **Proposed, for the owner (none applied):**
 
 1. Keep Bun unsupported. The gaps are not small: the two biggest, Miniflare/workerd and `module.registerHooks`, touch every published package that has Cloudflare-backed tests or book examples, which is most of them.
-2. If Bun support is wanted later, it needs real investigation, not a quick fix. A reasonable split: the Miniflare/workerd gap (likely needs an upstream fix or a Bun-specific workaround in how Miniflare is invoked); `module.registerHooks` (needs a Bun-compatible alternative to `source-condition.mjs`'s approach, or an upstream Bun feature request); the `pi-schema` resolution gap; the `tsx` loader; the allowlisted-`PATH` gap in `protocol`; the `sdk-updates` test's real bug (fix the assertion to actually check the thrown error, independent of Bun); the `fact-check-log.test.mjs` fixture rewrite; and a full root-cause of `harness`'s remaining ~26 failures, which this measurement didn't have the scope to finish.
-3. A Bun CI job is not realistic until the above lands; as measured, it would fail across six of seven packages.
+2. If Bun support is wanted later, it needs real investigation, not a quick fix. The owner approved splitting it into one todo per gap, chasing each on its own rather than as one large effort: [X7](../todos/ready/X7-bun-miniflare-workerd.md) (Miniflare/workerd), [X8](../todos/ready/X8-bun-module-registerhooks.md) (`module.registerHooks`), [X9](../todos/ready/X9-bun-pi-schema-resolution.md) (`pi-schema` resolution), [X10](../todos/ready/X10-bun-tsx-loader.md) (the `tsx` loader), [X11](../todos/ready/X11-bun-allowlisted-path-node.md) (the allowlisted-`PATH` gap in `protocol`), [X12](../todos/ready/X12-sdk-updates-assertion-bug.md) (`sdk-updates`'s real assertion bug), [X13](../todos/ready/X13-fact-check-log-string-raw-fixture.md) (the `fact-check-log.test.mjs` fixture rewrite), [X14](../todos/ready/X14-harness-unresolved-bun-failures.md) (`harness`'s remaining ~26 failures), and [X15](../todos/ready/X15-live-run-bun-failures.md) (`live-run.test.mjs`'s 5 confirmed failures, not yet individually root-caused).
+3. A Bun CI job is not realistic until most of the above lands; as measured, it would fail across all six published packages.
 
 ## 4. Todos
 
@@ -261,6 +261,15 @@ The owner asked whether the repository supports Bun. It didn't: `package.json`'s
 | X4 | Seed `Math.random` in the Google ADK doc preload: `graphs/retry/get_started` fails at random by design and errored on the runner (done) | X3 |
 | [X5](../todos/done/X5-repository-link-check.md) | Check every relative link and anchor in the repository's Markdown (done; its `ci.yml` line awaits the owner) | None |
 | [X6](../todos/done/X6-bun-runtime-compatibility.md) | Measure whether the repository's code runs under Bun (§3h, done) | None |
+| [X7](../todos/ready/X7-bun-miniflare-workerd.md) | Find why Miniflare doesn't work under Bun (§3h gap 1) | X6 |
+| [X8](../todos/ready/X8-bun-module-registerhooks.md) | Give the book-example transcript capture a Bun-compatible hook (§3h gap 2) | X6 |
+| [X9](../todos/ready/X9-bun-pi-schema-resolution.md) | Fix `@earendil-works/pi-schema` resolution under Bun (§3h gap 3) | X6 |
+| [X10](../todos/ready/X10-bun-tsx-loader.md) | Make `catalog-staleness.test.mjs` run under Bun without `tsx`'s loader (§3h gap 4) | X6 |
+| [X11](../todos/ready/X11-bun-allowlisted-path-node.md) | Let `protocol`'s allowlisted-environment subprocess find `node` under Bun (§3h gap 5) | X6 |
+| [X12](../todos/ready/X12-sdk-updates-assertion-bug.md) | Fix `sdk-updates.test.mjs`'s `assert.throws` misuse (§3h gap 6) | X6 |
+| [X13](../todos/ready/X13-fact-check-log-string-raw-fixture.md) | Rewrite `fact-check-log.test.mjs`'s `String.raw` fixtures for Bun (§3h gap 8) | X6 |
+| [X14](../todos/ready/X14-harness-unresolved-bun-failures.md) | Root-cause `harness`'s remaining Bun failures (§3h) | X6, X7, X8 |
+| [X15](../todos/ready/X15-live-run-bun-failures.md) | Root-cause `live-run.test.mjs`'s confirmed Bun failures (§3h gap 9) | X6 |
 
 ## 5. Risks
 
