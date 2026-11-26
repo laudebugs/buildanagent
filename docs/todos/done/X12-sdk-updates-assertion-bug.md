@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X12` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [CI §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) |
 | Round / milestone | Round X (CI) |
 | Depends on | X6 |
@@ -34,16 +34,16 @@
 
 ## Tasks
 
-- [ ] Read the full loop at `scripts/ci/sdk-updates.test.mjs:417` and each `bad` input's intent.
-- [ ] Rewrite each `assert.throws` call to validate the actual thrown error.
-- [ ] Temporarily break `parseBumps` to confirm the rewritten assertions catch it, then revert.
-- [ ] Run `sdk-updates.test.mjs` under both `node --test` and `bun test`.
+- [x] Read the full loop at `scripts/ci/sdk-updates.test.mjs:417` and each `bad` input's intent.
+- [x] Rewrite each `assert.throws` call to validate the actual thrown error.
+- [x] Temporarily break `parseBumps` to confirm the rewritten assertions catch it, then revert.
+- [x] Run `sdk-updates.test.mjs` under both `node --test` and `bun test`.
 
 ## Acceptance criteria
 
-- [ ] `scripts/ci/sdk-updates.test.mjs` passes under both Node and Bun.
-- [ ] Each `assert.throws` call validates the thrown error, not just a message string.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node.
+- [x] `scripts/ci/sdk-updates.test.mjs` passes under both Node and Bun.
+- [x] Each `assert.throws` call validates the thrown error, not just a message string.
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node (`pnpm check` and `pnpm typecheck` pass locally; the root `pnpm test` cannot run on macOS because it stops at `verify/copilot-sdk`, which needs `unshare`, so CI confirms it)
 
 ## Tests
 
@@ -59,9 +59,21 @@ The existing `sdk-updates.test.mjs` is rewritten in place; no new test file.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`sdk-updates.test.mjs` now checks what `parseBumps` throws, and it passes under Bun.
+
+- **Bug.** The test "reads the plan's bumps and refuses anything else" looped over six bad inputs with `assert.throws(() => parseBumps(bad), bad)`. A string second argument is the assertion's failure message, so the test passed whatever `parseBumps` threw. Bun 1.4.4's `node:assert` also rejected the empty-string message.
+- **Fix.** The empty input is now `assert.throws(() => parseBumps(""), { message: "no bumps were planned" })`. The other five inputs use `{ message: \`${bad} isn't a planned bump\` }`. `parseBumps` itself is unchanged.
+- **Mutation proof.** With `parseBumps` changed to throw a different message, the old test passed and the new one failed. With no throw on the empty input, both failed.
+- **Runs.** The whole file passes 98 of 98 under `node --test` and under `bun test` (Bun 1.4.4). `pnpm check` and `pnpm typecheck` pass locally. The root `pnpm test` stops at `verify/copilot-sdk` on macOS, which lacks `unshare`, so CI runs it.
+- **Docs.** [CI plan §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26), gap 6, records the fix, and the plan's todo table links the done file.
+
+The two review boxes stay open until the code and writing reviews run on the pull request.
