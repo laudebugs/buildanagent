@@ -7,7 +7,9 @@ You will see how the harness keeps one conversation as a session: its entries ar
 
 ## A session is a log of entries
 
-A session holds one conversation as an append-only log: the harness adds entries and never edits one. With the file store the log lives in one log file, and other stores keep the same entries elsewhere. Every entry carries an `id`, the `parentId` of the entry it follows, a sequence number, a timestamp, a `type` and an `origin`. The `parentId` links make the log a tree, which stays a single chain until you fork it. HEAD is the entry the next append follows, and each new entry moves it to itself.
+A session holds one conversation as an append-only log: the harness adds entries and never edits one. With the file store, a session's log starts in one log file, and a fork or a revert adds another log file that continues it. Other stores keep the same entries elsewhere. Every entry carries an `id`, the `parentId` of the entry it follows, a sequence number, a timestamp, a `type` and an `origin`. The `parentId` links make the log a tree, which stays a single chain until you fork it.
+
+HEAD is the entry the next append follows, and each new entry moves it to itself.
 
 There are 21 entry types, from `session_header` to `product_record`. The [session file page](/protocol/session-files/) shows how to read them.
 
@@ -21,7 +23,9 @@ A session's key is `{ userId, sessionId }`. Every store call takes both, so no c
 
 Only one process may append to a session at a time. `fileLock()` keeps one lock file for each session and gives the lock to the first caller. `openSession()` takes the lock when you pass one, and it throws `session_locked` when another writer holds it. A session opened without a lock can read and cannot write.
 
-By default, the holder renews its lease, a time limit on the lock, every 10 seconds, and each lease lasts 30 seconds. The `leaseMs` and `renewMs` options change both, and a renewal never waits longer than a third of the lease. Another process may take a lock only when its lease has lapsed and, on the same host, its process no longer exists. A lock from another host is never taken. Use the file lock on a local disk only, because an exclusive file create is not reliable on a network file system.
+By default, the holder renews its lease, a time limit on the lock, every 10 seconds, and each lease lasts 30 seconds. The `leaseMs` and `renewMs` options change both. By default a renewal comes every 10 seconds or every third of the lease, whichever is less, and an explicit `renewMs` must be shorter than the lease.
+
+Another process may take a lock only when its lease has lapsed and, on the same host, its process no longer exists. A lock from another host is never taken. Use the file lock on a local disk only, because an exclusive file create is not reliable on a network file system.
 
 ## A new process goes on from the log
 

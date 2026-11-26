@@ -71,8 +71,8 @@ Give the harness the written pages the SDK, the protocol and the CLI have: a qui
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check` and `pnpm typecheck` pass locally for the files this change touches (`pnpm check` also reports lint in `apps/manual`, which is not touched here), and so do the docs suite and the harness examples; root `pnpm test` and the harness suite stop on this machine in tests that need a cleared environment, which fail the same way on `main`; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request, with every finding fixed or explained
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+- [x] Two code-review rounds run on the pull request, with every finding fixed or explained
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
 
 ## Outcome
 
@@ -81,4 +81,4 @@ Give the harness the written pages the SDK, the protocol and the CLI have: a qui
 - **Problems and fixes.** Ten entries (five on sessions, three on context, two on tools), each from what the reader sees to its cause and fix, each naming its error code where it has one. `apps/docs/test/problems.test.ts` checks that every such page has at least three entries, each with You see, Cause and Fix paragraphs in order, and that each code a page names is defined in a package, and `docs-writing.md` records the rule. Entries do not link error-code pages, because L12t is only proposed.
 - **Reference link.** The `@module` comment of `@buildanagent/harness` links the quick start on the module page. The generated index lists modules only, so `ApiPackage.readme` in `apps/docs/src/api/packages.ts` puts the same link there; this docs-app friction is recorded here, not in L12h1.
 - **Friction.** The harness ships no in-memory `SessionLock`, so the quick start writes to disk and the book examples carry their own lock; a `TurnResult` has no answer text, so the quick start joins the text blocks itself; and registering `defineTool()` results takes a cast and a loop. [L12h1](../ready/L12h1-harness-example-friction.md) records all three for an owner decision.
-- Claims are in the fact-check log, rows L12h-1 to L12h-47.
+- Claims are in the fact-check log, rows L12h-1 to L12h-49.

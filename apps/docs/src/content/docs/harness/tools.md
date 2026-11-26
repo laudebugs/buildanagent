@@ -14,7 +14,7 @@ The registry is the one place that names every tool, wherever it comes from. Per
 ```ts file="packages/harness/examples/order-tools.ts" region="registry"
 ```
 
-A registration names the tool's source. A tool you register yourself takes the source label `builtin`. The other sources are `extension`, `client` and `mcp:<server>`. The registry checks each name once, at registration: 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. A second tool with a taken name throws a `DuplicateToolError`. A tool from an extension or the client replaces a built-in of the same name only with `override: true`, and replaces nothing else.
+A registration names the tool's source, and there is no default. The sources are `builtin`, `extension`, `client` and `mcp:<server>`, and the example passes `builtin` for the tools your own app registers. The registry checks each name once, at registration: 1 to 64 characters from `A-Z`, `a-z`, `0-9`, `_` and `-`. A second tool with a taken name throws a `DuplicateToolError`. A tool from an extension or the client replaces a built-in of the same name only with `override: true`, and replaces nothing else.
 
 ## A turn offers only the tools you name
 
