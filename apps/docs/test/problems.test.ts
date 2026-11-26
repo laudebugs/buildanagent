@@ -30,18 +30,32 @@ export function entriesOf(body: string): { heading: string; paragraphs: string[]
     });
 }
 
-/** Every source file of every package, joined, to look error codes up in. */
-function packageSources(): string {
+/** The string literals of every exported `...ErrorCode` union in `source`, such as `HarnessErrorCode`. */
+export function errorCodesIn(source: string): string[] {
+  const unions = source.matchAll(/export type \w*ErrorCode =([^;]*);/g);
+  return [...unions].flatMap((union) =>
+    [...(union[1] ?? "").matchAll(/"([a-z]+(?:_[a-z]+)+)"/g)].map((m) => m[1] ?? ""),
+  );
+}
+
+/** The error codes the packages define: the members of their `...ErrorCode` unions, not any string in their source. */
+function definedCodes(): Set<string> {
   const root = join(REPO_ROOT, "packages");
-  const files: string[] = [];
+  const codes = new Set<string>();
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.isDirectory()) walk(join(dir, entry.name));
-      else if (entry.name.endsWith(".ts")) files.push(join(dir, entry.name));
+      else if (entry.name.endsWith(".ts"))
+        for (const code of errorCodesIn(readFileSync(join(dir, entry.name), "utf8"))) codes.add(code);
     }
   };
   for (const pkg of readdirSync(root)) walk(join(root, pkg, "src"));
-  return files.map((file) => readFileSync(file, "utf8")).join("\n");
+  return codes;
+}
+
+/** The snake_case words in backticks that `text` names and `defined` lacks. */
+export function unknownCodes(text: string, defined: ReadonlySet<string>): string[] {
+  return [...text.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map((m) => m[1] ?? "").filter((code) => !defined.has(code));
 }
 
 test("the docs have at least one Problems and fixes page", () => {
@@ -66,14 +80,11 @@ for (const page of problemPages) {
     }
   });
 
-  test(`${page.path} names only error codes that a package defines`, () => {
-    const sources = packageSources();
+  test(`${page.path} names only error codes that a package's error-code union defines`, () => {
+    const defined = definedCodes();
     for (const entry of entries) {
       const text = [entry.heading, ...entry.paragraphs].join("\n");
-      const codes = [...text.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map((match) => match[1] ?? "");
-      for (const code of codes) {
-        assert.ok(sources.includes(`"${code}"`), `"${entry.heading}" names ${code}, which no package defines`);
-      }
+      assert.deepEqual(unknownCodes(text, defined), [], `"${entry.heading}" names a code that no package defines`);
     }
   });
 }
@@ -81,4 +92,25 @@ for (const page of problemPages) {
 test("the entry reader splits a page into entries and stops at the next section", () => {
   const body = "## Area\n\n### One\n\n**You see.** a\n\n**Cause.** b\n\n**Fix.** c\n\n## Other\n\ntext\n";
   assert.deepEqual(entriesOf(body), [{ heading: "One", paragraphs: ["**You see.** a", "**Cause.** b", "**Fix.** c"] }]);
+});
+
+test("a quoted word that is no member of an error-code union fails, even when it appears in source", () => {
+  const defined = new Set(
+    errorCodesIn('export type HarnessErrorCode = | "session_locked" | "duplicate_tool";\nconst other = "not_a_code";'),
+  );
+  assert.deepEqual([...defined], ["session_locked", "duplicate_tool"]);
+  assert.deepEqual(unknownCodes("`session_locked` and `not_a_code`", defined), ["not_a_code"]);
+});
+
+test("the packages define the codes that the harness pages name", () => {
+  const defined = definedCodes();
+  for (const code of [
+    "session_locked",
+    "session_read_only",
+    "entry_not_found",
+    "duplicate_tool",
+    "invalid_turn_options",
+  ]) {
+    assert.ok(defined.has(code), code);
+  }
 });

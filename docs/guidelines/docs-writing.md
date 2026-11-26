@@ -37,7 +37,7 @@ Draft with `/anthropic-skills:writing` and review with `/anthropic-skills:writin
 A "Problems and fixes" page is where a reader lands from an error message or an odd result, so each entry starts from that symptom. `apps/docs/test/problems.test.ts` checks the shape and the codes.
 
 - **MUST:** give each entry a heading that names the symptom, then three paragraphs that begin `**You see.**`, `**Cause.**` and `**Fix.**`, in that order.
-- **MUST:** keep at least three entries on the page. Name the error code the reader sees where there is one, and make every error code an entry names one that a package's source defines.
+- **MUST:** keep at least three entries on the page. Name the error code the reader sees where there is one, and make every error code an entry names a member of a package's error-code union, such as `HarnessErrorCode`.
 - **SHOULD:** quote the message the reader sees, as the code produces it.
 
 ## Draw a diagram where a picture answers faster

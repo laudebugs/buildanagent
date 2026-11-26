@@ -11,7 +11,7 @@
 
 ## Goal
 
-Remove three workarounds that the harness examples carry. The harness ships a file-backed `SessionLock` only, so an example with no files writes its own in-memory lock (`examples/lib/check.ts` and the session tests each hold a copy). A `TurnResult` has no answer text, so the quick start writes `answerOf()` to join the text blocks of the last message.
+Remove three workarounds that the harness examples carry. The harness ships a file-backed `SessionLock` only, so an example with no files writes its own in-memory lock (`examples/lib/check.ts` and the session tests each hold a copy). A `TurnResult` has no answer text, so the quick start writes `answerOf()` to join the text blocks of the last message. Registering a tool built with `defineTool()` takes a cast to one tool type and a `register()` loop, in `order-tools.ts` and `triage-tools.ts`.
 
 ## Context
 

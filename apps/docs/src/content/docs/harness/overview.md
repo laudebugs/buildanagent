@@ -25,7 +25,7 @@ Each part of the harness lives under its own import path, so you import only the
 - **Server**, `@buildanagent/harness/server`: builds the harness with `createHarness()` and serves clients over the protocol.
 - **Extensions, memory and telemetry**, `@buildanagent/harness/extensions`, `/memory` and `/telemetry`: add hooks and tools, keep long-term memory and project the log to OpenTelemetry spans.
 
-The `cloudflare`, `aws` and `vercel` paths hold the adapters that keep sessions on those platforms. The [API reference](/reference/harness/) documents every path, including the parts these guides do not cover yet.
+The `cloudflare` and `vercel` paths and the `aws/dynamodb`, `aws/scheduler` and `aws/secrets-manager` paths hold the adapters that run the harness on those platforms, such as session stores, locks and secret storage. The [API reference](/reference/harness/) documents every path, including the parts these guides do not cover yet.
 
 ## Turn a part off to see what it adds
 
