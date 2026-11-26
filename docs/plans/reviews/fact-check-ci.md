@@ -1,6 +1,6 @@
 # Fact-check: the CI plan's claims
 
-This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. Rows X10-1 to X10-5 check the note on gap 4 that todo [X10](../../todos/done/X10-bun-tsx-loader.md) added, checked 2026-11-26 on branch `todo/X10-bun-tsx-loader`, off `main` at `1140ca71`, with Bun 1.4.4.
+This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. Rows X10-1 to X10-5 log the checks of the note on gap 4 that todo [X10](../../todos/done/X10-bun-tsx-loader.md) added. They ran 2026-11-26 on branch `todo/X10-bun-tsx-loader`, off `main` at `1140ca71`, with Bun 1.4.4.
 
 Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
 
