@@ -5,7 +5,9 @@ description: How a dispatcher serves protocol commands over a harness, starts tu
 
 You will connect a client, such as an editor or a script, to a harness and start its turns with protocol messages. You need this when a program other than your own loop must drive the agent and answer its questions.
 
-Check who is connecting before you hand a transport its streams or socket. The transports authenticate nobody, so whoever holds them acts as the dispatcher's user and can answer approval requests. For a WebSocket, check the caller's identity and its `Origin` header first, because the transport makes no such check. A web page in the user's browser can open a socket to a local server, and without the check it could approve your agent's tool calls. The dispatcher is the object that serves the protocol's commands over a harness, and the [protocol](/protocol/quick-start/) is the set of messages a client sends. Both need a harness from [the quick start](/harness/quick-start/).
+Check who is connecting before you hand a transport its streams or socket. The transports authenticate nobody, so whoever holds them acts as the dispatcher's user and can answer approval requests. For a WebSocket, check the caller's identity and its `Origin` header first, because the transport makes no such check. 
+
+A web page in the user's browser can open a socket to a local server, and without the check it could approve your agent's tool calls. The dispatcher is the object that serves the protocol's commands over a harness, and the [protocol](/protocol/quick-start/) is the set of messages a client sends. Both need a harness from [the quick start](/harness/quick-start/).
 
 ## A client in the same process needs no framing
 
