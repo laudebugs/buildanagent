@@ -88,6 +88,7 @@ test("a verdict cell must be exactly one of the three verdicts, and the message 
 
 test("an escaped pipe stays inside its cell, and an unescaped one is reported", () => {
   assert.deepEqual(cells(String.raw`| 1 | \`a \| b\` | x |`), ["1", String.raw`\`a \| b\``, "x"]);
+  // Plain strings, not String.raw, wherever a fixture holds ✅: Bun rewrites non-ASCII inside String.raw as \u escapes.
   const rows = ["| 1 | Both \\|\\| forms | BK1 | ✅ | A source |", "| 2 | A `|| b` | BK1 | ✅ | A source |"];
   assert.deepEqual(messages(log(rows, null)), [
     String.raw`has 7 cells where its header has 5; escape a | inside a cell as \|`,
