@@ -7,10 +7,10 @@ You will install the `buildanagent` command, check that it runs and run one turn
 
 ## Install the command
 
-The CLI needs Node 22.19 or later. Install it with the `alpha` tag, which npm serves for every release until the first stable one:
+The CLI needs Node 22.19 or later. Install it and the gateway, which the program below imports, with the `alpha` tag that npm serves for every release until the first stable one:
 
 ```bash
-pnpm add @buildanagent/cli@alpha
+pnpm add @buildanagent/cli@alpha @buildanagent/gateway@alpha
 ```
 
 The package installs the `buildanagent` command, which `pnpm exec buildanagent` runs from your project. On a machine with no sessions, `sessions list` shows that the command runs and has nothing stored yet:

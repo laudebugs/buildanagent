@@ -11,8 +11,9 @@ import { afterAll, test } from "vitest";
 //
 //   REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts
 //
-// A transcript is the command line after a `$ ` prompt, with any environment variable the run needs before it, then standard output, then standard error, exactly as the
-// binary wrote them. Each run starts from a cleared environment and an empty home folder, like bin.test.ts.
+// A transcript is the command line after a `$ ` prompt, with any environment variable the run needs before it, then
+// standard output, then standard error, exactly as the binary wrote them. Each run starts from a cleared environment and
+// an empty home folder, like bin.test.ts.
 const BIN = fileURLToPath(new URL("../src/bin.ts", import.meta.url));
 const SOURCE_CONDITION = fileURLToPath(new URL("./source-condition.mjs", import.meta.url));
 const TRANSCRIPTS = new URL("../transcripts/", import.meta.url);
