@@ -1,5 +1,13 @@
 # @buildanagent/protocol
 
+## 0.1.0-alpha.41
+
+### Patch Changes
+
+- 87faee6: Link the protocol's and the CLI's reference index pages to their quick starts
+- @buildanagent/gateway@0.1.0-alpha.41
+  - @buildanagent/sdk@0.1.0-alpha.41
+
 ## 0.1.0-alpha.40
 
 ### Patch Changes
