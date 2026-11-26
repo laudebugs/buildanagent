@@ -93,6 +93,35 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
         },
       ],
     },
+    {
+      label: "Protocol",
+      link: "protocol/quick-start",
+      icon: "random",
+      items: [
+        {
+          label: "Protocol",
+          items: [
+            { label: "Quick start", slug: "protocol/quick-start" },
+            { label: "Messages between a client and the harness", slug: "protocol/messages" },
+            { label: "Read a session file", slug: "protocol/session-files" },
+          ],
+        },
+      ],
+    },
+    {
+      label: "CLI",
+      link: "cli/quick-start",
+      icon: "rocket",
+      items: [
+        {
+          label: "CLI",
+          items: [
+            { label: "Quick start", slug: "cli/quick-start" },
+            { label: "Commands and exit statuses", slug: "cli/commands" },
+          ],
+        },
+      ],
+    },
     ...apis.map((api) => ({
       id: api.output,
       label: api.label,

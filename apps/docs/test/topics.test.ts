@@ -69,7 +69,7 @@ describe("the topics", () => {
       const tabs = topicTabs(html(page.path.replace(/\.mdx?$/, "")));
       assert.deepEqual(
         tabs.labels,
-        [SDK_TOPIC, ...API_PACKAGES.map((pkg) => pkg.label)],
+        [SDK_TOPIC, "Protocol", "CLI", ...API_PACKAGES.map((pkg) => pkg.label)],
         `${page.path} shows the wrong tabs`,
       );
       assert.equal(tabs.current.length, 1, `${page.path} must have one current topic`);

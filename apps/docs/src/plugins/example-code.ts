@@ -3,6 +3,9 @@
  * ` ```ts file="packages/sdk/examples/order-agent.ts" region="run" `, and the build replaces the fence's body with that
  * region of the file, so the docs never show code that no longer runs. Only files under a package's `examples/`
  * folder can be shown, because those are the files a test runs ([examples guideline](../../../../docs/guidelines/examples.md)).
+ *
+ * A terminal session works the same way: a ` ```console file="packages/cli/transcripts/help.txt" ` fence shows a
+ * transcript, a file under a package's `transcripts/` folder that a test of that package re-runs and compares.
  */
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve, sep } from "node:path";
@@ -17,7 +20,13 @@ export interface ExampleRef {
   readonly region?: string;
 }
 
-const EXAMPLE_PATH = /^packages\/[\w-]+\/examples\/[\w./-]+\.ts$/;
+const EXAMPLE_PATH = /^packages\/[\w-]+\/(?:examples\/[\w./-]+\.ts|transcripts\/[\w-]+\.txt)$/;
+const TRANSCRIPT_PATH = /^packages\/[\w-]+\/transcripts\/[\w-]+\.txt$/;
+
+/** Whether `file` is a transcript of a terminal session, not an example program. */
+export function isTranscript(file: string): boolean {
+  return TRANSCRIPT_PATH.test(file);
+}
 
 /** The `file` and `region` of a fence's meta string, or `undefined` when it names no file. */
 export function parseExampleRef(meta: string | null | undefined): ExampleRef | undefined {
@@ -54,10 +63,10 @@ function tidy(lines: readonly string[]): string {
     .trim();
 }
 
-/** The code `ref` names. Throws when the path is not an example file or the region is missing. */
+/** The code `ref` names. Throws when the path is not an example or transcript file or the region is missing. */
 export function exampleSource(ref: ExampleRef): string {
   if (!EXAMPLE_PATH.test(ref.file) || ref.file.split("/").includes("..")) {
-    throw new Error(`${ref.file} is not a file under a package's examples/ folder`);
+    throw new Error(`${ref.file} is not a file under a package's examples/ or transcripts/ folder`);
   }
   return codeOf(readFileSync(resolve(REPO_ROOT, ref.file.split("/").join(sep)), "utf8"), ref);
 }
@@ -80,7 +89,9 @@ export function rewriteMeta(meta: string | null | undefined, ref: ExampleRef): s
     .replace(/(?:^|\s)file="[^"]*"/, " ")
     .replace(/(?:^|\s)region="[^"]*"/, " ")
     .trim();
-  return /(?:^|\s)title=/.test(rest) ? rest : `${rest} title="${exampleTitle(ref)}"`.trim();
+  // A transcript is a terminal session, which a title such as `help.txt` would only mislabel.
+  if (isTranscript(ref.file) || /(?:^|\s)title=/.test(rest)) return rest;
+  return `${rest} title="${exampleTitle(ref)}"`.trim();
 }
 
 /** The title a fence shows: the file's name, never its path. */

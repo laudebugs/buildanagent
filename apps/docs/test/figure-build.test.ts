@@ -30,11 +30,12 @@ const decoded = (html: string): string =>
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&");
 
-test("the pages place the six figures", () => {
+test("the pages place the seven figures", () => {
   assert.deepEqual(placed.map(({ id }) => id).sort(), [
     "approval-pause",
     "gateway-adapters",
     "package-map",
+    "protocol-clients",
     "run-loop",
     "stop-reasons",
     "stream-and-transcript",

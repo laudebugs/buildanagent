@@ -1,0 +1,38 @@
+$ buildanagent --help
+Usage: buildanagent <command> [options]
+
+Runs the buildanagent harness in a terminal. Nothing leaves this machine unless
+--model names a provider or --otlp-endpoint names a collector.
+
+Commands:
+  run <prompt>                Run one turn and exit: 0 when done, 3 when it waits
+                              for a person, 1 otherwise.
+  chat                        Start a session and chat, one line per turn.
+  resume <session>            Chat in a stored session, answering what it waits on.
+  sessions list               List the stored sessions.
+  sessions show <session>     Print every entry of a session's log.
+  sessions search <text>      Find the messages that hold a text.
+  sessions replay <session>   Play a session back from its log, with no model call.
+  session unlock <session> --force
+                              Remove a session's writer lock.
+  keys rotate                 Add a new approval key and make it current.
+  keys prune                  Remove the approval keys no waiting request names.
+  rpc                         Serve the protocol as JSON-RPC lines over standard
+                              input and output, until input ends. It
+                              authenticates nobody: whoever holds the streams
+                              acts as the session's user.
+
+Options:
+  --model <provider>:<id>     The model to run, such as anthropic:claude-sonnet-5-5
+                              (key from ANTHROPIC_API_KEY) or openai:<id>
+                              (key from OPENAI_API_KEY).
+  --json                      Print one JSON object per line on standard output.
+  --budget <usd>              Stop each turn, and each resume after an answer,
+                              before it spends more; warn at 80%. It caps each
+                              turn, not the session.
+  --state-dir <folder>        Where sessions, locks and keys live. Default
+                              $XDG_STATE_HOME/buildanagent or
+                              ~/.local/state/buildanagent.
+  --otlp-endpoint <url>       Send OpenTelemetry spans, without content, here.
+  --force                     Confirm session unlock.
+  -h, --help                  Print this help and exit.

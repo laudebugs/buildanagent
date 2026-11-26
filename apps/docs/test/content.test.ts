@@ -132,10 +132,10 @@ describe("the sidebar", () => {
     assert.ok(typo);
   });
 
-  test("puts the topics in the order SDK & gateway, then one API topic for each package", () => {
+  test("puts the topics in the order SDK & gateway, Protocol, CLI, then one API topic for each package", () => {
     assert.deepEqual(
       topicList.map((topic) => topic.label),
-      ["SDK & gateway", ...API_PACKAGES.map((pkg) => pkg.label)],
+      ["SDK & gateway", "Protocol", "CLI", ...API_PACKAGES.map((pkg) => pkg.label)],
     );
   });
 
@@ -148,32 +148,38 @@ describe("the sidebar", () => {
   });
 
   test("links each topic to a page of its own: a listed page for the written docs, its package's index for an API tab", () => {
-    const [written, ...apiTopics] = topicList;
-    assert.ok(
-      written && slugsOf(written.items).includes(written.link),
-      "the SDK & gateway tab must link to its first page",
-    );
+    const [written, protocol, cli, ...apiTopics] = topicList;
+    for (const topic of [written, protocol, cli]) {
+      assert.ok(topic && slugsOf(topic.items)[0] === topic.link, `${topic?.label} must link to its first page`);
+    }
     assert.deepEqual(
       apiTopics.map((topic) => topic.link),
       API_PACKAGES.map((pkg) => pkg.output),
     );
   });
 
-  test("ends every page with a link to the next page in the sidebar", () => {
-    const order = [...slugs];
-    for (const page of pages.filter((candidate) => !/^index\.mdx?$/.test(candidate.path))) {
-      const slug = page.path.replace(/\.mdx?$/, "");
-      const closer =
-        page.body
-          .split("\n")
-          .filter((line) => line.trim() !== "")
-          .at(-1) ?? "";
-      assert.match(closer, /^(?:Next|Start with)/, `${page.path} must end with its next link`);
-      const target = /\]\(\/([^)]+?)\/?\)/.exec(closer)?.[1];
-      assert.ok(target, `${page.path} has no next link`);
-      const next = order[order.indexOf(slug) + 1];
-      // The last page points back to where a reader starts.
-      assert.equal(target, next ?? "start/first-agent", `${page.path} should link to the next page, ${next}`);
+  test("ends every page with a link to the next page in its topic", () => {
+    // The last page of a topic points back to where a reader starts, or on to the package's API reference.
+    const lastTargets: Record<string, string> = {
+      "SDK & gateway": "start/first-agent",
+      Protocol: "reference/protocol",
+      CLI: "reference/cli",
+    };
+    for (const topic of topicList.slice(0, 3)) {
+      const order = slugsOf(topic.items);
+      for (const slug of order) {
+        const page = pages.find((candidate) => candidate.path.replace(/\.mdx?$/, "") === slug);
+        const closer =
+          page?.body
+            .split("\n")
+            .filter((line) => line.trim() !== "")
+            .at(-1) ?? "";
+        assert.match(closer, /^(?:Next|Start with)/, `${slug} must end with its next link`);
+        const target = /\]\(\/([^)]+?)\/?\)/.exec(closer)?.[1];
+        assert.ok(target, `${slug} has no next link`);
+        const next = order[order.indexOf(slug) + 1] ?? lastTargets[topic.label];
+        assert.equal(target, next, `${slug} should link to the next page, ${next}`);
+      }
     }
   });
 });

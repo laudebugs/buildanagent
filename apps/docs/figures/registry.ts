@@ -10,6 +10,7 @@ export const FIGURE_IDS = [
   "approval-pause",
   "gateway-adapters",
   "package-map",
+  "protocol-clients",
   "run-loop",
   "stop-reasons",
   "stream-and-transcript",

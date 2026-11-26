@@ -4,7 +4,7 @@ description: Docs for the six buildanagent packages, from the model gateway to t
 template: splash
 hero:
   title: Build An Agent <em>docs</em>
-  tagline: Build an agent with six packages, from a model gateway to a command line. All six packages have an API reference here, with guides for the gateway and the SDK.
+  tagline: Build an agent with six packages, from a model gateway to a command line. All six packages have an API reference here, with guides for four of them.
 ---
 
 import { Tabs, TabItem, CardGrid, LinkCard, LinkButton } from "@astrojs/starlight/components";
@@ -31,7 +31,7 @@ Start with the SDK and the gateway. Install both with the `alpha` tag, which npm
 
 ## Start with a package
 
-Pick the package you need. The gateway and the SDK start with guides, and the other four start in their API reference.
+Pick the package you need. The gateway, the SDK, the protocol and the CLI start with guides, and the other two start in their API reference.
 
 <CardGrid>
   <LinkCard title="Gateway" description="Calls Anthropic or OpenAI-compatible models through one transcript and one stream format, with retries and a cost on every message. Read the install page." href="/start/install/" />
@@ -42,9 +42,9 @@ Pick the package you need. The gateway and the SDK start with guides, and the ot
 
   <LinkCard title="Agent safety" description="Gives every write a typed outcome, signs approvals and refuses a model call that could pass a run's USD cap. Browse the API reference." href="/reference/agent-safety/" />
 
-  <LinkCard title="Protocol" description="Describes the session entries, the client and server messages and the JSONL framing that carry them. Browse the API reference." href="/reference/protocol/" />
+  <LinkCard title="Protocol" description="Describes the session entries, the client and server messages and the JSONL framing that carry them. Write your first request." href="/protocol/quick-start/" />
 
-  <LinkCard title="CLI" description="Runs the harness in your terminal. Script one turn, chat with an agent that asks before risky calls, or search your stored sessions. Browse the API reference." href="/reference/cli/" />
+  <LinkCard title="CLI" description="Runs the harness in your terminal. Script one turn, chat with an agent that asks before risky calls, or search your stored sessions. Run your first command." href="/cli/quick-start/" />
 </CardGrid>
 
 ## Learn the ideas
