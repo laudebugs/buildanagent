@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X12` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) |
 | Round / milestone | Round X (CI) |
 | Depends on | X6 |
