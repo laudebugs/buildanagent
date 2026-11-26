@@ -7,10 +7,10 @@ import { retirementWarnings, staleWarnings } from "./catalog-staleness.mjs";
 // because the source's relative imports use `.js` specifiers for the dist/ build, which Node's own type stripping
 // doesn't map back to `.ts` files. Bun maps them itself, and tsx's loader doesn't run under Bun, so Bun imports the
 // source directly.
-const CATALOG = "../../packages/gateway/src/catalog.ts";
+const CATALOG_SOURCE = "../../packages/gateway/src/catalog.ts";
 const { staleCatalogEntries } = process.versions.bun
-  ? await import(CATALOG)
-  : await (await import("tsx/esm/api")).tsImport(CATALOG, import.meta.url);
+  ? await import(CATALOG_SOURCE)
+  : await (await import("tsx/esm/api")).tsImport(CATALOG_SOURCE, import.meta.url);
 
 const NOW = Date.parse("2026-11-19T12:00:00Z");
 const entry = (id, asOf) => ({ provider: "test", id, asOf, sources: { rates: "https://provider.test/pricing" } });
