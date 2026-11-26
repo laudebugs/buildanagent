@@ -1,4 +1,4 @@
-# L12j1: Decide and fix three rough edges in the agent-safety examples
+# L12j1: Decide and fix four rough edges in the agent-safety examples
 
 | Field | Value |
 | --- | --- |
@@ -16,6 +16,7 @@ Decide and fix these rough edges, which the new agent-safety pages work around:
 - `guardedWrite()`'s `onError` must return an outcome for every error, so a tool that handles one error class rethrows the others. The write then settles as `unknown` with the reason `REPORT_FAILED`, a name that says nothing about the tool's own error.
 - `verifyResolution()` returns `ok: true` for a person's denial, and a cause only when a check fails, so `approval-check.ts` merges the decision and the cause into one `RejectionCause | "denied"` value.
 - `signedToolApproval()` has no example under `examples/`, so the approvals page links the README instead of quoting a tested example.
+- `signedToolApproval()` passes no `app` to `signPending()` or `verifyResolution()`, so the adapter cannot bind a pending request to a caller, and the approvals page says the binding works in the manual flow only.
 
 ## Context
 
@@ -29,6 +30,7 @@ Decide and fix these rough edges, which the new agent-safety pages work around:
 - Decide whether `onError` may return `undefined` for "I do not know this error", and change it with a test and a changeset if so.
 - Decide whether `verifyResolution()` should report the person's decision beside `ok`, and change it if so.
 - Add a tested `signedToolApproval()` example and quote it on the approvals page.
+- Decide whether `signedToolApproval()` takes an `app` option, and change it with a test and a changeset if so.
 
 **Out of scope**
 

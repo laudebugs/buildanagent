@@ -5,7 +5,9 @@ description: How agent safety keeps every model call on the user's own key and a
 
 You will build model calls that carry one user's key to one address and nothing else, and that count against a cap. You need this when users bring their own provider keys and a call that falls back to your key would bill you or another user.
 
-An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. The `./byok` subpath, short for bring your own key, closes the paths that allow it for every model built with `explicitProvider()`, and for string model ids once you call `assertNoDefaultProvider()` at startup.
+An agent that bills the wrong account fails silently: the call succeeds, and someone else pays for it. The `./byok` subpath, short for bring your own key, closes the three paths listed below: the environment's key, the environment's base URL and a string model id. It does so for every model built with `explicitProvider()`, and for string model ids once you call `assertNoDefaultProvider()` at startup.
+
+The address is whatever `baseURL` you pass, and any https host that meets the rules below is accepted. An app that takes a base URL from a user can therefore still send that user's key where the user points. Choose the address in your code.
 
 A model built any other way, such as with `createAnthropic()` or the `gateway` that `ai` exports, is not checked, so build every model with `explicitProvider()`. Neither function is a security boundary against your own code: code that can write to `globalThis` can install any provider before the assertion runs.
 
@@ -37,11 +39,18 @@ Build the answerer once for each key and keep it. Its spend is what the cap coun
 
 `assertNoDefaultProvider()` sets the AI SDK's default provider to one that refuses every model. After that, `generateText`, `streamText` or a `prepareStep` that names a model by string throws a `SafetyError` with the code `default_provider` before any request. Call it once at startup. It defines the setting as read-only, so later code that assigns another default provider throws in strict mode, which every ES module uses, and is ignored silently in sloppy mode.
 
-The property stays configurable, so code can still delete it. Treat this as a second tripwire only, and rely on the startup call. If another default provider is already set, it throws `default_provider` too.
+The property stays configurable, so code can still delete it. The setting is `globalThis.AI_SDK_DEFAULT_PROVIDER`, so rely on the startup call and not on the assignment error. If another default provider is already set, it throws `default_provider` too.
 
 ## What a bad key or address throws
 
-`explicitProvider()` throws `invalid_byok_config` for a missing key, a key with surrounding whitespace or a control character, and a base URL that is not safe. The base URL must use https, with plain http allowed only on a loopback host for a local proxy. It must not be Vercel AI Gateway, and a Cloudflare AI Gateway address must name the provider's own endpoint.
+`explicitProvider()` throws `invalid_byok_config` for a missing key, a key with surrounding whitespace or a control character, and a base URL that breaks a rule. The base URL must:
+
+- be an absolute URL that uses https, with plain http allowed only on a loopback host for a local proxy;
+- carry no user name, password, query or fragment;
+- hold no encoded `/` or `\` in its path, and not end its host in a dot;
+- not be Vercel AI Gateway.
+
+A Cloudflare AI Gateway address must also name the provider's own endpoint.
 
 ## The egress guard checks each request
 

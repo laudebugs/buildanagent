@@ -7,11 +7,11 @@ You will stop an agent loop before the model call that would pass a spending cap
 
 The cap is a pre-call estimate, not a hard limit. The input side of the estimate can run low, a call lost to a network error is charged nothing, and a session total shared by several processes can be passed. The sections below say when.
 
-A loop that checks its spend after each response stops only once a response has already crossed the cap. The AI SDK's `stopWhen` counts steps, not dollars. A cost guard checks before the call instead. It projects a high estimate of what the call can cost, and it refuses to send the call if the spend so far plus that projection would pass the cap.
+A loop that checks its spend after each response stops only once a response has already crossed the cap. The AI SDK's `stopWhen` counts steps, not dollars. A cost guard checks before the call instead. It projects the most the call can cost, using an input estimate that can run low, and it refuses to send the call if the spend so far plus that projection would pass the cap.
 
 ## Build every model from the guarded provider
 
-The guard checks only the calls that pass through it. A model that you build another way, such as with `createAnthropic()`, never reaches the guard. So does a model that `prepareStep` switches to, unless it comes from the same guarded provider. A string model id such as `"anthropic/claude-haiku-5-5"` escapes it too, because the AI SDK resolves the id through its default provider. The [own-key guard](/agent-safety/own-key/) makes such an id throw.
+The guard checks only the calls that pass through it. A model that you build another way, such as with `createAnthropic()`, never reaches the guard. Neither does a model that `prepareStep` switches to, unless it comes from the same guarded provider. A string model id such as `"anthropic/claude-haiku-5-5"` escapes it too, because the AI SDK resolves the id through its default provider. The [own-key guard](/agent-safety/own-key/) makes such an id throw.
 
 The guard also caps language models only. `guardedProvider()` passes embedding, image, transcription, speech and reranking models through unguarded, so their calls are never counted.
 

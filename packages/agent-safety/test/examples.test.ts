@@ -12,7 +12,7 @@ import { pauseForApproval, refusalBeforeRun } from "../examples/approval-check.j
 import { cappedAnswer } from "../examples/capped-answer.js";
 import { declinedRefund, refund } from "../examples/outcome-tool.js";
 import { answererForKey } from "../examples/own-key-capped.js";
-import { type RefundApi, RefundDeclined, refundTool } from "../examples/quick-start.js";
+import { type RefundApi, RefundDeclined, refundTool, refundTwice } from "../examples/quick-start.js";
 import { type Payments, type RefundInput, refundOnce } from "../examples/refund-once.js";
 import { refundPlan } from "../examples/refund-plan.js";
 
@@ -284,4 +284,12 @@ test("a person's answer is not signed: flipping a stored denial to allow still v
   const pending = await pauseForApproval(refundCall, signer);
   assert.equal(await refusalBeforeRun(pending, "deny", refundCall, signer), "denied");
   assert.equal(await refusalBeforeRun(pending, "allow", refundCall, signer), undefined);
+});
+
+test("the quick start's run asks twice and gets the same text twice from one request to the API", async () => {
+  const payments = quickPayments();
+  const [first, second] = await refundTwice(payments);
+  assert.equal(first, second);
+  assert.match(first ?? "", /^The refund_create call took effect\./);
+  assert.equal(payments.keys.length, 1);
 });

@@ -72,13 +72,13 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12d | The figure pipeline and figures 1 and 2, `package-map` and `run-loop` | L12a | M | Opus (tooling, untrusted-SVG sanitising) |
 | L12e | The version tag, the `next.` banner, the `@alpha` install-line test, the "Docs for main" link | L12b | S | Sonnet |
 | L12f | The API reference for the four packages and its measurements | L12c | S to M | Sonnet |
-| L12g | The protocol and CLI pages, their examples and figure 9, plus a quick start for each package and CLI transcripts from real runs ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25); [merged in #433, 2026-11-26](../done/L12g-docs-protocol-cli-pages.md)) | L12d, L12f | M | Sonnet |
-| L12h | Harness pages, part 1 (overview, sessions, context, tools) and figure 7, plus the harness quick start and a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25); [merged in #435](../done/L12h-docs-harness-pages-1.md)) | L12g | M | Sonnet |
-| L12i | Harness pages, part 2 (permissions, sandbox, server, extensions) and figure 8, plus a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25); [merged in #437](../done/L12i-docs-harness-pages-2.md)) | L12h | M | Sonnet (Opus for any run of the sandbox and credentials example) |
-| L12j | The agent-safety pages and examples, plus a quick start and a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25); [done](../done/L12j-docs-agent-safety-pages.md)) | L12f | M | Sonnet |
+| L12g | The protocol and CLI pages, their examples and figure 9, plus a quick start for each package and CLI transcripts from real runs ([amended 2026-11-25](#amendments-to-the-sub-todos-2026-11-25); [merged in #433, 2026-11-26](../done/L12g-docs-protocol-cli-pages.md)) | L12d, L12f | M | Sonnet |
+| L12h | Harness pages, part 1 (overview, sessions, context, tools) and figure 7, plus the harness quick start and a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-2026-11-25); [merged in #435](../done/L12h-docs-harness-pages-1.md)) | L12g | M | Sonnet |
+| L12i | Harness pages, part 2 (permissions, sandbox, server, extensions) and figure 8, plus a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-2026-11-25); [merged in #437](../done/L12i-docs-harness-pages-2.md)) | L12h | M | Sonnet (Opus for any run of the sandbox and credentials example) |
+| L12j | The agent-safety pages and examples, plus a quick start and a "Problems and fixes" section ([amended 2026-11-25](#amendments-to-the-sub-todos-2026-11-25); [done](../done/L12j-docs-agent-safety-pages.md)) | L12f | M | Sonnet |
 | L12k | `file=` fences on the existing pages, the gateway page and figures 3 to 6 ([done](../done/L12k-docs-fences-gateway-figures.md)) | L12d | M | Sonnet |
 | L12l | Markdown twins, `llms.txt`, `llms-full.txt`, "Copy as Markdown" and, if 9a is yes, `context7.json` | L12b | M | Sonnet |
-| L12m | The CSP `_headers` file with script hashes, a stated `style-src` decision, a 1,900-character limit on the CSP line, and its test ([amended 2026-11-25](#amendments-to-the-sub-todos-that-have-not-started-2026-11-25)) | L12b, L12l | S to M | Opus (security) |
+| L12m | The CSP `_headers` file with script hashes, a stated `style-src` decision, a 1,900-character limit on the CSP line, and its test ([amended 2026-11-25](#amendments-to-the-sub-todos-2026-11-25)) | L12b, L12l | S to M | Opus (security) |
 | L12n | The docs-writing.md rules for diagrams, callouts and tabs | None | S | Sonnet |
 | L12o | The docs home page redesign: it leads readers to the quick starts of the gateway, SDK, agent-safety, protocol, harness and CLI, as design A: six package cards and no illustration | L12a, L12b | M | Sonnet |
 | L12p | One shared header source for the book, the docs and the site: links Docs, Manual, Site and GitHub, plus each site's mark and wordmark ([DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22)) | L12b | S to M | Sonnet (Opus if it touches a shared package's build) |
@@ -117,23 +117,23 @@ Setting `sidebar: "modules"` on `@buildanagent/harness` keeps all 965 built page
 
 **L12i progress (2026-11-26).** L12i is done in [its own todo](../done/L12i-docs-harness-pages-2.md) and merged in pull request #437: the Harness topic gains four pages (permissions, sandbox and credentials, server and clients, extensions), figure 8, `sandbox-egress`, and fourteen new Problems and fixes entries, each naming its error code where it has one. It found three rough edges beyond those in todo L12h1, recorded in todo L12i1.
 
-**L12j progress (2026-11-26).** L12j is done in [its own todo](../done/L12j-docs-agent-safety-pages.md) and awaits merge in pull request #438: the docs gain an "Agent safety" topic with six pages, among them a quick start that the home card leads to and a Problems and fixes page with fourteen entries. It found three rough edges in the package's API, recorded in todo L12j1.
+**L12j progress (2026-11-26).** L12j is done in [its own todo](../done/L12j-docs-agent-safety-pages.md) and awaits merge in pull request #438: the docs gain an "Agent safety" topic with six pages, among them a quick start that the home card leads to and a Problems and fixes page with fourteen entries. It found four rough edges in the package's API, recorded in todo L12j1.
 
 **L12p progress (2026-11-24).** L12p is done in [its own todo](../done/L12p-shared-header-source.md). `apps/manual` exports `./site-chrome` from `src/design/site-chrome.json`, holding the brand, repository URL, cross-site links (Docs, Manual, Site, GitHub), site wordmarks and inline prompt mark. `apps/manual`, `apps/docs` and `apps/site` all render their headers from that single source and test the built header against it. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12p-1` to `L12p-4`.
 
-### Amendments to the sub-todos that have not started (2026-11-25)
+### Amendments to the sub-todos (2026-11-25)
 
-A direct read of the Lamina PDF repository ([the comparison](#the-lamina-pdf-comparison)) adds the requirements below to L12g, L12h, L12i, L12j and L12m. L12g to L12j have copied their amendments into their todo files, and whoever creates L12m's file copies its amendments in.
+A direct read of the Lamina PDF repository ([the comparison](#the-lamina-pdf-comparison)) added the requirements below to L12g, L12h, L12i, L12j and L12m. L12g to L12j have copied their amendments into their todo files, and whoever creates L12m's file copies its amendments in.
 
-**L12g (protocol and CLI pages) gains three requirements.**
+**L12g (protocol and CLI pages) gained three requirements, all met.**
 
-- **A quick start for each package.** The protocol and the CLI each get a first-run page built from one runnable example. Their home cards lead to the API reference today, and L12g moves them to the new pages; `apps/docs/test/home.test.ts` checks the targets.
+- **A quick start for each package.** The protocol and the CLI each get a first-run page built from one runnable example. Their home cards led to the API reference, and L12g moved them to the new pages; `apps/docs/test/home.test.ts` checks the targets.
 - **CLI transcripts from real runs.** Every terminal session a CLI page shows comes from a committed transcript, and a test in `packages/cli/test/` runs the command and compares its output. The requirement is met when a changed CLI output fails that test until the transcript is rewritten, and a docs test fails on a typed session: a `console` fence, or a shell block with a `$ ` prompt, that names no transcript. Install lines stay under `install-lines.test.ts`. Lamina PDF made this change after it found 16 hand-pasted transcripts that no check ran. The work adds about one sitting (size S); split it out if L12g grows past one review.
-- **API friction is recorded.** When an example needs a workaround to read well, the todo's outcome names the workaround and opens a fix or a todo for the package. L12h, L12i and L12j carry the same requirement.
+- **API friction is recorded.** When an example needs a workaround to read well, the todo's outcome names the workaround and opens a fix or a todo for the package. L12h, L12i and L12j carried the same requirement.
 
-**L12h and L12i (harness pages) each gain a "Problems and fixes" section.** Each section holds at least three entries for its todo's areas. An entry starts from the symptom the reader sees, then gives the cause and the fix, and links its error code's entry once L12t exists. L12h also writes the harness quick start and moves the harness home card to it.
+**L12h and L12i (harness pages) each gained a "Problems and fixes" section.** Each section holds at least three entries for its todo's areas. An entry starts from the symptom the reader sees, then gives the cause and the fix, and links its error code's entry once L12t exists. L12h also writes the harness quick start and moves the harness home card to it.
 
-**L12j (agent-safety pages) gains the same two parts:** a quick start that the agent-safety home card leads to, and a "Problems and fixes" section under the same rule.
+**L12j (agent-safety pages) gained the same two parts, in pull request #438:** a quick start that the agent-safety home card leads to, and a "Problems and fixes" section under the same rule.
 
 **L12m (CSP) gains three requirements, if the owner answers yes to question 9b.**
 

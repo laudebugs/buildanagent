@@ -3,7 +3,7 @@ title: Agent safety quick start
 description: Build a refund tool that tells the model what happened and cannot refund one order twice, even when a turn is regenerated.
 ---
 
-You will build a refund tool that tells the model exactly what happened and cannot refund an order twice. You need this when a tool changes something outside your agent, such as paying out money, and a crash or a regenerated model turn could repeat the change.
+You will build a refund tool that tells the model exactly what happened and cannot refund the same order twice. You need this when a tool changes something outside your agent, such as paying out money, and a crash or a regenerated model turn could repeat the change.
 
 A write is a tool call that changes the world. Agent safety wraps each write in a record that exists before the write runs, and it reports every result as an outcome: a typed answer that says what happened and what the model may do next.
 
@@ -30,13 +30,20 @@ Where a crash must not repeat a write, pass a durable store and keep its records
 
 The `scope` says who asked: the tenant (one user), the session, the branch of the conversation and the model's tool call id. `guardedWrite()` writes a record before it calls `run`, and settles the record with the outcome after. The outcome is what `renderOutcome()` turns into the tool's result.
 
+## Run it
+
+This function asks for the same refund twice, as a regenerated turn does, and returns the text the model reads each time. Pass it your payment API, or a stub with a `refund()` method:
+
+```ts file="packages/agent-safety/examples/quick-start.ts" region="run"
+```
+
 ## See what the model reads
 
-For a refund that works, the model reads this text, and the tool result also carries the outcome's fields as a payload and `isError: false`:
+For a refund that works, the model reads this text, and the tool result also carries the outcome's fields as a payload and `isError: false`, the flag that tells the provider whether the call failed:
 
 > The refund_create call took effect. Next: Tell the user refund re_1 is issued. Do not run it again for the same request.
 
-A regenerated turn asks for the same refund under a fresh tool call id. The business key maps both calls to one effect key, so `guardedWrite()` finds the first record, sends nothing and returns the first outcome. The payment API sees one request.
+A regenerated turn asks for the same refund under a fresh tool call id. The business key maps both calls to one effect key, so `guardedWrite()` finds the first record, sends nothing and returns the first outcome. The payment API sees one request. A business key names one operation for good, so a second legitimate refund of the same order needs a new business key.
 
 ## See a declined refund
 

@@ -4,6 +4,7 @@ import {
   type EffectScope,
   type EffectStore,
   guardedWrite,
+  memoryEffectStore,
   type RenderedOutcome,
   renderOutcome,
   writeOutcome,
@@ -59,5 +60,17 @@ export async function refundTool(
     },
   });
   return renderOutcome(outcome);
+}
+// #endregion
+
+// #region run
+/** Asks for the same refund twice, as a regenerated turn does, and returns the text the model reads each time. */
+export async function refundTwice(api: RefundApi): Promise<string[]> {
+  const store = memoryEffectStore();
+  const input = { orderId: "o-42", amountCents: 1250 };
+  const scope = (toolCallId: string) => ({ tenant: "ada", session: "chat-1", branch: "main", toolCallId });
+  const first = await refundTool(store, scope("call-1"), api, input);
+  const second = await refundTool(store, scope("call-2"), api, input);
+  return [first.text, second.text];
 }
 // #endregion

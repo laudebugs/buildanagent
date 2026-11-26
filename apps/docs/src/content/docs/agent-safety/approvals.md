@@ -27,7 +27,7 @@ The signer is an `ApprovalSigner`, an object that signs and verifies with HMAC-S
 ```ts file="packages/agent-safety/examples/approval-check.ts" region="resume"
 ```
 
-A host that runs calls for more than one caller can bind a request to the caller's data, such as the signed-in customer, by passing `app` to `signPending()`. The signature then covers a keyed hash of that data, so a resume as another caller fails. The causes are these, in the order the check finds them:
+A host that runs calls for more than one caller can bind a request to the caller's data, such as the signed-in customer, by passing `app` to `signPending()` and `verifyResolution()`. The signature then covers a keyed hash of that data, so a resume as another caller fails. This binding works in the manual flow only: `signedToolApproval()` passes no `app`. The causes are these, in the order the check finds them:
 
 - `malformed`: the stored request is not a well-formed pending request.
 - `unknown_request`: the answer names another request.
@@ -57,7 +57,15 @@ If you use the AI SDK, `signedToolApproval()` from `@buildanagent/agent-safety/a
 
 By default, `memoryPendingStore()` drops each request 24 hours after it was stored. Set `maxAgeMs` to change that, and make a durable store expire requests too.
 
-Like the manual check, the adapter does not sign the person's answer. It counts any approval response in the history that approves a known request as the person's yes. Set the AI SDK's own `experimental_toolApprovalSecret` as well. That setting adds a second check, signed with one secret, and it throws `InvalidToolApprovalSignatureError` for a bad signature instead of denying the call.
+Like the manual check, the adapter does not sign the person's answer. It treats a call as approved when the last message of the history is a tool message that holds an approved response, and that response's approval id matches a request in an earlier assistant message. Those entries are unsigned history, not the stored signed request, so a forger needs only to write that message. The adapter then checks the stored request, so the forger still cannot change the call.
+
+Set the AI SDK's own `experimental_toolApprovalSecret` as well. That setting adds a second check, signed with one secret, and it throws `InvalidToolApprovalSignatureError` for a bad signature instead of denying the call.
+
+The adapter has three more limits:
+
+- It cannot bind a caller, because it passes no `app`.
+- The store is keyed by the call id alone, so two conversations that share a store and reuse a call id replace each other's requests. Give each conversation its own store.
+- It takes the request on every approved resume, even when the check then fails, so a forged approval uses up the real request and the model has to ask again.
 
 The [package README](https://github.com/laudebugs/buildanagent/blob/main/packages/agent-safety/README.md) covers the adapter, its stores and the Cloudflare differences.
 

@@ -15,7 +15,7 @@ Give `@buildanagent/agent-safety` a written topic of its own: a quick start that
 
 ## Context
 
-- [L12](../ongoing/L12-docs-redesign.md), its [amendments of 2026-11-25](../ongoing/L12-docs-redesign.md#amendments-to-the-sub-todos-that-have-not-started-2026-11-25) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the plan and the added requirements. DS5 names no figure for agent-safety, so this todo draws none.
+- [L12](../ongoing/L12-docs-redesign.md), its [amendments of 2026-11-25](../ongoing/L12-docs-redesign.md#amendments-to-the-sub-todos-2026-11-25) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the plan and the added requirements. DS5 names no figure for agent-safety, so this todo draws none.
 - [L12g](../done/L12g-docs-protocol-cli-pages.md), [L12h](../done/L12h-docs-harness-pages-1.md) and [L12i](../done/L12i-docs-harness-pages-2.md): the templates for this todo, with their review lessons.
 - [L12q](../done/L12q-docs-examples.md): the bring-your-own-key guard example this todo's pages quote.
 - [docs-writing.md](../../guidelines/docs-writing.md) and [examples.md](../../guidelines/examples.md): the page and example rules.
@@ -70,14 +70,14 @@ The L12 todo's table and "L12j progress", and the plan's todo table.
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check` and `pnpm typecheck` pass locally for the files this change touches; pushed after each meaningful step
 - [x] This file moved `ongoing/` -> `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+- [x] Two code-review rounds run on the pull request: the first (high) found 15, the second (medium) 4 and (low) 3, all fixed
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed; the scores are in the pull request description
 
 ## Outcome
 
 - **Pages.** A new "Agent safety" topic after Harness holds six pages: `agent-safety/quick-start`, `outcomes`, `approvals`, `cost-cap`, `own-key` and `problems-and-fixes`. The home card, the reference index (through `readmes/agent-safety.md`) and the package's `@module` comment lead to the quick start, and a patch changeset covers the TSDoc change. DS5 names no agent-safety figure, so none was drawn.
-- **Examples.** New: `quick-start.ts` (region `tool`), `approval-check.ts` (`pause`, `resume`) and `outcome-tool.ts` (`declined`, `tool`). Regions were added to `capped-answer.ts` (`answer`). `own-key-capped.ts` supplies the own-key page. Thirteen new tests in `examples.test.ts` run them offline, and `problem-messages.test.ts` makes the package throw each of the 15 error messages and checks that the Problems and fixes page quotes it.
+- **Examples.** New: `quick-start.ts` (region `tool`), `approval-check.ts` (`pause`, `resume`) and `outcome-tool.ts` (`declined`, `tool`). Regions were added to `capped-answer.ts` (`answer`). `own-key-capped.ts` supplies the own-key page. Fourteen new tests in `examples.test.ts` run them offline, and `problem-messages.test.ts` has 16 tests, 15 of which make the package throw one of the 15 error messages and check that the Problems and fixes page quotes it.
 - **Problems and fixes.** Fourteen entries in four areas (outcomes and hashes, approvals and keys, guarded writes, model calls and the cost cap), each naming its code. Twelve entries name a thrown `SafetyError` code, a member of `SafetyErrorCode`. Two name a cause that `verifyResolution()` returns, a member of `RejectionCause` (`signature_invalid` and `input_changed`, with `call_mismatch` mentioned): it throws nothing. `problems.test.ts` lets only the agent-safety page name a cause.
 - **Scope.** Plans (`runPlan()`), the durable effect stores and the Cloudflare adapters stay in the README; the pages link to it.
-- **Friction.** Three rough edges, recorded in [L12j1](../ready/L12j1-agent-safety-docs-example-friction.md): `onError` must return an outcome for every error, so the quick start rethrows; `verifyResolution()` reports a denial as `ok: true`, so the approval example merges the decision and the cause; and `signedToolApproval()` has no tested example.
-- Claims are in the fact-check log, rows L12j-1 to L12j-69.
+- **Friction.** Four rough edges, recorded in [L12j1](../ready/L12j1-agent-safety-docs-example-friction.md): `onError` must return an outcome for every error, so the quick start rethrows; `verifyResolution()` reports a denial as `ok: true`, so the approval example merges the decision and the cause; `signedToolApproval()` has no tested example; and the adapter passes no `app`, so it cannot bind a caller.
+- Claims are in the fact-check log, rows L12j-1 to L12j-73.
