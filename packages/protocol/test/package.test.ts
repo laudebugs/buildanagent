@@ -27,9 +27,9 @@ function findTsc(): string {
 }
 
 /**
- * The folder of the `node` that `tsc`'s `#!/usr/bin/env node` should find. Under Node it is the running binary's folder.
- * Under Bun the running binary is `bun`, so it is the first folder on the inherited PATH that holds a `node`; only that
- * one folder is passed on.
+ * The folder of the `node` that pnpm's `node_modules/.bin/tsc` wrapper runs, since it calls `exec node` on PATH. Under
+ * Node it is the running binary's folder. Under Bun the running binary is `bun`, so it is the first folder on the
+ * inherited PATH that holds a `node`; only that one folder is passed on.
  */
 function nodeDir(): string {
   if (process.versions.bun === undefined) return dirname(process.execPath);
