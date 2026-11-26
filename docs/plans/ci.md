@@ -195,6 +195,62 @@ Know before you go on. Leave DNS Write off the token: if the first deploy fails 
 
 **What no session could verify.** Nothing has been deployed, so these are untested: a preview with `workers_dev = false` and `preview_urls = true` getting a `workers.dev` address (Cloudflare's docs say `preview_urls` turns on `workers.dev` Preview URLs, but the `previews` page says a Preview needs at least one host enabled); `wrangler preview --env ""` with `--ignore-base-config`, which the Previews configuration page does not describe; `commits/{sha}/pulls` returning an open pull request from a branch of this repository; the claim in each `wrangler.toml` that `404-page` serves the nearest `404.html` with status 404, which the pages L8 read do not state; and whether the first deploy needs a DNS permission.
 
+## 3h. Bun runtime compatibility, measured (X6, added 2026-11-26)
+
+The owner asked whether the repository supports Bun. It didn't: `package.json`'s `engines` names only `node: ">=22"`, and [ADR 0033](../decisions/0033-three-deployment-targets.md) fixes four deployment targets, local Node, Cloudflare, AWS and Vercel, with Bun named as a candidate for none of them. [`runtime-portability.md`](../research/deployment/notes/runtime-portability.md) had already profiled Bun on paper: strong Node compatibility, a real subprocess API. The portable-agents report's recommendation 7 went further, proposing to type the stdio transport over Web streams so "Deno, Bun and Workers" could reuse it later. Neither had ever run the code. X6 measured whether our own code runs under Bun today, without deciding to add it as a target (that needs its own ADR, since 0033 closed the list) or to allow it as a package manager (AGENTS.md keeps pnpm only).
+
+**Method.** `pnpm install` still manages dependencies. Bun 1.4.4 (published 2026-10-22, pinned in `.bun-version`) then runs the already-installed code in Node's place: `bun --bun x tsc` for a typecheck, `bun --bun x vitest run` for a package's tests, `bun scripts/<file>.mjs` for a harness's own scripts, and `bun test` for a `node:test` file. (Its own CLI, not `node --test`'s flag, is what runs one — `bun --test <file>` fails outright, `Cannot use test outside of the test runner`.) Node here is v24.19.0, not `.nvmrc`'s pinned 22, since that is what this machine runs; the comparison is Bun 1.4.4 against Node 24.19.0, not against the pinned minimum. Every result was cross-checked against the same command under Node on the same machine, so a failure that already happens under Node is not counted as Bun's.
+
+**A first pass used `bun x` without `--bun`, which runs a tool through its own `#!/usr/bin/env node` shebang under Node, not Bun; that pass's "all clean" claim for the packages and `apps/manual` was wrong, because it had measured Node twice. The numbers below are the corrected, `--bun`-forced run.** `bun test`, which is Bun's own test runner rather than a shebang-launched tool, was unaffected by this mistake; its findings stood.
+
+**Six of eight `verify/*` harnesses run clean,** each re-checked by typecheck and example count:
+
+| Harness | Examples | Result |
+| --- | --- | --- |
+| `vercel-ai-sdk` | 17 | 17 ran, typecheck clean |
+| `claude-agent-sdk` | 10 | 10 ran, typecheck clean |
+| `openai-agents-sdk` | 14 | 14 ran, typecheck clean |
+| `pi` | 8 | 8 ran, typecheck clean |
+| `google-adk` | 9 | 9 ran, typecheck clean |
+| `langchain` | 11 | 11 ran, typecheck clean |
+| `cloudflare-agents` | 13 | 0 ran (gap 1, below) |
+| `copilot-sdk` | 10 | refuses the same way under both runtimes, needing Linux's `unshare -rn` |
+
+**Every one of the 15 `scripts/ci/*.test.mjs` files ran under `bun test`, compared against Node.** Six surface one of the nine gaps below (`catalog-staleness`: gap 4; `changeset-gate`: gap 7; `fact-check-log`: gap 8; `live-run`: gap 9; `sdk-updates`: gap 6; `transcripts`: a duplicate of gap 1). Two more failed under Bun on first look but turned out, on checking, to be pre-existing and unrelated to the runtime: `packages-pack` fails identically under Node, `Cannot find module '.../corepack/v1/pnpm/10.34.9/bin/pnpm.cjs'`, a local corepack cache/network issue; `sites-workflows` fails the same 3 of 188 tests under Node too, `date: illegal option -- d`, because its `docs-deploy.yml` step runs GNU `date -u -d '+60 seconds' ...` and this machine's `/bin/date` is BSD date, which has no `-d`. The remaining 7 (`markdown-links`, `release`, `results-drift`, `site-deploy`, `todo-ids`, `version-commit`, `version-pr`) run clean under both.
+
+**No package is clean, and the published packages carry most of the real gaps:**
+
+| Package | Tests | Fails under real Bun | Fails under Node (same run) |
+| --- | --- | --- | --- |
+| `gateway` | 496 | 4 | 0 |
+| `sdk` | 735 | 28 (+1 expected fail, 1 skip) | 1 (pre-existing, `__CF_USER_TEXT_ENCODING`) |
+| `agent-safety` | 445 | 28 (+2 skip) | 0 |
+| `harness` | 1,847 | 34 (+160 skip, up from 104) | 5 (pre-existing: a leaked `__CF_USER_TEXT_ENCODING`, a macOS symlink path, a trust-link case) |
+| `protocol` | 54 | 1 | 0 |
+| `cli` | 83 | 5 | 0 |
+| `evals` | 2 | 0 | 0 |
+| `apps/manual` | 818 | 1 | 0 |
+
+**Nine real gaps, each confirmed absent under Node on the same run, several of them touching many tests at once:**
+
+1. **Miniflare (Cloudflare's local Workers simulator) doesn't work under Bun, and this is the largest gap by test count.** `verify/cloudflare-agents`: all 13 examples return `ECONNREFUSED`. `agent-safety`'s Cloudflare- and workerd-backed tests (`test/stores/cloudflare.test.ts`, `cloudflare-approval.test.ts`, `cloudflare-interrupted.test.ts`, `cloudflare-cost-guard.test.ts`, `workerd-suite.test.ts`): 28 of its 28 failures. `harness/test/cloudflare/cloudflare.test.ts`: 1 failure. Not root-caused beyond this: Miniflare most likely spawns or dials `workerd` in a way Bun's networking or child-process layer doesn't yet support the way Node's does.
+2. **Bun has no `module.registerHooks`.** `scripts/transcripts/source-condition.mjs` calls it, and every test that goes through that module fails with `SyntaxError: Export named 'registerHooks' not found in module 'node:module'`. This breaks `sdk/test/book-examples.test.ts` in full and at least `gateway/test/book-examples.test.ts`'s four cases; `harness`'s 7 `book-examples.test.ts` failures are almost certainly the same cause, not separately confirmed.
+3. **`@earendil-works/pi-schema` doesn't resolve under Bun's handling of the workspace's `source` export condition.** `sdk/test/workerd-validator.test.ts` (a whole suite) and `cli/test/bin.test.ts` both fail with `Cannot find package '@earendil-works/pi-schema'` or `Cannot find module` for it, resolving fine under Node.
+4. **`tsx`'s loader doesn't register under Bun.** `scripts/ci/catalog-staleness.test.mjs` fails to even start, `Cannot find module 'tsx://...'`, because `tsx` hooks into Node's own loader API and Bun ships its own, separate TypeScript loading that doesn't recognize `tsx`'s scheme.
+5. **A subprocess spawned with an allowlisted environment can't find `node` on `PATH`.** `protocol/test/package.test.ts` spawns `tsc` through `execFileSync` with the allowlisted environment AGENTS.md's "Running third-party code" rule asks for; under Bun the spawned shell reports `exec: node: not found`, so `tsc`'s own `#!/usr/bin/env node` shebang has nothing to run. Not root-caused further.
+6. **`node:assert`'s `throws(fn, message)` rejects an empty message, and the test it breaks was already not checking what it claims to.** `scripts/ci/sdk-updates.test.mjs` calls `assert.throws(fn, bad)` for several `bad` inputs including `""`; Bun's shim throws `The argument 'error' may not be an empty object. Received ''`, where Node accepts an empty string as a plain failure message, not as an expected-error matcher. That same reading means the assertion was never actually checking what `parseBumps` threw for any of its cases, under either runtime; the `""` case only surfaces that, it doesn't cause it.
+7. **A directory listing comes back in a different, equally valid order.** `scripts/ci/changeset-gate.test.mjs` asserts `versionedPackageDirs()`'s result against an explicitly sorted list; the function itself calls bare `readdirSync` with no `.sort()` of its own. Every real caller of `versionedPackageDirs()` is order-insensitive (`.some`, `.filter`, a `Set`), so this is not a behavior bug in `changeset-gate.mjs`, only a fragile exact-order assertion in its test.
+8. **Bun's transpiler mangles a literal ✅ inside a `String.raw` template literal, in test source code, not in product code.** `scripts/ci/fact-check-log.test.mjs`'s two failures both come from fixtures written as `` String.raw`...✅...` ``; Bun rewrites the non-ASCII character before `String.raw` sees it, so the fixture's own text becomes the six characters `\u2705` instead of the real ✅. `fact-check-log.mjs`'s `cells()` function is not involved and behaves identically on both runtimes; only the test file's own fixtures would need rewriting to avoid the pattern.
+9. **`scripts/ci/live-run.test.mjs` has 5 confirmed Bun-only failures, 2 pre-existing, and a separate, pre-existing hang under Node.** Under Bun it runs in about 4 seconds: 43 pass, 7 fail. Under Node it finishes all 50 tests quickly too (48 pass, 2 fail) but then the process itself hangs for roughly 7 minutes before exiting with "Promise resolution is still pending but the event loop has already resolved" — a pre-existing bug in the test's own async handling, unrelated to Bun, which is why the first pass of this measurement never got a clean comparison and called the finding unconfirmed. Of the 7 Bun failures, 2 need Linux's `unshare -rn` (the same requirement as `copilot-sdk`) and fail under Node too; the other 5 are real, net-new Bun gaps, not yet individually root-caused beyond overlapping with findings 1 and 2 above.
+
+**`harness`'s other ~26 failures** (`test/server/stdio.test.ts`, `test/mcp/hardening.test.ts`, `test/server/framing-interop.test.ts`, several `*-second-process.test.ts` files, `test/sandbox/none.test.ts`, `test/extensions/skills.test.ts`, `test/capstone.test.ts`) are not individually root-caused here; some are likely instances of findings 1 or 2, some may be new. The jump from 104 to 160 skipped tests under Bun suggests at least one test file's `describe`/setup itself throws before its cases register, hiding further failures that a `skip` count alone doesn't show.
+
+**Proposed, for the owner (none applied):**
+
+1. Keep Bun unsupported. The gaps are not small: the two biggest, Miniflare/workerd and `module.registerHooks`, touch every published package that has Cloudflare-backed tests or book examples, which is most of them.
+2. If Bun support is wanted later, it needs real investigation, not a quick fix. A reasonable split: the Miniflare/workerd gap (likely needs an upstream fix or a Bun-specific workaround in how Miniflare is invoked); `module.registerHooks` (needs a Bun-compatible alternative to `source-condition.mjs`'s approach, or an upstream Bun feature request); the `pi-schema` resolution gap; the `tsx` loader; the allowlisted-`PATH` gap in `protocol`; the `sdk-updates` test's real bug (fix the assertion to actually check the thrown error, independent of Bun); the `fact-check-log.test.mjs` fixture rewrite; and a full root-cause of `harness`'s remaining ~26 failures, which this measurement didn't have the scope to finish.
+3. A Bun CI job is not realistic until the above lands; as measured, it would fail across six of seven packages.
+
 ## 4. Todos
 
 | ID | Title | Depends on |
@@ -204,6 +260,7 @@ Know before you go on. Leave DNS Write off the token: if the first deploy fails 
 | X3 | Run every harness's doc type-check on the root TypeScript 7.0.2; a stale 5.9.3 shim in the Cloudflare harness caused the runner drift (done) | X1 |
 | X4 | Seed `Math.random` in the Google ADK doc preload: `graphs/retry/get_started` fails at random by design and errored on the runner (done) | X3 |
 | [X5](../todos/done/X5-repository-link-check.md) | Check every relative link and anchor in the repository's Markdown (done; its `ci.yml` line awaits the owner) | None |
+| [X6](../todos/done/X6-bun-runtime-compatibility.md) | Measure whether the repository's code runs under Bun (§3h, done) | None |
 
 ## 5. Risks
 

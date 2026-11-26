@@ -120,7 +120,7 @@ Rules that apply throughout:
 
 The repo is a pnpm workspace. Run every command from the repo root unless a README says otherwise.
 
-- **Toolchain.** Node 22 (`.nvmrc`) and pnpm 10.34.9 (`packageManager` in `package.json`). Install with `pnpm install` at the root; never use npm or yarn, and never commit a `package-lock.json`.
+- **Toolchain.** Node 22 (`.nvmrc`) and pnpm 10.34.9 (`packageManager` in `package.json`). Install with `pnpm install` at the root; never use npm or yarn, and never commit a `package-lock.json`. Bun is not a supported runtime or package manager; `.bun-version` pins the exact version a 2026-11-26 measurement tested (CI plan §3h), kept only so that measurement can be repeated against the same build.
 - **Workspace layout.** `pnpm-workspace.yaml` lists `apps/*`, `packages/*` and `verify/*`. Shared dev tools (TypeScript, tsx, Vitest, `@types/node`, Biome) live in the root `package.json`. Each package declares only the runtime dependencies it imports, because pnpm does not hoist undeclared packages.
 - **Versions.** Pin every dependency exactly (`.npmrc` sets `save-exact`). Choose releases at least one week old (changed from two weeks on 2026-11-18). One exception overrides the age rule: when a pinned dependency has a known vulnerability, move it to the latest release that fixes it, however new, and record the alert in the upgrade commit. Allow dependency build scripts only through `onlyBuiltDependencies` in `pnpm-workspace.yaml`.
 - **TypeScript.** ESM everywhere (`"type": "module"`). Packages extend `tsconfig.packages.json`, which adds seven strict flags to `tsconfig.base.json` (strict, ES2024); `verify/*` extends the base only. Harness scripts are `.mjs`; example programs are `.ts`, run with tsx.
