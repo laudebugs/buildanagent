@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T56` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [T15](../done/T15-chapter-memory-and-sessions.md) |
