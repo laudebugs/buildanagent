@@ -72,8 +72,8 @@ The L12 todo's table and "L12i progress", and the plan's todo table.
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check` and `pnpm typecheck` pass locally for the files this change touches; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
+- [x] Two code-review rounds run on the pull request, with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed
 
 ## Outcome
 
@@ -81,5 +81,5 @@ The L12 todo's table and "L12i progress", and the plan's todo table.
 - **Figure 8.** `sandbox-egress` on the sandbox page: the sandbox holds a placeholder, the egress proxy on the host swaps in the secret and refuses unlisted hosts.
 - **Examples.** New: `permission-rules.ts` (regions `rules`, `decide`), `egress-proxy.ts` (`policy`, `proxy`, `refused`) and `project-extensions.ts` (`load`), each with a test in `packages/harness/test/examples/`. The triage pause the page shows is tested by the capstone. Regions were added to `triage-session.ts` (`pause`, `answer`), `in-process-client.ts` (`client`) and `audit-extension.ts` (`audit`). Every example runs offline on a scripted model, the fake sandbox and loopback; no live sandbox or credential run was needed, so no Opus run was.
 - **Problems and fixes.** Thirteen new entries in four areas (three on permissions, four on the sandbox and credentials, three on the server, three on extensions), each naming its error code where it has one. The docs test lists the seven new codes.
-- **Friction.** Three rough edges, recorded in [L12i1](../ready/L12i1-harness-docs-example-friction.md): the permission pipeline takes a registry even for rules that name tools by name, no example fires the in-process client's approval handler (its handler sits in a top-level script, so the page adds a caution instead of a test), and the fake sandbox reports the `os` tier. The sandbox page shows the fake sandbox, because a real backend needs a real sandbox.
-- Claims are in the fact-check log, rows L12i-1 to L12i-45.
+- **Friction.** Three rough edges, recorded in [L12i1](../ready/L12i1-harness-docs-example-friction.md): the permission pipeline takes a registry even for rules that name tools by name, no example fires the in-process client's approval handler (its scripted turn calls no tool, so the handler never fires; the page adds a caution instead of a test), and the fake sandbox reports the `os` tier. The sandbox page shows the fake sandbox, because a real backend needs a real sandbox.
+- Claims are in the fact-check log, rows L12i-1 to L12i-51.

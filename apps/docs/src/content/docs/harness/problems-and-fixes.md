@@ -1,6 +1,6 @@
 ---
 title: Problems and fixes
-description: Twenty-three problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
+description: Problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
 ---
 
 You will find twenty-three problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
@@ -99,9 +99,9 @@ If the writer died on the same host, you need not remove anything: its lock beco
 
 **You see.** A call to a tool does not run. Its denial reads `No rule covers this call and nobody can be asked, so it is refused.`, and the log's permission decision entry for the call carries the same reason.
 
-**Cause.** The permission pipeline has `interactive: false`, so nobody can answer a question, and no deny, ask or allow rule names the tool. With no host callback, such a call is denied.
+**Cause.** The pipeline has `interactive: false` and no rule names the tool, so the call is denied. The [permissions page](/harness/permissions/) explains why.
 
-**Fix.** Add an allow rule for the tool, as the [permissions page](/harness/permissions/) shows. If a person can answer, set `interactive: true` and the call asks instead.
+**Fix.** Add an allow rule for the tool. If a person can answer, set `interactive: true` and the call asks instead.
 
 ### Answering an approval throws `approval_unavailable`
 
