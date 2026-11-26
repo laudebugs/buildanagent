@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X10` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [CI §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) |
 | Round / milestone | Round X (CI) |
 | Depends on | X6 |
@@ -35,15 +35,15 @@
 
 ## Tasks
 
-- [ ] Read `catalog-staleness.test.mjs` and trace which import needs `tsx`'s loader.
-- [ ] Confirm Bun resolves the same `.ts` import natively, with no loader.
-- [ ] Remove or guard the `tsx` loader registration so both runtimes import the file correctly.
-- [ ] Run `catalog-staleness.test.mjs` under both `node --test` and `bun test`.
-- [ ] Check the other 14 `scripts/ci/*.test.mjs` files for the same `tsx` dependency; note any found in the PR, even if not fixed here.
+- [x] Read `catalog-staleness.test.mjs` and trace which import needs `tsx`'s loader.
+- [x] Confirm Bun resolves the same `.ts` import natively, with no loader.
+- [x] Remove or guard the `tsx` loader registration so both runtimes import the file correctly.
+- [x] Run `catalog-staleness.test.mjs` under both `node --test` and `bun test`.
+- [x] Check the other 14 `scripts/ci/*.test.mjs` files for the same `tsx` dependency; note any found in the PR, even if not fixed here.
 
 ## Acceptance criteria
 
-- [ ] `scripts/ci/catalog-staleness.test.mjs` passes under both Node and Bun.
+- [x] `scripts/ci/catalog-staleness.test.mjs` passes under both Node and Bun.
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node.
 
 ## Tests
@@ -61,9 +61,22 @@ The existing `catalog-staleness.test.mjs` is the evidence; no new tests, just a 
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`scripts/ci/catalog-staleness.test.mjs` now starts and passes under Bun, because Bun imports the gateway catalog with no `tsx` loader.
+
+- **Cause.** The test loaded `packages/gateway/src/catalog.ts` with a static `import { tsImport } from "tsx/esm/api"`. `tsx` registers hooks on Node's module loader, so under Bun the import failed with `Cannot find module 'tsx://...'`, and the run ended at 0 pass, 1 fail, 1 error. Node needs `tsx` here because the source's relative imports use `.js` specifiers that Node's type stripping doesn't map back to `.ts`.
+- **Fix.** Commit `f83841de` replaces the static import with `process.versions.bun ? await import(CATALOG) : await (await import("tsx/esm/api")).tsImport(CATALOG, import.meta.url)`, with a comment that gives the reason. Bun resolves the `.js` specifiers itself: a one-line Bun script importing the file returned a `staleCatalogEntries` function.
+- **Runs (Bun 1.4.4).** `node --test scripts/ci/catalog-staleness.test.mjs` passes 6 of 6, and `bun test` passes 6 of 6 in three runs.
+- **Other files.** Two more files use `tsx`, and neither calls `tsImport`, so this fix doesn't apply: `transcripts.test.mjs:209` passes `--import tsx` to a spawned `node`, and `live-run.test.mjs:536` resolves `tsx` to run child processes. The other 12 test files don't mention it. Gaps 1 to 9 other than gap 4 stay with their own todos.
+- **Docs.** [CI §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) gap 4 records the fix, the todo table shows X10 as done, and fact-check rows X10-1 to X10-5 in [`fact-check-ci.md`](../../plans/reviews/fact-check-ci.md) cover the new claims.
+- **Checks.** The `pnpm check`, `pnpm typecheck` and `pnpm test` box stays unticked. `pnpm check` and `pnpm typecheck` pass locally, but the root `pnpm test` stops at `verify/copilot-sdk` on macOS, which lacks `unshare`, so CI runs it.
+
+The two code-review rounds and the writing review are still to run on the pull request.
