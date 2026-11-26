@@ -24,7 +24,9 @@ The tool below refunds an order through a payment API. The API dedupes by an ide
 ```ts file="packages/agent-safety/examples/quick-start.ts" region="tool"
 ```
 
-The example keeps its records in `memoryEffectStore()`, which lives and dies with the process. A restarted process forgets every record and could refund the order again. Where a crash must not repeat a write, pass a durable store instead; the [package README](https://github.com/laudebugs/buildanagent/blob/main/packages/agent-safety/README.md) lists the stores for Durable Object SQLite, DynamoDB and Postgres.
+The example keeps its records in `memoryEffectStore()`, which lives and dies with the process. A restarted process forgets every record, including the knowledge that an earlier attempt was rejected or left unknown. The same key still reaches the payment API, which ignores a repeat only inside its own idempotency window, and an API with no idempotency keys would refund twice. A store that drops records early has the same effect.
+
+Where a crash must not repeat a write, pass a durable store and keep its records longer than that window; the [package README](https://github.com/laudebugs/buildanagent/blob/main/packages/agent-safety/README.md) lists the stores for Durable Object SQLite, DynamoDB and Postgres.
 
 The `scope` says who asked: the tenant (one user), the session, the branch of the conversation and the model's tool call id. `guardedWrite()` writes a record before it calls `run`, and settles the record with the outcome after. The outcome is what `renderOutcome()` turns into the tool's result.
 

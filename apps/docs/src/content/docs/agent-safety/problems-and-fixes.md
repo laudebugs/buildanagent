@@ -23,7 +23,7 @@ Twelve entries are thrown errors, each a `SafetyError` that carries a `code` pro
 
 **Cause.** Each kind of outcome allows only some retry rules. An `applied` outcome allows only `never`, because the write took effect and a retry would repeat it. TypeScript flags the same mistake when the kind is a literal.
 
-**Fix.** Leave `retry` out to take the kind's default, or pick a rule from the table on the [write outcomes](/agent-safety/outcomes/) page.
+**Fix.** Leave `retry` out to take the kind's default, or pick a rule from the list of kinds and retry rules on the [write outcomes](/agent-safety/outcomes/) page.
 
 ### A `partial` or `unknown` outcome throws `invalid_outcome` about an effect key
 

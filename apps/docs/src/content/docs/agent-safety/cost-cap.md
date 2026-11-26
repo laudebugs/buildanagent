@@ -26,15 +26,18 @@ This function builds a guard with a cap of 0.5 USD, wraps a provider in it and a
 
 The projection prices every input token at the model's dearest input rate and adds the call's output limit at the output rate.
 
-The input side is an estimate, not a bound. The guard counts 2.5 characters to a token as of November 2026, which errs high on Anthropic's tokenizer, and it uses the usage that an earlier call reported where it can. That limit is the call's `maxOutputTokens`, or the catalog's limit for the model when the call sets none. Pass `maxOutputTokens` to `costGuard()` to price such calls at a lower limit. The prices come from the gateway's catalog, the same one the SDK's `budgetUsd` uses, so both caps agree on what a call can cost.
+The input side is an estimate, not a bound. The guard counts 2.5 characters to a token as of November 2026. Anthropic documents about that rate for its current tokenizer, and other tokenizers fit more characters in a token, so the estimate errs high for them. Dense input such as CJK text or minified code can take close to one token a character, so the estimate can also run low. Where an earlier call reported usage, the guard uses that instead.
+
+The output limit is the call's `maxOutputTokens`, or the catalog's limit for the model when the call sets none. Pass `maxOutputTokens` to `costGuard()` to price such calls at a lower limit. The prices come from the gateway's catalog, the same one the SDK's `budgetUsd` uses, so both caps agree on what a call can cost.
 
 A call that sets no output limit is projected at the model's full limit. In the example's test, a call on Haiku passes a 0.5 USD cap and a call on Sonnet is refused before anything is sent, because Sonnet's full output limit alone costs more than a dollar at catalog prices.
 
-After each call, the guard adds what the response reported to the spend. It prices the usage with the catalog and, for a stream, reads it from the `finish` part. Three cases charge the projection instead:
+After each call, the guard adds what the response reported to the spend. It prices the usage with the catalog and, for a stream, reads it from the `finish` part. Four cases charge the projection instead:
 
 - A call whose abort signal stopped it while the request was in flight, because the provider may already have generated tokens.
 - A stream that is cancelled or breaks before its `finish` part.
 - A stream that reports an `error` part and never finishes.
+- A finished response that reported no usage, or usage the catalog cannot price. The guard also stops after such a call.
 
 Any other error before a response arrives, such as a dropped connection or a 5xx, is charged nothing, because the guard cannot tell whether the provider billed the call. The guard under-counts when it was billed. Where a lost response may have cost money, add its cost to your `Spend` from the provider's usage report, or keep headroom under the cap.
 
@@ -45,7 +48,7 @@ The guard refuses with one of two codes, both on `BudgetExceeded`:
 - `budget_exceeded`: the spend so far plus the projection would pass the cap. A cap of 0 refuses the first call.
 - `unknown_price`: the guard cannot tell what the call or the spend costs, so it refuses and reports a `projectedUsd` of `null`. The catalog may have no price for the model, or the request may hold a file whose size is unknown.
 
-After a response that reported no usage, the guard also refuses every later call with `unknown_price`, because a spend the guard cannot read is never counted as zero. The [Problems and fixes](/agent-safety/problems-and-fixes/) page shows both messages and their fixes.
+After a response that reported no usage, or usage the catalog cannot price, the guard charged that call its projection and refuses every later call with `unknown_price`, because a spend the guard cannot read is never counted as zero. The same happens when `Spend.add()` fails: the guard rethrows the error and refuses later calls. The [Problems and fixes](/agent-safety/problems-and-fixes/) page shows both messages and their fixes.
 
 ## Cap each run, or the whole session
 
