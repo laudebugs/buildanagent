@@ -54,6 +54,7 @@ export const API_PACKAGES: readonly ApiPackage[] = [
     label: "Agent safety API",
     output: "reference/agent-safety",
     tsconfig: "agent-safety.tsconfig.json",
+    readme: "readmes/agent-safety.md",
   },
   { name: "@buildanagent/protocol", folder: "protocol", label: "Protocol API", output: "reference/protocol" },
   {

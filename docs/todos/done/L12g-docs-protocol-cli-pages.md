@@ -15,7 +15,7 @@ Give the protocol and the CLI the written pages the gateway and the SDK have: a 
 
 ## Context
 
-- [L12](../ongoing/L12-docs-redesign.md), its [amendments of 2026-11-25](../ongoing/L12-docs-redesign.md#amendments-to-the-sub-todos-that-have-not-started-2026-11-25) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the plan, the nine figures and the three added requirements.
+- [L12](../ongoing/L12-docs-redesign.md), its [amendments of 2026-11-25](../ongoing/L12-docs-redesign.md#amendments-to-the-sub-todos-2026-11-25) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the plan, the nine figures and the three added requirements.
 - [L12q](../done/L12q-docs-examples.md): the protocol examples this todo's pages quote.
 - [L12k](../done/L12k-docs-fences-gateway-figures.md) and [`apps/docs/README.md`](../../../apps/docs/README.md): the `file=` fence, the figure directive and the tests that share one site build.
 - [docs-writing.md](../../guidelines/docs-writing.md) and [examples.md](../../guidelines/examples.md): the page and example rules.
