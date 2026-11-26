@@ -1,6 +1,6 @@
 # Fact-check: the CI plan's claims
 
-This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. Todo [X11](../../todos/done/X11-bun-allowlisted-path-node.md) adds rows X11-1 to X11-5, checked 2026-11-26, on branch `todo/X11-bun-allowlisted-path-node`, off `main` at `1140ca71`.
+This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. Todo [X11](../../todos/done/X11-bun-allowlisted-path-node.md) adds rows X11-1 to X11-7, checked 2026-11-26, on branch `todo/X11-bun-allowlisted-path-node`, off `main` at `1140ca71`.
 
 Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
 
