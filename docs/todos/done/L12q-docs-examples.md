@@ -15,7 +15,7 @@ Give the docs pages for the protocol, harness and agent-safety packages the test
 
 ## Context
 
-- [L12](L12-docs-redesign.md) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the package pages (L12g protocol and CLI, L12h and L12i harness, L12j agent-safety) and the rule that new examples carry their own tests.
+- [L12](../ongoing/L12-docs-redesign.md) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the package pages (L12g protocol and CLI, L12h and L12i harness, L12j agent-safety) and the rule that new examples carry their own tests.
 - [examples.md](../../guidelines/examples.md): an example does one thing, reads top to bottom, uses only public entry points, names its numbers, holds no test scaffolding and is tested offline.
 - `packages/harness/examples/` and `packages/agent-safety/examples/`: the patterns the existing examples and their tests follow.
 - [`apps/docs/README.md`](../../../apps/docs/README.md): how a page quotes a `// #region` with a `file=` fence, and the rule that every `ts` block comes from a tested file.

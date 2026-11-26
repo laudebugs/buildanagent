@@ -13,6 +13,9 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { prose, slugify } from "./markdown-text.mjs";
+
+export { prose, slugify };
 
 // The root devDependency, resolved by package rather than by a node_modules/.bin path (AGENTS.md, "Tool paths").
 const TSC = fileURLToPath(new URL("bin/tsc", import.meta.resolve("typescript/package.json")));
@@ -38,24 +41,6 @@ export function codeBlocks(markdown) {
     i = close;
   }
   return blocks;
-}
-
-/** The Markdown text with its fenced blocks blanked out, line for line, so line numbers still match. */
-function prose(markdown) {
-  const lines = markdown.split("\n");
-  let fence;
-  return lines.map((line) => {
-    const open = /^(`{3,})/.exec(line)?.[1];
-    if (fence === undefined && open !== undefined) {
-      fence = open;
-      return "";
-    }
-    if (fence !== undefined) {
-      if (line.trim() === fence) fence = undefined;
-      return "";
-    }
-    return line;
-  });
 }
 
 // An inline code span that names an export: `name()`, a name that starts with a capital, such as `SdkError`,
@@ -372,16 +357,13 @@ export function blocksNotFromExamples(packageDir, blocks) {
     );
 }
 
-/** GitHub's heading anchor: lower case, punctuation dropped, spaces as hyphens, and `-1`, `-2` … for a repeat. */
+/** GitHub's heading anchor: `slugify`'s slug (imported from `./markdown-text.mjs`), with `-1`, `-2` … for a repeat. */
 export function headingAnchors(markdown) {
   const counts = new Map();
   return prose(markdown).flatMap((line) => {
     const match = /^(#{2,3})\s+(.*)$/.exec(line);
     if (!match) return [];
-    const slug = match[2]
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-      .replace(/\s/g, "-");
+    const slug = slugify(match[2]);
     const count = counts.get(slug) ?? 0;
     counts.set(slug, count + 1);
     return [{ depth: match[1].length, title: match[2], anchor: count === 0 ? slug : `${slug}-${count}` }];

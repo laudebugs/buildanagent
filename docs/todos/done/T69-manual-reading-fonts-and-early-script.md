@@ -11,7 +11,7 @@
 
 ## Goal
 
-The manual can apply a reader's typeface pairing and text size before the first paint, with no settings panel yet. This is part 1 of the owner's design S1, approved on 2026-11-23: four typeface pairings (Book, Readable, Sans, Slab) and five text sizes (90 to 150%). The panel that writes the choice is [T70](../ready/T70-manual-reading-settings-ui.md).
+The manual can apply a reader's typeface pairing and text size before the first paint, with no settings panel yet. This is part 1 of the owner's design S1, approved on 2026-11-23: four typeface pairings (Book, Readable, Sans, Slab) and five text sizes (90 to 150%). The panel that writes the choice is [T70](../done/T70-manual-reading-settings-ui.md).
 
 ## Context
 
@@ -32,7 +32,7 @@ The manual can apply a reader's typeface pairing and text size before the first 
 
 **Out of scope**
 
-- The settings button, the popover and the phone sheet, and saving the optional fonts for offline use ([T70](../ready/T70-manual-reading-settings-ui.md)).
+- The settings button, the popover and the phone sheet, and saving the optional fonts for offline use ([T70](../done/T70-manual-reading-settings-ui.md)).
 - Changing the code font (Manual Code), the figures' labels or Pagefind's UI.
 
 ## Tasks

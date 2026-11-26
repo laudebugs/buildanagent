@@ -15,7 +15,7 @@ Make every code block on the docs' existing pages come from a tested example fil
 
 ## Context
 
-- [L12](L12-docs-redesign.md) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the plan. The nine figures are `package-map`, `run-loop` (done in L12d), `stream-and-transcript`, `stop-reasons`, `approval-pause`, `gateway-adapters` (this todo), and `session-log`, `sandbox-egress` and `protocol-clients` (L12h, L12i, L12g).
+- [L12](../ongoing/L12-docs-redesign.md) and [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22): the plan. The nine figures are `package-map`, `run-loop` (done in L12d), `stream-and-transcript`, `stop-reasons`, `approval-pause`, `gateway-adapters` (this todo), and `session-log`, `sandbox-egress` and `protocol-clients` (L12h, L12i, L12g).
 - [L12d](../done/L12d-docs-figure-pipeline.md) and [`apps/docs/README.md`](../../../apps/docs/README.md): the figure pipeline, the `::figure` directive and its rules, and the tests that share one site build (`builtSite()`).
 - [docs-writing.md](../../guidelines/docs-writing.md) and [examples.md](../../guidelines/examples.md): the page and example rules.
 - `packages/gateway/README.md` and `packages/gateway/src`: the source of every claim on the gateway page and in the gateway figure.
