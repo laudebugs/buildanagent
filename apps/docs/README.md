@@ -22,6 +22,17 @@ A fence with a `file` attribute takes its code from a file under a package's `ex
 
 The build replaces the fence's body with the region and titles the block with the file's name. A path outside an `examples/` folder, or a region that is missing, fails the build. Every `ts` block on a page needs this fence, even a one-line import. `test/fences.test.ts` fails on a block without it, unless `test/exceptions.ts` names the block with its reason (empty today). A `<Code lang="ts">` component is no fence, so a second test fails on one. Add an example file under a package's `examples/` folder, with a test in that package, when no file holds the code.
 
+## Show a terminal session from a transcript
+
+A terminal session is never typed into a page. A `console` fence takes its text from a transcript, a file under a package's `transcripts/` folder, and shows it with no title:
+
+````md
+```console file="packages/cli/transcripts/help.txt"
+```
+````
+
+A transcript is the command after a `$ ` prompt, then what the command printed. `packages/cli/test/transcripts.test.ts` runs each command, compares the output with its file and fails when the output changes, until `REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts` rewrites it. `test/transcripts.test.ts` here fails on a `console` fence, or a shell block with a line that starts `$ `, that names no transcript, and on a committed transcript that no page shows. An install line has no prompt, and `test/install-lines.test.ts` keeps it.
+
 ## Draw a figure with a script, and the build inlines it
 
 A figure is a script that draws an SVG with the book's kit, and a page places the committed SVG with a directive. The build inlines the drawing, so it follows the page's theme in light and dark mode and needs no JavaScript. To add a figure:
@@ -66,7 +77,7 @@ Eight tests read the built site: the figure build test, the favicon test, the AP
 
 ## Sidebar topics keep each page small
 
-A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway" holds the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
+A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway", "Protocol" and "CLI" hold the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
 
 To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
 
