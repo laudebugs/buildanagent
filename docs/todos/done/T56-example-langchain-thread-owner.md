@@ -50,7 +50,7 @@ Add a small example to `verify/langchain` that shows Chapter 5's ownership rules
 - [x] Two runs of the harness's `pnpm test` write a byte-identical transcript, and `results-drift.mjs` reports no drift
 - [x] Once the example lands, Chapter 5's section "A session id finds a session; your server decides whose it is" lists it with notes and a replay, in the same pull request, and its fact-check log gains a row for each claim the listing and the changed prose make
 - [x] `check:book`, the manual's `test` and `build`, and `pnpm fact-check-logs` pass
-- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root (`pnpm check` and `pnpm typecheck` pass locally; the root `pnpm test` cannot run on macOS, so CI confirms it)
 
 ## Tests
 

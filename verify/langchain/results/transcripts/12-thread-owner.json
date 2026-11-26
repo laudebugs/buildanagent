@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -26,7 +26,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -40,8 +40,14 @@
       "finish": "stop"
     },
     {
+      "kind": "check",
+      "line": 35,
+      "message": "Ada's first call starts a thread",
+      "pass": true
+    },
+    {
       "kind": "request",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "repeated": 2,
       "messages": [
@@ -59,7 +65,7 @@
     },
     {
       "kind": "response",
-      "line": 26,
+      "line": 27,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -74,49 +80,49 @@
     },
     {
       "kind": "check",
-      "line": 40,
-      "message": "Ada's first call starts a thread and reaches the model",
-      "pass": true
-    },
-    {
-      "kind": "check",
       "line": 41,
-      "message": "Bob's call with Ada's thread id is refused",
+      "message": "Ada's first call reaches the model",
       "pass": true
     },
     {
       "kind": "check",
       "line": 42,
-      "message": "Bob's call with an id nobody created is refused",
+      "message": "Bob's call with Ada's thread id is refused",
       "pass": true
     },
     {
       "kind": "check",
       "line": 43,
-      "message": "Bob's two refusals are word for word the same, so neither confirms that Ada's thread exists",
+      "message": "Bob's call with an id nobody created is refused",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 47,
-      "message": "only Ada's two calls reached the model; Bob's never did",
+      "line": 44,
+      "message": "Bob's two calls get the same response, so neither tells him that Ada's thread exists",
       "pass": true
     },
     {
       "kind": "check",
       "line": 48,
-      "message": "Ada's next call resumes her thread",
+      "message": "only Ada's two calls reached the model; Bob's never did",
       "pass": true
     },
     {
       "kind": "check",
       "line": 49,
+      "message": "Ada's next call resumes her thread",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 50,
       "message": "Ada's second request carries her first exchange and the new question",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 52,
+      "line": 53,
       "message": "Ada's thread holds only her own four messages",
       "pass": true
     }

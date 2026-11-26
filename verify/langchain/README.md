@@ -30,7 +30,7 @@ Commit the transcripts with the change that alters them, unlike a regenerated `r
 
 ## The thread-owner example refuses another user's thread
 
-`examples/12-thread-owner.ts` shows two of Chapter 5's ownership rules on LangChain. `MemorySaver` files a thread by `thread_id` alone, so the example's `chat()` function keeps a map from thread id to owner. It records the owner when a call without a thread id starts a thread, and it checks the owner on every later call before `agent.invoke` runs. Its checks show three things. Bob's call with Ada's thread id and his call with an id nobody created return the same `NOT_FOUND`, word for word. Neither call reaches the model. Ada's next call still sees her earlier messages. The map lives in process memory, as `MemorySaver` does; a real server keeps the owner in its database. The chapter lists the `server` region with notes and a replay.
+`examples/12-thread-owner.ts` shows two of Chapter 5's ownership rules on LangChain. `MemorySaver` files a thread by `thread_id` alone, so the example's `chat()` function keeps a map from thread id to owner. It records the owner when a call without a thread id starts a thread, and it checks the owner on every later call before `agent.invoke` runs. Its checks show three things. Bob's call with Ada's thread id and his call with an id nobody created get the same response. Neither call reaches the model. Ada's next call still sees her earlier messages. The map lives in process memory, as `MemorySaver` does; we would keep the owner in the server's database. The chapter lists the `server` region with notes and a replay.
 
 ## A live run sends one example to a real provider
 
