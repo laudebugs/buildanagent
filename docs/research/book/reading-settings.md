@@ -147,7 +147,7 @@ When storage is missing or refuses a write, the note under the choices reads "No
 
 A pick whose save fails shows the note too, and the pick still applies to the page. Reset and two default picks only remove keys, so they never turn the note back to "Saved". The next non-default pick whose write works does.
 
-The panel's `storage` listener ignores an event from any storage area other than the one the panel uses ([`reading-panel.js`](../../apps/manual/public/scripts/reading-panel.js)), so `sessionStorage` writes never change the note.
+The panel's `storage` listener ignores an event from any storage area other than the one the panel uses ([`reading-panel.js`](../../../apps/manual/public/scripts/reading-panel.js)), so `sessionStorage` writes never change the note.
 
 ## Screenshots
 

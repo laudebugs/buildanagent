@@ -41,7 +41,7 @@ export function codeBlocks(markdown) {
 }
 
 /** The Markdown text with its fenced blocks blanked out, line for line, so line numbers still match. */
-function prose(markdown) {
+export function prose(markdown) {
   const lines = markdown.split("\n");
   let fence;
   return lines.map((line) => {
@@ -372,16 +372,25 @@ export function blocksNotFromExamples(packageDir, blocks) {
     );
 }
 
-/** GitHub's heading anchor: lower case, punctuation dropped, spaces as hyphens, and `-1`, `-2` … for a repeat. */
+/**
+ * GitHub's slug for one heading's text: lower case, punctuation dropped, spaces as hyphens. It names the text alone;
+ * a repeat's `-1`, `-2` … lives in whoever counts repeats across one document (`headingAnchors` below, or
+ * `scripts/ci/markdown-links.mjs`'s own version for heading levels this one doesn't read).
+ */
+export function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .replace(/\s/g, "-");
+}
+
+/** GitHub's heading anchor: `slugify`'s slug, with `-1`, `-2` … for a repeat. */
 export function headingAnchors(markdown) {
   const counts = new Map();
   return prose(markdown).flatMap((line) => {
     const match = /^(#{2,3})\s+(.*)$/.exec(line);
     if (!match) return [];
-    const slug = match[2]
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-      .replace(/\s/g, "-");
+    const slug = slugify(match[2]);
     const count = counts.get(slug) ?? 0;
     counts.set(slug, count + 1);
     return [{ depth: match[1].length, title: match[2], anchor: count === 0 ? slug : `${slug}-${count}` }];

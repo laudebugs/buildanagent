@@ -573,7 +573,7 @@ The "Aa" samples download each pairing's upright heading file the first time the
 - **How.** A pairing with more files than one message may carry goes in several messages of at most 16 paths each, and the status line waits for every one.
 - **What the reader sees.** Once every file is saved, the status line says so with their size, such as "Sans's fonts are saved for offline reading (about 220 KB)." A failure shows nothing, because the fonts still load from the network and the next page asks again.
 - **From the first install.** The layout links `reading-offline.js`, which the panel's script imports, with `modulepreload`, so the install-time shell holds it and the panel works offline from the first install.
-- **Sizes.** Each pairing's files and bytes are in [the report's table](../../docs/research/book/reading-settings.md#savefiles-saves-a-pairings-fonts-after-one-visit). Saving the whole book through the footer's control saves every pairing's fonts with the rest of the list.
+- **Sizes.** Each pairing's files and bytes are in [the report's table](../../docs/research/book/reading-settings.md#save_files-saves-a-pairings-fonts-after-one-visit). Saving the whole book through the footer's control saves every pairing's fonts with the rest of the list.
 
 **Checks.** `test/reading-panel.test.ts` checks the helpers and the script in happy-dom, and `check:settings` drives the panel in Chromium on a desktop and an iPhone 14 profile, offline included; WebKit is not checked.
 
