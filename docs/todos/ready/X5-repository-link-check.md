@@ -29,9 +29,9 @@ Add a script that fails when a relative link or an anchor in a tracked Markdown 
 **In scope**
 
 - `scripts/ci/markdown-links.mjs`: for every tracked `*.md` file, resolve each relative link to a tracked file or directory and each `#anchor` to a heading in its target.
-- A rule for links into gitignored paths. `docs/reference/claude-agent-sdk/README.md` links its `source/` mirror, which `.gitignore` leaves out, so the link resolves locally after `pnpm run fetch-docs` but not in CI. The checker accepts a link into a gitignored path and says so in its report, or the link moves into code formatting.
+- A rule for links into gitignored paths. `docs/reference/claude-agent-sdk/README.md` links its `source/` mirror, which `.gitignore` leaves out, so the link resolves locally after `pnpm run fetch-docs` but not in CI. The checker either accepts such a link and names it in its report, or the todo turns the link into code formatting.
 - A `pnpm check:links` script in the root `package.json`.
-- A list of skipped paths with a reason for each: the mirrored upstream docs under `docs/reference/*/source/`, the vendored skill under `.agents/skills/anatomy/`, other generated or vendored folders, and the page sources under `apps/docs/src/content/` and `apps/manual/src/content/`, whose links are site routes such as `/concepts/approvals/` that the apps' own checks resolve.
+- A list of skipped paths with a reason for each: the mirrored upstream docs under `docs/reference/*/source/`, the vendored skill under `.agents/skills/anatomy/` and other generated or vendored folders. The list also holds the page sources under `apps/docs/src/content/` and `apps/manual/src/content/`, because their links are site routes, such as `/concepts/approvals/`, that the apps' own checks resolve.
 - Fixes for the broken links the first run finds.
 
 **Out of scope**
