@@ -416,7 +416,7 @@ describe("parseBumps and manifestProblems", () => {
     ]);
     assert.throws(() => parseBumps(""), { message: "no bumps were planned" });
     for (const bad of ["b", "b@latest", "@s/a", "B@1.0.0", "../x@1.0.0"]) {
-      assert.throws(() => parseBumps(bad), { message: `${bad} isn't a planned bump` });
+      assert.throws(() => parseBumps(bad), { message: `${bad} isn't a planned bump` }, `refuses ${bad}`);
     }
   });
 
