@@ -5,8 +5,8 @@ import { retirementWarnings, staleWarnings } from "./catalog-staleness.mjs";
 
 // The test compares against the gateway's real rule, read from its TypeScript source. Under Node, tsx loads it,
 // because the source's relative imports use `.js` specifiers for the dist/ build, which Node's own type stripping
-// doesn't map back to `.ts` files. Bun maps them itself, and tsx's loader doesn't run under Bun, so Bun imports the
-// source directly.
+// doesn't map back to `.ts` files. tsx's loader doesn't run under Bun, and Bun imports the source with a plain
+// import(), so it does that.
 const CATALOG_SOURCE = "../../packages/gateway/src/catalog.ts";
 const { staleCatalogEntries } = process.versions.bun
   ? await import(CATALOG_SOURCE)
