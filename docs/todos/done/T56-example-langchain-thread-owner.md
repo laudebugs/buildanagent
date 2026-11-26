@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `T56` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Book plan §5, BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) |
 | Round / milestone | Round T (textbook), MT |
 | Depends on | [T5](../done/T5-book-interactive-listings.md), [T15](../done/T15-chapter-memory-and-sessions.md) |
@@ -38,19 +38,19 @@ Add a small example to `verify/langchain` that shows Chapter 5's ownership rules
 
 ## Tasks
 
-- [ ] Write the example: Ada starts a thread and the server records her as its owner; Bob sends Ada's thread id; Bob sends an id nobody created; Ada resumes her thread.
-- [ ] Return one "not found" value, word for word the same, for Bob's two calls, and invoke the agent for neither.
-- [ ] Add checks for each step, a region and the notes, and run `pnpm test` in `verify/langchain` twice to confirm the transcript is byte-identical.
-- [ ] List the region in Chapter 5's ownership section with `replay`, weave it into the paragraphs that state the rules, and fact-check each changed claim into the chapter's log, marking any superseded row ✏️.
-- [ ] Run `/anthropic-skills:writing-review` on the changed section and fix its findings with `/anthropic-skills:writing`.
+- [x] Write the example: Ada starts a thread and the server records her as its owner; Bob sends Ada's thread id; Bob sends an id nobody created; Ada resumes her thread.
+- [x] Return one "not found" value, word for word the same, for Bob's two calls, and invoke the agent for neither.
+- [x] Add checks for each step, a region and the notes, and run `pnpm test` in `verify/langchain` twice to confirm the transcript is byte-identical.
+- [x] List the region in Chapter 5's ownership section with `replay`, weave it into the paragraphs that state the rules, and fact-check each changed claim into the chapter's log, marking any superseded row ✏️.
+- [x] Run `/anthropic-skills:writing-review` on the changed section and fix its findings with `/anthropic-skills:writing`.
 
 ## Acceptance criteria
 
-- [ ] The example passes offline, and its checks confirm that Bob's call with Ada's thread id and his call with an unknown id return the same "not found", that neither call reaches the model, and that Ada's next call still sees her earlier messages
-- [ ] Two runs of the harness's `pnpm test` write a byte-identical transcript, and `results-drift.mjs` reports no drift
-- [ ] Once the example lands, Chapter 5's section "A session id finds a session; your server decides whose it is" lists it with notes and a replay, in the same pull request, and its fact-check log gains a row for each claim the listing and the changed prose make
-- [ ] `check:book`, the manual's `test` and `build`, and `pnpm fact-check-logs` pass
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The example passes offline, and its checks confirm that Bob's call with Ada's thread id and his call with an unknown id return the same "not found", that neither call reaches the model, and that Ada's next call still sees her earlier messages
+- [x] Two runs of the harness's `pnpm test` write a byte-identical transcript, and `results-drift.mjs` reports no drift
+- [x] Once the example lands, Chapter 5's section "A session id finds a session; your server decides whose it is" lists it with notes and a replay, in the same pull request, and its fact-check log gains a row for each claim the listing and the changed prose make
+- [x] `check:book`, the manual's `test` and `build`, and `pnpm fact-check-logs` pass
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -69,9 +69,20 @@ The new example under the harness's `pnpm test`; `node --test scripts/ci/*.test.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+Chapter 5's ownership section now shows its second and third rules in code, with a LangChain server that checks a thread's owner before the agent runs.
+
+- **Example.** `verify/langchain/examples/12-thread-owner.ts` keeps an owner map beside `MemorySaver`, the shorter of the two choices the todo offered, and a note says a real server keeps it in its database. `chat(user, message, threadId?)` makes a new thread's id with `crypto.randomUUID()` and records its owner, and returns one `NOT_FOUND` for an unknown id and for another user's. Its checks confirm that Bob's two refusals serialize identically, that only Ada's two calls reached the model, and that her thread holds only her four messages. One region, `server`, covers the server and the four calls, because both model requests record the `invoke` line inside `chat()`. Two runs wrote the same transcript, and `results-drift.mjs` reports no drift.
+- **Chapter.** The listing `thread-owner-langchain` carries six notes and a replay, rules 1–3 point at it, and a paragraph walks the replay. Fact-check rows 144–152 cover the listing and the new prose; rows 151 and 152 are ⚠️, because they state our recommendation rather than a source's claim.
+- **Docs.** `verify/langchain/README.md` describes example 12, and the book plan's Chapter 5 row names it.
+- **Checks.** `check:book`, the manual's `test` and `build`, `pnpm fact-check-logs`, `pnpm check` and `pnpm typecheck` pass locally. The root `pnpm test` stops at `verify/copilot-sdk` on macOS, which lacks `unshare`, so CI runs it.
+
+The writing review and the code reviews run on the pull request.
