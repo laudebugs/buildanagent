@@ -20,7 +20,7 @@ Add an app-data field to our SDK's `ToolContext`, such as `ctx.app`, so a tool c
 - [Agent guide §3](../../guides/agent.md#3-tools-deserve-more-design-effort-than-the-prompt-few-workflow-shaped-tools-identity-from-trusted-context-and-errors-that-say-what-to-do-next) and requirement R2 in its introduction: tools that read customer data take no identity argument and read the requester from the trusted run context.
 - Chapter 3's identity section (`apps/manual/src/content/chapters/tools.md`, "Identity comes from the signed-in session, never from the model"): the table of what each SDK hands a tool beside its arguments, and the rule that a server builds a tool, or the object it closes over, per request from that request's authenticated session.
 - [Agent plan §3.2](../../plans/build-agent.md#32-trusted-run-context-helpdesk-and-tool-contracts) and [harness plan §3.2](../../plans/build-harness.md#32-session-log-api): the agent's `TrustedContext` and the harness's per-turn `hostContext`, which today reach `execute` only through a wrapper the registry builds for each turn.
-- [T52](../ready/T52-chapter-tools-on-our-sdk.md): Chapter 3's tabs on our SDK, whose identity tab should read the user from this field.
+- [T52](../done/T52-chapter-tools-on-our-sdk.md): Chapter 3's tabs on our SDK, whose identity tab should read the user from this field.
 
 ## Scope
 
@@ -35,7 +35,7 @@ Add an app-data field to our SDK's `ToolContext`, such as `ctx.app`, so a tool c
 
 **Out of scope** (and which todo covers it)
 
-- Chapter 3's tab on our SDK: [T52](../ready/T52-chapter-tools-on-our-sdk.md)
+- Chapter 3's tab on our SDK: [T52](../done/T52-chapter-tools-on-our-sdk.md)
 - Mapping the harness's per-turn `hostContext` onto this field instead of the registry's per-turn wrapper: the harness todos that build the runner and the registry, N6 and N11, once this todo is done
 - Authorization itself: the field carries the caller's facts, and the tool or the downstream system still checks them
 
@@ -66,7 +66,7 @@ New unit and type tests in `packages/sdk/test/`, such as `tool-app-data.test.ts`
 
 - `packages/sdk/README.md`: a section on app data for tools, in the tools part
 - [SDK plan §4.6](../../plans/build-sdk.md#46-trusted-app-data-for-tools-from-the-books-chapter-3-added-2026-11-19): this todo's row
-- [T52](../ready/T52-chapter-tools-on-our-sdk.md): once this lands, its identity tab reads the field instead of closing over the customer
+- [T52](../done/T52-chapter-tools-on-our-sdk.md): once this lands, its identity tab reads the field instead of closing over the customer
 - The compiled API docs and `llms.txt` that B20's checks regenerate
 
 ## Risks and open questions

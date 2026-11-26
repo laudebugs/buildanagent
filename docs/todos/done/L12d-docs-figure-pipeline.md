@@ -17,7 +17,7 @@ Deliver the pipeline and the plan's first two figures: `package-map`, the six pa
 
 ## Context
 
-- [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) and [L12](L12-docs-redesign.md): the plan, the nine figures and the design of the pipeline (scripts in `apps/docs/figures/`, a stale-file test, a `::figure` directive that inlines the SVG and fails without alt text).
+- [DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) and [L12](../ongoing/L12-docs-redesign.md): the plan, the nine figures and the design of the pipeline (scripts in `apps/docs/figures/`, a stale-file test, a `::figure` directive that inlines the SVG and fails without alt text).
 - [L12a](../done/L12a-docs-theme-foundation.md): the book's exports (`@buildanagent/manual` design, tokens, `figures/svgkit`, `styles/figures.css`) that the docs already depend on.
 - [`apps/manual/README.md`](../../../apps/manual/README.md#a-figure-is-a-script-that-draws-an-svg-and-the-build-inlines-it): how the book's figures work, including its SVG handling.
 - `apps/site/figures/` (layers and its `lib/`) and the docs home mock (`docs/design/docs-home/` on the manager's branch `claude/happy-albattani-p54jjp`, tab A): the look the figures keep.

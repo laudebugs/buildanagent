@@ -17,7 +17,7 @@ Write a new type-checked, mock-run example in `verify/openai-agents-sdk/examples
 
 ## Context
 
-- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T17's todo, [T17](../ready/T17-chapter-choosing-the-shape.md)
+- [Book plan BK20](../../plans/build-book.md#bk20-new-verify-examples-fill-the-gaps-the-coverage-review-found-accepted) and Chapter T17's todo, [T17](../done/T17-chapter-choosing-the-shape.md)
 - [AGENTS.md, process for documenting an SDK](../../../AGENTS.md#process-for-documenting-an-sdk): behavioural examples, mock models, and no host-touching tools
 - The harness's README and `examples/lib/` helpers
 

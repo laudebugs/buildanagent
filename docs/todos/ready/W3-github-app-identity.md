@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#52-round-w-builds-the-coding-agent) |
 | Round / milestone | Round W (build the coding agent), M7 |
-| Depends on | [N43](N43-remote-sandbox-egress-policy.md), [W1](W1-coding-agent-scaffold.md) |
+| Depends on | [N43](../done/N43-remote-sandbox-egress-policy.md), [W1](W1-coding-agent-scaffold.md) |
 | Size | M |
 
 ## Goal

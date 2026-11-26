@@ -58,7 +58,7 @@ None.
 
 ## Outcome
 
-- [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) records the decision, [PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) argues it, and [L10](../ready/L10-make-protocol-harness-cli-publishable.md) and [L11](../ready/L11-bootstrap-and-release-protocol-harness-cli.md) carry it out. The protocol, harness and CLI publish together, after N30, in one fixed group with the gateway and SDK (five members at the time; the addendum below makes it six).
+- [ADR 0058](../../decisions/0058-publish-protocol-harness-and-cli.md) records the decision, [PB4](../../plans/publish-and-docs.md#pb4-publish-the-protocol-harness-and-cli-packages-after-the-gateway-and-sdk-accepted) argues it, and [L10](../done/L10-make-protocol-harness-cli-publishable.md) and [L11](../done/L11-bootstrap-and-release-protocol-harness-cli.md) carry it out. The protocol, harness and CLI publish together, after N30, in one fixed group with the gateway and SDK (five members at the time; the addendum below makes it six).
 - The harness depends on `@buildanagent/agent-safety`, which was private; the owner decided the same day to publish it too (see the addendum), and L10's pack test enforces that no package that will publish depends on one outside the six.
 - Unverified: how Changesets treats a private member of a fixed group (fact-check row L9-10).
 - Addendum (2026-11-22, after the pull request opened):

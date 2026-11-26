@@ -18,7 +18,7 @@ Fail a pull request that breaks the book, and hand the deploy workflow a built s
 ## Context
 
 - [Book plan BK14 and BK15](../../plans/build-book.md#bk14-one-ci-job-builds-the-book-and-runs-every-check-proposed).
-- [Publish-and-docs plan, DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) and [L8](../ready/L8-cloudflare-deploys.md): the same split for the docs and the website.
+- [Publish-and-docs plan, DS3](../../plans/publish-and-docs.md#ds3-workers-static-assets-and-a-preview-per-pull-request-accepted) and [L8](../done/L8-cloudflare-deploys.md): the same split for the docs and the website.
 - [ci.yml](../../../.github/workflows/ci.yml), [`actions.lock`](../../../.github/workflows/actions.lock) and the [CI plan §3d](../../plans/ci.md#3d-actions-locked-by-a-lockfile-added-2026-11-19): how workflows and actions are added.
 
 ## Scope

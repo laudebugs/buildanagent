@@ -31,7 +31,7 @@ Decide how the notes script draws four highlight colours, opens a popover on a c
 
 **Out of scope** (and which todo covers it)
 
-- The script, the CSS, the tokens, the tests and the README: [J2](../ready/J2-notes-colours-popover.md), after this merges.
+- The script, the CSS, the tokens, the tests and the README: [J2](../done/J2-notes-colours-popover.md), after this merges.
 
 ## Tasks
 

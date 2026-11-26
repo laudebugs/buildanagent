@@ -11,7 +11,7 @@
 
 ## Goal
 
-Give the docs redesign ([L12](L12-docs-redesign.md)) its writing rules before the pages that follow them exist: when a page gets a diagram, how to write its alt text and caption, when to use a callout, and when to use code tabs. A guideline change gets its own pull request ([AGENTS.md](../../../AGENTS.md#coding-standards)).
+Give the docs redesign ([L12](../ongoing/L12-docs-redesign.md)) its writing rules before the pages that follow them exist: when a page gets a diagram, how to write its alt text and caption, when to use a callout, and when to use code tabs. A guideline change gets its own pull request ([AGENTS.md](../../../AGENTS.md#coding-standards)).
 
 ## Context
 

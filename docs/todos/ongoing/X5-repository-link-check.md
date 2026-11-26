@@ -1,11 +1,9 @@
 # X5: Check every relative link and anchor in the repository's Markdown
 
-> **On hold (2026-11-25): proposed, awaiting the owner.** Leave this todo alone until the owner accepts it, even though it depends on nothing.
-
 | Field | Value |
 | --- | --- |
 | ID | `X5` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [CI §4](../../plans/ci.md#4-todos) |
 | Round / milestone | Round X (CI) |
 | Depends on | None |

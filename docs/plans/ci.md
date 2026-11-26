@@ -203,7 +203,7 @@ Know before you go on. Leave DNS Write off the token: if the first deploy fails 
 | X1 | CI workflows for the checks and the scheduled verify (done) | None (scheduled after Round S by the owner) |
 | X3 | Run every harness's doc type-check on the root TypeScript 7.0.2; a stale 5.9.3 shim in the Cloudflare harness caused the runner drift (done) | X1 |
 | X4 | Seed `Math.random` in the Google ADK doc preload: `graphs/retry/get_started` fails at random by design and errored on the runner (done) | X3 |
-| [X5](../todos/ready/X5-repository-link-check.md) | Check every relative link and anchor in the repository's Markdown, in `ci.yml` (proposed 2026-11-25, awaiting the owner) | None |
+| [X5](../todos/ongoing/X5-repository-link-check.md) | Check every relative link and anchor in the repository's Markdown, in `ci.yml` (claimed 2026-11-26) | None |
 
 ## 5. Risks
 
