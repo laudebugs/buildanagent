@@ -105,7 +105,7 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
           label: "Protocol",
           items: [
             { label: "Quick start", slug: "protocol/quick-start" },
-            { label: "Messages between a client and the harness", slug: "protocol/messages" },
+            { label: "Messages", slug: "protocol/messages" },
             { label: "Read a session file", slug: "protocol/session-files" },
           ],
         },

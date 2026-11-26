@@ -13,7 +13,7 @@ Pages live in `src/content/docs/`, and the explicit sidebar in `src/topics.ts` n
 
 ## Show an example file
 
-A fence with a `file` attribute takes its code from a file under a package's `examples/` folder (or, for a terminal session, a transcript under its `transcripts/` folder, see the next section), so the docs never show code that no longer runs. `region` picks a `// #region` of the file:
+A fence with a `file` attribute takes its code from a file under a package's `examples/` folder, so the docs never show code that no longer runs. A terminal session takes a transcript instead, as [the next section](#show-a-terminal-session-from-a-transcript) explains. `region` picks a `// #region` of the file:
 
 ````md
 ```ts file="packages/sdk/examples/order-agent.ts" region="run"
@@ -31,7 +31,7 @@ A terminal session is never typed into a page. A `console` fence takes its text 
 ```
 ````
 
-A transcript is the command after a `$ ` prompt, then what the command printed. `packages/cli/test/transcripts.test.ts` runs each command, compares the output with its file and fails when the output changes, until `REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts` rewrites it. `test/transcripts.test.ts` here fails on a `console` fence, or a shell block with a line that starts `$ `, that names no transcript, and on a committed transcript that no page shows. An install line has no prompt, and `test/install-lines.test.ts` keeps it.
+A transcript is the command after a `$ ` prompt, then what the command printed. `packages/cli/test/transcripts.test.ts` runs each command, compares the output with its file and fails when the output changes, until `REWRITE_TRANSCRIPTS=1 pnpm --filter @buildanagent/cli exec vitest run test/transcripts.test.ts` rewrites it. `test/transcripts.test.ts` here fails on a terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt. It also fails on a committed transcript that no page shows. An install line has no prompt, so it is no session, and `test/install-lines.test.ts` checks it instead.
 
 ## Draw a figure with a script, and the build inlines it
 

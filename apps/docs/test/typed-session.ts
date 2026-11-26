@@ -26,8 +26,9 @@ export function namesTranscript(fence: FenceLike): boolean {
 }
 
 /**
- * Whether the fence shows a terminal session that nothing checks: a `console` fence, or a shell block with a line that
- * starts with a `$ ` prompt, that names no transcript. An install line has no prompt, so it never counts.
+ * Whether the fence shows a terminal session that no test checks. Such a fence names no transcript and is either a
+ * `console` fence or a shell fence with a line that starts with a `$ ` prompt. An install line has no prompt, so it
+ * never counts.
  */
 export function isTypedSession(fence: FenceLike): boolean {
   if (namesTranscript(fence)) return false;

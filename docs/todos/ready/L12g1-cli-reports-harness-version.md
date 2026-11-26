@@ -11,7 +11,7 @@
 
 ## Goal
 
-Make `buildanagent rpc` answer `initialize` with the harness's real version, and make each session header the CLI writes record it. Today `serverInfo.version` reads `0.0.0` and so does every `harnessVersion` in a session header, because the CLI never passes `harnessVersion` to the harness, which then falls back to `"0.0.0"`.
+Make `buildanagent rpc` answer `initialize` with the harness's real version, and make each session header the CLI writes record it. Today `serverInfo.version` and every session header's `harnessVersion` read `0.0.0`. The CLI never passes `harnessVersion` to the harness, which then falls back to `"0.0.0"`.
 
 ## Context
 
@@ -47,11 +47,11 @@ Make `buildanagent rpc` answer `initialize` with the harness's real version, and
 
 ## Docs to update
 
-The transcript and the changeset.
+The transcript, the changeset, the note on `serverInfo.version` in `apps/docs/src/content/docs/protocol/quick-start.md` and `apps/docs/test/transcripts.test.ts`, whose test ties that note to the transcript and fails once the transcript changes.
 
 ## Risks and open questions
 
-- A version in a transcript fails the transcript test on every release unless the test replaces it, so the test must.
+None.
 
 ## Definition of done
 

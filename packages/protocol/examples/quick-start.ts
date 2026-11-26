@@ -20,8 +20,8 @@ export function initializeLine(name: string, version: string): string {
 // #region answer
 /**
  * Reads `output`, the bytes the server wrote, and returns its answer to `initialize`.
- * Throws a `ProtocolError` for a line that is not a message, and an `Error` when the server answered with an error or
- * wrote no answer.
+ * Throws a `ProtocolError` for a line that is not a message, and an `Error` when the server replies with an error or
+ * sends no answer.
  */
 export function readInitializeAnswer(output: Uint8Array): InitializeResult {
   for (const line of new JsonlFramer().push(output)) {

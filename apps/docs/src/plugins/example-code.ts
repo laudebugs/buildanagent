@@ -1,10 +1,11 @@
 /**
  * Code blocks that come from tested example files. A page writes a fence such as
  * ` ```ts file="packages/sdk/examples/order-agent.ts" region="run" `, and the build replaces the fence's body with that
- * region of the file, so the docs never show code that no longer runs. Only two kinds of file can be shown: a file under
- * a package's `examples/` folder and a transcript under its `transcripts/` folder, because a test runs each of them
- * ([examples guideline](../../../../docs/guidelines/examples.md)). A ` ```console file="packages/cli/transcripts/help.txt" `
- * fence shows a transcript of a terminal session, which a test of that package re-runs and compares.
+ * region of the file, so the docs never show code that no longer runs. A test runs every file the docs may show, so
+ * only two kinds are allowed: a file under a package's `examples/` folder
+ * ([examples guideline](../../../../docs/guidelines/examples.md)) and a transcript under its `transcripts/` folder. A
+ * ` ```console file="packages/cli/transcripts/help.txt" ` fence shows a transcript of a terminal session, which a test of
+ * that package re-runs and compares.
  */
 import { readFileSync } from "node:fs";
 import { basename, dirname, resolve, sep } from "node:path";

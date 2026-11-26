@@ -7,7 +7,7 @@ You will install the `buildanagent` command, check that it runs and run one turn
 
 ## Install the command
 
-The CLI needs Node 22.19 or later. Install it and the gateway, which the program below imports, with the `alpha` tag that npm serves for every release until the first stable one:
+The CLI needs Node 22.19 or later. Install it and [the gateway](/concepts/the-gateway/), which the program below imports, with the `alpha` tag that npm serves for every release until the first stable one:
 
 ```bash
 pnpm add @buildanagent/cli@alpha @buildanagent/gateway@alpha
@@ -18,20 +18,18 @@ The package installs the `buildanagent` command, which `pnpm exec buildanagent` 
 ```console file="packages/cli/transcripts/sessions-empty.txt"
 ```
 
-`buildanagent --help` lists every command and option, and the [commands page](/cli/commands/) shows what it prints.
-
 ## Run one turn from a program
 
-`runCli()` runs one command line and resolves with its exit status. A `CliIo` gives it a terminal: where output goes, a line reader, the environment and the working folder. This function runs `run --json` on a model you pass in and parses the output, one JSON object per line:
+`runCli()` runs one command line and resolves with its exit status. A `CliIo` supplies the output, a line reader, the environment and the working folder. This function runs `run --json` on a `model` you build the way [your first agent](/start/first-agent/) does, and parses the output, one JSON object per line:
 
 ```ts file="packages/cli/examples/run-json.ts"
 ```
 
-Make the model the way [your first agent](/start/first-agent/) does. The command line always names a model with `--model`, but a program can hand `runCli()` a model it built.
+The command line names its model with `--model`, but a program hands `runCli()` a model it built.
 
 ## Read the result
 
-The first line is `{"type":"session",...}` with the session's id. Each event of the turn follows, and the last line is `{"type":"settled",...}` with the reason the turn stopped and its cost. The exit status says how the turn ended: 0 for `done`, 1 for any other reason and 3 when a call waits for a person.
+The first line is `{"type":"session",...}` with the session's id. Each event of the turn follows, and the last line is `{"type":"settled",...}` with the reason the turn stopped and its cost. The exit status says how the turn ended: 0 for `done`, 1 for any other reason and 3 when the turn waits for a person. This page shows no sample of the lines, because each holds ids and times that change on every run.
 
 ## See why a command refuses to run
 

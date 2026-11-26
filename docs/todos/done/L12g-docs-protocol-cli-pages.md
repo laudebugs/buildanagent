@@ -52,10 +52,10 @@ Give the protocol and the CLI the written pages the gateway and the SDK have: a 
 
 - [x] Each of the two packages has a quick start built from a tested example file
 - [x] A changed CLI output fails `packages/cli/test/transcripts.test.ts` until the transcript is rewritten
-- [x] A docs test fails on a `console` fence, or a shell block with a `$ ` prompt, that names no transcript
+- [x] A docs test fails on a terminal-session fence that names no transcript: a `console` fence, or a shell fence with a line that starts with a `$ ` prompt
 - [x] The protocol and CLI home cards lead to the quick starts, and `home.test.ts` checks them
 - [x] Both API reference indexes link to their quick start
-- [x] `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm check:links` and the five package checks pass offline from the repo root
+- [x] `pnpm check`, `pnpm typecheck`, the protocol, CLI and docs suites and the five package checks pass offline, and the docs build's link validator reports no broken link
 
 ## Tests
 
@@ -74,7 +74,7 @@ Give the protocol and the CLI the written pages the gateway and the SDK have: a 
 
 - [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] `pnpm check` and `pnpm typecheck` pass locally, and so do the protocol, CLI and docs suites; root `pnpm test` stops in `verify/copilot-sdk` on this machine, which needs `unshare -rn`, so CI ran the rest; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`), and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
@@ -83,7 +83,9 @@ Give the protocol and the CLI the written pages the gateway and the SDK have: a 
 
 - **Pages.** Two new sidebar topics, "Protocol" and "CLI". Protocol: `protocol/quick-start`, `protocol/messages` (with figure 9, `protocol-clients`) and `protocol/session-files`. CLI: `cli/quick-start` and `cli/commands`. The home cards of both packages lead to the quick starts, and `home.test.ts` checks the targets and that each page is built. The sidebar tests now expect three written topics, and the next-link test works within a topic (the last protocol page links on to its API reference, the last CLI page to its own).
 - **Quick starts.** The protocol's is built from the new `packages/protocol/examples/quick-start.ts` (regions `request` and `answer`, three tests). The CLI's is built from the existing `packages/cli/examples/run-json.ts`, which needed no change.
-- **Transcripts.** `packages/cli/transcripts/` holds five: `help`, `sessions-empty`, `no-model`, `no-key` and `rpc-initialize`. `packages/cli/test/transcripts.test.ts` spawns the binary for each, compares its output and fails on a changed output until `REWRITE_TRANSCRIPTS=1` rewrites the file; it also fails on a stray file. The SDK's version, which changes every release, is replaced with `<version>` before the comparison. A `console` fence takes a transcript through `file="packages/<pkg>/transcripts/<name>.txt"`, and `apps/docs/test/transcripts.test.ts` fails on a `console` fence, or a shell block with a `$ ` line, that names none, and on a committed transcript that no page shows.
+- **Transcripts.** `packages/cli/transcripts/` holds five: `help`, `sessions-empty`, `no-model`, `no-key` and `rpc-initialize`. `packages/cli/test/transcripts.test.ts` spawns the binary for each, compares its output and fails on a changed output until `REWRITE_TRANSCRIPTS=1` rewrites the file; it also fails on a stray file. The SDK's version, which changes every release, is replaced with `<version>` before the comparison. A `console` fence takes a transcript through `file="packages/<pkg>/transcripts/<name>.txt"`, and `apps/docs/test/transcripts.test.ts` fails on a terminal-session fence that names none, and on a committed transcript that no page shows.
 - **Reference links.** The `@module` comments of the protocol and the CLI link their quick starts, so the generated reference index shows the link, and `apps/docs/test/reference-links.test.ts` checks it in the built pages. The address is absolute because the same TSDoc reaches readers in an editor or on npm, where a site-relative path leads nowhere; a preview build therefore links to production. The changeset is a patch.
-- **Friction.** (1) The CLI never passes `harnessVersion`, so the `initialize` answer and every session header it writes say `0.0.0`; the protocol quick start says plainly that the `version` it shows is a known bug and the transcript keeps `0.0.0`, and [L12g1](../ready/L12g1-cli-reports-harness-version.md) fixes it. (2) The binary cannot reach a scripted model, so no transcript shows a turn: the quick start shows the commands that need a key as commands and the keyless runs as transcripts. A way to record a turn offline needs a design decision, which L12u (the Output view) is the place to settle. (3) The protocol has no public validator, so the quick start checks envelopes only (the schema's validator is a dev dependency, as L12q found).
-- Claims are in the fact-check log, rows L12g-1 to L12g-32.
+- **Friction: the harness version.** The CLI never passes `harnessVersion`, so `initialize` and every session header say `0.0.0`; the quick start names it a known bug, and [L12g1](../ready/L12g1-cli-reports-harness-version.md) fixes it.
+- **Friction: no turn transcript.** The binary cannot reach a scripted model, so no transcript shows a turn, and settling how to record one offline is left to L12u.
+- **Friction: no public validator.** The protocol has no public validator, so the quick start checks envelopes only, as L12q found.
+- Claims are in the fact-check log, rows L12g-1 to L12g-38.
