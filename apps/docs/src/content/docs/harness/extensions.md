@@ -16,7 +16,7 @@ This audit extension asks a person before every shell command and hands every ev
 ```ts file="packages/harness/examples/audit-extension.ts" region="audit"
 ```
 
-`composeExtensions()` joins the hooks in the order you give. For `beforeToolCall`, the first deny wins and any ask asks. `transformContext`, `beforeModelCall` and `afterToolCall` chain in order, and `shouldStop` lets any extension stop the run. A hook that throws fails the moment it belongs to, so a gate that fails closed fails the whole gate closed. Two extensions with one name, or one without a name or version, throw `invalid_extension`.
+`composeExtensions()` joins the hooks in the order you give. For `beforeToolCall`, the first deny wins and any ask asks. `transformContext`, `beforeModelCall` and `afterToolCall` chain in order, and `shouldStop` lets any extension stop the run. A hook that throws fails the joined hook for every extension, because the joined hook is one function. The failure closes the run unless every extension sets `onFailure: "continue"`, and an extension that leaves it unset counts as closed. Two extensions with one name, or one without a name or version, throw `invalid_extension`.
 
 A tool from an extension replaces a built-in tool of the same name only when it sets `override: true`. Any other repeated name throws `duplicate_tool`.
 

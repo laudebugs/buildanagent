@@ -86,7 +86,7 @@ The message reads `the egress proxy refused evil.example: not_allowed`. The sand
 
 A git route limits a push to the branches it lists and refuses deletions and tags. It cannot judge what a pushed commit contains.
 
-Two more guards keep secrets out. `spawnEnv()` builds a spawned program's whole environment from a short list, so a key set in your own environment never reaches a child, and it refuses a name such as `ANTHROPIC_API_KEY`. `scrubSecrets()` replaces known secrets in a session entry with `[REDACTED]`, and you apply it before each append.
+Two more guards keep secrets out. `spawnEnv()` builds a spawned program's whole environment from `PATH`, a temporary `HOME`, `TMPDIR`, `LANG`, the variables you list to copy from your own environment, and any values you write yourself. It refuses to copy a credential-shaped name such as `ANTHROPIC_API_KEY`, so a credential reaches a child only if you write its value yourself. `scrubSecrets()` replaces known secrets in a session entry with `[REDACTED]`, and you apply it before each append.
 
 Use a credential route only for a narrow, short-lived, low-value credential, such as a repository-scoped token for one run. A credential that can spend money without a cap or reach production data stays in a host-side tool.
 

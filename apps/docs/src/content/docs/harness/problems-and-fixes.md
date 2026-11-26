@@ -159,9 +159,9 @@ If the writer died on the same host, you need not remove anything: its lock beco
 
 **You see.** A client that reads slowly loses live events, and a marker takes their place that says how many were dropped. A client that sends faster than it reads gets the JSON-RPC error `-32001` with the message `the queue holds 128 commands; send again later`.
 
-**Cause.** Each connection queues at most 128 unanswered commands and at most 128 waiting live events. The server drops live events past the second bound and refuses commands past the first.
+**Cause.** Each connection queues at most `queueSize` unanswered commands and at most `queueSize` waiting live events, 128 each by default. The server drops live events past the second bound and refuses commands past the first.
 
-**Fix.** Read each message as it arrives. To catch up after a gap, send `session/open` with `fromSeq` one past the last entry you received. The server replays the entries from the log, and you drop by sequence number any entry you get twice.
+**Fix.** Read each message as it arrives. To catch up after a gap, send `session/open` with `fromSeq` one past the last entry you received. The server replays the entries from the log, and you drop by sequence number any entry you get twice. To hold more, raise `queueSize` in `createDispatcher()`, but a client that reads each message at once never reaches the limit.
 
 ### An approval is answered by a client you did not expect
 

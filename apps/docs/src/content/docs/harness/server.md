@@ -11,7 +11,7 @@ A web page in the user's browser can open a socket to a local server, and withou
 
 ## A client in the same process needs no framing
 
-`createDispatcher()` from `@buildanagent/harness/server` takes a harness, a session store, an index, a lock and the user's id. `inProcessTransport()` connects a client that runs in the same process. Its `request()` resolves with the result of a command, or rejects with an `RpcFailure` that holds the error code and message.
+`createDispatcher()` from `@buildanagent/harness/server` takes a harness, a session store, the session index, the writer lock that lets one process at a time append to a session, and the user's id. [Sessions](/harness/sessions/) explains the three. `inProcessTransport()` connects a client that runs in the same process. Its `request()` resolves with the result of a command, or rejects with an `RpcFailure` that holds the error code and message.
 
 This client answers every approval request with `allow`. `onMessage()` hears the server's notifications and requests, and `respond()` answers a request. Its type allows only the result type of that request's method, so an approval cannot be answered with a tool result. The client then says who it is, creates a session and starts a turn:
 
@@ -36,8 +36,8 @@ Nothing holds a session open while a client thinks. A client that never answers 
 
 The dispatcher bounds what a slow client can cost, whichever transport it uses:
 
-- **Commands.** A connection holds at most 128 unanswered commands. The 129th gets the JSON-RPC error `-32001` with the message "the queue holds 128 commands; send again later".
-- **Events.** While a slow client keeps messages waiting, at most 128 live events wait with them. The server drops the rest and sends an `events_dropped` marker that says how many.
+- **Commands.** A connection holds at most 128 unanswered commands by default; the `queueSize` option of `createDispatcher()` changes the limit. The next command gets the JSON-RPC error `-32001` with the message "the queue holds 128 commands; send again later", which names the configured limit.
+- **Events.** While a slow client keeps messages waiting, at most `queueSize` live events wait with them, 128 by default. The server drops the rest and sends an `events_dropped` marker that says how many.
 - **Never dropped.** Responses, requests the server sends, `turn/settled` and the marker always go out.
 
 ## A reconnecting client replays what it missed
