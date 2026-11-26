@@ -13,6 +13,9 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { prose, slugify } from "./markdown-text.mjs";
+
+export { prose, slugify };
 
 // The root devDependency, resolved by package rather than by a node_modules/.bin path (AGENTS.md, "Tool paths").
 const TSC = fileURLToPath(new URL("bin/tsc", import.meta.resolve("typescript/package.json")));
@@ -38,24 +41,6 @@ export function codeBlocks(markdown) {
     i = close;
   }
   return blocks;
-}
-
-/** The Markdown text with its fenced blocks blanked out, line for line, so line numbers still match. */
-export function prose(markdown) {
-  const lines = markdown.split("\n");
-  let fence;
-  return lines.map((line) => {
-    const open = /^(`{3,})/.exec(line)?.[1];
-    if (fence === undefined && open !== undefined) {
-      fence = open;
-      return "";
-    }
-    if (fence !== undefined) {
-      if (line.trim() === fence) fence = undefined;
-      return "";
-    }
-    return line;
-  });
 }
 
 // An inline code span that names an export: `name()`, a name that starts with a capital, such as `SdkError`,
@@ -372,19 +357,7 @@ export function blocksNotFromExamples(packageDir, blocks) {
     );
 }
 
-/**
- * GitHub's slug for one heading's text: lower case, punctuation dropped, spaces as hyphens. It names the text alone;
- * a repeat's `-1`, `-2` … lives in whoever counts repeats across one document (`headingAnchors` below, or
- * `scripts/ci/markdown-links.mjs`'s own version for heading levels this one doesn't read).
- */
-export function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
-    .replace(/\s/g, "-");
-}
-
-/** GitHub's heading anchor: `slugify`'s slug, with `-1`, `-2` … for a repeat. */
+/** GitHub's heading anchor: `slugify`'s slug (imported from `./markdown-text.mjs`), with `-1`, `-2` … for a repeat. */
 export function headingAnchors(markdown) {
   const counts = new Map();
   return prose(markdown).flatMap((line) => {
