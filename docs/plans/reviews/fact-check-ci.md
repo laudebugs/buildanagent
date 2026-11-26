@@ -1,6 +1,6 @@
 # Fact-check: the CI plan's claims
 
-This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`.
+This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. It also logs the claims [X12](../../todos/done/X12-sdk-updates-assertion-bug.md) adds to gap 6 and to its own Outcome, checked 2026-11-26, on branch `todo/X12-sdk-updates-assertion-bug`.
 
 Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
 
@@ -9,5 +9,11 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or
 | X6-1 | Bun `v1.4.4` was published 2026-10-22, more than a week before this measurement (2026-11-26) | ✅ | `gh api repos/oven-sh/bun/releases/tags/bun-v1.4.4 --jq .published_at` returns `2026-10-22T10:11:32Z` |
 | X6-2 | ADR 0033 fixes exactly four deployment targets (local Node, Cloudflare, AWS, Vercel) and names Bun as a candidate for none of them | ✅ | [ADR 0033](../../decisions/0033-three-deployment-targets.md), "Decision": "The SDK and harness support four targets: local Node for development, Cloudflare (primary), AWS and Vercel." No other target is named |
 | X6-3 | The portable-agents report's recommendation 7 proposed typing the stdio transport over Web streams specifically so Deno, Bun and Workers could reuse it later | ✅ | [`portable-agents.md`](../../research/deployment/portable-agents.md), the recommendations table, item 7: "Type `stdioTransport` over Web streams, and move the WebSocket transport from non-goal to a later round \| harness §1, §3.5, N29 \| Deno, Bun and Workers reuse; cloud clients need it". A proposal, not a change already made |
+| X12-1 | `parseBumps` throws `no bumps were planned` for an empty input | ✅ | [`sdk-updates.mjs:373`](../../../scripts/ci/sdk-updates.mjs): `if (bumps.length === 0) throw new Error("no bumps were planned")` |
+| X12-2 | `parseBumps` throws `<input> isn't a planned bump` for `b`, `b@latest`, `@s/a`, `B@1.0.0` and `../x@1.0.0` | ✅ | [`sdk-updates.mjs:370`](../../../scripts/ci/sdk-updates.mjs) throws `` `${bump} isn't a planned bump` `` when the `@` is missing or leads, the name fails `PACKAGE_NAME`, or the version fails `parse`; the five inputs pass the new assertions in `sdk-updates.test.mjs` |
+| X12-3 | X12 fixed gap 6 on 2026-11-26 | ✅ | `git log -1 --format=%cs 56c9a260` returns `2026-11-26`, and the same date holds for the earlier fix commit `ab601452` |
+| X12-4 | `sdk-updates.test.mjs` passes 98 of 98 under `node --test` and under `bun test` (Bun 1.4.4), in seven separate runs | ✅ | Seven runs of each command, 2026-11-26, each with 98 pass and 0 fail |
+| X12-5 | The one Bun run that failed (97 pass, 1 fail) came from concurrent runs of the suite in one worktree, not from a flaky test | ⚠️ | The failure happened while two review agents ran the same suite in the same worktree, and six later back-to-back runs passed 98 of 98. The collision is our inference; the failing test was not captured |
+| X12-6 | Mutations: a different `parseBumps` message passes the old test and fails the new one; no throw on the empty input fails both; accepting `b@latest`, or returning instead of throwing at line 370, fails the new assertions with `Missing expected exception: refuses b@latest` under Node and Bun | ✅ | Each mutation applied to `sdk-updates.mjs`, the suite run, and `parseBumps` restored, 2026-11-26 |
 
-**Totals:** 3 claims: 3 ✅, 0 ✏️, 0 ⚠️.
+**Totals:** 9 claims: 8 ✅, 0 ✏️, 1 ⚠️.

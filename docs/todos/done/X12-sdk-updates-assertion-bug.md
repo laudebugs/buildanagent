@@ -61,19 +61,19 @@ The existing `sdk-updates.test.mjs` is rewritten in place; no new test file.
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step (the root `pnpm test` is the exception, as the acceptance criteria note; CI runs it)
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
 
 ## Outcome
 
-`sdk-updates.test.mjs` now checks what `parseBumps` throws, and it passes under Bun.
+`sdk-updates.test.mjs` now checks what `parseBumps` throws, and it passes under Bun in seven runs.
 
 - **Bug.** The test "reads the plan's bumps and refuses anything else" looped over six bad inputs with `assert.throws(() => parseBumps(bad), bad)`. A string second argument is the assertion's failure message, so the test passed whatever `parseBumps` threw. Bun 1.4.4's `node:assert` also rejected the empty-string message.
-- **Fix.** The empty input is now `assert.throws(() => parseBumps(""), { message: "no bumps were planned" })`. The other five inputs use `{ message: \`${bad} isn't a planned bump\` }`. `parseBumps` itself is unchanged.
-- **Mutation proof.** With `parseBumps` changed to throw a different message, the old test passed and the new one failed. With no throw on the empty input, both failed.
-- **Runs.** The whole file passes 98 of 98 under `node --test` and under `bun test` (Bun 1.4.4). `pnpm check` and `pnpm typecheck` pass locally. The root `pnpm test` stops at `verify/copilot-sdk` on macOS, which lacks `unshare`, so CI runs it.
+- **Fix.** The empty input is now `assert.throws(() => parseBumps(""), { message: "no bumps were planned" })`. The other five inputs use `` { message: `${bad} isn't a planned bump` } ``. `parseBumps` itself is unchanged.
+- **Mutation proof.** Each mutation below was applied to `parseBumps`, the suite run, and `parseBumps` restored. A different error message passed the old test and failed the new one. No throw on the empty input failed both. Accepting `b@latest` (the version check removed) failed the new test with `Missing expected exception: refuses b@latest` under Node and Bun. Returning instead of throwing at line 370 stopped all five non-empty inputs from throwing, and the new assertions failed. The third argument to `assert.throws` (`` `refuses ${bad}` ``) is what names the input in that message.
+- **Runs.** The whole file passed 98 of 98 under `node --test` and under `bun test` (Bun 1.4.4) in seven separate runs. One further Bun run reported 97 pass and 1 fail while two review agents ran the same suite in the same worktree; six later back-to-back runs passed, so we read it as a collision between concurrent runs, not a flaky test (the failing test was not captured). `pnpm check` and `pnpm typecheck` pass locally. The root `pnpm test` stops at `verify/copilot-sdk` on macOS, which lacks `unshare`, so CI runs it.
 - **Docs.** [CI plan §3h](../../plans/ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26), gap 6, records the fix, and the plan's todo table links the done file.
 
 The two review boxes stay open until the code and writing reviews run on the pull request.
