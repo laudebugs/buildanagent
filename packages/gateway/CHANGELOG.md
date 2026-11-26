@@ -1,5 +1,9 @@
 # @buildanagent/gateway
 
+## 0.1.0-alpha.41
+
+No changes in this release.
+
 ## 0.1.0-alpha.40
 
 No changes in this release.
