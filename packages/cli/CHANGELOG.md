@@ -1,5 +1,15 @@
 # @buildanagent/cli
 
+## 0.1.0-alpha.42
+
+### Patch Changes
+
+- Updated dependencies [fb7b198]
+  - @buildanagent/harness@0.1.0-alpha.42
+  - @buildanagent/gateway@0.1.0-alpha.42
+  - @buildanagent/protocol@0.1.0-alpha.42
+  - @buildanagent/sdk@0.1.0-alpha.42
+
 ## 0.1.0-alpha.41
 
 ### Patch Changes
