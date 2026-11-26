@@ -1,9 +1,9 @@
 ---
 title: Problems and fixes
-description: Twenty-two problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
+description: Twenty-three problems you may hit with sessions, context, tools, permissions, the sandbox, the server and extensions, each from what you see, to its cause, to its fix.
 ---
 
-You will find twenty-two problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
+You will find twenty-three problems, each written from what you see to why it happens and how to fix it. You need this page when a turn throws an error or the agent acts in a way you did not expect.
 
 ## Sessions
 
@@ -144,6 +144,14 @@ If the writer died on the same host, you need not remove anything: its lock beco
 **Cause.** The policy holds a secret where only a name belongs, or breaks another rule. A string that starts like a token, such as `ghp_` or `sk-` with a long body, is refused. A wildcard in `allow`, a credential name that is not upper case and a git route whose host is also in `allow` are refused too. The message names the place of the entry and never its value.
 
 **Fix.** Put the secret on the host and write only its upper-case name in the route's `credential`, such as `GITHUB_TOKEN`. Pass a `secret` function to `compileEgressPolicy()` that reads the value there.
+
+### Provisioning a hosted sandbox throws `invalid_egress_options` for a git route
+
+**You see.** `provision()` on the backend from `vercelSandbox()` or `e2bSandbox()` throws a `HarnessError` with the code `invalid_egress_options`. On Vercel the message reads `route 0 is a git route, and the Vercel firewall can't enforce its ref filter`. On E2B it reads `route 0 is a git route, and E2B can't filter a push by ref; reach git through the egress proxy`.
+
+**Cause.** A provider's firewall cannot read a push's branch names, so it cannot enforce a git route's `pushRefs`. Only the host proxy can.
+
+**Fix.** Remove the git route from the policy you pass to the hosted backend. Push through a host-side tool behind the [permission pipeline](/harness/permissions/), as the [sandbox page](/harness/sandbox/) describes.
 
 ## Server and clients
 

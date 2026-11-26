@@ -53,13 +53,15 @@ Some denials are never offered for widening: a path of `/`, a host with a wildca
 
 ## The egress proxy keeps credentials on the host
 
-Egress is traffic that leaves the sandbox. The egress proxy is a program on the host that all of the sandbox's web requests go through. It listens on `127.0.0.1`, and you give the sandbox its address as `HTTPS_PROXY`. A Docker sandbox reaches it through a Unix socket you name instead.
+Egress is traffic that leaves the sandbox. The egress proxy is a program on the host that the sandbox's web requests go through. It listens on `127.0.0.1`, and you give the sandbox its address as `HTTPS_PROXY`. A Docker sandbox reaches it through a Unix socket you name instead.
+
+Not every backend uses this proxy. `dockerSandbox()` uses one you start and wire in. `srtSandbox()` runs a proxy of its own. `e2bSandbox()` and `vercelSandbox()` take the same egress policy as their `egress` option and compile it into the provider's firewall, so no host proxy runs and the route limits below do not all hold. E2B adds a route's header to every HTTPS request to the host from every process in the sandbox, whatever the method or path, and you must set `unscopedInjection: true` to accept that. Both hosted backends refuse a git route with `invalid_egress_options`.
 
 The proxy refuses every host that is not on its allowlist with a 403, and it writes one log record per request: the host, the method, the status and the byte count. A record never holds a header, a body or a secret. The proxy also resolves each name itself and refuses a name that points at a private, loopback or link-local address, which includes the cloud metadata address `169.254.169.254`.
 
 A route lets a command in the sandbox call one host without holding its credential: the host adds it. The sandbox sends its request to the proxy and puts a random placeholder, called a sentinel, where the credential goes. The proxy checks the route, the method and the sentinel, swaps in the real secret and forwards the request over HTTPS. It reads the secret from the host for every request, so a rotated key takes effect at once.
 
-::figure[The sandbox reaches the web only through the egress proxy]{id="sandbox-egress" alt="The sandbox reaches the web only through a proxy on the host, which holds the secrets and refuses hosts that are not listed."}
+::figure[With the host proxy, the sandbox reaches the web only through the proxy]{id="sandbox-egress" alt="With the host proxy, the sandbox reaches the web only through a proxy that holds the secrets and refuses hosts that are not listed."}
 
 An egress policy is plain data that names a credential and never holds one. This policy lets the sandbox tunnel to the npm registry and push to branches under `agent/` in one repository, using the credential that the host reads under the name `GITHUB_TOKEN`:
 
@@ -78,7 +80,7 @@ A host that is not in `allow` is refused before the proxy opens a connection. Th
 
 The message reads `the egress proxy refused evil.example: not_allowed`. The sandbox holds `proxy.sentinels.git`, a placeholder that is worthless outside this proxy.
 
-## What the proxy does not stop
+## What the host proxy does not stop
 
 - **An allowed credential can still act.** The sandbox holds a placeholder, but it can ask the proxy to use the real secret on that route's host and methods. Scope each route to what the task needs.
 - **The proxy does not read responses or inspect TLS.** A route to a service that echoes request headers hands the secret back to the sandbox, so do not route to one.

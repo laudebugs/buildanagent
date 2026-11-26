@@ -41,7 +41,7 @@ A mode is a standing setting for the whole pipeline. Deny rules apply under ever
 
 ## Rules can read paths and shell commands
 
-A rule can add `paths`, globs matched against the path fields of a call's input, and `commandPrefix`, the leading words of a shell command. The pipeline splits a command on `&&`, `||`, `;`, pipes and newlines. An allow rule must cover every part, so a rule for `git status` does not allow `git status && rm -rf /`.
+A rule can add `paths`, globs matched against the path fields of a call's input, and `commandPrefix`, the leading words of a shell command. The pipeline splits a command on `&&`, `||`, `;`, `|`, `|&`, a lone `&`, newlines and parentheses, outside quotes. An allow rule must cover every part, so a rule for `git status` does not allow `git status && rm -rf /`.
 
 The command reader has limits. It does not follow aliases, shell functions, variables, here-documents or a script that the command writes first. An allow rule with a `commandPrefix` never covers a command that hides commands in a substitution, because the rule cannot read all of its parts. An allow rule for the whole tool, with no `commandPrefix`, still allows it. A command nested more than three levels deep counts as a match for every deny and ask rule that has a `commandPrefix` for its tool. Run untrusted commands in a [sandbox](/harness/sandbox/) as well.
 
