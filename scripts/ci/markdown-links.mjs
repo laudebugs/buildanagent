@@ -44,7 +44,8 @@ const SKIP_RULES = [
   },
   {
     test: (file) => file.endsWith(".src.md"),
-    reason: "a template copied into a generated page elsewhere; its relative links are written for that " +
+    reason:
+      "a template copied into a generated page elsewhere; its relative links are written for that " +
       "destination, not for this file's own folder (e.g. scripts/comparison/feature-table.src.md, copied into " +
       "docs/comparison/feature-table.md)",
   },
@@ -115,7 +116,10 @@ function directoriesOf(paths) {
  * to `null` for a tracked path this check never reads as a document, such as an image. `scan` defaults to every
  * `.md` key `skipReason` passes.
  */
-export function checkLinks(files, scan = [...files.keys()].filter((file) => file.endsWith(".md") && !skipReason(file))) {
+export function checkLinks(
+  files,
+  scan = [...files.keys()].filter((file) => file.endsWith(".md") && !skipReason(file)),
+) {
   const dirs = directoriesOf(files.keys());
   const anchorsOf = new Map();
   const anchorsIn = (file) => {
@@ -144,7 +148,8 @@ export function checkLinks(files, scan = [...files.keys()].filter((file) => file
         const hash = target.indexOf("#");
         const rawPath = hash === -1 ? target : target.slice(0, hash);
         const anchor = hash === -1 ? undefined : target.slice(hash + 1);
-        const resolved = rawPath === "" ? file : path.posix.normalize(path.posix.join(path.posix.dirname(file), rawPath));
+        const resolved =
+          rawPath === "" ? file : path.posix.normalize(path.posix.join(path.posix.dirname(file), rawPath));
 
         const isFile = files.has(resolved);
         const isDir = dirs.has(resolved.replace(/\/$/, ""));

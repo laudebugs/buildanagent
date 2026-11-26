@@ -274,7 +274,7 @@ Each row gives a decision: **adopted** (it works here today), **partly adopted**
 | A changelog page, a stability-policy page and a glossary | `P3-registry-checks.md`, `Q1h-docs-story.md`; `apps/docs/src/content/docs/reference/` (`changelog.mdx`, `stability.mdx`, `glossary.mdx`) | Deferred | L12x |
 | Browser tests with axe | `apps/docs/e2e/` | Deferred | L12y. The 2026-11-22 table deferred them because `.github/` is out of scope; the owner commits the workflow step |
 | A share image and JSON-LD | `W3d-structured-data-and-share-tags.md` | Deferred | L12z. Sitemap `lastmod` stays out: it needs the full git history at build time |
-| A repository link checker | `X1-docs-link-checker.md` | Deferred | [X5](X5-repository-link-check.md), outside L12. A nightly check of external links (`X3c-nightly-link-check.md`) can follow it |
+| A repository link checker | `X1-docs-link-checker.md` | Deferred | [X5](../done/X5-repository-link-check.md), outside L12 and done. A nightly check of external links (`X3c-nightly-link-check.md`) can follow it |
 | "Added in" markers on every export | `Q4n-since-markers-and-versions.md`; `apps/docs/scripts/since.mjs` | Deferred | The todo that makes the first stable release; every export is an alpha until then |
 | A rename log that a check ties to deprecations | `L5a-agent-docs.md`; `docs/renames.json` | Deferred | The first stable release. Under 0.x a `minor` may break the API, so a rename log has nothing stable to map from |
 | An agent eval of the docs | `L5a-agent-docs.md`; `docs/todos/ready/L5b-agent-eval-baseline.md` | Rejected for L12 | It belongs with the harness eval todos (N36 to N38). Lamina's baseline run is still `ready`, so it has no result to copy |
