@@ -61,7 +61,7 @@ const row = toEvalRow(entries, {
 
 Cost and tokens sum the agent's model calls and context summaries. A judge's calls are left out, because the baseline's cost counts the agent's calls only. Steps add up every turn's steps, and prompts count approval requests. Wall time sums each turn's time from its `turn_start` to its `turn_end`, so the time a paused session waits for a person's approval is left out.
 
-The last turn's stop reason sets `exit`. `done` becomes `"submitted"`, and `error` becomes `"infra_error"`. `max_steps`, `budget` and `no_progress` become `"limit"`, and so do `aborted`, because an eval runner aborts a trial only at its time limit, and `stopped`, because a host hook that stops a run ends it as a limit would. An `infra_error` row is ungraded whatever `passed` says. A session whose last turn never ended, or waits for a person's approval or answer, has no outcome, so `toEvalRow()` throws `unfinished_session`.
+The last turn's stop reason sets `exit`. `done` becomes `"submitted"`, and `error` becomes `"infra_error"`. `max_steps`, `budget` and `no_progress` become `"limit"`. So do `aborted`, because an eval runner aborts a trial only at its time limit, and `stopped`, because a host hook that stops a run ends it as a limit would. An `infra_error` row is ungraded whatever `passed` says. A session whose last turn never ended, or waits for a person's approval or answer, has no outcome, so `toEvalRow()` throws `unfinished_session`.
 
 ## A trajectory lets one script read our runs and the baseline's
 
@@ -110,6 +110,8 @@ A pair counts only when both runs graded it. A trial missing from one run, an in
 
 The package's tests replay the three sessions that the harness capstone recorded. Each case runs the triage agent again on its recorded model calls through the SDK's `replayPairs()`: it pauses at the page, and a second harness answers the pause. The suite fails when a request differs from the recorded one, and it compares every entry the rerun writes with the recorded log, so a change to any entry fails it. It also checks each log's eval row and trajectory. The suite runs on every commit.
 
-The recordings carry an expiry, and the replay checks it against the fixed time the capstone recorded them at, as the harness's own capstone test does, so the suite gives the same result on every day.
+The recordings carry an expiry, and the replay checks it against the fixed time the capstone recorded them at, as the harness's own capstone test does, so the suite gives the same result on any day.
+
+## The package exports these types
 
 The package exports the types `EvalRow`, `EvalExit`, `UnscoredReason`, `EvalRowMeta`, `ReportOptions`, `EvalReport`, `HarnessReport`, `TaskReport`, `TrialFigures`, `OutcomeCounts`, `PerTask`, `Interval`, `Discordance`, `EvalsErrorCode`, `MiniSweTrajectoryV1_1`, `MiniSweTrajectoryOptions`, `MiniSweMessage`, `MiniSweTextMessage`, `MiniSweAssistantMessage`, `MiniSweToolMessage`, `MiniSweExitMessage` and `MiniSweToolCall`. Live runs against mini-swe-agent come with the Inspect bridge, and the report format above is what they will fill.

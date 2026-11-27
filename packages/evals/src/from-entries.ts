@@ -46,9 +46,8 @@ export type StopClass = EvalExit | "unfinished";
 /**
  * Classifies a run's stop reason, so a row's `exit` and a trajectory's `exit_status` always agree. `done` is
  * `submitted`. `max_steps`, `budget` and `no_progress` are the step, budget and progress limits. `aborted` is a
- * limit too: in an eval the runner aborts a trial only at its time limit. `stopped` is a limit as well, because a
- * host hook that stops the run, such as a spend guard, ends it as a limit would, before the agent hands anything
- * in. `error` is an infra error: a failed model call or hook says nothing about the agent's choices. A run paused
+ * limit too: in an eval the runner aborts a trial only at its time limit. `stopped` is a limit as well. A host hook that
+ * stops the run, such as a spend guard, ends it before the agent hands anything in, as a limit would. `error` is an infra error: a failed model call or hook says nothing about the agent's choices. A run paused
  * for an approval or an answer has not finished. Throws an `EvalsError` with code `invalid_session` for a stop reason
  * this package does not know, such as one a newer SDK wrote.
  */
