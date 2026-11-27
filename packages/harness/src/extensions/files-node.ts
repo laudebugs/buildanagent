@@ -85,8 +85,8 @@ export async function readCapped(file: string, maxBytes: number): Promise<string
 }
 
 /**
- * What a hash may still read: files and folders, and bytes, in all, and the most bytes one file may hold. Each hashed file takes its
- * share, and running out refuses the file as `too_big`.
+ * What a hash may still read: files and folders, and bytes, in all, and the most bytes one file may hold. Each
+ * hashed file takes its share, and running out refuses the file as `too_big`.
  */
 export interface HashBudget {
   files: number;

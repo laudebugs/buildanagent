@@ -443,7 +443,7 @@ async function outcomeOf(
  * A server starts only when the run is not headless (or `loadInHeadless` is set), the trust store trusts the project,
  * and the server's config hashes to its pin in the lock file. Every other declared server is returned in `declared`,
  * with its exact command and args and a notice, so the host can show what would run and ask; `pinProjectMcpServer()`
- * records the person's yes. A headless run without `loadInHeadless` reads nothing and starts nothing. In a project
+ * records the person's yes. A headless run without `loadInHeadless` only checks that the file exists. In a project
  * that is not trusted the config and the lock file are read, and the files the command line names are hashed, all
  * inside the project, so the notice can show the state; nothing outside it is read.
  *
@@ -456,15 +456,15 @@ async function outcomeOf(
  * printable ASCII. Every refusal, of the config file, an entry, a named path or the lock file, is a `HarnessError` with
  * code `invalid_mcp_config` whose message starts with the file's name, and nothing of the file starts.
  *
- * The pin covers the command, args, variable names, and the files and folders inside the project that the command
- * line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or `./server` as a whole folder.
- * A path is resolved to its real path first, so any spelling of a project file counts. A path inside the project
- * whose real path leaves it (whichever part is the link), or a folder holding a link, refuses the config. One load hashes at most 4,096
- * files and folders, each charged as it is listed, and 64 MiB. It does not cover a module named by name, as `pkg` in `python -m pkg`, what the named code imports from elsewhere, a package a command
- * such as `npx` fetches, the project root itself (`node .`), or a file changed between this check and the start. The
- * lock file sits in the project, so anyone who can commit to the project can pin their own change: a change that
- * comes with its own pin, as a pull can bring, starts without asking. The pin asks again only for a change nobody
- * pinned.
+ * The pin covers the command, args, variable names, and the files and folders inside the project that
+ * the command line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or
+ * `./server` as a whole folder. A path is resolved to its real path first, so any spelling of a project
+ * file counts. A path inside the project whose real path leaves it, or a folder holding a link, refuses
+ * the config. One load hashes at most 4,096 files and folders and 64 MiB. The pin does
+ * not cover a module named by name (`pkg` in `python -m pkg`), what the named code imports from
+ * elsewhere, a package that `npx` fetches, the project root itself (`node .`) or a file changed between
+ * this check and the start. The lock file sits in the project, so a change that brings its own pin, as a
+ * pull can, starts without asking: the pin asks again only for a change nobody pinned.
  */
 export async function loadProjectMcpServers(root: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const base = await canonicalPath(root);
@@ -492,9 +492,9 @@ export async function loadProjectMcpServers(root: string, options: ProjectMcpOpt
 
 /**
  * Pins one server of a project's `.mcp.json` in the lock file, by the hash `loadProjectMcpServers()` showed, so it
- * starts from the next load in a trusted project. A person's approval runs it. Throws `invalid_mcp_config` when the
- * config declares no such server, when its config now hashes differently, so a pin never covers a command the person
- * did not see, or for any refusal the loader makes. It starts nothing.
+ * starts from the next load in a trusted project. It throws `invalid_mcp_config` when the config declares no such
+ * server, when the config now hashes differently from `hash` (so a pin never covers a command the person did not
+ * see), or for any refusal the loader makes. It starts nothing.
  */
 export async function pinProjectMcpServer(
   root: string,
