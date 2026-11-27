@@ -4,7 +4,7 @@
  */
 import { totalInput } from "@buildanagent/gateway";
 import { EvalsError } from "./errors.js";
-import { checkRows, type EvalRow, type Outcome, outcomeOf } from "./row.js";
+import { checkRows, type EvalRow, isGraded, type Outcome, outcomeOf } from "./row.js";
 import { type Interval, passHatK, wilson } from "./stats.js";
 
 /** Which rows `report()` reads, and the k of its pass^k. */
@@ -55,24 +55,45 @@ export interface PerTask {
   readonly wallMs: number;
 }
 
-/** One harness's line of a report. */
-export interface HarnessReport {
-  /** The harness the rows name. */
-  readonly harness: string;
-  /** How many trials the harness ran. */
+/** The figures a report gives for any set of trials: a harness's, or one task's within it. */
+export interface TrialFigures {
+  /** How many trials there are. */
   readonly trials: number;
-  /** How many distinct tasks they cover. */
-  readonly tasks: number;
   /** How the trials came out. */
   readonly outcomes: OutcomeCounts;
   /**
    * The share of graded trials that passed, or `null` when none was graded. Infra errors and ungraded trials are
-   * left out of both counts. When every task has the same number of graded trials, it equals the mean of each task's
-   * pass rate.
+   * left out of both counts. For a harness, when every task has the same number of graded trials, it equals the mean
+   * of each task's pass rate.
    */
   readonly passAt1: number | null;
   /** The 95% Wilson interval of `passAt1`, or `null` when no trial was graded. */
   readonly passAt1Interval: Interval | null;
+  /** What one attempt took, on average. */
+  readonly perTask: PerTask;
+  /** The cost of every trial together, or `null` when any is unknown. */
+  readonly totalCostUsd: number | null;
+  /** How many trials have an unknown cost. */
+  readonly unknownCostTrials: number;
+}
+
+/**
+ * One task's figures within a harness, so two harnesses or two ablations can be compared task by task with paired
+ * statistics.
+ */
+export interface TaskReport extends TrialFigures {
+  /** The task's id. */
+  readonly task: string;
+  /** The task's unbiased pass^k, C(c, k) / C(n, k), or `null` when it has fewer than k graded trials. */
+  readonly passHatK: number | null;
+}
+
+/** One harness's line of a report. */
+export interface HarnessReport extends TrialFigures {
+  /** The harness the rows name. */
+  readonly harness: string;
+  /** How many distinct tasks the trials cover. */
+  readonly tasks: number;
   /**
    * The mean over tasks of each task's unbiased pass^k, C(c, k) / C(n, k), for n graded trials of which c passed. A
    * task with fewer than k graded trials is left out and counted in `tasksBelowK`. `null` when no task has k.
@@ -82,12 +103,8 @@ export interface HarnessReport {
   readonly passHatKTasks: number;
   /** How many tasks have fewer than k graded trials, so `passHatK` leaves them out. */
   readonly tasksBelowK: number;
-  /** What one attempt at a task took, on average. */
-  readonly perTask: PerTask;
-  /** The cost of every trial together, or `null` when any is unknown. */
-  readonly totalCostUsd: number | null;
-  /** How many trials have an unknown cost. */
-  readonly unknownCostTrials: number;
+  /** Each task's own figures, keyed by task id in the order the rows first name it. */
+  readonly byTask: Readonly<Record<string, TaskReport>>;
 }
 
 /** A report: the k it used and one line for each harness, keyed by its name in the order the rows first name it. */
@@ -129,20 +146,16 @@ function countOutcomes(rows: readonly EvalRow[]): OutcomeCounts {
   return { passed: counts.pass, failed: counts.fail, infraError: counts.infra_error, unscored: counts.unscored };
 }
 
-function passHatKOf(rows: readonly EvalRow[], k: number) {
-  let sum = 0;
-  let eligible = 0;
-  let below = 0;
-  for (const trials of byKey(rows, (row) => row.task).values()) {
-    const graded = trials.map(outcomeOf).filter((outcome) => outcome === "pass" || outcome === "fail");
-    if (graded.length < k) {
-      below++;
-      continue;
-    }
-    sum += passHatK(graded.length, graded.filter((outcome) => outcome === "pass").length, k);
-    eligible++;
-  }
-  return { passHatK: eligible === 0 ? null : sum / eligible, passHatKTasks: eligible, tasksBelowK: below };
+/** A task's pass^k, or `null` when it has fewer than k graded trials. */
+function taskPassHatK(rows: readonly EvalRow[], k: number): number | null {
+  const graded = rows.map(outcomeOf).filter(isGraded);
+  return graded.length < k ? null : passHatK(graded.length, graded.filter((outcome) => outcome === "pass").length, k);
+}
+
+function meanPassHatK(tasks: readonly TaskReport[]) {
+  const known = tasks.flatMap((task) => (task.passHatK === null ? [] : [task.passHatK]));
+  const mean = known.length === 0 ? null : known.reduce((sum, value) => sum + value, 0) / known.length;
+  return { passHatK: mean, passHatKTasks: known.length, tasksBelowK: tasks.length - known.length };
 }
 
 function totalCost(rows: readonly EvalRow[]): number | null {
@@ -167,6 +180,21 @@ function perTaskOf(rows: readonly EvalRow[], total: number | null): PerTask {
   };
 }
 
+function figuresOf(rows: readonly EvalRow[]): TrialFigures {
+  const outcomes = countOutcomes(rows);
+  const graded = outcomes.passed + outcomes.failed;
+  const total = totalCost(rows);
+  return {
+    trials: rows.length,
+    outcomes,
+    passAt1: graded === 0 ? null : outcomes.passed / graded,
+    passAt1Interval: graded === 0 ? null : wilson(outcomes.passed, graded),
+    perTask: perTaskOf(rows, total),
+    totalCostUsd: total,
+    unknownCostTrials: rows.filter((row) => row.costUsd === null).length,
+  };
+}
+
 function harnessReport(harness: string, rows: readonly EvalRow[], k: number): HarnessReport {
   const ablations = new Set(rows.map((row) => row.ablation));
   if (ablations.size > 1) {
@@ -175,27 +203,23 @@ function harnessReport(harness: string, rows: readonly EvalRow[], k: number): Ha
       `harness ${JSON.stringify(harness)} has rows from ${ablations.size} ablations; report one with options.ablation`,
     );
   }
-  const outcomes = countOutcomes(rows);
-  const graded = outcomes.passed + outcomes.failed;
-  const total = totalCost(rows);
+  const tasks = [...byKey(rows, (row) => row.task)].map(
+    ([task, trials]): TaskReport => ({ task, ...figuresOf(trials), passHatK: taskPassHatK(trials, k) }),
+  );
   return {
     harness,
-    trials: rows.length,
-    tasks: new Set(rows.map((row) => row.task)).size,
-    outcomes,
-    passAt1: graded === 0 ? null : outcomes.passed / graded,
-    passAt1Interval: graded === 0 ? null : wilson(outcomes.passed, graded),
-    ...passHatKOf(rows, k),
-    perTask: perTaskOf(rows, total),
-    totalCostUsd: total,
-    unknownCostTrials: rows.filter((row) => row.costUsd === null).length,
+    tasks: tasks.length,
+    ...figuresOf(rows),
+    ...meanPassHatK(tasks),
+    byTask: Object.fromEntries(tasks.map((task) => [task.task, task])),
   };
 }
 
 /**
  * Reports each harness in `rows`: pass@1 with its 95% Wilson interval, pass^k by the unbiased estimator
  * C(c, k) / C(n, k) averaged over tasks, and the mean cost, tokens, steps, preamble size, approval prompts and wall
- * time of one attempt at a task. Infra errors are counted apart from failures, and a trial the grader could not score
+ * time of one attempt at a task. Each harness also gives the same figures for each of its tasks in `byTask`, for
+ * paired comparisons. Infra errors are counted apart from failures, and a trial the grader could not score
  * counts as neither. A harness with no kept rows has no line.
  *
  * Throws an `EvalsError`: `invalid_option` for a `k` below 1 or a harness whose kept rows span several ablations,

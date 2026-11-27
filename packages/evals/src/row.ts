@@ -60,10 +60,19 @@ function fail(row: EvalRow, message: string): never {
   throw new EvalsError("invalid_row", `${row.harness}/${row.task}#${row.trial}: ${message}`);
 }
 
-const isCount = (value: number) => Number.isSafeInteger(value) && value >= 0;
-const isAmount = (value: number) => Number.isFinite(value) && value >= 0;
+const EXITS: readonly unknown[] = ["submitted", "limit", "infra_error"] satisfies EvalExit[];
+const UNSCORED: readonly unknown[] = ["judge_unknown", "infra_error"] satisfies UnscoredReason[];
+const isCount = (value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0;
+const isAmount = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0;
+const isName = (value: unknown) => typeof value === "string" && value !== "";
 
+// The fields are typed, but rows often arrive as parsed JSON from a live run, so each value is checked as unknown.
 function checkGrade(row: EvalRow): void {
+  if (row.passed !== null && typeof row.passed !== "boolean") fail(row, "passed must be true, false or null");
+  if (row.unscored !== undefined && !UNSCORED.includes(row.unscored)) {
+    fail(row, `unscored must be "judge_unknown" or "infra_error"`);
+  }
+  if (!EXITS.includes(row.exit)) fail(row, `exit must be "submitted", "limit" or "infra_error"`);
   if (row.passed === null && row.unscored === undefined) fail(row, "passed is null, so unscored must say why");
   if (row.passed !== null && row.unscored !== undefined) fail(row, `passed is set, so unscored must be left out`);
   if (row.exit === "infra_error" && row.unscored !== "infra_error") {
@@ -71,16 +80,38 @@ function checkGrade(row: EvalRow): void {
   }
 }
 
-/** Throws an `EvalsError` with code `invalid_row` when the row breaks a rule its fields' docs state. */
-export function checkRow(row: EvalRow): void {
-  if (row.task === "") fail(row, "task must not be empty");
-  if (row.harness === "") fail(row, "harness must not be empty");
+function checkTokens(row: EvalRow): void {
+  const usage = row.tokens as Partial<EvalRow["tokens"]> | null;
+  const counts = [
+    usage?.uncachedInput,
+    usage?.cacheRead,
+    usage?.cacheWrite?.["5m"],
+    usage?.cacheWrite?.["1h"],
+    usage?.output,
+    usage?.reasoning,
+  ];
+  if (!counts.every(isCount)) fail(row, "every token count must be a whole number, 0 or more");
+}
+
+function checkCounts(row: EvalRow): void {
   if (!isCount(row.trial)) fail(row, "trial must be a whole number, 0 or more");
   for (const name of ["steps", "preambleTokens", "prompts"] as const) {
     if (!isCount(row[name])) fail(row, `${name} must be a whole number, 0 or more`);
   }
   if (!isAmount(row.wallMs)) fail(row, "wallMs must be a finite number, 0 or more");
   if (row.costUsd !== null && !isAmount(row.costUsd)) fail(row, "costUsd must be null or a finite number, 0 or more");
+}
+
+/** Throws an `EvalsError` with code `invalid_row` when the row breaks a rule its fields' docs state. */
+export function checkRow(row: EvalRow): void {
+  for (const name of ["task", "harness", "ablation"] as const) {
+    if (!isName(row[name])) fail(row, `${name} must be a non-empty string`);
+  }
+  if (row.tags !== undefined && !(Array.isArray(row.tags) && row.tags.every((tag) => typeof tag === "string"))) {
+    fail(row, "tags must be a list of strings");
+  }
+  checkCounts(row);
+  checkTokens(row);
   checkGrade(row);
 }
 
@@ -91,16 +122,26 @@ export function outcomeOf(row: EvalRow): Outcome {
   return row.passed ? "pass" : "fail";
 }
 
-/** Checks every row and that no two share a harness, ablation, task and trial. */
-export function checkRows(rows: readonly EvalRow[]): void {
+/** Whether an outcome is a grade: a pass or a fail. Infra errors and unscored trials are not. */
+export const isGraded = (outcome: Outcome): outcome is "pass" | "fail" => outcome === "pass" || outcome === "fail";
+
+/**
+ * Checks every row, and that no two rows share the key `keyOf` gives them: a JSON array of the fields that name one
+ * trial. `where` names the scope in the error, such as "run a".
+ */
+export function checkRows(
+  rows: readonly EvalRow[],
+  keyOf: (row: EvalRow) => readonly unknown[] = (row) => [row.harness, row.ablation, row.task, row.trial],
+  where = "the rows",
+): void {
   const seen = new Set<string>();
   for (const row of rows) {
     checkRow(row);
-    const key = JSON.stringify([row.harness, row.ablation, row.task, row.trial]);
+    const key = JSON.stringify(keyOf(row));
     if (seen.has(key)) {
       throw new EvalsError(
         "duplicate_trial",
-        `${row.harness}/${row.task}#${row.trial} appears twice under ablation ${JSON.stringify(row.ablation)}`,
+        `${where} hold ${row.harness}/${row.task}#${row.trial} twice under ablation ${JSON.stringify(row.ablation)}`,
       );
     }
     seen.add(key);

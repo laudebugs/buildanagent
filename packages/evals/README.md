@@ -17,6 +17,8 @@ console.log(result.harnesses.ours?.passAt1, result.harnesses.ours?.perTask.costU
 
 Take six trials of two tasks from one harness: four passed, one failed and one hit an infrastructure error. With `k: 2`, the line says `passAt1` is 0.8 over the five graded trials, with an interval from 0.376 to 0.964. It says `passHatK` is 2/3 and `perTask.costUsd` is 0.2 if the trials cost $1.20 together.
 
+Each line also breaks the harness down by task. `byTask` maps each task id to the same figures for that task alone, with its own pass^k, so two harnesses or two ablations can be compared task by task with paired statistics.
+
 `ReportOptions` takes four fields. `k` is required and must be a whole number of at least 1. `harness`, `tag` and `ablation` each keep only the rows that match, so `tag: "safety"` reports the safety slice alone.
 
 ## Pass@1 and pass^k answer different questions
@@ -41,7 +43,7 @@ A row's `costUsd` is `null` when any model call in the trial had no known price,
 
 An `EvalRow` holds one trial of one task: `task`, `trial`, `costUsd`, `tokens`, `passed`, `steps`, `preambleTokens`, `wallMs`, `prompts`, `exit`, `harness`, `ablation` and optional `tags`. `harness` is any string, such as `"ours"`, `"mini-swe-agent"` or `"single-call"`, and `ablation` is the hash of the harness's switches or `"none"`.
 
-Three rules tie the grade to the exit. `passed: null` needs an `unscored` reason, and a set `passed` forbids one. An `exit` of `"infra_error"` needs `passed: null` and `unscored: "infra_error"`. `exit` is `"submitted"` when the agent handed in an answer and `"limit"` when a step, budget, time or progress limit stopped it.
+Every count, including each token count, must be a whole number of at least 0, and `task`, `harness` and `ablation` must be non-empty. Three rules tie the grade to the exit. `passed: null` needs an `unscored` reason, and a set `passed` forbids one. An `exit` of `"infra_error"` needs `passed: null` and `unscored: "infra_error"`. `exit` is `"submitted"` when the agent handed in an answer and `"limit"` when a step, budget, time or progress limit stopped it.
 
 `report()` and `discordance()` check every row they read and refuse a row that breaks a rule. `report()` also refuses two rows that share a harness, ablation, task and trial, and a harness whose kept rows span several ablations, because pooling their trials would mix two configurations in one pass^k. Choose one with `ablation`.
 
@@ -57,9 +59,9 @@ const row = toEvalRow(entries, {
 });
 ```
 
-Cost and tokens sum the agent's model calls and context summaries. A judge's calls are left out, because the baseline's cost counts the agent's calls only. Steps add up every turn's steps, prompts count approval requests, and wall time runs from the first entry to the last.
+Cost and tokens sum the agent's model calls and context summaries. A judge's calls are left out, because the baseline's cost counts the agent's calls only. Steps add up every turn's steps, and prompts count approval requests. Wall time sums each turn's time from its `turn_start` to its `turn_end`, so the time a paused session waits for a person's approval is left out.
 
-The last turn's stop reason sets `exit`. `done` becomes `"submitted"`, `error` becomes `"infra_error"` and any other finished stop, such as `max_steps` or `budget`, becomes `"limit"`. An `infra_error` row is ungraded whatever `passed` says. A session whose last turn never ended, or waits for a person's approval or answer, has no outcome, so `toEvalRow()` throws `unfinished_session`.
+The last turn's stop reason sets `exit`. `done` becomes `"submitted"`, and `error` becomes `"infra_error"`. `max_steps`, `budget` and `no_progress` become `"limit"`, and so do `aborted`, because an eval runner aborts a trial only at its time limit, and `stopped`, because a host hook that stops a run ends it as a limit would. An `infra_error` row is ungraded whatever `passed` says. A session whose last turn never ended, or waits for a person's approval or answer, has no outcome, so `toEvalRow()` throws `unfinished_session`.
 
 ## A trajectory lets one script read our runs and the baseline's
 
@@ -74,7 +76,7 @@ console.log(trajectory.trajectory_format === MINI_SWE_TRAJECTORY_FORMAT, traject
 
 The shape follows mini-swe-agent v2.4.6: `DefaultAgent.serialize()` in `src/minisweagent/agents/default.py`, lines 159 to 180, at commit `a83fcae`. `instance_cost` sums the cost of the agent's model and summary calls, `api_calls` counts them, and a judge's call is in neither. The log does not record what a run handed in, so `submission` is `""` unless you pass one.
 
-`exit_status` comes from the last turn's stop reason. `done` is `"Submitted"`, `max_steps` and `budget` are `"LimitsExceeded"`, and any other reason is kept as it is. The status is `""` before any turn ends, and the trajectory then has no exit message.
+`exit_status` comes from the same classification as a row's `exit`, so the two always agree. A submission is `"Submitted"`, every limit is `"LimitsExceeded"`, and an infra error is `"error"`. The status is `""` before any turn ends or while the last turn waits for a person, and the trajectory then has no exit message.
 
 Messages follow the baseline's shapes. The first is the system prompt, and assistant messages carry `extra.cost` and `extra.timestamp`. Tool results are `{ role: "tool", tool_call_id, content }`, and the last message has role `exit`. Images and reasoning blocks are left out, because the format's content is text, and `info.config` and `info.mini_version` are left out because they describe mini-swe-agent's own agent.
 
@@ -105,8 +107,8 @@ A pair counts only when both runs graded it. A trial missing from one run, an in
 
 ## The replay suite checks recorded sessions with no model and no network
 
-The package's tests replay the three sessions that the harness capstone recorded. For every model call in a log, the context the log rebuilds is sent through the SDK's `replayPairs()`. The suite fails when that request differs from the recorded one, or when the replayed blocks, stop reason, usage or cost differ from the log's entries. It also checks each log's eval row and trajectory. The suite runs on every commit.
+The package's tests replay the three sessions that the harness capstone recorded. Each case runs the triage agent again on its recorded model calls through the SDK's `replayPairs()`: it pauses at the page, and a second harness answers the pause. The suite fails when a request differs from the recorded one, and it compares every entry the rerun writes with the recorded log, so a change to any entry fails it. It also checks each log's eval row and trajectory. The suite runs on every commit.
 
-The recordings carry an expiry, and the replay checks it against the real clock. From 25 November 2027 the suite fails until the capstone's sessions are recorded again.
+The recordings carry an expiry, and the replay checks it against the fixed time the capstone recorded them at, as the harness's own capstone test does, so the suite gives the same result on every day.
 
-The package exports the types `EvalRow`, `EvalExit`, `UnscoredReason`, `EvalRowMeta`, `ReportOptions`, `EvalReport`, `HarnessReport`, `OutcomeCounts`, `PerTask`, `Interval`, `Discordance` and `MiniSweTrajectoryV1_1`. Live runs against mini-swe-agent come with the Inspect bridge, and the report format above is what they will fill.
+The package exports the types `EvalRow`, `EvalExit`, `UnscoredReason`, `EvalRowMeta`, `ReportOptions`, `EvalReport`, `HarnessReport`, `TaskReport`, `TrialFigures`, `OutcomeCounts`, `PerTask`, `Interval`, `Discordance` and `MiniSweTrajectoryV1_1`. Live runs against mini-swe-agent come with the Inspect bridge, and the report format above is what they will fill.

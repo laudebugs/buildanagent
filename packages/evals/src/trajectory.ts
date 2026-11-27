@@ -12,7 +12,7 @@
  */
 import type { ContentBlock, ModelContent } from "@buildanagent/gateway";
 import type { MessageBlockEntry, SessionEntry, ToolResultEntry, TurnEndEntry } from "@buildanagent/protocol";
-import { isAgentUsage, lastTurnEnd, spendOf } from "./from-entries.js";
+import { classifyStop, isAgentUsage, lastTurnEnd, spendOf } from "./from-entries.js";
 
 /** The format name mini-swe-agent 2.4.6 writes in `trajectory_format`. */
 export const MINI_SWE_TRAJECTORY_FORMAT = "mini-swe-agent-1.1";
@@ -82,7 +82,10 @@ export interface MiniSweTrajectoryV1_1 {
   readonly info: {
     /** The agent's spend: the dollars of every call, or `null` once one is unknown, and how many calls it made. */
     readonly model_stats: { readonly instance_cost: number | null; readonly api_calls: number };
-    /** How the run ended: `"Submitted"`, `"LimitsExceeded"`, our stop reason otherwise, or `""` before any turn ends. */
+    /**
+     * How the run ended: `"Submitted"`, `"LimitsExceeded"`, `"error"` for an infra error, or `""` while no turn has
+     * finished.
+     */
     readonly exit_status: string;
     /** What the run handed in, or `""`. */
     readonly submission: string;
@@ -100,18 +103,17 @@ export interface MiniSweTrajectoryOptions {
 const textOf = (blocks: readonly (ContentBlock | ModelContent)[]) =>
   blocks.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("\n");
 
-/** mini-swe-agent's names for the stop reasons it shares with us; any other stop reason is kept as it is. */
+/**
+ * mini-swe-agent's exit status for a turn's stop reason, from the same classification as a row's `exit`, so the two
+ * always agree: `"Submitted"` and `"LimitsExceeded"` for a submission and a limit, the stop reason itself for an
+ * infra error, and `""` for a turn that has not finished, as mini-swe-agent writes before its exit message.
+ */
 function exitStatusOf(end: TurnEndEntry | undefined): string {
   if (end === undefined) return "";
-  switch (end.stopReason) {
-    case "done":
-      return "Submitted";
-    case "max_steps":
-    case "budget":
-      return "LimitsExceeded";
-    default:
-      return end.stopReason;
-  }
+  const kind = classifyStop(end.stopReason);
+  if (kind === "unfinished") return "";
+  if (kind === "infra_error") return end.stopReason;
+  return kind === "submitted" ? "Submitted" : "LimitsExceeded";
 }
 
 /** Collects one message's blocks, written as separate entries, until the message is turned into a trajectory line. */
@@ -179,10 +181,11 @@ const isOpen = (line: OpenMessage | MiniSweMessage): line is OpenMessage => "blo
 /**
  * Converts a session log to a `mini-swe-agent-1.1` trajectory. `instance_cost` sums the cost of the agent's model
  * and summary calls, and is `null` when any price is unknown; `api_calls` counts those calls; a judge's call is in
- * neither. `exit_status` comes from the last turn's stop reason: `done` is `"Submitted"`, `max_steps` and `budget`
- * are `"LimitsExceeded"`, and any other reason is kept as it is. The messages are the first system prompt (and any
- * later one that differs), each user and assistant message, each tool result and, once a turn has ended, an exit
- * message. Images and reasoning blocks are left out, because the format's content is text.
+ * neither. `exit_status` comes from the last turn's stop reason, classified as `toEvalRow()` classifies its `exit`:
+ * `done` is `"Submitted"`; `max_steps`, `budget`, `no_progress`, `aborted` and `stopped` are `"LimitsExceeded"`;
+ * `error` stays `"error"`; and a turn paused for a person gives `""` and no exit message. The messages are the first
+ * system prompt (and any later one that differs), each user and assistant message, each tool result and, once the
+ * last turn has finished, an exit message. Images and reasoning blocks are left out, because the format's content is text.
  */
 export function toMiniSweTrajectory(
   entries: readonly SessionEntry[],

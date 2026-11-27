@@ -108,6 +108,57 @@ describe("report() on the ten-row fixture matches the hand-computed table", () =
   });
 });
 
+describe("report() breaks each harness down by task, for paired comparisons", () => {
+  // Per task, from the same fixture:
+  //   ours A: 2 pass, 1 fail → pass@1 2/3, pass^2 C(2,2)/C(3,2) = 1/3; cost 0.60 / 3 = 0.20; input 6000 / 3 = 2000;
+  //           steps 12 / 3 = 4; prompts 3 / 3 = 1
+  //   ours B: 2 pass, 1 infra error → pass@1 2/2 = 1, pass^2 1; cost 0.60 / 3 = 0.20; input 3000 / 3 = 1000;
+  //           steps 6 / 3 = 2; prompts 1 / 3
+  //   single-call A: 1 fail, 1 unscored → pass@1 0, pass^2 null (1 graded trial); cost null, 1 unknown
+  //   single-call B: 2 pass → pass@1 1, pass^2 1; cost 0.05 / 2 = 0.025
+  const { harnesses } = report(TEN_ROWS, { k: 2 });
+
+  test("ours: each task has its own outcomes, pass@1, pass^k and means", () => {
+    const a = harnesses.ours?.byTask.A;
+    const b = harnesses.ours?.byTask.B;
+    assert.deepEqual(Object.keys(harnesses.ours?.byTask ?? {}), ["A", "B"]);
+    assert.equal(a?.task, "A");
+    assert.equal(a?.trials, 3);
+    assert.deepEqual(a?.outcomes, { passed: 2, failed: 1, infraError: 0, unscored: 0 });
+    near(a?.passAt1, 2 / 3);
+    near(a?.passHatK, 1 / 3);
+    near(a?.perTask.costUsd, 0.2);
+    near(a?.perTask.inputTokens, 2000);
+    near(a?.perTask.steps, 4);
+    near(a?.perTask.prompts, 1);
+    assert.deepEqual(b?.outcomes, { passed: 2, failed: 0, infraError: 1, unscored: 0 });
+    assert.equal(b?.passAt1, 1);
+    assert.equal(b?.passHatK, 1);
+    near(b?.perTask.costUsd, 0.2);
+    near(b?.perTask.inputTokens, 1000);
+    near(b?.perTask.steps, 2);
+    near(b?.perTask.prompts, 1 / 3);
+  });
+
+  test("single-call: a task below k has no pass^k, and an unknown cost stays with its task", () => {
+    const a = harnesses["single-call"]?.byTask.A;
+    const b = harnesses["single-call"]?.byTask.B;
+    assert.equal(a?.passAt1, 0);
+    assert.equal(a?.passHatK, null);
+    assert.equal(a?.perTask.costUsd, null);
+    assert.equal(a?.unknownCostTrials, 1);
+    assert.equal(b?.passAt1, 1);
+    assert.equal(b?.passHatK, 1);
+    near(b?.perTask.costUsd, 0.025);
+    near(b?.totalCostUsd, 0.05);
+  });
+
+  test("the harness's pass^k is the mean of its tasks' pass^k", () => {
+    const line = harnesses.ours;
+    near(line?.passHatK, ((line?.byTask.A?.passHatK ?? 0) + (line?.byTask.B?.passHatK ?? 0)) / 2);
+  });
+});
+
 describe("filters", () => {
   test("a tag keeps only the rows that carry it", () => {
     const result = report(TEN_ROWS, { k: 2, tag: "safety" });
@@ -239,6 +290,23 @@ describe("rows and options that break the rules are refused", () => {
 
   test("the same trial twice", () =>
     refuses([row("ours", "A", 0, "pass"), row("ours", "A", 0, "fail")], "duplicate_trial"));
+
+  test("a negative token count", () =>
+    refuses([row("ours", "A", 0, "pass", { tokens: tokens(-1, 0) })], "invalid_row"));
+
+  test("a fractional token count", () =>
+    refuses([row("ours", "A", 0, "pass", { tokens: tokens(0, 1.5) })], "invalid_row"));
+
+  test("an unknown exit", () =>
+    refuses([row("ours", "A", 0, "pass", { exit: "timeout" as EvalRow["exit"] })], "invalid_row"));
+
+  test("an unknown unscored reason", () =>
+    refuses([row("ours", "A", 0, "unknown", { unscored: "skipped" as EvalRow["unscored"] & string })], "invalid_row"));
+
+  test("an empty ablation", () => refuses([row("ours", "A", 0, "pass", { ablation: "" })], "invalid_row"));
+
+  test("a passed that is not a boolean", () =>
+    refuses([row("ours", "A", 0, "pass", { passed: "yes" as unknown as boolean })], "invalid_row"));
 
   test("a k below 1", () => refuses([row("ours", "A", 0, "pass")], "invalid_option", 0));
 });

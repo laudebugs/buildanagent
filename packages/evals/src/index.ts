@@ -14,6 +14,8 @@ export {
   type PerTask,
   type ReportOptions,
   report,
+  type TaskReport,
+  type TrialFigures,
 } from "./report.js";
 export type { EvalExit, EvalRow, UnscoredReason } from "./row.js";
 export type { Interval } from "./stats.js";

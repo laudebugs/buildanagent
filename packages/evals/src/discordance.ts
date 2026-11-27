@@ -2,8 +2,7 @@
  * `discordance()`: how many paired trials two runs grade differently. Among mature harnesses, swapping the harness
  * flips about as many tasks as rerunning the same one (harness guide §10), so a gain means little until it beats this.
  */
-import { EvalsError } from "./errors.js";
-import { checkRow, type EvalRow, outcomeOf } from "./row.js";
+import { checkRows, type EvalRow, isGraded, outcomeOf } from "./row.js";
 
 /** How many paired trials two runs graded differently, out of how many both graded. */
 export interface Discordance {
@@ -13,16 +12,14 @@ export interface Discordance {
   readonly total: number;
 }
 
+const trialKey = (row: EvalRow) => JSON.stringify([row.task, row.trial]);
+
 function gradesByTrial(rows: readonly EvalRow[], run: string): Map<string, boolean> {
+  checkRows(rows, (row) => [row.task, row.trial], `run ${run}`);
   const grades = new Map<string, boolean>();
-  const seen = new Set<string>();
   for (const row of rows) {
-    checkRow(row);
-    const key = JSON.stringify([row.task, row.trial]);
-    if (seen.has(key)) throw new EvalsError("duplicate_trial", `run ${run} has ${row.task}#${row.trial} twice`);
-    seen.add(key);
     const outcome = outcomeOf(row);
-    if (outcome === "pass" || outcome === "fail") grades.set(key, outcome === "pass");
+    if (isGraded(outcome)) grades.set(trialKey(row), outcome === "pass");
   }
   return grades;
 }

@@ -37,10 +37,10 @@ export const CATALOG: PriceCatalog = {
   ],
 };
 
-/** One recorded case: its session entries and its model calls in order, the first process's and then the second's. */
+/** One recorded case: its session entries and the model calls of its first process and of the one that resumed it. */
 export interface RecordedCase {
   readonly entries: SessionEntry[];
-  readonly pairs: RecordedPair[];
+  readonly pairs: { readonly start: RecordedPair[]; readonly resume: RecordedPair[] };
 }
 
 /**
@@ -57,5 +57,5 @@ export function loadCase(name: CaseName, edit: (log: string) => string = (log) =
     start: RecordedPair[];
     resume: RecordedPair[];
   };
-  return { entries, pairs: [...recorded.start, ...recorded.resume] };
+  return { entries, pairs: recorded };
 }
