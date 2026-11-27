@@ -141,15 +141,15 @@ class EntryWriter {
   }
 
   write(origin: Origin, body: Body): Promise<SessionEntry> {
+    // The id and the time are taken when the write is queued, not when its turn in the chain comes, because other code
+    // (the recorder's message ids, the SDK's own clock reads) draws from the same generators meanwhile, and how long the
+    // store takes to append must not decide who gets which value. The parent is read in the chain: it is the head the
+    // previous write left.
+    const id = this.#newId();
+    const timestamp = this.#now().toISOString();
     const next = this.#chain.then(async () => {
       if (this.#failed) throw this.#failure;
-      const entry = {
-        ...body,
-        id: this.#newId(),
-        parentId: this.#session.head(),
-        timestamp: this.#now().toISOString(),
-        origin,
-      };
+      const entry = { ...body, id, parentId: this.#session.head(), timestamp, origin };
       const [stored] = await this.#session.append([entry as EntryInput]);
       return stored as SessionEntry;
     });
