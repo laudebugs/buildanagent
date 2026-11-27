@@ -1,8 +1,7 @@
 // A session's log must not depend on how long its store takes to append. Each capstone case runs on the JSONL files,
-// on the in-memory store, on the DynamoDB store over a fake client and on the Postgres store over PGlite, and must
-// write the same entries on all four: the same ids, parents, times and contents. Before the session writer took an
-// entry's id and time at queue time, the in-memory and DynamoDB runs of the rejected case swapped two ids against the
-// JSONL run.
+// on the in-memory store, on the DynamoDB store over a fake client and on the Postgres store over PGlite. All four must
+// write the same entries: the same ids, parents, times and contents. Before the session writer took an entry's id and
+// time at queue time, the in-memory and DynamoDB runs of the rejected case swapped two ids against the JSONL run.
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
