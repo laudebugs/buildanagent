@@ -1,53 +1,63 @@
-// A session's log must not depend on how long its store takes to append. The capstone's three cases run on the JSONL
-// files, on the in-memory store and on an in-memory store that waits before every append, and each case must write the
-// same entries on all three: the same ids, parents, times and contents.
+// A session's log must not depend on how long its store takes to append. Each capstone case runs on the JSONL files,
+// on the in-memory store, on the DynamoDB store over a fake client and on the Postgres store over PGlite, and must
+// write the same entries on all four: the same ids, parents, times and contents. Before the session writer took an
+// entry's id and time at queue time, the in-memory and DynamoDB runs of the rejected case swapped two ids against the
+// JSONL run.
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { dynamoStore } from "@buildanagent/harness/aws/dynamodb";
 import { memoryStore, type SessionStore } from "@buildanagent/harness/session";
+import { createPostgresHarnessTables, postgresStore } from "@buildanagent/harness/vercel";
 import type { SessionEntry } from "@buildanagent/protocol";
+import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, test } from "vitest";
+import { fakeDynamoDb } from "../aws/fake-dynamodb.js";
 import { CASES, type CaseName, entriesOf, filesAt, recordCase, scrubbing } from "../capstone/triage-fixture.js";
 
 const dirs: string[] = [];
-afterAll(() => {
+const databases: PGlite[] = [];
+afterAll(async () => {
   for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  for (const db of databases) await db.close();
 });
 
-function tempDir(): string {
+/** The capstone's files in a new folder: the JSONL store with its index and lock. */
+function files() {
   const dir = mkdtempSync(join(tmpdir(), "entry-order-"));
   dirs.push(dir);
-  return dir;
+  return filesAt(dir);
 }
 
-/** A store that waits `ms` on the real timer before each append, so the store is slower than everything around it. */
-function slow(store: SessionStore, ms: number): SessionStore {
-  return new Proxy(store, {
-    get(target, property) {
-      const value = Reflect.get(target, property);
-      if (property !== "append") return typeof value === "function" ? value.bind(target) : value;
-      return (async (...args: Parameters<SessionStore["append"]>) => {
-        await new Promise((resolve) => setTimeout(resolve, ms));
-        return target.append(...args);
-      }) satisfies SessionStore["append"];
-    },
-  });
+async function postgres(): Promise<SessionStore> {
+  const db = new PGlite();
+  databases.push(db);
+  await createPostgresHarnessTables(db);
+  return postgresStore(db);
 }
 
-async function logOn(name: CaseName, store?: SessionStore): Promise<SessionEntry[]> {
-  const files = filesAt(tempDir());
-  const run = store === undefined ? files : { ...files, store: scrubbing(store) };
+/** The stores compared with the JSONL files, each made fresh for one run. */
+const OTHER_STORES: Record<string, () => SessionStore | Promise<SessionStore>> = {
+  "in-memory": () => memoryStore(),
+  DynamoDB: () => dynamoStore(fakeDynamoDb().client, { tableName: "harness-sessions" }),
+  Postgres: postgres,
+};
+
+/** One run of a case on `run`'s store, and the entries it wrote. */
+async function logOf(name: CaseName, run: ReturnType<typeof files>): Promise<SessionEntry[]> {
   await recordCase(run, CASES[name]);
   return entriesOf(run);
 }
 
 describe("a session's entries do not depend on its store's speed", () => {
   for (const name of Object.keys(CASES) as CaseName[]) {
-    test(`the ${name} case writes the same log on the JSONL, in-memory and slow stores`, async () => {
-      const onFiles = await logOn(name);
-      assert.deepEqual(await logOn(name, memoryStore()), onFiles, `${name}: in-memory`);
-      assert.deepEqual(await logOn(name, slow(memoryStore(), 5)), onFiles, `${name}: slow`);
+    test(`the ${name} case writes the JSONL run's log on the in-memory, DynamoDB and Postgres stores`, async () => {
+      const onFiles = await logOf(name, files());
+      for (const [label, make] of Object.entries(OTHER_STORES)) {
+        const run = { ...files(), store: scrubbing(await make()) };
+        assert.deepEqual(await logOf(name, run), onFiles, `${name} on ${label}`);
+      }
     });
   }
 });
