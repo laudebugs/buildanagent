@@ -1,7 +1,7 @@
 // A project's `.mcp.json` starts nothing until the project is trusted and each server's config is pinned. The fixture
 // project's server writes `marker.json` the moment it starts, so a missing marker proves the command never ran.
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -83,18 +83,27 @@ describe("project MCP configs: trust", () => {
     await pinAll(root);
     const asked = secrets();
     const result = await loadProjectMcpServers(root, options(root, false, { secrets: asked.resolve }));
-    assert.deepEqual(result.servers, []);
-    // The notice shows the exact command and args, so the person sees what trust would run.
+    // Whatever the loader returned is started, as a host would, so a gate that let a server through shows the marker.
+    const started = await start(result.servers);
+    assert.equal(ran(root), false, "the project's command never ran");
+    assert.deepEqual(started.statuses, []);
+    assert.deepEqual(started.tools, []);
+    assert.deepEqual(asked.asked, [], "no secret is asked for on behalf of an untrusted project");
+    // The notice shows the exact command and args, so the person sees what trust would run, and that the project's
+    // own lock file would start it at once.
     assert.equal(result.declared[0]?.command, "node");
     assert.deepEqual(result.declared[0]?.args, ["server.mjs"]);
     assert.deepEqual(result.declared[0]?.env, { PROJECT_TOKEN: "PROJECT_TOKEN" });
-    assert.equal(result.declared[0]?.state, "new");
+    assert.equal(result.declared[0]?.state, "pinned");
     assert.match(result.notices[0] ?? "", /"fixture" runs \["node","server\.mjs"\] in .*not trusted/);
-    assert.deepEqual(asked.asked, [], "no secret is asked for on behalf of an untrusted project");
-    const started = await start(result.servers);
-    assert.deepEqual(started.statuses, []);
-    assert.deepEqual(started.tools, []);
-    assert.equal(ran(root), false, "the project's command never ran");
+    assert.match(result.notices[0] ?? "", /its own lock file pins this config, so it starts as soon as the project/);
+  });
+
+  test("an untrusted project without pins shows its servers as new", async () => {
+    const root = project();
+    const result = await loadProjectMcpServers(root, options(root, false));
+    assert.equal(result.declared[0]?.state, "new");
+    assert.match(result.notices[0] ?? "", /it is not started: the project is not trusted$/);
   });
 
   test("a trusted project with no pin starts nothing and waits for approval", async () => {
@@ -134,7 +143,7 @@ describe("project MCP configs: trust", () => {
     await pinAll(root);
     const result = await loadProjectMcpServers(root, options(root, true));
     assert.deepEqual(result.servers, []);
-    assert.match(result.notices[0] ?? "", /no value for PROJECT_TOKEN/);
+    assert.match(result.notices[0] ?? "", /no value for "PROJECT_TOKEN"/);
   });
 });
 
@@ -228,7 +237,13 @@ describe("project MCP configs: headless", () => {
 
   test("with the opt-in, an untrusted project still starts nothing", async () => {
     const root = project();
-    const result = await loadProjectMcpServers(root, options(root, false, { headless: true, loadInHeadless: true }));
+    await pinAll(root);
+    const result = await loadProjectMcpServers(
+      root,
+      options(root, false, { headless: true, loadInHeadless: true, secrets: secrets().resolve }),
+    );
+    await start(result.servers);
+    assert.equal(ran(root), false);
     assert.deepEqual(result.servers, []);
   });
 });
@@ -297,10 +312,10 @@ describe("project MCP configs: the file", () => {
 
   test("an unknown member, a control character or a bad name is refused", async () => {
     await refused(server({ cwd: "/" }), /member "cwd"/);
-    await refused(server({ args: ["server.mjs‮"] }), /control character/);
-    await refused(server({ args: ["a\nb"] }), /control character/);
+    await refused(server({ args: ["server.mjs‮"] }), /hidden or look-alike character in its args/);
+    await refused(server({ args: ["a\nb"] }), /hidden or look-alike character/);
     await refused({ mcpServers: { bad_name: { command: "node" } } }, /server name/);
-    await refused({ mcpServers: { "a\u202eb": { command: "node" } } }, /name has a control character/);
+    await refused({ mcpServers: { "a\u202eb": { command: "node" } } }, /hidden or look-alike character in its name/);
     await refused({ mcpServers: { Fixture: { command: "node" }, fixture: { command: "node" } } }, /two MCP servers/);
     await refused({ servers: {} }, /no "mcpServers" object/);
   });
@@ -313,5 +328,126 @@ describe("project MCP configs: the file", () => {
       declared: [],
       notices: [],
     });
+  });
+});
+
+describe("project MCP configs: what the pin covers", () => {
+  /** The paths the pin hashes for a config, in a fresh project with `files` written first. */
+  async function pinned(config: unknown, files: Record<string, string> = {}, trusted = true) {
+    const root = project(config);
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(join(root, path, ".."), { recursive: true });
+      writeFileSync(join(root, path), text);
+    }
+    const result = await loadProjectMcpServers(root, options(root, trusted));
+    return { root, files: result.declared[0]?.files ?? {}, hash: result.declared[0]?.hash };
+  }
+
+  test("a file named in an --option=value argument is hashed", async () => {
+    for (const flag of ["--import", "--require", "-r", "--loader"]) {
+      const { files } = await pinned(server({ args: [`${flag}=./p.mjs`, "server.mjs"] }), { "p.mjs": "1" });
+      assert.deepEqual(Object.keys(files).sort(), ["p.mjs", "server.mjs"], flag);
+    }
+  });
+
+  test("a folder inside the project is hashed whole, so a file added to it asks again", async () => {
+    const config = server({ args: ["./srv/"] });
+    const { root, files, hash } = await pinned(config, { "srv/index.mjs": "1" });
+    assert.deepEqual(Object.keys(files), ["srv"]);
+    writeFileSync(join(root, "srv", "extra.mjs"), "2");
+    const again = await loadProjectMcpServers(root, options(root, true));
+    assert.notEqual(again.declared[0]?.hash, hash);
+  });
+
+  test("the root and a module named by name are not hashed", async () => {
+    const { files } = await pinned(server({ command: "python3", args: ["-m", "pkg", "."] }), { "pkg/__init__.py": "" });
+    // `-m pkg` names a module, not a path: `pkg` is hashed only because a folder of that name happens to be here.
+    assert.deepEqual(Object.keys(files), ["pkg"]);
+  });
+
+  test("a link out of the project is refused before its target is read, even untrusted", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+    dirs.push(outside);
+    writeFileSync(join(outside, "secret.txt"), "outside");
+    const root = project(server({ args: ["linked.mjs"] }));
+    symlinkSync(join(outside, "secret.txt"), join(root, "linked.mjs"));
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), (error) => {
+      return isHarnessError(error) && error.code === "invalid_mcp_config" && /outside the project/.test(error.message);
+    });
+  });
+
+  test("a folder holding a link is refused", async () => {
+    const root = project(server({ args: ["./srv"] }));
+    mkdirSync(join(root, "srv"));
+    symlinkSync(join(root, "server.mjs"), join(root, "srv", "inner.mjs"));
+    await assert.rejects(loadProjectMcpServers(root, options(root, true)), /is a link, or holds one/);
+  });
+
+  test("a path named many times is hashed once, and too much to hash is refused", async () => {
+    // 40 copies of a 2 MiB file would be 80 MiB, over the 64 MiB a load may hash, if each were read.
+    const repeated = await pinned(server({ args: Array.from({ length: 40 }, () => "two.bin") }), {
+      "two.bin": "x".repeat(2 * 1024 * 1024),
+    });
+    assert.deepEqual(Object.keys(repeated.files), ["two.bin"]);
+    const root = project(server({ args: ["big.bin"] }));
+    writeFileSync(join(root, "big.bin"), new Uint8Array(16 * 1024 * 1024 + 1));
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), /over what a pin covers/);
+    await refused(server({ args: Array.from({ length: 65 }, () => "x") }), /more than 64 args/);
+    await refused(server({ args: ["x".repeat(1025)] }), /over 1024 characters/);
+  });
+
+  test("a linked .agents folder is refused, so a pin is never written outside the project", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+    dirs.push(outside);
+    const root = project();
+    symlinkSync(outside, join(root, ".agents"));
+    const shown = await loadProjectMcpServers(root, options(root, false)).catch((error: unknown) => error);
+    assert.ok(isHarnessError(shown) && /outside the project/.test(shown.message));
+    await assert.rejects(pinProjectMcpServer(root, "fixture", `sha256:${"0".repeat(64)}`), /outside the project/);
+    assert.equal(existsSync(join(outside, "extensions.lock.json")), false);
+  });
+});
+
+describe("project MCP configs: the notice and the refusals", () => {
+  test("separators, non-ASCII spaces and combining marks are refused", async () => {
+    for (const arg of ["x\u2028y", "x\u2029y", "x\u3000y", "x\u00a0y", "x\u0336y", "x\u20dd"]) {
+      await refused(server({ args: [arg] }), /hidden or look-alike character/);
+    }
+  });
+
+  test("a refusal escapes what the project wrote", async () => {
+    await refused(server({ env: { "A\u202eB": ref("X") } }), /"A\\u202eB"/);
+    await refused({ mcpServers: { fixture: { command: "node", "\u202eevil": 1 } } }, /"\\u202eevil"/);
+    const root = project(server({ env: { "A\u202eB": ref("X") } }));
+    const error = await loadProjectMcpServers(root, options(root, false)).catch((caught: unknown) => caught);
+    assert.ok(error instanceof Error && !error.message.includes("\u202e"));
+  });
+
+  test("more refused variable names: loader and configuration families", async () => {
+    for (const name of [
+      "DYLD_FRAMEWORK_PATH",
+      "DYLD_FALLBACK_LIBRARY_PATH",
+      "JAVA_TOOL_OPTIONS",
+      "PERL5LIB",
+      "RUBYLIB",
+      "PYTHONHOME",
+      "GIT_CONFIG_PARAMETERS",
+      "NODE_REPL_EXTERNAL_MODULE",
+      "npm_config_registry",
+      "ZDOTDIR",
+      "LD_AUDIT",
+    ]) {
+      await refused(server({ env: { [name]: ref("X") } }), /changes what a program loads or how it is configured/);
+    }
+  });
+
+  test("a corrupt lock file and a bad server name are invalid_mcp_config, named by the file", async () => {
+    const root = project();
+    mkdirSync(join(root, ".agents"));
+    writeFileSync(lockOf(root), "<<<<<<< conflict");
+    await assert.rejects(loadProjectMcpServers(root, options(root, true)), (error) => {
+      return isHarnessError(error) && error.code === "invalid_mcp_config" && error.message.includes(lockOf(root));
+    });
+    await refused({ mcpServers: { bad_name: { command: "node" } } }, /\.mcp\.json": an MCP server name/);
   });
 });
