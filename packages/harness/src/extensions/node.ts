@@ -1,7 +1,7 @@
 /**
  * `@buildanagent/harness/extensions/node`: loading the extensions a project supplies, with the trust file and the lock
- * file, the lock file's MCP tool pins, and the MCP servers a project's `.mcp.json` declares. It needs Node's file system; the portable parts are in
- * `@buildanagent/harness/extensions`.
+ * file, the lock file's MCP tool pins, and the MCP servers a project's `.mcp.json` declares. It needs Node's file
+ * system; the portable parts are in `@buildanagent/harness/extensions`.
  *
  * @module @buildanagent/harness/extensions/node
  */
