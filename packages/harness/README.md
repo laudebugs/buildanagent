@@ -942,7 +942,7 @@ A server that fails to start, or to finish its handshake within `connectTimeoutM
 
 **A session records which servers ran.** `manager.records()` gives one `extension_loaded` record of tier `mcp` per connected server, in config order; pass them in `extensionRecords` to `createHarness()`, and a turn writes an entry for each record its session's log does not hold yet. A record holds the server's name, the transport kind, the era, and two hashes: one of the command and its args, for a stdio server, or of the URL, for a remote one, and one of the tools as registered, each tool's name, description and input schema, sorted by name. It never holds an argument or an environment value, because either can carry a token, and a server that failed to connect has no record. The command hash is not salted, so anyone who reads the log can check a guess at an argument, such as a short PIN or a token of a known format, by hashing it; put every secret in `setEnv`, never in `args`. Every hash is `sha256:` and the SHA-256 of canonical JSON, so an unchanged server records the same hashes on every connect.
 
-Two limits remain. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own MCP config, which needs project trust, is todo N54.
+Two limits remain. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own `.mcp.json`, which needs project trust, loads through `loadProjectMcpServers()` (the next section).
 
 ## A remote server is reached over HTTPS to a public address, and every byte it sends is bounded
 
@@ -1008,6 +1008,43 @@ Four limits come with the remote transports and the pins:
 - the manager's tool state is per manager, so two sessions that share one manager see each other's turn boundaries;
 - a response stream that breaks loses its request, and the harness never sends a tool call again, since every MCP tool is a write;
 - on any runtime but Node, Cloudflare's workerd included, a name is resolved by the platform, which the harness can't check; `localhost` and names under `.localhost` count as loopback there.
+
+## A project's `.mcp.json` starts no server until the project is trusted and the server's config is pinned
+
+A stdio MCP server runs on the host, outside any sandbox, as the user, so a project's MCP config is code the project chooses to run. `loadProjectMcpServers(root, { trust, headless })` from `@buildanagent/harness/extensions/node` therefore starts nothing itself and returns a server only when the project is trusted and the server's config matches a pin the person approved. It returns `{ servers, declared, notices }`: `servers` are the configs to pass to `createMcpManager()`, `declared` is every stdio server the file names with its exact command and args, and `notices` gives one line for each server that did not start. Cloning a repository can never start a program on its own.
+
+**The file is `.mcp.json` at the project root, and nowhere else.** One path means no precedence rules between two files. Its shape is the `mcpServers` object that Claude Code reads for project-scope servers ([Claude Code's MCP docs](https://code.claude.com/docs/en/mcp), "Project scope") and that Pi reads from `.pi/mcp.json` ([Pi's MCP docs](https://github.com/laudebugs/buildanagent/blob/main/docs/reference/pi/source/coding-agent/mcp.md), "Configure servers"). `PROJECT_MCP_CONFIG` holds the file name, and `configFile` overrides the path. A server's members are `command`, `args`, `env` and an optional `"type": "stdio"`. This file declares one server, which gets its token by reference:
+
+```json
+{
+  "mcpServers": {
+    "tracker": {
+      "command": "node",
+      "args": ["tools/tracker-server.mjs"],
+      "env": { "TRACKER_TOKEN": "${TRACKER_TOKEN}" }
+    }
+  }
+}
+```
+
+**An entry with a `url`, or a `type` of `http`, `sse` or `streamable-http`, is skipped with a notice.** A project config loads stdio servers only. Any other member, such as `cwd` or `enabled`, makes the whole file fail with `invalid_mcp_config`, as do a file that is a link, is not JSON or is over 1 MiB, an entry that `createMcpManager()`'s own checks refuse, and two names that differ only in letter case. The server starts in the project root.
+
+**The trust gate is N22's.** `trust` is the same `TrustStore` that `loadProjectExtensions()` asks, and it is asked about the project's real path. A run with `headless: true` starts nothing unless `loadInHeadless: true`, and then starts only the pinned servers of a trusted project. Without that opt-in, a headless run checks only whether the file exists and adds one notice, so it reads and parses nothing. An untrusted project's file is parsed, because nothing in it runs, and each server comes back in `declared` with its exact command and args. `describeProjectMcpServer(server)` renders one line for a notice, such as `the MCP server "tracker" runs ["node","tools/tracker-server.mjs"] in "/work/app", with TRACKER_TOKEN from the host's TRACKER_TOKEN`. Show that line to the person before they trust the project. Control and format characters in a name, command or argument are refused, so a project can't make a newline or a right-to-left override show one command as another.
+
+**A server starts only when its config matches its pin.** A server's pin is `mcp.<server>.config` in `.agents/extensions.lock.json`, beside the `mcp.<server>.tools` pins of the previous section, and each writer keeps the other's entries. The hash is `sha256:` and the canonical JSON of the command, the args, the `env` references and the SHA-256 of each file inside the project that the command or an argument names, so a changed `tools/tracker-server.mjs` asks again with the config unchanged. Each server comes back in `declared` with a `state` of `pinned`, `new` or `changed`, and a `new` or `changed` server waits. `pinProjectMcpServer(root, server, hash)` records the person's yes, and it throws `invalid_mcp_config` when the file now hashes differently from the `hash` shown, so a pin never covers a command the person did not see. In an untrusted project every server is `new`, because the project's own lock file approves nothing before the person trusts it.
+
+**A config never holds a credential's value.** Each `env` value must be exactly `"${NAME}"`, a reference to a value the host supplies. The `secrets(name, server)` option resolves it, and the loader asks only for a server that is about to start: trusted, pinned and not yet started. A server whose variable `secrets` can't supply does not start. Answer only the names the person configured for the project, because a `secrets` that reads `process.env[name]` for any name lets a project pick which of the host's variables reach its program. Any other value, a bland one such as `"eu-west"` included, is refused with `invalid_mcp_config`, and the error never quotes the value, since it may be the very secret the file should not hold.
+
+**A project config can't widen `spawnEnv()`.** The server gets `spawnEnv()`'s cleared environment and the values `secrets` returned, nothing more. There is no way to copy a parent variable. A project can't set `PATH`, `HOME`, `TMPDIR` or `LANG`, nor a variable that changes what a program loads, such as `NODE_OPTIONS` or `LD_PRELOAD`. `${` in the command or an argument is refused too, because other clients expand it from their environment, the harness never does, and an expansion would let a project read any variable of the host.
+
+**Three gaps remain in the pin, and one in where it lives.**
+
+- The pin hashes the files the command line names, not what those files import, so a script that loads `./helper.mjs` can change `helper.mjs` unasked.
+- It does not cover a package that `npx` or `uvx` fetches, which can change on the registry.
+- It does not cover a file that changes between the check and the spawn.
+- The lock file lives in the project. A `git pull` that changes both `.mcp.json` and `extensions.lock.json` starts the new command without asking, and a cloned project's own lock file approves its servers at the moment of trust, after the notice has shown them. N22's extension pins share this. Anyone who can commit to the project can pin their own change, so trust remains the decision about who holds the project. Storing approvals outside the project, in the user's trust store, would close the gap; that is the owner's decision, and this release leaves it open.
+
+Treat trust as the person's decision about the project's authors, and the pin as a check that a change nobody meant asks again.
 
 ## A skill is a file the model reads, and only its name, description and path are in the prompt
 

@@ -55,6 +55,7 @@ The sections of README.md and every public export, generated from this package's
 - [A remote server is reached over HTTPS to a public address, and every byte it sends is bounded](README.md#a-remote-server-is-reached-over-https-to-a-public-address-and-every-byte-it-sends-is-bounded)
 - [Servers connect in the background, and the first turn waits only for `direct` servers](README.md#servers-connect-in-the-background-and-the-first-turn-waits-only-for-direct-servers)
 - [A tool runs only while its definition matches its pin, and a change waits for the next turn](README.md#a-tool-runs-only-while-its-definition-matches-its-pin-and-a-change-waits-for-the-next-turn)
+- [A project's `.mcp.json` starts no server until the project is trusted and the server's config is pinned](README.md#a-projects-mcpjson-starts-no-server-until-the-project-is-trusted-and-the-servers-config-is-pinned)
 - [A skill is a file the model reads, and only its name, description and path are in the prompt](README.md#a-skill-is-a-file-the-model-reads-and-only-its-name-description-and-path-are-in-the-prompt)
 - [`AGENTS.md`, `CLAUDE.md` and the plan files lead every request, labelled untrusted](README.md#agentsmd-claudemd-and-the-plan-files-lead-every-request-labelled-untrusted)
 - [Long-term memory is an extension of sourced records that expire, and a delete reaches the log](README.md#long-term-memory-is-an-extension-of-sourced-records-that-expire-and-a-delete-reaches-the-log)
