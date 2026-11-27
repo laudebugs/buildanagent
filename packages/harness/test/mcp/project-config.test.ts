@@ -1,7 +1,17 @@
 // A project's `.mcp.json` starts nothing until the project is trusted and each server's config is pinned. The fixture
 // project's server writes `marker.json` the moment it starts, so a missing marker proves the command never ran.
 import assert from "node:assert/strict";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -96,7 +106,14 @@ describe("project MCP configs: trust", () => {
     assert.deepEqual(result.declared[0]?.env, { PROJECT_TOKEN: "PROJECT_TOKEN" });
     assert.equal(result.declared[0]?.state, "pinned");
     assert.match(result.notices[0] ?? "", /"fixture" runs \["node","server\.mjs"\] in .*not trusted/);
-    assert.match(result.notices[0] ?? "", /its own lock file pins this config, so it starts as soon as the project/);
+    assert.match(
+      result.notices[0] ?? "",
+      /its own lock file pins this config, so once the project is trusted it starts/,
+    );
+    assert.match(
+      result.notices[0] ?? "",
+      /not headless \(or sets loadInHeadless\), when the host supplies every variable/,
+    );
   });
 
   test("an untrusted project without pins shows its servers as new", async () => {
@@ -449,5 +466,65 @@ describe("project MCP configs: the notice and the refusals", () => {
       return isHarnessError(error) && error.code === "invalid_mcp_config" && error.message.includes(lockOf(root));
     });
     await refused({ mcpServers: { bad_name: { command: "node" } } }, /\.mcp\.json": an MCP server name/);
+  });
+});
+
+describe("project MCP configs: round 2", () => {
+  test("a folder's walk stops at the cap, before it is listed whole, and empty folders count", async () => {
+    const root = project(server({ args: ["d"] }));
+    for (let i = 0; i < 4100; i++) mkdirSync(join(root, "d", `e${i}`), { recursive: true });
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), /over what a pin covers/);
+  });
+
+  test("two spellings of one file are one entry, keyed by its real path", async () => {
+    const root = project(server({ args: ["server.mjs", "./server.mjs", "x/../server.mjs"] }));
+    const result = await loadProjectMcpServers(root, options(root, false));
+    assert.deepEqual(Object.keys(result.declared[0]?.files ?? {}), ["server.mjs"]);
+  });
+
+  test("a project path written through a link to the project is pinned like its real spelling", async () => {
+    const real = project();
+    const linkParent = mkdtempSync(join(tmpdir(), "harness-mcp-alias-"));
+    dirs.push(linkParent);
+    const alias = join(linkParent, "alias");
+    symlinkSync(real, alias);
+    const write = (path: string) => writeFileSync(join(real, ".mcp.json"), JSON.stringify(server({ args: [path] })));
+    write(join(alias, "server.mjs"));
+    const viaAlias = await loadProjectMcpServers(real, options(real, false));
+    write(join(realpathSync(real), "server.mjs"));
+    const viaReal = await loadProjectMcpServers(real, options(real, false));
+    assert.deepEqual(Object.keys(viaAlias.declared[0]?.files ?? {}), ["server.mjs"]);
+    assert.deepEqual(viaAlias.declared[0]?.files, viaReal.declared[0]?.files);
+  });
+
+  test("a link out of the project written through an alias of the project is still refused", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+    dirs.push(outside);
+    writeFileSync(join(outside, "secret.txt"), "outside");
+    const real = project();
+    symlinkSync(join(outside, "secret.txt"), join(real, "linked.mjs"));
+    const linkParent = mkdtempSync(join(tmpdir(), "harness-mcp-alias-"));
+    dirs.push(linkParent);
+    symlinkSync(real, join(linkParent, "alias"));
+    writeFileSync(join(real, ".mcp.json"), JSON.stringify(server({ args: [join(linkParent, "alias", "linked.mjs")] })));
+    await assert.rejects(loadProjectMcpServers(real, options(real, false)), /outside the project/);
+  });
+
+  test("a .agents link that leads nowhere is refused, not left to fail on the write", async () => {
+    const root = project();
+    symlinkSync(join(root, "missing-target"), join(root, ".agents"));
+    const shown = await loadProjectMcpServers(root, options(root, false)).catch((error: unknown) => error);
+    assert.ok(isHarnessError(shown) && shown.code === "invalid_mcp_config" && /leads nowhere/.test(shown.message));
+    await assert.rejects(pinProjectMcpServer(root, "fixture", `sha256:${"0".repeat(64)}`), (error) => {
+      return isHarnessError(error) && error.code === "invalid_mcp_config" && /leads nowhere/.test(error.message);
+    });
+  });
+
+  test("a wrapped refusal keeps its cause", async () => {
+    const root = project(server({ args: ["./srv"] }));
+    mkdirSync(join(root, "srv"));
+    symlinkSync(join(root, "server.mjs"), join(root, "srv", "inner.mjs"));
+    const error = await loadProjectMcpServers(root, options(root, true)).catch((caught: unknown) => caught);
+    assert.ok(error instanceof Error && error.cause instanceof Error);
   });
 });

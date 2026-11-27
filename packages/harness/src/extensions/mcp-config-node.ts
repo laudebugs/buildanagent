@@ -11,9 +11,10 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { canonicalInputHash } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
 import { checkServerConfig } from "../mcp/connection.js";
+import { isRecord as isObject } from "../mcp/content.js";
 import type { McpServerConfig } from "../mcp/types.js";
 import { protectedNameReason } from "../sandbox/spawn-env.js";
-import { FileRefusal, type HashBudget, hashFile, hashTree, isObject, quote, readCapped, setOwn } from "./files-node.js";
+import { FileRefusal, type HashBudget, hashFile, hashTree, quote, readCapped, setOwn } from "./files-node.js";
 import { canonicalPath, exists, projectTrusted } from "./load.js";
 import { defaultLockFile, jsonObject, readMcpConfigPins, writeMcpConfigPin } from "./lock.js";
 import { isInside } from "./project-dirs.js";
@@ -63,10 +64,11 @@ export interface ProjectMcpServer {
   /** Each variable the server gets, by the name of the host's value it is set from, never the value itself. */
   readonly env: Readonly<Record<string, string>>;
   /**
-   * The hash of each file or folder inside the project that the command line names, by the path the config wrote,
-   * relative to the root: a file as `sha256:` and its SHA-256, a folder as the hash of every file in it. A path counts
-   * when it is the command (if it is a path), an argument, or the value of an `--option=value` argument, and it is
-   * inside the project. What the named code loads by other means is not covered.
+   * The hash of each file or folder inside the project that the command line names, by its real path relative to the
+   * root, so two spellings of one file are one entry: a file as `sha256:` and its SHA-256, a folder as the hash of
+   * every file in it. A path counts when it is the command (if it is a path), an argument, or the value of an
+   * `--option=value` argument, and its real path is inside the project, however it is spelled. What the named code
+   * loads by other means is not covered.
    */
   readonly files: Readonly<Record<string, string>>;
   /** The pin of this config: `sha256:` and the hash of the canonical JSON of the command, args, env and files. */
@@ -74,8 +76,9 @@ export interface ProjectMcpServer {
   /**
    * `pinned` when the project's lock file holds this hash, `new` when it holds none for the server, `changed` when it
    * holds another. The state is the same whether or not the project is trusted: a `pinned` server of a project that is
-   * not trusted starts as soon as the project is trusted, without a further question, because the project's own lock
-   * file pins it, and its notice says so.
+   * not trusted needs no further question once the project is trusted, because the project's own lock file pins it, and
+   * its notice says so. It then starts as any pinned server does: in a run that is not headless or sets
+   * `loadInHeadless`, and when `secrets` supplies every variable it names.
    */
   readonly state: "pinned" | "new" | "changed";
 }
@@ -107,7 +110,8 @@ const REMOTE_TYPES = new Set(["http", "sse", "streamable-http"]);
 // `--import=./preload.mjs` names a file as much as `./preload.mjs` does.
 const OPTION_VALUE = /^--?[A-Za-z0-9][A-Za-z0-9._-]*=(.+)$/s;
 
-const refuse = (file: string, message: string) => new HarnessError("invalid_mcp_config", `${quote(file)}: ${message}`);
+const refuse = (file: string, message: string, cause?: unknown) =>
+  new HarnessError("invalid_mcp_config", `${quote(file)}: ${message}`, cause === undefined ? undefined : { cause });
 
 /** A stdio entry before its paths are hashed. */
 interface Entry {
@@ -224,17 +228,26 @@ function candidatesOf(entry: Entry): string[] {
 const realOrNone = (path: string): Promise<string | undefined> => realpath(path).catch(() => undefined);
 
 /**
- * The hash of the file or folder at `path`, which the command line named, or `undefined` when it names nothing in
- * the project. A path whose real path leaves the project is refused, before anything there is read.
+ * Where a path the command line wrote leads: its real path inside the project, `undefined` when it names nothing in
+ * the project (nothing is there, it is the root, or it is a path elsewhere such as `/usr/bin/node`), or a refusal when
+ * it is written inside the project and leads out of it through a link. The real path is resolved first, so a spelling
+ * through a link, such as `/var/…` for `/private/var/…` on macOS, is the same project path, and nothing out of the
+ * project is read.
  */
-async function pathHash(file: string, root: string, path: string, budget: HashBudget): Promise<string | undefined> {
+async function projectPath(file: string, root: string, path: string): Promise<string | undefined> {
   const real = await realOrNone(path);
-  if (real === undefined) return undefined;
-  if (!isInside(root, real)) {
-    throw refuse(file, `it names ${quote(relative(root, path))}, a link to a path outside the project`);
+  if (real === undefined || real === root) return undefined;
+  if (isInside(root, real)) return real;
+  // Written inside the project when its folder's real path is: then the last part is a link out of the project.
+  const folder = await realOrNone(dirname(path));
+  if (folder !== undefined && isInside(root, folder)) {
+    throw refuse(file, `it names ${quote(relative(folder, path))}, a link to a path outside the project`);
   }
-  // The root is the whole project, which trust covers and no pin can.
-  if (real === root) return undefined;
+  return undefined;
+}
+
+/** The hash of the file or folder at `real`, a real path inside the project, or `undefined` for anything else. */
+async function pathHash(real: string, budget: HashBudget): Promise<string | undefined> {
   const found = await stat(real);
   if (found.isDirectory()) return hashTree(real, budget);
   if (!found.isFile()) return undefined;
@@ -248,22 +261,29 @@ const PATH_REFUSALS = {
   too_big: `is over what a pin covers: ${HASH_LIMITS.files} files, ${HASH_LIMITS.bytes} bytes in all or ${HASH_LIMITS.fileBytes} bytes in one file; name the script itself`,
 } as const;
 
-/** The files and folders inside the project that the command line names, by the path written, each with its hash. */
+/**
+ * The files and folders inside the project that the command line names, each once, by its real path relative to the
+ * root, with its hash. Keying by the real path means `s.mjs`, `./s.mjs` and, on a file system that ignores case,
+ * `S.MJS` are one entry, read once.
+ */
 async function namedPaths(file: string, root: string, entry: Entry, budget: HashBudget) {
   const paths: Record<string, string> = {};
-  const seen = new Set<string>();
   for (const candidate of candidatesOf(entry)) {
-    const path = resolve(root, candidate);
-    if (candidate === "" || path === root || !isInside(root, path)) continue;
-    const key = relative(root, path).split(sep).join("/");
-    if (seen.has(key)) continue;
-    seen.add(key);
+    if (candidate === "") continue;
+    const real = await projectPath(file, root, resolve(root, candidate));
+    if (real === undefined) continue;
+    const key = relative(root, real).split(sep).join("/");
+    if (Object.hasOwn(paths, key)) continue;
     try {
-      const hash = await pathHash(file, root, path, budget);
+      const hash = await pathHash(real, budget);
       if (hash !== undefined) setOwn(paths, key, hash);
     } catch (error) {
       if (!(error instanceof FileRefusal)) throw error;
-      throw refuse(file, `the MCP server ${quote(entry.name)} names ${quote(key)}, which ${PATH_REFUSALS[error.kind]}`);
+      throw refuse(
+        file,
+        `the MCP server ${quote(entry.name)} names ${quote(key)}, which ${PATH_REFUSALS[error.kind]}`,
+        error,
+      );
     }
   }
   return paths;
@@ -304,15 +324,27 @@ export function describeProjectMcpServer(server: ProjectMcpServer): string {
   return `the MCP server ${quote(server.name)} runs ${list([server.command, ...server.args])} in ${quote(server.cwd)}${env}`;
 }
 
-/** The config and lock file of the project at `base`. A default lock file reached by a link out of it is refused. */
+/** The project's config file: `configFile`, or `.mcp.json` at the root. */
+const configPath = (base: string, options: ProjectMcpFiles): string =>
+  options.configFile ?? join(base, PROJECT_MCP_CONFIG);
+
+/**
+ * The config and lock file of the project at `base`. A default lock file whose folder is a link out of the project,
+ * or a link that leads nowhere, is refused.
+ */
 async function places(base: string, options: ProjectMcpFiles) {
-  const file = options.configFile ?? join(base, PROJECT_MCP_CONFIG);
+  const file = configPath(base, options);
   const lock = options.lockFile ?? defaultLockFile(base);
   if (options.lockFile === undefined) {
     // The open refuses a link only in the last part of the path, so a linked `.agents` would read and write elsewhere.
-    const folder = await realOrNone(dirname(lock));
-    if (folder !== undefined && !isInside(base, folder)) {
+    const folder = dirname(lock);
+    const real = await realOrNone(folder);
+    if (real !== undefined && !isInside(base, real)) {
       throw refuse(lock, "its folder is a link to a path outside the project, so it pins nothing");
+    }
+    // Nothing resolves, but something is there: a link that leads nowhere, which a write would follow.
+    if (real === undefined && (await exists(folder))) {
+      throw refuse(lock, "its folder is a link that leads nowhere, so it pins nothing");
     }
   }
   return { file, lock };
@@ -345,7 +377,7 @@ async function readDeclared(
     text = await readCapped(file, MAX_CONFIG_BYTES);
   } catch (error) {
     if (!(error instanceof FileRefusal)) throw error;
-    throw refuse(file, CONFIG_REFUSALS[error.kind]);
+    throw refuse(file, CONFIG_REFUSALS[error.kind], error);
   }
   if (text === undefined) return undefined;
   const { entries, notices } = parseConfig(file, text);
@@ -381,7 +413,7 @@ async function outcomeOf(
 ): Promise<McpServerConfig | string> {
   if (!trusted) {
     return server.state === "pinned"
-      ? "the project is not trusted; its own lock file pins this config, so it starts as soon as the project is trusted"
+      ? "the project is not trusted; its own lock file pins this config, so once the project is trusted it starts without a further question in a run that is not headless (or sets loadInHeadless), when the host supplies every variable it names"
       : "the project is not trusted";
   }
   if (server.state === "new") return "its config is not pinned, so it waits for approval";
@@ -411,8 +443,9 @@ async function outcomeOf(
  *
  * The pin covers the command, args, variable names, and the files and folders inside the project that the command
  * line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or `./server` as a whole folder.
- * Naming a path whose real path leaves the project, or a folder holding a link, refuses the config. It does not cover a
- * module named by name, as `pkg` in `python -m pkg`, what the named code imports from elsewhere, a package a command
+ * A path is resolved to its real path first, so any spelling of a project file counts. Naming a path inside the
+ * project whose real path leaves it, or a folder holding a link, refuses the config. One load hashes at most 4,096
+ * files and folders, each charged as it is listed, and 64 MiB. It does not cover a module named by name, as `pkg` in `python -m pkg`, what the named code imports from elsewhere, a package a command
  * such as `npx` fetches, the project root itself (`node .`), or a file changed between this check and the start. The
  * lock file sits in the project, so anyone who can commit to the project can pin their own change: a change that
  * comes with its own pin, as a pull can bring, starts without asking. The pin asks again only for a change nobody
@@ -422,7 +455,7 @@ export async function loadProjectMcpServers(root: string, options: ProjectMcpOpt
   const base = await canonicalPath(root);
   const result: ProjectMcpServers = { servers: [], declared: [], notices: [] };
   if (options.headless && options.loadInHeadless !== true) {
-    const file = options.configFile ?? join(base, PROJECT_MCP_CONFIG);
+    const file = configPath(base, options);
     // Only whether the file exists is looked at: nobody can answer, so there is nothing to show.
     if (await exists(file)) result.notices.push(`the MCP servers in ${quote(file)} are skipped: this run is headless`);
     return result;

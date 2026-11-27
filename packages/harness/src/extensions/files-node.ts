@@ -5,7 +5,7 @@
  */
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { type FileHandle, open, readdir } from "node:fs/promises";
+import { type FileHandle, open, opendir } from "node:fs/promises";
 import { join } from "node:path";
 
 /** Why a file was refused: it is a link, not a regular file, or over the bytes or files allowed. */
@@ -30,10 +30,6 @@ export class FileRefusal extends Error {
 export function quote(value: string): string {
   return JSON.stringify(value).replace(/[^\x20-\x7e]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`);
 }
-
-/** JSON that is an object, not an array or `null`. */
-export const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
  * Sets `key` as an own member of `target`. Defined, not assigned, so a key such as `__proto__` from a parsed file is a
@@ -89,7 +85,7 @@ export async function readCapped(file: string, maxBytes: number): Promise<string
 }
 
 /**
- * What a hash may still read: files and bytes in all, and the most bytes one file may hold. Each hashed file takes its
+ * What a hash may still read: files and folders, and bytes, in all, and the most bytes one file may hold. Each hashed file takes its
  * share, and running out refuses the file as `too_big`.
  */
 export interface HashBudget {
@@ -100,41 +96,58 @@ export interface HashBudget {
 
 const CHUNK = 64 * 1024;
 
+/** Takes one file or folder from `budget`, and refuses `path` once none is left. */
+function charge(budget: HashBudget | undefined, path: string): void {
+  if (budget === undefined) return;
+  budget.files -= 1;
+  if (budget.files < 0) throw new FileRefusal("too_big", path);
+}
+
 /** The hex SHA-256 of a regular file read through one handle, charged to `budget` when one is given. */
 export async function hashFile(path: string, budget?: HashBudget): Promise<string | undefined> {
   const handle = await openRegular(path);
   if (handle === undefined) return undefined;
   try {
-    if (budget !== undefined) {
-      budget.files -= 1;
-      if (budget.files < 0) throw new FileRefusal("too_big", path);
-    }
-    const hash = createHash("sha256");
-    const buffer = new Uint8Array(CHUNK);
-    let read = 0;
-    for (;;) {
-      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
-      if (bytesRead === 0) break;
-      read += bytesRead;
-      if (budget !== undefined) {
-        budget.bytes -= bytesRead;
-        if (budget.bytes < 0 || read > budget.fileBytes) throw new FileRefusal("too_big", path);
-      }
-      hash.update(buffer.subarray(0, bytesRead));
-    }
-    return hash.digest("hex");
+    charge(budget, path);
+    return await digestOf(handle, path, budget);
   } finally {
     await handle.close();
   }
 }
 
-/** Every file under `dir`, as paths relative to it with `/` separators, in sorted order. A link refuses the folder. */
-async function filesUnder(dir: string, prefix = ""): Promise<string[]> {
-  const entries = await readdir(join(dir, prefix), { withFileTypes: true });
+/** The hex SHA-256 of an open file, its bytes charged to `budget`. */
+async function digestOf(handle: FileHandle, path: string, budget: HashBudget | undefined): Promise<string> {
+  const hash = createHash("sha256");
+  const buffer = new Uint8Array(CHUNK);
+  let read = 0;
+  for (;;) {
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+    if (bytesRead === 0) break;
+    read += bytesRead;
+    if (budget !== undefined) {
+      budget.bytes -= bytesRead;
+      if (budget.bytes < 0 || read > budget.fileBytes) throw new FileRefusal("too_big", path);
+    }
+    hash.update(buffer.subarray(0, bytesRead));
+  }
+  return hash.digest("hex");
+}
+
+/**
+ * Every file under `dir`, as paths relative to it with `/` separators, in sorted order. A link refuses the folder.
+ * Each entry, a folder or a file, is charged to `budget` as it is read, so a tree too large to pin stops the walk
+ * there, before it is listed whole.
+ */
+async function filesUnder(dir: string, budget: HashBudget | undefined, prefix = ""): Promise<string[]> {
+  const entries: import("node:fs").Dirent[] = [];
+  for await (const entry of await opendir(join(dir, prefix))) {
+    charge(budget, join(dir, prefix, entry.name));
+    entries.push(entry);
+  }
   const found: string[] = [];
   for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
     const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
-    if (entry.isDirectory()) found.push(...(await filesUnder(dir, relative)));
+    if (entry.isDirectory()) found.push(...(await filesUnder(dir, budget, relative)));
     else if (entry.isFile()) found.push(relative);
     // A link or a device file is not hashed but would still be followed by whatever runs the folder.
     else throw new FileRefusal(entry.isSymbolicLink() ? "link" : "not_file", join(dir, relative));
@@ -148,11 +161,16 @@ async function filesUnder(dir: string, prefix = ""): Promise<string[]> {
  */
 export async function hashTree(dir: string, budget?: HashBudget): Promise<string> {
   const total = createHash("sha256");
-  for (const file of await filesUnder(dir)) {
-    const content = await hashFile(join(dir, file), budget);
-    // A file swapped for a link between the listing and the open is refused by the open itself.
-    if (content === undefined) throw new FileRefusal("not_file", join(dir, file));
-    total.update(`${file}\0${content}\n`);
+  for (const file of await filesUnder(dir, budget)) {
+    // Each file was charged as it was listed, so only its bytes are charged now. A file swapped for a link between
+    // the listing and the open is refused by the open itself.
+    const handle = await openRegular(join(dir, file));
+    if (handle === undefined) throw new FileRefusal("not_file", join(dir, file));
+    try {
+      total.update(`${file}\0${await digestOf(handle, join(dir, file), budget)}\n`);
+    } finally {
+      await handle.close();
+    }
   }
   return `sha256:${total.digest("hex")}`;
 }

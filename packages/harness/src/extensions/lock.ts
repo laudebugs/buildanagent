@@ -21,7 +21,8 @@
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors.js";
-import { FileRefusal, hashTree, isObject, quote, readCapped, setOwn } from "./files-node.js";
+import { isRecord as isObject } from "../mcp/content.js";
+import { FileRefusal, hashTree, quote, readCapped, setOwn } from "./files-node.js";
 
 const LOCK_VERSION = 1;
 const MAX_LOCK_BYTES = 1024 * 1024;
@@ -38,6 +39,7 @@ export async function hashExtensionDir(dir: string): Promise<string> {
     throw new HarnessError(
       "invalid_extension",
       `${error.path} is a link or a special file, which an extension may not contain`,
+      { cause: error },
     );
   }
 }
@@ -74,7 +76,7 @@ async function readLockText(file: string): Promise<string | undefined> {
     return await readCapped(file, MAX_LOCK_BYTES);
   } catch (error) {
     if (!(error instanceof FileRefusal)) throw error;
-    throw new HarnessError("invalid_extension", `${file} ${LOCK_REFUSALS[error.kind]}`);
+    throw new HarnessError("invalid_extension", `${file} ${LOCK_REFUSALS[error.kind]}`, { cause: error });
   }
 }
 

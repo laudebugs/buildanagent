@@ -17,7 +17,8 @@ const isControl = (code: number): boolean => code <= 0x1f || (code >= 0x7f && co
 const hasControl = (text: string): boolean => [...text].some((char) => isControl(char.codePointAt(0) ?? 0));
 const encoder = new TextEncoder();
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+/** JSON that is an object, not an array or `null`. */
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
