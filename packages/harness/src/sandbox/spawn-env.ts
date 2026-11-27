@@ -51,6 +51,19 @@ const LOADER_NAMES = new Set([
   "GIT_CONFIG_COUNT",
 ]);
 
+/**
+ * Why a variable named by a config the host did not write may not be set in a child's environment, or `undefined` when
+ * it may: a reserved name would replace the cleared `PATH`, `HOME`, `TMPDIR` or `LANG`, and a loader name such as
+ * `NODE_OPTIONS` would make the child load other code. `extra` accepts both, because the host writes it; a project file
+ * must not.
+ */
+export function protectedNameReason(name: string): string | undefined {
+  if (!NAME.test(name)) return `${JSON.stringify(name)} is not a valid variable name`;
+  if (RESERVED.includes(name.toUpperCase())) return `${name} is set by spawnEnv() itself`;
+  if (LOADER_NAMES.has(name.toUpperCase())) return `${name} changes what a program loads`;
+  return undefined;
+}
+
 function looksLikeCredential(name: string): boolean {
   const upper = name.toUpperCase();
   return (

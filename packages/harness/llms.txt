@@ -516,6 +516,7 @@ The sections of README.md and every public export, generated from this package's
 ## Exports from `@buildanagent/harness/extensions/node`
 
 - `contextFiles()`: Reads the `AGENTS.md` and `CLAUDE.md` of `cwd` and of every folder above it up to the repository root (the first folder with a `.git`; with none, `cwd` alone).
+- `describeProjectMcpServer()`: One line naming a server and what it would run, exactly, for a notice.
 - `interface DiscoveredSkills`: The skills found, what to record about them, and why any were left out.
 - `discoverSkills()`: Finds the skills of the project `cwd` is in: each folder under `.agents/skills` holding a `SKILL.md`, in `cwd` and every folder above it up to the repository root (the first folder with a `.git`).
 - `interface DiscoverSkillsOptions`: The settings of `discoverSkills()`.
@@ -525,13 +526,22 @@ The sections of README.md and every public export, generated from this package's
 - `hashExtensionDir()`: The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order.
 - `interface LoadOptions`: What `loadProjectExtensions()` needs to decide.
 - `loadProjectExtensions()`: Loads the extensions in a project, or skips them with a notice.
+- `loadProjectMcpServers()`: Reads a project's `.mcp.json` and returns the servers that may start, every server it declares and why any did not start.
 - `pinProjectExtensions()`: Writes the lock file for every extension folder as it is now.
+- `pinProjectMcpServer()`: Pins one server of a project's `.mcp.json` in the lock file, by the hash `loadProjectMcpServers()` showed, so it starts from the next load in a trusted project.
 - `planFileSource()`: A plan source that reads `.agents/plan.md` and `.agents/progress.json` under `root` each time it is called.
+- `PROJECT_MCP_CONFIG`: The project MCP config's file name, at the project root.
 - `interface ProjectExtensions`: The extensions a project supplied, what to record about them, and why any were skipped.
+- `interface ProjectMcpFiles`: Where the config and its pins are.
+- `interface ProjectMcpOptions`: What `loadProjectMcpServers()` needs to decide.
+- `interface ProjectMcpServer`: A stdio server the project's config declares, as it would run: show this to the person before they trust it.
+- `interface ProjectMcpServers`: What a project's MCP config gave: the servers to start, every server it declares, and why any did not start.
 - `readLock()`: The pins in a lock file, by extension folder name, or `undefined` when there is no lock file or it pins no extension, because it holds MCP pins alone.
+- `readMcpConfigPins()`: The config pins in a lock file, by server name: the hash of each project MCP server's config as a person approved it, under `mcp.<server>.config`.
 - `readMcpPins()`: The MCP pins of one server in a lock file, by tool name, or `undefined` when it holds none for the server.
 - `realPathTrustStore()`: A trust store in memory, for tests and for a host that decides trust itself, that resolves each folder to its real path when the store is built and when `trust()` adds it.
 - `writeLock()`: Writes the lock file for these extension pins, keeping its MCP pins, and replaces the old file in one step.
+- `writeMcpConfigPin()`: Sets one server's config pin in a lock file, keeping its tool pins and every other member.
 - `writeMcpPins()`: Replaces the MCP pins of one server in a lock file, keeping every other member.
 
 ## Exports from `@buildanagent/harness/memory`
