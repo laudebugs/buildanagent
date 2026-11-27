@@ -229,21 +229,35 @@ const realOrNone = (path: string): Promise<string | undefined> => realpath(path)
 
 /**
  * Where a path the command line wrote leads: its real path inside the project, `undefined` when it names nothing in
- * the project (nothing is there, it is the root, or it is a path elsewhere such as `/usr/bin/node`), or a refusal when
- * it is written inside the project and leads out of it through a link. The real path is resolved first, so a spelling
- * through a link, such as `/var/…` for `/private/var/…` on macOS, is the same project path, and nothing out of the
- * project is read.
+ * the project, or a refusal when it is written inside the project and leads out of it. A path is written inside when,
+ * as written, it is under the root as the caller gave it or under the root's real path, so `lib/x.mjs` counts whichever
+ * part of it is a link; it is also written inside when the real path of its folder is in the project, so a link out
+ * reached through another spelling of the project is refused too. Such a path must have its real path in the project.
+ * A path whose real path is in the project is pinned however it is spelled, such as `/var/…` for `/private/var/…` on
+ * macOS. Anything else, such as `/usr/bin/node`, or a path where nothing is, names nothing in the project and is
+ * skipped. Nothing out of the project is read.
  */
-async function projectPath(file: string, root: string, path: string): Promise<string | undefined> {
+async function projectPath(file: string, roots: Roots, path: string): Promise<string | undefined> {
+  const root = roots.base;
   const real = await realOrNone(path);
-  if (real === undefined || real === root) return undefined;
-  if (isInside(root, real)) return real;
-  // Written inside the project when its folder's real path is: then the last part is a link out of the project.
-  const folder = await realOrNone(dirname(path));
-  if (folder !== undefined && isInside(root, folder)) {
-    throw refuse(file, `it names ${quote(relative(folder, path))}, a link to a path outside the project`);
+  if (real === root) return undefined;
+  if (real !== undefined && isInside(root, real)) return real;
+  if (real === undefined) return undefined;
+  const written = isInside(roots.given, path) || isInside(root, path);
+  const folder = written ? undefined : await realOrNone(dirname(path));
+  if (written || (folder !== undefined && isInside(root, folder))) {
+    const shown = written
+      ? relative(isInside(root, path) ? root : roots.given, path)
+      : relative(folder as string, path);
+    throw refuse(file, `it names ${quote(shown)}, which leads through a link to a path outside the project`);
   }
   return undefined;
+}
+
+/** The project's root: its real path, which every check compares with, and the spelling the caller gave. */
+interface Roots {
+  readonly base: string;
+  readonly given: string;
 }
 
 /** The hash of the file or folder at `real`, a real path inside the project, or `undefined` for anything else. */
@@ -266,11 +280,12 @@ const PATH_REFUSALS = {
  * root, with its hash. Keying by the real path means `s.mjs`, `./s.mjs` and, on a file system that ignores case,
  * `S.MJS` are one entry, read once.
  */
-async function namedPaths(file: string, root: string, entry: Entry, budget: HashBudget) {
+async function namedPaths(file: string, roots: Roots, entry: Entry, budget: HashBudget) {
+  const root = roots.base;
   const paths: Record<string, string> = {};
   for (const candidate of candidatesOf(entry)) {
     if (candidate === "") continue;
-    const real = await projectPath(file, root, resolve(root, candidate));
+    const real = await projectPath(file, roots, resolve(root, candidate));
     if (real === undefined) continue;
     const key = relative(root, real).split(sep).join("/");
     if (Object.hasOwn(paths, key)) continue;
@@ -291,17 +306,17 @@ async function namedPaths(file: string, root: string, entry: Entry, budget: Hash
 
 async function declaredOf(
   file: string,
-  root: string,
+  roots: Roots,
   entry: Entry,
   pins: ReadonlyMap<string, string>,
   budget: HashBudget,
 ): Promise<ProjectMcpServer> {
-  const files = await namedPaths(file, root, entry, budget);
+  const files = await namedPaths(file, roots, entry, budget);
   const { name, command, args, env } = entry;
   const hash = `sha256:${await canonicalInputHash({ command, args, env, files })}`;
   const pin = pins.get(name);
   const state = pin === undefined ? "new" : pin === hash ? "pinned" : "changed";
-  return { name, command, args, cwd: root, env, files, hash, state };
+  return { name, command, args, cwd: roots.base, env, files, hash, state };
 }
 
 /** The stdio config a declared server starts with, its variables set to what `value` gives for each reference. */
@@ -368,7 +383,7 @@ const CONFIG_REFUSALS = {
 
 /** Every stdio server the config at `file` declares, with its hash; none when there is no file. */
 async function readDeclared(
-  base: string,
+  roots: Roots,
   file: string,
   pins: ReadonlyMap<string, string>,
 ): Promise<{ declared: ProjectMcpServer[]; notices: string[] } | undefined> {
@@ -383,7 +398,7 @@ async function readDeclared(
   const { entries, notices } = parseConfig(file, text);
   const budget: HashBudget = { ...HASH_LIMITS };
   const declared: ProjectMcpServer[] = [];
-  for (const entry of entries) declared.push(await declaredOf(file, base, entry, pins, budget));
+  for (const entry of entries) declared.push(await declaredOf(file, roots, entry, pins, budget));
   return { declared, notices };
 }
 
@@ -443,8 +458,8 @@ async function outcomeOf(
  *
  * The pin covers the command, args, variable names, and the files and folders inside the project that the command
  * line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or `./server` as a whole folder.
- * A path is resolved to its real path first, so any spelling of a project file counts. Naming a path inside the
- * project whose real path leaves it, or a folder holding a link, refuses the config. One load hashes at most 4,096
+ * A path is resolved to its real path first, so any spelling of a project file counts. A path inside the project
+ * whose real path leaves it (whichever part is the link), or a folder holding a link, refuses the config. One load hashes at most 4,096
  * files and folders, each charged as it is listed, and 64 MiB. It does not cover a module named by name, as `pkg` in `python -m pkg`, what the named code imports from elsewhere, a package a command
  * such as `npx` fetches, the project root itself (`node .`), or a file changed between this check and the start. The
  * lock file sits in the project, so anyone who can commit to the project can pin their own change: a change that
@@ -462,7 +477,7 @@ export async function loadProjectMcpServers(root: string, options: ProjectMcpOpt
   }
   const { file, lock } = await places(base, options);
   const trusted = await projectTrusted(options.trust, root);
-  const read = await readDeclared(base, file, await asConfigError(readMcpConfigPins(lock)));
+  const read = await readDeclared({ base, given: resolve(root) }, file, await asConfigError(readMcpConfigPins(lock)));
   if (read === undefined) return result;
   result.declared.push(...read.declared);
   result.notices.push(...read.notices);
@@ -489,7 +504,7 @@ export async function pinProjectMcpServer(
 ): Promise<void> {
   const base = await canonicalPath(root);
   const { file, lock } = await places(base, options);
-  const read = await readDeclared(base, file, new Map());
+  const read = await readDeclared({ base, given: resolve(root) }, file, new Map());
   const found = read?.declared.find((declared) => declared.name === server);
   if (found === undefined) throw refuse(file, `it declares no stdio MCP server named ${quote(server)}`);
   if (found.hash !== hash) {

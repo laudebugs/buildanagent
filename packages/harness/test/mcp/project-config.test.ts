@@ -528,3 +528,47 @@ describe("project MCP configs: round 2", () => {
     assert.ok(error instanceof Error && error.cause instanceof Error);
   });
 });
+
+describe("project MCP configs: a path that leaves the project partway along", () => {
+  /** A folder outside the project holding `x.mjs`. */
+  function outsideFolder(): string {
+    const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+    dirs.push(outside);
+    writeFileSync(join(outside, "x.mjs"), "outside");
+    return outside;
+  }
+
+  test("a folder link out of the project partway along the path is refused", async () => {
+    const outside = outsideFolder();
+    const root = project(server({ args: ["lib/x.mjs"] }));
+    symlinkSync(outside, join(root, "lib"));
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), (error) => {
+      return isHarnessError(error) && error.code === "invalid_mcp_config" && /outside the project/.test(error.message);
+    });
+  });
+
+  test("a link out of the project in the last part of the path is refused", async () => {
+    const outside = outsideFolder();
+    const root = project(server({ args: ["y.mjs"] }));
+    symlinkSync(join(outside, "x.mjs"), join(root, "y.mjs"));
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), /outside the project/);
+  });
+
+  test("the root's other spelling, as /var for /private/var, is pinned, and a folder link out under it refused", async () => {
+    const root = project();
+    const given = join(root, "."); // as the caller wrote it, which on macOS is under /var, not /private/var
+    writeFileSync(join(root, ".mcp.json"), JSON.stringify(server({ args: [join(given, "server.mjs")] })));
+    const result = await loadProjectMcpServers(given, options(root, false));
+    assert.deepEqual(Object.keys(result.declared[0]?.files ?? {}), ["server.mjs"]);
+    symlinkSync(outsideFolder(), join(root, "lib"));
+    writeFileSync(join(root, ".mcp.json"), JSON.stringify(server({ args: [join(given, "lib", "x.mjs")] })));
+    await assert.rejects(loadProjectMcpServers(given, options(root, false)), /outside the project/);
+  });
+
+  test("an absolute path outside the project is skipped, not hashed or refused", async () => {
+    const outside = outsideFolder();
+    const root = project(server({ args: [join(outside, "x.mjs"), process.execPath] }));
+    const result = await loadProjectMcpServers(root, options(root, false));
+    assert.deepEqual(result.declared[0]?.files, {});
+  });
+});
