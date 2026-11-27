@@ -222,12 +222,12 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12h](../todos/done/L12h-docs-harness-pages-1.md) | The harness quick start, overview, sessions, context and tools pages, figure 7 and a Problems and fixes page | L12g | M |
 | [L12i](../todos/done/L12i-docs-harness-pages-2.md) | The harness permissions, sandbox and credentials, server and extensions pages, figure 8 and fourteen more Problems and fixes entries | L12h | M |
 | [L12j](../todos/done/L12j-docs-agent-safety-pages.md) | The agent-safety quick start, write outcomes, signed approvals, cost cap and own-key guard pages, and a Problems and fixes page with fourteen entries | L12f | M |
-| [L12m](../todos/done/L12m-docs-csp.md) | A Content Security Policy for the docs in `public/_headers`, derived from the built pages, with script hashes, an exception for `style=` attributes and a 1,900-character line limit | L12b, L12l | S to M |
 | [L12k](../todos/done/L12k-docs-fences-gateway-figures.md) | `file=` fences on the docs' inline examples, a gateway page and figures 3 to 6 | L12d | M |
 | [L12p](../todos/done/L12p-shared-header-source.md) | One shared header source (`@buildanagent/manual/site-chrome`) read by `apps/manual`, `apps/docs` and `apps/site`, with built-header tests in each app | L12b | S to M |
 | [L12q](../todos/done/L12q-docs-examples.md) | The new tested examples the docs pages need: protocol, a harness sandbox and compaction, and an agent-safety bring-your-own-key guard | L12k | M |
 | [L12r](../todos/done/L12r-docs-body-font-inter.md) | The docs' body text in Inter, with Instrument Serif kept for titles, after the owner's decision of 2026-11-24 | L12a | S |
 | [L12s](../todos/done/L12s-docs-body-font-plex.md) | The docs' body text in IBM Plex Sans in place of Inter, after the owner's decision of 2026-11-24 | L12r | S |
+| [L12m](../todos/done/L12m-docs-csp.md) | A Content Security Policy for the docs in `public/_headers`, derived from the built pages, with script hashes, an exception for `style=` attributes and a 1,900-character line limit | L12b, L12l | S to M |
 | [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
 | [L14](../todos/done/L14-favicons.md) | The site's favicon on the manual and the docs, with a test in each app | L13 | S |
 

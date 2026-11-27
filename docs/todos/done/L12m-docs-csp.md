@@ -54,7 +54,8 @@ docs.buildanagent.fyi sends a Content Security Policy (CSP): a response header t
 ## Acceptance criteria
 
 - [x] `apps/docs/public/_headers` sends the policy on `/*`, with `script-src` holding `'self'`, `'wasm-unsafe-eval'` and one hash per inline script, and no `'unsafe-inline'` for scripts.
-- [x] The build writes `dist/_headers` from the built pages and fails on an inline event handler, a `javascript:` URL, a `<style>` element or a CSP line over 1,900 characters.
+- [x] The build writes `dist/_headers` from the built site and fails on an inline event handler, a `javascript:` URL, a `<style>` element in a page or a CSP line over 1,900 characters.
+- [x] A served SVG that needs its own `<style>`, today only the favicon, gets a rule that detaches the site-wide policy and allows that style by hash.
 - [x] A test fails on a stale committed file, a built inline script whose hash is missing, an unused hash and a CSP line over 1,900 characters.
 - [x] The `style-src` decision and the reason for each directive are written in `apps/docs/README.md` and `src/csp/policy.ts`.
 - [x] `pnpm check`, `pnpm typecheck` and the docs tests pass.
@@ -72,6 +73,10 @@ default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 
 `default-src` and `base-uri` are `'none'`, stricter than the brief's `'self'`, to match the book's policy. No page uses `<base>` or loads anything the list leaves out.
 
 **The `style-src` decision: an exception for attributes only.** Starlight and Expressive Code write tens of thousands of `style=` attributes, such as `--depth` in the sidebar and `style="--0:#F2E8DC;--1:#2A1E16"` on code. Moving them to classes would mean rewriting Starlight's components or its HTML after every build. The policy therefore sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`, and the build writes every stylesheet as a file (`build.inlineStylesheets: "never"`). A browser that knows `style-src-elem` allows inline styles in attributes only. The decision lives in the README and here, not in an ADR, because it follows Starlight's output and changes with it.
+
+**The favicon has its own rule.** `favicon.svg` colours its strokes from a `<style>` element and must stay a copy of the site's icon. The site-wide `style-src-elem 'self'` would block that style when a reader opens the file. The build therefore writes a `/favicon.svg` rule that detaches the site-wide header (`! Content-Security-Policy`) and sets `default-src 'none'; style-src 'sha256-…'; frame-ancestors 'none'`. Through `wrangler dev`, Chrome then drew the opened file's strokes in colour with no violation.
+
+**The first review's fixes.** The checks now read HTML with a small tokenizer (`src/csp/html.ts`), so code in a `data-code` attribute is never read as a tag. An unquoted attribute value follows HTML's rules. A script inside `<svg>` or `<math>`, or one that holds `<!--`, fails the build. A `javascript:` URL counts only in an attribute that holds a URL. The build also reads every served SVG and XML file.
 
 **Astro's own option was not used.** Astro 7 has `security.csp`, which adds a `<meta http-equiv="content-security-policy">` tag to each page. A `<meta>` policy cannot set `frame-ancestors`, and Astro's documentation says its CSP does not support Shiki's inline styles. The docs' deploy already serves a `_headers` file, so one header for every page is the simpler place.
 
