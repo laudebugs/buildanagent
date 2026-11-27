@@ -79,7 +79,9 @@ default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 
 
 **Browser check.** Through `wrangler dev`, Chrome 158 reported no violation on five pages: the home page, a page with tabs and a figure, a quick start, a reference page and the 404 page. Code kept its colours, search returned results, tabs and the theme select worked, and an injected inline script and `<style>` were blocked. Playwright is not in the repository, so no test repeats this check.
 
-**For the owner: previews and releases carry main's policy.** The deploy never trusts a pull request's `_headers`, so a preview uses main's. A pull request that changes an inline script therefore shows that script blocked on its preview until it merges. A stable release deploys its own commit's pages with main's `_headers`, so a script that changed on main after the release is blocked on the release's pages. Two fixes need a deploy change, which this todo does not make: stage the release's `_headers` from its tag, or make the guard refuse a deploy whose pages carry a hash the policy lacks.
+**For the owner: previews and releases carry main's policy.** The deploy never trusts a pull request's `_headers`, so a preview uses main's. A pull request that changes an inline script therefore shows that script blocked on its preview until it merges. A stable release deploys its own commit's pages with main's `_headers`, so a script that changed on main after the release is blocked on the release's pages.
+
+Two fixes would close the gap, and both need a deploy change, which this todo does not make: stage the release's `_headers` from its tag, or make the guard refuse a deploy whose pages carry a hash the policy lacks.
 
 ## Tests
 
