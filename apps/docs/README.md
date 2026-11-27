@@ -167,12 +167,12 @@ The docs' policy blocks four things a cross-site scripting attack relies on: an 
 
 ### Style attributes are the policy's one exception
 
-The header sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`. In a browser that knows `style-src-elem` (Chrome 75, Firefox 108 and Safari 15.4 or later), the second directive limits `<style>` elements and stylesheets to the docs' own files. The `'unsafe-inline'` then covers `style=` attributes only. An older browser falls back to `style-src` and allows inline `<style>` elements too.
+The header sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`. In a browser that knows `style-src-elem` (Chrome 75, Firefox 108 and Safari 26.2 or later, as of November 2026), the second directive limits `<style>` elements and stylesheets to the docs' own files. The `'unsafe-inline'` then covers `style=` attributes only. An older browser falls back to `style-src` and allows inline `<style>` elements too.
 
-The attributes stay because Starlight and Expressive Code write them on every page. A build on 2026-11-26 counted 84,350 `style=` attributes across the 1,133 pages:
+The attributes stay because Starlight and Expressive Code write them on every page. A build on 2026-11-26 counted 86,351 `style=` attributes across the 1,133 pages:
 
 - Starlight's sidebar sets `--depth` and its icons set `--sl-icon-size`.
-- Its theme select sets `--sl-select-width`.
+- Its theme select sets `--sl-select-width`, and its search button and dialog set `display` and `padding`.
 - Expressive Code sets each code colour as a custom property, such as `style="--0:#F2E8DC;--1:#2A1E16"`.
 
 Moving them to classes would mean rewriting Starlight's components or its HTML after each build, a change larger than the risk it removes. Hashing each attribute would need `'unsafe-hashes'` and hundreds of hashes, far past the line limit. The build already writes every stylesheet as a file (`build.inlineStylesheets: "never"` in `astro.config.mjs`), so no `<style>` element needs the exception.
@@ -191,7 +191,7 @@ Moving them to classes would mean rewriting Starlight's components or its HTML a
 | `form-action` | `'self'` | No page submits a form. A form could post only to the docs' own origin. |
 | `frame-ancestors` | `'none'` | No other site may frame the docs, which stops clickjacking. |
 
-Every source is `'self'` or a hash, never a host name, so the same header works on docs.buildanagent.fyi, next.docs.buildanagent.fyi, a `workers.dev` preview and `localhost`.
+No source names a host, so the same header works on docs.buildanagent.fyi, next.docs.buildanagent.fyi, a `workers.dev` preview and `localhost`.
 
 ### Previews carry main's policy
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `L12m` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Publish and docs DS5](../../plans/publish-and-docs.md#ds5-the-docs-redesign-l12-proposed-2026-11-22) (the L12 docs redesign) |
 | Round / milestone | Round L (publish and docs) |
 | Depends on | [L12](../ongoing/L12-docs-redesign.md) (L12b has no todo file of its own), [L12l](../done/L12l-docs-markdown-twins.md) |
@@ -73,7 +73,7 @@ default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 
 
 **The `style-src` decision: an exception for attributes only.** Starlight and Expressive Code write tens of thousands of `style=` attributes, such as `--depth` in the sidebar and `style="--0:#F2E8DC;--1:#2A1E16"` on code. Moving them to classes would mean rewriting Starlight's components or its HTML after every build. The policy therefore sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`, and the build writes every stylesheet as a file (`build.inlineStylesheets: "never"`). A browser that knows `style-src-elem` allows inline styles in attributes only. The decision lives in the README and here, not in an ADR, because it follows Starlight's output and changes with it.
 
-**Astro's own option was not used.** Astro 7 has `security.csp`, which adds a `<meta http-equiv="content-security-policy">` tag to each page. A `<meta>` policy cannot set `frame-ancestors`, Astro does not hash Starlight's `is:inline` scripts, and Astro's documentation says its CSP does not support Shiki's inline styles. The docs already serve headers, so the header is the simpler place.
+**Astro's own option was not used.** Astro 7 has `security.csp`, which adds a `<meta http-equiv="content-security-policy">` tag to each page. A `<meta>` policy cannot set `frame-ancestors`, and Astro's documentation says its CSP does not support Shiki's inline styles. The docs' deploy already serves a `_headers` file, so one header for every page is the simpler place.
 
 **The deploy needed no change.** `site-stage-dist.mjs` already writes main's `public/_headers` into the staged site and `site-guard-deploy.mjs` checks it, so committing the file is enough. The artifact's own `dist/_headers` is never served. A local `wrangler dev` served the header on pages, on Markdown twins and on the 404 page, and did not serve `_headers` itself.
 
@@ -102,6 +102,6 @@ default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 
 - [x] Claimed: the first commit created this file in `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and the docs tests pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

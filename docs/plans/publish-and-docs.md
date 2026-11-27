@@ -126,7 +126,7 @@ The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, s
 
 ### DS5. The docs redesign (L12, proposed 2026-11-22)
 
-**Proposed on 2026-11-22; the owner answered questions 1, 3 and 5 the same day, and only question 9b is open ([L12](../todos/ongoing/L12-docs-redesign.md#owner-questions)).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
+**Proposed on 2026-11-22; the owner answered questions 1, 3 and 5 the same day, and question 9b, a strict CSP, with yes on 2026-11-26 ([L12](../todos/ongoing/L12-docs-redesign.md#owner-questions)).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
 
 **Decision summary.** L12 is an umbrella todo with sixteen sub-todos (L12a to L12p). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The owner chose logo 3, "the prompt", whose files the manager hands over: the header shows the mark plus the wordmark "Build An Agent docs". L12o redesigns the docs home, and L12p adds one shared header source that keeps the links and marks of the book, the docs and the site in step.
 
@@ -160,7 +160,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader'
 | Header logo and wordmark | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with the inline mark, the wordmark "Build An Agent docs" and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
 | Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails without alt text | Nine figures |
 | Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test | Adopt |
-| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopt in an Opus todo, once the owner agrees |
+| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopted in L12m, after the owner agreed on 2026-11-26 |
 | In-browser edit and run | None | A large bundle, a worker and CSP exceptions | Reject for now |
 
 #### The versioning design
@@ -222,6 +222,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12h](../todos/done/L12h-docs-harness-pages-1.md) | The harness quick start, overview, sessions, context and tools pages, figure 7 and a Problems and fixes page | L12g | M |
 | [L12i](../todos/done/L12i-docs-harness-pages-2.md) | The harness permissions, sandbox and credentials, server and extensions pages, figure 8 and fourteen more Problems and fixes entries | L12h | M |
 | [L12j](../todos/done/L12j-docs-agent-safety-pages.md) | The agent-safety quick start, write outcomes, signed approvals, cost cap and own-key guard pages, and a Problems and fixes page with fourteen entries | L12f | M |
+| [L12m](../todos/done/L12m-docs-csp.md) | A Content Security Policy for the docs in `public/_headers`, derived from the built pages, with script hashes, an exception for `style=` attributes and a 1,900-character line limit | L12b, L12l | S to M |
 | [L12k](../todos/done/L12k-docs-fences-gateway-figures.md) | `file=` fences on the docs' inline examples, a gateway page and figures 3 to 6 | L12d | M |
 | [L12p](../todos/done/L12p-shared-header-source.md) | One shared header source (`@buildanagent/manual/site-chrome`) read by `apps/manual`, `apps/docs` and `apps/site`, with built-header tests in each app | L12b | S to M |
 | [L12q](../todos/done/L12q-docs-examples.md) | The new tested examples the docs pages need: protocol, a harness sandbox and compaction, and an agent-safety bring-your-own-key guard | L12k | M |
