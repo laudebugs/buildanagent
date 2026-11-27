@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { isEvalsError, toEvalRow } from "@buildanagent/evals";
+import { isEvalsError, toEvalRow, toMiniSweTrajectory } from "@buildanagent/evals";
 import type { SessionEntry } from "@buildanagent/protocol";
 import { describe, test } from "vitest";
 import { log } from "./log.js";
@@ -60,6 +60,20 @@ describe("toEvalRow()", () => {
     const row = toEvalRow(log("done"), { ...meta, passed: null, unscored: "judge_unknown" });
     assert.equal(row.passed, null);
     assert.equal(row.unscored, "judge_unknown");
+  });
+
+  test("a stop reason this package does not know is an invalid session, not an unfinished one", () => {
+    const invalid = (error: unknown) => isEvalsError(error) && error.code === "invalid_session";
+    assert.throws(() => toEvalRow(log("teleported"), meta), invalid);
+    assert.throws(() => toMiniSweTrajectory(log("teleported")), invalid);
+  });
+
+  test("a turn_end with no turn_start of its run is an invalid session, so the wall time is never too small", () => {
+    const entries = log("done").filter((entry) => entry.type !== "turn_start");
+    assert.throws(
+      () => toEvalRow(entries, meta),
+      (error) => isEvalsError(error) && error.code === "invalid_session",
+    );
   });
 
   test("a session whose last turn waits on a person, or never ended, has no row", () => {

@@ -2,9 +2,15 @@
  * Why the evals refused their input. `invalid_row`: an `EvalRow` breaks one of its rules, such as `passed: null`
  * without an `unscored` reason. `duplicate_trial`: two rows of one harness, ablation and run name the same task and
  * trial. `invalid_option`: an option is out of range, such as a `k` below 1. `unfinished_session`: a session's last
- * turn did not finish, so it has no outcome to report.
+ * turn did not finish, so it has no outcome to report. `invalid_session`: a session log cannot be read as a trial,
+ * because it holds a stop reason this package does not know or ends a turn it never started.
  */
-export type EvalsErrorCode = "invalid_row" | "duplicate_trial" | "invalid_option" | "unfinished_session";
+export type EvalsErrorCode =
+  | "invalid_row"
+  | "duplicate_trial"
+  | "invalid_option"
+  | "unfinished_session"
+  | "invalid_session";
 
 /** The error every `@buildanagent/evals` function throws. Read `code` to tell the causes apart. */
 export class EvalsError extends Error {

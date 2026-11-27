@@ -103,11 +103,11 @@ export interface HarnessReport extends TrialFigures {
   readonly passHatKTasks: number;
   /** How many tasks have fewer than k graded trials, so `passHatK` leaves them out. */
   readonly tasksBelowK: number;
-  /** Each task's own figures, keyed by task id in the order the rows first name it. */
+  /** Each task's own figures, keyed by task id. Read a task by its id; the keys' order is not part of the contract. */
   readonly byTask: Readonly<Record<string, TaskReport>>;
 }
 
-/** A report: the k it used and one line for each harness, keyed by its name in the order the rows first name it. */
+/** A report: the k it used and one line for each harness, keyed by its name. The keys' order is not part of it. */
 export interface EvalReport {
   /** The k of every `passHatK`. */
   readonly k: number;

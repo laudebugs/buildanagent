@@ -60,9 +60,9 @@ const TEN_ROWS: EvalRow[] = [
 describe("report() on the ten-row fixture matches the hand-computed table", () => {
   const result = report(TEN_ROWS, { k: 2 });
 
-  test("rows are grouped by every harness string, single-call included, in the order they first appear", () => {
+  test("rows are grouped by every harness string, single-call included", () => {
     assert.equal(result.k, 2);
-    assert.deepEqual(Object.keys(result.harnesses), ["ours", "single-call"]);
+    assert.deepEqual(Object.keys(result.harnesses).sort(), ["ours", "single-call"]);
   });
 
   test("ours: outcomes, pass@1, Wilson, pass^2 and the per-task means", () => {
@@ -121,7 +121,7 @@ describe("report() breaks each harness down by task, for paired comparisons", ()
   test("ours: each task has its own outcomes, pass@1, pass^k and means", () => {
     const a = harnesses.ours?.byTask.A;
     const b = harnesses.ours?.byTask.B;
-    assert.deepEqual(Object.keys(harnesses.ours?.byTask ?? {}), ["A", "B"]);
+    assert.deepEqual(Object.keys(harnesses.ours?.byTask ?? {}).sort(), ["A", "B"]);
     assert.equal(a?.task, "A");
     assert.equal(a?.trials, 3);
     assert.deepEqual(a?.outcomes, { passed: 2, failed: 1, infraError: 0, unscored: 0 });
@@ -151,6 +151,12 @@ describe("report() breaks each harness down by task, for paired comparisons", ()
     assert.equal(b?.passHatK, 1);
     near(b?.perTask.costUsd, 0.025);
     near(b?.totalCostUsd, 0.05);
+  });
+
+  test("a task id that looks like a number is still found by its id", () => {
+    const byTask = report([row("ours", "10", 0, "pass"), row("ours", "2", 0, "fail")], { k: 1 }).harnesses.ours?.byTask;
+    assert.equal(byTask?.["10"]?.passAt1, 1);
+    assert.equal(byTask?.["2"]?.passAt1, 0);
   });
 
   test("the harness's pass^k is the mean of its tasks' pass^k", () => {

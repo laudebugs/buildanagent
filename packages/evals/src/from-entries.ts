@@ -49,7 +49,8 @@ export type StopClass = EvalExit | "unfinished";
  * limit too: in an eval the runner aborts a trial only at its time limit. `stopped` is a limit as well, because a
  * host hook that stops the run, such as a spend guard, ends it as a limit would, before the agent hands anything
  * in. `error` is an infra error: a failed model call or hook says nothing about the agent's choices. A run paused
- * for an approval or an answer has not finished.
+ * for an approval or an answer has not finished. Throws an `EvalsError` with code `invalid_session` for a stop reason
+ * this package does not know, such as one a newer SDK wrote.
  */
 export function classifyStop(stopReason: TurnEndEntry["stopReason"]): StopClass {
   switch (stopReason) {
@@ -69,7 +70,11 @@ export function classifyStop(stopReason: TurnEndEntry["stopReason"]): StopClass 
     default: {
       // A stop reason the SDK adds later fails the type check here until it is classified.
       const unknown: never = stopReason;
-      throw new EvalsError("unfinished_session", `unknown stop reason ${String(unknown)}`);
+      // The type check cannot see a log written by a newer SDK, so the value is refused at run time too.
+      throw new EvalsError(
+        "invalid_session",
+        `the log has a stop reason this package does not know: ${String(unknown)}`,
+      );
     }
   }
 }
@@ -88,7 +93,8 @@ function exitOf(end: TurnEndEntry | undefined): EvalExit {
 /**
  * The time the agent's turns ran: from each `turn_start` to the `turn_end` of the same run, summed. A resumed
  * session's wait for a person's approval falls between two turns, so it is not counted, and a trial that paused
- * compares with one that did not.
+ * compares with one that did not. A `turn_end` with no `turn_start` of its run before it would make the sum too small,
+ * so it is refused as an `invalid_session`.
  */
 function turnTimeOf(entries: readonly SessionEntry[]): number {
   const started = new Map<string, number>();
@@ -97,7 +103,10 @@ function turnTimeOf(entries: readonly SessionEntry[]): number {
     if (entry.type === "turn_start") started.set(entry.runId, Date.parse(entry.timestamp));
     else if (entry.type === "turn_end") {
       const start = started.get(entry.runId);
-      if (start !== undefined) total += Date.parse(entry.timestamp) - start;
+      if (start === undefined) {
+        throw new EvalsError("invalid_session", `the log ends run ${entry.runId} without a turn_start for it`);
+      }
+      total += Date.parse(entry.timestamp) - start;
     }
   }
   return total;
@@ -136,8 +145,9 @@ function gradeOf(meta: EvalRowMeta, exit: EvalExit): Pick<EvalRow, "passed" | "u
  * `error` is `"infra_error"`, and `max_steps`, `budget`, `no_progress`, `aborted` and `stopped` are `"limit"`. A run
  * that ended in an infra error is ungraded whatever `meta.passed` says.
  *
- * Throws an `EvalsError`: `unfinished_session` when no turn has ended or the last one waits on a person, and
- * `invalid_row` when the row breaks a rule of `EvalRow`.
+ * Throws an `EvalsError`: `unfinished_session` when no turn has ended or the last one waits on a person,
+ * `invalid_session` when the log holds a stop reason this package does not know or a `turn_end` with no `turn_start`
+ * of its run, and `invalid_row` when the row breaks a rule of `EvalRow`.
  */
 export function toEvalRow(entries: readonly SessionEntry[], meta: EvalRowMeta): EvalRow {
   const end = lastTurnEnd(entries);

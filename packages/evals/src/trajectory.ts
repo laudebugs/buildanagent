@@ -185,7 +185,11 @@ const isOpen = (line: OpenMessage | MiniSweMessage): line is OpenMessage => "blo
  * `done` is `"Submitted"`; `max_steps`, `budget`, `no_progress`, `aborted` and `stopped` are `"LimitsExceeded"`;
  * `error` stays `"error"`; and a turn paused for a person gives `""` and no exit message. The messages are the first
  * system prompt (and any later one that differs), each user and assistant message, each tool result and, once the
- * last turn has finished, an exit message. Images and reasoning blocks are left out, because the format's content is text.
+ * last turn has finished, an exit message. Images and reasoning blocks are left out, because the format's content
+ * is text.
+ *
+ * Throws an `EvalsError` with code `invalid_session` when the last turn ended with a stop reason this package does
+ * not know, such as one a newer SDK wrote.
  */
 export function toMiniSweTrajectory(
   entries: readonly SessionEntry[],

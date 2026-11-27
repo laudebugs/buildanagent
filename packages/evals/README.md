@@ -104,6 +104,7 @@ A pair counts only when both runs graded it. A trial missing from one run, an in
 | `duplicate_trial` | Two rows of one harness, ablation and run name the same task and trial |
 | `invalid_option` | An option is out of range, such as a `k` below 1, or one harness spans several ablations |
 | `unfinished_session` | A session's last turn did not finish, so it has no outcome to report |
+| `invalid_session` | A session log can't be read as a trial: it holds a stop reason this package doesn't know, such as one a newer SDK wrote, or a `turn_end` with no `turn_start` for its run |
 
 ## The replay suite checks recorded sessions with no model and no network
 
@@ -111,4 +112,4 @@ The package's tests replay the three sessions that the harness capstone recorded
 
 The recordings carry an expiry, and the replay checks it against the fixed time the capstone recorded them at, as the harness's own capstone test does, so the suite gives the same result on every day.
 
-The package exports the types `EvalRow`, `EvalExit`, `UnscoredReason`, `EvalRowMeta`, `ReportOptions`, `EvalReport`, `HarnessReport`, `TaskReport`, `TrialFigures`, `OutcomeCounts`, `PerTask`, `Interval`, `Discordance` and `MiniSweTrajectoryV1_1`. Live runs against mini-swe-agent come with the Inspect bridge, and the report format above is what they will fill.
+The package exports the types `EvalRow`, `EvalExit`, `UnscoredReason`, `EvalRowMeta`, `ReportOptions`, `EvalReport`, `HarnessReport`, `TaskReport`, `TrialFigures`, `OutcomeCounts`, `PerTask`, `Interval`, `Discordance`, `EvalsErrorCode`, `MiniSweTrajectoryV1_1`, `MiniSweTrajectoryOptions`, `MiniSweMessage`, `MiniSweTextMessage`, `MiniSweAssistantMessage`, `MiniSweToolMessage`, `MiniSweExitMessage` and `MiniSweToolCall`. Live runs against mini-swe-agent come with the Inspect bridge, and the report format above is what they will fill.
