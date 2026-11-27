@@ -832,7 +832,7 @@ The guide says to start with the log, because context layers, pauses, replay, th
 | [N23](../todos/done/N23-skills-context-files.md) | Skills, context files and the plan-file convention | N22, N9 | S |
 | [N24](../todos/done/N24-mcp-stdio.md) | MCP client over stdio: per-server negotiation, canonical names, deferred exposure | N11, N12 | M |
 | [N25](../todos/done/N25-mcp-http-background.md) | MCP streamable HTTP, legacy SSE and background connect | N24 | M |
-| [N54](../todos/ready/N54-project-mcp-configs.md) | Project-supplied MCP server configs behind project trust (added 2026-11-22 from N24) | N24, N22 | M |
+| [N54](../todos/ongoing/N54-project-mcp-configs.md) | Project-supplied MCP server configs behind project trust (added 2026-11-22 from N24) | N24, N22 | M |
 | [N52](../todos/done/N52-memory-extension.md) | File-based memory extension: the `memory` tool, sourced records, the capped index, expiry and purge marks (HD17; added 2026-11-19) | N21, N23, N33 | M |
 | [N53](../todos/ready/N53-stdio-identity-binding.md) | Bind a stdio client to a user so `Resolution.by` is checked, not trusted | N29, N30 | M |
 
@@ -1007,7 +1007,7 @@ Round N closes when the triage capstone pauses, resumes in a second process and 
 N24 ([Outcome](../todos/done/N24-mcp-stdio.md#outcome)) built the MCP client over stdio and asked the owner three questions. The owner answered all three on 2026-11-22, agreeing with the manager's advice.
 
 1. **A server's request for user input keeps failing the call.** The call ends with an `McpError` whose `failure` is `input_required`, and no pause path is built. A server-supplied prompt is untrusted text that a person would read as if the harness had asked it. A pause would need binding to the call and to N13's signed pause, a wire form (N28 has none for grouped or sticky answers, nor an "authorization required" request; §6.3, questions 2 and 5) and HD16's taint handling. The question returns with the connectors work.
-2. **A project-supplied MCP config needs project trust, as N22's extensions do.** It is denied by default, the user sees each server's exact command and args, and the config is pinned by content hash, so a change asks again. N24 takes configs from host code only and builds none of this; todo [N54](../todos/ready/N54-project-mcp-configs.md) adds `.mcp.json` loading with that gate.
+2. **A project-supplied MCP config needs project trust, as N22's extensions do.** It is denied by default, the user sees each server's exact command and args, and the config is pinned by content hash, so a change asks again. N24 takes configs from host code only and builds none of this; todo [N54](../todos/ongoing/N54-project-mcp-configs.md) adds `.mcp.json` loading with that gate.
 3. **A connected server writes an `extension_loaded` entry of tier `mcp`.** N24 built it. The entry records the server's name, the transport kind, a hash of the command and its args (never the args), the era and a hash of the tool list, and never an environment value. The protocol's `ExtensionLoadedEntry` gains an optional `mcp` member for these fields.
 
 [hg]: ../guides/agent-harness.md
