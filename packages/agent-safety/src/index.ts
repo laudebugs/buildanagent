@@ -6,6 +6,7 @@
  * a regenerated turn from repeating a write; and the egress guard and route check that keep every model call on the
  * user's own key. This entry imports no third-party SDK; the adapters for `ai` and Cloudflare `agents` live in the
  * `./ai`, `./byok` and `./agents` subpaths.
+ * Start with the [quick start](https://docs.buildanagent.fyi/agent-safety/quick-start/).
  *
  * @module @buildanagent/agent-safety
  */

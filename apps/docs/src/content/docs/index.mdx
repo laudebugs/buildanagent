@@ -4,7 +4,7 @@ description: Docs for the six buildanagent packages, from the model gateway to t
 template: splash
 hero:
   title: Build An Agent <em>docs</em>
-  tagline: Build an agent with six packages, from a model gateway to a command line. All six packages have an API reference here, and the gateway, SDK, harness, protocol and CLI have guides.
+  tagline: Build an agent with six packages, from a model gateway to a command line. Each of the six has an API reference and a guide.
 ---
 
 import { Tabs, TabItem, CardGrid, LinkCard, LinkButton } from "@astrojs/starlight/components";
@@ -31,7 +31,7 @@ Start with the SDK and the gateway. Install both with the `alpha` tag, which npm
 
 ## Start with a package
 
-Pick the package you need. The gateway, the SDK, the harness, the protocol and the CLI start with guides, and agent safety starts in its API reference.
+Pick the package you need. Every package starts with a guide.
 
 <CardGrid>
   <LinkCard title="Gateway" description="Calls Anthropic or OpenAI-compatible models through one transcript and one stream format, with retries and a cost on every message. Read the install page." href="/start/install/" />
@@ -40,7 +40,7 @@ Pick the package you need. The gateway, the SDK, the harness, the protocol and t
 
   <LinkCard title="Harness" description="Wraps the loop with a session log that survives a crash, a context policy, tools, permissions and a sandbox that holds no credentials. Run your first turns." href="/harness/quick-start/" />
 
-  <LinkCard title="Agent safety" description="Gives every write a typed outcome, signs approvals and refuses a model call that could pass a run's USD cap. Browse the API reference." href="/reference/agent-safety/" />
+  <LinkCard title="Agent safety" description="Gives every write a typed outcome, signs approvals and refuses a model call that could pass a run's USD cap. Make a write safe to repeat." href="/agent-safety/quick-start/" />
 
   <LinkCard title="Protocol" description="Describes the session entries, the client and server messages and the JSONL framing that carry them. Write your first request." href="/protocol/quick-start/" />
 
