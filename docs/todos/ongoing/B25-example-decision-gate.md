@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `B25` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4.7](../../plans/build-sdk.md#47-five-offline-examples-for-the-fast-and-slow-calls-chapter-added-2026-11-28) |
-| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](T76-chapter-fast-and-slow-calls.md)) |
+| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](../ready/T76-chapter-fast-and-slow-calls.md)) |
 | Depends on | [B10](../done/B10-tool-runtime.md), [B11](../done/B11-loop-core.md), [B13](../done/B13-interceptors-observers.md) |
 | Size | M |
 
@@ -31,7 +31,7 @@ Add `packages/sdk/examples/15-decision-gate.ts`, which gates three tool calls on
 
 **Out of scope** (and which todo covers it)
 
-- The chapter that lists this example: [T76](T76-chapter-fast-and-slow-calls.md)
+- The chapter that lists this example: [T76](../ready/T76-chapter-fast-and-slow-calls.md)
 - Any new SDK or gateway feature: the example uses the exports that exist today
 
 ## Tasks
