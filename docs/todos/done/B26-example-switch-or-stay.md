@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `B26` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Build SDK §4.7](../../plans/build-sdk.md#47-five-offline-examples-for-the-fast-and-slow-calls-chapter-added-2026-11-28) |
-| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](T76-chapter-fast-and-slow-calls.md)) |
+| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](../ready/T76-chapter-fast-and-slow-calls.md)) |
 | Depends on | [B4](../done/B4-gateway-runtime.md), [B5](../done/B5-usage-cost-catalog.md) |
 | Size | M |
 
@@ -30,21 +30,21 @@ Add `packages/gateway/examples/05-switch-or-stay.ts`, which prices a ten-turn se
 
 **Out of scope** (and which todo covers it)
 
-- The chapter that lists this example: [T76](T76-chapter-fast-and-slow-calls.md)
+- The chapter that lists this example: [T76](../ready/T76-chapter-fast-and-slow-calls.md)
 - Any new SDK or gateway feature: the example uses the exports that exist today
 
 ## Tasks
 
-- [ ] Recompute the report's totals with a script before writing the test, and correct the report's numbers through its fact-check log if the arithmetic differs.
-- [ ] Write the pricing function over the catalog's rates and the six schedules.
-- [ ] Write the expiry run and the assertions, then the regions.
+- [x] Recompute the report's totals with a script before writing the test, and correct the report's numbers through its fact-check log if the arithmetic differs.
+- [x] Write the pricing function over the catalog's rates and the six schedules.
+- [x] Write the expiry run and the assertions, then the regions.
 
 ## Acceptance criteria
 
-- [ ] The test reproduces the six totals from the catalog's rates, to the four decimals shown
-- [ ] The expiry run shows every model rewriting its whole prefix on every turn
-- [ ] The comment states the one-cache-per-model assumption
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The test reproduces the six totals from the catalog's rates, to the four decimals shown
+- [x] The expiry run shows every model rewriting its whole prefix on every turn
+- [x] The comment states the one-cache-per-model assumption
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -62,9 +62,20 @@ Add `packages/gateway/examples/05-switch-or-stay.ts`, which prices a ten-turn se
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`packages/gateway/examples/05-switch-or-stay.ts` (94 lines) prices a ten-turn session from the shipped catalog with `findCatalogEntry()` and `priceUsage()`, and calls no model. Each turn adds 2,000 input tokens and returns 200 output tokens that stay out of the cached context. Each model keeps its own cache, which holds the prefix up to that model's last turn, so a returning model reads its cache and writes only what was added since. A cache unused for more than five minutes has expired, and its model then rewrites the whole prefix. The script agreed with the report's hand calculation on all six totals, so the report and its fact-check log needed no correction. The example's `check()` calls assert the totals to four decimals, and `test/book-examples.test.ts` runs the file as its own process:
+
+- Sonnet throughout $0.0790, Haiku throughout $0.0044.
+- Haiku for five turns then Sonnet $0.0680 (0.06795 before rounding, so the total rounds half up from whole nano-dollars), Sonnet then Haiku $0.0406.
+- Alternating each turn $0.0616 from Sonnet and $0.0671 from Haiku.
+- With 360 seconds between turns, every schedule reads 0 cached tokens on every turn, so each model rewrites its whole prefix. Sonnet throughout then costs $0.2950 and Haiku throughout $0.0148.
+
+The catalog holds no cache lifetime, so the example names one as a constant: 300 seconds, the lifetime of the `5m` write class. The header comment says the figures are arithmetic and not a measurement. It also names Switchcraft's assumption of a separate cache per model per conversation, on which the alternating totals depend along with the model that takes turn 1. In the pricing region, the zeros for `uncachedInput`, the `1h` write and `reasoning` are sample data. The run records no transcript, because it makes no model call. The gateway README lists no examples, so it needed no change. No changeset: the examples are not in the package's `files`, and the changeset gate looks only at `src/`, `package.json` and `tsconfig.build.json`.
