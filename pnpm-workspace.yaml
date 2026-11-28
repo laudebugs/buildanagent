@@ -65,7 +65,7 @@ auditConfig:
     # (verify/cloudflare-agents/README.md, "Security")
     - GHSA-fc5q-39xc-vjpf
     # minimatch@10.2.6 globparts denial of service, no patched 10.x release. It comes from typedoc@0.28.20 in apps/docs
-    # (the latest as of November 2026, asking for ^10.2.5), which runs at build time on the docs config's own entry
+    # (the latest as of November 2026, asking for ^10.2.5). TypeDoc runs at build time on the docs config's own entry
     # points (apps/docs/README.md, "The API reference is generated"). Overriding it to 11 crashes TypeDoc on a glob
     # entry point.
     - GHSA-g3hv-75wg-m249
