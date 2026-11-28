@@ -126,6 +126,50 @@ test("a served SVG's <style> is allowed by its hash, and a script or a changed t
   ]);
 });
 
+test("characters that change length when lower-cased do not move where a script, style, title or textarea ends", () => {
+  // "İ" (U+0130) lower-cases to two UTF-16 units; "ẞ" and "Ω" keep their length but are not ASCII.
+  for (const before of ["<p>İİİ</p>", "<title>İİİİİİ</title>", "<textarea>İİİ</textarea>", "<style>/*İİ*/</style>"]) {
+    assert.deepEqual(
+      scriptElements(`${before}<script>x()</script>`).map((script) => script.text),
+      ["x()"],
+      before,
+    );
+  }
+  assert.deepEqual(
+    scriptElements("<script>'İẞΩ'</script><script>y()</script>").map((script) => script.text),
+    ["'İẞΩ'", "y()"],
+  );
+  assert.deepEqual(unreadScriptTags("<p>İİ<ſcript></p>"), []);
+});
+
+test("a served SVG with CRLF line ends hashes its style from the same text the tokenizer read", () => {
+  const svg = "<svg>\r\n<g/>\r\n<g/>\r\n<g/>\r\n<g/>\r\n<g/><style>.a{}</style></svg>";
+  assert.deepEqual(documentStyles(svg), { styleHashes: [scriptHash(".a{}")], problems: [] });
+  assert.deepEqual(documentStyles("<svg><style>.a{\r\n}</style></svg>").styleHashes, [scriptHash(".a{\n}")]);
+});
+
+test("a / inside an unquoted value does not close the tag, so the <svg> stays open", () => {
+  // "/ >" is not self-closing either: the slash must come right before the ">".
+  for (const svg of ["<svg a=b/>", "<svg a=/>", "<svg / >"]) {
+    assert.throws(() => scriptElements(`${svg}<script>a&amp;b</script></svg>`), /inside <svg> or <math>/, svg);
+  }
+  // A real self-closing <svg/> opens no foreign content.
+  assert.deepEqual(scriptElements("<svg/><script>a()</script>").length, 1);
+});
+
+test("an SVG animation that targets href, and a <noscript>, are problems", () => {
+  assert.deepEqual(blockedMarkup(`<svg><a><set attributeName="href" to="javascript:x()"/></a></svg>`), [
+    "<set> animates href",
+  ]);
+  assert.deepEqual(blockedMarkup(`<svg><animate attributeName="xlink:href" values="javascript:x()"/></svg>`), [
+    "<animate> animates xlink:href",
+  ]);
+  assert.deepEqual(blockedMarkup(`<svg><animate attributeName="opacity" values="0;1"/></svg>`), []);
+  assert.deepEqual(pageProblems("<noscript><style>p{}</style></noscript>"), [
+    "a <noscript> element, whose content is not checked",
+  ]);
+});
+
 // The policy
 
 test("the site-wide policy lists each directive once, with sorted, unique hashes in script-src", () => {

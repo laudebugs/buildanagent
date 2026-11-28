@@ -30,11 +30,23 @@ export interface Tokens {
 }
 
 const SPACE = new Set(["\t", "\n", "\f", "\r", " "]);
-/** Elements whose content is text up to the matching end tag. `noscript` is raw text because browsers run scripts. */
+/**
+ * Elements whose content is text up to the matching end tag. `noscript` is raw text because browsers run scripts, so
+ * its content is invisible to the checks; `policy.ts` refuses a page that has one.
+ */
 const RAW_TEXT = new Set(["script", "style", "xmp", "iframe", "noembed", "noframes", "noscript", "textarea", "title"]);
 const FOREIGN_ROOTS = new Set(["svg", "math"]);
 
 const isAlpha = (char: string | undefined) => char !== undefined && /[A-Za-z]/.test(char);
+
+/**
+ * Lower-cases ASCII letters only, as an HTML tokenizer does for tag and attribute names. Unlike `toLowerCase()`, it
+ * keeps every character's length, so an offset found in the result is an offset in the original: "İ" (U+0130)
+ * lower-cases to two UTF-16 units and would shift every later index.
+ */
+export function asciiLower(text: string): string {
+  return text.replace(/[A-Z]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 32));
+}
 
 /** Finds the end tag `</name` followed by a space, `/` or `>` in `lower`, the lower-cased text, from `from`; -1 when absent. */
 function findEndTag(lower: string, name: string, from: number): number {
@@ -55,14 +67,20 @@ function readAttributes(
   const attributes = new Map<string, string>();
   let at = from;
   for (;;) {
-    while (at < text.length && (SPACE.has(text[at] ?? "") || text[at] === "/")) at++;
+    // A tag closes itself only when a `/` outside any value comes right before its `>`. In `<svg a=b/>` the `/`
+    // belongs to the unquoted value, so that tag does not.
+    let slash = false;
+    while (at < text.length && (SPACE.has(text[at] ?? "") || text[at] === "/")) {
+      slash = text[at] === "/";
+      at++;
+    }
     if (at >= text.length) return { attributes, end: at, selfClosing: false };
-    if (text[at] === ">") return { attributes, end: at + 1, selfClosing: text[at - 1] === "/" };
+    if (text[at] === ">") return { attributes, end: at + 1, selfClosing: slash };
     // An attribute name runs to a space, `/`, `>` or `=`; an `=` in its first place belongs to the name.
     const nameStart = at;
     at++;
     while (at < text.length && !SPACE.has(text[at] ?? "") && !"/>=".includes(text[at] ?? "")) at++;
-    const name = text.slice(nameStart, at).toLowerCase();
+    const name = asciiLower(text.slice(nameStart, at));
     while (at < text.length && SPACE.has(text[at] ?? "")) at++;
     let value = "";
     if (text[at] === "=") {
@@ -114,7 +132,7 @@ function skipComment(text: string, at: number, opaque: [number, number][]): numb
 export function tokenize(text: string): Tokens {
   const tags: StartTag[] = [];
   const opaque: [number, number][] = [];
-  const lower = text.toLowerCase();
+  const lower = asciiLower(text);
   let foreignDepth = 0;
   let at = 0;
   while (at < text.length) {
@@ -135,7 +153,7 @@ export function tokenize(text: string): Tokens {
       if (isAlpha(text[lt + 2])) {
         let end = lt + 2;
         while (end < text.length && !SPACE.has(text[end] ?? "") && !"/>".includes(text[end] ?? "")) end++;
-        const name = text.slice(lt + 2, end).toLowerCase();
+        const name = asciiLower(text.slice(lt + 2, end));
         if (FOREIGN_ROOTS.has(name) && foreignDepth > 0) foreignDepth--;
         // An end tag's attributes are read and dropped, so a `>` in a quoted value does not end it early.
         at = readAttributes(text, end, opaque).end;
@@ -147,7 +165,7 @@ export function tokenize(text: string): Tokens {
     } else if (isAlpha(next)) {
       let end = lt + 1;
       while (end < text.length && !SPACE.has(text[end] ?? "") && !"/>".includes(text[end] ?? "")) end++;
-      const name = text.slice(lt + 1, end).toLowerCase();
+      const name = asciiLower(text.slice(lt + 1, end));
       const read = readAttributes(text, end, opaque);
       const foreign = foreignDepth > 0;
       at = read.end;

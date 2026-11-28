@@ -7,7 +7,7 @@
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { decodeReferences, type StartTag, type Tokens, tokenize } from "./html.js";
+import { asciiLower, decodeReferences, type StartTag, type Tokens, tokenize } from "./html.js";
 
 /**
  * The longest CSP line the build accepts, counting its indent and header name. Cloudflare reads at most
@@ -133,7 +133,7 @@ export function scriptElements(html: string, tokens: Tokens = tokenize(normalize
  */
 export function runsInlineText(script: ScriptElement): boolean {
   if (script.attributes.has("src")) return false;
-  const type = (script.attributes.get("type") ?? "").trim().toLowerCase();
+  const type = asciiLower((script.attributes.get("type") ?? "").trim());
   if (JAVASCRIPT_TYPES.has(type)) return true;
   if (DATA_TYPES.has(type)) return false;
   throw new Error(`a <script type="${type}"> needs a decision in the docs' content security policy`);
@@ -160,7 +160,8 @@ export function unreadScriptTags(html: string, tokens?: Tokens): number[] {
   const { tags, opaque } = tokens ?? tokenize(text);
   const read = new Set(tags.filter((tag) => tag.name === "script").map((tag) => tag.offset));
   const hidden = (at: number) => opaque.some(([start, end]) => at >= start && at < end);
-  return [...text.matchAll(/<script(?=[\s/>])/gi)]
+  // ASCII letters only: with the `i` flag alone, a regex would also match "ſ" (U+017F) as "s".
+  return [...text.matchAll(/<[sS][cC][rR][iI][pP][tT](?=[\s/>])/g)]
     .map((match) => match.index)
     .filter((at) => !read.has(at) && !hidden(at));
 }
@@ -193,7 +194,7 @@ export function parsePolicy(value: string): Map<string, string[]> {
 export function isJavascriptUrl(value: string): boolean {
   // A URL parser drops C0 controls and spaces, so "java\tscript:" is still a javascript: URL.
   const bare = [...decodeReferences(value)].filter((char) => (char.codePointAt(0) ?? 0) > 0x20).join("");
-  return /^javascript:/i.test(bare);
+  return asciiLower(bare).startsWith("javascript:");
 }
 
 /** The URLs an attribute carries: one for most, each candidate's URL for `srcset`. */
@@ -202,9 +203,19 @@ function urlsOf(name: string, value: string): string[] {
   return value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0] ?? "");
 }
 
-/** What the policy blocks on one tag: an inline event handler, or a `javascript:` URL in a URL attribute. */
+/** SVG animation elements, which can set an `href` to any value, `javascript:` included, through other attributes. */
+const SVG_ANIMATIONS = new Set(["animate", "set"]);
+
+/**
+ * What the policy blocks on one tag: an inline event handler, a `javascript:` URL in a URL attribute, or an SVG
+ * animation that targets `href`, whose `to`, `from`, `by` or `values` could hold such a URL.
+ */
 function blockedOnTag(tag: StartTag): string[] {
   const problems: string[] = [];
+  const target = asciiLower(tag.attributes.get("attributename") ?? "");
+  if (SVG_ANIMATIONS.has(tag.name) && (target === "href" || target === "xlink:href")) {
+    problems.push(`<${tag.name}> animates ${target}`);
+  }
   for (const [name, value] of tag.attributes) {
     if (/^on[a-z]+$/.test(name)) problems.push(`<${tag.name}> has an inline event handler, ${name}=`);
     if (URL_ATTRIBUTES.has(name) && urlsOf(name, value).some(isJavascriptUrl)) {
@@ -224,6 +235,8 @@ export function pageProblems(html: string, tokens: Tokens = tokenize(normalized(
   const { tags } = tokens;
   const problems = tags.flatMap(blockedOnTag);
   if (tags.some((tag) => tag.name === "style")) problems.push("a <style> element, which style-src-elem 'self' blocks");
+  // The tokenizer reads <noscript> as raw text, as a browser with scripts on does, so nothing inside it is checked.
+  if (tags.some((tag) => tag.name === "noscript")) problems.push("a <noscript> element, whose content is not checked");
   for (const at of unreadScriptTags(html, tokens))
     problems.push(`a <script at offset ${at} that the tokenizer did not read`);
   return problems;
@@ -234,8 +247,10 @@ export function pageProblems(html: string, tokens: Tokens = tokenize(normalized(
  * holds `&`, `<` or CDATA, because an XML parser would change the text the browser hashes. Returns the hashes of
  * its `<style>` elements, which its own rule must allow.
  */
-export function documentStyles(text: string): { styleHashes: string[]; problems: string[] } {
-  const { tags } = tokenize(normalized(text));
+export function documentStyles(document: string): { styleHashes: string[]; problems: string[] } {
+  // Every offset below is into this one normalized text, the text the tokenizer read.
+  const text = normalized(document);
+  const { tags } = tokenize(text);
   const problems = tags.flatMap(blockedOnTag);
   const styleHashes: string[] = [];
   if (/<\?xml-stylesheet/i.test(text)) problems.push("an <?xml-stylesheet?> instruction");
@@ -244,10 +259,10 @@ export function documentStyles(text: string): { styleHashes: string[]; problems:
     if (tag.name !== "style") continue;
     // Inside <svg> the tokenizer reads <style> as markup, so its text is everything up to </style>.
     const start = text.indexOf(">", tag.offset) + 1;
-    const end = text.toLowerCase().indexOf("</style", start);
+    const end = asciiLower(text).indexOf("</style", start);
     const css = end === -1 ? undefined : text.slice(start, end);
     if (css === undefined || /[&<]/.test(css)) problems.push("a <style> whose text an XML parser would change");
-    else styleHashes.push(scriptHash(normalized(css)));
+    else styleHashes.push(scriptHash(css));
   }
   return { styleHashes, problems };
 }

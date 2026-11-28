@@ -165,12 +165,12 @@ The docs' policy blocks four things a cross-site scripting attack relies on: an 
 
 The build fails on any of these:
 
-- an event-handler attribute, or a `javascript:` URL in an attribute that holds a URL;
-- a `<style>` element in a page, or a script in an SVG or XML file;
+- an event-handler attribute, a `javascript:` URL in an attribute that holds a URL, or an SVG `<set>` or `<animate>` that changes an `href`;
+- a `<style>` or `<noscript>` element in a page, or a script in an SVG or XML file;
 - a script inside `<svg>` or `<math>`, or one whose text holds `<!--`, where a browser could read different text than the build hashes;
 - a CSP line over 1,900 characters, any line over 2,000 or more than 100 rules.
 
-The checks read HTML with a small tokenizer, `src/csp/html.ts`, that splits a page into tags as a browser does. Markup inside an attribute value, a comment or a script's text is therefore never read as a tag. Expressive Code, for example, keeps raw code such as `Promise<RenderedOutcome>` in the `data-code` attribute of each block's copy button.
+The checks read HTML with a small tokenizer, `src/csp/html.ts`, that splits a page into tags as a browser does. Markup inside an attribute value, a comment or a script's text is therefore never read as a tag. Like a browser, it lower-cases ASCII letters only, so a character such as `İ` cannot shift where a script ends. Expressive Code, for example, keeps raw code such as `Promise<RenderedOutcome>` in the `data-code` attribute of each block's copy button.
 
 **After a change to an inline script, regenerate the file.** A Starlight upgrade or an edited component can change an inline script's text, and with it the script's hash. Run `pnpm --filter @buildanagent/docs headers`, which builds the docs and rewrites `public/_headers` from the built pages. Then commit the file. `test/csp.test.ts` fails while the committed file differs from a fresh build's, or while a built inline script's hash is missing from it.
 
