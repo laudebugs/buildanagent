@@ -8,7 +8,7 @@
 // For a directory other than extracted/, every *.ts file is run (our own examples).
 import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { liveMode } from "../../../scripts/live/harness.mjs";
@@ -84,6 +84,7 @@ const gitHub = await mkdtemp(join(tmpdir(), "oai-github-"));
   git(work, "commit", "-q", "-m", "README");
   await mkdir(dirname(repo), { recursive: true });
   git(gitHub, "clone", "-q", "--bare", work, repo);
+  await rm(work, { recursive: true, force: true });
 }
 const OFFLINE_GIT = {
   GIT_CONFIG_NOSYSTEM: "1",

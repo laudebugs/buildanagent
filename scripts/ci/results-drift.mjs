@@ -22,10 +22,11 @@ const verdicts = (v) =>
 // exports that the pinned release lacks. Both move whenever upstream pushes, so every nightly would drift on them.
 // Whether a failing doc block only uses names from main is a result, and typecheck-docs.json and
 // mismatch-causes.json record it, so the file is compared on its released versions ("latest") alone.
-const UPSTREAM_MAIN = new Set(["main", "exportsOnMainNotIn250"]);
+// The export list's key names the pinned release (`exportsOnMainNotIn250` for ADK 2.5.0), so it is matched by prefix.
+const upstreamMain = (key) => key === "main" || key.startsWith("exportsOnMainNotIn");
 const releases = (v) =>
   v && typeof v === "object" && !Array.isArray(v)
-    ? Object.fromEntries(Object.entries(v).filter(([k]) => !UPSTREAM_MAIN.has(k)))
+    ? Object.fromEntries(Object.entries(v).filter(([k]) => !upstreamMain(k)))
     : v;
 
 function normString(s) {
