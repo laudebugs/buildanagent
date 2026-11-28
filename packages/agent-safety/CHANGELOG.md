@@ -1,5 +1,11 @@
 # @buildanagent/agent-safety
 
+## 0.1.0-alpha.45
+
+### Patch Changes
+
+- @buildanagent/gateway@0.1.0-alpha.45
+
 ## 0.1.0-alpha.44
 
 ### Patch Changes
