@@ -1,6 +1,6 @@
 # Fact-check: the CI plan's claims
 
-This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. The log also covers the claims [X12](../../todos/done/X12-sdk-updates-assertion-bug.md) adds to gap 6 and to its own Outcome, checked 2026-11-26 on branch `todo/X12-sdk-updates-assertion-bug`, with row X12-7 added 2026-11-27.
+This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. The log also covers the claims [X12](../../todos/done/X12-sdk-updates-assertion-bug.md) adds to gap 6 and to its own Outcome. Rows X12-1 to X12-6 were checked 2026-11-26 on branch `todo/X12-sdk-updates-assertion-bug`, and row X12-7 on 2026-11-27. The `sdk-updates.mjs` line numbers in rows X12-1, X12-2 and X12-6 hold at `main` `791008aa`, and this pull request leaves that file unchanged.
 
 Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
 
