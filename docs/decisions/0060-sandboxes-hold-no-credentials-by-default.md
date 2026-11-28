@@ -31,7 +31,7 @@ Both injectors are wider than our local routes, so the owner chose a default tha
 
 **Our local backends, `srt` and Docker, keep ADR 0020's rule: no TLS interception.**
 
-This record does not decide Cloudflare, but it narrows the question. With no credentials as the default, N46b and [N50](../todos/ready/N50-cloudflare-sandbox-egress.md) need the owner's ruling on TLS interception only for the opt-in. N50 must still measure whether plain allowlisted HTTPS, such as `npm install`, works without interception on Sandbox SDK 1.0, the current major version as of November 2026. If it doesn't, the default itself needs a ruling on Cloudflare.
+This record does not decide Cloudflare, but it narrows the question. With no credentials as the default, N46b and [N50](../todos/done/N50-cloudflare-sandbox-egress.md) need the owner's ruling on TLS interception only for the opt-in. N50 must still measure whether plain allowlisted HTTPS, such as `npm install`, works without interception on Sandbox SDK 1.0, the current major version as of November 2026. If it doesn't, the default itself needs a ruling on Cloudflare.
 
 Nor does this record decide what a backend may claim about stopping a hostile process. ADR 0020 says "No backend claims to stop a hostile process", yet both hosted backends report the `stops` that N43's `stopsFor()` computes, which include `hostile_process` for a microVM. This record leaves that tension open.
 

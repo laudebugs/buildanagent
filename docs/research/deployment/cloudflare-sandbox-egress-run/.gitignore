@@ -1,0 +1,6 @@
+.wrangler/
+node_modules/
+# The real workers.dev URL that redact.mjs and run-cases.mjs read (N50_URL) stays in an untracked env file.
+.env
+.env.*
+*.env

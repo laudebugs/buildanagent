@@ -1,0 +1,123 @@
+# N50 deploys, 2026-11-28. Output of `scripts/wrangler.mjs deploy --var RUN_KEY:<run-key>` (wrangler 4.160.1), with the
+# Docker build and push steps, ANSI colours and blank lines removed, and the run key, account id and subdomain redacted.
+## before the first deploy, 2026-11-28 16:38 UTC (wrangler 4.160.1; output verbatim, with ANSI colours, blank lines and wrangler's bug-report and log-path lines removed)
+$ wrangler deployments list --name n50-egress-test-20261128
+✘ [ERROR] A request to the Cloudflare API (/accounts/<account-id>/workers/scripts/n50-egress-test-20261128/deployments) failed.
+  This Worker does not exist on your account. [code: 10007]
+$ wrangler containers list
+No containers found.
+$ wrangler containers images list
+REPOSITORY  TAG
+## deploy 1
+Login Succeeded
+Image does not exist remotely, pushing: registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0mydjm
+The push refers to repository [registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox]
+wrangler-mx0mydjm: digest: sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd size: 1880
+├ Preparing sandbox for Cloudflare Containers
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+├ sandbox is ready to run
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+Total Upload: 124.89 KiB / gzip: 27.19 KiB
+Worker Startup Time: 8 ms
+Your Worker has access to the following bindings:
+Binding                                         Resource                  
+env.SANDBOX (N50EgressTest20261128Sandbox)      Durable Object            
+env.RUN_KEY ("(hidden)")                        Environment Variable      
+The following containers are available:
+- N50EgressTest20261128Sandbox (durable_object)
+Uploaded n50-egress-test-20261128 (65.79 sec)
+Deployed n50-egress-test-20261128 triggers (0.72 sec)
+  https://n50-egress-test-20261128.<subdomain>.workers.dev
+Current Version ID: 0537bafa-3334-46c3-a856-a1e611418cad
+Untagged: n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0mydjm
+## deploy 2
+Login Succeeded
+Image already exists remotely, skipping push
+├ Preparing sandbox for Cloudflare Containers
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+├ sandbox is ready to run
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+Total Upload: 127.83 KiB / gzip: 27.67 KiB
+Worker Startup Time: 8 ms
+Your Worker has access to the following bindings:
+Binding                                         Resource                  
+env.SANDBOX (N50EgressTest20261128Sandbox)      Durable Object            
+env.RUN_KEY ("(hidden)")                        Environment Variable      
+The following containers are available:
+- N50EgressTest20261128Sandbox (durable_object)
+Uploaded n50-egress-test-20261128 (5.15 sec)
+Deployed n50-egress-test-20261128 triggers (0.51 sec)
+  https://n50-egress-test-20261128.<subdomain>.workers.dev
+Current Version ID: 14f0b6e7-a8ee-4f12-8a5a-859823d0465f
+Untagged: n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0n6wnj
+## deploy 3
+Login Succeeded
+Image already exists remotely, skipping push
+├ Preparing sandbox for Cloudflare Containers
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+├ sandbox is ready to run
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+Total Upload: 127.88 KiB / gzip: 27.68 KiB
+Worker Startup Time: 21 ms
+Your Worker has access to the following bindings:
+Binding                                         Resource                  
+env.SANDBOX (N50EgressTest20261128Sandbox)      Durable Object            
+env.RUN_KEY ("(hidden)")                        Environment Variable      
+The following containers are available:
+- N50EgressTest20261128Sandbox (durable_object)
+Uploaded n50-egress-test-20261128 (4.59 sec)
+Deployed n50-egress-test-20261128 triggers (0.93 sec)
+  https://n50-egress-test-20261128.<subdomain>.workers.dev
+Current Version ID: 69f287ff-f31e-4349-be04-bfabe9d5f440
+Untagged: n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0nc6wx
+## deploy 4
+Login Succeeded
+Image already exists remotely, skipping push
+├ Preparing sandbox for Cloudflare Containers
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+├ sandbox is ready to run
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+Total Upload: 128.05 KiB / gzip: 27.76 KiB
+Worker Startup Time: 19 ms
+Your Worker has access to the following bindings:
+Binding                                         Resource                  
+env.SANDBOX (N50EgressTest20261128Sandbox)      Durable Object            
+env.RUN_KEY ("(hidden)")                        Environment Variable      
+The following containers are available:
+- N50EgressTest20261128Sandbox (durable_object)
+Uploaded n50-egress-test-20261128 (4.05 sec)
+Deployed n50-egress-test-20261128 triggers (0.51 sec)
+  https://n50-egress-test-20261128.<subdomain>.workers.dev
+Current Version ID: 62f81c39-9d75-464b-9750-9cbcaa324a35
+Untagged: n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0o0ig3
+## deploy 5
+Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+Login Succeeded
+Image already exists remotely, skipping push
+├ Preparing sandbox for Cloudflare Containers
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+├ sandbox is ready to run
+│   registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd
+│
+Total Upload: 128.74 KiB / gzip: 27.89 KiB
+Worker Startup Time: 11 ms
+Your Worker has access to the following bindings:
+Binding                                         Resource                  
+env.SANDBOX (N50EgressTest20261128Sandbox)      Durable Object            
+env.RUN_KEY ("(hidden)")                        Environment Variable      
+The following containers are available:
+- N50EgressTest20261128Sandbox (durable_object)
+Uploaded n50-egress-test-20261128 (4.50 sec)
+Deployed n50-egress-test-20261128 triggers (0.47 sec)
+  https://n50-egress-test-20261128.<subdomain>.workers.dev
+Current Version ID: 193b5351-8602-4c49-ae73-b54a9646b625
+Untagged: n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0o9z80

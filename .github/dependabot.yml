@@ -2,7 +2,8 @@
 # the latest fixed release). Routine version-bump PRs are off here: the weekly sdk-updates workflow opens
 # them for the verify/* harnesses under the one-week age rule, with each harness's verify result. The
 # mirrored upstream docs under docs/reference/*/source/ carry their projects' example manifests; they are
-# not our dependencies, so they are excluded.
+# not our dependencies, so they are excluded. So is N50's one-off Cloudflare egress run, whose pins record what a
+# finished live run used and are not maintained.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -12,6 +13,7 @@ updates:
     open-pull-requests-limit: 0
     exclude-paths:
       - "docs/reference/**"
+      - "docs/research/**/cloudflare-sandbox-egress-run/**"
   # Weekly version updates for the actions, at least seven days old, as in Lamina PDF. An update rewrites the
   # tag in the workflow and its entry in .github/workflows/actions.lock together.
   - package-ecosystem: "github-actions"

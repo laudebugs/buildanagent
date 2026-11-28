@@ -1,0 +1,571 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:15:45.176Z",
+  "finishedAt": "2026-11-28T17:15:46.661Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "e-limit-hostnames",
+    "codeVersion": 4,
+    "startedAt": "2026-11-28T17:15:45.230Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "https",
+        "target": "h1.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 398
+      },
+      {
+        "call": "https",
+        "target": "h2.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h3.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h4.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h5.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 2
+      },
+      {
+        "call": "https",
+        "target": "h6.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h7.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h8.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h9.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h10.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h11.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h12.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h13.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h14.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h15.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h16.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h17.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h18.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h19.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h20.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h21.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h22.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h23.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h24.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h25.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h26.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h27.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h28.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h29.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h30.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h31.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "https",
+        "target": "h32.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h33.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h34.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h35.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h36.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h37.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "https",
+        "target": "h38.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h39.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h40.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h41.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h42.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h43.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h44.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "https",
+        "target": "h45.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "https",
+        "target": "h46.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h47.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h48.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h49.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h50.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "https",
+        "target": "h51.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "https",
+        "target": "h52.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 9
+      },
+      {
+        "call": "https",
+        "target": "h53.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 11
+      },
+      {
+        "call": "https",
+        "target": "h54.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "https",
+        "target": "h55.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h56.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h57.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h58.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h59.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "https",
+        "target": "h60.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h61.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 10
+      },
+      {
+        "call": "https",
+        "target": "h62.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h63.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "https",
+        "target": "h64.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "https",
+        "target": "h65.n50.invalid",
+        "handler": "Synthetic",
+        "ok": false,
+        "error": "Error: You can't configure more than 128 egress interceptors, consider using a CIDR or filtering ports in the WorkerEntrypoint",
+        "ms": 1
+      },
+      {
+        "call": "https",
+        "target": "h66.n50.invalid",
+        "handler": "Synthetic",
+        "ok": false,
+        "error": "Error: You can't configure more than 128 egress interceptors, consider using a CIDR or filtering ports in the WorkerEntrypoint",
+        "ms": 1
+      },
+      {
+        "call": "https",
+        "target": "h1.n50.invalid",
+        "handler": "Synthetic (again)",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "h1.n50.invalid",
+        "handler": "Synthetic (http)",
+        "ok": false,
+        "error": "Error: You can't configure more than 128 egress interceptors, consider using a CIDR or filtering ports in the WorkerEntrypoint",
+        "ms": 1
+      }
+    ],
+    "steps": [
+      {
+        "label": "trust step",
+        "argv": [
+          "sh",
+          "-c",
+          "[ -e /etc/ssl/certs/ca-certificates.system.crt ] || { cp /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.system.crt.tmp && mv /etc/ssl/certs/ca-certificates.system.crt.tmp /etc/ssl/certs/ca-certificates.system.crt; }\ntimeout 10 sh -c 'until [ -s /etc/cloudflare/certs/cloudflare-containers-ca.crt ]; do sleep 0.1; done' && cat /etc/ssl/certs/ca-certificates.system.crt /etc/cloudflare/certs/cloudflare-containers-ca.crt >/etc/ssl/certs/ca-certificates.crt.tmp && mv /etc/ssl/certs/ca-certificates.crt.tmp /etc/ssl/certs/ca-certificates.crt"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "ms": 42
+      },
+      {
+        "label": "first target still works",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://h1.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"h1.n50.invalid\",\"url\":\"https://h1.n50.invalid\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 175
+      },
+      {
+        "label": "64th target",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://h64.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"h64.n50.invalid\",\"url\":\"https://h64.n50.invalid\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 43
+      },
+      {
+        "label": "65th target",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://h65.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 35,
+        "stdout": "http_code=000 remote_ip= ssl_verify=1\ncurl_exit=35\n",
+        "stderr": "curl: (35) Recv failure: Connection reset by peer\n",
+        "ms": 38
+      }
+    ],
+    "notes": []
+  }
+}

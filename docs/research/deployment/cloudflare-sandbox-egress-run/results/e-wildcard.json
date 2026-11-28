@@ -1,0 +1,115 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:15:47.928Z",
+  "finishedAt": "2026-11-28T17:16:28.979Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "e-wildcard",
+    "codeVersion": 4,
+    "startedAt": "2026-11-28T17:15:47.974Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "https",
+        "target": "*.wild.n50.invalid",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 1
+      }
+    ],
+    "steps": [
+      {
+        "label": "trust step",
+        "argv": [
+          "sh",
+          "-c",
+          "[ -e /etc/ssl/certs/ca-certificates.system.crt ] || { cp /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.system.crt.tmp && mv /etc/ssl/certs/ca-certificates.system.crt.tmp /etc/ssl/certs/ca-certificates.system.crt; }\ntimeout 10 sh -c 'until [ -s /etc/cloudflare/certs/cloudflare-containers-ca.crt ]; do sleep 0.1; done' && cat /etc/ssl/certs/ca-certificates.system.crt /etc/cloudflare/certs/cloudflare-containers-ca.crt >/etc/ssl/certs/ca-certificates.crt.tmp && mv /etc/ssl/certs/ca-certificates.crt.tmp /etc/ssl/certs/ca-certificates.crt"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "ms": 225
+      },
+      {
+        "label": "glob a.wild.n50.invalid",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://a.wild.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"a.wild.n50.invalid\",\"url\":\"https://a.wild.n50.invalid\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 145
+      },
+      {
+        "label": "glob b.c.wild.n50.invalid",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://b.c.wild.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"b.c.wild.n50.invalid\",\"url\":\"https://b.c.wild.n50.invalid\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 39
+      },
+      {
+        "label": "glob wild.n50.invalid",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://wild.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 28,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=28\n",
+        "stderr": "curl: (28) Resolving timed out after 20001 milliseconds\n",
+        "ms": 20030
+      },
+      {
+        "label": "glob x.other.n50.invalid",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://x.other.n50.invalid/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 28,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=28\n",
+        "stderr": "curl: (28) Resolving timed out after 20002 milliseconds\n",
+        "ms": 20136
+      }
+    ],
+    "notes": []
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:10:12.143Z",
+  "finishedAt": "2026-11-28T17:12:16.988Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "a-http-only-intercepts",
+    "codeVersion": 3,
+    "startedAt": "2026-11-28T17:10:12.260Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "http",
+        "target": "registry.npmjs.org",
+        "handler": "Allow",
+        "ok": true,
+        "ms": 1
+      },
+      {
+        "call": "http",
+        "target": "github.com",
+        "handler": "Allow",
+        "ok": true,
+        "ms": 0
+      }
+    ],
+    "steps": [
+      {
+        "label": "versions",
+        "argv": [
+          "sh",
+          "-c",
+          "cat /etc/debian_version; node --version; npm --version; curl --version | head -1; git --version; dpkg-query -W ca-certificates; ls -l /usr/local/bin/sandbox-shim"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "13.6\nv24.20.0\n11.19.0\ncurl 8.14.1 (x86_64-pc-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.9 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\ngit version 2.47.3\nca-certificates\t20250419+deb13u1\n-rwxr-xr-x 1 root root 3787168 Oct 22 15:45 /usr/local/bin/sandbox-shim\n",
+        "stderr": "",
+        "ms": 772
+      },
+      {
+        "label": "dns registry.npmjs.org",
+        "argv": ["getent", "ahosts", "registry.npmjs.org"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "fd00::119:1     STREAM registry.npmjs.org\nfd00::119:1     DGRAM  \nfd00::119:1     RAW    \n11.9.0.1        STREAM \n11.9.0.1        DGRAM  \n11.9.0.1        RAW    \n",
+        "stderr": "",
+        "ms": 8
+      },
+      {
+        "label": "ca file present?",
+        "argv": ["ls", "-l", "/etc/cloudflare/certs/"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 2,
+        "stdout": "",
+        "stderr": "ls: cannot access '/etc/cloudflare/certs/': No such file or directory\n",
+        "ms": 9
+      },
+      {
+        "label": "curl https registry",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://registry.npmjs.org/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 28,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=28\n",
+        "stderr": "curl: (28) Connection timed out after 20002 milliseconds\n",
+        "ms": 20024
+      },
+      {
+        "label": "curl http registry",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://registry.npmjs.org/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=301 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n",
+        "stderr": "",
+        "ms": 187
+      },
+      {
+        "label": "node fetch https registry",
+        "argv": [
+          "node",
+          "-e",
+          "fetch(\"https://registry.npmjs.org/is-number\",{signal:AbortSignal.timeout(20000)}).then(async r=>{console.log(\"status\",r.status);console.log((await r.text()).slice(0,300))}).catch(e=>{console.log(\"error\",e.message,e.cause&&(e.cause.code+\" \"+e.cause.message));process.exit(1)})"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 1,
+        "stdout": "error fetch failed UND_ERR_CONNECT_TIMEOUT Connect Timeout Error (attempted addresses: fd00::119:1:443, 11.9.0.1:443, timeout: 10000ms)\n",
+        "stderr": "",
+        "ms": 12603
+      },
+      {
+        "label": "npm view",
+        "argv": ["sh", "-c", "timeout -k 2 60 npm view is-number version --fetch-retries=0"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 124,
+        "stdout": "",
+        "stderr": "",
+        "ms": 60016
+      },
+      {
+        "label": "git ls-remote https",
+        "argv": ["sh", "-c", "timeout -k 2 30 git ls-remote https://github.com/octocat/Hello-World HEAD"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 124,
+        "stdout": "",
+        "stderr": "",
+        "ms": 30010
+      }
+    ],
+    "notes": []
+  }
+}

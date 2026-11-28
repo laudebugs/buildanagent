@@ -1,0 +1,185 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:13:14.255Z",
+  "finishedAt": "2026-11-28T17:13:37.870Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "a-reverse-proxy-routes",
+    "codeVersion": 3,
+    "startedAt": "2026-11-28T17:13:14.331Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "http",
+        "target": "registry.n50.internal",
+        "handler": "Route",
+        "ok": true,
+        "ms": 2
+      },
+      {
+        "call": "http",
+        "target": "github.n50.internal",
+        "handler": "Route",
+        "ok": true,
+        "ms": 0
+      },
+      {
+        "call": "http",
+        "target": "echo.n50.internal",
+        "handler": "Route",
+        "ok": true,
+        "ms": 1
+      }
+    ],
+    "steps": [
+      {
+        "label": "ca file present?",
+        "argv": ["sh", "-c", "ls -l /etc/cloudflare/certs/cloudflare-containers-ca.crt 2>&1; true"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "ls: cannot access '/etc/cloudflare/certs/cloudflare-containers-ca.crt': No such file or directory\n",
+        "stderr": "",
+        "ms": 239
+      },
+      {
+        "label": "curl registry route",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://registry.n50.internal/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"_id\":\"is-number\",\"_rev\":\"43-3fe877efbeead423ee53a12d5ca44395\",\"name\":\"is-number\",\"description\":\"Returns true if a number or string value is a finite number. Useful for regex matches, parsing, user input, etc.\",\"dist-tags\":{\"latest\":\"7.0.0\"},\"versions\":{\"0.1.0\":{\"name\":\"is-number\",\"description\":\"Is the value a number?\",\"version\":\"0.1.0\",\"homepage\":\"https://github.com/jonschlinkert/is-number\",\"aut",
+        "stderr": "",
+        "ms": 147
+      },
+      {
+        "label": "node fetch registry route",
+        "argv": [
+          "node",
+          "-e",
+          "fetch(\"http://registry.n50.internal/is-number\",{signal:AbortSignal.timeout(20000)}).then(async r=>{console.log(\"status\",r.status);console.log((await r.text()).slice(0,300))}).catch(e=>{console.log(\"error\",e.message,e.cause&&(e.cause.code+\" \"+e.cause.message));process.exit(1)})"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "status 200\n{\"_id\":\"is-number\",\"_rev\":\"43-3fe877efbeead423ee53a12d5ca44395\",\"name\":\"is-number\",\"description\":\"Returns true if a number or string value is a finite number. Useful for regex matches, parsing, user input, etc.\",\"dist-tags\":{\"latest\":\"7.0.0\"},\"versions\":{\"0.1.0\":{\"name\":\"is-number\",\"description\":\"Is\n",
+        "stderr": "",
+        "ms": 457
+      },
+      {
+        "label": "mkdir app",
+        "argv": ["mkdir", "-p", "/workspace/app"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "ms": 9
+      },
+      {
+        "label": "npm install via registry route",
+        "argv": [
+          "sh",
+          "-c",
+          "cd /workspace/app && timeout -k 2 90 npm install is-number@7.0.0 --registry=http://registry.n50.internal/ --no-audit --no-fund --fetch-retries=0 2>&1 | tail -5; grep -o '\"resolved\": \"[^\"]*\"' package-lock.json; grep '\"version\"' node_modules/is-number/package.json"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "npm notice\nnpm notice New major version of npm available! 11.19.0 -> 12.2.3\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.3\nnpm notice To update run: npm install -g npm@12.2.3\nnpm notice\n\"resolved\": \"https://registry.npmjs.org/is-number/-/is-number-7.0.0.tgz\"\n  \"version\": \"7.0.0\",\n",
+        "stderr": "",
+        "ms": 904
+      },
+      {
+        "label": "git clone via github route",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -rf /tmp/hw; git config --global url.http://github.n50.internal/.insteadOf https://github.com/ && timeout -k 2 60 git clone --depth 1 https://github.com/octocat/Hello-World /tmp/hw && git -C /tmp/hw log --oneline -1"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "7fd1a60 Merge pull request #6 from Spaceghost/patch-1\n",
+        "stderr": "Cloning into '/tmp/hw'...\n",
+        "ms": 186
+      },
+      {
+        "label": "credential via echo route",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://echo.n50.internal/echo'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"echo\":\"n50-egress-test-20261128\",\"via\":\"fetch\",\"tokenOk\":true,\"url\":\"https://n50-egress-test-20261128.<subdomain>.workers.dev/echo\",\"method\":\"GET\",\"headers\":{\"accept\":\"*/*\",\"accept-encoding\":\"gzip, br\",\"authorization\":\"Bearer n50-dummy-token-not-a-secret\",\"cf-connecting-ip\":\"2a06:98c0:3600::103\",\"cf-ipcountry\":\"US\",\"cf-ray\":\"a61b0094f9ba8be3\",\"cf-visitor\":\"{\\\"scheme\\\":\\\"https\\\"}\",\"cf-worker\":\"<subdomain>",
+        "stderr": "",
+        "ms": 50
+      },
+      {
+        "label": "route refuses another Host",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n' -H 'Host: example.com' 'http://registry.n50.internal/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 56,
+        "stdout": "http_code=000 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=56\n",
+        "stderr": "curl: (56) Recv failure: Connection reset by peer\n",
+        "ms": 17
+      },
+      {
+        "label": "https to the route name",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://registry.n50.internal/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 28,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=28\n",
+        "stderr": "curl: (28) Connection timed out after 20001 milliseconds\n",
+        "ms": 20021
+      }
+    ],
+    "notes": []
+  }
+}

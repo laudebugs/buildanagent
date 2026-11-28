@@ -1,0 +1,34 @@
+# N50 teardown, 2026-11-28 (UTC). Commands run with scripts/wrangler.mjs (wrangler 4.160.1); output verbatim,
+# with ANSI colours, blank lines and wrangler's banner removed and the account id and subdomain redacted.
+## before teardown 2026-11-28T17:21:28Z
+│ ID                               │ NAME                             │ STATE │ LIVE INSTANCES │ LAST MODIFIED                  │
+│ cbf5bdebac744233a102b1ff0b3e096f │ n50-egress-test-20261128-sandbox │ ready │ 0              │ 2026-11-28T16:40:51.212999936Z │
+REPOSITORY                                                     TAG
+n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox  wrangler-mx0mydjm
+## wrangler delete n50-egress-test-20261128 2026-11-28T17:21:46Z
+? Are you sure you want to delete n50-egress-test-20261128? This action cannot be undone.
+🤖 Using fallback value in non-interactive context: yes
+Successfully deleted n50-egress-test-20261128
+▲ [WARNING] n50-egress-test-20261128 owned 1 Cloudflare Container application, which keeps running and billing now that the Worker is gone:
+  - n50-egress-test-20261128-sandbox (cbf5bdebac744233a102b1ff0b3e096f)
+  Delete it with: wrangler containers delete <id>
+exit=0
+## wrangler containers delete cbf5bdebac744233a102b1ff0b3e096f 2026-11-28T17:21:56Z
+╭ Delete your container 
+│
+╰ Your container has been deleted 
+exit=0
+## wrangler containers images delete 2026-11-28T17:21:59Z
+? Are you sure you want to delete n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0mydjm? This action cannot be undone.
+🤖 Using fallback value in non-interactive context: yes
+Deleted n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0mydjm (sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd)
+exit=0
+## verify 2026-11-28T17:22:13Z
+✘ [ERROR] A request to the Cloudflare API (/accounts/<account-id>/workers/scripts/n50-egress-test-20261128/deployments) failed.
+  This Worker does not exist on your account. [code: 10007]
+exit=1
+No containers found.
+exit=0
+REPOSITORY  TAG
+exit=0
+workers.dev http_code=404

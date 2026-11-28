@@ -1,0 +1,71 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:12:16.989Z",
+  "finishedAt": "2026-11-28T17:13:14.246Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "a-no-intercepts",
+    "codeVersion": 3,
+    "startedAt": "2026-11-28T17:12:17.053Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [],
+    "steps": [
+      {
+        "label": "dns registry.npmjs.org",
+        "argv": ["sh", "-c", "timeout 15 getent ahosts registry.npmjs.org; echo rc=$?"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "rc=124\n",
+        "stderr": "",
+        "ms": 15272
+      },
+      {
+        "label": "curl https registry",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://registry.npmjs.org/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 28,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=28\n",
+        "stderr": "curl: (28) Resolving timed out after 20001 milliseconds\n",
+        "ms": 21361
+      },
+      {
+        "label": "curl https by ip",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n' -k 'https://104.16.0.35/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 28,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=28\n",
+        "stderr": "curl: (28) Connection timed out after 20002 milliseconds\n",
+        "ms": 20099
+      }
+    ],
+    "notes": []
+  }
+}

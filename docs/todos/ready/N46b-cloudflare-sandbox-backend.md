@@ -1,6 +1,6 @@
 # N46b: Cloudflare Sandbox backend and per-host outbound interception egress
 
-> **On hold (plan review 2, 2026-11-19): do not start until the owner rules on N50's proposed ADR, even once N50 is done.** `@cloudflare/sandbox` 1.0 removed `allowedHosts` and `outboundByHost`, and HTTPS egress without interception fails. [N50](N50-cloudflare-sandbox-egress.md) tests the replacement on a real sandbox and drafts an ADR. *Narrowed on 2026-11-25:* [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md) makes no credentials the default for every sandbox, so the ruling covers interception for the opt-in credential route only, unless N50 finds that plain allowlisted HTTPS also needs it.
+> **On hold (plan review 2, 2026-11-19): do not start until the owner rules on N50's proposed ADR, even though N50 is done.** Once the owner rules, build `EgressPolicy` to the six compile steps in the [N50 findings](../../research/deployment/cloudflare-sandbox-egress.md#n46b-should-compile-egresspolicy-to-per-host-https-intercepts-with-checking-handlers), or to the note's plain-HTTP fallback if the owner declines interception. `@cloudflare/sandbox` 1.0 removed `allowedHosts` and `outboundByHost`, and HTTPS egress without interception fails. [N50](../done/N50-cloudflare-sandbox-egress.md) tested the replacement on a real sandbox and drafted an ADR. *Narrowed on 2026-11-25:* [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md) makes no credentials the default for every sandbox, so the ruling covered interception for the opt-in credential route only, unless N50 found that plain allowlisted HTTPS also needs it. *Widened on 2026-11-28:* N50 found that it does, because no HTTPS leaves a Cloudflare sandbox with internet off unless a Worker intercepts its TLS, so the ruling now covers the default as well as the opt-in ([N50 findings](../../research/deployment/cloudflare-sandbox-egress.md)).
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@
 | Status | `ready` |
 | Plan | [Build coding agent §5](../../plans/build-coding-agent.md#51-portability-todos-extend-round-n-with-a-stage-8) |
 | Round / milestone | Round N (build harness, stage 8: portability), M6 |
-| Depends on | [N45](../done/N45-portability-conformance-suite.md), [N50](N50-cloudflare-sandbox-egress.md) |
+| Depends on | [N45](../done/N45-portability-conformance-suite.md), [N50](../done/N50-cloudflare-sandbox-egress.md) |
 | Size | M |
 
 ## Goal
@@ -19,7 +19,7 @@ Implement the Cloudflare side of the portable seams and pass the N45 conformance
 
 - [Portable agents report, sandboxes](../../research/deployment/portable-agents.md#four-hosted-sandboxes-meet-our-three-hard-rules-and-e2b-should-come-first): Cloudflare Sandbox's egress model.
 - [ADR 0033](../../decisions/0033-three-deployment-targets.md): the target table.
-- [N50](N50-cloudflare-sandbox-egress.md): the measured egress behaviour of Sandbox SDK 1.0 and the owner's decision on interception.
+- [N50](../done/N50-cloudflare-sandbox-egress.md): the measured egress behaviour of Sandbox SDK 1.0 and the owner's decision on interception.
 - [Cloudflare Containers, outbound traffic](https://developers.cloudflare.com/containers/configuration/outbound-traffic/) and [Sandbox SDK 0.x migration, outbound rules](https://developers.cloudflare.com/sandbox/sdk/migrate/outbound-traffic/): the 1.0 API, as of November 2026.
 
 ## Scope

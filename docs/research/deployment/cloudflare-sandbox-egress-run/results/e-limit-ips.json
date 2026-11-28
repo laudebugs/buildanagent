@@ -1,0 +1,987 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:15:46.662Z",
+  "finishedAt": "2026-11-28T17:15:47.927Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "e-limit-ips",
+    "codeVersion": 4,
+    "startedAt": "2026-11-28T17:15:46.714Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "http",
+        "target": "10.255.0.1",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 155
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.2",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.3",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.4",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.5",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.6",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.7",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.8",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.9",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.10",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.11",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.12",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.13",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.14",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.15",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.16",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.17",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.18",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.19",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 2
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.20",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.21",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.22",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.23",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.24",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.25",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.26",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.27",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.28",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.29",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.30",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.31",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.32",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.33",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.34",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.35",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.36",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.37",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.38",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.39",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.40",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.41",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.42",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.43",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.44",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.45",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.46",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.47",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.48",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.49",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.50",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.51",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.52",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.53",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.54",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.55",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.56",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.57",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.58",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.59",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.60",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.61",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.62",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.63",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.64",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.65",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.66",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.67",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.68",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.69",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.70",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.71",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.72",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.73",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.74",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.75",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.76",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.77",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.78",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.79",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.80",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.81",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.82",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.83",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.84",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.85",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.86",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.87",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.88",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.89",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.90",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.91",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.92",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.93",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.94",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.95",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.96",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.97",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.98",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.99",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 3
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.100",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.101",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.102",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.103",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.104",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.105",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.106",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.107",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.108",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.109",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.110",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.111",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.112",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.113",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.114",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 8
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.115",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.116",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.117",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.118",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.119",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.120",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.121",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.122",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.123",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.124",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 4
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.125",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.126",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 6
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.127",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.128",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 7
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.129",
+        "handler": "Synthetic",
+        "ok": true,
+        "ms": 5
+      },
+      {
+        "call": "http",
+        "target": "10.255.0.130",
+        "handler": "Synthetic",
+        "ok": false,
+        "error": "Error: You can't configure more than 128 egress interceptors, consider using a CIDR or filtering ports in the WorkerEntrypoint",
+        "ms": 0
+      }
+    ],
+    "steps": [
+      {
+        "label": "first ip target",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://10.255.0.1/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=10.255.0.1 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"10.255.0.1\",\"url\":\"http://10.255.0.1\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 131
+      },
+      {
+        "label": "128th ip target",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://10.255.0.128/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=10.255.0.128 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"10.255.0.128\",\"url\":\"http://10.255.0.128\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 26
+      },
+      {
+        "label": "129th ip target",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://10.255.0.129/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=10.255.0.129 ssl_verify=0\ncurl_exit=0\n{\"handler\":\"Synthetic\",\"host\":\"10.255.0.129\",\"url\":\"http://10.255.0.129\",\"method\":\"GET\"}",
+        "stderr": "",
+        "ms": 19
+      }
+    ],
+    "notes": []
+  }
+}
