@@ -1,8 +1,8 @@
 # Fact-check log: System 1, System 2 and model routing report
 
-The report holds up with four corrections and eighteen claims that rest on absence, on inference or on our own arithmetic and design. The section on the human research behind the framing (rows research/system-1-system-2-routing-132 to research/system-1-system-2-routing-151) was added after the first draft was committed and checked the same way, against the primary papers read in full or in the passages quoted. Each section was checked as soon as it was drafted, before the next was written, against a copy of its primary source fetched on 2026-11-28. The vendor notes and the paper notes were used only to find sources: every price, date, model name and paper figure was matched again against the vendor page or the PDF text, and four notes entries changed (rows research/system-1-system-2-routing-17, research/system-1-system-2-routing-25, research/system-1-system-2-routing-70 and research/system-1-system-2-routing-94).
+The report holds up with five corrections and nineteen claims that rest on absence, on inference or on our own arithmetic and design. The section on the human research behind the framing (rows research/system-1-system-2-routing-132 to research/system-1-system-2-routing-151) was added after the first draft was committed and checked the same way, against the primary papers read in full or in the passages quoted. Each section was checked as soon as it was drafted, before the next was written, against a copy of its primary source fetched on 2026-11-28. The vendor notes and the paper notes were used only to find sources: every price, date, model name and paper figure was matched again against the vendor page or the PDF text, and four notes entries changed (rows research/system-1-system-2-routing-17, research/system-1-system-2-routing-25, research/system-1-system-2-routing-70 and research/system-1-system-2-routing-94).
 
-**Totals:** 151 claims: 129 ✅, 4 ✏️, 18 ⚠️.
+**Totals:** 154 claims: 130 ✅, 5 ✏️, 19 ⚠️.
 
 - **Date:** 2026-11-28
 - **Document checked:** [system-1-system-2-and-model-routing.md](system-1-system-2-and-model-routing.md)
@@ -223,8 +223,8 @@ Every relative link and anchor in the report and this log was resolved with `pnp
 
 ### Independent writing-review fixes, re-checked (2026-11-28)
 
-| # | Section | Claim | Verdict | Source and note |
-|---|---|---|---|---|
+| # | Where | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- | --- |
 | research/system-1-system-2-routing-152 | Models ¶2 | The cheapest decision models cost less than any general model in the table | ✏️ | The head said decision models cost less than "the cheapest general model", but Clef's $0.24 input is above Haiku 5.5's $0.10 (row research/system-1-system-2-routing-38) and Groq's `gpt-oss-20b` at $0.075. Corrected to the cheapest decision models: Clef-flash at $0.038 and Jev at $0.042 are below every general model's input rate in the Models table |
 | research/system-1-system-2-routing-153 | Rule 5 | Rule 3 names the steps to try a slow call on, and rule 5 asks evals to confirm each one | ⚠️ | Our own framing, added by the independent review to order rules 3 and 5; no source |
 | research/system-1-system-2-routing-154 | Examples | Example 3 prices output at the first example's rates and keeps output out of the cached context | ✅ | Re-read against the assumptions in row research/system-1-system-2-routing-125; the totals are unchanged. The Haiku-then-Sonnet total is $0.06795 unrounded, shown as $0.0680 |
