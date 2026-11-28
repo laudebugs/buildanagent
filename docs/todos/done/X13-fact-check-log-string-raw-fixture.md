@@ -42,7 +42,7 @@
 ## Acceptance criteria
 
 - [x] `scripts/ci/fact-check-log.test.mjs` passes under both Node and Bun.
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node.
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally under Node. Not ticked: `pnpm check` and `pnpm typecheck` pass locally, but root `pnpm test` needs Linux's `unshare`, so CI's run of it stands in (see Outcome).
 
 ## Tests
 
@@ -68,7 +68,7 @@ The existing `fact-check-log.test.mjs` is rewritten in place; no new test file.
 
 - [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step. Not ticked: `pnpm check` and `pnpm typecheck` pass locally, but root `pnpm test` needs Linux's `unshare`, so CI's run of it stands in (see Outcome).
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
