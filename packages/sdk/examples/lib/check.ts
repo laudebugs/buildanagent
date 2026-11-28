@@ -40,11 +40,15 @@ export function scripted(steps: ScriptStep[]): { adapter: ScriptedRun; model: Mo
 
 /**
  * Like `scripted()`, but the model reports itself as Anthropic's `claude-sonnet-5-5`, so `createModel()` prices every
- * answer from the shipped catalog. A run with a `budgetUsd` needs that price.
+ * answer from the shipped catalog. A run with a `budgetUsd` needs that price. `id` names another catalog model, such as
+ * `claude-haiku-5-5`, for an example that runs two models.
  */
-export function pricedScripted(steps: ScriptStep[]): { adapter: ScriptedModel; model: Model } {
+export function pricedScripted(
+  steps: ScriptStep[],
+  id = "claude-sonnet-5-5",
+): { adapter: ScriptedModel; model: Model } {
   const script = recordedSteps(steps);
   const adapter = new ScriptedModel(script.steps, { ref: { api: "anthropic-messages", provider: "anthropic" } });
   script.belongsTo(adapter);
-  return { adapter, model: lendCallerLine(createModel({ adapter, id: "claude-sonnet-5-5" })) };
+  return { adapter, model: lendCallerLine(createModel({ adapter, id })) };
 }
