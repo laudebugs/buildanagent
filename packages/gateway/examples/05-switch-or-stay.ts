@@ -1,12 +1,12 @@
 // What a model switch costs when each model keeps its own prompt cache. A ten-turn session adds 2,000 input tokens a
-// turn and gets 200 output tokens back, which stay out of the cached context. Each model's cache holds the prefix up
-// to its own last turn, so a model that takes a turn after others writes everything added since its own last turn, and
-// one that returns after the five-minute cache lifetime rewrites the whole prefix. We price six schedules from the gateway's catalog, with no model call,
-// then price them again with a gap between turns longer than the cache lifetime.
+// turn and gets 200 output tokens back, which stay out of the cached context. Each model's cache holds the prefix up to
+// its own last turn. A model returning after other models' turns writes only what was added since its last turn, and a
+// model returning after the five-minute cache lifetime rewrites the whole prefix. We price six schedules from the
+// gateway's catalog with no model call, then price them again with a gap between turns longer than the cache lifetime.
 //
-// This is arithmetic on published rates, not a measurement. It assumes what the Switchcraft router paper's replay
-// assumes, a separate cache per model per conversation, so the alternating totals depend on that assumption and on
-// which model takes turn 1. The book's fast-and-slow-calls chapter lists it.
+// This is arithmetic on published rates, not a measurement. Like the Switchcraft router paper's replay, the example
+// assumes a separate cache per model per conversation, so the alternating totals depend on that assumption and on which
+// model takes turn 1. The book's fast-and-slow-calls chapter lists this example.
 import { defaultCatalog, findCatalogEntry, priceUsage, type Usage } from "@buildanagent/gateway";
 import { check } from "./lib/check.js";
 
