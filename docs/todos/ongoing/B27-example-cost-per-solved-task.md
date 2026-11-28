@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `B27` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4.7](../../plans/build-sdk.md#47-five-offline-examples-for-the-fast-and-slow-calls-chapter-added-2026-11-28) |
-| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](T76-chapter-fast-and-slow-calls.md)) |
+| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](../ready/T76-chapter-fast-and-slow-calls.md)) |
 | Depends on | [B5](../done/B5-usage-cost-catalog.md) |
 | Size | M |
 
@@ -29,7 +29,7 @@ Add `packages/sdk/examples/16-cost-per-solved-task.ts`, which ranks four candida
 
 **Out of scope** (and which todo covers it)
 
-- The chapter that lists this example: [T76](T76-chapter-fast-and-slow-calls.md)
+- The chapter that lists this example: [T76](../ready/T76-chapter-fast-and-slow-calls.md)
 - Any new SDK or gateway feature: the example uses the exports that exist today
 
 ## Tasks
