@@ -1,5 +1,7 @@
 // Runs this project's pinned wrangler with an allowlisted environment (AGENTS.md, "Running third-party code").
-// wrangler keeps the real HOME, because its login lives in the user's config there, and Docker's context does too.
+// It passes the real HOME, an exception to the temp-HOME rule: wrangler's OAuth login and Docker's configuration live
+// there, and the owner approved that login for N50's one run. A rerun should use a temp HOME, a DOCKER_CONFIG copy and
+// a CLOUDFLARE_API_TOKEN scoped to Workers and Containers instead (the findings note, "Environment").
 // CLOUDFLARE_ACCOUNT_ID must name the one account the owner approved for the run; it is an identifier, not a
 // credential, and it stays out of the repo.
 import { spawnSync } from "node:child_process";

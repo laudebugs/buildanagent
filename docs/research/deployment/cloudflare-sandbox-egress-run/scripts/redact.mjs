@@ -1,16 +1,43 @@
-// Takes the account's identifiers out of a case record before it is committed: the account id in the image
-// reference and the account's workers.dev subdomain, which the echo server's headers and URLs carry. Run it over
-// files (node scripts/redact.mjs results/*.json), or import redact() as run-cases.mjs does.
+// Takes the account's identifiers out of a case record or log before it is committed: the account id in the image
+// reference and the account's workers.dev subdomain. The subdomain shows up in URLs, in the echo server's
+// `cf-worker` header (JSON-escaped inside a command's stdout, and sometimes cut short by the record's truncation),
+// and anywhere else a command printed it, so the label itself is replaced wherever it appears, whole or cut short.
+// The label comes from N50_URL (https://n50-egress-test-20261128.<subdomain>.workers.dev), never from a file in the
+// repo. Run it over files (N50_URL=... node scripts/redact.mjs results/*), or import redact() as run-cases.mjs does.
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-export function redact(text) {
-  return text
+const PLACEHOLDER = "<subdomain>";
+
+/** The account's workers.dev label, from a URL such as https://<worker>.<label>.workers.dev. */
+export function subdomainOf(url) {
+  const match = /^[^.]+\.([a-z0-9-]+)\.workers\.dev$/.exec(new URL(url).hostname);
+  if (!match) throw new Error("N50_URL must be https://<worker>.<subdomain>.workers.dev");
+  return match[1];
+}
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export function redact(text, label = process.env.N50_URL ? subdomainOf(process.env.N50_URL) : undefined) {
+  let out = text
     .replace(/registry\.cloudflare\.com\/[0-9a-f]{32}\//g, "registry.cloudflare.com/<account-id>/")
-    .replace(/n50-egress-test-20261128\.[a-z0-9-]+\.workers\.dev/g, "n50-egress-test-20261128.<subdomain>.workers.dev")
-    .replace(/"cf-worker":"[a-z0-9-]+\.workers\.dev"/g, '"cf-worker":"<subdomain>.workers.dev"');
+    .replace(/\/accounts\/[0-9a-f]{32}\//g, "/accounts/<account-id>/")
+    // The cf-worker header's value, with plain or JSON-escaped quotes, whole or cut short by truncation.
+    .replace(/(cf-worker\\?"\s*:\s*\\?")[^"\\]*/g, `$1${PLACEHOLDER}`);
+  if (label) {
+    // The whole label anywhere, then any cut-short prefix of 4 or more characters at the end of a string.
+    out = out.replace(new RegExp(escapeRegExp(label), "gi"), PLACEHOLDER);
+    for (let n = label.length - 1; n >= 4; n--) {
+      out = out.replace(new RegExp(`${escapeRegExp(label.slice(0, n))}(?=\\\\?"|$)`, "gim"), PLACEHOLDER);
+    }
+  }
+  return out.replace(
+    /n50-egress-test-20261128\.[a-z0-9-]+\.workers\.dev/g,
+    `n50-egress-test-20261128.${PLACEHOLDER}.workers.dev`,
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (!process.env.N50_URL) throw new Error("Set N50_URL so the subdomain label can be found and replaced");
   for (const file of process.argv.slice(2)) writeFileSync(file, redact(readFileSync(file, "utf8")));
 }

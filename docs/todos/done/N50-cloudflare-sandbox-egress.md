@@ -79,7 +79,7 @@ The findings note and its fact-check under `docs/research/deployment/`, the AGEN
 
 ## Outcome
 
-Done on 2026-11-28. The [findings note](../../research/deployment/cloudflare-sandbox-egress.md) and its [fact-check](../../research/deployment/fact-check-cloudflare-sandbox-egress.md) (57 claims: 53 ✅, 3 ✏️, 1 ⚠️) record the live run, and the [scratch project](../../research/deployment/cloudflare-sandbox-egress-run/) holds the harness and every case's verbatim record. It sits outside the pnpm workspace and pins `@cloudflare/sandbox` 1.0.3 and wrangler 4.160.1.
+Done on 2026-11-28. The [findings note](../../research/deployment/cloudflare-sandbox-egress.md) and its [fact-check](../../research/deployment/fact-check-cloudflare-sandbox-egress.md) (64 claims: 55 ✅, 7 ✏️, 2 ⚠️) record the live run, and the [scratch project](../../research/deployment/cloudflare-sandbox-egress-run/) holds the harness and every case's verbatim record. It sits outside the pnpm workspace and pins `@cloudflare/sandbox` 1.0.3 and wrangler 4.160.1.
 
 - **(a) Fails.** With internet off and only HTTP intercepts, an allowed name resolves to a placeholder but HTTPS to it times out in curl, Node, npm and Git. With no intercept, the name doesn't resolve. So the default needs a ruling on Cloudflare too. A plain-HTTP reverse-proxy route to the Worker reached the registry and GitHub with no CA, but only for clients configured to use it.
 - **(b) Passes.** Per-host `interceptOutboundHttps()` works once the per-container CA is trusted. curl and Git need only the system-bundle step, while Node `fetch` and npm also need `NODE_EXTRA_CA_CERTS` (or `--use-system-ca` for Node). The dummy token reached the echo server, never the sandbox's environment, but the echoed headers brought it back into a file.
@@ -87,7 +87,7 @@ Done on 2026-11-28. The [findings note](../../research/deployment/cloudflare-san
 - **(d) Passes.** Metadata addresses reset, `metadata.google.internal` never resolves, and loopback reaches only the container itself.
 - **(e) Passes with one difference.** 64 HTTPS hostnames fit and the 65th throws, but 129 IP targets registered, one more than the docs say. A glob such as `*.wild.n50.invalid` covers every subdomain but not the apex.
 
-The note proposes an ADR, unnumbered and marked Proposed — owner to confirm: on the Cloudflare backend only, our own Worker intercepts TLS for each allowed host behind a host check, and an opt-in credential route adds the credential on a checked route. N46b waits for the owner's ruling. Every resource was deleted and checked by listing ([teardown record](../../research/deployment/cloudflare-sandbox-egress-run/results/teardown.log)). The code reviews and the writing review run on the pull request.
+The note proposes an ADR, unnumbered and marked Proposed — owner to confirm: on the Cloudflare backend only, our own Worker intercepts TLS for each allowed host behind a host check, and an opt-in credential route adds the credential on a checked route. N46b waits for the owner's ruling. The Worker, the container application and the image were deleted and checked by listing; the Durable Object namespace was not listed, because wrangler has no command for it ([teardown record](../../research/deployment/cloudflare-sandbox-egress-run/results/teardown.log)). The code reviews and the writing review run on the pull request.
 
 ## Definition of done
 

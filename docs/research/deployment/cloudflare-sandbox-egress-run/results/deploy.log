@@ -1,5 +1,13 @@
 # N50 deploys, 2026-11-28. Output of `scripts/wrangler.mjs deploy --var RUN_KEY:<run-key>` (wrangler 4.160.1), with the
 # Docker build and push steps, ANSI colours and blank lines removed, and the run key, account id and subdomain redacted.
+## before the first deploy, 2026-11-28 16:38 UTC (wrangler 4.160.1; output verbatim, with ANSI colours, blank lines and wrangler's bug-report and log-path lines removed)
+$ wrangler deployments list --name n50-egress-test-20261128
+✘ [ERROR] A request to the Cloudflare API (/accounts/<account-id>/workers/scripts/n50-egress-test-20261128/deployments) failed.
+  This Worker does not exist on your account. [code: 10007]
+$ wrangler containers list
+No containers found.
+$ wrangler containers images list
+REPOSITORY  TAG
 ## deploy 1
 Login Succeeded
 Image does not exist remotely, pushing: registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox:wrangler-mx0mydjm
