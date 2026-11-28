@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N50` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build harness §4.8](../../plans/build-harness.md#48-stage-8-makes-the-harness-portable-to-cloudflare-aws-and-vercel-added-2026-11-18) |
 | Round / milestone | Round N (build harness, stage 8: portability; a verification todo added in plan review 2), M6 |
 | Depends on | None |
@@ -21,7 +21,7 @@ On a real Cloudflare sandbox, find out how an allowlisted HTTPS request can leav
 - [Cloudflare Containers, outbound traffic](https://developers.cloudflare.com/containers/configuration/outbound-traffic/): `interceptOutboundHttp()` and `interceptOutboundHttps()`, and the container-wide rule that only intercepted traffic leaves.
 - [Migrate from Sandbox SDK 0.x: outbound rules](https://developers.cloudflare.com/sandbox/sdk/migrate/outbound-traffic/): what replaced `outbound`, `outboundByHost`, `allowedHosts` and `interceptHttps` in 1.0.
 - [ADR 0020](../../decisions/0020-default-sandbox-backend.md) and [HD15](../../plans/build-harness.md#hd15-the-credential-proxy-injects-on-reverse-proxy-routes-not-by-intercepting-tls): our current "no TLS interception" rule, which this todo may propose to change for the Cloudflare backend only.
-- [N46b](N46b-cloudflare-sandbox-backend.md): the backend that waits for this todo and the owner's decision.
+- [N46b](../ready/N46b-cloudflare-sandbox-backend.md): the backend that waits for this todo and the owner's decision.
 - [ADR 0060](../../decisions/0060-sandboxes-hold-no-credentials-by-default.md): no credentials in a sandbox by default, and provider-side injection only as a narrow opt-in, which narrows the proposed ADR below to that opt-in.
 
 ## Scope
