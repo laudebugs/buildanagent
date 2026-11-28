@@ -8,6 +8,7 @@ import starlightSidebarTopics from "starlight-sidebar-topics";
 import { createStarlightTypeDocPlugin } from "starlight-typedoc";
 import { API_PACKAGES, entryPoints, moduleSidebarGroup, tsconfigOf, typeDocOptions } from "./src/api/packages.js";
 import { githubLink } from "./src/chrome.js";
+import { cspHeaders } from "./src/csp/integration.js";
 import { CODE_STYLE_OVERRIDES, codeThemes } from "./src/design/theme.js";
 import { exampleFile } from "./src/plugins/example-file.js";
 import { figureDirective } from "./src/plugins/figure.js";
@@ -64,6 +65,9 @@ const api = API_PACKAGES.map((pkg) => {
 export default defineConfig({
   site: "https://docs.buildanagent.fyi",
   cacheDir: CACHE_DIR,
+  // Every stylesheet ships as a file, never as an inline <style>, so the content security policy can hold
+  // style-src-elem 'self' (src/csp/policy.ts).
+  build: { inlineStylesheets: "never" },
   markdown: { remarkPlugins: [exampleFile, figureDirective] },
   integrations: [
     starlight({
@@ -105,5 +109,7 @@ export default defineConfig({
         markdownTwins(),
       ],
     }),
+    // After Starlight, so it reads every page Starlight built and writes dist/_headers from them.
+    cspHeaders(),
   ],
 });
