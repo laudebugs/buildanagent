@@ -1,0 +1,17 @@
+# Response headers for every file the docs' Worker serves. Cloudflare's asset server reads this file and never serves
+# it. The deploy always uses main's copy of this file, never one from a pull request's build.
+#
+# Generated: do not edit. src/csp/policy.ts holds the policy and the reason for each directive. After a change to an
+# inline script, run `pnpm --filter @buildanagent/docs headers`, which builds the docs and rewrites this file from the
+# built site. test/csp.test.ts fails while this file differs from a fresh build's.
+#
+# A preview or next.docs.buildanagent.fyi also gets X-Robots-Tag: noindex as the first header of the /* rule, added by
+# scripts/ci/site-stage-dist.mjs --noindex. Keep exactly one /* rule and no X-Robots-Tag here.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-7eCV4jtsr4t4knb3c4FCRPeu7GGZeOUGE3XvWix0XOQ=' 'sha256-GkZBRnvSuhtx/cvzvukVkX2JJZW+DdPlVr7BX8Tefqo=' 'sha256-NOuGJe6BkDD4FbDXwATkEn5bO+JpOt4gKGs4vlft5TE=' 'sha256-VWo5Wp4aqSj6nSgMpeAp9cKieaoIfwFUAunAVugI5gA=' 'sha256-VgrgcKBvIM3XpiLJ6fEv1Vy6YHBwlKLkYtFdfBMouTo=' 'sha256-f/zAUE74ucc3JYp4r4QQvkJofoQdkOIhHYK+jeZ6eko=' 'sha256-hP48sUywTAXyg22qvpdOC/cYIA8MfPdKEbPC/mvGk4M=' 'sha256-j066YyZLmxi7hThtvu2oKJArg82wWVur6pfnklFFLH0=' 'sha256-nVO98WGdJA5yup1/MAdukGqUlS6Psuf7JJFF5ikWqbQ=' 'sha256-pkOZ7Ywth+IqAWU5I4jS5n0I6g7BEMEjIZFtd7+UIBI=' 'sha256-ucPfdYc9FPIvbmnn9ECv3eLKYLt8/heMPFQ+hNTn6jY=' 'sha256-wX2yOADeV+NMngflD5uYi3vl50SHC4sfM1EmylVjlX4=' 'sha256-xP4TLKzB6hcrCLQfQrTEg8qxfZ1b3HlE1OWO+7uZf1o='; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+
+# A served SVG with its own <style> takes a policy of its own: the site-wide one would block that style when the
+# file is opened. Rules apply in file order, so each detaches the /* policy first and then sets its own.
+/favicon.svg
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; style-src 'sha256-2sWE5n1sVeFTN66evKLDpa9nuWVn7Jke3r833NkJnUw='; frame-ancestors 'none'
