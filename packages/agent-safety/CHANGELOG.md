@@ -1,5 +1,12 @@
 # @buildanagent/agent-safety
 
+## 0.1.0-alpha.43
+
+### Patch Changes
+
+- 3b8c334: Link the reference to the quick start
+- @buildanagent/gateway@0.1.0-alpha.43
+
 ## 0.1.0-alpha.42
 
 ### Patch Changes

@@ -35,7 +35,7 @@ export interface ApiTopic {
 }
 
 /** The tabs of the written docs, in order: each has pages of its own, and the generated API tabs follow them. */
-export const WRITTEN_TOPICS = ["SDK & gateway", "Harness", "Protocol", "CLI"] as const;
+export const WRITTEN_TOPICS = ["SDK & gateway", "Harness", "Agent safety", "Protocol", "CLI"] as const;
 
 /**
  * The pages no sidebar item names but that belong to a topic, as glob patterns by topic id. TypeDoc writes each
@@ -120,6 +120,24 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
     },
     {
       label: WRITTEN_TOPICS[2],
+      link: "agent-safety/quick-start",
+      icon: "approve-check",
+      items: [
+        {
+          label: "Agent safety",
+          items: [
+            { label: "Quick start", slug: "agent-safety/quick-start" },
+            { label: "Write outcomes", slug: "agent-safety/outcomes" },
+            { label: "Signed approvals", slug: "agent-safety/approvals" },
+            { label: "The cost cap", slug: "agent-safety/cost-cap" },
+            { label: "The own-key guard", slug: "agent-safety/own-key" },
+            { label: "Problems and fixes", slug: "agent-safety/problems-and-fixes" },
+          ],
+        },
+      ],
+    },
+    {
+      label: WRITTEN_TOPICS[3],
       link: "protocol/quick-start",
       icon: "random",
       items: [
@@ -134,7 +152,7 @@ export function topics(apis: readonly ApiTopic[]): Topic[] {
       ],
     },
     {
-      label: WRITTEN_TOPICS[3],
+      label: WRITTEN_TOPICS[4],
       link: "cli/quick-start",
       icon: "rocket",
       items: [

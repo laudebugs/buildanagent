@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
+import { builtPages } from "../src/csp/policy.js";
 import { builtSite } from "./built.js";
 
 // The docs show the same tab icon as the landing page, so public/favicon.svg must stay a byte-for-byte copy of the
@@ -26,12 +27,9 @@ test("public/favicon.svg is a byte-for-byte copy of the site's, and the build sh
 });
 
 test("every built page links /favicon.svg as its icon", () => {
-  const pages = readdirSync(builtSite(), { recursive: true, encoding: "utf8" }).filter((path) =>
-    path.endsWith(".html"),
-  );
+  const pages = builtPages(builtSite());
   assert.ok(pages.length > 0, "the build wrote no pages");
-  for (const path of pages) {
-    const html = readFileSync(join(builtSite(), path), "utf8");
+  for (const { path, html } of pages) {
     // Starlight writes rel="shortcut icon"; a page may use either spelling.
     assert.match(
       html,
@@ -43,9 +41,7 @@ test("every built page links /favicon.svg as its icon", () => {
 
 test("every built page has the header title with the mark, the wordmark and the licence line, and the install tabs sync", () => {
   const out = builtSite();
-  const pages = readdirSync(out, { recursive: true, encoding: "utf8" }).filter((path) => path.endsWith(".html"));
-  for (const path of pages) {
-    const html = readFileSync(join(out, path), "utf8");
+  for (const { path, html } of builtPages(out)) {
     const link = /<a href="\/"[^>]*class="site-title[^"]*"[^>]*>([\s\S]*?)<\/a>/.exec(html)?.[1] ?? "";
     assert.match(link, /<svg[^>]*aria-hidden="true"/, `${path}: no mark in the header title`);
     assert.match(link, /Build An Agent<\/span> <span class="kind[^"]*">docs<\/span>/, `${path}: no wordmark`);
