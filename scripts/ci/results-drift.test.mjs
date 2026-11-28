@@ -145,3 +145,33 @@ test("fails on a package transcript whose example no longer exists", () => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /01-call\.json \(no example packages\/sdk\/examples\/01-call\.ts\)/);
 });
+
+/** A release tracker as ahead-of-release.mjs writes it, committed in the harness of `committedHarness()`. */
+const tracker = ({ latest = "1.0.0", main = "a".repeat(40), exports = ["One"] } = {}) =>
+  `${JSON.stringify(
+    { checkedAt: "2026-11-27T00:00:00.000Z", latest: { demo: latest }, main, exportsOnMainNotIn250: exports },
+    null,
+    2,
+  )}\n`;
+
+function committedTracker() {
+  committedHarness();
+  write("verify/demo/results/latest-releases.json", tracker());
+  git("add", ".");
+  git("commit", "--quiet", "-m", "tracker");
+}
+
+test("passes when only the upstream main branch moved in a release tracker", () => {
+  committedTracker();
+  write("verify/demo/results/latest-releases.json", tracker({ main: "b".repeat(40), exports: ["One", "Two"] }));
+  const run = drift();
+  assert.equal(run.status, 0, run.stderr);
+});
+
+test("fails when a release tracker records a new release", () => {
+  committedTracker();
+  write("verify/demo/results/latest-releases.json", tracker({ latest: "1.0.1" }));
+  const run = drift();
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /latest-releases\.json: \/latest\/demo: "1\.0\.0" -> "1\.0\.1"/);
+});
