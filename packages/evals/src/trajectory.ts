@@ -141,49 +141,70 @@ function lineOf(message: OpenMessage): MiniSweMessage {
   };
 }
 
+const seconds = (entry: SessionEntry) => Date.parse(entry.timestamp) / 1000;
+
 /**
  * The log's conversation, in order: one entry per block, so the blocks of a message are gathered by its id. A
  * `message_end` closes the message it names, which may have no blocks, such as a call that failed. The `model_call`
  * usage entry right after it is that message's cost. A usage entry that follows no `message_end`, such as a call a
  * retry superseded, belongs to no message: it counts in `instance_cost` but sets no message's cost.
  */
-function conversationOf(entries: readonly SessionEntry[]): (OpenMessage | MiniSweMessage)[] {
-  const lines: (OpenMessage | MiniSweMessage)[] = [];
-  const open = new Map<string, OpenMessage>();
-  let system: string | undefined;
-  let justEnded: OpenMessage | undefined;
-  const seconds = (entry: SessionEntry) => Date.parse(entry.timestamp) / 1000;
-  const messageOf = (id: string, role: OpenMessage["role"], entry: SessionEntry) => {
-    let message = open.get(id);
+class Conversation {
+  readonly lines: (OpenMessage | MiniSweMessage)[] = [];
+  readonly #open = new Map<string, OpenMessage>();
+  #system: string | undefined;
+  #justEnded: OpenMessage | undefined;
+  // Where the coming turn's input begins: its first user message since the last turn_start.
+  #inputAt: number | undefined;
+
+  add(entry: SessionEntry): void {
+    const ended = this.#justEnded;
+    this.#justEnded = undefined;
+    if (entry.type === "turn_start") this.#turnStart(entry.system);
+    else if (entry.type === "message_block") this.#message(entry.messageId, entry.role, entry).blocks.push(entry.block);
+    else if (entry.type === "message_end") this.#end(entry.messageId, entry);
+    else if (entry.type === "tool_result") this.#result(entry);
+    else if (isAgentUsage(entry) && entry.source === "model_call" && ended !== undefined) ended.cost = entry.cost.total;
+  }
+
+  #turnStart(system: string): void {
+    // The log writes a turn's input before its turn_start, so a changed prompt goes before that input, and
+    // mini-swe-agent's first message is the system prompt.
+    if (system !== this.#system) {
+      const at = this.#system === undefined ? 0 : (this.#inputAt ?? this.lines.length);
+      this.lines.splice(at, 0, { role: "system", content: system });
+      this.#system = system;
+    }
+    this.#inputAt = undefined;
+  }
+
+  #message(id: string, role: OpenMessage["role"], entry: SessionEntry): OpenMessage {
+    let message = this.#open.get(id);
     if (message === undefined) {
       message = { role, blocks: [], timestamp: seconds(entry), cost: null };
-      open.set(id, message);
-      lines.push(message);
+      this.#open.set(id, message);
+      if (role === "user" && this.#inputAt === undefined) this.#inputAt = this.lines.length;
+      this.lines.push(message);
     }
     return message;
-  };
-  const addResult = (entry: ToolResultEntry) =>
-    lines.push({ role: "tool", tool_call_id: entry.callId, content: textOf(entry.content) });
-  for (const entry of entries) {
-    const ended = justEnded;
-    justEnded = undefined;
-    if (entry.type === "turn_start" && entry.system !== system) {
-      // The log writes a turn's input before its turn_start, and mini-swe-agent's first message is the system prompt.
-      const line = { role: "system", content: entry.system } as const;
-      if (system === undefined) lines.unshift(line);
-      else lines.push(line);
-      system = entry.system;
-    } else if (entry.type === "message_block") messageOf(entry.messageId, entry.role, entry).blocks.push(entry.block);
-    else if (entry.type === "message_end") {
-      // The harness writes message_end for assistant messages only.
-      justEnded = messageOf(entry.messageId, "assistant", entry);
-      justEnded.timestamp = seconds(entry);
-    } else if (entry.type === "tool_result") addResult(entry);
-    else if (isAgentUsage(entry) && entry.source === "model_call" && ended !== undefined) {
-      ended.cost = entry.cost.total;
-    }
   }
-  return lines;
+
+  #end(id: string, entry: SessionEntry): void {
+    // The harness writes message_end for assistant messages only.
+    const message = this.#message(id, "assistant", entry);
+    message.timestamp = seconds(entry);
+    this.#justEnded = message;
+  }
+
+  #result(entry: ToolResultEntry): void {
+    this.lines.push({ role: "tool", tool_call_id: entry.callId, content: textOf(entry.content) });
+  }
+}
+
+function conversationOf(entries: readonly SessionEntry[]): (OpenMessage | MiniSweMessage)[] {
+  const conversation = new Conversation();
+  for (const entry of entries) conversation.add(entry);
+  return conversation.lines;
 }
 
 const isOpen = (line: OpenMessage | MiniSweMessage): line is OpenMessage => "blocks" in line;

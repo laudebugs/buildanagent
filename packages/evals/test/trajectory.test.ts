@@ -92,6 +92,43 @@ describe("toMiniSweTrajectory()", () => {
     assert.deepEqual(trajectory.info.model_stats, { instance_cost: 0.01 + 0.005 + 0.02 + 0.5 + 0.07, api_calls: 5 });
   });
 
+  test("a later turn's changed system prompt comes before that turn's user message", () => {
+    const entries = log("done");
+    entries.push(
+      entry(20, {
+        type: "message_block",
+        messageId: "u2",
+        role: "user",
+        index: 0,
+        block: { type: "text", text: "Again." },
+      }),
+      entry(21, { type: "turn_start", runId: "r2", mode: "run", system: "Be thorough." }),
+      entry(22, {
+        type: "message_block",
+        messageId: "a3",
+        role: "assistant",
+        index: 0,
+        block: { type: "text", text: "Ok." },
+      }),
+      entry(23, { type: "message_end", messageId: "a3", model: MODEL, stopReason: "stop" }),
+      entry(24, { type: "turn_end", runId: "r2", stopReason: "done", steps: 1 }),
+    );
+    const roles = toMiniSweTrajectory(entries).messages.map((message) =>
+      message.role === "system" || message.role === "user" ? `${message.role}:${message.content}` : message.role,
+    );
+    assert.deepEqual(roles, [
+      "system:Be brief.",
+      "user:Fix it.",
+      "assistant",
+      "tool",
+      "assistant",
+      "system:Be thorough.",
+      "user:Again.",
+      "assistant",
+      "exit",
+    ]);
+  });
+
   test("a log with no ended turn, or one paused for a person, has an empty exit_status and no exit message", () => {
     for (const stop of [undefined, "awaiting_approval", "clarification_requested"]) {
       const trajectory = toMiniSweTrajectory(log(stop));

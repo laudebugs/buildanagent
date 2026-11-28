@@ -101,7 +101,7 @@ A pair counts only when both runs graded it. A trial missing from one run, an in
 | Code | Cause |
 | --- | --- |
 | `invalid_row` | A row breaks one of its rules, such as `passed: null` without an `unscored` reason |
-| `duplicate_trial` | Two rows of one harness, ablation and run name the same task and trial |
+| `duplicate_trial` | Two rows share a harness, ablation, task and trial, or two rows of one run of `discordance()` share a task and trial |
 | `invalid_option` | An option is out of range, such as a `k` below 1, one harness spans several ablations in a report, or one run of `discordance()` spans several harnesses or ablations |
 | `unfinished_session` | A session's last turn did not finish, so it has no outcome to report |
 | `invalid_session` | A session log can't be read as a trial: it holds a stop reason this package doesn't know, such as one a newer SDK wrote, or a `turn_end` with no `turn_start` for its run |
