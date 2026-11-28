@@ -680,6 +680,28 @@ describe("project MCP configs: what a program runs for a path the command line n
     }
   });
 
+  test("other shells' code flags, glued code, $PWD anywhere, NAME= prefixes, escapes and nesting are read too", async () => {
+    const forms: [string, string[]][] = [
+      ["env", ["-S", "node server.js"]],
+      ["cmd", ["/c", "node server.js"]],
+      ["pwsh", ["-Command", "node server.js"]],
+      ["perl", ["-E", 'require "./server.js"']],
+      ["php", ["-r", 'require "./server.js";']],
+      ["node", ["--eval=require('./server.js')"]],
+      ["node", ["-erequire('./server.js')"]],
+      ["sh", ["-c", 'node "$PWD"/server.js']],
+      ["sh", ["-c", "node --require=$PWD/server.js x"]],
+      ["sh", ["-c", "NODE_OPTIONS=--require=./server.js node x"]],
+      ["sh", ["-c", "echo it\\'s; node server.js; echo 'x'"]],
+      ["sh", ["-c", `sh -c "node server.js"`]],
+    ];
+    for (const [command, args] of forms) {
+      const root = project(server({ command, args }));
+      writeFileSync(join(root, "server.js"), "1");
+      assert.ok((await pinnedPaths(root)).includes("server.js"), `${command} ${args.join(" ")}`);
+    }
+  });
+
   test("words of an argument that is not a shell string are not read as paths", async () => {
     const root = project(server({ args: ["server.mjs", "--desc", "read files from src please"] }));
     mkdirSync(join(root, "src"));

@@ -79,8 +79,8 @@ export interface ProjectMcpServer {
    * root, so two spellings of one file are one entry: a file as `sha256:` and its SHA-256, a folder as the hash of
    * every file in it. A path counts when it is the command, an argument or an option's value, or a file beside one of
    * those named it with an extension added, including a path a `file:` URL, an `@file` argument or a `,` or `PATH`
-   * delimited list spells, and each word or quoted string of the shell string or inline code after `-c`, `-e` or the
-   * like, and its real path is inside the project, however it is spelled. A bare
+   * delimited list spells, and each word of the shell string or inline code after a code flag such as `-c` or `-e`,
+   * and its real path is inside the project, however it is spelled. A bare
    * command also counts in the root and in each folder of the `PATH`. What the named code loads by other means is not
    * covered. The `PATH` is the host's, so a host with a project folder on its `PATH` can pin a bare command differently
    * from one without, and the other host asks again.
@@ -126,9 +126,13 @@ const REMOTE_TYPES = new Set(["http", "sse", "streamable-http"]);
 const OPTION_VALUE = /^--?[A-Za-z0-9][A-Za-z0-9._-]*=(.+)$/s;
 // So does `-r./hook.rb`, a one-letter option with its value glued on.
 const SHORT_VALUE = /^-[A-Za-z](.+)$/s;
-// The flag before a shell string or inline code: `-c`, `-lc`, `-e`, `-p`, `--eval`, `--print`, `--command`.
-const CODE_FLAG = /^(-[A-Za-z]*[cep]|--(eval|print|command))$/;
+// The flag before a shell string or inline code, in any letter case: `-c`, `-lc`, `-e`, `-E`, `-p`, `-r`, `-S`, `/c`,
+// `--eval`, `--print`, `-Command`.
+const CODE_FLAG = /^(-[A-Za-z]*[ceprs]|\/c|--?(eval|print|command))$/i;
 const SHELL_WORD = /'[^']*'|"[^"]*"|[^\s;&|()<>'"`]+/g;
+// A run of characters a path is commonly written with, so a word the tokenizer misreads, as after an escaped quote or
+// inside nested quotes, is still seen.
+const PATH_RUN = /[A-Za-z0-9._/~@:+,-]+/g;
 
 const refuse = (file: string, message: string, cause?: unknown) =>
   new HarnessError("invalid_mcp_config", `${quote(file)}: ${message}`, cause === undefined ? undefined : { cause });
@@ -241,7 +245,12 @@ function parseConfig(file: string, text: string): { entries: Entry[]; notices: s
  */
 function candidatesOf(entry: Entry, root: string): string[] {
   const { args } = entry;
-  const texts = args.flatMap((arg, at) => (CODE_FLAG.test(args[at - 1] ?? "") ? [arg, ...wordsOf(arg)] : [arg]));
+  const texts = args.flatMap((arg, at) => {
+    if (CODE_FLAG.test(args[at - 1] ?? "")) return [arg, ...wordsOf(arg)];
+    // Code glued to its flag, as in `--eval=CODE` or `-eCODE`.
+    const glued = /^(--?[A-Za-z]+)=([\s\S]+)$/.exec(arg) ?? /^(-[A-Za-z])([\s\S]+)$/.exec(arg);
+    return glued !== null && CODE_FLAG.test(glued[1] ?? "") ? [arg, ...wordsOf(glued[2] ?? "")] : [arg];
+  });
   const named = texts.flatMap(optionTexts).flatMap(pathsIn);
   return [resolve(root, entry.command), ...onPath(entry.command), ...named.map((path) => resolve(root, path))];
 }
@@ -254,13 +263,22 @@ function optionTexts(text: string): string[] {
 
 /**
  * The words of a shell string or inline code, such as `node server.js; true` after `sh -c` or `require('./s.js')` after
- * `node -e`: each run of text between spaces and shell punctuation, and each quoted string without its quotes, with a
- * leading `$PWD/` read as `./`. Other variables, globs and paths the code builds are not seen.
+ * `node -e`, read generously, since a word too many only pins more: each run of text between spaces and shell
+ * punctuation, each quoted string without its quotes and its own words in turn, the value after a `NAME=` prefix, and
+ * each run of path characters, with `$PWD` read as `.`. A path spelled with escapes or joined quotes, another variable,
+ * a glob or a path the code computes is not seen.
  */
-function wordsOf(code: string): string[] {
-  return (code.match(SHELL_WORD) ?? []).map((word) =>
-    word.replace(/^(["'])([\s\S]*)\1$/, "$2").replace(/^\$PWD\//, "./"),
-  );
+function wordsOf(code: string, depth = 0): string[] {
+  const text = code.replace(/"?\$PWD"?(?=\/)/g, ".");
+  const found = new Set<string>(text.match(PATH_RUN) ?? []);
+  for (const token of text.match(SHELL_WORD) ?? []) {
+    const word = token.replace(/^(["'])([\s\S]*)\1$/, "$2");
+    found.add(word);
+    const assigned = /^[A-Za-z_]\w*=([\s\S]+)$/.exec(word)?.[1];
+    if (assigned !== undefined) found.add(assigned);
+    if (word !== token && depth < 2) for (const inner of wordsOf(word, depth + 1)) found.add(inner);
+  }
+  return [...found];
 }
 
 /** Where a bare command could be found on the `PATH` the server gets: each absolute folder of it. */
@@ -608,7 +626,7 @@ async function outcomeOf(
  * real path first, so any spelling of a project file counts. A path inside the project whose real path leaves it, a
  * link that leads nowhere, a pipe, or a folder holding a link refuses the config. One load hashes at most 4,096 files and folders and 64 MiB. The pin does
  * not cover a module named by name (`pkg` in `python -m pkg`), what the named code imports from
- * elsewhere, a package that `npx` fetches, the project root itself (`node .`), a path a shell string builds from a variable or a glob, or a file changed between
+ * elsewhere, a package that `npx` fetches, the project root itself (`node .`), a path a shell string spells with escapes, a variable or a glob, or a file changed between
  * this check and the start. The lock file sits in the project, so a change that brings its own pin, as a
  * pull can, starts without asking: the pin asks again only for a change nobody pinned.
  */
