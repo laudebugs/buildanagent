@@ -51,12 +51,13 @@ overrides:
   # @oclif/core@4.11.4, and @vercel/queue@0.11.0 (the latest) asks for ^10.2.4. 11 rewrote the matcher, but both call
   # only the named `minimatch(path, pattern)`, which 11 keeps in its ESM and CommonJS entries; 11.0.9 needs Node 20 or
   # >=22, where 10 also took 18, and the repo runs 22. Each override names its parent, because TypeDoc, the third
-  # minimatch 10 consumer, calls `Minimatch#matchOne`, which 11 made private (see auditConfig below). Remove each once
-  # its parent depends on minimatch >=11.0.1.
+  # minimatch 10 consumer, calls `Minimatch#matchOne`, which 11 made private (see auditConfig below). Remove the first
+  # once @workflow/cli moves to @oclif/core 5, which asks for ^11.0.1, and the second once @vercel/queue depends on
+  # minimatch >=11.0.1.
   "@oclif/core@4.11.4>minimatch": "11.0.9"
   "@vercel/queue@0.11.0>minimatch": "11.0.9"
 # Accepted alerts that `pnpm audit` (the nightly verify.yml) should not fail on. Each must also be recorded
-# as accepted in the harness README; remove the entry once a fixed release exists.
+# as accepted in the README of the harness or app that brings it; remove the entry once a fixed release exists.
 auditConfig:
   ignoreGhsas:
     # picomatch@4.0.7 ReDoS, no patched release; build-time only via agents -> @rolldown/plugin-babel
