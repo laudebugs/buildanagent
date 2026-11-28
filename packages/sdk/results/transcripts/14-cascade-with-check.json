@@ -8,13 +8,13 @@
   "events": [
     {
       "kind": "check",
-      "line": 80,
-      "message": "a fast call costs $0.0003, a slow call $0.006",
+      "line": 77,
+      "message": "a fast call costs $0.0003, a slow $0.006",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -41,7 +41,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -61,7 +61,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -79,7 +79,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -99,7 +99,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -126,7 +126,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -146,7 +146,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -164,7 +164,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -184,7 +184,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -202,7 +202,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -222,7 +222,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -240,7 +240,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -260,7 +260,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -278,7 +278,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -298,7 +298,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -316,7 +316,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -336,7 +336,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-2",
       "repeated": 1,
       "messages": [
@@ -354,7 +354,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -374,7 +374,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -392,7 +392,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -412,7 +412,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -430,7 +430,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -450,7 +450,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "repeated": 1,
       "messages": [
@@ -468,7 +468,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -488,13 +488,13 @@
     },
     {
       "kind": "check",
-      "line": 102,
+      "line": 83,
       "message": "schema only: 2 escalate, 9 of 10 right, $0.015",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 0,
       "messages": [
@@ -521,7 +521,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -541,7 +541,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -559,7 +559,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -579,7 +579,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-4",
       "repeated": 0,
       "messages": [
@@ -606,7 +606,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -626,7 +626,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -644,7 +644,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -664,7 +664,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -682,7 +682,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -702,7 +702,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-4",
       "repeated": 1,
       "messages": [
@@ -720,7 +720,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -740,7 +740,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -758,7 +758,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -778,7 +778,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -796,7 +796,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -816,7 +816,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -834,7 +834,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -854,7 +854,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-4",
       "repeated": 1,
       "messages": [
@@ -872,7 +872,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -892,7 +892,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -910,7 +910,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -930,7 +930,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -948,7 +948,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -968,7 +968,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "repeated": 1,
       "messages": [
@@ -986,7 +986,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -1006,19 +1006,19 @@
     },
     {
       "kind": "check",
-      "line": 107,
+      "line": 88,
       "message": "schema and rule: 3 escalate, 10 of 10 right, $0.021",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 111,
+      "line": 92,
       "message": "each slow call sent the original task alone",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 0,
       "messages": [
@@ -1045,7 +1045,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1065,7 +1065,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1083,7 +1083,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1103,7 +1103,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1121,7 +1121,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1141,7 +1141,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1159,7 +1159,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1179,7 +1179,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1197,7 +1197,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1217,7 +1217,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1235,7 +1235,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1255,7 +1255,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1273,7 +1273,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1293,7 +1293,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1311,7 +1311,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1331,7 +1331,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1349,7 +1349,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1369,7 +1369,7 @@
     },
     {
       "kind": "request",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "repeated": 1,
       "messages": [
@@ -1387,7 +1387,7 @@
     },
     {
       "kind": "response",
-      "line": 55,
+      "line": 41,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -1407,7 +1407,7 @@
     },
     {
       "kind": "check",
-      "line": 113,
+      "line": 94,
       "message": "slow only: 10 of 10 right, $0.06",
       "pass": true
     }

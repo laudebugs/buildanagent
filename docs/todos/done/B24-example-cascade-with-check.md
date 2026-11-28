@@ -75,7 +75,7 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 ## Outcome
 
-`packages/sdk/examples/14-cascade-with-check.ts` runs ten scripted scheduling tasks through a cascade built from exports that exist today. A `shouldStop` hook checks the fast model's text answer and, on a failure, returns `{ continue }` with a re-ask. A `beforeModelCall` hook then returns the slow `model` and `context.messages.slice(0, 1)`, the original task alone, so each slow call sends a fresh prompt. Once the slow model has answered, `shouldStop` returns `false`, so a slow answer that failed the check would end the run instead of looping to `maxSteps`. No SDK or gateway feature was needed.
+`packages/sdk/examples/14-cascade-with-check.ts` runs ten scripted scheduling tasks through a cascade built from exports that exist today. A `shouldStop` hook checks the fast model's text answer and, on a failure, returns `{ continue }` with a re-ask. A `beforeModelCall` hook then returns the slow `model` and `context.messages.slice(0, 1)`, the original task alone, so each slow call sends a fresh prompt. Once the slow model has answered, `shouldStop` returns `false`, so a slow answer that failed the check would end the run `done` rather than `max_steps`. No SDK or gateway feature was needed.
 
 The scripted models report themselves as `claude-haiku-5-5` and `claude-sonnet-5-5`, and every figure comes from the catalog through `createModel()` and `priceUsage()`, never from a constant. The example's `check()` calls assert the figures, and `test/book-examples.test.ts` runs the file as its own process and fails when one is false:
 

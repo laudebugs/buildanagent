@@ -8,24 +8,15 @@
 // nothing about a real model, and this example measures none. The prices come from the gateway's catalog as of
 // November 2026: Haiku 5.5 at $0.10 and $0.50 per million input and output tokens, Sonnet 5.5 at $2 and $10. A real
 // model swap also loses the cached prefix, which these scripted calls leave out.
-import { defaultCatalog, findCatalogEntry, type Message, priceUsage } from "@buildanagent/gateway";
+import type { Model } from "@buildanagent/gateway";
 import { run } from "@buildanagent/sdk";
 import { z } from "zod";
 import { check, pricedScripted } from "./lib/check.js";
-import {
-  CLOSE,
-  FAST,
-  fastStep,
-  free,
-  nanos,
-  OPEN,
-  SLOW,
-  slowStep,
-  TASKS,
-  type Task,
-  textOf,
-  USAGE,
-} from "./lib/schedule-tasks.js";
+import { callPrice, FAST, fastStep, nanos, SLOW, slowStep, TASKS, type Task, textOf } from "./lib/schedule-tasks.js";
+
+const OPEN = 9;
+const CLOSE = 17;
+const MAX_STEPS = 2;
 
 // #region checks
 const Slot = z.object({ start: z.number().int() });
@@ -36,27 +27,22 @@ const parse = (text: string) => {
     return undefined; // not JSON at all
   }
 };
-const schemaOnly = (_: Task, text: string) => parse(text) !== undefined;
-const withRule = (task: Task, text: string) => {
+const schemaOnly = (_: { busy: number[] }, text: string) => parse(text) !== undefined;
+const withRule = (task: { busy: number[] }, text: string) => {
   const slot = parse(text);
   return slot !== undefined && slot.start >= OPEN && slot.start < CLOSE && !task.busy.includes(slot.start);
 };
 // #endregion
 
 /** Runs the task on the fast model; a failed check re-asks the slow one, once, with the original task alone. */
-async function cascade(
-  task: Task,
-  passes: typeof withRule,
-  fast: ReturnType<typeof pricedScripted>["model"],
-  slow: typeof fast,
-) {
+async function cascade(task: Task, passes: typeof withRule, fast: Model, slow: Model) {
   let escalated = false;
   // #region cascade
   const result = await run({
     model: fast,
     system: 'You book one-hour meetings. Reply as JSON: {"start": hour}.',
     input: `Busy hours today: ${task.busy.join(", ")}. Book the earliest free hour.`,
-    maxSteps: 2,
+    maxSteps: MAX_STEPS, // book:note cap
     interceptors: {
       shouldStop: ({ lastMessage }) => {
         if (escalated || passes(task, textOf(lastMessage))) return false; // a slow answer ends the run, right or wrong
@@ -64,23 +50,13 @@ async function cascade(
         return { continue: "That answer failed the check. Answer again." };
       },
       beforeModelCall: ({ context }) =>
-        escalated ? { model: slow, messages: context.messages.slice(0, 1) as Message[] } : undefined, // book:note escalate
+        escalated ? { model: slow, messages: context.messages.slice(0, 1) } : undefined, // book:note escalate
     },
   }).result;
   // #endregion
   const last = result.messages.at(-1);
   return { text: last?.role === "assistant" ? textOf(last) : "", cost: result.cost.total ?? 0 };
 }
-
-const callPrice = (id: string) =>
-  priceUsage(
-    { ...USAGE, cacheRead: 0, cacheWrite: { "5m": 0, "1h": 0 }, reasoning: 0, raw: null },
-    findCatalogEntry(defaultCatalog, "anthropic", id),
-  ).total ?? 0;
-check(
-  nanos(callPrice(FAST)) === 300_000 && nanos(callPrice(SLOW)) === 6_000_000,
-  "a fast call costs $0.0003, a slow call $0.006",
-);
 
 async function ask(passes: typeof withRule, escalating: Task["fast"][], slowOnly = false) {
   const fast = slowOnly ? pricedScripted(TASKS.map(slowStep), SLOW) : pricedScripted(TASKS.map(fastStep), FAST);
@@ -90,13 +66,18 @@ async function ask(passes: typeof withRule, escalating: Task["fast"][], slowOnly
   for (const task of TASKS) {
     const answer = await cascade(task, passes, fast.model, slow.model);
     cost += answer.cost;
-    correct += parse(answer.text)?.start === free(task) ? 1 : 0;
+    correct += parse(answer.text)?.start === task.free ? 1 : 0;
   }
   fast.adapter.assertComplete();
   slow.adapter.assertComplete();
   const sentTaskOnly = slow.adapter.calls.every((call) => call.context.messages.length === 1);
   return { escalated: slow.adapter.calls.length, correct, cost: nanos(cost), sentTaskOnly };
 }
+
+check(
+  nanos(callPrice(FAST)) === 300_000 && nanos(callPrice(SLOW)) === 6_000_000,
+  "a fast call costs $0.0003, a slow $0.006",
+);
 
 const one = await ask(schemaOnly, ["invalid"]);
 check(

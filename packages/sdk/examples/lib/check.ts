@@ -39,9 +39,9 @@ export function scripted(steps: ScriptStep[]): { adapter: ScriptedRun; model: Mo
 }
 
 /**
- * Like `scripted()`, but the model reports itself as Anthropic's `claude-sonnet-5-5`, so `createModel()` prices every
- * answer from the shipped catalog. A run with a `budgetUsd` needs that price. `id` names another catalog model, such as
- * `claude-haiku-5-5`, for an example that runs two models.
+ * Like `scripted()`, but the model reports itself as `id`, by default Anthropic's `claude-sonnet-5-5`, so
+ * `createModel()` prices every answer from the shipped catalog. A run with a `budgetUsd` needs that price. `id` names
+ * another catalog model, such as `claude-haiku-5-5`, for an example that runs two models.
  */
 export function pricedScripted(
   steps: ScriptStep[],
