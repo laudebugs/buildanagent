@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `B24` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Build SDK §4.7](../../plans/build-sdk.md#47-five-offline-examples-for-the-fast-and-slow-calls-chapter-added-2026-11-28) |
-| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](T76-chapter-fast-and-slow-calls.md)) |
+| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](../ready/T76-chapter-fast-and-slow-calls.md)) |
 | Depends on | [B5](../done/B5-usage-cost-catalog.md), [B11](../done/B11-loop-core.md), [B13](../done/B13-interceptors-observers.md) |
 | Size | M |
 
@@ -33,7 +33,7 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 **Out of scope** (and which todo covers it)
 
-- The chapter that lists this example: [T76](T76-chapter-fast-and-slow-calls.md)
+- The chapter that lists this example: [T76](../ready/T76-chapter-fast-and-slow-calls.md)
 - Any new SDK or gateway feature: the example uses the exports that exist today
 
 ## Tasks
@@ -61,7 +61,7 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 ## Risks and open questions
 
-- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](B26-example-switch-or-stay.md) prices it.
+- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](../ready/B26-example-switch-or-stay.md) prices it.
 - Priced numbers move with the catalog. The test reads the catalog's rates, so a price change fails it, and the comment gives the November 2026 prices.
 
 ## Definition of done
