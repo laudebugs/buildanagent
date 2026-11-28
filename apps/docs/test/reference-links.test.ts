@@ -9,7 +9,7 @@ import { builtSite } from "./built.js";
 // npm, where a site-relative path would lead nowhere. A preview build therefore links to the production page.
 const SITE = "https://docs.buildanagent.fyi";
 
-for (const folder of ["harness", "protocol", "cli"]) {
+for (const folder of ["agent-safety", "harness", "protocol", "cli"]) {
   test(`the ${folder} reference index links the ${folder} quick start, which is a page of these docs`, () => {
     const page = `${folder}/quick-start`;
     assert.ok(existsSync(`${DOCS_DIR}${page}.md`), `${page} has no page`);

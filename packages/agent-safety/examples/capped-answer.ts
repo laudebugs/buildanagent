@@ -12,6 +12,7 @@ import { generateText, isStepCount } from "ai";
 const CAP_USD = 0.5;
 const MAX_STEPS = 20;
 
+// #region answer
 /** Answers `prompt` on `modelId` from `provider`, or says why the cap stopped the run. */
 export async function cappedAnswer(provider: GuardableProvider, modelId: string, prompt: string): Promise<string> {
   const guard = costGuard({ capUsd: CAP_USD, spend: memorySpend() });
@@ -29,3 +30,4 @@ export async function cappedAnswer(provider: GuardableProvider, modelId: string,
     return `Stopped at the cap of ${refused.capUsd} USD: ${refused.spentUsd} spent, ${refused.projectedUsd} more projected`;
   }
 }
+// #endregion

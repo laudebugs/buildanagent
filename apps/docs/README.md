@@ -79,7 +79,7 @@ Ten tests read the built site: the figure build test, the favicon test, the API 
 
 ## Sidebar topics keep each page small
 
-A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway", "Harness", "Protocol" and "CLI" hold the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
+A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway", "Harness", "Agent safety", "Protocol" and "CLI" hold the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
 
 To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
 
