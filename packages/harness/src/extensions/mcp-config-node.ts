@@ -250,8 +250,9 @@ function candidatesOf(entry: Entry, root: string): Candidate[] {
   const code: string[] = [];
   args.forEach((arg, at) => {
     const text = codeIn(args, at);
-    // Code, rather than a path, holds a space or shell punctuation: only its words are read then.
-    if (text === undefined || !CODE_TEXT.test(text)) plain.push(arg);
+    // The whole argument is always a candidate, since `-r "./my dir/x.js"` names a path; when it holds a space or shell
+    // punctuation it may be code instead, so it is judged as code is, and a long script is not refused as a path.
+    (text !== undefined && CODE_TEXT.test(text) ? code : plain).push(arg);
     if (text !== undefined) code.push(...wordsOf(text));
   });
   const paths = (texts: string[]) =>

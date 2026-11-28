@@ -742,6 +742,23 @@ describe("project MCP configs: what a program runs for a path the command line n
     assert.ok((await pinnedPaths(root)).includes("server.js"));
   });
 
+  test("a path with a space or punctuation after a flag that may take code is still pinned whole", async () => {
+    const cases: [string[], string][] = [
+      [["-r", "./my dir/x.js"], "my dir/x.js"],
+      [["-c", "my conf.json"], "my conf.json"],
+      [["-p", "a(1).js"], "a(1).js"],
+      [["-e", "it's.js"], "it's.js"],
+      [["--print", "a&b.js"], "a&b.js"],
+      [["-r./my dir/y.js"], "my dir/y.js"],
+    ];
+    for (const [args, file] of cases) {
+      const root = project(server({ args }));
+      mkdirSync(join(root, "my dir"));
+      writeFileSync(join(root, file), "1");
+      assert.ok((await pinnedPaths(root)).includes(file), args.join(" "));
+    }
+  });
+
   test("words of an argument that is not a shell string are not read as paths", async () => {
     const root = project(server({ args: ["server.mjs", "--desc", "read files from src please"] }));
     mkdirSync(join(root, "src"));
