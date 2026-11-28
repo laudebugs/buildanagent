@@ -695,7 +695,7 @@ Chapter 3 of the book teaches that a tool reads the signed-in user from trusted 
 
 ### 4.7 Five offline examples for the fast-and-slow-calls chapter (added 2026-11-28)
 
-The [model-routing report](../research/model-routing/system-1-system-2-and-model-routing.md) proposed five scripted examples for the book's `fast-and-slow-calls` chapter ([T76](../todos/ready/T76-chapter-fast-and-slow-calls.md)), and the owner approved them on 2026-11-28. None needs a new SDK or gateway feature: the cascade is a `beforeModelCall` hook that returns another model from `createModel()`. B24 comes first.
+The [model-routing report](../research/model-routing/system-1-system-2-and-model-routing.md) proposed five scripted examples for the book's `fast-and-slow-calls` chapter ([T76](../todos/ready/T76-chapter-fast-and-slow-calls.md)), and the owner approved them on 2026-11-28. None needs a new SDK or gateway feature: a cascade is a `shouldStop` hook that checks the fast model's text answer and, on a failure, returns `{ continue }` with a re-ask, plus a `beforeModelCall` hook that returns another model from `createModel()` and the original task as `messages` for that re-ask. The slow call then sends a fresh prompt, so the two-thousand-token, $0.006 figures hold. B24 comes first.
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
