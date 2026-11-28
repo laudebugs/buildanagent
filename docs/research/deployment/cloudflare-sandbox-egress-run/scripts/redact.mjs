@@ -23,18 +23,18 @@ export function redact(text, label = process.env.N50_URL ? subdomainOf(process.e
     .replace(/registry\.cloudflare\.com\/[0-9a-f]{32}\//g, "registry.cloudflare.com/<account-id>/")
     .replace(/\/accounts\/[0-9a-f]{32}\//g, "/accounts/<account-id>/")
     // The cf-worker header's value, with plain or JSON-escaped quotes, whole or cut short by truncation.
-    .replace(/(cf-worker\\?"\s*:\s*\\?")[^"\\]*/g, `$1${PLACEHOLDER}`);
+    .replace(/(cf-worker\\?"\s*:\s*\\?")[^"\\]*/g, `$1${PLACEHOLDER}`)
+    // Whatever follows the Worker's name and a dot is the subdomain, or a cut-short piece of it, whatever comes
+    // after it: ".workers.dev", an escaped newline, a quote or nothing, because the records truncate stdout mid-string.
+    .replace(/n50-egress-test-20261128\.(?!<)[a-z0-9-]*/gi, `n50-egress-test-20261128.${PLACEHOLDER}`);
   if (label) {
-    // The whole label anywhere, then any cut-short prefix of 4 or more characters at the end of a string.
+    // The whole label anywhere, then a cut-short prefix of 4 or more characters wherever a string ends after it.
     out = out.replace(new RegExp(escapeRegExp(label), "gi"), PLACEHOLDER);
     for (let n = label.length - 1; n >= 4; n--) {
-      out = out.replace(new RegExp(`${escapeRegExp(label.slice(0, n))}(?=\\\\?"|$)`, "gim"), PLACEHOLDER);
+      out = out.replace(new RegExp(`${escapeRegExp(label.slice(0, n))}(?=\\\\|"|$)`, "gim"), PLACEHOLDER);
     }
   }
-  return out.replace(
-    /n50-egress-test-20261128\.[a-z0-9-]+\.workers\.dev/g,
-    `n50-egress-test-20261128.${PLACEHOLDER}.workers.dev`,
-  );
+  return out;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
