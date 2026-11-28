@@ -61,7 +61,7 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 ## Risks and open questions
 
-- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](../ongoing/B26-example-switch-or-stay.md) prices it.
+- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](../done/B26-example-switch-or-stay.md) prices it.
 - Priced numbers move with the catalog. The test reads the catalog's rates, so a price change fails it, and the comment gives the November 2026 prices.
 
 ## Definition of done
