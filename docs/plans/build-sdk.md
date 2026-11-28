@@ -699,7 +699,7 @@ The [model-routing report](../research/model-routing/system-1-system-2-and-model
 
 | ID | Title | Depends on | Size |
 | --- | --- | --- | --- |
-| [B24](../todos/ready/B24-example-cascade-with-check.md) | Example: a cascade whose check decides what the cascade costs | B5, B11, B13 | M |
+| [B24](../todos/done/B24-example-cascade-with-check.md) | Example: a cascade whose check decides what the cascade costs | B5, B11, B13 | M |
 | [B25](../todos/ready/B25-example-decision-gate.md) | Example: thresholds that scale with risk, over a decision-model stand-in | B10, B11, B13 | M |
 | [B26](../todos/ready/B26-example-switch-or-stay.md) | Example: what a model switch costs under a per-model cache (in `packages/gateway/examples`) | B4, B5 | M |
 | [B27](../todos/ready/B27-example-cost-per-solved-task.md) | Example: rank candidates by cost per solved task and call a difference noise | B5 | M |

@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `B24` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Build SDK §4.7](../../plans/build-sdk.md#47-five-offline-examples-for-the-fast-and-slow-calls-chapter-added-2026-11-28) |
-| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](T76-chapter-fast-and-slow-calls.md)) |
+| Round / milestone | Round B (build SDK), M5, for the book's `fast-and-slow-calls` chapter ([T76](../ready/T76-chapter-fast-and-slow-calls.md)) |
 | Depends on | [B5](../done/B5-usage-cost-catalog.md), [B11](../done/B11-loop-core.md), [B13](../done/B13-interceptors-observers.md) |
 | Size | M |
 
@@ -33,22 +33,22 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 **Out of scope** (and which todo covers it)
 
-- The chapter that lists this example: [T76](T76-chapter-fast-and-slow-calls.md)
+- The chapter that lists this example: [T76](../ready/T76-chapter-fast-and-slow-calls.md)
 - Any new SDK or gateway feature: the example uses the exports that exist today
 
 ## Tasks
 
-- [ ] Write the scripted models and the ten tasks, with the three outcome classes fixed in the script.
-- [ ] Write the check as a function of the answer, the `shouldStop` hook that runs it on the fast model's answer and returns `{ continue }` when it fails and nothing once the slow model has answered, and the `beforeModelCall` hook that returns the slow `model` and the original task as `messages` for that re-ask. Start from `12-weak-check.ts`.
-- [ ] Price each run from the catalog's rates, not from constants in the example.
-- [ ] Add the regions, the transcript and the test that asserts the counts and costs.
+- [x] Write the scripted models and the ten tasks, with the three outcome classes fixed in the script.
+- [x] Write the check as a function of the answer, the `shouldStop` hook that runs it on the fast model's answer and returns `{ continue }` when it fails and nothing once the slow model has answered, and the `beforeModelCall` hook that returns the slow `model` and the original task as `messages` for that re-ask. Start from `12-weak-check.ts`.
+- [x] Price each run from the catalog's rates, not from constants in the example.
+- [x] Add the regions, the transcript and the test that asserts the counts and costs.
 
 ## Acceptance criteria
 
-- [ ] The test asserts both runs' escalation counts, the correct-answer counts and the costs above ($0.015, $0.021 and $0.06)
-- [ ] The comment names TypeSafe's cookbook as the evidence the counts imitate and says the example measures no real model
-- [ ] The example runs offline and the results-drift check passes
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
+- [x] The test asserts both runs' escalation counts, the correct-answer counts and the costs above ($0.015, $0.021 and $0.06)
+- [x] The comment names TypeSafe's cookbook as the evidence the counts imitate and says the example measures no real model
+- [x] The example runs offline and the results-drift check passes
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
 
 ## Tests
 
@@ -61,14 +61,30 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 ## Risks and open questions
 
-- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](B26-example-switch-or-stay.md) prices it.
+- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](../ready/B26-example-switch-or-stay.md) prices it.
 - Priced numbers move with the catalog. The test reads the catalog's rates, so a price change fails it, and the comment gives the November 2026 prices.
 
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
-- [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+
+## Outcome
+
+`packages/sdk/examples/14-cascade-with-check.ts` runs ten scripted scheduling tasks through a cascade built from exports that exist today. A `shouldStop` hook checks the fast model's text answer and, on a failure, returns `{ continue }` with a re-ask. A `beforeModelCall` hook then returns the slow `model` and `context.messages.slice(0, 1)`, the original task alone, so each slow call sends a fresh prompt. Once the slow model has answered, `shouldStop` returns `false`, so a slow answer that failed the check would end the run `done` rather than `max_steps`. No SDK or gateway feature was needed.
+
+The scripted models report themselves as `claude-haiku-5-5` and `claude-sonnet-5-5`, and every figure comes from the catalog through `createModel()` and `priceUsage()`, never from a constant. The example's `check()` calls assert the figures, and `test/book-examples.test.ts` runs the file as its own process and fails when one is false:
+
+- A fast call costs $0.0003 and a slow call $0.006.
+- Run 1, schema check only: 2 tasks escalate, 9 of 10 end correct (the wrong answer passes), $0.015.
+- Run 2, schema plus rule: 3 tasks escalate, 10 of 10 end correct, $0.021.
+- Slow only: 10 of 10 correct, $0.06.
+- Every slow call received one message, the original task.
+
+`pricedScripted()` in `examples/lib/check.ts` gained an optional catalog model id, and the tasks and their scripted steps sit in `examples/lib/schedule-tasks.ts`, so the example file stays readable. The header comment names TypeSafe's cookbook as the evidence the counts imitate, says the example measures no real model, and notes that a real swap loses the cached prefix. The transcript is `packages/sdk/results/transcripts/14-cascade-with-check.json`. The SDK README lists no examples apart from the capstone, so it needed no change.
+
+This needs no changeset, because the examples are not in the package's `files` and the changeset gate looks only at `src/`, `package.json` and `tsconfig.build.json`.
