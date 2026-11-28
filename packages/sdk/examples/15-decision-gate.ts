@@ -14,7 +14,11 @@ import { attempt, DAYS, MONTHS, rows } from "./lib/decision-fixtures.js";
 import { type Answer, type DecideClient, probabilityOf, tableClient, topOption } from "./lib/decision-table.js";
 
 const NEVER = Number.POSITIVE_INFINITY;
-const ACT_ABOVE = new Map([["lookup_order", 0.67], ["refund", 0.93], ["transfer", NEVER]]);
+const ACT_ABOVE = new Map([
+  ["lookup_order", 0.67],
+  ["refund", 0.93],
+  ["transfer", NEVER],
+]);
 const DATE_ABOVE = 0.9;
 const RETURN_DAYS = 30;
 const MS_PER_DAY = 86_400_000;

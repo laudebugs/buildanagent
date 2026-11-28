@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -39,7 +39,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -56,7 +56,7 @@
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -80,7 +80,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -95,13 +95,13 @@
     },
     {
       "kind": "check",
-      "line": 62,
+      "line": 66,
       "message": "a lookup at 0.70 acts, above its 0.67 bar",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -132,7 +132,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -149,13 +149,13 @@
     },
     {
       "kind": "check",
-      "line": 63,
+      "line": 67,
       "message": "a lookup at 0.60 asks",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-3",
       "repeated": 0,
       "messages": [
@@ -186,7 +186,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -203,7 +203,7 @@
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-3",
       "repeated": 3,
       "messages": [
@@ -227,7 +227,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -242,13 +242,13 @@
     },
     {
       "kind": "check",
-      "line": 64,
+      "line": 68,
       "message": "a refund at 0.95 acts, above 0.93",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-4",
       "repeated": 0,
       "messages": [
@@ -279,7 +279,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -296,13 +296,13 @@
     },
     {
       "kind": "check",
-      "line": 66,
+      "line": 70,
       "message": "a refund at 0.90 asks and does not run",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-5",
       "repeated": 0,
       "messages": [
@@ -333,7 +333,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -350,7 +350,7 @@
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-5",
       "repeated": 3,
       "messages": [
@@ -375,7 +375,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -390,13 +390,13 @@
     },
     {
       "kind": "check",
-      "line": 68,
+      "line": 72,
       "message": "a refund at 0.97 is denied 39 days on",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-6",
       "repeated": 0,
       "messages": [
@@ -427,7 +427,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-6",
       "message": {
         "role": "assistant",
@@ -444,7 +444,7 @@
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-6",
       "repeated": 3,
       "messages": [
@@ -469,7 +469,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-6",
       "message": {
         "role": "assistant",
@@ -484,13 +484,13 @@
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 74,
       "message": "15 December means last year, so that refund is denied",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-7",
       "repeated": 0,
       "messages": [
@@ -521,7 +521,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-7",
       "message": {
         "role": "assistant",
@@ -538,13 +538,13 @@
     },
     {
       "kind": "check",
-      "line": 71,
+      "line": 75,
       "message": "31 November does not exist, so it asks",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-8",
       "repeated": 0,
       "messages": [
@@ -575,7 +575,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-8",
       "message": {
         "role": "assistant",
@@ -592,13 +592,13 @@
     },
     {
       "kind": "check",
-      "line": 72,
+      "line": 76,
       "message": "a month at 0.60 asks",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 60,
+      "line": 64,
       "model": "model-9",
       "repeated": 0,
       "messages": [
@@ -629,7 +629,7 @@
     },
     {
       "kind": "response",
-      "line": 60,
+      "line": 64,
       "model": "model-9",
       "message": {
         "role": "assistant",
@@ -646,19 +646,19 @@
     },
     {
       "kind": "check",
-      "line": 74,
+      "line": 78,
       "message": "a transfer asks even at 0.99",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 79,
+      "line": 83,
       "message": "a question that names an earlier answer throws",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 86,
+      "line": 90,
       "message": "each request holds one question, never one and its source",
       "pass": true
     }
