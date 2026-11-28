@@ -660,6 +660,57 @@ describe("project MCP configs: what a program runs for a path the command line n
     assert.deepEqual(await pinnedPaths(root), ["hook.js", "server.mjs"]);
   });
 
+  test("a shell string's words are read past shell punctuation, quotes and $PWD, and inline code's strings too", async () => {
+    const forms: [string, string][] = [
+      ["sh", "node server.js;"],
+      ["sh", "node 'server.js';"],
+      ["sh", "node server.js&&true"],
+      ["sh", "(node server.js)"],
+      ["sh", "node $PWD/server.js"],
+      ["sh", "node './my dir/server.js'"],
+      ["node", "require('./server.js')"],
+    ];
+    for (const [command, code] of forms) {
+      const root = project(server({ command, args: [command === "node" ? "-e" : "-c", code] }));
+      mkdirSync(join(root, "my dir"));
+      writeFileSync(join(root, "server.js"), "1");
+      writeFileSync(join(root, "my dir", "server.js"), "2");
+      const want = code.includes("my dir") ? ["my dir/server.js"] : ["server.js"];
+      assert.deepEqual(await pinnedPaths(root), want, code);
+    }
+  });
+
+  test("words of an argument that is not a shell string are not read as paths", async () => {
+    const root = project(server({ args: ["server.mjs", "--desc", "read files from src please"] }));
+    mkdirSync(join(root, "src"));
+    writeFileSync(join(root, "src", "a.ts"), "1");
+    assert.deepEqual(await pinnedPaths(root), ["server.mjs"]);
+  });
+
+  test.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "a path outside the project under a folder the harness may not search is skipped, not refused",
+    async () => {
+      const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+      dirs.push(outside);
+      mkdirSync(join(outside, "inner"));
+      chmodSync(outside, 0o000);
+      try {
+        const root = project(server({ args: ["server.mjs", join(outside, "inner", "file")] }));
+        assert.deepEqual(await pinnedPaths(root), ["server.mjs"]);
+      } finally {
+        chmodSync(outside, 0o755);
+      }
+    },
+  );
+
+  test("an error from the host's secrets is the host's own, not a config refusal", async () => {
+    const root = project();
+    await pinAll(root);
+    const outage = Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+    const secrets = () => Promise.reject(outage);
+    await assert.rejects(loadProjectMcpServers(root, options(root, true, { secrets })), (error) => error === outage);
+  });
+
   test("a file beside a named path with more than one extension added is not a spelling of it", async () => {
     const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
     dirs.push(outside);

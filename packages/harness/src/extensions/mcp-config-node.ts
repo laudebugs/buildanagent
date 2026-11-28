@@ -79,7 +79,8 @@ export interface ProjectMcpServer {
    * root, so two spellings of one file are one entry: a file as `sha256:` and its SHA-256, a folder as the hash of
    * every file in it. A path counts when it is the command, an argument or an option's value, or a file beside one of
    * those named it with an extension added, including a path a `file:` URL, an `@file` argument or a `,` or `PATH`
-   * delimited list spells, and each word of a shell string, and its real path is inside the project, however it is spelled. A bare
+   * delimited list spells, and each word or quoted string of the shell string or inline code after `-c`, `-e` or the
+   * like, and its real path is inside the project, however it is spelled. A bare
    * command also counts in the root and in each folder of the `PATH`. What the named code loads by other means is not
    * covered. The `PATH` is the host's, so a host with a project folder on its `PATH` can pin a bare command differently
    * from one without, and the other host asks again.
@@ -125,6 +126,9 @@ const REMOTE_TYPES = new Set(["http", "sse", "streamable-http"]);
 const OPTION_VALUE = /^--?[A-Za-z0-9][A-Za-z0-9._-]*=(.+)$/s;
 // So does `-r./hook.rb`, a one-letter option with its value glued on.
 const SHORT_VALUE = /^-[A-Za-z](.+)$/s;
+// The flag before a shell string or inline code: `-c`, `-lc`, `-e`, `-p`, `--eval`, `--print`, `--command`.
+const CODE_FLAG = /^(-[A-Za-z]*[cep]|--(eval|print|command))$/;
+const SHELL_WORD = /'[^']*'|"[^"]*"|[^\s;&|()<>'"`]+/g;
 
 const refuse = (file: string, message: string, cause?: unknown) =>
   new HarnessError("invalid_mcp_config", `${quote(file)}: ${message}`, cause === undefined ? undefined : { cause });
@@ -236,21 +240,27 @@ function parseConfig(file: string, text: string): { entries: Entry[]; notices: s
  * first. Most name nothing in the project and are skipped later.
  */
 function candidatesOf(entry: Entry, root: string): string[] {
-  const named = entry.args.flatMap(textsOf).flatMap(pathsIn);
+  const { args } = entry;
+  const texts = args.flatMap((arg, at) => (CODE_FLAG.test(args[at - 1] ?? "") ? [arg, ...wordsOf(arg)] : [arg]));
+  const named = texts.flatMap(optionTexts).flatMap(pathsIn);
   return [resolve(root, entry.command), ...onPath(entry.command), ...named.map((path) => resolve(root, path))];
 }
 
+/** An argument and, when it is an option with its value glued on, that value. */
+function optionTexts(text: string): string[] {
+  const value = OPTION_VALUE.exec(text)?.[1] ?? SHORT_VALUE.exec(text)?.[1];
+  return value === undefined ? [text] : [text, value];
+}
+
 /**
- * The texts one argument may spell a path with: itself and an option's value, and for a shell string, such as
- * `node server.js` after `sh -c`, each word of it, unquoted, treated the same way.
+ * The words of a shell string or inline code, such as `node server.js; true` after `sh -c` or `require('./s.js')` after
+ * `node -e`: each run of text between spaces and shell punctuation, and each quoted string without its quotes, with a
+ * leading `$PWD/` read as `./`. Other variables, globs and paths the code builds are not seen.
  */
-function textsOf(arg: string): string[] {
-  const words = arg.trim().split(/\s+/);
-  const all = words.length > 1 ? [arg, ...words.map((word) => word.replace(/^["']|["']$/g, ""))] : [arg];
-  return all.flatMap((text) => {
-    const value = OPTION_VALUE.exec(text)?.[1] ?? SHORT_VALUE.exec(text)?.[1];
-    return value === undefined ? [text] : [text, value];
-  });
+function wordsOf(code: string): string[] {
+  return (code.match(SHELL_WORD) ?? []).map((word) =>
+    word.replace(/^(["'])([\s\S]*)\1$/, "$2").replace(/^\$PWD\//, "./"),
+  );
 }
 
 /** Where a bare command could be found on the `PATH` the server gets: each absolute folder of it. */
@@ -292,9 +302,10 @@ function urlPath(url: string): string | undefined {
  * extension runs for it, as Node runs `server.js` for `node server`, Ruby `hook.rb` for `-rhook` and Windows `evil.exe`
  * for `evil`. Only a folder whose real path is in the project is listed.
  */
-async function spellingsOf(file: string, root: string, path: string): Promise<string[]> {
+async function spellingsOf(file: string, roots: Roots, path: string): Promise<string[]> {
+  const root = roots.base;
   const found = [path];
-  const folder = await realOrNone(dirname(path));
+  const folder = await realOf(roots, dirname(path));
   if (folder === undefined || !isInside(root, folder)) return found;
   const stem = `${basename(path).toLowerCase()}.`;
   // One more dot-part only, as `server.js`: what a program adds is one extension, so `server.js.bak` is not a spelling.
@@ -328,6 +339,24 @@ const realOrNone = (path: string): Promise<string | undefined> =>
 
 const MISSING = new Set(["ENOENT", "ENOTDIR", "ELOOP"]);
 
+/** Whether `path`, as written, is under the root as the caller gave it or under its real path. */
+const writtenInside = (roots: Roots, path: string): boolean =>
+  isInside(roots.given, path) || isInside(roots.base, path);
+
+/**
+ * The real path of a path the command line names, or `undefined` when nothing is there. A path that can't be resolved,
+ * such as one under a folder the harness may not search, is raised when it is written inside the project and skipped
+ * otherwise: the server runs as the same user, so it can't reach that path either.
+ */
+async function realOf(roots: Roots, path: string): Promise<string | undefined> {
+  try {
+    return await realpath(path);
+  } catch (error) {
+    if (MISSING.has(codeOf(error) ?? "") || !writtenInside(roots, path)) return undefined;
+    throw error;
+  }
+}
+
 /** A Node system error's code, such as `EACCES`, or `undefined` for anything else. */
 function codeOf(error: unknown): string | undefined {
   const code = (error as { code?: unknown } | null)?.code;
@@ -360,17 +389,15 @@ async function asRefusal<T>(file: string, work: () => Promise<T>): Promise<T> {
  */
 async function projectPath(file: string, roots: Roots, path: string): Promise<string | undefined> {
   const root = roots.base;
-  const real = await realOrNone(path);
+  const real = await realOf(roots, path);
   if (real === root) return undefined;
   if (real !== undefined && isInside(root, real)) return real;
   // Nothing resolves and nothing is there; a link that leads nowhere is something, and is refused like one leading out.
   if (real === undefined && !(await exists(path))) return undefined;
   const leads = (shown: string) =>
     refuse(file, `it names ${quote(shown)}, which leads through a link to a path outside the project or to nothing`);
-  if (isInside(roots.given, path) || isInside(root, path)) {
-    throw leads(relative(isInside(root, path) ? root : roots.given, path));
-  }
-  const folder = await realOrNone(dirname(path));
+  if (writtenInside(roots, path)) throw leads(relative(isInside(root, path) ? root : roots.given, path));
+  const folder = await realOf(roots, dirname(path));
   if (folder !== undefined && isInside(root, folder)) throw leads(relative(root, join(folder, basename(path))));
   return undefined;
 }
@@ -406,7 +433,7 @@ async function namedPaths(file: string, roots: Roots, entry: Entry, budget: Hash
   const root = roots.base;
   const paths: Record<string, string> = {};
   for (const candidate of candidatesOf(entry, root)) {
-    for (const spelling of await spellingsOf(file, root, candidate)) {
+    for (const spelling of await spellingsOf(file, roots, candidate)) {
       const real = await projectPath(file, roots, spelling);
       if (real === undefined) continue;
       const key = relative(root, real).split(sep).join("/");
@@ -581,16 +608,12 @@ async function outcomeOf(
  * real path first, so any spelling of a project file counts. A path inside the project whose real path leaves it, a
  * link that leads nowhere, a pipe, or a folder holding a link refuses the config. One load hashes at most 4,096 files and folders and 64 MiB. The pin does
  * not cover a module named by name (`pkg` in `python -m pkg`), what the named code imports from
- * elsewhere, a package that `npx` fetches, the project root itself (`node .`) or a file changed between
+ * elsewhere, a package that `npx` fetches, the project root itself (`node .`), a path a shell string builds from a variable or a glob, or a file changed between
  * this check and the start. The lock file sits in the project, so a change that brings its own pin, as a
  * pull can, starts without asking: the pin asks again only for a change nobody pinned.
  */
 export async function loadProjectMcpServers(root: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const base = await canonicalPath(root);
-  return asRefusal(configPath(base, options), () => loadFrom(root, base, options));
-}
-
-async function loadFrom(root: string, base: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const result: ProjectMcpServers = { servers: [], declared: [], notices: [] };
   // Only `headless: false` counts as a run someone can answer, so a caller that leaves it out gets the safe side.
   if (options.headless !== false && options.loadInHeadless !== true) {
@@ -601,10 +624,14 @@ async function loadFrom(root: string, base: string, options: ProjectMcpOptions):
   }
   // A project without the file gives nothing, whatever its lock file or `.agents` folder holds.
   if (!(await exists(configPath(base, options)))) return result;
-  const { file, lock } = await configAndLock(base, options);
-  const trusted = await projectTrusted(options.trust, root);
-  const read = await readDeclared({ base, given: resolve(root) }, file, await asConfigError(readMcpConfigPins(lock)));
+  const file = configPath(base, options);
+  // Only the reads of the project's files are wrapped: an error from the trust store or `secrets` is the host's own.
+  const read = await asRefusal(file, async () => {
+    const { lock } = await configAndLock(base, options);
+    return readDeclared({ base, given: resolve(root) }, file, await asConfigError(readMcpConfigPins(lock)));
+  });
   if (read === undefined) return result;
+  const trusted = await projectTrusted(options.trust, root);
   result.declared.push(...read.declared);
   result.notices.push(...read.notices);
   for (const server of read.declared) {
