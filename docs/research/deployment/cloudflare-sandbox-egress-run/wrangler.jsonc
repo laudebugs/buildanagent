@@ -1,0 +1,22 @@
+// N50's one test Worker. workers.dev only: no route, custom domain or zone binding, and no KV, D1 or R2 binding.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "n50-egress-test-20261128",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "containers": [
+    {
+      "class_name": "N50EgressTest20261128Sandbox",
+      "name": "n50-egress-test-20261128-sandbox",
+      "scheduling_policy": "durable_object",
+      "images": { "sandbox": { "dockerfile": "./container/Dockerfile" } }
+    }
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "SANDBOX", "class_name": "N50EgressTest20261128Sandbox" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["N50EgressTest20261128Sandbox"] }]
+}

@@ -1,0 +1,341 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:18:43.789Z",
+  "finishedAt": "2026-11-28T17:18:47.693Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "b-per-host-https",
+    "codeVersion": 5,
+    "startedAt": "2026-11-28T17:18:43.905Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "https",
+        "target": "n50-egress-test-20261128.<subdomain>.workers.dev",
+        "handler": "Inject(fetch)",
+        "ok": true,
+        "ms": 1
+      },
+      {
+        "call": "https",
+        "target": "echo-exports.n50.invalid",
+        "handler": "Inject(exports)",
+        "ok": true,
+        "ms": 0
+      },
+      {
+        "call": "https",
+        "target": "naive.n50.invalid",
+        "handler": "Naive",
+        "ok": true,
+        "ms": 0
+      },
+      {
+        "call": "http",
+        "target": "naive.n50.invalid",
+        "handler": "Naive",
+        "ok": true,
+        "ms": 1
+      },
+      {
+        "call": "https",
+        "target": "registry.npmjs.org",
+        "handler": "Allow",
+        "ok": true,
+        "ms": 0
+      },
+      {
+        "call": "https",
+        "target": "github.com",
+        "handler": "Allow",
+        "ok": true,
+        "ms": 0
+      }
+    ],
+    "steps": [
+      {
+        "label": "versions",
+        "argv": [
+          "sh",
+          "-c",
+          "cat /etc/debian_version; node --version; npm --version; curl --version | head -1; git --version; dpkg-query -W ca-certificates; ls -l /usr/local/bin/sandbox-shim"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "13.6\nv24.20.0\n11.19.0\ncurl 8.14.1 (x86_64-pc-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.9 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\ngit version 2.47.3\nca-certificates\t20250419+deb13u1\n-rwxr-xr-x 1 root root 3787168 Oct 22 15:45 /usr/local/bin/sandbox-shim\n",
+        "stderr": "",
+        "ms": 719
+      },
+      {
+        "label": "ca file",
+        "argv": [
+          "sh",
+          "-c",
+          "ls -l /etc/cloudflare/certs/cloudflare-containers-ca.crt; openssl x509 -in /etc/cloudflare/certs/cloudflare-containers-ca.crt -noout -subject -issuer -dates 2>&1 || head -3 /etc/cloudflare/certs/cloudflare-containers-ca.crt"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "-rw-r--r-- 1 root root 648 Nov 28 17:18 /etc/cloudflare/certs/cloudflare-containers-ca.crt\nsubject=CN=Cloudflare TLS proxy-everything Intercept CA\nissuer=CN=Cloudflare TLS proxy-everything Intercept CA\nnotBefore=Nov 28 16:18:44 2026 GMT\nnotAfter=Dec 28 17:18:44 2026 GMT\n",
+        "stderr": "",
+        "ms": 28
+      },
+      {
+        "label": "b0 curl https registry, untrusted",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://registry.npmjs.org/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 60,
+        "stdout": "http_code=000 remote_ip= ssl_verify=19\ncurl_exit=60\n",
+        "stderr": "curl: (60) SSL certificate problem: self-signed certificate in certificate chain\nMore details here: https://curl.se/docs/sslcerts.html\n\ncurl failed to verify the legitimacy of the server and therefore could not\nestablish a secure connection to it. To learn more about this situation and\nhow to fix it, please visit the webpage mentioned above.\n",
+        "ms": 39
+      },
+      {
+        "label": "b0 node fetch, untrusted",
+        "argv": [
+          "node",
+          "-e",
+          "fetch(\"https://registry.npmjs.org/is-number\",{signal:AbortSignal.timeout(20000)}).then(async r=>{console.log(\"status\",r.status);console.log((await r.text()).slice(0,300))}).catch(e=>{console.log(\"error\",e.message,e.cause&&(e.cause.code+\" \"+e.cause.message));process.exit(1)})"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 1,
+        "stdout": "error fetch failed SELF_SIGNED_CERT_IN_CHAIN self-signed certificate in certificate chain\n",
+        "stderr": "",
+        "ms": 120
+      },
+      {
+        "label": "b1 trust step (system bundle)",
+        "argv": [
+          "sh",
+          "-c",
+          "[ -e /etc/ssl/certs/ca-certificates.system.crt ] || { cp /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.system.crt.tmp && mv /etc/ssl/certs/ca-certificates.system.crt.tmp /etc/ssl/certs/ca-certificates.system.crt; }\ntimeout 10 sh -c 'until [ -s /etc/cloudflare/certs/cloudflare-containers-ca.crt ]; do sleep 0.1; done' && cat /etc/ssl/certs/ca-certificates.system.crt /etc/cloudflare/certs/cloudflare-containers-ca.crt >/etc/ssl/certs/ca-certificates.crt.tmp && mv /etc/ssl/certs/ca-certificates.crt.tmp /etc/ssl/certs/ca-certificates.crt"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "ms": 17
+      },
+      {
+        "label": "b1 curl https registry",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://registry.npmjs.org/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"_id\":\"is-number\",\"_rev\":\"43-3fe877efbeead423ee53a12d5ca44395\",\"name\":\"is-number\",\"description\":\"Returns true if a number or string value is a finite number. Useful for regex matches, parsing, user input, etc.\",\"dist-tags\":{\"latest\":\"7.0.0\"},\"versions\":{\"0.1.0\":{\"name\":\"is-number\",\"description\":\"Is the value a number?\",\"version\":\"0.1.0\",\"homepage\":\"https://github.com/jonschlinkert/is-number\",\"aut",
+        "stderr": "",
+        "ms": 60
+      },
+      {
+        "label": "b1 git clone https",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -rf /tmp/hw; timeout -k 2 60 git clone --depth 1 https://github.com/octocat/Hello-World /tmp/hw && git -C /tmp/hw log --oneline -1"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "7fd1a60 Merge pull request #6 from Spaceghost/patch-1\n",
+        "stderr": "Cloning into '/tmp/hw'...\n",
+        "ms": 337
+      },
+      {
+        "label": "b1 node fetch, bundle only",
+        "argv": [
+          "node",
+          "-e",
+          "fetch(\"https://registry.npmjs.org/is-number\",{signal:AbortSignal.timeout(20000)}).then(async r=>{console.log(\"status\",r.status);console.log((await r.text()).slice(0,300))}).catch(e=>{console.log(\"error\",e.message,e.cause&&(e.cause.code+\" \"+e.cause.message));process.exit(1)})"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 1,
+        "stdout": "error fetch failed SELF_SIGNED_CERT_IN_CHAIN self-signed certificate in certificate chain\n",
+        "stderr": "",
+        "ms": 100
+      },
+      {
+        "label": "b1 node fetch, NODE_EXTRA_CA_CERTS",
+        "argv": [
+          "node",
+          "-e",
+          "fetch(\"https://registry.npmjs.org/is-number\",{signal:AbortSignal.timeout(20000)}).then(async r=>{console.log(\"status\",r.status);console.log((await r.text()).slice(0,300))}).catch(e=>{console.log(\"error\",e.message,e.cause&&(e.cause.code+\" \"+e.cause.message));process.exit(1)})"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8",
+          "NODE_EXTRA_CA_CERTS": "/etc/cloudflare/certs/cloudflare-containers-ca.crt"
+        },
+        "exitCode": 0,
+        "stdout": "status 200\n{\"_id\":\"is-number\",\"_rev\":\"43-3fe877efbeead423ee53a12d5ca44395\",\"name\":\"is-number\",\"description\":\"Returns true if a number or string value is a finite number. Useful for regex matches, parsing, user input, etc.\",\"dist-tags\":{\"latest\":\"7.0.0\"},\"versions\":{\"0.1.0\":{\"name\":\"is-number\",\"description\":\"Is\n",
+        "stderr": "",
+        "ms": 186
+      },
+      {
+        "label": "b1 node fetch, --use-system-ca",
+        "argv": [
+          "node",
+          "--use-system-ca",
+          "-e",
+          "fetch(\"https://registry.npmjs.org/is-number\",{signal:AbortSignal.timeout(20000)}).then(async r=>{console.log(\"status\",r.status);console.log((await r.text()).slice(0,300))}).catch(e=>{console.log(\"error\",e.message,e.cause&&(e.cause.code+\" \"+e.cause.message));process.exit(1)})"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "status 200\n{\"_id\":\"is-number\",\"_rev\":\"43-3fe877efbeead423ee53a12d5ca44395\",\"name\":\"is-number\",\"description\":\"Returns true if a number or string value is a finite number. Useful for regex matches, parsing, user input, etc.\",\"dist-tags\":{\"latest\":\"7.0.0\"},\"versions\":{\"0.1.0\":{\"name\":\"is-number\",\"description\":\"Is\n",
+        "stderr": "",
+        "ms": 213
+      },
+      {
+        "label": "mkdir app",
+        "argv": ["mkdir", "-p", "/workspace/app"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "ms": 6
+      },
+      {
+        "label": "b1 npm install, bundle only",
+        "argv": [
+          "sh",
+          "-c",
+          "cd /workspace/app && timeout -k 2 90 npm install is-number@7.0.0 --no-audit --no-fund --fetch-retries=0 2>&1 | tail -5"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "npm error code SELF_SIGNED_CERT_IN_CHAIN\nnpm error errno SELF_SIGNED_CERT_IN_CHAIN\nnpm error request to https://registry.npmjs.org/is-number failed, reason: self-signed certificate in certificate chain\nnpm error A complete log of this run can be found in: /root/.npm/_logs/2026-11-28T17_18_45_811Z-debug-0.log\n",
+        "stderr": "",
+        "ms": 623
+      },
+      {
+        "label": "b1 npm install, NODE_EXTRA_CA_CERTS",
+        "argv": [
+          "sh",
+          "-c",
+          "cd /workspace/app && rm -rf node_modules package-lock.json && timeout -k 2 90 npm install is-number@7.0.0 --no-audit --no-fund --fetch-retries=0 2>&1 | tail -5 && cat node_modules/is-number/package.json | grep '\"version\"'"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8",
+          "NODE_EXTRA_CA_CERTS": "/etc/cloudflare/certs/cloudflare-containers-ca.crt"
+        },
+        "exitCode": 0,
+        "stdout": "\nadded 1 package in 378ms\n  \"version\": \"7.0.0\",\n",
+        "stderr": "",
+        "ms": 472
+      },
+      {
+        "label": "b2 credential via fetch upstream",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://n50-egress-test-20261128.<subdomain>.workers.dev/echo'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"echo\":\"n50-egress-test-20261128\",\"via\":\"fetch\",\"tokenOk\":true,\"url\":\"https://n50-egress-test-20261128.<subdomain>.workers.dev/echo\",\"method\":\"GET\",\"headers\":{\"accept\":\"*/*\",\"accept-encoding\":\"gzip, br\",\"authorization\":\"Bearer n50-dummy-token-not-a-secret\",\"cf-connecting-ip\":\"2a06:98c0:3600::103\",\"cf-ipcountry\":\"US\",\"cf-ray\":\"a61b08a6ed2896a2\",\"cf-visitor\":\"{\\\"scheme\\\":\\\"https\\\"}\",\"cf-worker\":\"<subdomain>",
+        "stderr": "",
+        "ms": 62
+      },
+      {
+        "label": "b2 credential via exports upstream",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://echo-exports.n50.invalid/echo'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"echo\":\"n50-egress-test-20261128\",\"via\":\"exports\",\"tokenOk\":true,\"url\":\"https://echo-exports.n50.invalid/echo\",\"method\":\"GET\",\"headers\":{\"accept\":\"*/*\",\"authorization\":\"Bearer n50-dummy-token-not-a-secret\",\"host\":\"echo-exports.n50.invalid\",\"user-agent\":\"curl/8.14.1\"}}",
+        "stderr": "",
+        "ms": 33
+      },
+      {
+        "label": "b2 token absent from sandbox env and files",
+        "argv": [
+          "sh",
+          "-c",
+          "env | grep -c n50-dummy-token-not-a-secret; grep -rls n50-dummy-token-not-a-secret /etc /root /workspace /tmp 2>/dev/null | head; echo done"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "0\n/tmp/body\ndone\n",
+        "stderr": "",
+        "ms": 22
+      },
+      {
+        "label": "b2 credential host over plain http",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://n50-egress-test-20261128.<subdomain>.workers.dev/echo'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 56,
+        "stdout": "http_code=000 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=56\n",
+        "stderr": "curl: (56) Recv failure: Connection reset by peer\n",
+        "ms": 17
+      }
+    ],
+    "notes": ["monitor rejected after 3070 ms: Error: Container exited with unexpected exit code: 137"]
+  }
+}

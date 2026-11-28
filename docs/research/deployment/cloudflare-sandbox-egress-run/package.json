@@ -1,0 +1,18 @@
+{
+  "name": "n50-egress-test-20261128",
+  "private": true,
+  "license": "Apache-2.0 OR MIT",
+  "type": "module",
+  "description": "N50's one-off live egress cases on a real Cloudflare sandbox. Outside the pnpm workspace: install with pnpm install --ignore-workspace.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@cloudflare/sandbox": "1.0.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1"
+  }
+}

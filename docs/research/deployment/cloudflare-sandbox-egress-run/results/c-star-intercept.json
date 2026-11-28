@@ -1,0 +1,138 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:15:02.272Z",
+  "finishedAt": "2026-11-28T17:15:04.709Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "c-star-intercept",
+    "codeVersion": 4,
+    "startedAt": "2026-11-28T17:15:03.834Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": false
+    },
+    "registrations": [
+      {
+        "call": "all",
+        "target": "(all http)",
+        "handler": "Allow",
+        "ok": true,
+        "ms": 0
+      },
+      {
+        "call": "https",
+        "target": "*",
+        "handler": "Allow",
+        "ok": true,
+        "ms": 1
+      }
+    ],
+    "steps": [
+      {
+        "label": "trust step",
+        "argv": [
+          "sh",
+          "-c",
+          "[ -e /etc/ssl/certs/ca-certificates.system.crt ] || { cp /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.system.crt.tmp && mv /etc/ssl/certs/ca-certificates.system.crt.tmp /etc/ssl/certs/ca-certificates.system.crt; }\ntimeout 10 sh -c 'until [ -s /etc/cloudflare/certs/cloudflare-containers-ca.crt ]; do sleep 0.1; done' && cat /etc/ssl/certs/ca-certificates.system.crt /etc/cloudflare/certs/cloudflare-containers-ca.crt >/etc/ssl/certs/ca-certificates.crt.tmp && mv /etc/ssl/certs/ca-certificates.crt.tmp /etc/ssl/certs/ca-certificates.crt"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "",
+        "stderr": "",
+        "ms": 216
+      },
+      {
+        "label": "allowed host",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://registry.npmjs.org/is-number'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\n{\"_id\":\"is-number\",\"_rev\":\"43-3fe877efbeead423ee53a12d5ca44395\",\"name\":\"is-number\",\"description\":\"Returns true if a number or string value is a finite number. Useful for regex matches, parsing, user input, etc.\",\"dist-tags\":{\"latest\":\"7.0.0\"},\"versions\":{\"0.1.0\":{\"name\":\"is-number\",\"description\":\"Is the value a number?\",\"version\":\"0.1.0\",\"homepage\":\"https://github.com/jonschlinkert/is-number\",\"aut",
+        "stderr": "",
+        "ms": 179
+      },
+      {
+        "label": "denied host https",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://example.com/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=403 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\nn50 Allow: host example.com is not allowed\n",
+        "stderr": "",
+        "ms": 43
+      },
+      {
+        "label": "denied host http",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://example.com/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=403 remote_ip=fd00::119:1 ssl_verify=0\ncurl_exit=0\nn50 Allow: host example.com is not allowed\n",
+        "stderr": "",
+        "ms": 24
+      },
+      {
+        "label": "https by ip",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n' -k 'https://1.1.1.1/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 35,
+        "stdout": "http_code=000 remote_ip= ssl_verify=1\ncurl_exit=35\n",
+        "stderr": "curl: (35) TLS connect error: error:0A000438:SSL routines::tlsv1 alert internal error\n",
+        "ms": 25
+      },
+      {
+        "label": "metadata over http",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://169.254.169.254/latest/meta-data/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=403 remote_ip=169.254.169.254 ssl_verify=0\ncurl_exit=0\nn50 Allow: host 169.254.169.254 is not allowed\n",
+        "stderr": "",
+        "ms": 29
+      }
+    ],
+    "notes": []
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "todo": "N50",
+  "requestedAt": "2026-11-28T17:15:04.710Z",
+  "finishedAt": "2026-11-28T17:15:45.176Z",
+  "versions": {
+    "@cloudflare/sandbox": "1.0.3",
+    "@cloudflare/workers-types": "5.20261116.1",
+    "typescript": "7.0.2",
+    "wrangler": "4.160.1",
+    "compatibility_date": "2026-11-01"
+  },
+  "httpStatus": 200,
+  "result": {
+    "case": "d-internet-on",
+    "codeVersion": 4,
+    "startedAt": "2026-11-28T17:15:04.775Z",
+    "start": {
+      "image": "registry.cloudflare.com/<account-id>/n50-egress-test-20261128-n50egresstest20261128sandbox-sandbox@sha256:36ca3e08dc06e98dd3cc63d5a6643598726ae8e59fea4b268a7c40c93bd75dcd",
+      "instance": "lite",
+      "enableInternet": true
+    },
+    "registrations": [],
+    "steps": [
+      {
+        "label": "public https",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'https://example.com/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "http_code=200 remote_ip=2606:4700:10::ac42:93f3 ssl_verify=0\ncurl_exit=0\n<!doctype html><html lang=en><head><meta charset=utf-8><link rel=icon href=data:,><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Example Domain</title><style>html{color-scheme:light dark;background:light-dark(#eee,#222)}body{font:16px/1.6 system-ui,sans-serif;max-width:26em;margin:auto;padding:25vh 2em 2em;text-align:center}</style></head><body><p>This domain is for use in",
+        "stderr": "",
+        "ms": 536
+      },
+      {
+        "label": "metadata aws",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://169.254.169.254/latest/meta-data/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 56,
+        "stdout": "http_code=000 remote_ip=169.254.169.254 ssl_verify=0\ncurl_exit=56\n",
+        "stderr": "curl: (56) Recv failure: Connection reset by peer\n",
+        "ms": 19362
+      },
+      {
+        "label": "metadata gcp",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n' -H 'Metadata-Flavor: Google' 'http://169.254.169.254/computeMetadata/v1/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 56,
+        "stdout": "http_code=000 remote_ip=169.254.169.254 ssl_verify=0\ncurl_exit=56\n",
+        "stderr": "curl: (56) Recv failure: Connection reset by peer\n",
+        "ms": 19454
+      },
+      {
+        "label": "rfc1918 10.0.0.1",
+        "argv": [
+          "sh",
+          "-c",
+          "rm -f /tmp/body; curl -sS --max-time 20 -o /tmp/body -w 'http_code=%{http_code} remote_ip=%{remote_ip} ssl_verify=%{ssl_verify_result}\\n'  'http://10.0.0.1/'; rc=$?; echo \"curl_exit=$rc\"; head -c 400 /tmp/body 2>/dev/null; exit $rc"
+        ],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 7,
+        "stdout": "http_code=000 remote_ip= ssl_verify=0\ncurl_exit=7\n",
+        "stderr": "curl: (7) Failed to connect to 10.0.0.1 port 80 after 0 ms: Could not connect to server\n",
+        "ms": 122
+      },
+      {
+        "label": "routes and resolver",
+        "argv": ["sh", "-c", "cat /etc/resolv.conf; ip route 2>/dev/null || cat /proc/net/route"],
+        "env": {
+          "HOME": "/root",
+          "LANG": "C.UTF-8"
+        },
+        "exitCode": 0,
+        "stdout": "nameserver 1.1.1.1\nnameserver 9.9.9.9\nnameserver 2606:4700:4700::1111\nIface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT                                                       \ncfeth0\t00000000\tFE00000A\t0003\t0\t0\t0\t00000000\t0\t0\t0                                                                             \ncfeth0\t0000000A\t00000000\t0001\t0\t0\t0\t00FFFFFF\t0\t0\t0                                                                             \n",
+        "stderr": "",
+        "ms": 103
+      }
+    ],
+    "notes": []
+  }
+}
