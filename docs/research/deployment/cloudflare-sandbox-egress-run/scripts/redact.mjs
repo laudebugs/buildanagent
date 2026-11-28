@@ -1,7 +1,7 @@
 // Takes the account's identifiers out of a case record or log before it is committed: the account id in the image
-// reference and the account's workers.dev subdomain. The subdomain shows up in URLs, in the echo server's
-// `cf-worker` header (JSON-escaped inside a command's stdout, and sometimes cut short by the record's truncation),
-// and anywhere else a command printed it, so the label itself is replaced wherever it appears, whole or cut short.
+// reference and the account's workers.dev subdomain. The subdomain appears in URLs, in the echo server's `cf-worker`
+// header (JSON-escaped inside a command's stdout, and sometimes cut short by the record's truncation) and anywhere
+// else a command printed it. So redact() replaces the label wherever it appears, whole or cut short.
 // The label comes from N50_URL (https://n50-egress-test-20261128.<subdomain>.workers.dev), never from a file in the
 // repo. Run it over files (N50_URL=... node scripts/redact.mjs results/*), or import redact() as run-cases.mjs does.
 import { readFileSync, writeFileSync } from "node:fs";
