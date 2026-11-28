@@ -77,4 +77,15 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or
 | L6-5 | Removing the TSDoc from one exported function fails the check, and names it | ✅ | Removing the comment of `modelRequestsAreAllowed()` made `pnpm check:api-docs` exit 1 with "index.modelRequestsAreAllowed (CallSignature) … does not have any documentation"; `test/api-docs.test.ts` repeats it on a fixture |
 | L6-6 | The built docs have a reference page for every export of both packages' entry points | ✅ | `test/api-docs.test.ts` builds the site and finds `<module>/<kind folder>/<name>/index.html` for every declaration TypeDoc lists for each entry point; re-exports, which TypeDoc lists as references, are skipped because their page is in the module that declares them |
 
-**Totals:** 43 claims: 43 ✅, 0 ✏️, 0 ⚠️.
+## TypeDoc's accepted minimatch advisory (branch deps/zod-minimatch-advisories, 2026-11-27)
+
+Rows deps/zod-minimatch-advisories-1 to -4 were checked 2026-11-27. After `main` was merged in at `a23a0986`, rows -1 and -2 were checked again on 2026-11-28, with the same `npm view` output and lockfile entry, and `pnpm why -r minimatch@10.2.6` still shows only TypeDoc. The crash in row -3 was not run again.
+
+| # | Claim | Verdict | Source and reason |
+| --- | --- | --- | --- |
+| deps/zod-minimatch-advisories-1 | `typedoc@0.28.20` is the latest release and asks for minimatch `^10.2.5`, so it gets 10.2.6 | ✅ | `npm view typedoc version dependencies.minimatch`, read 2026-11-27: `0.28.20`, `^10.2.5`; the lockfile resolves `typedoc@0.28.20(typescript@6.0.3)` to `minimatch: 10.2.6` |
+| deps/zod-minimatch-advisories-2 | 10.2.6 carries GHSA-g3hv-75wg-m249, a denial of service through crafted glob patterns, and no 10.x release has the fix | ✅ | `gh api /advisories/GHSA-g3hv-75wg-m249`: "minimatch has potential denial of service via globparts amplification", vulnerable `>= 7.0.0, < 11.0.1`, first patched 11.0.1; 10.2.6 is the last 10.x on npm |
+| deps/zod-minimatch-advisories-3 | Overriding it to 11 crashes TypeDoc, which calls `Minimatch#matchOne`, a method 11 made private | ✅ | With `minimatch@10` overridden to 11.0.9, `typedoc --entryPoints 'packages/protocol/src/*.ts' --emit none` exited with "TypeError: mini.matchOne is not a function"; `typedoc/dist/node-utils.js` is the only TypeDoc file that calls `matchOne`, and 11.0.9's declarations no longer list it. |
+| deps/zod-minimatch-advisories-4 | TypeDoc runs only at build time and matches only the patterns this app's config gives it | ⚠️ | Our inference: `typedoc` is a dependency of `apps/docs` only, which runs it from `astro.config.mjs` during the build, and `entryPoints(pkg)` in `src/api/packages.ts` passes each package's export files. We did not trace every TypeDoc option that takes a glob |
+
+**Totals:** 47 claims: 46 ✅, 0 ✏️, 1 ⚠️.
