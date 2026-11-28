@@ -68,7 +68,8 @@ await mkdir("results", { recursive: true });
 // when GitHub was slow. Now `insteadOf` rewrites every github.com URL to a local folder that holds a one-commit
 // `openai/openai-agents-js` (the only repository the docs name), and GIT_ALLOW_PROTOCOL refuses every other transport,
 // so a clone of any other repository fails at once instead of going online. The stand-in is built only when a selected
-// doc example calls gitRepo(), so other runs, our own examples and a live run don't need git.
+// doc example calls gitRepo(), so other runs, our own examples and a live run don't need git. Every doc example still gets
+// GIT_ALLOW_PROTOCOL, so one that clones without naming gitRepo() in its own source fails instead of going online.
 async function offlineGitHub() {
   const fakeGitHubRoot = await mkdtemp(join(tmpdir(), "oai-github-"));
   // "exit" fires on a normal exit and after an uncaught error, but not on a signal, so SIGINT and SIGTERM exit through it.
@@ -105,7 +106,7 @@ async function offlineGitHub() {
   };
 }
 const clones = !ownExamples && targets.some((t) => readFileSync(t.file, "utf8").includes("gitRepo("));
-const OFFLINE_GIT = clones ? await offlineGitHub() : {};
+const OFFLINE_GIT = clones ? await offlineGitHub() : ownExamples ? {} : { GIT_ALLOW_PROTOCOL: "file" };
 
 async function runOne(t) {
   const code = await readFile(t.file, "utf8");
