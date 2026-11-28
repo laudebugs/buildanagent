@@ -14,8 +14,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { delimiter, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { isHarnessError } from "@buildanagent/harness";
 import {
   loadProjectMcpServers,
@@ -527,6 +527,7 @@ describe("project MCP configs: caps, spellings and refusal causes", () => {
     symlinkSync(join(root, "server.mjs"), join(root, "srv", "inner.mjs"));
     const error = await loadProjectMcpServers(root, options(root, true)).catch((caught: unknown) => caught);
     assert.ok(error instanceof Error && error.cause instanceof Error);
+    assert.equal(error.cause.name, "FileRefusal");
   });
 });
 
@@ -632,6 +633,24 @@ describe("project MCP configs: what a program runs for a path the command line n
     const root = project(server({ args: ["server.mjs", "pipe"] }));
     assert.equal(spawnSync("mkfifo", [join(root, "pipe")]).status, 0);
     await assert.rejects(loadProjectMcpServers(root, options(root, false)), /is or holds a special file/);
+  });
+
+  test("a file spelled as a file: URL, in a list or as @file is pinned", async () => {
+    const root = project();
+    for (const name of ["u.mjs", "a.js", "b.js", "c", "d", "args.txt"]) writeFileSync(join(root, name), name);
+    const url = pathToFileURL(join(realpathSync(root), "u.mjs")).href;
+    writeFileSync(
+      join(root, ".mcp.json"),
+      JSON.stringify(
+        server({ args: ["--import", url, "--require=./a.js,./b.js", "-I", `c${delimiter}d`, "@args.txt"] }),
+      ),
+    );
+    assert.deepEqual(await pinnedPaths(root), ["a.js", "args.txt", "b.js", "c", "d", "u.mjs"]);
+  });
+
+  test("a path under a file of the project names nothing, and the load goes on", async () => {
+    const root = project(server({ args: ["server.mjs/x", "server.mjs"] }));
+    assert.deepEqual(await pinnedPaths(root), ["server.mjs"]);
   });
 
   test("a caller that leaves out headless gets a headless run", async () => {

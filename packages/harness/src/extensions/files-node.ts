@@ -18,6 +18,7 @@ export class FileRefusal extends Error {
 
   constructor(kind: RefusalKind, path: string) {
     super(`${path}: ${kind}`);
+    this.name = "FileRefusal";
     this.kind = kind;
     this.path = path;
   }

@@ -63,7 +63,14 @@ export function jsonObject(text: string): Record<string, unknown> | "is not vali
   return isRecord(parsed) ? parsed : "is not a JSON object";
 }
 
-type LockBody = { version?: unknown; extensions?: unknown; mcp?: unknown };
+/** A lock file's body once its version and the shape of both members are checked. */
+type LockBody = {
+  readonly extensions: Record<string, unknown> | undefined;
+  readonly mcp: Record<string, unknown> | undefined;
+};
+
+const recordOrNone = (value: unknown): value is Record<string, unknown> | undefined =>
+  value === undefined || isRecord(value);
 
 const LOCK_REFUSALS = {
   link: "is a link, which a lock file may not be",
@@ -83,12 +90,11 @@ async function readLockText(file: string): Promise<string | undefined> {
 async function readBody(file: string): Promise<LockBody | undefined> {
   const text = await readLockText(file);
   if (text === undefined) return undefined;
-  const parsed = parseObject(text, file) as LockBody;
-  const badMember = (value: unknown) => value !== undefined && !isRecord(value);
-  if (parsed.version !== LOCK_VERSION || badMember(parsed.extensions) || badMember(parsed.mcp)) {
+  const { version, extensions, mcp } = parseObject(text, file);
+  if (version !== LOCK_VERSION || !recordOrNone(extensions) || !recordOrNone(mcp)) {
     throw new HarnessError("invalid_extension", `the lock file ${file} is not an extensions.lock.json of version 1`);
   }
-  return parsed;
+  return { extensions, mcp };
 }
 
 /**
@@ -99,7 +105,7 @@ export async function readLock(file: string): Promise<ReadonlyMap<string, string
   const body = await readBody(file);
   if (body?.extensions === undefined) return undefined;
   const pins = new Map<string, string>();
-  for (const [name, hash] of Object.entries(body.extensions as Record<string, unknown>)) {
+  for (const [name, hash] of Object.entries(body.extensions)) {
     if (typeof hash !== "string")
       throw new HarnessError("invalid_extension", `the lock file pins "${name}" to no hash`);
     pins.set(name, hash);
@@ -155,7 +161,7 @@ export function writeLock(file: string, pins: ReadonlyMap<string, string>): Prom
 /** The MCP pins of one server in a lock file, by tool name, or `undefined` when it holds none for the server. */
 export async function readMcpPins(file: string, server: string): Promise<Readonly<Record<string, string>> | undefined> {
   const body = await readBody(file);
-  const servers = (body?.mcp ?? {}) as Record<string, unknown>;
+  const servers = body?.mcp ?? {};
   if (!Object.hasOwn(servers, server)) return undefined;
   const entry = servers[server];
   // A project server's config pin may stand alone, before any of its tools is approved.
@@ -189,7 +195,7 @@ export function writeMcpPins(file: string, server: string, pins: Readonly<Record
 export async function readMcpConfigPins(file: string): Promise<ReadonlyMap<string, string>> {
   const body = await readBody(file);
   const pins = new Map<string, string>();
-  for (const [server, entry] of Object.entries((body?.mcp ?? {}) as Record<string, unknown>)) {
+  for (const [server, entry] of Object.entries(body?.mcp ?? {})) {
     if (!isRecord(entry) || entry.config === undefined) continue;
     if (typeof entry.config !== "string") {
       throw new HarnessError("invalid_extension", `the lock file pins the config of ${quote(server)} to no hash`);
@@ -215,7 +221,7 @@ async function writeServerMember(
   member: "tools" | "config",
   value: unknown,
 ): Promise<void> {
-  const servers = { ...((before?.mcp ?? {}) as Record<string, unknown>) };
+  const servers = { ...(before?.mcp ?? {}) };
   const old = Object.hasOwn(servers, server) && isRecord(servers[server]) ? servers[server] : {};
   setOwn(servers, server, sorted(Object.entries({ ...old, [member]: value })));
   await writeBody(file, {
