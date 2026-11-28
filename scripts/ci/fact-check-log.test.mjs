@@ -100,7 +100,7 @@ test("a backslash escapes the character after it, as in GitHub, so \\\\| ends a 
   assert.deepEqual(cells(String.raw`| 1 | a \\\| b |`), ["1", String.raw`a \\\| b`]);
   assert.deepEqual(cells(String.raw`| 1 | ends in \\|`), ["1", String.raw`ends in \\`]);
   // Read as `\|`, the old reading, this row had four cells and failed; GitHub shows five.
-  const row = "| 1 | A path C:\\\\| BK1 | ✅ | A source |"; // A plain string for Bun, as above.
+  const row = "| 1 | A path C:\\\\| BK1 | ✅ | A source |"; // A plain string for Bun, as in the first fixture.
   assert.deepEqual(messages(log([row], null)), []);
   assert.equal(readRows(log([row], null)).rows[0].verdict, "✅");
 });
