@@ -56,6 +56,7 @@ docs.buildanagent.fyi sends a Content Security Policy (CSP): a response header t
 - [x] `apps/docs/public/_headers` sends the policy on `/*`, with `script-src` holding `'self'`, `'wasm-unsafe-eval'` and one hash per inline script, and no `'unsafe-inline'` for scripts.
 - [x] The build writes `dist/_headers` from the built site and fails on an inline event handler, a `javascript:` URL, a `<style>` element in a page or a CSP line over 1,900 characters.
 - [x] A served SVG that needs its own `<style>`, today only the favicon, gets a rule that detaches the site-wide policy and allows that style by hash.
+- [x] The build also fails on a `<noscript>` in a page, an SVG `<set>` or `<animate>` that changes an `href`, a script in a served SVG or XML file (prefixed names included) and a policy source outside the allowlist.
 - [x] A test fails on a stale committed file, a built inline script whose hash is missing, an unused hash and a CSP line over 1,900 characters.
 - [x] The `style-src` decision and the reason for each directive are written in `apps/docs/README.md` and `src/csp/policy.ts`.
 - [x] `pnpm check`, `pnpm typecheck` and the docs tests pass.
@@ -77,6 +78,10 @@ default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 
 **The favicon has its own rule.** `favicon.svg` colours its strokes from a `<style>` element and must stay a copy of the site's icon. The site-wide `style-src-elem 'self'` would block that style when a reader opens the file. The build therefore writes a `/favicon.svg` rule that detaches the site-wide header (`! Content-Security-Policy`) and sets `default-src 'none'; style-src 'sha256-…'; frame-ancestors 'none'`. Through `wrangler dev`, Chrome then drew the opened file's strokes in colour with no violation.
 
 **The first review's fixes.** The checks now read HTML with a small tokenizer (`src/csp/html.ts`), so code in a `data-code` attribute is never read as a tag. An unquoted attribute value follows HTML's rules. A script inside `<svg>` or `<math>`, or one that holds `<!--`, fails the build. A `javascript:` URL counts only in an attribute that holds a URL. The build also reads every served SVG and XML file.
+
+**The later reviews' fixes.** The second review found offsets taken from `toLowerCase()`, which "İ" lengthens. The tokenizer now lower-cases ASCII letters only, so its offsets fit the original text. An SVG's style is hashed from the same CRLF-normalized text the tokenizer read, and a `/` inside an unquoted value no longer closes a tag. A `<noscript>` in a page fails the build, because its content is never checked, and so does an SVG `<set>` or `<animate>` that changes an `href`.
+
+The third review made the source test an allowlist, run on the committed file. Only `'self'`, `'none'` and hashes may appear anywhere, plus `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`. A served SVG's style now starts at the tag's own end, so a `>` in a quoted value cannot shift it, and a prefixed `<s:script>` or `<s:style>` counts as a script or a style. Tests cover each limit on the file: the CSP line, the 2,000-character line, the 100 rules and an unmatchable file name.
 
 **Astro's own option was not used.** Astro 7 has `security.csp`, which adds a `<meta http-equiv="content-security-policy">` tag to each page. A `<meta>` policy cannot set `frame-ancestors`, and Astro's documentation says its CSP does not support Shiki's inline styles. The docs' deploy already serves a `_headers` file, so one header for every page is the simpler place.
 

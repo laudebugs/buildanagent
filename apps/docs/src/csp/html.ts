@@ -14,6 +14,8 @@ export interface StartTag {
   readonly attributes: ReadonlyMap<string, string>;
   /** The offset of the tag's `<` in the text the tokenizer read. */
   readonly offset: number;
+  /** The offset just past the tag's own `>`, where its content starts; a `>` inside a quoted value does not end it. */
+  readonly end: number;
   /** True inside `<svg>` or `<math>`, where a browser parses the content as foreign content. */
   readonly foreign: boolean;
   /** The raw text of a raw-text element (`script`, `style` and the others), up to its end tag; otherwise undefined. */
@@ -168,6 +170,7 @@ export function tokenize(text: string): Tokens {
       const name = asciiLower(text.slice(lt + 1, end));
       const read = readAttributes(text, end, opaque);
       const foreign = foreignDepth > 0;
+      const tagEnd = read.end;
       at = read.end;
       let rawText: string | undefined;
       let closed = false;
@@ -187,6 +190,7 @@ export function tokenize(text: string): Tokens {
         name,
         attributes: read.attributes,
         offset: lt,
+        end: tagEnd,
         foreign,
         ...(rawText === undefined ? {} : { text: rawText, closed }),
       });

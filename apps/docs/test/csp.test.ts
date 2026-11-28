@@ -1,14 +1,17 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
 import {
   blockedMarkup,
   builtPages,
   CSP_HEADER,
+  checkedSiteHeaders,
   cspLine,
   DIRECTIVES,
+  disallowedSources,
   documentStyles,
   headerOf,
   headersFile,
@@ -37,6 +40,18 @@ const COMMITTED = fileURLToPath(new URL("../public/_headers", import.meta.url));
 const FAVICON = fileURLToPath(new URL("../public/favicon.svg", import.meta.url));
 const committed = () => readFileSync(COMMITTED, "utf8");
 const committedRules = () => parseHeaders(committed());
+// The built site is read once and shared: tokenizing every page takes about a second, and other test files that read
+// the build run beside this one.
+let cache:
+  | { pages: { path: string; html: string; hashes: string[] }[]; site: ReturnType<typeof siteHeaders> }
+  | undefined;
+const builtOnce = () => {
+  cache ??= {
+    pages: builtPages(builtSite()).map((page) => ({ ...page, hashes: inlineScriptHashes(page.html) })),
+    site: siteHeaders(builtSite()),
+  };
+  return cache;
+};
 const committedPolicy = () => parsePolicy(headerOf(committedRules(), "/*", CSP_HEADER) ?? "");
 
 // The parser
@@ -121,6 +136,7 @@ test("a served SVG's <style> is allowed by its hash, and a script or a changed t
   assert.deepEqual(documentStyles(`<svg><style>a::after{content:"&amp;"}</style></svg>`).problems, [
     "a <style> whose text an XML parser would change",
   ]);
+  assert.deepEqual(documentStyles(`<svg><style title=">">.a{}</style></svg>`).styleHashes, [scriptHash(".a{}")]);
   assert.deepEqual(documentStyles(`<svg><a href="javascript:x()"/></svg>`).problems, [
     "<a> has a javascript: URL in href=",
   ]);
@@ -170,6 +186,75 @@ test("an SVG animation that targets href, and a <noscript>, are problems", () =>
   ]);
 });
 
+test("a namespace-prefixed script or style in a served SVG is read by its local name", () => {
+  const prefixed = `<svg xmlns:s="http://www.w3.org/2000/svg"><s:script>alert(1)</s:script></svg>`;
+  assert.deepEqual(documentStyles(prefixed).problems, ["a <s:script> element"]);
+  assert.deepEqual(documentStyles(`<svg xmlns:s="http://www.w3.org/2000/svg"><s:style>.a{}</s:style></svg>`), {
+    styleHashes: [scriptHash(".a{}")],
+    problems: [],
+  });
+});
+
+/** Writes a fake built site into a new folder and returns it; the caller removes it. */
+function fakeSite(files: Record<string, string>): string {
+  const dist = mkdtempSync(join(tmpdir(), "csp-site-"));
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(dirname(join(dist, path)), { recursive: true });
+    writeFileSync(join(dist, path), text);
+  }
+  return dist;
+}
+
+/** Checks a fake site and returns its problems, removing the folder afterwards. */
+function problemsOf(files: Record<string, string>): readonly string[] {
+  const dist = fakeSite(files);
+  try {
+    return siteHeaders(dist).problems;
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+}
+
+const styled = (css: string) => `<svg xmlns="http://www.w3.org/2000/svg"><style>${css}</style></svg>`;
+
+test("a fake site within every limit has no problems, and checkedSiteHeaders() returns its file", () => {
+  const dist = fakeSite({ "index.html": "<script>a()</script>", "icon.svg": styled(".a{}") });
+  try {
+    assert.deepEqual(siteHeaders(dist).problems, []);
+    assert.match(checkedSiteHeaders(dist).headers, /^\/icon\.svg$/m);
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+test(`a site-wide CSP line over ${MAX_CSP_LINE} characters fails`, () => {
+  const scripts = Array.from({ length: 40 }, (_, n) => `<script>s${n}()</script>`).join("");
+  assert.ok(problemsOf({ "index.html": scripts }).some((problem) => /^the CSP line has \d+ characters/.test(problem)));
+});
+
+test(`a _headers line over ${MAX_HEADERS_LINE} characters fails`, () => {
+  const styles = Array.from({ length: 40 }, (_, n) => `<style>.s${n}{}</style>`).join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg">${styles}</svg>`;
+  assert.ok(problemsOf({ "icon.svg": svg }).some((problem) => /^a _headers line has \d+ characters$/.test(problem)));
+});
+
+test(`more than ${MAX_HEADERS_RULES} rules fail`, () => {
+  const files = Object.fromEntries(Array.from({ length: MAX_HEADERS_RULES }, (_, n) => [`i${n}.svg`, styled(".a{}")]));
+  assert.ok(problemsOf(files).includes(`_headers would hold ${MAX_HEADERS_RULES + 1} rules`));
+});
+
+test("a served SVG whose name a _headers rule cannot match exactly fails, and checkedSiteHeaders() throws", () => {
+  assert.deepEqual(problemsOf({ "a b.svg": styled(".a{}") }), [
+    "a b.svg: a name that a _headers rule cannot match exactly",
+  ]);
+  const dist = fakeSite({ "a*.svg": styled(".a{}") });
+  try {
+    assert.throws(() => checkedSiteHeaders(dist), /cannot match exactly/);
+  } finally {
+    rmSync(dist, { recursive: true, force: true });
+  }
+});
+
 // The policy
 
 test("the site-wide policy lists each directive once, with sorted, unique hashes in script-src", () => {
@@ -181,13 +266,30 @@ test("the site-wide policy lists each directive once, with sorted, unique hashes
   assert.deepEqual(policy.get("script-src"), ["'self'", "'wasm-unsafe-eval'", "'sha256-a'", "'sha256-b'"]);
 });
 
-test("no directive but style-src allows anything unsafe or any host", () => {
-  for (const [name, sources] of parsePolicy(policyFor(["'sha256-a'"]))) {
-    if (name.startsWith("style-src")) continue;
-    for (const source of sources) {
-      assert.doesNotMatch(source, /^'(unsafe-inline|unsafe-eval|unsafe-hashes|strict-dynamic)'$|^\*$|^https?:$/, name);
-    }
-  }
+test("a source outside the allowlist, such as a host, is reported", () => {
+  const hash = scriptHash("x");
+  assert.deepEqual(disallowedSources(policyFor([hash])), []);
+  assert.deepEqual(disallowedSources(svgPolicyFor([hash])), []);
+  assert.deepEqual(
+    disallowedSources(
+      "script-src 'self' https://evil.example 'unsafe-inline'; img-src cdn.example.com; font-src data:; style-src-elem 'sha256-x'",
+    ),
+    [
+      "script-src https://evil.example",
+      "script-src 'unsafe-inline'",
+      "img-src cdn.example.com",
+      "font-src data:",
+      "style-src-elem 'sha256-x'",
+    ],
+  );
+});
+
+test("every policy the committed file sets uses only allowlisted sources", () => {
+  const policies = committedRules().flatMap((rule) =>
+    rule.headers.filter((header) => !header.detach && header.name === CSP_HEADER).map((header) => header.value),
+  );
+  assert.equal(policies.length, 2);
+  for (const value of policies) assert.deepEqual(disallowedSources(value), [], value);
 });
 
 test("a document rule detaches the site-wide policy and then sets its own", () => {
@@ -251,7 +353,7 @@ test("the favicon, which colours itself with a <style>, gets a policy that allow
 test("public/_headers is exactly what a fresh build derives from the built site", () => {
   const dist = builtSite();
   const built = readFileSync(join(dist, "_headers"), "utf8");
-  assert.equal(built, siteHeaders(dist).headers);
+  assert.equal(built, builtOnce().site.headers);
   assert.equal(
     committed(),
     built,
@@ -261,15 +363,15 @@ test("public/_headers is exactly what a fresh build derives from the built site"
 
 test("every inline script on every built page has its hash in the committed policy", () => {
   const allowed = new Set(committedPolicy().get("script-src")?.slice(2));
-  for (const { path, html } of builtPages(builtSite())) {
-    for (const hash of inlineScriptHashes(html)) {
+  for (const { path, hashes } of builtOnce().pages) {
+    for (const hash of hashes) {
       assert.ok(allowed.has(hash), `${path}: an inline script whose hash ${hash} is not in public/_headers`);
     }
   }
 }, 60_000);
 
 test("every hash in the committed policy belongs to a built inline script", () => {
-  const used = new Set(builtPages(builtSite()).flatMap(({ html }) => inlineScriptHashes(html)));
+  const used = new Set(builtOnce().pages.flatMap(({ hashes }) => hashes));
   assert.deepEqual(
     committedPolicy()
       .get("script-src")
@@ -280,11 +382,11 @@ test("every hash in the committed policy belongs to a built inline script", () =
 }, 60_000);
 
 test("no built page or served document carries markup the policy blocks", () => {
-  assert.deepEqual(siteHeaders(builtSite()).problems, []);
+  assert.deepEqual(builtOnce().site.problems, []);
 }, 60_000);
 
 test("a built page's code sample holding <script> and <style> text changes nothing the checks read", () => {
-  const page = builtPages(builtSite()).find(({ html }) => html.includes('data-code="'));
+  const page = builtOnce().pages.find(({ html }) => html.includes('data-code="'));
   assert.ok(page !== undefined, "no built page has an Expressive Code block");
   const at = page.html.indexOf('data-code="') + 'data-code="'.length;
   const sample = `<script>evil()</script><style>p{}</style><a onclick=x()> `;

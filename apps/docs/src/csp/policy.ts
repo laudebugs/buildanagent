@@ -180,6 +180,36 @@ export function svgPolicyFor(styleHashes: Iterable<string>): string {
   return `default-src 'none'; style-src ${[...new Set(styleHashes)].sort().join(" ")}; frame-ancestors 'none'`;
 }
 
+/** Matches one SHA-256 hash source, the only form of hash the policies use. */
+const HASH_SOURCE = /^'sha256-[A-Za-z0-9+/]{43}='$/;
+
+/**
+ * Every source of a policy that is not on the docs' allowlist, as `directive source`. A source names no host:
+ * `'self'`, `'none'` and hashes anywhere, `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and
+ * `'unsafe-inline'` in `style-src`, the one stated exception. A hash in `style-src-elem` would be ignored there, so
+ * only `script-src` and `style-src` may hold hashes.
+ */
+export function disallowedSources(value: string): string[] {
+  const special: Record<string, readonly string[]> = {
+    "img-src": ["data:"],
+    "script-src": ["'wasm-unsafe-eval'"],
+    "style-src": ["'unsafe-inline'"],
+  };
+  const hashed = new Set(["script-src", "style-src"]);
+  const found: string[] = [];
+  for (const [name, sources] of parsePolicy(value)) {
+    for (const source of sources) {
+      const allowed =
+        source === "'self'" ||
+        source === "'none'" ||
+        (hashed.has(name) && HASH_SOURCE.test(source)) ||
+        (special[name] ?? []).includes(source);
+      if (!allowed) found.push(`${name} ${source}`);
+    }
+  }
+  return found;
+}
+
 /** Parses a policy's value into its directives, each name mapped to its sources. */
 export function parsePolicy(value: string): Map<string, string[]> {
   const directives = new Map<string, string[]>();
@@ -242,8 +272,12 @@ export function pageProblems(html: string, tokens: Tokens = tokenize(normalized(
   return problems;
 }
 
+/** A name without its XML namespace prefix: `s:script` is `script`. An HTML parser keeps the prefix in the name. */
+const localName = (name: string) => name.slice(name.lastIndexOf(":") + 1);
+
 /**
- * Reads a served SVG or XML document. Any script or blocked markup is a problem, and so is a `<style>` whose text
+ * Reads a served SVG or XML document. An XML parser binds a prefix such as `s:` to a namespace, so a `<s:script>`
+ * can be an SVG script; the checks match each tag's name without its prefix. Any script or blocked markup is a problem, and so is a `<style>` whose text
  * holds `&`, `<` or CDATA, because an XML parser would change the text the browser hashes. Returns the hashes of
  * its `<style>` elements, which its own rule must allow.
  */
@@ -254,13 +288,14 @@ export function documentStyles(document: string): { styleHashes: string[]; probl
   const problems = tags.flatMap(blockedOnTag);
   const styleHashes: string[] = [];
   if (/<\?xml-stylesheet/i.test(text)) problems.push("an <?xml-stylesheet?> instruction");
+  const lower = asciiLower(text);
   for (const tag of tags) {
-    if (tag.name === "script") problems.push("a <script> element");
-    if (tag.name !== "style") continue;
-    // Inside <svg> the tokenizer reads <style> as markup, so its text is everything up to </style>.
-    const start = text.indexOf(">", tag.offset) + 1;
-    const end = asciiLower(text).indexOf("</style", start);
-    const css = end === -1 ? undefined : text.slice(start, end);
+    const local = localName(tag.name);
+    if (local === "script") problems.push(`a <${tag.name}> element`);
+    if (local !== "style") continue;
+    // Inside <svg> the tokenizer reads <style> as markup, so its text runs from the tag's end to its end tag.
+    const end = lower.indexOf(`</${tag.name}`, tag.end);
+    const css = end === -1 ? undefined : text.slice(tag.end, end);
     if (css === undefined || /[&<]/.test(css)) problems.push("a <style> whose text an XML parser would change");
     else styleHashes.push(scriptHash(css));
   }
@@ -379,6 +414,9 @@ export function siteHeaders(dist: string): SiteHeaders {
   }
   const policy = policyFor(hashes);
   const headers = headersFile(policy, documents);
+  for (const value of [policy, ...documents.values()]) {
+    for (const source of disallowedSources(value)) problems.push(`a policy allows ${source}`);
+  }
   const line = cspLine(policy);
   if (line.length > MAX_CSP_LINE) {
     problems.push(`the CSP line has ${line.length} characters, over the ${MAX_CSP_LINE} the docs allow`);
