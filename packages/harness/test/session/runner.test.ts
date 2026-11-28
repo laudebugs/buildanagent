@@ -290,6 +290,33 @@ describe.each(BACKENDS)("%s", (_name, make) => {
     await session.close();
   });
 
+  test("an id generator that throws for any entry aborts the run like a failed write", async () => {
+    const turn = async (newId: () => string) => {
+      const { model } = scripted([
+        { content: [{ type: "tool_call", callId: "c1", name: "lookup", input: { id: 1 } }] },
+        { content: [{ type: "text", text: "done" }] },
+      ]);
+      const session = await open(make());
+      try {
+        return await runTurn(session, harnessOf(model).harness, { input: "go", newId });
+      } finally {
+        await session.close();
+      }
+    };
+    let draws = 0;
+    await turn(() => `id-${++draws}`);
+    // Break the generator at each draw of a clean turn in turn: whichever entry hit it, the turn must fail with it.
+    for (let after = 0; after < draws; after += 1) {
+      let calls = 0;
+      const newId = () => {
+        calls += 1;
+        if (calls > after) throw new Error(`newId broke after ${after}`);
+        return `id-${calls}`;
+      };
+      await assert.rejects(() => turn(newId), new RegExp(`newId broke after ${after}$`));
+    }
+  });
+
   test("a child session takes a turn of its own, and its header names the parent and the spawning call", async () => {
     const backend = make();
     const { model } = scripted([{ content: [{ type: "text", text: "child" }] }]);

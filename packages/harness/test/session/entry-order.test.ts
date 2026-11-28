@@ -1,7 +1,7 @@
 // A session's log must not depend on how long its store takes to append. Each capstone case runs on the JSONL files,
 // on the in-memory store, on the DynamoDB store over a fake client and on the Postgres store over PGlite. All four must
-// write the same entries: the same ids, parents, times and contents. Before the session writer took an entry's id and
-// time at queue time, the in-memory and DynamoDB runs of the rejected case swapped two ids against the JSONL run.
+// write the same entries: the same ids, parents, times and contents. The rejected case is the one whose ids depend on
+// append timing: its denied tool_result and the next message take ids from the same generator one after the other.
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,7 +13,15 @@ import type { SessionEntry } from "@buildanagent/protocol";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, describe, test } from "vitest";
 import { fakeDynamoDb } from "../aws/fake-dynamodb.js";
-import { CASES, type CaseName, entriesOf, filesAt, recordCase, scrubbing } from "../capstone/triage-fixture.js";
+import {
+  CASES,
+  type CaseName,
+  entriesOf,
+  type Files,
+  filesAt,
+  recordCase,
+  scrubbing,
+} from "../capstone/triage-fixture.js";
 
 const dirs: string[] = [];
 const databases: PGlite[] = [];
@@ -44,7 +52,7 @@ const OTHER_STORES: Record<string, () => SessionStore | Promise<SessionStore>> =
 };
 
 /** One run of a case on `run`'s store, and the entries it wrote. */
-async function logOf(name: CaseName, run: ReturnType<typeof files>): Promise<SessionEntry[]> {
+async function logOf(name: CaseName, run: Files): Promise<SessionEntry[]> {
   await recordCase(run, CASES[name]);
   return entriesOf(run);
 }
