@@ -32,12 +32,12 @@ overrides:
   # keeps the CommonJS entry gaxios@6 requires (12+ is ESM-only). Remove once vertexai moves to google-auth-library 10.
   "gaxios@6>uuid": "11.1.1"
   # GHSA-mrhx-c7xc-m3w5: zod <4.6.6 can exhaust memory validating oversized constrained collections (Dependabot
-  # alert 23, high, as of 2026-11-27). Two paths that no published package ships pin a zod 4.1.11 parent exactly. One runs from
+  # alert 23, high; alert and versions as of 2026-11-27). Two paths that no published package ships pin a zod 4.1.11 parent exactly. One runs from
   # @workflow/cli@5.2.0 (5.3.3, the latest, too) to @vercel/cli-auth@0.0.1. The other runs from @vercel/sandbox@3.9.1
   # (5.0.0, the latest, too) through @vercel/oidc@4.0.0 to @vercel/cli-config@0.3.1. Newer cli-auth and cli-config releases ask for zod ^4.6.6, so
   # 4.6.7, the version our packages pin, keeps their range. Remove the first once @workflow/cli depends on
-  # @vercel/cli-auth >=0.4.0, and the second once @vercel/sandbox depends on an @vercel/oidc whose cli-config asks for
-  # zod ^4.6.6 (oidc 4.0.9 does).
+  # @vercel/cli-auth >=0.4.0, and the second once @vercel/sandbox depends on @vercel/oidc 4.0.9 or later, whose
+  # cli-config asks for zod ^4.6.6.
   "@vercel/cli-auth@0.0.1>zod": "4.6.7"
   "@vercel/cli-config@0.3.1>zod": "4.6.7"
   # The same advisory's range also covers zod 3.25.76, which the harness's @anthropic-ai/sandbox-runtime@0.0.83 (the
@@ -47,7 +47,7 @@ overrides:
   # would hide a real v4 path. Remove once sandbox-runtime depends on zod >=4.6.6.
   "@anthropic-ai/sandbox-runtime@0.0.83>zod": "4.6.7"
   # GHSA-g3hv-75wg-m249: minimatch >=7 <11.0.1 has a denial of service through globparts amplification (Dependabot
-  # alert 22, moderate, as of 2026-11-27), and no 10.x release carries the fix. @workflow/cli@5.2.0 pins
+  # alert 22, moderate; alert and versions as of 2026-11-27), and no 10.x release carries the fix. @workflow/cli@5.2.0 pins
   # @oclif/core@4.11.4, and @vercel/queue@0.11.0 (the latest) asks for ^10.2.4. 11 rewrote the matcher, but both call
   # only the named `minimatch(path, pattern)`, which 11 keeps in its ESM and CommonJS entries. 11.0.9 needs Node 20 or
   # >=22 (10 also took 18), and the repo runs 22. Each override names its parent because TypeDoc, the third minimatch
@@ -63,7 +63,7 @@ auditConfig:
     # picomatch@4.0.7 ReDoS, no patched release; build-time only via agents -> @rolldown/plugin-babel
     # (verify/cloudflare-agents/README.md, "Security")
     - GHSA-fc5q-39xc-vjpf
-    # minimatch@10.2.6 globparts denial of service, no patched 10.x release; typedoc@0.28.20 (the latest, ^10.2.5) in
+    # minimatch@10.2.6 globparts denial of service, no patched 10.x release; typedoc@0.28.20 (the latest as of November 2026, ^10.2.5) in
     # apps/docs, build-time only, matching just the docs config's own entry points (apps/docs/README.md, "The API
     # reference is generated"). Overriding it to 11 crashes TypeDoc on a glob entry point.
     - GHSA-g3hv-75wg-m249
