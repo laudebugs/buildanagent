@@ -126,9 +126,9 @@ The alphas don't count as releases here (L4b, 2026-11-19). A prerelease's tag, s
 
 ### DS5. The docs redesign (L12, proposed 2026-11-22)
 
-**Proposed on 2026-11-22; the owner answered questions 1, 3 and 5 the same day, and only question 9b is open ([L12](../todos/ongoing/L12-docs-redesign.md#owner-questions)).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
+**Proposed on 2026-11-22; the owner answered questions 1, 3 and 5 the same day, and answered question 9b, a strict CSP, yes on 2026-11-26 ([L12](../todos/ongoing/L12-docs-redesign.md#owner-questions)).** The owner asked for `docs.buildanagent.fyi` to look like the book, with diagrams, tested examples and pages for the protocol, harness, CLI and agent-safety. A read-only study of the docs app, the book's design pipeline and the Lamina PDF practices produced this design; the Lamina practices come from the manager session's digest, as [L12](../todos/ongoing/L12-docs-redesign.md) explains.
 
-**Decision summary.** L12 is an umbrella todo with sixteen sub-todos (L12a to L12p). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The owner chose logo 3, "the prompt", whose files the manager hands over: the header shows the mark plus the wordmark "Build An Agent docs". L12o redesigns the docs home, and L12p adds one shared header source that keeps the links and marks of the book, the docs and the site in step.
+**Decision summary.** L12 is an umbrella todo with nineteen accepted sub-todos (L12a to L12s) and seven proposed ones (L12t to L12z). The docs reuse the book's tokens, fonts and figure kit by package name, split the sidebar into topics before they add the four packages' reference, draw nine figures with scripts and build every new page from tested example files. The owner chose logo 3, "the prompt", whose files the manager hands over: the header shows the mark plus the wordmark "Build An Agent docs". L12o redesigns the docs home, and L12p adds one shared header source that keeps the links and marks of the book, the docs and the site in step.
 
 **Where the docs stand.** The app runs Astro 7.4.11 and Starlight 0.42.10 with 13 written pages and a generated reference for the gateway and SDK. The baseline build takes about 18 seconds and writes 277 pages into a 32 MB `dist/`, of which the reference is 28.6 MB and the search index 1.9 MB. Every page carries the whole sidebar: `start/install/` is 103 KB and holds 258 reference links. The 258 links are 253 export pages, the reference index and four exports linked twice. Adding the four packages takes the reference from 253 to 968 exports, so a page would grow to roughly 350 to 390 KB without topics. That number decides the order: topics (L12c) land before the new reference (L12f).
 
@@ -160,7 +160,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader'
 | Header logo and wordmark | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with the inline mark, the wordmark "Build An Agent docs" and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
 | Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails without alt text | Nine figures |
 | Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test | Adopt |
-| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopt in an Opus todo, once the owner agrees |
+| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopted in L12m after the owner agreed on 2026-11-26, except that code colours stay as `style=` attributes |
 | In-browser edit and run | None | A large bundle, a worker and CSP exceptions | Reject for now |
 
 #### The versioning design
@@ -227,6 +227,7 @@ Round L runs beside Round B. L9 to L11 (added 2026-11-22) extend it to the proto
 | [L12q](../todos/done/L12q-docs-examples.md) | The new tested examples the docs pages need: protocol, a harness sandbox and compaction, and an agent-safety bring-your-own-key guard | L12k | M |
 | [L12r](../todos/done/L12r-docs-body-font-inter.md) | The docs' body text in Inter, with Instrument Serif kept for titles, after the owner's decision of 2026-11-24 | L12a | S |
 | [L12s](../todos/done/L12s-docs-body-font-plex.md) | The docs' body text in IBM Plex Sans in place of Inter, after the owner's decision of 2026-11-24 | L12r | S |
+| [L12m](../todos/done/L12m-docs-csp.md) | A Content Security Policy for the docs in `public/_headers`, derived from the built pages, with script hashes, an exception for `style=` attributes and a 1,900-character line limit | L12b, L12l | S to M |
 | [L13](../todos/done/L13-landing-page.md) | The landing page of `apps/site`: the owner's figure-first design with the book's tokens, a scripted figure and a fact-checked copy | L7 | L |
 | [L14](../todos/done/L14-favicons.md) | The site's favicon on the manual and the docs, with a test in each app | L13 | S |
 
