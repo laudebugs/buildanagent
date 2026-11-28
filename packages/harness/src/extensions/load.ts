@@ -8,7 +8,7 @@ import { access, lstat, readdir, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { HarnessError } from "../errors.js";
-import { hashExtensionDir, readLock, writeLock } from "./lock.js";
+import { defaultLockFile, hashExtensionDir, readLock, writeLock } from "./lock.js";
 import type { Extension, ExtensionLoadedRecord, TrustStore } from "./types.js";
 
 /** What `loadProjectExtensions()` needs to decide. */
@@ -53,11 +53,11 @@ export async function projectTrusted(trust: TrustStore, root: string): Promise<b
 const places = async (root: string, options: Pick<LoadOptions, "lockFile" | "extensionsDir">) => ({
   // The folder is canonical, so a relative or symlinked spelling of it is one folder to the import-cache check.
   dir: await canonicalPath(options.extensionsDir ?? join(root, ".agents", "extensions")),
-  lock: options.lockFile ?? join(root, ".agents", "extensions.lock.json"),
+  lock: options.lockFile ?? defaultLockFile(root),
 });
 
 /** Whether `path` exists, without following a link or reading it. */
-async function exists(path: string): Promise<boolean> {
+export async function exists(path: string): Promise<boolean> {
   try {
     await lstat(path);
     return true;
