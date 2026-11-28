@@ -2,7 +2,7 @@
 // it declares no dependency on the harness, so the workspace graph has no cycle.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import process from "node:process";
@@ -26,6 +26,31 @@ function findTsc(): string {
   throw new Error("no tsc found above the package");
 }
 
+/** Whether `file` is a regular file the current user may run. */
+function isExecutable(file: string): boolean {
+  try {
+    accessSync(file, constants.X_OK);
+    return statSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The folder of the `node` that pnpm's `node_modules/.bin/tsc` wrapper runs, since it calls `exec node` on PATH. Under
+ * Node it is the running binary's folder. Under Bun the running binary is `bun`, so it is the first folder on the
+ * inherited PATH that holds an executable `node`; under `bun --bun` that is Bun's own `node` shim, so tsc runs on Bun.
+ * Only that one folder is passed on.
+ */
+function nodeDir(): string {
+  if (process.versions.bun === undefined) return dirname(process.execPath);
+  const dir = (process.env.PATH ?? "")
+    .split(delimiter)
+    .find((entry) => entry !== "" && isExecutable(join(entry, "node")));
+  if (dir === undefined) throw new Error("no executable node found on PATH");
+  return dir;
+}
+
 function jsFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name);
@@ -43,9 +68,9 @@ const withoutComments = (source: string): string =>
 
 test("the emitted JavaScript imports nothing outside the package", () => {
   // The workspace packages it takes types from may not be built, so the build reads their source, as the tests do. The
-  // environment is cleared, as for every spawned process, keeping only the folder of the running `node` on PATH.
+  // environment is cleared, as for every spawned process, keeping only the folder of a `node` on PATH.
   const env = {
-    PATH: [dirname(process.execPath), "/usr/bin", "/bin"].join(delimiter),
+    PATH: [nodeDir(), "/usr/bin", "/bin"].join(delimiter),
     HOME: out,
     TMPDIR: out,
     LANG: "C.UTF-8",

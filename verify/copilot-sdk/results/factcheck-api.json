@@ -1,7 +1,7 @@
 {
   "package": "@github/copilot-sdk@1.0.31",
   "cli": "1.0.109",
-  "checkedAt": "2026-11-18T13:45:32.908Z",
+  "checkedAt": "2026-11-28T02:09:14.055Z",
   "checks": {
     "exports": {
       "documented": 31,
@@ -189,16 +189,16 @@
       "undocumentedCount": 141,
       "notInPackage": [],
       "emittedButUntyped": [
-        "model.turn_started",
-        "model.log",
-        "model.call_start",
-        "model.model_call_started",
         "model.call_final_result",
-        "model.model_call_success",
+        "model.call_start",
+        "model.log",
         "model.message",
+        "model.messages_snapshot",
+        "model.model_call_started",
+        "model.model_call_success",
         "model.response",
         "model.turn_ended",
-        "model.messages_snapshot"
+        "model.turn_started"
       ]
     },
     "toolFields": {

@@ -7,8 +7,8 @@
 // `_routes.json`, `_worker.js`, a dot file such as `.assetsignore`), a broken or oversized entry, or a missing
 // required page. The two sites differ from the book only in their required pages and their `_headers`.
 //
-// The artifact's own `_headers` is never written. In its place goes main's `public/_headers` when the app has one,
-// and nothing when it has none, as neither site does today. With --noindex, for a preview or for
+// The artifact's own `_headers` is never written. Main's `public/_headers` goes in its place when the app has one
+// (apps/docs does); apps/site has none today. With --noindex, for a preview or for
 // next.docs.buildanagent.fyi, the file also sets `X-Robots-Tag: noindex` on every path. Cloudflare already adds that
 // header to workers.dev preview URLs, but not to a custom domain such as next.docs.buildanagent.fyi.
 //

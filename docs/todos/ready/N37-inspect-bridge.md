@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Build harness §4, Stage 7](../../plans/build-harness.md#47-stage-7-adds-telemetry-completion-checks-evals-and-ablation) |
 | Round / milestone | Round N (build harness), M6 |
-| Depends on | [N36](N36-eval-reports-replay.md), [N17](../done/N17-docker-backend.md) |
+| Depends on | [N36](../done/N36-eval-reports-replay.md), [N17](../done/N17-docker-backend.md) |
 | Size | M |
 
 ## Goal

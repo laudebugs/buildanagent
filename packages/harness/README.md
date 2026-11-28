@@ -942,7 +942,7 @@ A server that fails to start, or to finish its handshake within `connectTimeoutM
 
 **A session records which servers ran.** `manager.records()` gives one `extension_loaded` record of tier `mcp` per connected server, in config order; pass them in `extensionRecords` to `createHarness()`, and a turn writes an entry for each record its session's log does not hold yet. A record holds the server's name, the transport kind, the era, and two hashes: one of the command and its args, for a stdio server, or of the URL, for a remote one, and one of the tools as registered, each tool's name, description and input schema, sorted by name. It never holds an argument or an environment value, because either can carry a token, and a server that failed to connect has no record. The command hash is not salted, so anyone who reads the log can check a guess at an argument, such as a short PIN or a token of a known format, by hashing it; put every secret in `setEnv`, never in `args`. Every hash is `sha256:` and the SHA-256 of canonical JSON, so an unchanged server records the same hashes on every connect.
 
-Two limits remain. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own MCP config, which needs project trust, is todo N54.
+Two limits remain. A server's request for user input fails the call: a server-supplied prompt is untrusted text a person would read as the harness's own, and the owner chose on 2026-11-22 to fail such calls until the connectors work gives a pause a safe form. And the manager takes configs only from host code; a project's own `.mcp.json`, which needs project trust, loads through `loadProjectMcpServers()` (the next section).
 
 ## A remote server is reached over HTTPS to a public address, and every byte it sends is bounded
 
@@ -1008,6 +1008,75 @@ Four limits come with the remote transports and the pins:
 - the manager's tool state is per manager, so two sessions that share one manager see each other's turn boundaries;
 - a response stream that breaks loses its request, and the harness never sends a tool call again, since every MCP tool is a write;
 - on any runtime but Node, Cloudflare's workerd included, a name is resolved by the platform, which the harness can't check; `localhost` and names under `.localhost` count as loopback there.
+
+## A project's `.mcp.json` starts no server until the project is trusted and the server's config is pinned
+
+A stdio MCP server runs on the host, outside any sandbox, as the user, so a project's MCP config is code the project chooses to run. `loadProjectMcpServers(root, { trust, headless })` from `@buildanagent/harness/extensions/node` therefore starts nothing itself. It returns a server only when the project is trusted and the server's config matches its pin in the lock file. Cloning a repository can never start a program on its own.
+
+The call returns `{ servers, declared, notices }`. `servers` are the configs to pass to `createMcpManager()`, `declared` is every stdio server the file names with its exact command and args, and `notices` gives one line for each server that did not start.
+
+**The file is `.mcp.json` at the project root, and nowhere else.** One path means no precedence rules between two files. Its shape is the `mcpServers` object that Claude Code reads for project-scope servers ([Claude Code's MCP docs](https://code.claude.com/docs/en/mcp), "Project scope") and that Pi reads from `.pi/mcp.json`. `PROJECT_MCP_CONFIG` holds the file name, and `configFile` overrides the path. A server's members are `command`, `args`, `env` and an optional `"type": "stdio"`. This file declares one server, which gets its token by reference:
+
+```json
+{ "mcpServers": { "tracker": {
+  "command": "node", "args": ["tools/tracker-server.mjs"], "env": { "TRACKER_TOKEN": "${TRACKER_TOKEN}" }
+} } }
+```
+
+**An entry with a `url`, or a `type` of `http`, `sse` or `streamable-http`, is skipped with a notice.** A project config loads stdio servers only. The server starts in the project root. Every other fault refuses the whole file, and nothing of it starts:
+
+- a member other than `command`, `args`, `env` and `type`, such as `cwd` or `enabled`;
+- a file that is a link, is not JSON or is over 1 MiB;
+- an entry that `createMcpManager()`'s own checks refuse, or two names that differ only in letter case;
+- more than 64 args or 32 variables, or a name, command or argument over 1,024 characters.
+
+Every refusal the loader makes, of the config, an entry, a path it names or the lock file, is a `HarnessError` with code `invalid_mcp_config` whose message starts with the file's name.
+
+**The trust gate is the one extensions use.** `trust` is the same `TrustStore` that `loadProjectExtensions()` asks, and it is asked about the project's real path. A run with `headless: true`, or one that leaves `headless` out, starts nothing unless `loadInHeadless: true`, and then starts only the pinned servers of a trusted project. Without that opt-in, a headless run checks only whether the file exists and adds one notice, so it reads and parses nothing.
+
+**An untrusted project runs nothing, and the loader still shows what it would run.** The loader reads the file and the lock file and hashes the paths the command line names, all inside the project. Each server comes back in `declared` with its exact command and args and its pin state. `describeProjectMcpServer(server)` renders one line for a notice, such as `the MCP server "tracker" runs ["node","tools/tracker-server.mjs"] in "/work/app", with "TRACKER_TOKEN" from the host's "TRACKER_TOKEN"`. Show that line to the person before they trust the project.
+
+**A notice can't show one command as another.** The loader refuses a name, command or argument that holds a control or format character, a line or paragraph separator, a combining mark or any space but the ASCII one. The notice and every error also quote each string the project wrote with everything outside printable ASCII escaped. A newline, a right-to-left override or a look-alike space therefore can't make one command look like another.
+
+**A server starts only when its config matches its pin.** A server's pin is `mcp.<server>.config` in `.agents/extensions.lock.json`, beside the `mcp.<server>.tools` pins of the previous section, and each writer keeps the other's entries. The hash is `sha256:` and the canonical JSON of the command, the args, the `env` references and the hash of each path inside the project that the command line names. A changed `tools/tracker-server.mjs` therefore asks again with the config unchanged.
+
+Each server comes back in `declared` with a `state` of `pinned`, `new` or `changed`, and a `new` or `changed` server waits. `pinProjectMcpServer(root, server, hash)` records the person's yes. It throws `invalid_mcp_config` when the file now hashes differently from the `hash` shown, so a pin never covers a command the person did not see.
+
+**A path counts when the command line names it.** The command, an argument, and the value of an option each count, as `./preload.mjs` in `--import=./preload.mjs` or `./hook.rb` in `-r./hook.rb`. So does each path that a `file:` URL, an `@file` argument or a list joined by `,` or the `PATH` delimiter spells.
+
+The argument after a code flag, such as `-c`, `-e`, `-E`, `-r`, `-S`, `/c`, `--eval` or `-Command`, or the code glued to one, as in `--eval=…`, is a shell string or inline code. Examples are `node server.js; true` after `sh -c` and `require('./s.js')` after `node -e`. One that holds a space or shell punctuation is read both whole and as words, since `-r "./my dir/x.js"` names a path. Its words count the same way, read generously: each word and quoted string, the value after a `NAME=` prefix, and each run of path characters, with `$PWD` read as `.`.
+
+Each file beside a named path also counts when its name is that path and one extension, because that is what a program that adds an extension runs: `node server` runs `server.js`, and Windows runs `evil.exe` for `evil`. A bare command, such as `tracker`, counts in the root, where Windows looks first, and in each folder of the `PATH` the server gets, so `node_modules/.bin/tracker` is pinned when that folder is on it. The `PATH` is the host's. A host with a project folder on its `PATH` pins a bare command differently from one without, and the other host asks again.
+
+A file is hashed by its SHA-256, and a folder, such as `./server`, by every file in it, as an extension folder is. Each path is resolved to its real path first and keyed by it, relative to the root. So `s.mjs`, `./s.mjs`, a spelling through a link to the project such as `/var/…` for `/private/var/…` on macOS, and, on a file system that ignores case, `S.MJS` are one entry, hashed once.
+
+A path written inside the project, under the root as the host gave it or under its real path, whose real path leaves it through a link refuses the config before anything there is read. It does not matter which part of the path is the link, as `lib` in `lib/x.mjs`. So does a link that leads nowhere, a named pipe or device, or a folder that holds a link or a special file.
+
+One load hashes at most 4,096 files and folders (each is charged as the walk lists it, so a large tree stops the walk early), 64 MiB in all, and no file over 16 MiB. Past a cap the config is refused, so name the script rather than a large folder.
+
+**An untrusted project shows the same states.** A `pinned` server there is one the project's own lock file pins, and its notice says that once the project is trusted it needs no further question. It then starts as any pinned server does: in a run that is not headless or sets `loadInHeadless`, and when `secrets` supplies every variable it names. The default lock file is refused when `.agents` is a link out of the project or a link that leads nowhere, so a pin is never read from or written to a file outside it.
+
+**A config never holds a credential's value.** Each `env` value must be exactly `"${NAME}"`, a reference to a value the host supplies. The `secrets(name, server)` option resolves it, and the loader asks only for a server that is about to start: trusted, pinned and not yet started. A server whose variable `secrets` can't supply does not start.
+
+Answer only the names the person configured for the project, because a `secrets` that reads `process.env[name]` for any name lets a project pick which of the host's variables reach its program. Any other value, a bland one such as `"eu-west"` included, is refused with `invalid_mcp_config`. The error never quotes the value, since it may be the very secret the file should not hold.
+
+**A project config can't widen `spawnEnv()`.** The server gets `spawnEnv()`'s cleared environment and the values `secrets` returned, nothing more. There is no way to copy a parent variable. A project can't set `PATH`, `HOME`, `TMPDIR` or `LANG`, and it can't set a variable that changes what a program loads or how it is configured:
+
+- `NODE_OPTIONS` and the other names `spawnEnv()` won't copy;
+- every name that starts, in any letter case, with `LD_`, `DYLD_`, `NPM_CONFIG_`, `GIT_`, `PYTHON`, `PERL`, `RUBY`, `JAVA_` or `_JAVA_`;
+- named ones such as `ZDOTDIR`, `NODE_REPL_EXTERNAL_MODULE`, `CLASSPATH` and the CA-bundle variables.
+
+This is a list of names to refuse, not to allow: the host supplies every value and the project picks only the name, the useful names are each server's own, and a name the list misses passes. `${` in the command or an argument is refused too. Other clients expand it from their environment, the harness never does, and an expansion would let a project read any variable of the host.
+
+**Four gaps remain in the pin, and one in where it lives.**
+
+- The pin hashes the paths the command line names, not what the named code loads by other means: a script that imports `../lib/helper.mjs` from outside a named folder can change `helper.mjs` unasked, and a module named by name, as `pkg` in `python -m pkg`, or the project root itself, as in `node .`, is not hashed.
+- It does not cover a package that `npx` or `uvx` fetches, which can change on the registry.
+- In a shell string or inline code it reads words, not the language: a path spelled with escapes or joined quotes, built from another variable, matched by a glob such as `./serv*.js` or computed by the code is not hashed. On macOS, code or a word of it that is too long in all to be a path is not pinned either. Read such a command before approving it.
+- It does not cover a file that changes between the check and the spawn.
+- The lock file lives in the project. A `git pull` that changes both `.mcp.json` and `extensions.lock.json` starts the new command without asking, and a cloned project's own lock file approves its servers at the moment of trust, after the notice has shown them. The pins of extensions share this. Anyone who can commit to the project can pin their own change, so trust remains the decision about who holds the project. Storing approvals outside the project, in the user's trust store, would close the gap; that is the owner's decision, and this release leaves it open.
+
+Treat trust as the person's decision about the project's authors, and the pin as a check that a change nobody meant asks again.
 
 ## A skill is a file the model reads, and only its name, description and path are in the prompt
 

@@ -177,7 +177,9 @@ const checks = {};
     actual: d.actual,
     undocumentedCount: d.undocumented.length,
     notInPackage: d.notInPackage,
-    emittedButUntyped: observed.filter((t) => !union.includes(t)),
+    // The runtime emits some of these events concurrently, so their arrival order varies by run. uniq() sorts them, as it
+    // does the other lists here.
+    emittedButUntyped: uniq(observed.filter((t) => !union.includes(t))),
   };
 }
 

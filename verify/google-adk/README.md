@@ -104,7 +104,7 @@ Commit the transcripts with the change that alters them, unlike a regenerated `r
 
 The docs mirror pins an adk-docs commit, because the site renders adk-docs main and that repo has no release tags. The adk-js tag `main-v2.5.0` matches the npm `gitHead`. No page runs ahead of 2.5.0:
 
-- No doc source fails only on names that exist on adk-js main. Main exports 46 names that 2.5.0 lacks (`results/latest-releases.json`).
+- No doc source fails only on names that exist on adk-js main. As of 2026-11-27, main exports 96 names that 2.5.0 lacks (`results/latest-releases.json`).
 - No "Supported in ADK" tag names a TypeScript version above 2.5.0.
 
 The one main-only name the prose mentions, `AuthenticatedFunctionTool`, appears in Python sections only.
