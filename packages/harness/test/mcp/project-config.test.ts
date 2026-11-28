@@ -721,6 +721,27 @@ describe("project MCP configs: what a program runs for a path the command line n
     },
   );
 
+  test("a file whose name is over 255 bytes but not 255 characters is pinned where the file system allows it", async () => {
+    const name = `${"\u00e9".repeat(130)}.py`;
+    const root = project(server({ command: "python3", args: [name] }));
+    let made = true;
+    try {
+      writeFileSync(join(root, name), "1");
+    } catch {
+      made = false; // ext4 and others cap a name at 255 bytes, so no such file exists there
+    }
+    if (made) assert.deepEqual(await pinnedPaths(root), [name]);
+    else assert.deepEqual(await pinnedPaths(root), []);
+  });
+
+  test("long inline code with slashes is read as words, not refused as one long path", async () => {
+    const part = "x".repeat(240);
+    const code = `require("./server.js"); const r = /${[part, part, part, part].join("/")}/;`;
+    const root = project(server({ args: ["-e", code] }));
+    writeFileSync(join(root, "server.js"), "1");
+    assert.ok((await pinnedPaths(root)).includes("server.js"));
+  });
+
   test("words of an argument that is not a shell string are not read as paths", async () => {
     const root = project(server({ args: ["server.mjs", "--desc", "read files from src please"] }));
     mkdirSync(join(root, "src"));

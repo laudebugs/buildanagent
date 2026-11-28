@@ -129,6 +129,7 @@ const SHORT_VALUE = /^-[A-Za-z](.+)$/s;
 // The flag before a shell string or inline code, in any letter case: `-c`, `-lc`, `-e`, `-E`, `-p`, `-r`, `-S`, `/c`,
 // `--eval`, `--print`, `-Command`.
 const CODE_FLAG = /^(-[A-Za-z]*[ceprs]|\/c|--?(eval|print|command))$/i;
+const CODE_TEXT = /[\s;&|()<>'"`]/;
 const SHELL_WORD = /'[^']*'|"[^"]*"|[^\s;&|()<>'"`]+/g;
 // A run of characters a path is commonly written with, so a word the tokenizer misreads, as after an escaped quote or
 // inside nested quotes, is still seen.
@@ -243,28 +244,58 @@ function parseConfig(file: string, text: string): { entries: Entry[]; notices: s
  * server gets, which may be a folder of the project such as `node_modules/.bin`, and in the root, where Windows looks
  * first. Most name nothing in the project and are skipped later.
  */
-function candidatesOf(entry: Entry, root: string): string[] {
+function candidatesOf(entry: Entry, root: string): Candidate[] {
   const { args } = entry;
-  const texts = args.flatMap((arg, at) => {
-    if (CODE_FLAG.test(args[at - 1] ?? "")) return [arg, ...wordsOf(arg)];
-    // Code glued to its flag, as in `--eval=CODE` or `-eCODE`.
-    const glued = /^(--?[A-Za-z]+)=([\s\S]+)$/.exec(arg) ?? /^(-[A-Za-z])([\s\S]+)$/.exec(arg);
-    return glued !== null && CODE_FLAG.test(glued[1] ?? "") ? [arg, ...wordsOf(glued[2] ?? "")] : [arg];
+  const plain: string[] = [];
+  const code: string[] = [];
+  args.forEach((arg, at) => {
+    const text = codeIn(args, at);
+    // Code, rather than a path, holds a space or shell punctuation: only its words are read then.
+    if (text === undefined || !CODE_TEXT.test(text)) plain.push(arg);
+    if (text !== undefined) code.push(...wordsOf(text));
   });
-  const named = texts.flatMap(optionTexts).flatMap(pathsIn);
-  const all = [resolve(root, entry.command), ...onPath(entry.command), ...named.map((path) => resolve(root, path))];
-  return all.filter(couldExist);
+  const paths = (texts: string[]) =>
+    texts
+      .flatMap(optionTexts)
+      .flatMap(pathsIn)
+      .map((path) => resolve(root, path));
+  return [
+    ...[resolve(root, entry.command), ...onPath(entry.command), ...paths(plain)].map((path) => ({
+      path,
+      fromCode: false,
+    })),
+    ...paths(code).map((path) => ({ path, fromCode: true })),
+  ].filter((candidate) => couldExist(candidate.path));
 }
 
-const NAME_BYTES = 255;
+/** The shell string or inline code `args[at]` holds: all of it after a code flag, or the code glued to one. */
+function codeIn(args: readonly string[], at: number): string | undefined {
+  const arg = args[at] ?? "";
+  if (CODE_FLAG.test(args[at - 1] ?? "")) return arg;
+  // Code glued to its flag, as in `--eval=CODE` or `-eCODE`.
+  const glued = /^(--?[A-Za-z]+)=([\s\S]+)$/.exec(arg) ?? /^(-[A-Za-z])([\s\S]+)$/.exec(arg);
+  return glued !== null && CODE_FLAG.test(glued[1] ?? "") ? glued[2] : undefined;
+}
 
 /**
- * Whether every part of `path` is short enough to be a file's name, 255 bytes on the common file systems. A longer part,
- * as when inline code after `-e` is read as a path, names nothing; a path that is only too long in all is kept, and
- * refused when it can't be resolved, because the server may still open it relative to the root.
+ * A path the command line may name. One read from a shell string or inline code (`fromCode`) is a guess from its words,
+ * so a path too long in all names nothing there; a plain argument that long is refused, since the server may still open
+ * it relative to the root.
  */
-const couldExist = (path: string): boolean =>
-  path.split(sep).every((part) => new TextEncoder().encode(part).length <= NAME_BYTES);
+interface Candidate {
+  readonly path: string;
+  readonly fromCode: boolean;
+}
+
+const NAME_CHARACTERS = 255;
+
+/**
+ * Whether every part of `path` is short enough to be a file's name on some file system: no file system allows more than
+ * 255 characters, though ext4 counts 255 bytes, APFS 255 characters and NTFS 255 UTF-16 units. A longer part names
+ * nothing; a path that is only too long in all is kept, and refused when it can't be resolved, because the server may
+ * still open it relative to the root.
+ */
+const couldExist = (path: string): boolean => path.split(sep).every((part) => [...part].length <= NAME_CHARACTERS);
 
 /** An argument and, when it is an option with its value glued on, that value. */
 function optionTexts(text: string): string[] {
@@ -381,7 +412,10 @@ async function realOf(roots: Roots, path: string): Promise<string | undefined> {
   try {
     return await realpath(path);
   } catch (error) {
-    if (MISSING.has(codeOf(error) ?? "") || !writtenInside(roots, path)) return undefined;
+    const code = codeOf(error) ?? "";
+    if (MISSING.has(code) || (roots.fromCode === true && code === "ENAMETOOLONG") || !writtenInside(roots, path)) {
+      return undefined;
+    }
     throw error;
   }
 }
@@ -435,6 +469,8 @@ async function projectPath(file: string, roots: Roots, path: string): Promise<st
 interface Roots {
   readonly base: string;
   readonly given: string;
+  /** Set while the path being checked was read from code: see `Candidate`. */
+  readonly fromCode?: boolean;
 }
 
 /** The hash of the file or folder at `real`, a real path inside the project, or `undefined` for anything else. */
@@ -461,9 +497,10 @@ const PATH_REFUSALS = {
 async function namedPaths(file: string, roots: Roots, entry: Entry, budget: HashBudget) {
   const root = roots.base;
   const paths: Record<string, string> = {};
-  for (const candidate of candidatesOf(entry, root)) {
-    for (const spelling of await spellingsOf(file, roots, candidate)) {
-      const real = await projectPath(file, roots, spelling);
+  for (const { path, fromCode } of candidatesOf(entry, root)) {
+    const where = fromCode ? { ...roots, fromCode } : roots;
+    for (const spelling of await spellingsOf(file, where, path)) {
+      const real = await projectPath(file, where, spelling);
       if (real === undefined) continue;
       const key = relative(root, real).split(sep).join("/");
       if (Object.hasOwn(paths, key)) continue;
