@@ -220,3 +220,11 @@ Every relative link and anchor in the report and this log was resolved with `pnp
 | research/system-1-system-2-routing-130 | Chapter section | The report has seven numbered rules, and the chapter's five sections carry them | ✅ | Counted in the Rules section: rules 1 to 7. The fix changed "five rules" to "seven rules" in the chapter heading and the section list |
 | research/system-1-system-2-routing-131 | Rule 4 | The three studies in rule 4 (Chen et al., AdaptThink and Snell et al.) each measured math on one model family | ✅ | Setup sections as in the Rule 4 rows. The fix replaced "These are" with "The three studies measured" |
 
+
+### Independent writing-review fixes, re-checked (2026-11-28)
+
+| # | Section | Claim | Verdict | Source and note |
+|---|---|---|---|---|
+| research/system-1-system-2-routing-152 | Models ¶2 | The cheapest decision models cost less than any general model in the table | ✏️ | The head said decision models cost less than "the cheapest general model", but Clef's $0.24 input is above Haiku 5.5's $0.10 (row research/system-1-system-2-routing-38) and Groq's `gpt-oss-20b` at $0.075. Corrected to the cheapest decision models: Clef-flash at $0.038 and Jev at $0.042 are below every general model's input rate in the Models table |
+| research/system-1-system-2-routing-153 | Rule 5 | Rule 3 names the steps to try a slow call on, and rule 5 asks evals to confirm each one | ⚠️ | Our own framing, added by the independent review to order rules 3 and 5; no source |
+| research/system-1-system-2-routing-154 | Examples | Example 3 prices output at the first example's rates and keeps output out of the cached context | ✅ | Re-read against the assumptions in row research/system-1-system-2-routing-125; the totals are unchanged. The Haiku-then-Sonnet total is $0.06795 unrounded, shown as $0.0680 |
