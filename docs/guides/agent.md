@@ -228,7 +228,7 @@ The tribunal awarded C$650.88 plus interest and fees, and Replit's CEO announced
 
 **The per-ticket budget is checked before the call.** Claude's `maxBudgetUsd` and mini-swe-agent's `cost_limit` both overshoot by one response, so the agent takes the pre-emptive option of harness decision 9 ([cost note §10][en10]; [agent research §7][ar7]). Guardrail order matters too: OpenAI's input guardrails default to `runInParallel: true`, so "the model may already have consumed tokens or run tools" before one trips ([cost note §10][en10]).
 
-**Route by role at step boundaries, not per request.** The main report's layer 1 lists "routing easy work to smaller models", but about 45 HN authors route by role, and changing model or effort mid-session busts the cache ([HN §2.2, row 14][hn22]). The reader, planner and drafter are separate contexts, so each may use its own pinned model, recorded in the bundle. The model changes only between contexts, as the harness allows model and effort changes only at session or subagent boundaries ([harness guide §3][h3]).
+**Route by role at step boundaries, not per request.** The main report's layer 1 lists "routing easy work to smaller models", but practitioners route by role and report that changing model or effort mid-session busts the cache ([HN §2.2, row 14][hn22]). Two vendors now document the cost of a model change: OpenRouter says that switching models "costs extra while the new model rebuilds the prompt cache", and Cloudflare says it "throws the cache away" ([OpenRouter][or-auto]; [Cloudflare][cf-auto]). Changing the top-level effort between requests "can invalidate all or part of the prompt cache" too ([Anthropic][an-effort]), but a per-message effort keeps the cached prefix: Anthropic offers one in beta, and OpenAI offers a `configuration_update` input item on supported GPT-6 and later models ([Anthropic][an-pm-effort]; [OpenAI][oa-caching]; [routing report][rr-effort]). The reader, planner and drafter are separate contexts, so each may use its own pinned model, recorded in the bundle. The model changes only between contexts, as the harness allows model and top-level effort changes only at session or subagent boundaries ([harness guide §3][h3]). Our gateway cannot yet send a per-message effort ([build SDK plan §6.2](../plans/build-sdk.md#62-no-question-is-open-and-one-item-waits-for-a-later-round)).
 
 **Cost per resolved ticket is the comparable figure.** Resolution-priced vendors such as Intercom charge per outcome, so a cheaper model that resolves fewer tickets can cost more per resolution ([cost note §10][en10]). Practitioner cost evidence transfers poorly here, because most of it concerns subscription quotas rather than API bills; the API bills that do appear are cautionary, such as "$650 of credits" in about an hour ([reliability, subscriptions][hnn-subs]). Batch pricing gives "a 50 percent discount on both input and output tokens", which nightly graders and capability runs can use and live tickets cannot ([cost note §10][en10]).
 
@@ -420,3 +420,10 @@ The boundaries with the lower layers are already drawn: the SDK owns the loop an
 [dc-agent]: ../comparison/deep-comparison.md#the-agent-layer-few-tools-a-gate-per-risk-and-a-final-tool-for-output
 [adk12]: ../reference/google-adk/guide.md#12-a-gated-triage-agent-takes-four-settings
 [cp13]: ../reference/copilot-sdk/guide.md#13-a-gated-triage-agent-takes-five-choices
+
+[rr-effort]: ../research/model-routing/system-1-system-2-and-model-routing.md#the-repos-routing-rule-holds-for-model-changes-and-needs-one-qualifier-for-effort-changes
+[or-auto]: https://openrouter.ai/docs/guides/routing/routers/auto-router
+[cf-auto]: https://blog.cloudflare.com/auto-router/
+[an-effort]: https://platform.claude.com/docs/en/build-with-claude/effort
+[an-pm-effort]: https://platform.claude.com/docs/en/build-with-claude/effort-per-message
+[oa-caching]: https://developers.openai.com/api/docs/guides/prompt-caching
