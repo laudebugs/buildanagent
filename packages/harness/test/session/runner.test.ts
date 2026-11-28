@@ -303,9 +303,11 @@ describe.each(BACKENDS)("%s", (_name, make) => {
         await session.close();
       }
     };
+    // A clean run counts how many ids a turn draws.
     let draws = 0;
     await turn(() => `id-${++draws}`);
-    // Break the generator at each draw of a clean turn in turn: whichever entry hit it, the turn must fail with it.
+    // Then run the turn once per draw and break the generator at that draw. Whichever entry hits the break, the turn
+    // must fail with the generator's error.
     for (let after = 0; after < draws; after += 1) {
       let calls = 0;
       const newId = () => {

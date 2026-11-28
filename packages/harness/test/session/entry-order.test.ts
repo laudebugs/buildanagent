@@ -1,7 +1,8 @@
-// A session's log must not depend on how long its store takes to append. Each capstone case runs on the JSONL files,
-// on the in-memory store, on the DynamoDB store over a fake client and on the Postgres store over PGlite. All four must
-// write the same entries: the same ids, parents, times and contents. The rejected case is the one whose ids depend on
-// append timing: its denied tool_result and the next message take ids from the same generator one after the other.
+// A session's log must not depend on how long its store takes to append. Each capstone case runs on four stores: the
+// JSONL files, the in-memory store, the DynamoDB store over a fake client and the Postgres store over PGlite. All four
+// must write the same entries, with the same ids, parents, timestamps and contents. The rejected case checks this
+// hardest: its denied tool_result and the next message draw ids from one generator back to back, so the store's
+// append time would decide which gets which.
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
