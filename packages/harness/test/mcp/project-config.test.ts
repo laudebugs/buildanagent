@@ -1,6 +1,7 @@
 // A project's `.mcp.json` starts nothing until the project is trusted and each server's config is pinned. The fixture
 // project's server writes `marker.json` the moment it starts, so a missing marker proves the command never ran.
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -469,7 +470,7 @@ describe("project MCP configs: the notice and the refusals", () => {
   });
 });
 
-describe("project MCP configs: round 2", () => {
+describe("project MCP configs: caps, spellings and refusal causes", () => {
   test("a folder's walk stops at the cap, before it is listed whole, and empty folders count", async () => {
     const root = project(server({ args: ["d"] }));
     for (let i = 0; i < 4100; i++) mkdirSync(join(root, "d", `e${i}`), { recursive: true });
@@ -570,5 +571,75 @@ describe("project MCP configs: a path that leaves the project partway along", ()
     const root = project(server({ args: [join(outside, "x.mjs"), process.execPath] }));
     const result = await loadProjectMcpServers(root, options(root, false));
     assert.deepEqual(result.declared[0]?.files, {});
+  });
+});
+
+describe("project MCP configs: what a program runs for a path the command line names", () => {
+  /** Loads a trusted project's config and gives the paths its one server's pin hashes. */
+  async function pinnedPaths(root: string): Promise<string[]> {
+    const result = await loadProjectMcpServers(root, options(root, true));
+    return Object.keys(result.declared[0]?.files ?? {}).sort();
+  }
+
+  test("a script named without its extension is pinned, so replacing it asks again", async () => {
+    const root = project(server({ args: ["server"] }));
+    writeFileSync(join(root, "server.js"), "first");
+    // Both spellings Node could run for `server` are pinned; the fixture's own `server.mjs` is one.
+    assert.deepEqual(await pinnedPaths(root), ["server.js", "server.mjs"]);
+    await pinAll(root);
+    writeFileSync(join(root, "server.js"), "replaced");
+    const again = await loadProjectMcpServers(root, options(root, true, { secrets: secrets().resolve }));
+    assert.equal(again.declared[0]?.state, "changed");
+    assert.deepEqual(again.servers, []);
+  });
+
+  test("the value glued to a one-letter option is pinned, with or without its extension", async () => {
+    const root = project(server({ command: "ruby", args: ["-r./hook", "-I./lib", "server.mjs"] }));
+    writeFileSync(join(root, "hook.rb"), "1");
+    mkdirSync(join(root, "lib"));
+    writeFileSync(join(root, "lib", "a.rb"), "2");
+    assert.deepEqual(await pinnedPaths(root), ["hook.rb", "lib", "server.mjs"]);
+  });
+
+  test("a bare command found in a project folder on PATH is pinned", async () => {
+    const root = project(server({ command: "tracker", args: [] }));
+    mkdirSync(join(root, "node_modules", ".bin"), { recursive: true });
+    writeFileSync(join(root, "node_modules", ".bin", "tracker"), "#!/bin/sh\n");
+    const saved = process.env.PATH;
+    process.env.PATH = [join(root, "node_modules", ".bin"), saved ?? ""].join(process.platform === "win32" ? ";" : ":");
+    try {
+      assert.deepEqual(await pinnedPaths(root), ["node_modules/.bin/tracker"]);
+    } finally {
+      process.env.PATH = saved;
+    }
+  });
+
+  test("a bare command beside the root, where Windows looks first, is pinned with its extension", async () => {
+    const root = project(server({ command: "evil", args: [] }));
+    writeFileSync(join(root, "evil.exe"), "MZ");
+    assert.deepEqual(await pinnedPaths(root), ["evil.exe"]);
+  });
+
+  test("a link inside the project that leads nowhere is refused, even untrusted", async () => {
+    const root = project(server({ args: ["gone.mjs"] }));
+    symlinkSync(join(root, "missing-target.mjs"), join(root, "gone.mjs"));
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), (error) => {
+      return isHarnessError(error) && error.code === "invalid_mcp_config" && /or to nothing/.test(error.message);
+    });
+  });
+
+  test.skipIf(process.platform === "win32")("a pipe the command line names is refused, not skipped", async () => {
+    const root = project(server({ args: ["server.mjs", "pipe"] }));
+    assert.equal(spawnSync("mkfifo", [join(root, "pipe")]).status, 0);
+    await assert.rejects(loadProjectMcpServers(root, options(root, false)), /is or holds a special file/);
+  });
+
+  test("a caller that leaves out headless gets a headless run", async () => {
+    const root = project();
+    await pinAll(root);
+    const { headless: _, ...rest } = options(root, true, { secrets: secrets().resolve });
+    const result = await loadProjectMcpServers(root, rest as ProjectMcpOptions);
+    assert.deepEqual(result.servers, []);
+    assert.match(result.notices[0] ?? "", /headless/);
   });
 });

@@ -21,8 +21,8 @@
 import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../errors.js";
-import { isRecord as isObject } from "../mcp/content.js";
-import { FileRefusal, hashTree, quote, readCapped, setOwn } from "./files-node.js";
+import { isRecord } from "../mcp/content.js";
+import { hashTree, onRefusal, quote, readCapped, setOwn } from "./files-node.js";
 
 const LOCK_VERSION = 1;
 const MAX_LOCK_BYTES = 1024 * 1024;
@@ -32,16 +32,17 @@ export const defaultLockFile = (root: string): string => join(root, ".agents", "
 
 /** The hash of an extension folder: `sha256:` and the digest over each file's path and content digest, in sorted order. */
 export async function hashExtensionDir(dir: string): Promise<string> {
-  try {
-    return await hashTree(dir);
-  } catch (error) {
-    if (!(error instanceof FileRefusal)) throw error;
-    throw new HarnessError(
-      "invalid_extension",
-      `${error.path} is a link or a special file, which an extension may not contain`,
-      { cause: error },
-    );
-  }
+  return onRefusal(
+    hashTree(dir),
+    (refusal) =>
+      new HarnessError(
+        "invalid_extension",
+        `${refusal.path} is a link or a special file, which an extension may not contain`,
+        {
+          cause: refusal,
+        },
+      ),
+  );
 }
 
 /** Parses JSON that must be an object, or throws `invalid_extension` naming the file. */
@@ -59,7 +60,7 @@ export function jsonObject(text: string): Record<string, unknown> | "is not vali
   } catch {
     return "is not valid JSON";
   }
-  return isObject(parsed) ? parsed : "is not a JSON object";
+  return isRecord(parsed) ? parsed : "is not a JSON object";
 }
 
 type LockBody = { version?: unknown; extensions?: unknown; mcp?: unknown };
@@ -72,12 +73,10 @@ const LOCK_REFUSALS = {
 
 /** The lock file's text, or `undefined` without one: a link, a pipe or a file over 1 MiB is refused. */
 async function readLockText(file: string): Promise<string | undefined> {
-  try {
-    return await readCapped(file, MAX_LOCK_BYTES);
-  } catch (error) {
-    if (!(error instanceof FileRefusal)) throw error;
-    throw new HarnessError("invalid_extension", `${file} ${LOCK_REFUSALS[error.kind]}`, { cause: error });
-  }
+  return onRefusal(
+    readCapped(file, MAX_LOCK_BYTES),
+    (refusal) => new HarnessError("invalid_extension", `${file} ${LOCK_REFUSALS[refusal.kind]}`, { cause: refusal }),
+  );
 }
 
 /** The lock file's parsed body, checked for its version and the shape of both members, or `undefined` without one. */
@@ -85,7 +84,7 @@ async function readBody(file: string): Promise<LockBody | undefined> {
   const text = await readLockText(file);
   if (text === undefined) return undefined;
   const parsed = parseObject(text, file) as LockBody;
-  const badMember = (value: unknown) => value !== undefined && !isObject(value);
+  const badMember = (value: unknown) => value !== undefined && !isRecord(value);
   if (parsed.version !== LOCK_VERSION || badMember(parsed.extensions) || badMember(parsed.mcp)) {
     throw new HarnessError("invalid_extension", `the lock file ${file} is not an extensions.lock.json of version 1`);
   }
@@ -160,8 +159,8 @@ export async function readMcpPins(file: string, server: string): Promise<Readonl
   if (!Object.hasOwn(servers, server)) return undefined;
   const entry = servers[server];
   // A project server's config pin may stand alone, before any of its tools is approved.
-  if (isObject(entry) && entry.tools === undefined) return undefined;
-  if (!isObject(entry) || !isObject(entry.tools)) {
+  if (isRecord(entry) && entry.tools === undefined) return undefined;
+  if (!isRecord(entry) || !isRecord(entry.tools)) {
     throw new HarnessError("invalid_extension", `the lock file ${file} holds no tool pins for "${server}"`);
   }
   const pins: Record<string, string> = {};
@@ -191,7 +190,7 @@ export async function readMcpConfigPins(file: string): Promise<ReadonlyMap<strin
   const body = await readBody(file);
   const pins = new Map<string, string>();
   for (const [server, entry] of Object.entries((body?.mcp ?? {}) as Record<string, unknown>)) {
-    if (!isObject(entry) || entry.config === undefined) continue;
+    if (!isRecord(entry) || entry.config === undefined) continue;
     if (typeof entry.config !== "string") {
       throw new HarnessError("invalid_extension", `the lock file pins the config of ${quote(server)} to no hash`);
     }
@@ -217,7 +216,7 @@ async function writeServerMember(
   value: unknown,
 ): Promise<void> {
   const servers = { ...((before?.mcp ?? {}) as Record<string, unknown>) };
-  const old = Object.hasOwn(servers, server) && isObject(servers[server]) ? servers[server] : {};
+  const old = Object.hasOwn(servers, server) && isRecord(servers[server]) ? servers[server] : {};
   setOwn(servers, server, sorted(Object.entries({ ...old, [member]: value })));
   await writeBody(file, {
     version: LOCK_VERSION,

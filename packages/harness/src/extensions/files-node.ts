@@ -4,7 +4,7 @@
  * loader and the MCP config loader each keep their own code and wording. Node-only.
  */
 import { createHash } from "node:crypto";
-import { constants } from "node:fs";
+import { constants, type Dirent } from "node:fs";
 import { type FileHandle, open, opendir } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -20,6 +20,16 @@ export class FileRefusal extends Error {
     super(`${path}: ${kind}`);
     this.kind = kind;
     this.path = path;
+  }
+}
+
+/** What `work` gives, or the error `toError` makes of a `FileRefusal` it throws; any other error passes through. */
+export async function onRefusal<T>(work: Promise<T>, toError: (refusal: FileRefusal) => Error): Promise<T> {
+  try {
+    return await work;
+  } catch (error) {
+    if (!(error instanceof FileRefusal)) throw error;
+    throw toError(error);
   }
 }
 
@@ -139,7 +149,7 @@ async function digestOf(handle: FileHandle, path: string, budget: HashBudget | u
  * there, before it is listed whole.
  */
 async function filesUnder(dir: string, budget: HashBudget | undefined, prefix = ""): Promise<string[]> {
-  const entries: import("node:fs").Dirent[] = [];
+  const entries: Dirent[] = [];
   for await (const entry of await opendir(join(dir, prefix))) {
     charge(budget, join(dir, prefix, entry.name));
     entries.push(entry);

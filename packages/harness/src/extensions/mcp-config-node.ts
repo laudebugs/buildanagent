@@ -6,15 +6,25 @@
  * The file is `.mcp.json` at the project root, in the shape Claude Code and Pi read, `{ "mcpServers": { "<name>": {
  * "command", "args", "env" } } }`. Only stdio servers load from it; a remote entry is skipped with a notice.
  */
-import { realpath, stat } from "node:fs/promises";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { readdir, realpath, stat } from "node:fs/promises";
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import process from "node:process";
 import { canonicalInputHash } from "@buildanagent/sdk";
 import { HarnessError } from "../errors.js";
 import { checkServerConfig } from "../mcp/connection.js";
-import { isRecord as isObject } from "../mcp/content.js";
+import { isRecord } from "../mcp/content.js";
 import type { McpServerConfig } from "../mcp/types.js";
 import { protectedNameReason } from "../sandbox/spawn-env.js";
-import { FileRefusal, type HashBudget, hashFile, hashTree, quote, readCapped, setOwn } from "./files-node.js";
+import {
+  FileRefusal,
+  type HashBudget,
+  hashFile,
+  hashTree,
+  onRefusal,
+  quote,
+  readCapped,
+  setOwn,
+} from "./files-node.js";
 import { canonicalPath, exists, projectTrusted } from "./load.js";
 import { defaultLockFile, jsonObject, readMcpConfigPins, writeMcpConfigPin } from "./lock.js";
 import { isInside } from "./project-dirs.js";
@@ -37,7 +47,7 @@ export interface ProjectMcpFiles {
 /** What `loadProjectMcpServers()` needs to decide. */
 export interface ProjectMcpOptions extends ProjectMcpFiles {
   readonly trust: TrustStore;
-  /** True for a run nobody can answer: no project server starts unless `loadInHeadless` is set. */
+  /** True for a run nobody can answer: no project server starts unless `loadInHeadless` is set. Only `false` is not headless. */
   readonly headless: boolean;
   /** Lets a headless run start the pinned servers of a project the trust store already trusts. Default false. */
   readonly loadInHeadless?: boolean;
@@ -66,9 +76,10 @@ export interface ProjectMcpServer {
   /**
    * The hash of each file or folder inside the project that the command line names, by its real path relative to the
    * root, so two spellings of one file are one entry: a file as `sha256:` and its SHA-256, a folder as the hash of
-   * every file in it. A path counts when it is the command (if it is a path), an argument, or the value of an
-   * `--option=value` argument, and its real path is inside the project, however it is spelled. What the named code
-   * loads by other means is not covered.
+   * every file in it. A path counts when it is the command, an argument or an option's value, or a file beside one of
+   * those named it with an extension added, and its real path is inside the project, however it is spelled. A bare
+   * command also counts in the root and in each folder of the `PATH`. What the named code loads by other means is not
+   * covered.
    */
   readonly files: Readonly<Record<string, string>>;
   /** The pin of this config: `sha256:` and the hash of the canonical JSON of the command, args, env and files. */
@@ -109,6 +120,8 @@ const STDIO_KEYS = new Set(["type", "command", "args", "env"]);
 const REMOTE_TYPES = new Set(["http", "sse", "streamable-http"]);
 // `--import=./preload.mjs` names a file as much as `./preload.mjs` does.
 const OPTION_VALUE = /^--?[A-Za-z0-9][A-Za-z0-9._-]*=(.+)$/s;
+// So does `-r./hook.rb`, a one-letter option with its value glued on.
+const SHORT_VALUE = /^-[A-Za-z](.+)$/s;
 
 const refuse = (file: string, message: string, cause?: unknown) =>
   new HarnessError("invalid_mcp_config", `${quote(file)}: ${message}`, cause === undefined ? undefined : { cause });
@@ -134,7 +147,7 @@ function checkText(file: string, server: string, field: string, value: string): 
 function envOf(file: string, server: string, env: unknown): Record<string, string> {
   const where = `the MCP server ${quote(server)}`;
   if (env === undefined) return {};
-  if (!isObject(env)) throw refuse(file, `${where} has an env that is not an object`);
+  if (!isRecord(env)) throw refuse(file, `${where} has an env that is not an object`);
   if (Object.keys(env).length > MAX_ENV) throw refuse(file, `${where} sets more than ${MAX_ENV} variables`);
   const references: Record<string, string> = {};
   for (const [name, value] of Object.entries(env)) {
@@ -167,7 +180,7 @@ function checked(file: string, config: McpServerConfig): void {
 function entryOf(file: string, name: string, raw: unknown): Entry | undefined {
   checkText(file, name, "name", name);
   const where = `the MCP server ${quote(name)}`;
-  if (!isObject(raw)) throw refuse(file, `${where} is not an object`);
+  if (!isRecord(raw)) throw refuse(file, `${where} is not an object`);
   if (raw.url !== undefined || (typeof raw.type === "string" && REMOTE_TYPES.has(raw.type))) return undefined;
   const unknown = Object.keys(raw).find((key) => !STDIO_KEYS.has(key));
   if (unknown !== undefined) throw refuse(file, `${where} has a member ${quote(unknown)} this harness does not read`);
@@ -195,7 +208,7 @@ function parseConfig(file: string, text: string): { entries: Entry[]; notices: s
   const parsed = jsonObject(text);
   if (typeof parsed === "string") throw refuse(file, `it ${parsed}`);
   const servers = parsed.mcpServers;
-  if (!isObject(servers)) throw refuse(file, `it has no "mcpServers" object`);
+  if (!isRecord(servers)) throw refuse(file, `it has no "mcpServers" object`);
   const entries: Entry[] = [];
   const notices: string[] = [];
   const names = new Set<string>();
@@ -213,13 +226,41 @@ function parseConfig(file: string, text: string): { entries: Entry[]; notices: s
   return { entries, notices };
 }
 
-/** The paths a command line names: the command when it is a path, each argument, and each `--option=value` value. */
-function candidatesOf(entry: Entry): string[] {
-  const found = entry.command.includes("/") || entry.command.includes(sep) ? [entry.command] : [];
+/**
+ * The paths a command line may name, resolved against the root: the command, each argument, and each option's value,
+ * as in `--import=./p.mjs` or `-r./hook.rb`. A bare command also counts in each absolute folder of the `PATH` the
+ * server gets, which may be a folder of the project such as `node_modules/.bin`, and in the root, where Windows looks
+ * first. Most name nothing in the project and are skipped later.
+ */
+function candidatesOf(entry: Entry, root: string): string[] {
+  const { command } = entry;
+  const found = [resolve(root, command)];
+  if (!command.includes("/") && !command.includes(sep)) {
+    for (const folder of (process.env.PATH ?? "").split(delimiter)) {
+      if (isAbsolute(folder)) found.push(join(folder, command));
+    }
+  }
   for (const arg of entry.args) {
-    found.push(arg);
-    const value = OPTION_VALUE.exec(arg)?.[1];
-    if (value !== undefined) found.push(value);
+    if (arg === "") continue;
+    found.push(resolve(root, arg));
+    const value = OPTION_VALUE.exec(arg)?.[1] ?? SHORT_VALUE.exec(arg)?.[1];
+    if (value !== undefined) found.push(resolve(root, value));
+  }
+  return found;
+}
+
+/**
+ * `path` and every entry beside it named `path`, a dot and more, in any letter case: what a program that adds an
+ * extension runs for it, as Node runs `server.js` for `node server`, Ruby `hook.rb` for `-rhook` and Windows `evil.exe`
+ * for `evil`. Only a folder whose real path is in the project is listed.
+ */
+async function spellingsOf(root: string, path: string): Promise<string[]> {
+  const found = [path];
+  const folder = await realOrNone(dirname(path));
+  if (folder === undefined || !isInside(root, folder)) return found;
+  const stem = `${basename(path).toLowerCase()}.`;
+  for (const name of await readdir(dirname(path))) {
+    if (name.toLowerCase().startsWith(stem)) found.push(join(dirname(path), name));
   }
   return found;
 }
@@ -242,14 +283,18 @@ async function projectPath(file: string, roots: Roots, path: string): Promise<st
   const real = await realOrNone(path);
   if (real === root) return undefined;
   if (real !== undefined && isInside(root, real)) return real;
-  if (real === undefined) return undefined;
+  // Nothing resolves and nothing is there; a link that leads nowhere is something, and is refused like one leading out.
+  if (real === undefined && !(await exists(path))) return undefined;
   const written = isInside(roots.given, path) || isInside(root, path);
   const folder = written ? undefined : await realOrNone(dirname(path));
   if (written || (folder !== undefined && isInside(root, folder))) {
     const shown = written
       ? relative(isInside(root, path) ? root : roots.given, path)
       : relative(folder as string, path);
-    throw refuse(file, `it names ${quote(shown)}, which leads through a link to a path outside the project`);
+    throw refuse(
+      file,
+      `it names ${quote(shown)}, which leads through a link to a path outside the project or to nothing`,
+    );
   }
   return undefined;
 }
@@ -264,14 +309,15 @@ interface Roots {
 async function pathHash(real: string, budget: HashBudget): Promise<string | undefined> {
   const found = await stat(real);
   if (found.isDirectory()) return hashTree(real, budget);
-  if (!found.isFile()) return undefined;
+  // A pipe or a device the command line names would be read by the server but can't be pinned.
+  if (!found.isFile()) throw new FileRefusal("not_file", real);
   const hash = await hashFile(real, budget);
   return hash === undefined ? undefined : `sha256:${hash}`;
 }
 
 const PATH_REFUSALS = {
   link: "is a link, or holds one, which a pinned path may not",
-  not_file: "holds a special file, which a pinned path may not",
+  not_file: "is or holds a special file, which a pinned path may not",
   too_big: `is over what a pin covers: ${HASH_LIMITS.files} files, ${HASH_LIMITS.bytes} bytes in all or ${HASH_LIMITS.fileBytes} bytes in one file; name the script itself`,
 } as const;
 
@@ -283,22 +329,20 @@ const PATH_REFUSALS = {
 async function namedPaths(file: string, roots: Roots, entry: Entry, budget: HashBudget) {
   const root = roots.base;
   const paths: Record<string, string> = {};
-  for (const candidate of candidatesOf(entry)) {
-    if (candidate === "") continue;
-    const real = await projectPath(file, roots, resolve(root, candidate));
-    if (real === undefined) continue;
-    const key = relative(root, real).split(sep).join("/");
-    if (Object.hasOwn(paths, key)) continue;
-    try {
-      const hash = await pathHash(real, budget);
-      if (hash !== undefined) setOwn(paths, key, hash);
-    } catch (error) {
-      if (!(error instanceof FileRefusal)) throw error;
-      throw refuse(
-        file,
-        `the MCP server ${quote(entry.name)} names ${quote(key)}, which ${PATH_REFUSALS[error.kind]}`,
-        error,
+  for (const candidate of candidatesOf(entry, root)) {
+    for (const spelling of await spellingsOf(root, candidate)) {
+      const real = await projectPath(file, roots, spelling);
+      if (real === undefined) continue;
+      const key = relative(root, real).split(sep).join("/");
+      if (Object.hasOwn(paths, key)) continue;
+      const hash = await onRefusal(pathHash(real, budget), (refusal) =>
+        refuse(
+          file,
+          `the MCP server ${quote(entry.name)} names ${quote(key)}, which ${PATH_REFUSALS[refusal.kind]}`,
+          refusal,
+        ),
       );
+      if (hash !== undefined) setOwn(paths, key, hash);
     }
   }
   return paths;
@@ -387,13 +431,9 @@ async function readDeclared(
   file: string,
   pins: ReadonlyMap<string, string>,
 ): Promise<{ declared: ProjectMcpServer[]; notices: string[] } | undefined> {
-  let text: string | undefined;
-  try {
-    text = await readCapped(file, MAX_CONFIG_BYTES);
-  } catch (error) {
-    if (!(error instanceof FileRefusal)) throw error;
-    throw refuse(file, CONFIG_REFUSALS[error.kind], error);
-  }
+  const text = await onRefusal(readCapped(file, MAX_CONFIG_BYTES), (refusal) =>
+    refuse(file, CONFIG_REFUSALS[refusal.kind], refusal),
+  );
   if (text === undefined) return undefined;
   const { entries, notices } = parseConfig(file, text);
   const budget: HashBudget = { ...HASH_LIMITS };
@@ -458,9 +498,10 @@ async function outcomeOf(
  *
  * The pin covers the command, args, variable names, and the files and folders inside the project that
  * the command line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or
- * `./server` as a whole folder. A path is resolved to its real path first, so any spelling of a project
- * file counts. A path inside the project whose real path leaves it, or a folder holding a link, refuses
- * the config. One load hashes at most 4,096 files and folders and 64 MiB. The pin does
+ * `./server` as a whole folder, and each file beside a named path that adds an extension to it, as `server.js` for
+ * `node server`. A bare command counts in the root and in each project folder on the `PATH`. A path is resolved to its
+ * real path first, so any spelling of a project file counts. A path inside the project whose real path leaves it, a
+ * link that leads nowhere, a pipe, or a folder holding a link refuses the config. One load hashes at most 4,096 files and folders and 64 MiB. The pin does
  * not cover a module named by name (`pkg` in `python -m pkg`), what the named code imports from
  * elsewhere, a package that `npx` fetches, the project root itself (`node .`) or a file changed between
  * this check and the start. The lock file sits in the project, so a change that brings its own pin, as a
@@ -469,7 +510,8 @@ async function outcomeOf(
 export async function loadProjectMcpServers(root: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const base = await canonicalPath(root);
   const result: ProjectMcpServers = { servers: [], declared: [], notices: [] };
-  if (options.headless && options.loadInHeadless !== true) {
+  // Only `headless: false` counts as a run someone can answer, so a caller that leaves it out gets the safe side.
+  if (options.headless !== false && options.loadInHeadless !== true) {
     const file = configPath(base, options);
     // Only whether the file exists is looked at: nobody can answer, so there is nothing to show.
     if (await exists(file)) result.notices.push(`the MCP servers in ${quote(file)} are skipped: this run is headless`);
