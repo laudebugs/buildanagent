@@ -28,6 +28,8 @@ const releases = (v) =>
   v && typeof v === "object" && !Array.isArray(v)
     ? Object.fromEntries(Object.entries(v).filter(([k]) => !upstreamMain(k)))
     : v;
+// The part of each result file that counts as its result; every other file is compared whole.
+const PICKERS = { "run-examples.json": verdicts, "latest-releases.json": releases };
 
 function normString(s) {
   return (
@@ -106,11 +108,7 @@ for (const file of changed) {
     continue;
   }
   const after = JSON.parse(readFileSync(path.join(root, file), "utf8"));
-  const pick = file.endsWith("/run-examples.json")
-    ? verdicts
-    : file.endsWith("/latest-releases.json")
-      ? releases
-      : (v) => v;
+  const pick = PICKERS[path.basename(file)] ?? ((v) => v);
   const diffs = [];
   diff(norm(pick(before)), norm(pick(after)), "", diffs);
   if (diffs.length) {
