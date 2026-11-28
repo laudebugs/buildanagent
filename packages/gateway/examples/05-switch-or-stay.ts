@@ -70,12 +70,12 @@ const alternate =
   (t) =>
     t % 2 === 0 ? first : second; // book:note alternate
 const schedules: [string, ModelForTurn, string][] = [
-  ["Sonnet throughout", stay(SONNET), "0.0790"], // book:note total
-  ["Haiku throughout", stay(HAIKU), "0.0044"], // book:note total
-  ["Haiku then Sonnet", switchAt(SWITCH_TURN, HAIKU, SONNET), "0.0680"], // book:note total
-  ["Sonnet then Haiku", switchAt(SWITCH_TURN, SONNET, HAIKU), "0.0406"], // book:note total
-  ["alternating from Sonnet", alternate(SONNET, HAIKU), "0.0616"], // book:note total
-  ["alternating from Haiku", alternate(HAIKU, SONNET), "0.0671"], // book:note total
+  ["Sonnet throughout", stay(SONNET), "0.0790"], // book:note total-sonnet
+  ["Haiku throughout", stay(HAIKU), "0.0044"], // book:note total-haiku
+  ["Haiku then Sonnet", switchAt(SWITCH_TURN, HAIKU, SONNET), "0.0680"], // book:note total-haiku-then-sonnet
+  ["Sonnet then Haiku", switchAt(SWITCH_TURN, SONNET, HAIKU), "0.0406"], // book:note total-sonnet-then-haiku
+  ["alternating from Sonnet", alternate(SONNET, HAIKU), "0.0616"], // book:note total-alternate-sonnet
+  ["alternating from Haiku", alternate(HAIKU, SONNET), "0.0671"], // book:note total-alternate-haiku
 ];
 for (const [name, pick, expected] of schedules) {
   const cost = total(session(pick, TURN_GAP_SECONDS)); // book:note cached-run
@@ -89,6 +89,6 @@ for (const [name, pick] of schedules) {
   const reads = turns.reduce((sum, turn) => sum + turn.usage.cacheRead, 0);
   check(reads === 0, `${name}: after a gap past the cache lifetime, every turn rewrites its whole prefix`);
 }
-check(total(session(stay(SONNET), EXPIRED_GAP_SECONDS)) === "0.2950", "Sonnet throughout, expired: $0.2950"); // book:note expired-total
-check(total(session(stay(HAIKU), EXPIRED_GAP_SECONDS)) === "0.0148", "Haiku throughout, expired: $0.0148"); // book:note expired-total
+check(total(session(stay(SONNET), EXPIRED_GAP_SECONDS)) === "0.2950", "Sonnet throughout, expired: $0.2950"); // book:note expired-sonnet
+check(total(session(stay(HAIKU), EXPIRED_GAP_SECONDS)) === "0.0148", "Haiku throughout, expired: $0.0148"); // book:note expired-haiku
 // #endregion
