@@ -320,15 +320,16 @@ The paragraphs added to § Choosing a model after the owner approved the model-r
 | 212 | The OpenAI chat adapter's `extraBody` carries fields such as `reasoning_effort` | § Choosing a model | ✅ | `packages/gateway/src/adapters/openai-chat/request.ts` line 30 ("Extra fields for the request body, such as `reasoning_effort`") and `adapter.ts` line 80, read 2026-11-28 |
 | 214 | Our gateway has no typed effort option and cannot send a per-message effort | § Choosing a model | ⚠️ | A search of `packages/gateway/src` and `packages/sdk/src` for "effort" on 2026-11-28 finds only the two doc comments of row 212. An absence claim, tracked as the open design question in the [build SDK plan §6.2](../../../docs/plans/build-sdk.md#62-no-question-is-open-and-one-item-waits-for-a-later-round) |
 | 213 | OpenRouter says switching models "costs extra while the new model rebuilds the prompt cache" | § Choosing a model | ✅ | [Auto Router](https://openrouter.ai/docs/guides/routing/routers/auto-router), "Switching models costs extra while the new model rebuilds the prompt cache, so the router is restrained about it". Read 2026-11-28 |
+| 215 | After the writing review: the beta-limits sentence is split in three and the OpenRouter lead-in reworded | § Choosing a model | ✅ | Re-check of rows 210, 212 and 213: wording only; the 400 error cases, the raw `reasoning_effort` field and OpenRouter's quote are unchanged |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 185 |
+| ✅ confirmed | 186 |
 | ✏️ corrected | 14 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108, 116, 133, 140, 146 and 205) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 15 (rows 16, 31, 57, 75, 164, 168, 171, 174, 177, 178, 188, 191, 196, 197 and 214) |
-| Total | 214 |
+| Total | 215 |
 
 A row corrected in place (140 and 133) is ✏️, and so is the correction row that records the change (146 and 205), as in Chapter 1's rows 134 and 135, so each correction counts as two ✏️ rows.
 
