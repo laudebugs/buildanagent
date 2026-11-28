@@ -252,8 +252,19 @@ function candidatesOf(entry: Entry, root: string): string[] {
     return glued !== null && CODE_FLAG.test(glued[1] ?? "") ? [arg, ...wordsOf(glued[2] ?? "")] : [arg];
   });
   const named = texts.flatMap(optionTexts).flatMap(pathsIn);
-  return [resolve(root, entry.command), ...onPath(entry.command), ...named.map((path) => resolve(root, path))];
+  const all = [resolve(root, entry.command), ...onPath(entry.command), ...named.map((path) => resolve(root, path))];
+  return all.filter(couldExist);
 }
+
+const NAME_BYTES = 255;
+
+/**
+ * Whether every part of `path` is short enough to be a file's name, 255 bytes on the common file systems. A longer part,
+ * as when inline code after `-e` is read as a path, names nothing; a path that is only too long in all is kept, and
+ * refused when it can't be resolved, because the server may still open it relative to the root.
+ */
+const couldExist = (path: string): boolean =>
+  path.split(sep).every((part) => new TextEncoder().encode(part).length <= NAME_BYTES);
 
 /** An argument and, when it is an option with its value glued on, that value. */
 function optionTexts(text: string): string[] {
@@ -355,8 +366,7 @@ const realOrNone = (path: string): Promise<string | undefined> =>
     throw error;
   });
 
-// A name too long to exist names nothing, as when inline code after `-e` is read as a path.
-const MISSING = new Set(["ENOENT", "ENOTDIR", "ELOOP", "ENAMETOOLONG"]);
+const MISSING = new Set(["ENOENT", "ENOTDIR", "ELOOP"]);
 
 /** Whether `path`, as written, is under the root as the caller gave it or under its real path. */
 const writtenInside = (roots: Roots, path: string): boolean =>

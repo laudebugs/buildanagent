@@ -707,6 +707,20 @@ describe("project MCP configs: what a program runs for a path the command line n
     }
   });
 
+  // macOS caps a whole path at 1,024 bytes, which a 1,004-character argument under the root passes; Linux's 4,096 can't
+  // be reached within the 1,024-character field cap.
+  test.skipIf(process.platform !== "darwin")(
+    "a path too long in all, which the server could still open from the root, is refused, not skipped",
+    async () => {
+      const root = project();
+      const deep = Array.from({ length: 500 }, () => "d").join("/");
+      writeFileSync(join(root, ".mcp.json"), JSON.stringify(server({ command: "python3", args: [`${deep}/x.py`] })));
+      await assert.rejects(loadProjectMcpServers(root, options(root, false)), (error) => {
+        return isHarnessError(error) && error.code === "invalid_mcp_config" && /ENAMETOOLONG/.test(error.message);
+      });
+    },
+  );
+
   test("words of an argument that is not a shell string are not read as paths", async () => {
     const root = project(server({ args: ["server.mjs", "--desc", "read files from src please"] }));
     mkdirSync(join(root, "src"));
