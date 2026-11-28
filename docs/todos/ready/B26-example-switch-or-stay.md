@@ -23,7 +23,7 @@ Add `packages/gateway/examples/05-switch-or-stay.ts`, which prices a ten-turn se
 **In scope**
 
 - `packages/gateway/examples/05-switch-or-stay.ts` and its test, priced from the catalog with no model call
-- A ten-turn session that adds 2,000 input tokens a turn, with 200 output tokens a turn kept out of the cached context, at Sonnet 5.5's cache write ($2.50) and read ($0.10) rates and Haiku 5.5's ($0.125 and $0.01), with the output prices of [B24](../ongoing/B24-example-cascade-with-check.md), one cache per model and no expiry
+- A ten-turn session that adds 2,000 input tokens a turn, with 200 output tokens a turn kept out of the cached context, at Sonnet 5.5's cache write ($2.50) and read ($0.10) rates and Haiku 5.5's ($0.125 and $0.01), with the output prices of [B24](../done/B24-example-cascade-with-check.md), one cache per model and no expiry
 - The report's hand-calculated totals: $0.0790 for Sonnet throughout, $0.0044 for Haiku throughout, $0.0680 for Haiku for five turns then Sonnet, $0.0406 for Sonnet then Haiku, and $0.0616 alternating each turn starting on Sonnet ($0.0671 when Haiku takes turn 1)
 - A second run with a gap beyond the five-minute TTL before every turn, in which every model rewrites its whole prefix
 - A comment that names the Switchcraft assumption (a separate cache per model per conversation), so a reader sees that the alternation total depends on it and on which model takes turn 1
