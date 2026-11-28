@@ -145,21 +145,25 @@ Safari lets a page write to the clipboard only inside the click that asked for i
 
 If the browser lacks `ClipboardItem`, or the write is refused, the handler calls `writeText` with the text that a hover or focus fetched ahead. A clipboard with no `writeText` counts as a failed copy. `test/copy-markdown.test.ts` drives the handler with fakes and reads the source to check that nothing waits before the write.
 
-The script is static: it splices no value from the build, and the twin's address comes from the button's `data-twin` attribute. Astro inlines it as one `<script type="module">` whose text is the same on every page, so the [content security policy](#the-content-security-policy-allows-only-the-docs-own-files-and-scripts) allows it by one hash. The button's styles use tokens only, take a larger touch target on coarse pointers, set `ButtonText` borders in forced-colours mode and hide in print.
+The script is static: it splices no value from the build, and the twin's address comes from the button's `data-twin` attribute. Astro inlines it as one `<script type="module">` whose text is the same on every page, so the [content security policy](#the-content-security-policy-allows-the-docs-own-files-hashed-inline-scripts-and-style-attributes) allows it by one hash. The button's styles use tokens only, take a larger touch target on coarse pointers, set `ButtonText` borders in forced-colours mode and hide in print.
 
 ### Adding context7.json later
 
 The owner chose not to publish a `context7.json` (2026-11-23), so nothing writes one. `src/twins/integration.ts` says where to add it.
 
-## The content security policy allows only the docs' own files and scripts
+## The content security policy allows the docs' own files, hashed inline scripts and style attributes
 
 A content security policy (CSP) is a response header that tells the browser what a page may load and run. It is defence in depth, a second layer behind correct escaping: it limits what injected markup can do once it is on a page, but it does not fix the bug that let the markup in.
 
-**What the policy does not stop.** Injected markup can still add `style=` attributes, so it could restyle or cover part of a page. In an older browser (before Chrome 75, Firefox 108 or Safari 26.2) it can also add `<style>` elements. The policy does not stop navigation: an injected link, a `<meta http-equiv="refresh">` or a redirect can still send a reader to another site, because `form-action` covers forms only. `script-src 'self'` still runs every same-origin script and every hashed inline script. Last, a policy works only in a browser that enforces it.
+**What the policy does not stop.** The policy works only in a browser that enforces it, and even there it leaves these open:
 
-The docs also do not send `X-Content-Type-Options: nosniff`, which would stop a browser running a same-origin file of another type as a script. Adding it is a follow-up.
+- **Styles.** Injected markup can add `style=` attributes, so it could restyle or cover part of a page. Safari before 26.2, a recent release, also lets it add `<style>` elements, so many Safari and iOS readers are in that group today, as are Chrome before 75 and Firefox before 108.
+- **Navigation.** An injected link, a `<meta http-equiv="refresh">` or a redirect can still send a reader to another site, because `form-action` covers forms only.
+- **Page content.** Injected markup can spoof page text, and it can add elements whose `id` or `name` replaces a global that a hashed script reads.
+- **Allowed scripts.** `script-src 'self'` still runs every same-origin script and every hashed inline script.
+- **Content types.** The docs do not send `X-Content-Type-Options: nosniff`, which would stop a browser running a same-origin file of another type as a script. Adding it is a follow-up.
 
-**What the policy stops.** Cross-site scripting is an attack that injects markup into a page so that the attacker's script runs there. In a current browser, the docs' policy blocks the four ways such markup would run a script of its own or reach another site:
+**What the policy stops.** Cross-site scripting is an attack that injects markup into a page so that the attacker's script runs there. In a current browser, the docs' policy blocks the four ways such markup would run a script of its own or load anything from another origin:
 
 - an injected inline script;
 - an event-handler attribute such as `onclick=`;
@@ -179,7 +183,7 @@ The build fails on any of these:
 - an event-handler attribute, a `javascript:` URL in an attribute that holds a URL, or an SVG `<set>` or `<animate>` that changes an `href`;
 - a `<style>` or `<noscript>` element in a page, or a script in an SVG or XML file, prefixed names such as `<s:script>` included;
 - a script inside `<svg>` or `<math>`, or one whose text holds `<!--`, where a browser could read different text than the build hashes;
-- a policy source outside the allowlist: `'self'`, `'none'` and hashes, plus `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`;
+- a policy source outside the allowlist: `'self'` and `'none'`, hashes only in `script-src` and `style-src`, `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`;
 - a CSP line over 1,900 characters, any line over 2,000 or more than 100 rules.
 
 The checks read HTML with a small tokenizer, `src/csp/html.ts`, that splits a page into tags as a browser does. Markup inside an attribute value, a comment or a script's text is therefore never read as a tag. That matters because Expressive Code keeps raw code, such as `Promise<RenderedOutcome>`, in the `data-code` attribute of each block's copy button.
@@ -198,7 +202,7 @@ The attributes stay because Starlight and Expressive Code write them on every pa
 
 Moving them to classes would mean rewriting Starlight's components or its HTML after each build. We judged that change larger than the risk it removes, since the attributes cannot run a script.
 
-Allowing them by hash is possible but fragile. `'unsafe-hashes'` is the source that lets a hash allow an attribute, not only a `<style>` element. The build has 15 distinct `style=` values, whose hashes would take about 810 characters and bring the CSP line to about 1,810. Every new code colour would add one more, and the line would pass 1,900 after two.
+Allowing them by hash is possible but fragile. `'unsafe-hashes'` is the source that lets a hash allow an attribute, not only a `<style>` element, and it would replace `'unsafe-inline'`, which has the same length. The build has 15 distinct `style=` values, whose hashes take 54 characters each, about 810 in all, so the CSP line would grow from 1,000 to about 1,810 characters. Each new colour set would add one more hash, and two more would pass 1,900.
 
 The build already writes every stylesheet as a file (`build.inlineStylesheets: "never"` in `astro.config.mjs`), so no page needs a `<style>` element.
 
@@ -264,7 +268,7 @@ The docs show which release they describe and warn when they describe unreleased
 - **Text and link:** the page background, the pair "a banner on the accent" in `src/design/pairs.ts`, which `test/contrast.test.ts` measures at 4.5:1.
 - **Focus ring:** the same colour, measured at 3:1 as "the focus ring on a banner".
 
-The element keeps the `sl-banner` class for Starlight's print rule, hides in print and draws an edge in forced-colours mode. The script is static text, the same on every page, with nothing from the build in it. The [content security policy](#the-content-security-policy-allows-only-the-docs-own-files-and-scripts) therefore allows it by one hash.
+The element keeps the `sl-banner` class for Starlight's print rule, hides in print and draws an edge in forced-colours mode. The script is static text, the same on every page, with nothing from the build in it. The [content security policy](#the-content-security-policy-allows-the-docs-own-files-hashed-inline-scripts-and-style-attributes) therefore allows it by one hash.
 
 *Tests.* `test/version-built.test.ts` reads every built page and checks four things:
 

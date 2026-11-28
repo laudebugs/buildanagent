@@ -82,7 +82,7 @@ default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 
 
 **What the reviews changed.** The checks read HTML with a small tokenizer (`src/csp/html.ts`) that lower-cases ASCII letters only, so code in a `data-code` attribute is never read as a tag and offsets fit the original text. The build fails on a script inside `<svg>` or `<math>`, a script holding `<!--`, a `<noscript>`, an SVG `<set>` or `<animate>` that changes an `href`, and a policy source outside the allowlist. It reads every served SVG and XML file, prefixed names included, and tests cover each limit on the file.
 
-The first round (high) counted 9 findings, the medium round 3 plus 2 observations, and the low round 4 plus an untested-paths note; all are fixed.
+The pull request had three reviews in two rounds. The first round (high) counted 9 findings; the second round counted 3 findings and 2 observations (medium), then 4 findings and an untested-paths note (low). All are fixed.
 
 **Astro's own option was not used.** Astro 7 has `security.csp`, which adds a `<meta http-equiv="content-security-policy">` tag to each page. A `<meta>` policy cannot set `frame-ancestors`, and Astro's documentation says its CSP does not support Shiki's inline styles. The docs' deploy already serves a `_headers` file, so one header for every page is the simpler place.
 
@@ -116,5 +116,5 @@ Two fixes would close the gap, and both need a deploy change, which this todo do
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and the docs tests pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Three code reviews in two rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

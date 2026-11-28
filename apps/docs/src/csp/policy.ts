@@ -11,7 +11,7 @@ import { asciiLower, decodeReferences, type StartTag, type Tokens, tokenize } fr
 
 /**
  * The longest CSP line the build accepts, counting its indent and header name. The build fails here, before
- * Cloudflare's limit of `MAX_HEADERS_LINE` characters; the 100 characters between them hold about two hashes.
+ * Cloudflare's limit of `MAX_HEADERS_LINE` characters; a hash costs 54 characters, so the 100 between them hold one more.
  */
 export const MAX_CSP_LINE = 1900;
 /** Cloudflare's limit on one `_headers` line, spacing, header name and value included. */
@@ -187,10 +187,9 @@ export function svgPolicyFor(styleHashes: Iterable<string>): string {
 const HASH_SOURCE = /^'sha256-[A-Za-z0-9+/]{43}='$/;
 
 /**
- * Every source of a policy that is not on the docs' allowlist, as `directive source`. A source names no host:
- * `'self'`, `'none'` and hashes anywhere, `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and
- * `'unsafe-inline'` in `style-src`, the one stated exception. A hash in `style-src-elem` would be ignored there, so
- * only `script-src` and `style-src` may hold hashes.
+ * Every source of a policy that is not on the docs' allowlist, as `directive source`. No allowed source names a host:
+ * `'self'` and `'none'` in any directive, hashes in `script-src` and `style-src` only, `data:` in `img-src`,
+ * `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`, the one stated exception.
  */
 export function disallowedSources(value: string): string[] {
   const special: Record<string, readonly string[]> = {

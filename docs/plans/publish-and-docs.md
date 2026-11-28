@@ -160,7 +160,7 @@ The docs keep Starlight's `ThemeSelect` (Auto, Light, Dark), restyled. A reader'
 | Header logo and wordmark | The `logo` option or a `SiteTitle` override | A `SiteTitle` override with the inline mark, the wordmark "Build An Agent docs" and a `favicon.svg` that sets its own colours | Logo 3 (see [L12](../todos/ongoing/L12-docs-redesign.md), Out of scope); check the favicon at 16 px |
 | Diagrams | None | A figure pipeline on the book's `svgkit`: scripts in `apps/docs/figures/`, a stale-file test and a `::figure` directive that inlines the SVG and fails without alt text | Nine figures |
 | Markdown twins | None | `/<page>.md` from an endpoint that resolves `file=` fences, `llms.txt`, `llms-full.txt` and a test | Adopt |
-| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopted in L12m, after the owner agreed on 2026-11-26 |
+| Strict CSP | None | `apps/docs/public/_headers` with script hashes and a test that rebuilds and compares them | Adopted in L12m after the owner agreed on 2026-11-26, except that code colours stay as `style=` attributes |
 | In-browser edit and run | None | A large bundle, a worker and CSP exceptions | Reject for now |
 
 #### The versioning design
