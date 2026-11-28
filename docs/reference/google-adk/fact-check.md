@@ -24,7 +24,7 @@ I compiled every TypeScript source against the pinned packages in strict mode (`
 | adk-js samples (`samples/`, `dev/samples/`) | 62 | 56 | 6 | 0 | 0 | 0 |
 | **Total** | **304** | **221** | **62** | **12** | **9** | **0** |
 
-The 12 syntax blocks are method bodies and pseudocode. No source runs ahead of the release: no mismatch uses a name that only adk-js main exports, although main exports 46 names that 2.5.0 lacks (`results/latest-releases.json`). `scripts/mismatch-causes.mjs` groups the 9 api-mismatch sources by cause (`results/mismatch-causes.json`):
+The 12 syntax blocks are method bodies and pseudocode. No source runs ahead of the release: no mismatch uses a name that only adk-js main exports, although main exports 96 names that 2.5.0 lacks as of 2026-11-27 (`results/latest-releases.json`). `scripts/mismatch-causes.mjs` groups the 9 api-mismatch sources by cause (`results/mismatch-causes.json`):
 
 | Cause | Errors | Sources | Finding |
 |---|---|---|---|

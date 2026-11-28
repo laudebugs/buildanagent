@@ -13,7 +13,7 @@ pnpm run verify           # extract -> type-check -> triage -> run docs examples
 
 ## Tier 1: 224 of 713 blocks compile as written, and 78 disagree with the package
 
-I compiled every TypeScript block against the pinned packages with `tsc` 7 in strict mode (`scripts/typecheck-examples.mjs`). The pages are bilingual, so the extractor first removes every `:::python` block. A second script then checks each API error against the newest releases on the npm registry (`scripts/ahead-of-release.mjs`): a block whose missing names exist only in a newer release counts as *ahead of release*, not wrong. Against 1.6.6 no block does, because the newest release (1.6.7) adds no name that a failing block needs.
+I compiled every TypeScript block against the pinned packages with `tsc` 7 in strict mode (`scripts/typecheck-examples.mjs`). The pages are bilingual, so the extractor first removes every `:::python` block. A second script then checks each API error against the newest releases on the npm registry (`scripts/ahead-of-release.mjs`): a block whose missing names exist only in a newer release counts as *ahead of release*, not wrong. Against 1.6.6 no block does, because the newest release (1.6.8 as of 2026-11-27) adds no name that a failing block needs.
 
 | Source | Blocks | pass | fragment | syntax | other | ahead of release | api-mismatch |
 |---|---|---|---|---|---|---|---|

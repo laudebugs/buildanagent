@@ -145,3 +145,46 @@ test("fails on a package transcript whose example no longer exists", () => {
   assert.equal(run.status, 1);
   assert.match(run.stderr, /01-call\.json \(no example packages\/sdk\/examples\/01-call\.ts\)/);
 });
+
+/** A release tracker shaped like the ones ahead-of-release.mjs writes, for the demo harness that `committedHarness()` commits. */
+const tracker = ({
+  latest = "1.0.0",
+  main = "a".repeat(40),
+  exports = ["One"],
+  exportsKey = "exportsOnMainNotIn250",
+} = {}) =>
+  `${JSON.stringify(
+    { checkedAt: "2026-11-27T00:00:00.000Z", latest: { demo: latest }, main, [exportsKey]: exports },
+    null,
+    2,
+  )}\n`;
+
+function committedTracker() {
+  committedHarness();
+  write("verify/demo/results/latest-releases.json", tracker());
+  git("add", ".");
+  git("commit", "--quiet", "-m", "tracker");
+}
+
+test("passes when only the upstream main branch moved in a release tracker", () => {
+  committedTracker();
+  write("verify/demo/results/latest-releases.json", tracker({ main: "b".repeat(40), exports: ["One", "Two"] }));
+  const run = drift();
+  assert.equal(run.status, 0, run.stderr);
+});
+
+test("fails when a release tracker records a new release", () => {
+  committedTracker();
+  write("verify/demo/results/latest-releases.json", tracker({ latest: "1.0.1" }));
+  const run = drift();
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /latest-releases\.json: \/latest\/demo: "1\.0\.0" -> "1\.0\.1"/);
+});
+
+// The export list's key names the pinned release, so a pin bump renames it; that alone is not drift.
+test("passes when a pin bump renames the release tracker's export key", () => {
+  committedTracker();
+  write("verify/demo/results/latest-releases.json", tracker({ exportsKey: "exportsOnMainNotIn260", exports: ["Two"] }));
+  const run = drift();
+  assert.equal(run.status, 0, run.stderr);
+});

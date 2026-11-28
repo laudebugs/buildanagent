@@ -6,9 +6,9 @@
 // --live, which only scripts/live/run.mjs passes, runs one of our examples against a real provider
 // (scripts/live/harness.mjs).
 // For a directory other than extracted/, every *.ts file is run (our own examples).
-import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { cp, mkdir, mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
+import { execFileSync, spawn } from "node:child_process";
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { liveMode } from "../../../scripts/live/harness.mjs";
@@ -63,6 +63,52 @@ if (!ownExamples) {
 if (only) targets = targets.filter((t) => only.has(t.id));
 await mkdir("results", { recursive: true });
 
+// A sandbox manifest's gitRepo() entry makes the SDK run `git clone https://github.com/<repo>.git` as a child process.
+// The preloads' socket block does not reach child processes, so without a stand-in the clone would go to the real
+// repository. `insteadOf` rewrites every github.com URL to a local folder that holds a one-commit
+// `openai/openai-agents-js` (the only repository the docs name). GIT_ALLOW_PROTOCOL refuses every other transport,
+// so a clone of any other repository fails at once.
+// The stand-in is built only when a selected doc example calls gitRepo(). Every doc example still gets
+// GIT_ALLOW_PROTOCOL, so one that clones without naming gitRepo() fails instead of going online.
+// Our own examples and live runs get neither, because they don't clone.
+async function offlineGitHub() {
+  const fakeGitHubRoot = await mkdtemp(join(tmpdir(), "oai-github-"));
+  // "exit" fires on a normal exit and after an uncaught error, but not on a signal, so SIGINT and SIGTERM exit through it.
+  process.on("exit", () => rmSync(fakeGitHubRoot, { recursive: true, force: true }));
+  for (const [signal, code] of [
+    ["SIGINT", 130],
+    ["SIGTERM", 143],
+  ])
+    process.once(signal, () => process.exit(code));
+  const repo = join(fakeGitHubRoot, "openai", "openai-agents-js.git");
+  const work = await mkdtemp(join(tmpdir(), "oai-repo-"));
+  const git = (cwd, ...args) =>
+    execFileSync("git", ["-c", "user.name=verify", "-c", "user.email=verify@example.invalid", ...args], {
+      cwd,
+      env: { PATH: process.env.PATH, HOME: work, GIT_CONFIG_NOSYSTEM: "1" },
+      stdio: "ignore",
+    });
+  try {
+    git(work, "init", "-q", "-b", "main");
+    await writeFile(join(work, "README.md"), "# openai-agents-js\n\nA local stand-in for the offline doc examples.\n");
+    git(work, "add", "README.md");
+    git(work, "commit", "-q", "-m", "README");
+    await mkdir(dirname(repo), { recursive: true });
+    git(fakeGitHubRoot, "clone", "-q", "--bare", work, repo);
+  } finally {
+    await rm(work, { recursive: true, force: true });
+  }
+  return {
+    GIT_CONFIG_NOSYSTEM: "1",
+    GIT_CONFIG_COUNT: "1",
+    GIT_CONFIG_KEY_0: `url.file://${fakeGitHubRoot}/.insteadOf`,
+    GIT_CONFIG_VALUE_0: "https://github.com/",
+    GIT_ALLOW_PROTOCOL: "file",
+  };
+}
+const clones = !ownExamples && targets.some((t) => readFileSync(t.file, "utf8").includes("gitRepo("));
+const OFFLINE_GIT = clones ? await offlineGitHub() : ownExamples ? {} : { GIT_ALLOW_PROTOCOL: "file" };
+
 async function runOne(t) {
   const code = await readFile(t.file, "utf8");
   const ext = needsExternal(code);
@@ -83,6 +129,7 @@ async function runOne(t) {
     NODE_NO_WARNINGS: "1",
     OPENAI_AGENTS_DISABLE_TRACING: "1",
     SCRIPTED_LOG: log,
+    ...OFFLINE_GIT,
     ...liveRun?.env,
   };
   const args = ["--import", TSX];

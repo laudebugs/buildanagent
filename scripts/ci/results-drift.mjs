@@ -1,6 +1,7 @@
 // Compares each committed verify/*/results/*.json with the working copy after a run, ignoring what
 // legitimately varies between runs: timings ("ms", "checkedAt"), raw stdout ("tail"), the checkout path
-// and temp dirs. For our own examples (run-examples.json) it compares only each example's verdict.
+// and temp dirs. For our own examples (run-examples.json) it compares only each example's verdict. For the release
+// trackers (latest-releases.json) it compares only the released versions, not the upstream main branch.
 // Transcripts (results/transcripts/*.json, in verify/* and in our own packages/*) are written normalised, so they
 // are compared byte for byte; a transcript a run wrote that is not committed, a committed one the run deleted, and a
 // committed one whose example no longer exists also count as drift.
@@ -17,6 +18,18 @@ const VOLATILE = new Set(["ms", "checkedAt", "tail"]);
 const VERDICT = ["file", "outcome", "exit"];
 const verdicts = (v) =>
   Array.isArray(v) ? v.map((e) => Object.fromEntries(VERDICT.filter((k) => k in e).map((k) => [k, e[k]]))) : v;
+// latest-releases.json also records an upstream main branch: its head commit ("main") and, for ADK, the names main
+// exports that the pinned release lacks. Both move whenever upstream pushes, so every nightly would drift on them.
+// typecheck-docs.json and mismatch-causes.json record separately whether a failing doc block uses only names from main,
+// so this file is compared on its released versions ("latest") alone.
+// The export list's key names the pinned release (`exportsOnMainNotIn250` for ADK 2.5.0), so it is matched by prefix.
+const upstreamMain = (key) => key === "main" || key.startsWith("exportsOnMainNotIn");
+const releases = (v) =>
+  v && typeof v === "object" && !Array.isArray(v)
+    ? Object.fromEntries(Object.entries(v).filter(([k]) => !upstreamMain(k)))
+    : v;
+// Maps a file name to the part of its content that counts as the result. Files not listed here are compared whole.
+const PICKERS = { "run-examples.json": verdicts, "latest-releases.json": releases };
 
 function normString(s) {
   return (
@@ -95,7 +108,7 @@ for (const file of changed) {
     continue;
   }
   const after = JSON.parse(readFileSync(path.join(root, file), "utf8"));
-  const pick = file.endsWith("/run-examples.json") ? verdicts : (v) => v;
+  const pick = PICKERS[path.basename(file)] ?? ((v) => v);
   const diffs = [];
   diff(norm(pick(before)), norm(pick(after)), "", diffs);
   if (diffs.length) {
