@@ -103,6 +103,8 @@ Packages with many entry points can set `sidebar: "modules"` in `API_PACKAGES` (
 
 TypeDoc 0.28 reads TypeScript only up to 6.0, so this app pins TypeScript 6.0.3 for it, while the rest of the repo builds with TypeScript 7. Only TypeDoc should use the pin: any tool that resolves `typescript` from this app sees 6.0.3, so the `typecheck` script and the test that type-checks inline blocks resolve the repo root's TypeScript instead.
 
+TypeDoc keeps a minimatch with an advisory, and `pnpm audit` accepts it (as of November 2026). `typedoc@0.28.20`, the latest release, asks for minimatch `^10.2.5`, so it gets 10.2.6. That version carries GHSA-g3hv-75wg-m249, a denial of service through crafted glob patterns, and no 10.x release has the fix. Overriding it to 11 crashes TypeDoc, which calls `Minimatch#matchOne`, a method that 11 made private. The risk is small, because TypeDoc runs only at build time and matches only the patterns this app's config gives it. `pnpm-workspace.yaml` lists the advisory under `auditConfig.ignoreGhsas`. Remove that entry once TypeDoc depends on minimatch 11.0.1 or later.
+
 Each entry file names its module for its import path with an `@module` tag, so the reference shows `@buildanagent/gateway/anthropic`, not the path of a source file.
 
 ## Every page has a Markdown twin
