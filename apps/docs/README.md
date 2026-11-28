@@ -153,15 +153,26 @@ The owner chose not to publish a `context7.json` (2026-11-23), so nothing writes
 
 ## The content security policy allows only the docs' own files and scripts
 
-A content security policy (CSP) is a response header that tells the browser what a page may load and run. The policy is defence in depth: it limits what injected markup can do, but it does not fix the bug that let the markup in. On the docs, injected markup can still add `style=` attributes, so it could restyle or cover part of a page. It cannot run a script or load a file from another site.
+A content security policy (CSP) is a response header that tells the browser what a page may load and run. It is defence in depth, a second layer behind correct escaping: it limits what injected markup can do once it is on a page, but it does not fix the bug that let the markup in.
 
-The docs' policy blocks four things a cross-site scripting attack relies on: an injected inline script, an event-handler attribute such as `onclick=`, a `javascript:` link and any script, stylesheet, font, image or connection to another origin. It also forbids any other site to show the docs in a frame.
+**What the policy does not stop.** Injected markup can still add `style=` attributes, so it could restyle or cover part of a page. In an older browser (before Chrome 75, Firefox 108 or Safari 26.2) it can also add `<style>` elements. The policy does not stop navigation: an injected link, a `<meta http-equiv="refresh">` or a redirect can still send a reader to another site, because `form-action` covers forms only. `script-src 'self'` still runs every same-origin script and every hashed inline script. Last, a policy works only in a browser that enforces it.
 
-**Where the header comes from.** `public/_headers` holds the site-wide policy in one `/*` rule, then a rule for the favicon, [described below](#the-favicon-has-a-policy-of-its-own). Cloudflare's asset server reads that file, adds each rule's headers to the matching responses and never serves the file itself. Each line of the file may hold at most 2,000 characters, so the build fails when the CSP line passes 1,900. The deploy serves main's copy of the file, as [How `next.` stays out of search engines](#versions-the-banner-and-the-install-line-rule) describes.
+The docs also do not send `X-Content-Type-Options: nosniff`, which would stop a browser running a same-origin file of another type as a script. Adding it is a follow-up.
 
-**Inline scripts are allowed by hash.** A hash source such as `'sha256-…'` names the SHA-256 digest of one inline script's exact text, and the browser runs an inline script only when its digest is listed. As of November 2026, the 1,133 built pages carry 13 different inline scripts. They are Starlight's theme, search, sidebar, mobile-menu and tabs scripts, and the docs' banner and "Copy as Markdown" scripts. The policy has no `'unsafe-inline'` for scripts, so any other inline script is blocked.
+**What the policy stops.** Cross-site scripting is an attack that injects markup into a page so that the attacker's script runs there. In a current browser, the docs' policy blocks the four ways such markup would run a script of its own or reach another site:
 
-**A build step derives the policy from the built site.** `src/csp/integration.ts` runs after every page is written. It reads each page, hashes every inline script and writes `dist/_headers`. It also reads every served SVG and XML file, because a browser can open one as a document. `src/csp/policy.ts` holds the directives and the reason for each one.
+- an injected inline script;
+- an event-handler attribute such as `onclick=`;
+- a `javascript:` link;
+- a script, stylesheet, font, image, worker or connection from another origin.
+
+It also forbids any other site to show the docs in a frame.
+
+**Where the header comes from.** `_headers` is a Cloudflare file of response headers, one rule per path pattern. `public/_headers` holds the site-wide policy in one `/*` rule, then a rule for the favicon, [described below](#the-favicon-has-a-policy-of-its-own). Cloudflare's asset server reads that file, adds each rule's headers to the matching responses and never serves the file itself. Each line of the file may hold at most 2,000 characters, so the build fails when the CSP line passes 1,900. The deploy serves main's copy of the file, as [How `next.` stays out of search engines](#versions-the-banner-and-the-install-line-rule) describes.
+
+**Inline scripts are allowed by hash.** A hash source such as `'sha256-…'` names the SHA-256 digest of one inline script's exact text, and the browser runs an inline script only when its digest is listed. As of November 2026, the 1,133 built pages carry 13 different inline scripts. They come from seven sources: Starlight's theme, search, sidebar, mobile-menu and tabs components, and the docs' banner and "Copy as Markdown" scripts. The policy has no `'unsafe-inline'` for scripts, so any other inline script is blocked.
+
+**A build step derives the policy from the built site.** `src/csp/integration.ts` runs after every page is written. It reads each page, hashes every inline script and writes `dist/_headers`, which no deploy serves: the test below compares it with the committed file. It also reads every served SVG and XML file, because a browser can open one as a document. `src/csp/policy.ts` holds the directives and the reason for each one.
 
 The build fails on any of these:
 
@@ -171,13 +182,13 @@ The build fails on any of these:
 - a policy source outside the allowlist: `'self'`, `'none'` and hashes, plus `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`;
 - a CSP line over 1,900 characters, any line over 2,000 or more than 100 rules.
 
-The checks read HTML with a small tokenizer, `src/csp/html.ts`, that splits a page into tags as a browser does. Markup inside an attribute value, a comment or a script's text is therefore never read as a tag. Like a browser, it lower-cases ASCII letters only, so a character such as `İ` cannot shift where a script ends. Expressive Code, for example, keeps raw code such as `Promise<RenderedOutcome>` in the `data-code` attribute of each block's copy button.
+The checks read HTML with a small tokenizer, `src/csp/html.ts`, that splits a page into tags as a browser does. Markup inside an attribute value, a comment or a script's text is therefore never read as a tag. That matters because Expressive Code keeps raw code, such as `Promise<RenderedOutcome>`, in the `data-code` attribute of each block's copy button.
 
 **After a change to an inline script, regenerate the file.** A Starlight upgrade or an edited component can change an inline script's text, and with it the script's hash. Run `pnpm --filter @buildanagent/docs headers`, which builds the docs and rewrites `public/_headers` from the built pages. Then commit the file. `test/csp.test.ts` fails while the committed file differs from a fresh build's, or while a built inline script's hash is missing from it.
 
 ### Style attributes are the policy's one exception
 
-The header sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`. In a browser that knows `style-src-elem` (Chrome 75, Firefox 108 and Safari 26.2 or later, as of November 2026), the second directive limits `<style>` elements and stylesheets to the docs' own files. The `'unsafe-inline'` then covers `style=` attributes only. An older browser falls back to `style-src` and allows inline `<style>` elements too.
+The header sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`. In a browser that knows `style-src-elem` (Chrome 75 or later, Firefox 108 or later and Safari 26.2 or later, as of November 2026), the second directive limits `<style>` elements and stylesheets to the docs' own files. The `'unsafe-inline'` then covers `style=` attributes only. An older browser falls back to `style-src` and allows inline `<style>` elements too.
 
 The attributes stay because Starlight and Expressive Code write them on every page. A build on 2026-11-26 counted 86,351 `style=` attributes across the 1,133 pages:
 
@@ -185,7 +196,11 @@ The attributes stay because Starlight and Expressive Code write them on every pa
 - Its theme select sets `--sl-select-width`, and its search button and dialog set `display` and `padding`.
 - Expressive Code sets each code colour as a custom property, such as `style="--0:#F2E8DC;--1:#2A1E16"`.
 
-Moving them to classes would mean rewriting Starlight's components or its HTML after each build, a change larger than the risk it removes. Hashing each attribute would need `'unsafe-hashes'` and hundreds of hashes, far past the line limit. The build already writes every stylesheet as a file (`build.inlineStylesheets: "never"` in `astro.config.mjs`), so no page needs a `<style>` element.
+Moving them to classes would mean rewriting Starlight's components or its HTML after each build. We judged that change larger than the risk it removes, since the attributes cannot run a script.
+
+Allowing them by hash is possible but fragile. `'unsafe-hashes'` is the source that lets a hash allow an attribute, not only a `<style>` element. The build has 15 distinct `style=` values, whose hashes would take about 810 characters and bring the CSP line to about 1,810. Every new code colour would add one more, and the line would pass 1,900 after two.
+
+The build already writes every stylesheet as a file (`build.inlineStylesheets: "never"` in `astro.config.mjs`), so no page needs a `<style>` element.
 
 ### The favicon has a policy of its own
 
@@ -201,21 +216,9 @@ The build therefore gives each served SVG that holds a `<style>` a rule of its o
 
 The hash allows exactly the favicon's style and nothing else. The build refuses a style whose text holds `&`, `<` or CDATA, because an XML parser would change the text the browser hashes.
 
-### What each directive allows
+### Each directive allows only what the docs load
 
-| Directive | Value | Why |
-| --- | --- | --- |
-| `default-src` | `'none'` | Anything the list does not name, such as frames, media and manifests, is blocked. |
-| `script-src` | `'self' 'wasm-unsafe-eval'` and the hashes | The bundled scripts under `/_astro/`, Pagefind's under `/pagefind/` and the hashed inline scripts. `'wasm-unsafe-eval'` lets Pagefind compile its WebAssembly search index; it allows no `eval()` of script text. |
-| `style-src`, `style-src-elem` | `'self' 'unsafe-inline'`, `'self'` | The stylesheets, and the `style=` attributes described above. |
-| `img-src` | `'self' data:` | The favicon, plus the `data:` SVG icons that Starlight's and Pagefind's stylesheets draw. |
-| `font-src`, `connect-src`, `worker-src` | `'self'` | The self-hosted fonts; Pagefind's index fetches and the "Copy as Markdown" fetch of a page's twin; Pagefind's web worker. |
-| `object-src` | `'none'` | No plugin content. `default-src 'none'` already blocks it, and the header states it for readers. |
-| `base-uri` | `'none'` | No page uses `<base>`, so injected markup cannot change where relative script addresses point. |
-| `form-action` | `'self'` | No page submits a form. A form could post only to the docs' own origin. |
-| `frame-ancestors` | `'none'` | No other site may frame the docs, which stops clickjacking. |
-
-No source names a host, so the same header works on docs.buildanagent.fyi, next.docs.buildanagent.fyi, a `workers.dev` preview and `localhost`.
+`DIRECTIVES` in `src/csp/policy.ts` lists the site-wide directives with the reason for each. `default-src` is `'none'`, so anything the list does not name, such as frames and media, is blocked. `'wasm-unsafe-eval'` lets Pagefind compile its WebAssembly search index and allows no `eval()` of script text. No source names a host, so the same header works on docs.buildanagent.fyi, next.docs.buildanagent.fyi, a `workers.dev` preview and `localhost`.
 
 ### Previews carry main's policy
 
@@ -232,7 +235,7 @@ A pull request's preview gets main's `_headers`, not one from its own build, bec
 - The favicon's rule allows exactly its style.
 - The file keeps the one `/*` rule and no `X-Robots-Tag`, which the preview deploy needs.
 
-No test loads a page in a browser, because the docs' CI runs no browser. A manual check on 2026-11-26 served the build through `wrangler dev`, which applied the header. In Chrome 158 it found no violation on five pages, coloured code, a working search, tabs and the theme select, and a blocked injected script. A second check the same day opened `/favicon.svg` and found its strokes coloured and no violation.
+No test loads a page in a browser, because the docs' CI runs no browser. A manual check on 2026-11-26 served the build through `wrangler dev`, which applied the header, and opened it in Chrome 158. Five pages reported no violation, and neither did `/favicon.svg`. On those pages, code kept its colours, search returned results, and tabs and the theme select worked. An injected inline script was blocked.
 
 ## Versions, the banner and the install-line rule
 

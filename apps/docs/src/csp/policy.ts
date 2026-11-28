@@ -10,8 +10,8 @@ import { join } from "node:path";
 import { asciiLower, decodeReferences, type StartTag, type Tokens, tokenize } from "./html.js";
 
 /**
- * The longest CSP line the build accepts, counting its indent and header name. Cloudflare reads at most
- * `MAX_HEADERS_LINE` characters on one `_headers` line; the margin leaves room for a few more hashes.
+ * The longest CSP line the build accepts, counting its indent and header name. The build fails here, before
+ * Cloudflare's limit of `MAX_HEADERS_LINE` characters; the 100 characters between them hold about two hashes.
  */
 export const MAX_CSP_LINE = 1900;
 /** Cloudflare's limit on one `_headers` line, spacing, header name and value included. */
@@ -110,9 +110,11 @@ const URL_ATTRIBUTES = new Set([
 const normalized = (html: string) => html.replace(/\r\n?/g, "\n");
 
 /**
- * Returns every `<script>` element of a page in order, read by the tokenizer in `html.ts`. Throws when a script has
- * no end tag, sits inside `<svg>` or `<math>` (where a browser decodes character references before it hashes), or
- * holds `<!--`, which switches an HTML parser into a state where the script may end later than its first `</script>`.
+ * Returns every `<script>` element of a page in order, read by the tokenizer in `html.ts`. Throws in three cases:
+ *
+ * - The script has no end tag.
+ * - It sits inside `<svg>` or `<math>`, where a browser decodes character references before it hashes the text.
+ * - Its text holds `<!--`, which can make an HTML parser end the script after its first `</script>`.
  */
 export function scriptElements(html: string, tokens: Tokens = tokenize(normalized(html))): ScriptElement[] {
   return tokens.tags
@@ -128,8 +130,9 @@ export function scriptElements(html: string, tokens: Tokens = tokenize(normalize
 
 /**
  * Whether the browser runs this element's own text as a script, which the policy must then allow by hash. A script
- * with `src` runs its file, not its text; a data block runs nothing. Throws on any other type, such as `importmap` or
- * `speculationrules`, which the policy treats differently and the docs do not use.
+ * with `src` runs its file, not its text; a data block runs nothing. Throws on any other type. An `importmap` changes
+ * how every module address resolves, and `speculationrules` has its own source, `'inline-speculation-rules'`; the
+ * docs use neither, so each would need its own decision.
  */
 export function runsInlineText(script: ScriptElement): boolean {
   if (script.attributes.has("src")) return false;
@@ -276,10 +279,10 @@ export function pageProblems(html: string, tokens: Tokens = tokenize(normalized(
 const localName = (name: string) => name.slice(name.lastIndexOf(":") + 1);
 
 /**
- * Reads a served SVG or XML document. An XML parser binds a prefix such as `s:` to a namespace, so a `<s:script>`
- * can be an SVG script; the checks match each tag's name without its prefix. Any script or blocked markup is a problem, and so is a `<style>` whose text
- * holds `&`, `<` or CDATA, because an XML parser would change the text the browser hashes. Returns the hashes of
- * its `<style>` elements, which its own rule must allow.
+ * Reads a served SVG or XML document and returns the hashes of its `<style>` elements, which its own rule must allow.
+ * An XML parser binds a prefix such as `s:` to a namespace, so `<s:script>` can be an SVG script; the checks match
+ * each tag's name without its prefix. Any script or blocked markup is a problem. So is a `<style>` whose text holds
+ * `&`, `<` or CDATA, because an XML parser would change the text the browser hashes.
  */
 export function documentStyles(document: string): { styleHashes: string[]; problems: string[] } {
   // Every offset below is into this one normalized text, the text the tokenizer read.

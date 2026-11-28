@@ -11,7 +11,7 @@
 
 ## Goal
 
-docs.buildanagent.fyi sends a Content Security Policy (CSP): a response header that tells the browser which scripts, styles and other files a page may load and run. The policy allows the docs' own files, allows each inline script by the hash of its exact text and states its one exception for `style=` attributes. The owner answered yes to question 9b, "Strict CSP", on 2026-11-26.
+docs.buildanagent.fyi sends a Content Security Policy (CSP): a response header that tells the browser which scripts, styles and other files a page may load and run. The policy allows the docs' own files and allows each inline script by the hash of its exact text. Its one exception lets `style=` attributes through, and it does not stop navigation to another site. The owner answered yes to question 9b, "Strict CSP", on 2026-11-26.
 
 ## Context
 
@@ -59,35 +59,36 @@ docs.buildanagent.fyi sends a Content Security Policy (CSP): a response header t
 - [x] The build also fails on a `<noscript>` in a page, an SVG `<set>` or `<animate>` that changes an `href`, a script in a served SVG or XML file (prefixed names included) and a policy source outside the allowlist.
 - [x] A test fails on a stale committed file, a built inline script whose hash is missing, an unused hash and a CSP line over 1,900 characters.
 - [x] The `style-src` decision and the reason for each directive are written in `apps/docs/README.md` and `src/csp/policy.ts`.
+- [x] A manual check in Chrome 158 through `wrangler dev` finds no violation on five pages or on the favicon; the CI browser check waits for L12y.
 - [x] `pnpm check`, `pnpm typecheck` and the docs tests pass.
 
 ## Outcome
 
-The docs now carry a CSP in `apps/docs/public/_headers`. The policy is defence in depth: it blocks an injected inline script, an event-handler attribute, a `javascript:` link and any file from another origin. Injected markup could still add a `style=` attribute and restyle part of a page.
+The docs now carry a CSP in `apps/docs/public/_headers`. The policy is defence in depth, and its limits come first. Injected markup can still add a `style=` attribute, and in an older browser a `<style>` element, so it could restyle part of a page. The policy does not stop a link or a refresh from sending a reader to another site.
 
-**The policy as built on 2026-11-26.** The CSP line has 1,000 characters, 13 of them hashes. The value, without the hashes, is:
+In a current browser, the policy blocks an injected inline script, an event-handler attribute, a `javascript:` link and any script, stylesheet, font, image, worker or connection from another origin.
+
+**The policy as built on 2026-11-26.** The CSP line has 1,000 characters and holds 13 hashes. The value, without the hashes, is:
 
 ```text
 default-src 'none'; script-src 'self' 'wasm-unsafe-eval' <13 hashes>; style-src 'self' 'unsafe-inline'; style-src-elem 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
 ```
 
-`default-src` and `base-uri` are `'none'`, stricter than the brief's `'self'`, to match the book's policy. No page uses `<base>` or loads anything the list leaves out.
+`default-src` and `base-uri` are `'none'`, stricter than the `'self'` the task suggested, to match the book's policy. No page uses `<base>` or loads anything the list leaves out.
 
-**The `style-src` decision: an exception for attributes only.** Starlight and Expressive Code write tens of thousands of `style=` attributes, such as `--depth` in the sidebar and `style="--0:#F2E8DC;--1:#2A1E16"` on code. Moving them to classes would mean rewriting Starlight's components or its HTML after every build. The policy therefore sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`, and the build writes every stylesheet as a file (`build.inlineStylesheets: "never"`). A browser that knows `style-src-elem` allows inline styles in attributes only. The decision lives in the README and here, not in an ADR, because it follows Starlight's output and changes with it.
+**The `style-src` decision: an exception for attributes only.** Starlight and Expressive Code write 86,351 `style=` attributes (15 distinct values), such as `--depth` in the sidebar and `style="--0:#F2E8DC;--1:#2A1E16"` on code. Moving them to classes would mean rewriting Starlight's components or its HTML after every build. The policy therefore sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`, and the build writes every stylesheet as a file (`build.inlineStylesheets: "never"`). A browser that knows `style-src-elem` allows inline styles in attributes only. The decision lives in the README and here, not in an ADR, because it follows Starlight's output and changes with it.
 
 **The favicon has its own rule.** `favicon.svg` colours its strokes from a `<style>` element and must stay a copy of the site's icon. The site-wide `style-src-elem 'self'` would block that style when a reader opens the file. The build therefore writes a `/favicon.svg` rule that detaches the site-wide header (`! Content-Security-Policy`) and sets `default-src 'none'; style-src 'sha256-…'; frame-ancestors 'none'`. Through `wrangler dev`, Chrome then drew the opened file's strokes in colour with no violation.
 
-**The first review's fixes.** The checks now read HTML with a small tokenizer (`src/csp/html.ts`), so code in a `data-code` attribute is never read as a tag. An unquoted attribute value follows HTML's rules. A script inside `<svg>` or `<math>`, or one that holds `<!--`, fails the build. A `javascript:` URL counts only in an attribute that holds a URL. The build also reads every served SVG and XML file.
+**What the reviews changed.** The checks read HTML with a small tokenizer (`src/csp/html.ts`) that lower-cases ASCII letters only, so code in a `data-code` attribute is never read as a tag and offsets fit the original text. The build fails on a script inside `<svg>` or `<math>`, a script holding `<!--`, a `<noscript>`, an SVG `<set>` or `<animate>` that changes an `href`, and a policy source outside the allowlist. It reads every served SVG and XML file, prefixed names included, and tests cover each limit on the file.
 
-**The later reviews' fixes.** The second review found offsets taken from `toLowerCase()`, which "İ" lengthens. The tokenizer now lower-cases ASCII letters only, so its offsets fit the original text. An SVG's style is hashed from the same CRLF-normalized text the tokenizer read, and a `/` inside an unquoted value no longer closes a tag. A `<noscript>` in a page fails the build, because its content is never checked, and so does an SVG `<set>` or `<animate>` that changes an `href`.
-
-The third review made the source test an allowlist, run on the committed file. Only `'self'`, `'none'` and hashes may appear anywhere, plus `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`. A served SVG's style now starts at the tag's own end, so a `>` in a quoted value cannot shift it, and a prefixed `<s:script>` or `<s:style>` counts as a script or a style. Tests cover each limit on the file: the CSP line, the 2,000-character line, the 100 rules and an unmatchable file name.
+The first round (high) counted 9 findings, the medium round 3 plus 2 observations, and the low round 4 plus an untested-paths note; all are fixed.
 
 **Astro's own option was not used.** Astro 7 has `security.csp`, which adds a `<meta http-equiv="content-security-policy">` tag to each page. A `<meta>` policy cannot set `frame-ancestors`, and Astro's documentation says its CSP does not support Shiki's inline styles. The docs' deploy already serves a `_headers` file, so one header for every page is the simpler place.
 
 **The deploy needed no change.** `site-stage-dist.mjs` already writes main's `public/_headers` into the staged site and `site-guard-deploy.mjs` checks it, so committing the file is enough. The artifact's own `dist/_headers` is never served. A local `wrangler dev` served the header on pages, on Markdown twins and on the 404 page, and did not serve `_headers` itself.
 
-**Browser check.** Through `wrangler dev`, Chrome 158 reported no violation on five pages: the home page, a page with tabs and a figure, a quick start, a reference page and the 404 page. Code kept its colours, search returned results, tabs and the theme select worked, and an injected inline script and `<style>` were blocked. Playwright is not in the repository, so no test repeats this check.
+**Browser check.** Through `wrangler dev`, Chrome 158 reported no violation on five pages: the home page, a page with tabs and a figure, a quick start, a reference page and the 404 page. On those pages, code kept its colours, search returned results, and tabs and the theme select worked. An injected inline script and `<style>` were blocked. Playwright is not in the repository, so no test repeats this check.
 
 **For the owner: previews and releases carry main's policy.** The deploy never trusts a pull request's `_headers`, so a preview uses main's. A pull request that changes an inline script therefore shows that script blocked on its preview until it merges. A stable release deploys its own commit's pages with main's `_headers`, so a script that changed on main after the release is blocked on the release's pages.
 
@@ -106,7 +107,7 @@ Two fixes would close the gap, and both need a deploy change, which this todo do
 ## Risks and open questions
 
 - **A Starlight upgrade changes the hashes.** The test fails until someone runs `pnpm --filter @buildanagent/docs headers` and commits the file.
-- **The line limit.** 13 hashes take 1,000 characters, so about 16 more inline scripts fit before the build fails at 1,900.
+- **The line limit.** As of the 2026-11-26 build, the CSP line with its 13 hashes takes 1,000 characters, so about 16 more inline scripts fit before the build fails at 1,900.
 - **No browser in CI.** A runtime violation that the static checks cannot see, such as a script that a page builds at run time, would go unnoticed until L12y or a manual check.
 
 ## Definition of done
@@ -115,5 +116,5 @@ Two fixes would close the gap, and both need a deploy change, which this todo do
 - [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [x] `pnpm check`, `pnpm typecheck` and the docs tests pass locally; pushed after each meaningful step
 - [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
-- [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
-- [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
+- [x] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
+- [x] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description

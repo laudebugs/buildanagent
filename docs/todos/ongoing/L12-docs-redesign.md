@@ -93,7 +93,7 @@ The first two tasks are done: the study is the plan, and the table below is the 
 | L12y | **Proposed.** Browser checks for the docs in headless Chrome; the owner commits the workflow change | L12b, L12l | M | Opus (the workflow hand-over and the browser tooling) |
 | L12z | **Proposed.** `robots.txt`, a sitemap check, one share image, JSON-LD on the home page and a redirect guard | L12e | S to M | Sonnet |
 
-**Where the order stands (2026-11-26).** The order was L12n and L12a first, then L12b to L12d in parallel, then L12e, L12f and L12p, then L12g to L12i in sequence with L12j, L12k and L12o beside them, and L12l and L12m last. Every sub-todo from L12a to L12s is merged except L12m. L12g merged on 2026-11-26 as #433, L12h as #435, L12i as #437 and L12j as #438. L12m started once the owner answered yes to question 9b on 2026-11-26, and is done in its own pull request. After L12m, only the proposed sub-todos L12t to L12z remain, and none counts until the owner accepts it.
+**Where the order stands (2026-11-26).** The order was L12n and L12a first, then L12b to L12d in parallel, then L12e, L12f and L12p, then L12g to L12i in sequence with L12j, L12k and L12o beside them, and L12l and L12m last. Every sub-todo from L12a to L12s is merged except L12m. L12g merged on 2026-11-26 as #433, L12h as #435, L12i as #437 and L12j as #438. L12m started once the owner answered yes to question 9b on 2026-11-26, and is done in pull request #447. After L12m, only the proposed sub-todos L12t to L12z remain, and none counts until the owner accepts it.
 
 **Order of the proposed sub-todos, for those the owner accepts.** L12w comes first, because it depends on nothing and fixes pages readers already see. L12x and L12z can follow at any time. L12h to L12j write their "Problems and fixes" entries with the error code named, and each entry links its code's page once L12t exists. L12u and L12v wait for the package pages, and L12y waits for the owner to commit the workflow step. A dropped sub-todo changes nothing in this order.
 
@@ -119,7 +119,7 @@ Setting `sidebar: "modules"` on `@buildanagent/harness` keeps all 965 built page
 
 **L12j progress (2026-11-26).** L12j is done in [its own todo](../done/L12j-docs-agent-safety-pages.md) and merged in pull request #438: the docs gain an "Agent safety" topic with six pages, among them a quick start that the home card leads to and a Problems and fixes page with fourteen entries. It found four rough edges in the package's API, recorded in todo L12j1.
 
-**L12m progress (2026-11-26).** L12m is done in [its own todo](../done/L12m-docs-csp.md): the docs send a Content Security Policy from `apps/docs/public/_headers`, with a hash for each of the 13 inline scripts and an exception for `style=` attributes only. A build step derives the file from the built pages, and `test/csp.test.ts` fails on a stale file, a missing hash or a CSP line over 1,900 characters.
+**L12m progress (2026-11-26).** L12m is done in [its own todo](../done/L12m-docs-csp.md), in pull request #447: the docs send a Content Security Policy from `apps/docs/public/_headers`, with a hash for each of the 13 inline scripts. Its exception lets `style=` attributes through, and in older browsers `<style>` elements too; the favicon has a rule of its own. A build step derives the file from the built pages, and `test/csp.test.ts` fails on a stale file, a missing hash or a CSP line over 1,900 characters.
 
 **L12p progress (2026-11-24).** L12p is done in [its own todo](../done/L12p-shared-header-source.md). `apps/manual` exports `./site-chrome` from `src/design/site-chrome.json`, holding the brand, repository URL, cross-site links (Docs, Manual, Site, GitHub), site wordmarks and inline prompt mark. `apps/manual`, `apps/docs` and `apps/site` all render their headers from that single source and test the built header against it. Claims are in [the fact-check log](../../plans/reviews/fact-check-publish-and-docs.md), rows `L12p-1` to `L12p-4`.
 
@@ -137,7 +137,7 @@ A direct read of the Lamina PDF repository ([the comparison](#the-lamina-pdf-com
 
 **L12j (agent-safety pages) gained the same two parts, in pull request #438:** a quick start that the agent-safety home card leads to, and a "Problems and fixes" section under the same rule.
 
-**L12m (CSP) gained three requirements, and the owner answered yes to question 9b on 2026-11-26.** The first two are met; the browser check waits for L12y.
+**L12m (CSP) gained three requirements, and the owner answered yes to question 9b on 2026-11-26.** The first two are met. A manual Chrome check found no violation, and the browser check in CI waits for L12y.
 
 - **Decide `style-src` in writing.** Built pages carry `style=` attributes today. On `start/install/`, built from `c25b00db`, Expressive Code sets token colours (`style="--0:#F2E8DC;--1:#2A1E16"`) and Starlight sets `--sl-icon-size`, `--depth` and `--sl-select-width`. A `style-src 'self'` policy therefore needs each attribute moved to a class, which is how Lamina PDF dropped `'unsafe-inline'` for its code colours, or the policy states its exception.
 - **Limit the CSP line.** The build fails when the CSP line passes 1,900 characters. Lamina PDF's docs README gives 2,000 characters as Cloudflare's limit for a `_headers` line; L12m confirms that number in Cloudflare's docs before it relies on it.
