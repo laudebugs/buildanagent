@@ -1,5 +1,5 @@
-// The scripted scheduling tasks that 14-cascade-with-check.ts runs: ten busy-hour lists, each with the answer the fast
-// model gives, and the steps that play those answers back at 2,000 input and 200 output tokens a call.
+// The scripted scheduling tasks that 14-cascade-with-check.ts runs. Each task is a list of busy hours with the answer
+// the fast model gives, and the steps play those answers back at 2,000 input and 200 output tokens a call.
 import { type AssistantMessage, defaultCatalog, findCatalogEntry, priceUsage } from "@buildanagent/gateway";
 
 /** The catalog id the fast scripted model reports. */
@@ -10,8 +10,10 @@ export const SLOW = "claude-sonnet-5-5";
 export const USAGE = { uncachedInput: 2_000, output: 200 };
 /** One scheduling task: the busy hours, the earliest free hour, and what the fast model answers. */
 export type Task = { busy: number[]; free: number; fast: "right" | "invalid" | "wrong" };
-// Seven right, two that fail the schema, one that passes it and books a busy hour.
-/** The ten tasks, in the order the runs ask them. */
+/**
+ * The ten tasks, in the order the runs ask them: seven right, two that fail the schema, and one that passes it but books
+ * a busy hour.
+ */
 export const TASKS: Task[] = [
   { busy: [9, 10], free: 11, fast: "right" },
   { busy: [9], free: 10, fast: "invalid" },

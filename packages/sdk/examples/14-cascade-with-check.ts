@@ -1,10 +1,10 @@
 // A cascade on our SDK needs no new feature. A shouldStop hook checks the fast model's text answer and, when the check
-// fails, returns { continue } with a re-ask. A beforeModelCall hook then sends that re-ask to the slow model, with the
+// fails, returns { continue } with a re-ask. A beforeModelCall hook then moves that call to the slow model, with the
 // original task as its only message. The check decides what the cascade costs: a schema check accepts a wrong answer
 // that is well formed, while a check with a rule catches it at the price of one more slow call. The book's
 // fast-and-slow-calls chapter lists it.
 //
-// The scripted counts imitate TypeSafe's cookbook, where 72 of 74 wrong answers passed a schema check. They prove
+// The scripted counts imitate TypeSafe's cookbook, where 72 of 74 wrong answers passed a schema check. They say
 // nothing about a real model, and this example measures none. The prices come from the gateway's catalog as of
 // November 2026: Haiku 5.5 at $0.10 and $0.50 per million input and output tokens, Sonnet 5.5 at $2 and $10. A real
 // model swap also loses the cached prefix, which these scripted calls leave out.

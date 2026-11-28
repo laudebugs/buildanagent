@@ -85,4 +85,6 @@ The scripted models report themselves as `claude-haiku-5-5` and `claude-sonnet-5
 - Slow only: 10 of 10 correct, $0.06.
 - Every slow call received one message, the original task.
 
-`pricedScripted()` in `examples/lib/check.ts` gained an optional catalog model id, and the tasks and their scripted steps sit in `examples/lib/schedule-tasks.ts`, so the example file stays readable. The header comment names TypeSafe's cookbook as the evidence the counts imitate, says the example measures no real model, and notes that a real swap loses the cached prefix. The transcript is `packages/sdk/results/transcripts/14-cascade-with-check.json`. The SDK README lists no examples apart from the capstone, so it needed no change. No changeset: the examples are not in the package's `files`, and the changeset gate looks only at `src/`, `package.json` and `tsconfig.build.json`.
+`pricedScripted()` in `examples/lib/check.ts` gained an optional catalog model id, and the tasks and their scripted steps sit in `examples/lib/schedule-tasks.ts`, so the example file stays readable. The header comment names TypeSafe's cookbook as the evidence the counts imitate, says the example measures no real model, and notes that a real swap loses the cached prefix. The transcript is `packages/sdk/results/transcripts/14-cascade-with-check.json`. The SDK README lists no examples apart from the capstone, so it needed no change.
+
+This needs no changeset, because the examples are not in the package's `files` and the changeset gate looks only at `src/`, `package.json` and `tsconfig.build.json`.
