@@ -150,17 +150,19 @@ const seconds = (entry: SessionEntry) => Date.parse(entry.timestamp) / 1000;
  * retry superseded, belongs to no message: it counts in `instance_cost` but sets no message's cost.
  */
 class Conversation {
-  readonly lines: (OpenMessage | MiniSweMessage)[] = [];
+  readonly #lines: (OpenMessage | MiniSweMessage)[] = [];
   readonly #open = new Map<string, OpenMessage>();
   #system: string | undefined;
   #justEnded: OpenMessage | undefined;
-  // Where the coming turn's input begins: its first user message since the last turn_start.
+  // Where the coming turn's input begins: its first user message between turns. A steer or follow-up written during
+  // a turn is not the next turn's input, so turn_end clears the mark as turn_start does.
   #inputAt: number | undefined;
 
   add(entry: SessionEntry): void {
     const ended = this.#justEnded;
     this.#justEnded = undefined;
     if (entry.type === "turn_start") this.#turnStart(entry.system);
+    else if (entry.type === "turn_end") this.#inputAt = undefined;
     else if (entry.type === "message_block") this.#message(entry.messageId, entry.role, entry).blocks.push(entry.block);
     else if (entry.type === "message_end") this.#end(entry.messageId, entry);
     else if (entry.type === "tool_result") this.#result(entry);
@@ -171,8 +173,8 @@ class Conversation {
     // The log writes a turn's input before its turn_start, so a changed prompt goes before that input, and
     // mini-swe-agent's first message is the system prompt.
     if (system !== this.#system) {
-      const at = this.#system === undefined ? 0 : (this.#inputAt ?? this.lines.length);
-      this.lines.splice(at, 0, { role: "system", content: system });
+      const at = this.#system === undefined ? 0 : (this.#inputAt ?? this.#lines.length);
+      this.#lines.splice(at, 0, { role: "system", content: system });
       this.#system = system;
     }
     this.#inputAt = undefined;
@@ -183,8 +185,8 @@ class Conversation {
     if (message === undefined) {
       message = { role, blocks: [], timestamp: seconds(entry), cost: null };
       this.#open.set(id, message);
-      if (role === "user" && this.#inputAt === undefined) this.#inputAt = this.lines.length;
-      this.lines.push(message);
+      if (role === "user" && this.#inputAt === undefined) this.#inputAt = this.#lines.length;
+      this.#lines.push(message);
     }
     return message;
   }
@@ -197,17 +199,13 @@ class Conversation {
   }
 
   #result(entry: ToolResultEntry): void {
-    this.lines.push({ role: "tool", tool_call_id: entry.callId, content: textOf(entry.content) });
+    this.#lines.push({ role: "tool", tool_call_id: entry.callId, content: textOf(entry.content) });
+  }
+  /** The conversation as trajectory messages. */
+  messages(): MiniSweMessage[] {
+    return this.#lines.map((line) => ("blocks" in line ? lineOf(line) : line));
   }
 }
-
-function conversationOf(entries: readonly SessionEntry[]): (OpenMessage | MiniSweMessage)[] {
-  const conversation = new Conversation();
-  for (const entry of entries) conversation.add(entry);
-  return conversation.lines;
-}
-
-const isOpen = (line: OpenMessage | MiniSweMessage): line is OpenMessage => "blocks" in line;
 
 /**
  * Converts a session log to a `mini-swe-agent-1.1` trajectory. `instance_cost` sums the cost of the agent's model
@@ -229,7 +227,9 @@ export function toMiniSweTrajectory(
   const spend = spendOf(entries);
   const exitStatus = exitStatusOf(lastTurnEnd(entries));
   const submission = options.submission ?? "";
-  const messages = conversationOf(entries).map((line) => (isOpen(line) ? lineOf(line) : line));
+  const conversation = new Conversation();
+  for (const entry of entries) conversation.add(entry);
+  const messages = conversation.messages();
   if (exitStatus !== "") {
     const content = exitStatus === "Submitted" ? submission : exitStatus;
     messages.push({ role: "exit", content, extra: { exit_status: exitStatus, submission } });

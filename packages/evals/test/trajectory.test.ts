@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import { toMiniSweTrajectory } from "@buildanagent/evals";
+import type { SessionEntry } from "@buildanagent/protocol";
 import { describe, test } from "vitest";
 import { loadCase } from "./capstone.js";
 import { at, entry, log, MODEL, priced } from "./log.js";
 import { tokens } from "./rows.js";
+
+/** Each message's role, with its text for a system or user message, so a test can check the order. */
+const rolesOf = (entries: readonly SessionEntry[]) =>
+  toMiniSweTrajectory(entries).messages.map((message) =>
+    message.role === "system" || message.role === "user" ? `${message.role}:${message.content}` : message.role,
+  );
 
 describe("toMiniSweTrajectory()", () => {
   test("a converted capstone trajectory has instance_cost, api_calls and exit_status filled", () => {
@@ -113,10 +120,7 @@ describe("toMiniSweTrajectory()", () => {
       entry(23, { type: "message_end", messageId: "a3", model: MODEL, stopReason: "stop" }),
       entry(24, { type: "turn_end", runId: "r2", stopReason: "done", steps: 1 }),
     );
-    const roles = toMiniSweTrajectory(entries).messages.map((message) =>
-      message.role === "system" || message.role === "user" ? `${message.role}:${message.content}` : message.role,
-    );
-    assert.deepEqual(roles, [
+    assert.deepEqual(rolesOf(entries), [
       "system:Be brief.",
       "user:Fix it.",
       "assistant",
@@ -125,6 +129,58 @@ describe("toMiniSweTrajectory()", () => {
       "system:Be thorough.",
       "user:Again.",
       "assistant",
+      "exit",
+    ]);
+  });
+
+  test("a steer during a turn stays in that turn, and the next turn's changed prompt goes before its own input", () => {
+    const entries = log(undefined);
+    entries.push(
+      entry(9, {
+        type: "message_block",
+        messageId: "s1",
+        role: "user",
+        index: 0,
+        delivery: "steer",
+        block: { type: "text", text: "Also X." },
+      }),
+      entry(9, { type: "turn_end", runId: "r1", stopReason: "done", steps: 2 }),
+      entry(20, {
+        type: "message_block",
+        messageId: "u2",
+        role: "user",
+        index: 0,
+        block: { type: "text", text: "Again." },
+      }),
+      entry(21, { type: "turn_start", runId: "r2", mode: "run", system: "Be thorough." }),
+      entry(24, { type: "turn_end", runId: "r2", stopReason: "done", steps: 0 }),
+    );
+    assert.deepEqual(rolesOf(entries), [
+      "system:Be brief.",
+      "user:Fix it.",
+      "assistant",
+      "tool",
+      "assistant",
+      "user:Also X.",
+      "system:Be thorough.",
+      "user:Again.",
+      "exit",
+    ]);
+  });
+
+  test("a continued turn with a changed prompt and no new input puts the prompt after the earlier messages", () => {
+    const entries = log("awaiting_approval");
+    entries.push(
+      entry(30, { type: "turn_start", runId: "r2", mode: "continue", system: "Be thorough." }),
+      entry(31, { type: "turn_end", runId: "r2", stopReason: "done", steps: 0 }),
+    );
+    assert.deepEqual(rolesOf(entries), [
+      "system:Be brief.",
+      "user:Fix it.",
+      "assistant",
+      "tool",
+      "assistant",
+      "system:Be thorough.",
       "exit",
     ]);
   });
