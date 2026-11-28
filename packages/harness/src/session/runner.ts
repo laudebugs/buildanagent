@@ -141,15 +141,21 @@ class EntryWriter {
   }
 
   write(origin: Origin, body: Body): Promise<SessionEntry> {
+    // Draw the id and the timestamp now, when the write is queued, not when its turn in the chain comes. The recorder's
+    // message ids and the SDK's own clock reads use the same generators while earlier appends run, so a slow store
+    // would decide which entry got which value. The parent is read in the chain, because it is the head the previous
+    // write left. A generator that throws fails the write inside the chain, as a store error does, so the run stops
+    // and the error never escapes to the caller who queued the write.
+    let drawn: { id: string; timestamp: string } | { error: unknown };
+    try {
+      drawn = { id: this.#newId(), timestamp: this.#now().toISOString() };
+    } catch (error) {
+      drawn = { error };
+    }
     const next = this.#chain.then(async () => {
       if (this.#failed) throw this.#failure;
-      const entry = {
-        ...body,
-        id: this.#newId(),
-        parentId: this.#session.head(),
-        timestamp: this.#now().toISOString(),
-        origin,
-      };
+      if ("error" in drawn) throw drawn.error;
+      const entry = { ...body, id: drawn.id, parentId: this.#session.head(), timestamp: drawn.timestamp, origin };
       const [stored] = await this.#session.append([entry as EntryInput]);
       return stored as SessionEntry;
     });

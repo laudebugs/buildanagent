@@ -29,28 +29,29 @@ async function replay(name: CaseName, recorded: RecordedCase): Promise<void> {
 const PRICE = 0.00135; // 200 input tokens at $3 and 50 output tokens at $15 per million
 
 /** What each case's row and log must say, worked out from the capstone's script. */
-// wallMs sums each turn's time, from its turn_start to its turn_end: 09:00:01.500 to 09:00:18.750 is 17,250 ms, and the
-// resumed turn from 09:00:19.500 to 09:00:30.750 is 11,250 ms (to 09:00:30.500, 11,000 ms, when rejected, which
-// writes one entry fewer).
+// wallMs sums each turn's time, from its turn_start to its turn_end. The first turn runs from 09:00:01.250 to
+// 09:00:18.750 (17,500 ms) and the resumed turn from 09:00:19.500 to 09:00:30.750 (11,250 ms), which totals 28,750 ms
+// for approved and policy_changed. The rejected case writes one entry fewer, so its resumed turn ends at 09:00:30.500
+// (11,000 ms) and its total is 28,500 ms.
 const EXPECTED: Record<CaseName, { results: string[]; decisions: string[]; entries: number; wallMs: number }> = {
   approved: {
     results: ["lookup_customer", "escalate", "submit_triage"],
     // The resume decides the escalation again, and the rule still asks; the approval in the log lets it run.
     decisions: ["lookup_customer:allow", "escalate:ask", "escalate:ask", "submit_triage:allow"],
     entries: 27,
-    wallMs: 28_500,
+    wallMs: 28_750,
   },
   rejected: {
     results: ["lookup_customer", "escalate", "submit_triage"],
     decisions: ["lookup_customer:allow", "escalate:ask", "submit_triage:allow"],
     entries: 26,
-    wallMs: 28_250,
+    wallMs: 28_500,
   },
   policy_changed: {
     results: ["lookup_customer", "escalate", "submit_triage"],
     decisions: ["lookup_customer:allow", "escalate:ask", "escalate:deny", "submit_triage:allow"],
     entries: 27,
-    wallMs: 28_500,
+    wallMs: 28_750,
   },
 };
 
