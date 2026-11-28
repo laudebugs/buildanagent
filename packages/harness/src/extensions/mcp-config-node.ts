@@ -415,11 +415,23 @@ async function realOf(roots: Roots, path: string): Promise<string | undefined> {
     return await realpath(path);
   } catch (error) {
     const code = codeOf(error) ?? "";
-    if (MISSING.has(code) || (roots.fromCode === true && code === "ENAMETOOLONG") || !writtenInside(roots, path)) {
-      return undefined;
-    }
+    const tooLong = code === "ENAMETOOLONG" && (roots.fromCode === true || nameTooLong(path));
+    if (MISSING.has(code) || tooLong || !writtenInside(roots, path)) return undefined;
     throw error;
   }
+}
+
+const NAME_BYTES = 255;
+const SHORTEST_PATH_MAX = 1024;
+
+/**
+ * Whether ENAMETOOLONG for `path` can only mean that a part of it is longer than this file system allows, so no file
+ * there has that name: a part is over 255 bytes, and the whole path is under 1,024 bytes, the smallest whole-path cap,
+ * macOS's. A path over that cap may still open relative to the root, so it is refused instead.
+ */
+function nameTooLong(path: string): boolean {
+  const bytes = (text: string) => new TextEncoder().encode(text).length;
+  return bytes(path) < SHORTEST_PATH_MAX && path.split(sep).some((part) => bytes(part) > NAME_BYTES);
 }
 
 /** A Node system error's code, such as `EACCES`, or `undefined` for anything else. */
