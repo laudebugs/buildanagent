@@ -2,8 +2,8 @@
 // typed questions, and answers from a table. TypeSafe's Jev, Cloudflare's Clef and OpenAI's Decisions API all work
 // this way as of November 2026, and the table imitates that shape only. It reads no text and measures no model, so
 // every probability in it is a number the example chose. The real APIs answer each question without seeing the
-// others and ignore a question that depends on another's answer, so the table throws on one to make the mistake
-// visible.
+// others and ignore a question that depends on another's answer, so the table throws on such a question to make the
+// mistake visible.
 
 /** One question the decision model answers: a yes or no, a pick from a fixed set, or a score. */
 export type Question =
@@ -11,7 +11,7 @@ export type Question =
   | { id: string; kind: "score"; ask: string }
   | { id: string; kind: "choice"; ask: string; options: readonly string[] };
 
-/** The model's answer to one question: a probability for each allowed option, and no generated text. */
+/** The model's answer to one question: a probability for a predicate, one for each option of a choice, or a score, and no generated text. */
 export type Answer =
   | { kind: "predicate"; yes: number }
   | { kind: "choice"; probs: Record<string, number> }
@@ -23,7 +23,7 @@ export interface DecideClient {
   decide(state: string, questions: Question[]): Promise<Record<string, Answer>>;
 }
 
-/** What the table holds for one state: a probability per question id, or for a choice its option, or `[option, p]`. */
+/** What the table holds for one state, by question id: a number for a predicate or score, and for a choice an option or `[option, p]`. */
 export type Row = Record<string, number | string | [string, number]>;
 
 /** The probability the table gives the option it picks in a choice question. */

@@ -361,7 +361,7 @@
               "type": "tool-result",
               "id": "call-1",
               "name": "refund",
-              "output": "Tool call \"refund\" was denied: The return window is 30 days.",
+              "output": "Tool call \"refund\" was denied: The purchase is past the 30-day return window.",
               "error": true
             }
           ]
@@ -391,7 +391,7 @@
     {
       "kind": "check",
       "line": 72,
-      "message": "a refund at 0.97 is denied 39 days on",
+      "message": "a refund at 0.97 is denied: the purchase is 39 days old",
       "pass": true
     },
     {
@@ -455,7 +455,7 @@
               "type": "tool-result",
               "id": "call-1",
               "name": "refund",
-              "output": "Tool call \"refund\" was denied: The return window is 30 days.",
+              "output": "Tool call \"refund\" was denied: The purchase is past the 30-day return window.",
               "error": true
             }
           ]
@@ -484,7 +484,7 @@
     },
     {
       "kind": "check",
-      "line": 74,
+      "line": 77,
       "message": "15 December means last year, so that refund is denied",
       "pass": true
     },
@@ -538,7 +538,7 @@
     },
     {
       "kind": "check",
-      "line": 75,
+      "line": 78,
       "message": "31 November does not exist, so it asks",
       "pass": true
     },
@@ -592,7 +592,7 @@
     },
     {
       "kind": "check",
-      "line": 76,
+      "line": 79,
       "message": "a month at 0.60 asks",
       "pass": true
     },
@@ -646,20 +646,20 @@
     },
     {
       "kind": "check",
-      "line": 78,
+      "line": 81,
       "message": "a transfer asks even at 0.99",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 83,
+      "line": 86,
       "message": "a question that names an earlier answer throws",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 90,
-      "message": "each request holds one question, never one and its source",
+      "line": 93,
+      "message": "each request holds one question, never a question with the one it depends on",
       "pass": true
     }
   ]

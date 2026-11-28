@@ -1,9 +1,9 @@
 // A decision model returns a probability for each option, and a probability states intent, not consent. This example
-// gates three tool calls on it with a bar for each level of risk: a lookup acts above 0.67, a refund above 0.93 and
-// otherwise asks a person, and a transfer always asks, so even a 0.99 for "yeah, go ahead I guess" reaches the
-// confirmation step. Dates stay in code: the model extracts a month and a day, and the code compares them with today,
-// so a refund the model is sure the customer wants is still denied past the return window. The book's
-// fast-and-slow-calls chapter lists it.
+// gates three tool calls on that probability, with a bar for each level of risk. A lookup acts above 0.67 and a refund
+// above 0.93; at or below its bar, each asks a person. A transfer always asks, so even a 0.99 for "yeah, go ahead I
+// guess" reaches the confirmation step. Dates stay in code: the model extracts a month and a day, and the code compares
+// them with today, so a refund the model is sure the customer wants is still denied past the return window. The book's
+// fast-and-slow-calls chapter lists this example.
 //
 // The decision model is a table that imitates the request shape of TypeSafe, Clef and OpenAI's Decisions API as of
 // November 2026: a state and typed questions in, one probability per option out. It measures nothing, so every
@@ -49,12 +49,12 @@ const gate = (client: DecideClient, state: string): Interceptors => ({
     const p = probabilityOf((await client.decide(state, [intent])).intent, "yes"); // the option the code will take
     const bar = ACT_ABOVE.get(tool) ?? NEVER; // book:note bars
     if (bar === NEVER) return { decision: "ask", reason: `Always needs a person's confirmation (intent ${p}).` };
-    if (p <= bar) return { decision: "ask", reason: `Intent ${p} is not above ${bar}.` };
+    if (p <= bar) return { decision: "ask", reason: `Intent ${p} is at or below the ${bar} bar.` };
     if (tool !== "refund") return { decision: "allow" };
     const days = await daysSincePurchase(client, state);
     if (days === undefined) return { decision: "ask", reason: "The purchase date is unclear." };
     return days > RETURN_DAYS
-      ? { decision: "deny", reason: `The return window is ${RETURN_DAYS} days.` }
+      ? { decision: "deny", reason: `The purchase is past the ${RETURN_DAYS}-day return window.` }
       : { decision: "allow" };
   },
 });
@@ -69,7 +69,10 @@ check((await go("Refund order A1, bought 15 November.", "refund")).acted, "a ref
 const unsure = await go("Refund order A2, I think, bought 2 November.", "refund");
 check(unsure.asked && !unsure.acted, "a refund at 0.90 asks and does not run");
 const late = await go("Refund order A3, bought 20 October.", "refund");
-check(!late.acted && !late.asked && late.told.includes("return window"), "a refund at 0.97 is denied 39 days on");
+check(
+  !late.acted && !late.asked && late.told.includes("return window"),
+  "a refund at 0.97 is denied: the purchase is 39 days old",
+);
 const year = await go("Refund order A4, bought 15 December.", "refund");
 check(!year.acted && year.told.includes("return window"), "15 December means last year, so that refund is denied");
 check((await go("Refund order A5, bought 31 November.", "refund")).asked, "31 November does not exist, so it asks");
@@ -89,5 +92,5 @@ check(
 );
 check(
   client.requests.every((r) => r.length === 1),
-  "each request holds one question, never one and its source",
+  "each request holds one question, never a question with the one it depends on",
 );

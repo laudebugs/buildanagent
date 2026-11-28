@@ -51,8 +51,8 @@ export const rows = {
 } satisfies Record<string, Row>;
 
 /**
- * Runs an agent with a lookup, a refund and a transfer on one customer message that makes one scripted call to `name`.
- * It reports whether the tool ran, whether the run ended waiting for a person, the reason of that request, and the
+ * Runs an agent that has a lookup, a refund and a transfer tool, gives it one customer message and scripts one call to
+ * `name`. It reports whether the tool ran, whether the run ended waiting for a person, that request's reason, and the
  * tool results the model read afterwards.
  */
 export async function attempt(state: keyof typeof rows, name: string, interceptors: Interceptors) {
