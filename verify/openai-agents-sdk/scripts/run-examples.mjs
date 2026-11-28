@@ -7,7 +7,7 @@
 // (scripts/live/harness.mjs).
 // For a directory other than extracted/, every *.ts file is run (our own examples).
 import { execFileSync, spawn } from "node:child_process";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -67,12 +67,17 @@ await mkdir("results", { recursive: true });
 // The preloads' socket block does not reach child processes, so a doc example cloned the real repository and timed out
 // when GitHub was slow. Now `insteadOf` rewrites every github.com URL to a local folder that holds a one-commit
 // `openai/openai-agents-js` (the only repository the docs name), and GIT_ALLOW_PROTOCOL refuses every other transport,
-// so a clone of any other repository fails at once instead of going online. Only the doc examples call gitRepo(), so
-// our own examples and a live run neither build the stand-in nor need git.
+// so a clone of any other repository fails at once instead of going online. The stand-in is built only when a selected
+// doc example calls gitRepo(), so other runs, our own examples and a live run don't need git.
 async function offlineGitHub() {
   const fakeGitHubRoot = await mkdtemp(join(tmpdir(), "oai-github-"));
-  // The "exit" event also fires after an uncaught error, so a failed run doesn't leave the stand-in behind.
+  // "exit" fires on a normal exit and after an uncaught error, but not on a signal, so SIGINT and SIGTERM exit through it.
   process.on("exit", () => rmSync(fakeGitHubRoot, { recursive: true, force: true }));
+  for (const [signal, code] of [
+    ["SIGINT", 130],
+    ["SIGTERM", 143],
+  ])
+    process.once(signal, () => process.exit(code));
   const repo = join(fakeGitHubRoot, "openai", "openai-agents-js.git");
   const work = await mkdtemp(join(tmpdir(), "oai-repo-"));
   const git = (cwd, ...args) =>
@@ -99,7 +104,8 @@ async function offlineGitHub() {
     GIT_ALLOW_PROTOCOL: "file",
   };
 }
-const OFFLINE_GIT = ownExamples ? {} : await offlineGitHub();
+const clones = !ownExamples && targets.some((t) => readFileSync(t.file, "utf8").includes("gitRepo("));
+const OFFLINE_GIT = clones ? await offlineGitHub() : {};
 
 async function runOne(t) {
   const code = await readFile(t.file, "utf8");
