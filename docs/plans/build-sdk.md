@@ -693,6 +693,18 @@ Chapter 3 of the book teaches that a tool reads the signed-in user from trusted 
 | --- | --- | --- | --- |
 | [B23](../todos/done/B23-tool-context-app-data.md) | Give `ToolContext` typed app data that the caller sets when a run starts and the model never sees | B10, B11 | M |
 
+### 4.7 Five offline examples for the fast-and-slow-calls chapter (added 2026-11-28)
+
+The [model-routing report](../research/model-routing/system-1-system-2-and-model-routing.md) proposed five scripted examples for the book's `fast-and-slow-calls` chapter ([T76](../todos/ready/T76-chapter-fast-and-slow-calls.md)), and the owner approved them on 2026-11-28. None needs a new SDK or gateway feature: the cascade is a `beforeModelCall` hook that returns another model from `createModel()`. B24 comes first.
+
+| ID | Title | Depends on | Size |
+| --- | --- | --- | --- |
+| [B24](../todos/ready/B24-example-cascade-with-check.md) | Example: a cascade whose check decides what the cascade costs | B5, B11, B13 | M |
+| [B25](../todos/ready/B25-example-decision-gate.md) | Example: thresholds that scale with risk, over a decision-model stand-in | B10, B11, B13 | M |
+| [B26](../todos/ready/B26-example-switch-or-stay.md) | Example: what a model switch costs under a per-model cache (in `packages/gateway/examples`) | B4, B5 | M |
+| [B27](../todos/ready/B27-example-cost-per-solved-task.md) | Example: rank candidates by cost per solved task and call a difference noise | B5 | M |
+| [B28](../todos/ready/B28-example-plan-buffer.md) | Example: a slow planner's buffer funds several fast steps, and a stuck rule takes control back | B10, B11 | M |
+
 ## 5. Test strategy
 
 ### 5.1 The scripted test model is the default seam, and mock transports test the wire
@@ -748,6 +760,7 @@ Model quality and tool selection belong to evals with a real model, which the ha
 - **Answered by the owner on 2026-11-18:** D2, D5 and D8 (§2). Publishing waits for an outside consumer; revised 2026-11-19 by [ADR 0047](../decisions/0047-first-release-and-trusted-publishing.md), which publishes 0.1.0 after B4 and B8.
 - **Answered by P2:** the harness takes `Cost.total` as `number | null`, and `context_transformed` is enough because the harness writes its compaction entry from its own `transformContext` ([harness plan §3.6][har-36]).
 - **Answered by P3:** the reader and drafter run as tool-less loop runs, not through `Model.complete()` (agent plan, AD1).
+- **Open (added 2026-11-28, owner decision 4 on the model-routing report):** should the gateway offer a typed `effort` option, and a per-message effort on the models that support it? Today `providerOptions.openaiChat.extraBody` can carry `reasoning_effort`, and a search of `packages/gateway/src` and `packages/sdk/src` found "effort" only in the OpenAI chat adapter, so neither exists as a typed option. Anthropic documents a top-level `output_config.effort` that, changed between requests, "can invalidate all or part of the prompt cache", and a beta per-message effort (a `role: "system"` message carrying `output_config.effort`) that keeps the cached prefix. It works on the latest Claude models but not on Managed Agents, and it returns a 400 error on Sonnet 5.5 with `between_tools` thinking and on Haiku 5.5 with thinking `disabled`. OpenAI's `configuration_update` input item does the same on supported GPT-6 and later models ([report](../research/model-routing/system-1-system-2-and-model-routing.md#the-repos-routing-rule-holds-for-model-changes-and-needs-one-qualifier-for-effort-changes)). Questions to settle before a todo: whether the option lives on `ModelContext` or in a message part; how the gateway refuses a model that cannot take it, as Anthropic's 400 errors do; and how the session log records an effort change, as the harness guide asks for a model change. The answer decides whether the harness guide's "effort changes only at session or subagent boundaries" can relax.
 - **Later:** a client-tool pause kind on `ToolResult.pause`, for the third host-tool pattern the harness defers (harness need 13, dropped from Rounds B and N by [P4][p4-4]).
 
 ### 6.3 Where Round B slots into the roadmap
