@@ -605,10 +605,10 @@ async function outcomeOf(
  * A server starts only when the run is not headless (or `loadInHeadless` is set), the trust store trusts the project,
  * and the server's config hashes to its pin in the lock file. Every other declared server is returned in `declared`,
  * with its exact command and args and a notice, so the host can show what would run and ask; `pinProjectMcpServer()`
- * records the person's yes. A headless run without `loadInHeadless` only checks that the file exists, and a project without the file gives
- * nothing, whatever its lock file holds. In a project
- * that is not trusted the config and the lock file are read, and the files the command line names are hashed, all
- * inside the project, so the notice can show the state; nothing outside it is read.
+ * records the person's yes. A headless run without `loadInHeadless` only checks that the file exists, and a project
+ * without the file gives nothing, whatever its lock file holds. In a project that is not trusted the config and the
+ * lock file are read, and the files the command line names are hashed, all inside the project, so the notice can show
+ * the state; nothing outside it is read.
  *
  * A config never holds a variable's value. Each `env` member names the host value it is set from, as `"${NAME}"`, and
  * `secrets` resolves it; a member with any other value is refused, and so is one that sets a variable `spawnEnv()` sets
@@ -616,19 +616,22 @@ async function outcomeOf(
  * config can't name parent variables to copy, so a project server gets `spawnEnv()`'s cleared environment and the
  * values the host supplied, nothing more. A name, command or argument over 1,024 characters, with a control, format,
  * combining or non-ASCII space character, or holding `${`, is refused, and the notice escapes everything outside
- * printable ASCII. Every refusal, of the config file, an entry, a named path or the lock file, a file the harness may not
- * read included, is a `HarnessError` with code `invalid_mcp_config` whose message starts with the file's name, and nothing of the file starts.
+ * printable ASCII. Every refusal, of the config file, an entry, a named path or the lock file, a file the harness may
+ * not read included, is a `HarnessError` with code `invalid_mcp_config` whose message starts with the file's name, and
+ * nothing of the file starts.
  *
- * The pin covers the command, args, variable names, and the files and folders inside the project that
- * the command line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or
- * `./server` as a whole folder, and each file beside a named path that adds an extension to it, as `server.js` for
- * `node server`. A bare command counts in the root and in each project folder on the `PATH`. A path is resolved to its
- * real path first, so any spelling of a project file counts. A path inside the project whose real path leaves it, a
- * link that leads nowhere, a pipe, or a folder holding a link refuses the config. One load hashes at most 4,096 files and folders and 64 MiB. The pin does
- * not cover a module named by name (`pkg` in `python -m pkg`), what the named code imports from
- * elsewhere, a package that `npx` fetches, the project root itself (`node .`), a path a shell string spells with escapes, a variable or a glob, or a file changed between
- * this check and the start. The lock file sits in the project, so a change that brings its own pin, as a
- * pull can, starts without asking: the pin asks again only for a change nobody pinned.
+ * The pin covers the command, args, variable names, and the files and folders inside the project that the command line
+ * names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or `./server` as a whole folder, and
+ * each file beside a named path that adds an extension to it, as `server.js` for `node server`. A bare command counts
+ * in the root and in each project folder on the `PATH`. A path is resolved to its real path first, so any spelling of
+ * a project file counts. A path inside the project whose real path leaves it, a link that leads nowhere, a pipe, or a
+ * folder holding a link refuses the config. One load hashes at most 4,096 files and folders and 64 MiB.
+ *
+ * The pin does not cover a module named by name (`pkg` in `python -m pkg`), what the named code imports from
+ * elsewhere, a package that `npx` fetches, the project root itself (`node .`), a path a shell string spells with
+ * escapes, a variable or a glob, or a file changed between this check and the start. The lock file sits in the
+ * project, so a change that brings its own pin, as a pull can, starts without asking: the pin asks again only for a
+ * change nobody pinned.
  */
 export async function loadProjectMcpServers(root: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const base = await canonicalPath(root);
