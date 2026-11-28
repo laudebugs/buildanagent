@@ -78,7 +78,7 @@ The shape follows mini-swe-agent v2.4.6: `DefaultAgent.serialize()` in `src/mini
 
 `exit_status` comes from the same classification as a row's `exit`, so the two always agree. A submission is `"Submitted"`, every limit is `"LimitsExceeded"`, and an infra error is `"error"`. The status is `""` while the last turn has not ended or waits for a person, and the trajectory then has no exit message.
 
-Messages follow the baseline's shapes. The first is the system prompt, and assistant messages carry `extra.cost` and `extra.timestamp`. Tool results are `{ role: "tool", tool_call_id, content }`, and the last message has role `exit`. Images and reasoning blocks are left out, because the format's content is text, and `info.config` and `info.mini_version` are left out because they describe mini-swe-agent's own agent.
+Messages follow the baseline's shapes. The first is the system prompt, and assistant messages carry `extra.cost` and `extra.timestamp`. Tool results are `{ role: "tool", tool_call_id, content }`, and the last message has role `exit`. Images and reasoning blocks are left out, because the format's content is text. `info.config` and `info.mini_version` are left out too, because they describe mini-swe-agent's own agent.
 
 Two fields depart from the baseline. When any call's price is unknown, `instance_cost` is `null`, as the row's cost is. By default mini-swe-agent raises an error instead, unless its `cost_tracking` is set to `ignore_errors`, in which case it counts the call as $0. An infra error's `exit_status` is `"error"`, our own stop reason, not a status mini-swe-agent writes.
 

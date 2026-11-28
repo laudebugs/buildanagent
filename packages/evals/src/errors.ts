@@ -1,8 +1,9 @@
 /**
  * Why the evals refused their input. `invalid_row`: an `EvalRow` breaks one of its rules, such as `passed: null`
  * without an `unscored` reason. `duplicate_trial`: two rows share a harness, ablation, task and trial, the fields
- * that name one trial. `invalid_option`: an option is out of range, such as a `k` below 1, or rows that must be one configuration
- * span several. `unfinished_session`: a session's last turn did not finish, so it has no outcome to report.
+ * that name one trial. `invalid_option`: an option is out of range, such as a `k` below 1, or the rows of one run
+ * come from several harnesses or ablations. `unfinished_session`: a session's last turn did not finish, so it has
+ * no outcome to report.
  * `invalid_session`: a session log cannot be read as a trial, because it holds a stop reason this package does not
  * know or ends a turn it never started.
  */
