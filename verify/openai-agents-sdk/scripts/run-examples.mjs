@@ -64,12 +64,13 @@ if (only) targets = targets.filter((t) => only.has(t.id));
 await mkdir("results", { recursive: true });
 
 // A sandbox manifest's gitRepo() entry makes the SDK run `git clone https://github.com/<repo>.git` as a child process.
-// The preloads' socket block does not reach child processes, so a doc example cloned the real repository and timed out
-// when GitHub was slow. Now `insteadOf` rewrites every github.com URL to a local folder that holds a one-commit
-// `openai/openai-agents-js` (the only repository the docs name), and GIT_ALLOW_PROTOCOL refuses every other transport,
-// so a clone of any other repository fails at once instead of going online. The stand-in is built only when a selected
-// doc example calls gitRepo(), so other runs, our own examples and a live run don't need git. Every doc example still gets
-// GIT_ALLOW_PROTOCOL, so one that clones without naming gitRepo() in its own source fails instead of going online.
+// The preloads' socket block does not reach child processes, so without a stand-in the clone would go to the real
+// repository. `insteadOf` rewrites every github.com URL to a local folder that holds a one-commit
+// `openai/openai-agents-js` (the only repository the docs name). GIT_ALLOW_PROTOCOL refuses every other transport,
+// so a clone of any other repository fails at once.
+// The stand-in is built only when a selected doc example calls gitRepo(). Every doc example still gets
+// GIT_ALLOW_PROTOCOL, so one that clones without naming gitRepo() fails instead of going online.
+// Our own examples and live runs get neither, because they don't clone.
 async function offlineGitHub() {
   const fakeGitHubRoot = await mkdtemp(join(tmpdir(), "oai-github-"));
   // "exit" fires on a normal exit and after an uncaught error, but not on a signal, so SIGINT and SIGTERM exit through it.

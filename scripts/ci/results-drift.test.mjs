@@ -146,7 +146,7 @@ test("fails on a package transcript whose example no longer exists", () => {
   assert.match(run.stderr, /01-call\.json \(no example packages\/sdk\/examples\/01-call\.ts\)/);
 });
 
-/** A release tracker as ahead-of-release.mjs writes it, committed in the harness of `committedHarness()`. */
+/** A release tracker shaped like the ones ahead-of-release.mjs writes, for the demo harness that `committedHarness()` commits. */
 const tracker = ({
   latest = "1.0.0",
   main = "a".repeat(40),
