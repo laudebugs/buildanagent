@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Book plan §4.2](../../plans/build-book.md#42-part-ii-in-depth-for-experienced-builders) |
 | Round / milestone | Round T (textbook), MT |
-| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T18](../done/T18-chapter-the-model-gateway.md), [T19](../done/T19-chapter-events-and-hooks.md), [T26](../done/T26-book-checked-inline-code.md), [B24](../done/B24-example-cascade-with-check.md), [B25](../done/B25-example-decision-gate.md), [B26](../done/B26-example-switch-or-stay.md), [B27](../ongoing/B27-example-cost-per-solved-task.md), [B28](B28-example-plan-buffer.md) |
+| Depends on | [T5](../done/T5-book-interactive-listings.md), [T6](../done/T6-book-flat-figures.md), [T18](../done/T18-chapter-the-model-gateway.md), [T19](../done/T19-chapter-events-and-hooks.md), [T26](../done/T26-book-checked-inline-code.md), [B24](../done/B24-example-cascade-with-check.md), [B25](../done/B25-example-decision-gate.md), [B26](../done/B26-example-switch-or-stay.md), [B27](../done/B27-example-cost-per-solved-task.md), [B28](B28-example-plan-buffer.md) |
 | Size | M |
 
 ## Goal
