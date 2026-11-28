@@ -38,7 +38,7 @@ Add `packages/sdk/examples/15-decision-gate.ts`, which gates three tool calls on
 
 - [ ] Define `DecideClient` and the deterministic table.
 - [ ] Write the three tools and the gate that reads the probability of the option the code will take.
-- [ ] Write the four assertions above, then the regions and the transcript.
+- [ ] Write the four assertions in Scope (the three thresholds' behaviour, the transfer's confirmation at 0.99, the rejected dependent question and the in-code date comparison), then the regions and the transcript.
 
 ## Acceptance criteria
 

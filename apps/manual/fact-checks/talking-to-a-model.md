@@ -321,17 +321,18 @@ The paragraph added to § Choosing a model after the owner approved the model-ro
 | 213 | OpenRouter says switching models "costs extra while the new model rebuilds the prompt cache" | § Choosing a model | ✅ | [Auto Router](https://openrouter.ai/docs/guides/routing/routers/auto-router), "Switching models costs extra while the new model rebuilds the prompt cache, so the router is restrained about it". Read 2026-11-28 |
 | 214 | Our gateway has no typed effort option and cannot send a per-message effort | § Choosing a model | ⚠️ | A search of `packages/gateway/src` and `packages/sdk/src` for "effort" on 2026-11-28 finds only the two doc comments of row 212. An absence claim, tracked as the open design question in the [build SDK plan §6.2](../../../docs/plans/build-sdk.md#62-one-question-is-open-and-one-item-waits-for-a-later-round) |
 | 215 | After the writing review: the beta-limits sentence is split in three and the OpenRouter lead-in reworded | § Choosing a model | ✅ | Re-check of rows 210, 212 and 213: wording only; the 400 error cases, the raw `reasoning_effort` field and OpenRouter's quote are unchanged |
-| 216 | After the code review: the chapter keeps only the effort step of routing decision 5 (rows 207 and 208). The paragraph on the cache split, `configuration_update`, the beta's 400 limits, our gateway's `reasoning_effort` and OpenRouter's rebuild cost is cut, and the claims of rows 209 to 215 moved to section 2 of [T76](../../../docs/todos/ready/T76-chapter-fast-and-slow-calls.md) | § Choosing a model | ✅ | No claim of rows 209 to 215 remains in the chapter, so the chapter no longer carries those rows' claims; their verdicts stand at their sources, and T76 re-reads them before it cites them. The sources `anthropic-effort`, `anthropic-per-message-effort` and `openrouter-auto-router` left the register, and `openai-prompt-caching` left this chapter's `sources` (the gateway chapter still uses it). Rows 207 and 208 are unchanged |
+| 216 | After the code review: the chapter keeps only the effort step of routing decision 5 (rows 207 and 208). The paragraph on the cache split, `configuration_update`, the beta's 400 limits, our gateway's `reasoning_effort` and OpenRouter's rebuild cost is cut, and the claims of rows 209 to 215 moved to section 2 of [T76](../../../docs/todos/ready/T76-chapter-fast-and-slow-calls.md) | § Choosing a model | ✅ | No claim of rows 209 to 215 remains in the chapter; their verdicts stand at their sources, and T76 re-reads them before it cites them. The sources `anthropic-effort`, `anthropic-per-message-effort` and `openrouter-auto-router` left the register, and `openai-prompt-caching` left this chapter's `sources` (the gateway chapter still uses it). Rows 207 and 208 are unchanged |
 | 217 | After the code review: the Anthropic measurement (Opus 5.5 at `low` against Sonnet 5.5, about 7% more per solved task) is dated "As of November 2026", like the chapter's prices | § Choosing a model | ✏️ | [Optimizing for cost and intelligence](https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence), read 2026-11-28: the page reports the measurement without a date of its own, and results of this kind move with each release. Row 208's figures are unchanged |
+| 218 | After the independent writing review: the measurement sentence is split in two, so Opus's token prices (twice Sonnet's) come first and "yet" introduces the equal share of tasks solved at about 7% more per solved task | § Choosing a model | ✅ | Re-check of row 208 against the page's "but on the SWE-bench Pro subset Opus 5.5 at `low` solved about the same share of tasks as Sonnet 5.5 at its default": wording only; the price ratio, the effort level, the 7% and the "subset of SWE-bench Pro" are unchanged |
 
 ## Tally
 
 | Verdict | Rows |
 | --- | --- |
-| ✅ confirmed | 187 |
+| ✅ confirmed | 188 |
 | ✏️ corrected | 14 (rows 12, 17, 24, 38, 49, 91, 93, 103, 108, 116, 133, 140, 146 and 205) |
 | ⚠️ unverified, our judgement or recommendation, marked as ours in the text | 15 (rows 16, 31, 57, 75, 164, 168, 171, 174, 177, 178, 188, 191, 196, 197 and 214) |
-| Total | 216 |
+| Total | 217 |
 
 A row corrected in place (140 and 133) is ✏️, and so is the correction row that records the change (146 and 205), as in Chapter 1's rows 134 and 135, so each correction counts as two ✏️ rows.
 

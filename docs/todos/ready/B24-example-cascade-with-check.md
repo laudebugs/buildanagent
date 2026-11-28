@@ -23,7 +23,9 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 **In scope**
 
 - `packages/sdk/examples/14-cascade-with-check.ts`, with `// #region` markers for the book, and its recorded transcript under `packages/sdk/results/transcripts/`
-- The mechanism: `shouldStop` runs the check on the fast model's text answer and, when the check fails, returns `{ continue: <re-ask> }`. Once the slow model has answered, it returns nothing, so a slow answer that also fails the check ends the run instead of re-asking until `maxSteps`. `beforeModelCall` then returns `{ model: slow, messages: <the original task only> }` for the re-ask, so the slow call sends a fresh prompt. A patch's `messages` replaces what that one call sends, and the run's transcript keeps its own, which keeps the 2,000-input-token and $0.006-per-slow-call figures valid. `beforeModelCall` alone cannot escalate, because it runs before a call and a text answer ends the run. `packages/sdk/examples/12-weak-check.ts` is the starting point for the house style of a check
+- The check hook: `shouldStop` runs the check on the fast model's text answer and, when the check fails, returns `{ continue: <re-ask> }`. Once the slow model has answered, it returns nothing, so a slow answer that also fails the check ends the run instead of re-asking until `maxSteps`
+- The escalation hook: `beforeModelCall` returns `{ model: slow, messages: <the original task only> }` for the re-ask, so the slow call sends a fresh prompt. A patch's `messages` replaces what that one call sends, and the run's transcript keeps its own, which keeps the figures of 2,000 input tokens and $0.006 a slow call valid. `beforeModelCall` alone cannot escalate, because it runs before a call and a text answer ends the run
+- The house style of a check: start from `packages/sdk/examples/12-weak-check.ts`
 - Ten scripted scheduling tasks, each using 2,000 input and 200 output tokens. A fast scripted model priced as Haiku 5.5 ($0.10 and $0.50 per million tokens) costs $0.0003 a call. A slow scripted model priced as Sonnet 5.5 ($2 and $10) costs $0.006 a call
 - The fast model gets seven answers right, two schema-invalid and one valid but wrong
 - Run 1, a schema-only check: two tasks escalate, the wrong answer is accepted, and the cost is $0.015. Run 2, a schema-plus-rule check: three tasks escalate, ten of ten end correct, and the cost is $0.021, against $0.06 for slow-only
@@ -59,7 +61,7 @@ Add `packages/sdk/examples/14-cascade-with-check.ts`, which runs ten scripted sc
 
 ## Risks and open questions
 
-- The hook must choose the model per call without changing the cached prefix of the session in a way the example hides. The example states that a real escalation restarts on a new model and loses its cache, which [B26](B26-example-switch-or-stay.md) prices.
+- The hook swaps the model for one call, and a real swap loses the cached prefix. The example says so, and [B26](B26-example-switch-or-stay.md) prices it.
 - Priced numbers move with the catalog. The test reads the catalog's rates, so a price change fails it, and the comment gives the November 2026 prices.
 
 ## Definition of done

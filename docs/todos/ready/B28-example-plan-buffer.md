@@ -23,7 +23,7 @@ Add `packages/sdk/examples/17-plan-buffer.ts`, in which a scripted slow model re
 **In scope**
 
 - `packages/sdk/examples/17-plan-buffer.ts` and its transcript
-- Control returns to the slow model when the buffer empties, when an action is invalid, or when three steps in a row earn no progress (a smaller K than SwiftSage's five, so the test stays short)
+- Control returns to the slow model when the buffer empties, when an action is invalid, or when three steps in a row earn no progress (SwiftSage's limit is five, and three keeps the test short)
 - A ten-step task uses two slow calls, where step-by-step slow use needs ten, and an injected invalid action triggers a third slow call
 - A comment that says SwiftSage's evidence is one simulator with hand-written rules
 
