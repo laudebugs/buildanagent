@@ -1,5 +1,15 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.44
+
+### Patch Changes
+
+- 0e70e6a: Fix session logs that differed between stores for the same run. The entry writer now takes each entry's id and timestamp when the write is queued, not after the store finishes its earlier appends, so a fixed clock and id generator give the same log on every store. An id generator or clock that throws now stops the run, as a failed store write does.
+- @buildanagent/agent-safety@0.1.0-alpha.44
+  - @buildanagent/gateway@0.1.0-alpha.44
+  - @buildanagent/protocol@0.1.0-alpha.44
+  - @buildanagent/sdk@0.1.0-alpha.44
+
 ## 0.1.0-alpha.43
 
 ### Patch Changes
