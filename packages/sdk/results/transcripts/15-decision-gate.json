@@ -8,7 +8,7 @@
   "events": [
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-1",
       "repeated": 0,
       "messages": [
@@ -39,7 +39,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -56,7 +56,7 @@
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-1",
       "repeated": 3,
       "messages": [
@@ -80,7 +80,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-1",
       "message": {
         "role": "assistant",
@@ -95,13 +95,13 @@
     },
     {
       "kind": "check",
-      "line": 68,
+      "line": 62,
       "message": "a lookup at 0.70 acts, above its 0.67 bar",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-2",
       "repeated": 0,
       "messages": [
@@ -132,7 +132,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-2",
       "message": {
         "role": "assistant",
@@ -149,13 +149,13 @@
     },
     {
       "kind": "check",
-      "line": 69,
+      "line": 63,
       "message": "a lookup at 0.60 asks",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-3",
       "repeated": 0,
       "messages": [
@@ -186,7 +186,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -203,7 +203,7 @@
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-3",
       "repeated": 3,
       "messages": [
@@ -227,7 +227,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-3",
       "message": {
         "role": "assistant",
@@ -242,13 +242,13 @@
     },
     {
       "kind": "check",
-      "line": 70,
+      "line": 64,
       "message": "a refund at 0.95 acts, above 0.93",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-4",
       "repeated": 0,
       "messages": [
@@ -279,7 +279,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-4",
       "message": {
         "role": "assistant",
@@ -296,13 +296,13 @@
     },
     {
       "kind": "check",
-      "line": 72,
+      "line": 66,
       "message": "a refund at 0.90 asks and does not run",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-5",
       "repeated": 0,
       "messages": [
@@ -333,7 +333,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -350,7 +350,7 @@
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-5",
       "repeated": 3,
       "messages": [
@@ -375,7 +375,7 @@
     },
     {
       "kind": "response",
-      "line": 52,
+      "line": 60,
       "model": "model-5",
       "message": {
         "role": "assistant",
@@ -390,14 +390,216 @@
     },
     {
       "kind": "check",
-      "line": 74,
-      "message": "a refund bought 39 days ago is denied by the code's date comparison, at 0.97",
+      "line": 68,
+      "message": "a refund at 0.97 is denied 39 days on",
       "pass": true
     },
     {
       "kind": "request",
-      "line": 52,
+      "line": 60,
       "model": "model-6",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A4, bought 15 December."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 60,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 60,
+      "model": "model-6",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "refund",
+              "output": "Tool call \"refund\" was denied: The return window is 30 days.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 60,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "15 December means last year, so that refund is denied",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 60,
+      "model": "model-7",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A5, bought 31 November."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 60,
+      "model": "model-7",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 71,
+      "message": "31 November does not exist, so it asks",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 60,
+      "model": "model-8",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A6, bought in October, I think."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 60,
+      "model": "model-8",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "a month at 0.60 asks",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 60,
+      "model": "model-9",
       "repeated": 0,
       "messages": [
         {
@@ -427,8 +629,8 @@
     },
     {
       "kind": "response",
-      "line": 52,
-      "model": "model-6",
+      "line": 60,
+      "model": "model-9",
       "message": {
         "role": "assistant",
         "parts": [
@@ -444,20 +646,20 @@
     },
     {
       "kind": "check",
-      "line": 76,
+      "line": 74,
       "message": "a transfer asks even at 0.99",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 81,
-      "message": "a question that names an earlier answer is rejected",
+      "line": 79,
+      "message": "a question that names an earlier answer throws",
       "pass": true
     },
     {
       "kind": "check",
-      "line": 88,
-      "message": "each request holds one question, never a question and its source",
+      "line": 86,
+      "message": "each request holds one question, never one and its source",
       "pass": true
     }
   ]
