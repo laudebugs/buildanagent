@@ -64,7 +64,7 @@ The agent serves one person. The model key is one secret held by the host and ad
 | Transport | stdio | WebSocket on the Durable Object | Lambda response streaming | WebSocket (beta) or SSE |
 | `EffectStore` | `memoryEffectStore()` | Durable Object SQLite | DynamoDB, conditional put | Postgres, insert on conflict do nothing |
 
-**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/done/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/done/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [N50](../todos/ongoing/N50-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
+**Revision (plan review 2, 2026-11-19).** The `EffectStore` row applies [ADR 0043](../decisions/0043-standalone-safety-core.md), which makes it the eighth portable seam; [E2](../todos/done/E2-effect-identity-crash-rule.md) builds the local store and [E7](../todos/done/E7-safety-portability.md) the three cloud stores. The Cloudflare `EgressPolicy` cell changed because `@cloudflare/sandbox` 1.0 removed `outboundByHost`; [N50](../todos/done/N50-cloudflare-sandbox-egress.md) tests the replacement before N46b builds it.
 
 The table follows U11's per-target mapping, which is our inference from each platform's docs and untested ([portable agents report][pa-sdk]). The conformance suite (N45) makes it a test: every implementation in a column must pass the same cases, including HD2's settling test and the three rules of the [storage-and-wake note][sw-rules].
 
@@ -172,7 +172,7 @@ Two harness non-goals change. "A WebSocket or HTTP-with-SSE transport" leaves th
 | [N48a](../todos/done/N48a-vercel-state-adapters.md) | Postgres store and lock, Workflow wake, environment key store | N45 | M |
 | [N48b](../todos/done/N48b-vercel-sandbox-backend.md) | Vercel Sandbox backend and firewall `transform` | N45 | M |
 | [N49](../todos/ready/N49-hosted-sandbox-measurement.md) | Cold start, snapshot and per-call overhead on the three hosted backends | N46b, N47b, N48b, N19 | S |
-| [N50](../todos/ongoing/N50-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
+| [N50](../todos/done/N50-cloudflare-sandbox-egress.md) | Verify Cloudflare Sandbox 1.0 egress on a real sandbox, and draft an ADR for the owner (added in plan review 2, 2026-11-19) | None | M |
 
 ### 5.2 Round W builds the coding agent
 

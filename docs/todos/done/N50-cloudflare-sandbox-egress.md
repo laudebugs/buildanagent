@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `N50` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Build harness §4.8](../../plans/build-harness.md#48-stage-8-makes-the-harness-portable-to-cloudflare-aws-and-vercel-added-2026-11-18) |
 | Round / milestone | Round N (build harness, stage 8: portability; a verification todo added in plan review 2), M6 |
 | Depends on | None |
@@ -47,20 +47,20 @@ Two outputs:
 
 ## Tasks
 
-- [ ] Use a disposable Cloudflare account or test project, which the owner provides, for this todo alone. Use no real credentials: the injected "credential" is a dummy token checked by a test echo server.
-- [ ] Pin `@cloudflare/sandbox` 1.0.3 and the Containers tooling exactly, under the one-week rule, in a scratch verify project.
-- [ ] Run cases (a) to (e) and record each request, response and error verbatim.
-- [ ] For (b), install the CA and check each client in turn: `npm install` from the registry, `git clone` over HTTPS, `curl`, and Node's `fetch`.
-- [ ] Write the findings note and its fact-check, citing the two Cloudflare pages and fact-check rows 112, 114 and 117.
-- [ ] Draft the proposed ADR text in the findings note, marked Proposed.
-- [ ] Delete the test project and record that in the note.
+- [x] Use a disposable Cloudflare account or test project, which the owner provides, for this todo alone. *(The owner approved the one account wrangler was logged into, on 2026-11-28, with new resources named `n50-egress-test-20261128…` only.)* Use no real credentials: the injected "credential" is a dummy token checked by a test echo server.
+- [x] Pin `@cloudflare/sandbox` 1.0.3 and the Containers tooling exactly, under the one-week rule, in a scratch verify project.
+- [x] Run cases (a) to (e) and record each request, response and error verbatim.
+- [x] For (b), install the CA and check each client in turn: `npm install` from the registry, `git clone` over HTTPS, `curl`, and Node's `fetch`.
+- [x] Write the findings note and its fact-check, citing the two Cloudflare pages and fact-check rows 112, 114 and 117.
+- [x] Draft the proposed ADR text in the findings note, marked Proposed.
+- [x] Delete the test project and record that in the note.
 
 ## Acceptance criteria
 
-- [ ] Each of cases (a) to (e) has a recorded result: pass, fail or not testable, with the evidence.
-- [ ] The findings note states how N46b should compile `EgressPolicy`, and what that costs in trust-store setup per client.
-- [ ] The proposed ADR text names the decision, the options and the evidence, and limits any change to the Cloudflare backend.
-- [ ] No real credential was used, and the disposable project is deleted.
+- [x] Each of cases (a) to (e) has a recorded result: pass, fail or not testable, with the evidence.
+- [x] The findings note states how N46b should compile `EgressPolicy`, and what that costs in trust-store setup per client.
+- [x] The proposed ADR text names the decision, the options and the evidence, and limits any change to the Cloudflare backend.
+- [x] No real credential was used, and the disposable project is deleted.
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline (the repo-wide gate; this todo adds no package code).
 
 ## Tests
@@ -77,11 +77,23 @@ The findings note and its fact-check under `docs/research/deployment/`, the AGEN
 - Cloudflare may change the Container API again; record the date and versions of every result.
 - The owner may reject TLS interception for Cloudflare. Then the opt-in needs another route, such as a reverse-proxy route outside the sandbox, or E2B behind `SandboxClient` (CA3), and authenticated actions stay host-side tools as ADR 0060 makes them by default.
 
+## Outcome
+
+Done on 2026-11-28. The [findings note](../../research/deployment/cloudflare-sandbox-egress.md) and its [fact-check](../../research/deployment/fact-check-cloudflare-sandbox-egress.md) (57 claims: 53 ✅, 3 ✏️, 1 ⚠️) record the live run, and the [scratch project](../../research/deployment/cloudflare-sandbox-egress-run/) holds the harness and every case's verbatim record. It sits outside the pnpm workspace and pins `@cloudflare/sandbox` 1.0.3 and wrangler 4.160.1.
+
+- **(a) Fails.** With internet off and only HTTP intercepts, an allowed name resolves to a placeholder but HTTPS to it times out in curl, Node, npm and Git. With no intercept, the name doesn't resolve. So the default needs a ruling on Cloudflare too. A plain-HTTP reverse-proxy route to the Worker reached the registry and GitHub with no CA, but only for clients configured to use it.
+- **(b) Passes.** Per-host `interceptOutboundHttps()` works once the per-container CA is trusted. curl and Git need only the system-bundle step, while Node `fetch` and npm also need `NODE_EXTRA_CA_CERTS` (or `--use-system-ca` for Node). The dummy token reached the echo server, never the sandbox's environment, but the echoed headers brought it back into a file.
+- **(c) Passes.** Denied names never resolve, IP literals reset, and a handler that forwards on the `Host` header is a server-side request forgery, so every handler must check the host.
+- **(d) Passes.** Metadata addresses reset, `metadata.google.internal` never resolves, and loopback reaches only the container itself.
+- **(e) Passes with one difference.** 64 HTTPS hostnames fit and the 65th throws, but 129 IP targets registered, one more than the docs say. A glob such as `*.wild.n50.invalid` covers every subdomain but not the apex.
+
+The note proposes an ADR, unnumbered and marked Proposed — owner to confirm: on the Cloudflare backend only, our own Worker intercepts TLS for each allowed host behind a host check, and an opt-in credential route adds the credential on a checked route. N46b waits for the owner's ruling. Every resource was deleted and checked by listing ([teardown record](../../research/deployment/cloudflare-sandbox-egress-run/results/teardown.log)). The code reviews and the writing review run on the pull request.
+
 ## Definition of done
 
-- [ ] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
-- [ ] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
+- [x] Claimed: the first commit moved this file `ready/` → `ongoing/` (Status `ongoing`)
+- [x] Prose drafted with `/anthropic-skills:writing`, and changed claims re-checked against their sources
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass locally; pushed after each meaningful step
-- [ ] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
+- [x] This file moved `ongoing/` → `done/` (Status `done`) in the last work commit, and the plan's todo table updated
 - [ ] Two code-review rounds run on the pull request (`/code-review high --max-findings default`, then `medium` and `low` after more than 6 confirmed findings, otherwise `low`), with every finding fixed or explained in a commit message
 - [ ] Copy reviewed with `/anthropic-skills:writing-review` after the code changes, with its findings fixed and the rubric scores in the pull request description
