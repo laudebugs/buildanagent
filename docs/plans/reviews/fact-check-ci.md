@@ -1,6 +1,6 @@
 # Fact-check: the CI plan's claims
 
-This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. The log also covers the claims [X12](../../todos/done/X12-sdk-updates-assertion-bug.md) adds to gap 6 and to its own Outcome, checked 2026-11-26 on branch `todo/X12-sdk-updates-assertion-bug`.
+This log checks claims [CI plan §3h](../ci.md#3h-bun-runtime-compatibility-measured-x6-added-2026-11-26) makes, from todo [X6](../../todos/done/X6-bun-runtime-compatibility.md). Checked 2026-11-26, on branch `todo/X6-bun-runtime-compatibility`, off `main` at `209e060d`. The log also covers the claims [X12](../../todos/done/X12-sdk-updates-assertion-bug.md) adds to gap 6 and to its own Outcome, checked 2026-11-26 on branch `todo/X12-sdk-updates-assertion-bug`, with row X12-7 added 2026-11-27.
 
 Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or our own inference.
 
@@ -13,7 +13,8 @@ Legend: ✅ confirmed · ✏️ corrected while drafting · ⚠️ unverified or
 | X12-2 | `parseBumps` throws `<input> isn't a planned bump` for `b`, `b@latest`, `@s/a`, `B@1.0.0` and `../x@1.0.0` | ✅ | [`sdk-updates.mjs:370`](../../../scripts/ci/sdk-updates.mjs) throws `` `${bump} isn't a planned bump` `` when the `@` is missing or leads, the name fails `PACKAGE_NAME`, or the version fails `parse`; the five inputs pass the new assertions in `sdk-updates.test.mjs` |
 | X12-3 | X12 fixed gap 6 on 2026-11-26 | ✅ | `git log -1 --format=%cs 56c9a260` returns `2026-11-26`, and the same date holds for the earlier fix commit `ab601452` |
 | X12-4 | `sdk-updates.test.mjs` passes 98 of 98 under `node --test` and under `bun test` (Bun 1.4.4), in seven separate runs | ✅ | Seven runs of each command, 2026-11-26, each with 98 pass and 0 fail |
-| X12-5 | The one Bun run that failed (97 pass, 1 fail) came from concurrent runs of the suite in one worktree, not from a flaky test | ⚠️ | The failure happened while two review agents ran the same suite in the same worktree, and six later back-to-back runs passed 98 of 98. The collision is our inference; the failing test was not captured |
+| X12-5 | The one Bun run that failed (97 pass, 1 fail) came from concurrent runs of the suite in one worktree, not from a flaky test | ⚠️ | The failure happened while two review agents ran the same suite in the same worktree, and every run after it passed 98 of 98, including the seven of row X12-7. The collision is our inference; the failing test was not captured |
 | X12-6 | Four mutations of `parseBumps` each fail the new test. A different message passes the old test and fails the new one. No throw on the empty input fails both. Accepting `b@latest` fails the new test with `Missing expected exception: refuses b@latest` under Node and Bun. Returning instead of throwing at line 370 fails the new assertions for the five non-empty inputs | ✅ | Each mutation applied to `sdk-updates.mjs`, the suite run, and `parseBumps` restored, 2026-11-26 |
+| X12-7 | After `main` was merged in at `791008aa`, `sdk-updates.test.mjs` passes 98 of 98 under `bun test` (Bun 1.4.4) in seven sequential runs, with nothing else running the suite | ✅ | Seven runs of `bun test scripts/ci/sdk-updates.test.mjs`, one after another, 2026-11-27, each with 98 pass and 0 fail |
 
-**Totals:** 9 claims: 8 ✅, 0 ✏️, 1 ⚠️.
+**Totals:** 10 claims: 9 ✅, 0 ✏️, 1 ⚠️.
