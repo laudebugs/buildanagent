@@ -14,7 +14,7 @@ import { attempt, DAYS, MONTHS, rows } from "./lib/decision-fixtures.js";
 import { type Answer, type DecideClient, probabilityOf, tableClient, topOption } from "./lib/decision-table.js";
 
 const NEVER = Number.POSITIVE_INFINITY;
-const ACT_ABOVE: Record<string, number> = { lookup_order: 0.67, refund: 0.93, transfer: NEVER };
+const ACT_ABOVE = new Map([["lookup_order", 0.67], ["refund", 0.93], ["transfer", NEVER]]);
 const DATE_ABOVE = 0.9;
 const RETURN_DAYS = 30;
 const MS_PER_DAY = 86_400_000;
@@ -43,7 +43,7 @@ const gate = (client: DecideClient, state: string): Interceptors => ({
   beforeToolCall: async ({ tool }) => {
     const intent = { id: "intent", kind: "predicate", ask: `Does the customer want ${tool}?` } as const;
     const p = probabilityOf((await client.decide(state, [intent])).intent, "yes"); // the option the code will take
-    const bar = ACT_ABOVE[tool] ?? NEVER; // book:note bars
+    const bar = ACT_ABOVE.get(tool) ?? NEVER; // book:note bars
     if (bar === NEVER) return { decision: "ask", reason: `Always needs a person's confirmation (intent ${p}).` };
     if (p <= bar) return { decision: "ask", reason: `Intent ${p} is not above ${bar}.` };
     if (tool !== "refund") return { decision: "allow" };
