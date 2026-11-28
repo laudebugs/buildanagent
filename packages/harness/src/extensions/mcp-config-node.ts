@@ -79,7 +79,7 @@ export interface ProjectMcpServer {
    * root, so two spellings of one file are one entry: a file as `sha256:` and its SHA-256, a folder as the hash of
    * every file in it. A path counts when it is the command, an argument or an option's value, or a file beside one of
    * those named it with an extension added, including a path a `file:` URL, an `@file` argument or a `,` or `PATH`
-   * delimited list spells, and its real path is inside the project, however it is spelled. A bare
+   * delimited list spells, and each word of a shell string, and its real path is inside the project, however it is spelled. A bare
    * command also counts in the root and in each folder of the `PATH`. What the named code loads by other means is not
    * covered. The `PATH` is the host's, so a host with a project folder on its `PATH` can pin a bare command differently
    * from one without, and the other host asks again.
@@ -236,13 +236,21 @@ function parseConfig(file: string, text: string): { entries: Entry[]; notices: s
  * first. Most name nothing in the project and are skipped later.
  */
 function candidatesOf(entry: Entry, root: string): string[] {
-  const found = [resolve(root, entry.command), ...onPath(entry.command)];
-  for (const arg of entry.args) {
-    const value = OPTION_VALUE.exec(arg)?.[1] ?? SHORT_VALUE.exec(arg)?.[1];
-    const texts = value === undefined ? [arg] : [arg, value];
-    found.push(...texts.flatMap(pathsIn).map((path) => resolve(root, path)));
-  }
-  return found;
+  const named = entry.args.flatMap(textsOf).flatMap(pathsIn);
+  return [resolve(root, entry.command), ...onPath(entry.command), ...named.map((path) => resolve(root, path))];
+}
+
+/**
+ * The texts one argument may spell a path with: itself and an option's value, and for a shell string, such as
+ * `node server.js` after `sh -c`, each word of it, unquoted, treated the same way.
+ */
+function textsOf(arg: string): string[] {
+  const words = arg.trim().split(/\s+/);
+  const all = words.length > 1 ? [arg, ...words.map((word) => word.replace(/^["']|["']$/g, ""))] : [arg];
+  return all.flatMap((text) => {
+    const value = OPTION_VALUE.exec(text)?.[1] ?? SHORT_VALUE.exec(text)?.[1];
+    return value === undefined ? [text] : [text, value];
+  });
 }
 
 /** Where a bare command could be found on the `PATH` the server gets: each absolute folder of it. */
@@ -260,24 +268,27 @@ function onPath(command: string): string[] {
  */
 function pathsIn(text: string): string[] {
   const found = new Set<string>();
-  for (const whole of text.startsWith("@") ? [text, text.slice(1)] : [text]) {
-    for (const part of [whole, ...whole.split(","), ...whole.split(delimiter)]) {
-      if (part === "") continue;
-      found.add(part);
-      if (part.startsWith("file:")) {
-        try {
-          found.add(fileURLToPath(part));
-        } catch {
-          // Not a URL Node would open as a file, so nothing more to pin.
-        }
-      }
-    }
+  const wholes = text.startsWith("@") ? [text, text.slice(1)] : [text];
+  for (const part of wholes.flatMap((whole) => [whole, ...whole.split(","), ...whole.split(delimiter)])) {
+    if (part === "") continue;
+    found.add(part);
+    const path = part.startsWith("file:") ? urlPath(part) : undefined;
+    if (path !== undefined) found.add(path);
   }
   return [...found];
 }
 
+/** The path a `file:` URL names, or `undefined` when Node would not open it as a file. */
+function urlPath(url: string): string | undefined {
+  try {
+    return fileURLToPath(url);
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * `path` and every entry beside it named `path`, a dot and more, in any letter case: what a program that adds an
+ * `path` and every entry beside it named `path` and one extension, in any letter case: what a program that adds an
  * extension runs for it, as Node runs `server.js` for `node server`, Ruby `hook.rb` for `-rhook` and Windows `evil.exe`
  * for `evil`. Only a folder whose real path is in the project is listed.
  */
@@ -286,6 +297,8 @@ async function spellingsOf(file: string, root: string, path: string): Promise<st
   const folder = await realOrNone(dirname(path));
   if (folder === undefined || !isInside(root, folder)) return found;
   const stem = `${basename(path).toLowerCase()}.`;
+  // One more dot-part only, as `server.js`: what a program adds is one extension, so `server.js.bak` is not a spelling.
+  const added = (name: string) => name.startsWith(stem) && !name.slice(stem.length).includes(".");
   let names: string[];
   try {
     names = await readdir(dirname(path));
@@ -300,13 +313,40 @@ async function spellingsOf(file: string, root: string, path: string): Promise<st
     );
   }
   for (const name of names) {
-    if (name.toLowerCase().startsWith(stem)) found.push(join(dirname(path), name));
+    if (added(name.toLowerCase())) found.push(join(dirname(path), name));
   }
   return found;
 }
 
 /** The real path of `path`, or `undefined` when nothing is there. */
-const realOrNone = (path: string): Promise<string | undefined> => realpath(path).catch(() => undefined);
+const realOrNone = (path: string): Promise<string | undefined> =>
+  realpath(path).catch((error: unknown) => {
+    // Only "nothing there" is an answer; a loop is left to `exists()`, and any other error, such as EACCES, is raised.
+    if (MISSING.has(codeOf(error) ?? "")) return undefined;
+    throw error;
+  });
+
+const MISSING = new Set(["ENOENT", "ENOTDIR", "ELOOP"]);
+
+/** A Node system error's code, such as `EACCES`, or `undefined` for anything else. */
+function codeOf(error: unknown): string | undefined {
+  const code = (error as { code?: unknown } | null)?.code;
+  return error instanceof HarnessError || typeof code !== "string" ? undefined : code;
+}
+
+/**
+ * `work`, with a Node system error, such as a file the harness may not read, raised as `invalid_mcp_config` under the
+ * config's name like every other refusal.
+ */
+async function asRefusal<T>(file: string, work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    const code = codeOf(error);
+    if (code === undefined) throw error;
+    throw refuse(file, `a file it needs could not be read (${code})`, error);
+  }
+}
 
 /**
  * Where a path the command line wrote leads: its real path inside the project, `undefined` when it names nothing in
@@ -520,7 +560,8 @@ async function outcomeOf(
  * A server starts only when the run is not headless (or `loadInHeadless` is set), the trust store trusts the project,
  * and the server's config hashes to its pin in the lock file. Every other declared server is returned in `declared`,
  * with its exact command and args and a notice, so the host can show what would run and ask; `pinProjectMcpServer()`
- * records the person's yes. A headless run without `loadInHeadless` only checks that the file exists. In a project
+ * records the person's yes. A headless run without `loadInHeadless` only checks that the file exists, and a project without the file gives
+ * nothing, whatever its lock file holds. In a project
  * that is not trusted the config and the lock file are read, and the files the command line names are hashed, all
  * inside the project, so the notice can show the state; nothing outside it is read.
  *
@@ -530,8 +571,8 @@ async function outcomeOf(
  * config can't name parent variables to copy, so a project server gets `spawnEnv()`'s cleared environment and the
  * values the host supplied, nothing more. A name, command or argument over 1,024 characters, with a control, format,
  * combining or non-ASCII space character, or holding `${`, is refused, and the notice escapes everything outside
- * printable ASCII. Every refusal, of the config file, an entry, a named path or the lock file, is a `HarnessError` with
- * code `invalid_mcp_config` whose message starts with the file's name, and nothing of the file starts.
+ * printable ASCII. Every refusal, of the config file, an entry, a named path or the lock file, a file the harness may not
+ * read included, is a `HarnessError` with code `invalid_mcp_config` whose message starts with the file's name, and nothing of the file starts.
  *
  * The pin covers the command, args, variable names, and the files and folders inside the project that
  * the command line names, as `server.mjs` in `node server.mjs`, `./p.mjs` in `--import=./p.mjs`, or
@@ -546,6 +587,10 @@ async function outcomeOf(
  */
 export async function loadProjectMcpServers(root: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const base = await canonicalPath(root);
+  return asRefusal(configPath(base, options), () => loadFrom(root, base, options));
+}
+
+async function loadFrom(root: string, base: string, options: ProjectMcpOptions): Promise<ProjectMcpServers> {
   const result: ProjectMcpServers = { servers: [], declared: [], notices: [] };
   // Only `headless: false` counts as a run someone can answer, so a caller that leaves it out gets the safe side.
   if (options.headless !== false && options.loadInHeadless !== true) {
@@ -554,6 +599,8 @@ export async function loadProjectMcpServers(root: string, options: ProjectMcpOpt
     if (await exists(file)) result.notices.push(`the MCP servers in ${quote(file)} are skipped: this run is headless`);
     return result;
   }
+  // A project without the file gives nothing, whatever its lock file or `.agents` folder holds.
+  if (!(await exists(configPath(base, options)))) return result;
   const { file, lock } = await configAndLock(base, options);
   const trusted = await projectTrusted(options.trust, root);
   const read = await readDeclared({ base, given: resolve(root) }, file, await asConfigError(readMcpConfigPins(lock)));
@@ -582,6 +629,10 @@ export async function pinProjectMcpServer(
   options: ProjectMcpFiles = {},
 ): Promise<void> {
   const base = await canonicalPath(root);
+  await asRefusal(configPath(base, options), () => pinFrom(root, base, server, hash, options));
+}
+
+async function pinFrom(root: string, base: string, server: string, hash: string, options: ProjectMcpFiles) {
   const { file, lock } = await configAndLock(base, options);
   const read = await readDeclared({ base, given: resolve(root) }, file, new Map());
   const found = read?.declared.find((declared) => declared.name === server);

@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -652,6 +653,71 @@ describe("project MCP configs: what a program runs for a path the command line n
     const root = project(server({ args: ["server.mjs/x", "server.mjs"] }));
     assert.deepEqual(await pinnedPaths(root), ["server.mjs"]);
   });
+
+  test("the paths a shell string names as words are pinned", async () => {
+    const root = project(server({ command: "sh", args: ["-c", "node --require ./hook.js 'server.mjs'"] }));
+    writeFileSync(join(root, "hook.js"), "1");
+    assert.deepEqual(await pinnedPaths(root), ["hook.js", "server.mjs"]);
+  });
+
+  test("a file beside a named path with more than one extension added is not a spelling of it", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+    dirs.push(outside);
+    writeFileSync(join(outside, "x"), "outside");
+    const root = project(server({ args: ["server"] }));
+    writeFileSync(join(root, "server.js"), "1");
+    symlinkSync(join(outside, "x"), join(root, "server.js.bak"));
+    assert.deepEqual(await pinnedPaths(root), ["server.js", "server.mjs"]);
+  });
+
+  test("a project without .mcp.json gives nothing, whatever its .agents folder holds", async () => {
+    const outside = mkdtempSync(join(tmpdir(), "harness-mcp-outside-"));
+    dirs.push(outside);
+    const linked = project();
+    rmSync(join(linked, ".mcp.json"));
+    symlinkSync(outside, join(linked, ".agents"));
+    const broken = project();
+    rmSync(join(broken, ".mcp.json"));
+    mkdirSync(join(broken, ".agents"), { recursive: true });
+    writeFileSync(lockOf(broken), "<<<<<<< HEAD");
+    for (const root of [linked, broken]) {
+      assert.deepEqual(await loadProjectMcpServers(root, options(root, true)), {
+        servers: [],
+        declared: [],
+        notices: [],
+      });
+    }
+  });
+
+  test.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+    "a named file the harness may not read is refused as invalid_mcp_config, under the config's name",
+    async () => {
+      const root = project(server({ args: ["server.mjs", "locked.mjs", "dir/inner.mjs"] }));
+      writeFileSync(join(root, "locked.mjs"), "1");
+      chmodSync(join(root, "locked.mjs"), 0o000);
+      try {
+        await assert.rejects(loadProjectMcpServers(root, options(root, false)), (error) => {
+          return (
+            isHarnessError(error) && error.code === "invalid_mcp_config" && /\.mcp\.json": .*EACCES/.test(error.message)
+          );
+        });
+      } finally {
+        chmodSync(join(root, "locked.mjs"), 0o644);
+      }
+      mkdirSync(join(root, "dir"));
+      chmodSync(join(root, "dir"), 0o000);
+      writeFileSync(join(root, ".mcp.json"), JSON.stringify(server({ args: ["dir/inner.mjs"] })));
+      try {
+        await assert.rejects(loadProjectMcpServers(root, options(root, false)), (error) => {
+          return (
+            isHarnessError(error) && error.code === "invalid_mcp_config" && /can't be listed|EACCES/.test(error.message)
+          );
+        });
+      } finally {
+        chmodSync(join(root, "dir"), 0o755);
+      }
+    },
+  );
 
   test("a caller that leaves out headless gets a headless run", async () => {
     const root = project();
