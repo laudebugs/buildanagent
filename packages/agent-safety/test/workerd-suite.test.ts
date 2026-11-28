@@ -24,6 +24,7 @@ const NODE_ONLY: Record<string, string> = {
   "cross-process.test.ts": "forks child processes",
   "docs-check.test.ts": "reads the README and runs the TypeScript compiler as a child process",
   "hash-realm.test.ts": "makes a second realm with node:vm, which workerd does not implement",
+  "problem-messages.test.ts": "reads the docs page that quotes its messages",
   "outcomes.test.ts": "reads fixture files from disk",
   "signing.test.ts": "reads files and uses Node's process APIs",
   "stores/cloudflare.test.ts": "starts workerd through Miniflare itself",

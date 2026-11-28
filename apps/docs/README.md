@@ -75,11 +75,11 @@ Four test files guard the figures:
 
 ## How the docs tests share one build
 
-Ten tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test, the topics test, the chrome test and the reference-links test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
+Eleven tests read the built site: the figure build test, the favicon test, the API reference test, the twins test, the version test, the install-line test, the home test, the topics test, the chrome test, the reference-links test and the content security policy test. They share one build, made once per run by `test/built-site.ts`, a Vitest global setup. The build goes into a temporary folder. Separate builds at the same time can fail, because TypeDoc rewrites `src/content/docs/reference/` while each one runs. The setup runs before any test, so even a run of one test file waits for the build. When the build fails, the setup removes its folder and hands the tests the error, so only the tests that read built pages fail, with the build's output in their message.
 
 ## Sidebar topics keep each page small
 
-A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway", "Harness", "Protocol" and "CLI" hold the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
+A page embeds only its topic's sidebar, not the whole site's. `starlight-sidebar-topics` 0.9.0 shows the topics as tabs above the sidebar and gives the current page the sidebar of its own topic. The topics are in `src/topics.ts`: "SDK & gateway", "Harness", "Agent safety", "Protocol" and "CLI" hold the written pages, and each package whose reference TypeDoc generates gets a topic of its own (`API_PACKAGES` in `src/api/packages.ts`), so the generated links of one package never reach a page of another. The plugin overrides Starlight's `Sidebar`, so the table of overrides below does not list it.
 
 To add a topic, add an entry to `topics()`. For a new package's reference, add the package to `API_PACKAGES` and nothing else: the config derives its topic, its TypeDoc plugin and the glob that puts its generated pages in the topic. A page that no topic names fails the build, because the plugin refuses it, and `test/content.test.ts` requires every page of `src/content/docs/` in exactly one topic.
 
@@ -145,11 +145,101 @@ Safari lets a page write to the clipboard only inside the click that asked for i
 
 If the browser lacks `ClipboardItem`, or the write is refused, the handler calls `writeText` with the text that a hover or focus fetched ahead. A clipboard with no `writeText` counts as a failed copy. `test/copy-markdown.test.ts` drives the handler with fakes and reads the source to check that nothing waits before the write.
 
-The script is static: it splices no value from the build, and the twin's address comes from the button's `data-twin` attribute. Astro inlines it as one `<script type="module">` whose text is the same on every page, so the Content-Security-Policy work in the [L12 docs redesign todo](../../docs/todos/ongoing/L12-docs-redesign.md) can allow it by one hash. The button's styles use tokens only, take a larger touch target on coarse pointers, set `ButtonText` borders in forced-colours mode and hide in print.
+The script is static: it splices no value from the build, and the twin's address comes from the button's `data-twin` attribute. Astro inlines it as one `<script type="module">` whose text is the same on every page, so the [content security policy](#the-content-security-policy-allows-the-docs-own-files-hashed-inline-scripts-and-style-attributes) allows it by one hash. The button's styles use tokens only, take a larger touch target on coarse pointers, set `ButtonText` borders in forced-colours mode and hide in print.
 
 ### Adding context7.json later
 
 The owner chose not to publish a `context7.json` (2026-11-23), so nothing writes one. `src/twins/integration.ts` says where to add it.
+
+## The content security policy allows the docs' own files, hashed inline scripts and style attributes
+
+A content security policy (CSP) is a response header that tells the browser what a page may load and run. It is defence in depth, a second layer behind correct escaping: it limits what injected markup can do once it is on a page, but it does not fix the bug that let the markup in.
+
+**What the policy does not stop.** The policy works only in a browser that enforces it, and even there it leaves these open:
+
+- **Styles.** Injected markup can add `style=` attributes, so it could restyle or cover part of a page. Safari before 26.2, a recent release, also lets it add `<style>` elements, so many Safari and iOS readers are in that group today, as are Chrome before 75 and Firefox before 108.
+- **Navigation.** An injected link, a `<meta http-equiv="refresh">` or a redirect can still send a reader to another site, because `form-action` covers forms only.
+- **Page content.** Injected markup can spoof page text, and it can add elements whose `id` or `name` replaces a global that a hashed script reads.
+- **Allowed scripts.** `script-src 'self'` still runs every same-origin script and every hashed inline script.
+- **Content types.** The docs do not send `X-Content-Type-Options: nosniff`, which would stop a browser running a same-origin file of another type as a script. Adding it is a follow-up.
+
+**What the policy stops.** Cross-site scripting is an attack that injects markup into a page so that the attacker's script runs there. In a current browser, the docs' policy blocks the four ways such markup would run a script of its own or load anything from another origin:
+
+- an injected inline script;
+- an event-handler attribute such as `onclick=`;
+- a `javascript:` link;
+- a script, stylesheet, font, image, worker or connection from another origin.
+
+It also forbids any other site to show the docs in a frame.
+
+**Where the header comes from.** `_headers` is a Cloudflare file of response headers, one rule per path pattern. `public/_headers` holds the site-wide policy in one `/*` rule, then a rule for the favicon, [described below](#the-favicon-has-a-policy-of-its-own). Cloudflare's asset server reads that file, adds each rule's headers to the matching responses and never serves the file itself. Each line of the file may hold at most 2,000 characters, so the build fails when the CSP line passes 1,900. The deploy serves main's copy of the file, as [How `next.` stays out of search engines](#versions-the-banner-and-the-install-line-rule) describes.
+
+**Inline scripts are allowed by hash.** A hash source such as `'sha256-…'` names the SHA-256 digest of one inline script's exact text, and the browser runs an inline script only when its digest is listed. As of November 2026, the 1,133 built pages carry 13 different inline scripts. They come from seven sources: Starlight's theme, search, sidebar, mobile-menu and tabs components, and the docs' banner and "Copy as Markdown" scripts. The policy has no `'unsafe-inline'` for scripts, so any other inline script is blocked.
+
+**A build step derives the policy from the built site.** `src/csp/integration.ts` runs after every page is written. It reads each page, hashes every inline script and writes `dist/_headers`, which no deploy serves: the test below compares it with the committed file. It also reads every served SVG and XML file, because a browser can open one as a document. `src/csp/policy.ts` holds the directives and the reason for each one.
+
+The build fails on any of these:
+
+- an event-handler attribute, a `javascript:` URL in an attribute that holds a URL, or an SVG `<set>` or `<animate>` that changes an `href`;
+- a `<style>` or `<noscript>` element in a page, or a script in an SVG or XML file, prefixed names such as `<s:script>` included;
+- a script inside `<svg>` or `<math>`, or one whose text holds `<!--`, where a browser could read different text than the build hashes;
+- a policy source outside the allowlist: `'self'` and `'none'`, hashes only in `script-src` and `style-src`, `data:` in `img-src`, `'wasm-unsafe-eval'` in `script-src` and `'unsafe-inline'` in `style-src`;
+- a CSP line over 1,900 characters, any line over 2,000 or more than 100 rules.
+
+The checks read HTML with a small tokenizer, `src/csp/html.ts`, that splits a page into tags as a browser does. Markup inside an attribute value, a comment or a script's text is therefore never read as a tag. That matters because Expressive Code keeps raw code, such as `Promise<RenderedOutcome>`, in the `data-code` attribute of each block's copy button.
+
+**After a change to an inline script, regenerate the file.** A Starlight upgrade or an edited component can change an inline script's text, and with it the script's hash. Run `pnpm --filter @buildanagent/docs headers`, which builds the docs and rewrites `public/_headers` from the built pages. Then commit the file. `test/csp.test.ts` fails while the committed file differs from a fresh build's, or while a built inline script's hash is missing from it.
+
+### Style attributes are the policy's one exception
+
+The header sends `style-src 'self' 'unsafe-inline'` with `style-src-elem 'self'`. In a browser that knows `style-src-elem` (Chrome 75 or later, Firefox 108 or later and Safari 26.2 or later, as of November 2026), the second directive limits `<style>` elements and stylesheets to the docs' own files. The `'unsafe-inline'` then covers `style=` attributes only. An older browser falls back to `style-src` and allows inline `<style>` elements too.
+
+The attributes stay because Starlight and Expressive Code write them on every page. A build on 2026-11-26 counted 86,351 `style=` attributes across the 1,133 pages:
+
+- Starlight's sidebar sets `--depth` and its icons set `--sl-icon-size`.
+- Its theme select sets `--sl-select-width`, and its search button and dialog set `display` and `padding`.
+- Expressive Code sets each code colour as a custom property, such as `style="--0:#F2E8DC;--1:#2A1E16"`.
+
+Moving them to classes would mean rewriting Starlight's components or its HTML after each build. We judged that change larger than the risk it removes, since the attributes cannot run a script.
+
+Allowing them by hash is possible but fragile. `'unsafe-hashes'` is the source that lets a hash allow an attribute, not only a `<style>` element, and it would replace `'unsafe-inline'`, which has the same length. The build has 15 distinct `style=` values, whose hashes take 54 characters each, about 810 in all, so the CSP line would grow from 1,000 to about 1,810 characters. Each new colour set would add one more hash, and two more would pass 1,900.
+
+The build already writes every stylesheet as a file (`build.inlineStylesheets: "never"` in `astro.config.mjs`), so no page needs a `<style>` element.
+
+### The favicon has a policy of its own
+
+`/favicon.svg` colours its strokes from a `<style>` element, with a dark-mode rule, and it must stay a byte-for-byte copy of the site's icon. Under the site-wide policy, `style-src-elem 'self'` would block that style when a reader opens the file, and the strokes would not draw.
+
+The build therefore gives each served SVG that holds a `<style>` a rule of its own. Cloudflare applies rules in file order, so the rule first removes the site-wide header with `! Content-Security-Policy`, then sets the file's own:
+
+```text
+/favicon.svg
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'none'; style-src 'sha256-…'; frame-ancestors 'none'
+```
+
+The hash allows exactly the favicon's style and nothing else. The build refuses a style whose text holds `&`, `<` or CDATA, because an XML parser would change the text the browser hashes.
+
+### Each directive allows only what the docs load
+
+`DIRECTIVES` in `src/csp/policy.ts` lists the site-wide directives with the reason for each. `default-src` is `'none'`, so anything the list does not name, such as frames and media, is blocked. `'wasm-unsafe-eval'` lets Pagefind compile its WebAssembly search index and allows no `eval()` of script text. No source names a host, so the same header works on docs.buildanagent.fyi, next.docs.buildanagent.fyi, a `workers.dev` preview and `localhost`.
+
+### Previews carry main's policy
+
+A pull request's preview gets main's `_headers`, not one from its own build, because the deploy never trusts a pull request's files. A pull request that changes an inline script therefore shows that script blocked on its preview until it merges. The test still fails in that pull request until it commits the regenerated file. A stable release has the same gap: its deploy builds the release's commit but serves main's `_headers`, so an inline script that changed on main after the release would be blocked on the release's pages.
+
+### What the tests check, and what they leave to a browser
+
+`test/csp.test.ts` checks the policy against a fresh build:
+
+- The committed `public/_headers` equals the file the build writes.
+- Every inline script on every page has its hash in the policy, and every hash is used.
+- The CSP line stays within 1,900 characters.
+- No page or served document carries markup the policy blocks, and a code sample that holds `<script>` and `<style>` text changes nothing the checks read.
+- The favicon's rule allows exactly its style.
+- The file keeps the one `/*` rule and no `X-Robots-Tag`, which the preview deploy needs.
+
+No test loads a page in a browser, because the docs' CI runs no browser. A manual check on 2026-11-26 served the build through `wrangler dev`, which applied the header, and opened it in Chrome 158. Five pages reported no violation, and neither did `/favicon.svg`. On those pages, code kept its colours, search returned results, and tabs and the theme select worked. An injected inline script was blocked.
 
 ## Versions, the banner and the install-line rule
 
@@ -178,7 +268,7 @@ The docs show which release they describe and warn when they describe unreleased
 - **Text and link:** the page background, the pair "a banner on the accent" in `src/design/pairs.ts`, which `test/contrast.test.ts` measures at 4.5:1.
 - **Focus ring:** the same colour, measured at 3:1 as "the focus ring on a banner".
 
-The element keeps the `sl-banner` class for Starlight's print rule, hides in print and draws an edge in forced-colours mode. The script is static text, the same on every page, with nothing from the build in it. The Content-Security-Policy work (L12m) can therefore allow it by one hash.
+The element keeps the `sl-banner` class for Starlight's print rule, hides in print and draws an edge in forced-colours mode. The script is static text, the same on every page, with nothing from the build in it. The [content security policy](#the-content-security-policy-allows-the-docs-own-files-hashed-inline-scripts-and-style-attributes) therefore allows it by one hash.
 
 *Tests.* `test/version-built.test.ts` reads every built page and checks four things:
 

@@ -32,25 +32,51 @@ export function entriesOf(body: string): { heading: string; paragraphs: string[]
 
 /** The string literals of every exported `...ErrorCode` union in `source`, such as `HarnessErrorCode`. */
 export function errorCodesIn(source: string): string[] {
-  const unions = source.matchAll(/export type \w*ErrorCode =([^;]*);/g);
-  return [...unions].flatMap((union) =>
-    [...(union[1] ?? "").matchAll(/"([a-z]+(?:_[a-z]+)+)"/g)].map((m) => m[1] ?? ""),
+  return unionMembers(source, /export type \w*ErrorCode =([^;]*);/g);
+}
+
+/**
+ * The string literals of the agent safety package's exported `RejectionCause` union in `source`. `verifyResolution()`
+ * returns one of these causes where a throwing call would carry a code, so only the pages in `MAY_NAME_CAUSES` may name
+ * them, and they stay out of the set of codes.
+ */
+export function rejectionCausesIn(source: string): string[] {
+  return unionMembers(source, /export type RejectionCause =([^;]*);/g);
+}
+
+function unionMembers(source: string, union: RegExp): string[] {
+  return [...source.matchAll(union)].flatMap((match) =>
+    [...(match[1] ?? "").matchAll(/"([a-z]+(?:_[a-z]+)+)"/g)].map((m) => m[1] ?? ""),
   );
 }
 
-/** The error codes the packages define: the members of their `...ErrorCode` unions, not any string in their source. */
-function definedCodes(): Set<string> {
+/** The pages that may name a rejection cause, by the folder they sit in. */
+const MAY_NAME_CAUSES = ["agent-safety/"];
+
+/** The names that the packages' source defines with `read`: the members of their unions, not any string in a file. */
+function definedIn(read: (source: string) => string[]): Set<string> {
   const root = join(REPO_ROOT, "packages");
-  const codes = new Set<string>();
+  const names = new Set<string>();
   const walk = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       if (entry.isDirectory()) walk(join(dir, entry.name));
       else if (entry.name.endsWith(".ts"))
-        for (const code of errorCodesIn(readFileSync(join(dir, entry.name), "utf8"))) codes.add(code);
+        for (const name of read(readFileSync(join(dir, entry.name), "utf8"))) names.add(name);
     }
   };
   for (const pkg of readdirSync(root)) walk(join(root, pkg, "src"));
-  return codes;
+  return names;
+}
+
+/** The error codes the packages define. */
+const definedCodes = () => definedIn(errorCodesIn);
+
+/** What a page may name: the error codes, and its package's rejection causes where the page may name them. */
+function allowedNames(pagePath: string): Set<string> {
+  const names = definedCodes();
+  if (MAY_NAME_CAUSES.some((folder) => pagePath.startsWith(folder)))
+    for (const cause of definedIn(rejectionCausesIn)) names.add(cause);
+  return names;
 }
 
 /** The JSON-RPC codes the protocol defines, by name, read from its `ErrorCodes` object. */
@@ -98,7 +124,7 @@ for (const page of problemPages) {
   });
 
   test(`${page.path} names only error codes that a package's error-code union defines`, () => {
-    const defined = definedCodes();
+    const defined = allowedNames(page.path);
     for (const entry of entries) {
       const text = [entry.heading, ...entry.paragraphs].join("\n");
       assert.deepEqual(unknownCodes(text, defined), [], `"${entry.heading}" names a code that no package defines`);
@@ -162,4 +188,33 @@ test("the packages define the codes that the harness pages name", () => {
   ]) {
     assert.ok(defined.has(code), code);
   }
+});
+
+test("the packages define the codes that the agent-safety pages name", () => {
+  const defined = allowedNames("agent-safety/problems-and-fixes.md");
+  for (const code of [
+    "invalid_outcome",
+    "invalid_input",
+    "invalid_key_ring",
+    "invalid_effect",
+    "invalid_byok_config",
+    "default_provider",
+    "egress_refused",
+    "budget_exceeded",
+    "unknown_price",
+    "signature_invalid",
+    "input_changed",
+    "call_mismatch",
+  ]) {
+    assert.ok(defined.has(code), code);
+  }
+});
+
+test("a rejection cause is no error code, and only the agent-safety page may name one", () => {
+  const source = 'export type RejectionCause = | "input_changed";\nexport type SafetyErrorCode = | "invalid_input";';
+  assert.deepEqual(errorCodesIn(source), ["invalid_input"]);
+  assert.deepEqual(rejectionCausesIn(source), ["input_changed"]);
+  assert.deepEqual(unknownCodes("`input_changed`", new Set(errorCodesIn(source))), ["input_changed"]);
+  assert.ok(allowedNames("agent-safety/problems-and-fixes.md").has("input_changed"));
+  assert.ok(!allowedNames("harness/problems-and-fixes.md").has("input_changed"));
 });
