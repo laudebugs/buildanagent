@@ -1,0 +1,464 @@
+{
+  "format": 2,
+  "example": "15-decision-gate",
+  "file": "packages/sdk/examples/15-decision-gate.ts",
+  "harness": "packages/sdk",
+  "pin": "@buildanagent/sdk@workspace",
+  "mock": "@buildanagent/sdk@workspace",
+  "events": [
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-1",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Where is order A1?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_order",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-1",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "lookup_order",
+              "output": "done"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-1",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 68,
+      "message": "a lookup at 0.70 acts, above its 0.67 bar",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-2",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Er, order A1, maybe?"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-2",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "lookup_order",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 69,
+      "message": "a lookup at 0.60 asks",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-3",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A1, bought 15 November."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-3",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "refund",
+              "output": "done"
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-3",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 70,
+      "message": "a refund at 0.95 acts, above 0.93",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-4",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A2, I think, bought 2 November."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-4",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 72,
+      "message": "a refund at 0.90 asks and does not run",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-5",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Refund order A3, bought 20 October."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "refund",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-5",
+      "repeated": 3,
+      "messages": [
+        {
+          "role": "tool",
+          "parts": [
+            {
+              "type": "tool-result",
+              "id": "call-1",
+              "name": "refund",
+              "output": "Tool call \"refund\" was denied: The return window is 30 days.",
+              "error": true
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-5",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "text",
+            "text": "Done."
+          }
+        ]
+      },
+      "finish": "stop"
+    },
+    {
+      "kind": "check",
+      "line": 74,
+      "message": "a refund bought 39 days ago is denied by the code's date comparison, at 0.97",
+      "pass": true
+    },
+    {
+      "kind": "request",
+      "line": 52,
+      "model": "model-6",
+      "repeated": 0,
+      "messages": [
+        {
+          "role": "system",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Handle customer requests."
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "parts": [
+            {
+              "type": "text",
+              "text": "Move my savings, yeah, go ahead I guess."
+            }
+          ]
+        }
+      ],
+      "tools": [
+        "lookup_order",
+        "refund",
+        "transfer"
+      ]
+    },
+    {
+      "kind": "response",
+      "line": 52,
+      "model": "model-6",
+      "message": {
+        "role": "assistant",
+        "parts": [
+          {
+            "type": "tool-call",
+            "id": "call-1",
+            "name": "transfer",
+            "input": {}
+          }
+        ]
+      },
+      "finish": "tool_calls"
+    },
+    {
+      "kind": "check",
+      "line": 76,
+      "message": "a transfer asks even at 0.99",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 81,
+      "message": "a question that names an earlier answer is rejected",
+      "pass": true
+    },
+    {
+      "kind": "check",
+      "line": 88,
+      "message": "each request holds one question, never a question and its source",
+      "pass": true
+    }
+  ]
+}
