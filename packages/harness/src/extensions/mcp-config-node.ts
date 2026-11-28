@@ -129,6 +129,7 @@ const SHORT_VALUE = /^-[A-Za-z](.+)$/s;
 // The flag before a shell string or inline code, in any letter case: `-c`, `-lc`, `-e`, `-E`, `-p`, `-r`, `-S`, `/c`,
 // `--eval`, `--print`, `-Command`.
 const CODE_FLAG = /^(-[A-Za-z]*[ceprs]|\/c|--?(eval|print|command))$/i;
+// A space or shell punctuation in an argument after a code flag: the sign that it is code rather than one path.
 const CODE_TEXT = /[\s;&|()<>'"`]/;
 const SHELL_WORD = /'[^']*'|"[^"]*"|[^\s;&|()<>'"`]+/g;
 // A run of characters a path is commonly written with, so a word the tokenizer misreads, as after an escaped quote or
@@ -250,8 +251,8 @@ function candidatesOf(entry: Entry, root: string): Candidate[] {
   const code: string[] = [];
   args.forEach((arg, at) => {
     const text = codeIn(args, at);
-    // The whole argument is always a candidate, since `-r "./my dir/x.js"` names a path; when it holds a space or shell
-    // punctuation it may be code instead, so it is judged as code is, and a long script is not refused as a path.
+    // The whole argument is always a candidate, since `-r "./my dir/x.js"` names a path. One that holds a space or shell
+    // punctuation may be code instead, so it is judged as code is: a long script is not refused as a path.
     (text !== undefined && CODE_TEXT.test(text) ? code : plain).push(arg);
     if (text !== undefined) code.push(...wordsOf(text));
   });
@@ -279,8 +280,8 @@ function codeIn(args: readonly string[], at: number): string | undefined {
 }
 
 /**
- * A path the command line may name. One read from a shell string or inline code (`fromCode`) is a guess from its words,
- * so a path too long in all names nothing there; a plain argument that long is refused, since the server may still open
+ * A path the command line may name. A path read from a shell string or inline code (`fromCode`) is a guess from its
+ * words, so one too long in all names nothing. A plain argument that long is refused, since the server may still open
  * it relative to the root.
  */
 interface Candidate {
@@ -293,8 +294,8 @@ const NAME_CHARACTERS = 255;
 /**
  * Whether every part of `path` is short enough to be a file's name on some file system: no file system allows more than
  * 255 characters, though ext4 counts 255 bytes, APFS 255 characters and NTFS 255 UTF-16 units. A longer part names
- * nothing; a path that is only too long in all is kept, and refused when it can't be resolved, because the server may
- * still open it relative to the root.
+ * nothing. A path that is only too long in all is kept: a plain argument is then refused when it can't be resolved,
+ * because the server may still open it relative to the root, and a path from code names nothing (see `Candidate`).
  */
 const couldExist = (path: string): boolean => path.split(sep).every((part) => [...part].length <= NAME_CHARACTERS);
 
