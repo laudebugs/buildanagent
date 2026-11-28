@@ -102,8 +102,17 @@ Reading conventions. "Full text" means I extracted and read the whole document. 
 - Caution: the result is for a specific two-alternative choice task with a small number of cues and a modest dataset. It is not a general theorem that cheaper beats richer.
 
 ### A15. McKinsey, "Strategic decisions: When can you trust your gut?" (item 15)
-- URL: https://www.mckinsey.com/capabilities/strategy-and-corporate-finance/our-insights/strategic-decisions-when-can-you-trust-your-gut
-- NOT READ. Two fetches timed out; curl produced no file. Nothing recorded. Do not cite from this note; Kahneman & Klein 2009 (A10) is the primary for the same content.
+- Citation: Olivier Sibony and Dan Lovallo interview Daniel Kahneman and Gary Klein, McKinsey Quarterly, March 2010. https://www.mckinsey.com/capabilities/strategy-and-corporate-finance/our-insights/strategic-decisions-when-can-you-trust-your-gut
+- Read 2026-11-28: full text of the owner-supplied reprint (PDF text extraction, 9 pages numbered 2-10; page refs below are the reprint's printed numbers). Earlier fetches of the web page had timed out. Primary source for what Klein and Kahneman say, as speakers; an interview, so no method or data.
+- Central claims:
+  - Klein (p. 3): if "trust" means act on a gut feeling and stop worrying, "we say you should never trust your gut"; treat it as a data point and evaluate it consciously. Kahneman (pp. 3-4): overconfidence is "primarily determined by the quality and coherence of the story that you can construct, not by its validity".
+  - Same two conditions as the 2009 paper (p. 4, Klein): a predictable structure (low validity means "no basis for intuition", stock pickers as the example) and a chance to get feedback. Klein adds that most corporate decisions "aren't going to meet the test of high validity" but sit "way above" the low-validity cases.
+  - Disagreement (pp. 4-5): Kahneman is wary of experts' intuition unless they have dealt with that kind of problem a lot, and says experts "don't know exactly where the boundaries of their expertise are".
+  - Pre-mortem as Klein describes it (p. 7): "a sneaky way to get people to do contrarian, devil's advocate thinking without encountering resistance"; before a project starts, say it "has failed; it's a fiasco" and have everyone "take two minutes and write down all the reasons". The mechanism he gives is social: the dynamic shifts "from trying to avoid anything that might disrupt harmony to trying to surface potential problems". Kahneman (p. 7): "a great idea", "very easy to do"; "My guess is" a plan is tweaked and not abandoned; "low-cost, high-payoff". That is an opinion and no evidence of outcomes. Kahneman (p. 10): "People just love the premortem."
+  - Checklists (pp. 7-8): Kahneman likes them where validity is low and says they should be about process; Klein: "The checklist tells you the 'then' but you need expertise to determine the 'if'". Relevant to B8: a checklist item must be checkable.
+  - Independence (p. 8): "Fragmenting problems and keeping judgments independent helps decorrelate errors of judgment"; the coins-in-a-jar example shows averaged independent estimates gain accuracy and conformity ruins it. Human groups only; it supports, as an analogy, a critic in a separate context.
+  - Remaining disagreement (p. 9): Klein worries error-reduction techniques "can get in the way of gaining insights"; Kahneman would postpone intuition.
+- Check against Kahneman & Klein 2009 (A10): the conditions, the confidence warning and the pre-mortem description match. The interview adds Klein's own account of the pre-mortem and the "most corporate decisions" remark, which the 2009 paper does not state in those words.
 
 ### A16. Klein, "Conversations with Kahneman" (Psychology Today, item 16)
 - Citation: Gary Klein, blog post, Psychology Today, "Seeing What Others Don't", updated 18 Apr 2024 after Kahneman's death (27 Mar 2024).
@@ -150,12 +159,26 @@ Reading conventions. "Full text" means I extracted and read the whole document. 
 ### A37-A38. Klein, pre-mortem (items 37-38)
 - Citation (not read): Gary Klein (2007), "Performing a Project Premortem", Harvard Business Review, Sept 2007. https://hbsp.harvard.edu/product/F0709A-PDF-ENG: paywalled; the fetch showed only a site title. NOT READ.
 - Item 37: https://en.wikipedia.org/wiki/Pre-mortem. Secondary. Read via summary fetch. Claims: assume the project has failed, work backward for causes; the idea is traced to prospective hindsight (Mitchell, Russo & Pennington 1989); benefits claimed (reduces groupthink, overconfidence, planning fallacy); the page cites only the 1989 study and "does not present direct evidence" that pre-mortems improve project outcomes (this is the summarizer's paraphrase; check page directly if cited).
+- Klein's own description of the pre-mortem is now in A15 (McKinsey interview, p. 7); his 2007 article is still unread.
 - What I do have from a primary: Kahneman & Klein 2009 describe the premortem (teams imagine the plan has failed and write down the reasons) and say it counters the gradual suppression of dissent as an organization commits to a plan.
 
 ### A39-A40. Wack 1985, scenario planning (items 39-40)
 - Citation: Pierre Wack (1985), "Scenarios: Uncharted Waters Ahead", Harvard Business Review, Sept-Oct 1985 (the companion piece is "Scenarios: Shooting the Rapids", Nov-Dec 1985).
 - URL read: https://www.andrewwmarshallfoundation.org/library/scenarios-uncharted-waters-ahead/. This is the HBR editor's abstract only. NOT read in full. Taylor & Francis chapter URL in the brief was truncated ("...") and was not fetched; paywalled in any case.
 - What the abstract says: Shell developed "scenario planning" from the late 1960s/early 1970s; management was prepared for the eventuality, if not the timing, of the 1973 oil crisis, and in 1981 sold excess stock before prices collapsed; Shell's decision scenarios differ from usual US ones. These are HBR's claims about Shell, not independent evidence.
+
+### A39b. Wack 1985, "Scenarios: Shooting the Rapids"
+- Citation: Pierre Wack (1985), "Scenarios: Shooting the Rapids", Harvard Business Review 63(6), Nov-Dec 1985, 139-150. https://hbr.org/1985/11/scenarios-shooting-the-rapids
+- Read 2026-11-28: full text of the owner-supplied reprint (12 pages, pp. 139-150, with exhibits). PRIMARY for Wack's own account; the evidence about Shell is Wack's own recollection, not independent data. The first article, "Uncharted Waters Ahead" (Sept-Oct 1985), is still abstract-only.
+- Central claims:
+  - Problem (p. 139): scenario work fails at "the interface of scenarios and decision makers"; a consultant who lays out six scenarios and says it is the managers' job to decide gets the reply "impenetrable".
+  - Purpose (p. 140): scenarios "aim at perceptions inside the heads of decision makers" (p. 140), and work when they lead managers "to change and reorganize their inner models of reality". They are set against forecasts, which are "someone else's understanding and judgment crystallized in a figure" (p. 140).
+  - Form (p. 146): "a few alternative and internally consistent pathways", "not a group of quasi-forecasts, one of which may be right"; never more than four, ideally "one plus two" (the surprise-free view, then two other worlds). Avoid a low-middle-high design because managers pick the middle (p. 146).
+  - Two tests (pp. 146-147): "What do they leave out?" and "Do they lead to action?"; scenarios that do not push managers past past experience are "interesting speculation".
+  - Purposes (p. 146): protective (understand risk) and entrepreneurial (find options not seen before); the second matters more in the long run.
+  - Stable times (p. 150): when a manager's mental model matches reality, "decision scenarios have little or no leverage"; in rapid change they let managers "reperceive reality".
+  - Shell evidence (pp. 146, 148-149): the 1975 "Constrained Growth" scenario matched the 1976-78 recovery and managers hedged; for 1981 the "Hard Times" scenario preceded Shell's stock cuts, which Wack says were "much greater and earlier" than the industry's, adding "It may be just a coincidence" (p. 149).
+- Decision on use: LEFT OUT of the report. The target of a scenario is a human manager's mental model, and the chapter's decisions (fast default, slow call for plans, decision model for typed checks, escalate on an observable signal) change nothing if scenarios are added. The one link, "recheck at every model release", already has Anthropic's own sentence as its source. Where it would break for models: a model holds no inner model to reorganise between runs; agent failures are mostly frequent and small, so tests and retries do the work; Wack's evidence for success is anecdote.
 
 ### A41. Stanovich & West 2000 (dual-process terms)
 - Citation: Keith E. Stanovich and Richard F. West (2000), "Individual differences in reasoning: Implications for the rationality debate?", Behavioral and Brain Sciences 23(5), 645-726.
@@ -182,8 +205,21 @@ Reading conventions. "Full text" means I extracted and read the whole document. 
 - This is the best primary for the claim "fast/slow is not the defining feature".
 
 ### A44. Keren & Schul 2009 (critique)
-- Citation: Gideon Keren and Yaacov Schul (2009), "Two Is Not Always Better Than One: A Critical Evaluation of Two-System Theories", Perspectives on Psychological Science 4(6), 533-550.
-- URLs tried: psychologicalscience.org (403), the authors' Hebrew University page (error), typeset.io (403). NOT READ, even in abstract, from a fetched page. What I know comes from a search-result description (secondary): they examine the conceptual foundations and the empirical paradigms and conclude two-system models offer little scientific advance and call for stricter definition and tests. Melnikoff & Bargh (A45) cite it. Treat as "described, not read".
+- Citation: Gideon Keren and Yaacov Schul (2009), "Two Is Not Always Better Than One: A Critical Evaluation of Two-System Theories", Perspectives on Psychological Science 4(6), 533-550. DOI 10.1111/j.1745-6924.2009.01164.x.
+- Read 2026-11-28: full text of the owner-supplied PDF (18 pages of extracted text, pp. 533-550 with references; page refs below are the journal's). Earlier attempts (psychologicalscience.org, the authors' page, typeset.io) had failed. PRIMARY. It is a conceptual and methodological review, with no experiments, models or runs; it analyses "a generic model" of two-system theories (p. 534), so no sample, setup or run applies.
+- Central claims:
+  - Abstract (p. 533): two-system models "currently provide little scientific advance"; the authors ask for "more rigorous conceptual definitions" and stricter tests.
+  - Vague terms (p. 534): the terms vary by author, and "the proliferation of models ... offers researchers and their readers a false sense of understanding". A process is not a system (p. 534).
+  - Three criteria that a "system" model needs (p. 535): dichotomies, alienable characteristics, isolability. Dichotomising continuous attributes (hot-cold, automatic-controlled) loses information (pp. 537-538).
+  - Alignment (pp. 538-539): to prove two systems one must show that the feature sets cluster and that hybrid combinations do not occur; with three dichotomous features five of six combinations must be ruled out. Hybrids exist, for example flexible, unconscious goal pursuit (p. 539).
+  - Isolability (pp. 539-540): a system should work if the other is "completely inhibited or absent". Complex reasoning cannot run without System 1's associative networks, so the two are not isolable.
+  - Default-interventionist (Evans 2008) (p. 540): they agree with Evans that "parallel isolable systems are unlikely", and add that a strict hierarchy of System 1 under System 2 "conflicts with recent findings" on goals and intentions in automatic processes.
+  - Evidence (pp. 541-543): conflicting responses (Sloman's Criterion S, Linda) do not require two systems; findings such as belief bias under time pressure are compatible with one system, so the evidence "is not diagnostic"; double-dissociation shows components, not systems; neural evidence is scarce.
+  - Prediction (pp. 543-544): the models were built "in retrospect"; Kahneman and Frederick (2002) embedded heuristics-and-biases in a two-system frame after the fact, and the same objections that Gigerenzer (1996) raised against the program apply.
+  - Appeal and costs (pp. 544-546): dichotomies please the mind. They grant the defence that the models are used "only as a heuristic device" (p. 545), and answer that the models "may slow progress", oversimplify and favour testing presence over estimating parameters.
+  - Alternative (pp. 546-547): a "unimodel": one mental apparatus that shifts among states and selects tools by task and goal (Kruglanski; Bruner's two modes). They do not say how many systems there are, and "wonder whether the question is meaningful" (p. 534; see also p. 546).
+- Fit with E&S 2013 and M&B 2018: K&S predate both. E&S 2013 move from "systems" to "types", which answers part of the isolability and alignment charges (our reading); M&B 2018 cite the same family of objections. K&S's critique is of the generic two-system model; they treat default-interventionist models as a separate class they do not analyse in detail (p. 540).
+- For the book: supports using the pair only as a metaphor and defining terms by observable output. Their unimodel (one apparatus, tools picked by task) is analogous to routing by role and task type, which is our inference and not a K&S claim.
 
 ### A45. Melnikoff & Bargh 2018 (critique)
 - Citation: David E. Melnikoff and John A. Bargh (2018), "The Mythical Number Two", Trends in Cognitive Sciences 22(4), 280-293. DOI 10.1016/j.tics.2018.02.001.
@@ -259,6 +295,7 @@ Rules for the textbook: say "by analogy" every time; never say "System 1 models"
 
 ### B6. The pre-mortem as an adversarial verifier step
 - Human claim: before committing, imagine the plan has already failed and write down why (Klein 2007; Kahneman & Klein 2009 describe it as a semi-formal method that counters overconfidence and the suppression of doubt as commitment grows).
+- Klein's own account (A15, McKinsey p. 7) gives the mechanism as social ("avoid anything that might disrupt harmony" becomes "surface potential problems"), and Kahneman's only outcome claim there is a guess (p. 7). Kahneman's remark that independent judgments "decorrelate errors" (p. 8) supports a separate critic.
 - Mapping: a verifier or red-team step run before an irreversible action: prompt a model (or a different model) to assume the plan failed and list causes, then check the plan against them. Prospective hindsight is a way to elicit objections that a plain "any problems?" does not.
 - Strength: moderate as an agent design pattern; it is a prompt/process structure, not dependent on human-specific facts. But the human evidence is thin (see A37-38); I found no outcome studies in the sources read.
 - Where it breaks:
@@ -266,9 +303,9 @@ Rules for the textbook: say "by analogy" every time; never say "System 1 models"
   - A model told "assume this failed" may invent plausible but false failure modes (the Wikipedia page notes the same risk for humans: if failure is assumed, threats may be unreal). Needs a filter, such as a test or a lookup.
 
 ### B7. Scenario planning as planning under deep uncertainty
-- Human claim (Wack 1985, via abstract only): Shell developed scenarios rather than point forecasts; management was prepared for the 1973 oil crisis "if not the timing".
+- Human claim (Wack 1985; first article by abstract only, second in full, A39b): Shell developed scenarios rather than point forecasts; management was prepared for the 1973 oil crisis "if not the timing".
 - Mapping: when outcomes can't be predicted, generate a few distinct futures, test the plan against each, and look for robust choices. For agents, planning against several tool or environment states (API fails, data missing, user changes goal) and picking plans that survive them.
-- Strength: weak-to-moderate; conceptual. I have not read the article, only its abstract, so I can't state its method details.
+- Strength: weak. Now read in full (A39b, second article only). Wack's aim is to change managers' inner models, and its tests (what is left out, does it lead to action) have no bearing on the report's decisions, so the report leaves it out.
 - Where it breaks: it's a managerial discipline for strategic uncertainty with rare, large shocks; agent tasks mostly face frequent small failures where testing and retries do the work. Sampling many plans from a model is not the same as constructing structurally different scenarios; sampled plans tend to be similar. Shell's success is Wack's/HBR's own account.
 
 ### B8. Munger's checklists as a guard against fast-judgment errors
@@ -286,13 +323,13 @@ Rules for the textbook: say "by analogy" every time; never say "System 1 models"
 ---
 
 ## C. Open disagreements the textbook should state fairly
-- Are heuristics mostly a source of error (Tversky & Kahneman 1974 and the heuristics-and-biases tradition) or mostly adaptive tools whose success depends on environment (Gigerenzer, Klein)? Kahneman & Klein 2009 reach a common boundary condition, but Klein says they still disagree (A16).
+- Are heuristics mostly a source of error (Tversky & Kahneman 1974 and the heuristics-and-biases tradition) or mostly adaptive tools whose success depends on environment (Gigerenzer, Klein)? Kahneman & Klein 2009 reach a common boundary condition, but Klein says they still disagree (A16), and the 2010 interview shows disagreement on checklists and on postponing intuition (A15).
 - Is the norm used to call something an error correct (SEP section 5.1; Gigerenzer 1996)? Matters for any evaluation: the grader sets the norm.
-- Is dual-process theory a real distinction (Evans & Stanovich 2013) or a seductive myth (Melnikoff & Bargh 2018; Keren & Schul 2009, not read)?
+- Is dual-process theory a real distinction (Evans & Stanovich 2013) or a seductive myth (Melnikoff & Bargh 2018; Keren & Schul 2009, read in full, A44)?
 - Satisficing vs optimal stopping with search cost (Simon's reply in A5).
 
 ## D. Things I could not read in primary form (checklist)
-- Not read at all: item 6 (ResearchGate), item 7 (PubMed T&K page; but I read the T&K 1974 full text elsewhere), item 14 (PubMed K&K), item 15 (McKinsey, timed out), item 18 (Kahneman publications page, 403), items 12, 13 (SMU and behavioraleconomics pages empty), item 31, 34-36 (PubMed Snowden, toolshero, HBR insight page), items 8, 9, 21-23 (Semantic Scholar, multiplenatures, Munger summaries), item 24 beyond catalog data, item 29 (Scribd, skipped), Keren & Schul 2009 (all copies blocked).
-- Paywalled/abstract only: Klein 2007 HBR pre-mortem (item 38, paywalled); Wack 1985 (abstract only; the Taylor & Francis link in the brief was truncated); Snowden & Boone via reprint PDF on a third-party site (full text read, but a copy on a site I did not verify as licensed).
+- Not read at all: item 6 (ResearchGate), item 7 (PubMed T&K page; but I read the T&K 1974 full text elsewhere), item 14 (PubMed K&K), item 18 (Kahneman publications page, 403), items 12, 13 (SMU and behavioraleconomics pages empty), item 31, 34-36 (PubMed Snowden, toolshero, HBR insight page), items 8, 9, 21-23 (Semantic Scholar, multiplenatures, Munger summaries), item 24 beyond catalog data, item 29 (Scribd, skipped).
+- Paywalled/abstract only: Klein 2007 HBR pre-mortem (item 38, paywalled; still unread; the owner's HBR April 2008 letters page, `hbr-2008-04-letters-premortem.txt`, is one reader's letter comparing the pre-mortem to FMEA and does not confirm Klein's article, so it is not cited); Wack 1985 "Uncharted Waters Ahead" (abstract only; the Taylor & Francis link in the brief was truncated; the second article is now read, A39b); Snowden & Boone via reprint PDF on a third-party site (full text read, but a copy on a site I did not verify as licensed).
 - Not found/read: Boyd's OODA briefings (primary for OODA); Kahneman & Tversky 1996 (the paper Gigerenzer replies to); the second half of the SEP entry (incl. section 5.2); the AER 2003 version of "Maps of bounded rationality" (I read the Nobel lecture version); Kahneman's *Thinking, Fast and Slow* (2011) itself; any evidence on LLM calibration or routing (out of scope by design).
-- Primary sources I did read in full or nearly: Simon "Satisficing"; Tversky & Kahneman 1974; Kahneman & Klein 2009; Luan, Reb & Gigerenzer 2019 (targeted); Boyd D&C; Snowden & Boone 2007; Munger transcript (searched); Stanovich & West 2000 (dual-process passage only); Kahneman Nobel lecture (core sections); Evans & Stanovich 2013 (core sections); Melnikoff & Bargh 2018 (abstract and parts); Gigerenzer 1996.
+- Primary sources I did read in full or nearly: Keren & Schul 2009 and the McKinsey interview and Wack's "Shooting the Rapids" (owner-supplied copies, 2026-11-28); Simon "Satisficing"; Tversky & Kahneman 1974; Kahneman & Klein 2009; Luan, Reb & Gigerenzer 2019 (targeted); Boyd D&C; Snowden & Boone 2007; Munger transcript (searched); Stanovich & West 2000 (dual-process passage only); Kahneman Nobel lecture (core sections); Evans & Stanovich 2013 (core sections); Melnikoff & Bargh 2018 (abstract and parts); Gigerenzer 1996.
