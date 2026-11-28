@@ -35,9 +35,13 @@ export function spendOf(entries: readonly SessionEntry[]): Spend {
   return { calls, usage, costUsd };
 }
 
-/** The last `turn_end` of the log, or `undefined` when no turn has ended. */
+/**
+ * The `turn_end` of the log's last turn, or `undefined` when that turn has not ended: no turn has ended, or a
+ * `turn_start` comes after the last `turn_end`, as when a resumed run crashed.
+ */
 export function lastTurnEnd(entries: readonly SessionEntry[]): (SessionEntry & TurnEndEntry) | undefined {
-  return entries.findLast((entry): entry is SessionEntry & TurnEndEntry => entry.type === "turn_end");
+  const last = entries.findLast((entry) => entry.type === "turn_start" || entry.type === "turn_end");
+  return last?.type === "turn_end" ? last : undefined;
 }
 
 /** How a turn's stop reason reads in an eval: a row's exit, or a turn that has not finished. */
@@ -46,10 +50,11 @@ export type StopClass = EvalExit | "unfinished";
 /**
  * Classifies a run's stop reason, so a row's `exit` and a trajectory's `exit_status` always agree. `done` is
  * `submitted`. `max_steps`, `budget` and `no_progress` are the step, budget and progress limits. `aborted` is a
- * limit too: in an eval the runner aborts a trial only at its time limit. `stopped` is a limit as well. A host hook that
- * stops the run, such as a spend guard, ends it before the agent hands anything in, as a limit would. `error` is an infra error: a failed model call or hook says nothing about the agent's choices. A run paused
- * for an approval or an answer has not finished. Throws an `EvalsError` with code `invalid_session` for a stop reason
- * this package does not know, such as one a newer SDK wrote.
+ * limit too: in an eval the runner aborts a trial only at its time limit. `stopped` is a limit as well. A host hook
+ * that stops the run, such as a spend guard, ends it before the agent hands anything in, as a limit would. `error` is
+ * an infra error: a failed model call or hook says nothing about the agent's choices. A run paused for an approval or
+ * an answer has not finished. Throws an `EvalsError` with code `invalid_session` for a stop reason this package does
+ * not know, such as one a newer SDK wrote.
  */
 export function classifyStop(stopReason: TurnEndEntry["stopReason"]): StopClass {
   switch (stopReason) {
@@ -83,7 +88,7 @@ function exitOf(end: TurnEndEntry | undefined): EvalExit {
   if (kind === "unfinished") {
     throw new EvalsError(
       "unfinished_session",
-      `the session's last turn ${end === undefined ? "never ended" : `ended ${end.stopReason}`}, so it has no outcome`,
+      `the session's last turn ${end === undefined ? "has not ended" : `ended ${end.stopReason}`}, so it has no outcome`,
     );
   }
   return kind;
@@ -92,8 +97,8 @@ function exitOf(end: TurnEndEntry | undefined): EvalExit {
 /**
  * The time the agent's turns ran: from each `turn_start` to the `turn_end` of the same run, summed. A resumed
  * session's wait for a person's approval falls between two turns, so it is not counted, and a trial that paused
- * compares with one that did not. A `turn_end` with no `turn_start` of its run before it would make the sum too small,
- * so it is refused as an `invalid_session`.
+ * compares with one that did not. A `turn_end` with no open `turn_start` of its run before it would make the sum
+ * wrong, so it is refused as an `invalid_session`.
  */
 function turnTimeOf(entries: readonly SessionEntry[]): number {
   const started = new Map<string, number>();
@@ -106,29 +111,20 @@ function turnTimeOf(entries: readonly SessionEntry[]): number {
         throw new EvalsError("invalid_session", `the log ends run ${entry.runId} without a turn_start for it`);
       }
       total += Date.parse(entry.timestamp) - start;
+      // A second turn_end for the same run has no start of its own, so it is refused rather than counted twice.
+      started.delete(entry.runId);
     }
   }
   return total;
 }
 
 /** What a log cannot say about a trial: which task and trial it was, who ran it, and the grader's verdict. */
-export interface EvalRowMeta {
-  /** The task's id. */
-  readonly task: string;
-  /** Which attempt at the task this is, from 0. */
-  readonly trial: number;
-  /** Which harness ran it, such as `"ours"`. */
-  readonly harness: string;
-  /** The ablation it ran under, or `"none"`. */
-  readonly ablation: string;
-  /** The preamble's size in tokens, such as the tool registry's `preambleTokens()` for the run's system prompt. */
-  readonly preambleTokens: number;
+export interface EvalRowMeta
+  extends Pick<EvalRow, "task" | "trial" | "harness" | "ablation" | "preambleTokens" | "tags"> {
   /** The grader's verdict, or `null` when it could not decide; ignored when the run ended in an infra error. */
   readonly passed: boolean | null;
   /** Why `passed` is `null`. */
   readonly unscored?: UnscoredReason;
-  /** The task's labels. */
-  readonly tags?: readonly string[];
 }
 
 function gradeOf(meta: EvalRowMeta, exit: EvalExit): Pick<EvalRow, "passed" | "unscored"> {
@@ -144,7 +140,7 @@ function gradeOf(meta: EvalRowMeta, exit: EvalExit): Pick<EvalRow, "passed" | "u
  * `error` is `"infra_error"`, and `max_steps`, `budget`, `no_progress`, `aborted` and `stopped` are `"limit"`. A run
  * that ended in an infra error is ungraded whatever `meta.passed` says.
  *
- * Throws an `EvalsError`: `unfinished_session` when no turn has ended or the last one waits on a person,
+ * Throws an `EvalsError`: `unfinished_session` when the last turn has not ended or waits on a person,
  * `invalid_session` when the log holds a stop reason this package does not know or a `turn_end` with no `turn_start`
  * of its run, and `invalid_row` when the row breaks a rule of `EvalRow`.
  */

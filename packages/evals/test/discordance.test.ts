@@ -25,10 +25,29 @@ test("two runs flip the pairs they grade differently, out of the pairs both grad
 });
 
 test("a run with the same task and trial twice is refused", () => {
-  const twice = [row("ours", "A", 0, "pass"), row("ours", "A", 0, "fail", { ablation: "other" })];
+  const twice = [row("ours", "A", 0, "pass"), row("ours", "A", 0, "fail")];
   assert.throws(
     () => discordance(twice, []),
-    (error) => isEvalsError(error) && error.code === "duplicate_trial",
+    (error) =>
+      isEvalsError(error) &&
+      error.code === "duplicate_trial" &&
+      error.message === 'run a: ours/A#0 under ablation "none" appears twice',
+  );
+});
+
+test("a run whose rows span two ablations is refused, even when no trial repeats", () => {
+  const mixed = [row("ours", "A", 0, "pass"), row("ours", "A", 1, "fail", { ablation: "no-memory" })];
+  assert.throws(
+    () => discordance([], mixed),
+    (error) => isEvalsError(error) && error.code === "invalid_option" && error.message.startsWith("run b "),
+  );
+});
+
+test("a run whose rows span two harnesses is refused", () => {
+  const mixed = [row("ours", "A", 0, "pass"), row("mini-swe-agent", "B", 0, "pass")];
+  assert.throws(
+    () => discordance(mixed, []),
+    (error) => isEvalsError(error) && error.code === "invalid_option",
   );
 });
 

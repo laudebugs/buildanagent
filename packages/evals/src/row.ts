@@ -57,7 +57,7 @@ export interface EvalRow {
 export type Outcome = "pass" | "fail" | "infra_error" | "unscored";
 
 function fail(row: EvalRow, message: string): never {
-  throw new EvalsError("invalid_row", `${row.harness}/${row.task}#${row.trial}: ${message}`);
+  throw new EvalsError("invalid_row", `${trialName(row)}: ${message}`);
 }
 
 const EXITS: readonly unknown[] = ["submitted", "limit", "infra_error"] satisfies EvalExit[];
@@ -125,25 +125,20 @@ export function outcomeOf(row: EvalRow): Outcome {
 /** Whether an outcome is a grade: a pass or a fail. Infra errors and unscored trials are not. */
 export const isGraded = (outcome: Outcome): outcome is "pass" | "fail" => outcome === "pass" || outcome === "fail";
 
+/** A trial's name in an error message: its harness, ablation, task and trial, the fields that name one trial. */
+export const trialName = (row: EvalRow): string =>
+  `${row.harness}/${row.task}#${row.trial} under ablation ${JSON.stringify(row.ablation)}`;
+
 /**
- * Checks every row, and that no two rows share the key `keyOf` gives them: a JSON array of the fields that name one
- * trial. `where` names the scope in the error, such as "run a".
+ * Checks every row, and that no two rows name the same trial: the same harness, ablation, task and trial. `where`
+ * names the rows in the error, such as "run a".
  */
-export function checkRows(
-  rows: readonly EvalRow[],
-  keyOf: (row: EvalRow) => readonly unknown[] = (row) => [row.harness, row.ablation, row.task, row.trial],
-  where = "the rows",
-): void {
+export function checkRows(rows: readonly EvalRow[], where = "the rows"): void {
   const seen = new Set<string>();
   for (const row of rows) {
     checkRow(row);
-    const key = JSON.stringify(keyOf(row));
-    if (seen.has(key)) {
-      throw new EvalsError(
-        "duplicate_trial",
-        `${where} hold ${row.harness}/${row.task}#${row.trial} twice under ablation ${JSON.stringify(row.ablation)}`,
-      );
-    }
+    const key = JSON.stringify([row.harness, row.ablation, row.task, row.trial]);
+    if (seen.has(key)) throw new EvalsError("duplicate_trial", `${where}: ${trialName(row)} appears twice`);
     seen.add(key);
   }
 }

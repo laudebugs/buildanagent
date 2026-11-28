@@ -11,7 +11,7 @@
  * and `extra.submission` (`agents/default.py`, lines 104-147; `environments/local.py`, lines 46-54).
  */
 import type { ContentBlock, ModelContent } from "@buildanagent/gateway";
-import type { MessageBlockEntry, SessionEntry, ToolResultEntry, TurnEndEntry } from "@buildanagent/protocol";
+import type { SessionEntry, ToolResultEntry, TurnEndEntry } from "@buildanagent/protocol";
 import { classifyStop, isAgentUsage, lastTurnEnd, spendOf } from "./from-entries.js";
 
 /** The format name mini-swe-agent 2.4.6 writes in `trajectory_format`. */
@@ -72,8 +72,9 @@ export type MiniSweMessage = MiniSweTextMessage | MiniSweAssistantMessage | Mini
 
 /**
  * A trajectory in the `mini-swe-agent-1.1` format. mini-swe-agent's `info` also holds `config` and `mini_version`,
- * which describe its own agent and are left out here. One field departs from it: `instance_cost` is `null` when any
- * call's price is unknown, where mini-swe-agent stops with an error by default.
+ * which describe its own agent and are left out here. Two fields depart from it. `instance_cost` is `null` when any
+ * call's price is unknown, where mini-swe-agent stops with an error by default. `exit_status` is `"error"` for an
+ * infra error: that is our own stop reason, not a status mini-swe-agent writes.
  */
 export interface MiniSweTrajectoryV1_1 {
   /** Always `"mini-swe-agent-1.1"`. */
@@ -140,37 +141,46 @@ function lineOf(message: OpenMessage): MiniSweMessage {
   };
 }
 
-/** The log's conversation, in order: one entry per block, so the blocks of a message are gathered by its id. */
+/**
+ * The log's conversation, in order: one entry per block, so the blocks of a message are gathered by its id. A
+ * `message_end` closes the message it names, which may have no blocks, such as a call that failed. The `model_call`
+ * usage entry right after it is that message's cost. A usage entry that follows no `message_end`, such as a call a
+ * retry superseded, belongs to no message: it counts in `instance_cost` but sets no message's cost.
+ */
 function conversationOf(entries: readonly SessionEntry[]): (OpenMessage | MiniSweMessage)[] {
   const lines: (OpenMessage | MiniSweMessage)[] = [];
   const open = new Map<string, OpenMessage>();
   let system: string | undefined;
-  let lastAssistant: OpenMessage | undefined;
+  let justEnded: OpenMessage | undefined;
   const seconds = (entry: SessionEntry) => Date.parse(entry.timestamp) / 1000;
-  const addBlock = (entry: SessionEntry & MessageBlockEntry) => {
-    let message = open.get(entry.messageId);
+  const messageOf = (id: string, role: OpenMessage["role"], entry: SessionEntry) => {
+    let message = open.get(id);
     if (message === undefined) {
-      message = { role: entry.role, blocks: [], timestamp: seconds(entry), cost: null };
-      open.set(entry.messageId, message);
+      message = { role, blocks: [], timestamp: seconds(entry), cost: null };
+      open.set(id, message);
       lines.push(message);
     }
-    message.blocks.push(entry.block);
-    if (entry.role === "assistant") lastAssistant = message;
+    return message;
   };
   const addResult = (entry: ToolResultEntry) =>
     lines.push({ role: "tool", tool_call_id: entry.callId, content: textOf(entry.content) });
   for (const entry of entries) {
+    const ended = justEnded;
+    justEnded = undefined;
     if (entry.type === "turn_start" && entry.system !== system) {
       // The log writes a turn's input before its turn_start, and mini-swe-agent's first message is the system prompt.
       const line = { role: "system", content: entry.system } as const;
       if (system === undefined) lines.unshift(line);
       else lines.push(line);
       system = entry.system;
-    } else if (entry.type === "message_block") addBlock(entry);
-    else if (entry.type === "message_end" && lastAssistant !== undefined) lastAssistant.timestamp = seconds(entry);
-    else if (entry.type === "tool_result") addResult(entry);
-    else if (isAgentUsage(entry) && entry.source === "model_call" && lastAssistant !== undefined) {
-      lastAssistant.cost = entry.cost.total;
+    } else if (entry.type === "message_block") messageOf(entry.messageId, entry.role, entry).blocks.push(entry.block);
+    else if (entry.type === "message_end") {
+      // The harness writes message_end for assistant messages only.
+      justEnded = messageOf(entry.messageId, "assistant", entry);
+      justEnded.timestamp = seconds(entry);
+    } else if (entry.type === "tool_result") addResult(entry);
+    else if (isAgentUsage(entry) && entry.source === "model_call" && ended !== undefined) {
+      ended.cost = entry.cost.total;
     }
   }
   return lines;
@@ -183,10 +193,10 @@ const isOpen = (line: OpenMessage | MiniSweMessage): line is OpenMessage => "blo
  * and summary calls, and is `null` when any price is unknown; `api_calls` counts those calls; a judge's call is in
  * neither. `exit_status` comes from the last turn's stop reason, classified as `toEvalRow()` classifies its `exit`:
  * `done` is `"Submitted"`; `max_steps`, `budget`, `no_progress`, `aborted` and `stopped` are `"LimitsExceeded"`;
- * `error` stays `"error"`; and a turn paused for a person gives `""` and no exit message. The messages are the first
- * system prompt (and any later one that differs), each user and assistant message, each tool result and, once the
- * last turn has finished, an exit message. Images and reasoning blocks are left out, because the format's content
- * is text.
+ * `error` stays `"error"`; and a last turn that paused for a person or never ended gives `""` and no exit message.
+ * The messages are the first system prompt (and any later one that differs), each user and assistant message, each
+ * tool result and, once the last turn has finished, an exit message. Images and reasoning blocks are left out,
+ * because the format's content is text.
  *
  * Throws an `EvalsError` with code `invalid_session` when the last turn ended with a stop reason this package does
  * not know, such as one a newer SDK wrote.

@@ -4,15 +4,16 @@ import type { Cost } from "@buildanagent/gateway";
 import type { SessionEntry } from "@buildanagent/protocol";
 import { tokens } from "./rows.js";
 
-const MODEL = { api: "scripted", provider: "scripted", id: "m" };
-const priced = (total: number | null): Cost => ({
+export const MODEL = { api: "scripted", provider: "scripted", id: "m" };
+export const priced = (total: number | null): Cost => ({
   total,
   basis: total === null ? "unknown" : "catalog",
   currency: "USD",
 });
 let seq = 0;
 export const at = (second: number) => `2026-11-25T09:00:${String(second).padStart(2, "0")}.000Z`;
-function entry(second: number, body: Record<string, unknown>): SessionEntry {
+/** One more entry after the latest `log()`, at `second` past the minute, for a test that extends the log. */
+export function entry(second: number, body: Record<string, unknown>): SessionEntry {
   seq++;
   return {
     id: `e${seq}`,

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { toMiniSweTrajectory } from "@buildanagent/evals";
 import { describe, test } from "vitest";
 import { loadCase } from "./capstone.js";
-import { at, log } from "./log.js";
+import { at, entry, log, MODEL, priced } from "./log.js";
+import { tokens } from "./rows.js";
 
 describe("toMiniSweTrajectory()", () => {
   test("a converted capstone trajectory has instance_cost, api_calls and exit_status filled", () => {
@@ -65,6 +66,30 @@ describe("toMiniSweTrajectory()", () => {
       content: "error",
       extra: { exit_status: "error", submission: "" },
     });
+  });
+
+  test("each call's cost and time land on its own message, and a superseded call's on none", () => {
+    const entries = log(undefined);
+    entries.push(
+      // A turn-layer retry superseded this call: billed, but no message_end.
+      entry(10, { type: "usage", source: "model_call", usage: tokens(10, 1), cost: priced(0.5) }),
+      // The retried call failed with no content: a message_end with no blocks.
+      entry(11, { type: "message_end", messageId: "a3", model: MODEL, stopReason: "error" }),
+      entry(11, { type: "usage", source: "model_call", usage: tokens(10, 1), cost: priced(0.07) }),
+      entry(12, { type: "turn_end", runId: "r1", stopReason: "error", steps: 3 }),
+    );
+    const trajectory = toMiniSweTrajectory(entries);
+    const assistants = trajectory.messages.filter((message) => message.role === "assistant");
+    assert.deepEqual(
+      assistants.map((message) => message.extra),
+      [
+        { cost: 0.01, timestamp: Date.parse(at(3)) / 1000 },
+        { cost: 0.02, timestamp: Date.parse(at(7)) / 1000 },
+        { cost: 0.07, timestamp: Date.parse(at(11)) / 1000 },
+      ],
+    );
+    assert.deepEqual(assistants[2], { role: "assistant", content: null, extra: assistants[2]?.extra });
+    assert.deepEqual(trajectory.info.model_stats, { instance_cost: 0.01 + 0.005 + 0.02 + 0.5 + 0.07, api_calls: 5 });
   });
 
   test("a log with no ended turn, or one paused for a person, has an empty exit_status and no exit message", () => {

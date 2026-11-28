@@ -12,9 +12,9 @@ export interface Interval {
 }
 
 /**
- * The 95% Wilson score interval for `successes` out of `trials`, which needs `trials > 0`. With p̂ = s/n and z = 1.96:
- * centre = (p̂ + z²/2n) / (1 + z²/n) and half-width = z·√(p̂(1−p̂)/n + z²/4n²) / (1 + z²/n). Unlike the normal
- * approximation, it stays inside [0, 1] and keeps a width at 0 or n successes.
+ * The 95% Wilson score interval for `successes` out of `trials`, which needs `trials > 0`. With p̂ = s/n and
+ * z = 1.96: centre = (p̂ + z²/2n) / (1 + z²/n) and half-width = z·√(p̂(1−p̂)/n + z²/4n²) / (1 + z²/n). Unlike the
+ * normal approximation, it stays inside [0, 1] and keeps a width at 0 or n successes.
  */
 export function wilson(successes: number, trials: number): Interval {
   const p = successes / trials;
@@ -26,9 +26,9 @@ export function wilson(successes: number, trials: number): Interval {
 }
 
 /**
- * The unbiased estimate of pass^k, the chance that k trials drawn without replacement from a task's n graded trials
- * all pass, given c of them passed: C(c, k) / C(n, k), which needs n ≥ k. It is the product of (c − i) / (n − i) for
- * i from 0 to k − 1, which avoids the large binomials, and it is 0 as soon as c < k.
+ * The unbiased estimate of pass^k, the chance that k trials drawn without replacement from a task's n graded
+ * trials all pass, given c of them passed: C(c, k) / C(n, k), which needs n ≥ k. It is the product of
+ * (c − i) / (n − i) for i from 0 to k − 1, which avoids the large binomials, and it is 0 as soon as c < k.
  */
 export function passHatK(n: number, c: number, k: number): number {
   let estimate = 1;

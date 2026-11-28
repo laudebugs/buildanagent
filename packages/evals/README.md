@@ -76,15 +76,15 @@ console.log(trajectory.trajectory_format === MINI_SWE_TRAJECTORY_FORMAT, traject
 
 The shape follows mini-swe-agent v2.4.6: `DefaultAgent.serialize()` in `src/minisweagent/agents/default.py`, lines 159 to 180, at commit `a83fcae`. `instance_cost` sums the cost of the agent's model and summary calls, `api_calls` counts them, and a judge's call is in neither. The log does not record what a run handed in, so `submission` is `""` unless you pass one.
 
-`exit_status` comes from the same classification as a row's `exit`, so the two always agree. A submission is `"Submitted"`, every limit is `"LimitsExceeded"`, and an infra error is `"error"`. The status is `""` before any turn ends or while the last turn waits for a person, and the trajectory then has no exit message.
+`exit_status` comes from the same classification as a row's `exit`, so the two always agree. A submission is `"Submitted"`, every limit is `"LimitsExceeded"`, and an infra error is `"error"`. The status is `""` while the last turn has not ended or waits for a person, and the trajectory then has no exit message.
 
 Messages follow the baseline's shapes. The first is the system prompt, and assistant messages carry `extra.cost` and `extra.timestamp`. Tool results are `{ role: "tool", tool_call_id, content }`, and the last message has role `exit`. Images and reasoning blocks are left out, because the format's content is text, and `info.config` and `info.mini_version` are left out because they describe mini-swe-agent's own agent.
 
-One field departs from the baseline. When any call's price is unknown, `instance_cost` is `null`, as the row's cost is. By default mini-swe-agent raises an error instead, unless its `cost_tracking` is set to `ignore_errors`, in which case it counts the call as $0.
+Two fields depart from the baseline. When any call's price is unknown, `instance_cost` is `null`, as the row's cost is. By default mini-swe-agent raises an error instead, unless its `cost_tracking` is set to `ignore_errors`, in which case it counts the call as $0. An infra error's `exit_status` is `"error"`, our own stop reason, not a status mini-swe-agent writes.
 
 ## Discordance says how much a rerun already flips
 
-`discordance(a, b)` pairs the trials of two runs by task and trial number and counts the pairs graded differently. Swapping one mature harness for another flips about as many tasks as rerunning the same harness, so a gain means little until it beats the rerun's own discordance.
+`discordance(a, b)` pairs the trials of two runs by task and trial number and counts the pairs graded differently. Each run must hold one harness and one ablation. Swapping one mature harness for another flips about as many tasks as rerunning the same harness, so a gain means little until it beats the rerun's own discordance.
 
 ```ts
 import { discordance } from "@buildanagent/evals";
@@ -102,7 +102,7 @@ A pair counts only when both runs graded it. A trial missing from one run, an in
 | --- | --- |
 | `invalid_row` | A row breaks one of its rules, such as `passed: null` without an `unscored` reason |
 | `duplicate_trial` | Two rows of one harness, ablation and run name the same task and trial |
-| `invalid_option` | An option is out of range, such as a `k` below 1, or one harness spans several ablations |
+| `invalid_option` | An option is out of range, such as a `k` below 1, one harness spans several ablations in a report, or one run of `discordance()` spans several harnesses or ablations |
 | `unfinished_session` | A session's last turn did not finish, so it has no outcome to report |
 | `invalid_session` | A session log can't be read as a trial: it holds a stop reason this package doesn't know, such as one a newer SDK wrote, or a `turn_end` with no `turn_start` for its run |
 
