@@ -20,8 +20,8 @@ const verdicts = (v) =>
   Array.isArray(v) ? v.map((e) => Object.fromEntries(VERDICT.filter((k) => k in e).map((k) => [k, e[k]]))) : v;
 // latest-releases.json also records an upstream main branch: its head commit ("main") and, for ADK, the names main
 // exports that the pinned release lacks. Both move whenever upstream pushes, so every nightly would drift on them.
-// Whether a failing doc block only uses names from main is a result, and typecheck-docs.json and
-// mismatch-causes.json record it, so the file is compared on its released versions ("latest") alone.
+// Whether a failing doc block uses only names from main is a result of its own, recorded in typecheck-docs.json and
+// mismatch-causes.json, so this file is compared on its released versions ("latest") alone.
 // The export list's key names the pinned release (`exportsOnMainNotIn250` for ADK 2.5.0), so it is matched by prefix.
 const upstreamMain = (key) => key === "main" || key.startsWith("exportsOnMainNotIn");
 const releases = (v) =>

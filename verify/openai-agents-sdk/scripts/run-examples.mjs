@@ -63,11 +63,11 @@ if (!ownExamples) {
 if (only) targets = targets.filter((t) => only.has(t.id));
 await mkdir("results", { recursive: true });
 
-// A sandbox manifest's gitRepo() entry makes the SDK run `git clone https://github.com/<repo>.git` as a child process,
-// which the preloads' socket block does not reach, so a doc example cloned the real repository and timed out when
-// GitHub was slow. Git is pointed at local repositories instead: `insteadOf` rewrites every github.com URL to a folder
-// that holds a one-commit `openai/openai-agents-js` (the only repository the docs name), and GIT_ALLOW_PROTOCOL
-// refuses every other transport, so a clone of any other repository fails at once rather than going online.
+// A sandbox manifest's gitRepo() entry makes the SDK run `git clone https://github.com/<repo>.git` as a child process.
+// The preloads' socket block does not reach child processes, so a doc example cloned the real repository and timed out
+// when GitHub was slow. Now `insteadOf` rewrites every github.com URL to a local folder that holds a one-commit
+// `openai/openai-agents-js` (the only repository the docs name), and GIT_ALLOW_PROTOCOL refuses every other transport,
+// so a clone of any other repository fails at once instead of going online.
 const gitHub = await mkdtemp(join(tmpdir(), "oai-github-"));
 {
   const repo = join(gitHub, "openai", "openai-agents-js.git");
