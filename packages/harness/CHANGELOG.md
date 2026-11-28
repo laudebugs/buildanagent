@@ -1,5 +1,18 @@
 # @buildanagent/harness
 
+## 0.1.0-alpha.45
+
+### Minor Changes
+
+- a23a098: Add `loadProjectMcpServers()` and `pinProjectMcpServer()` to `@buildanagent/harness/extensions/node`: a project's `.mcp.json` starts stdio servers only in a trusted project, and only when each server's config matches its content-hash pin in `.agents/extensions.lock.json`. Credentials are `${NAME}` references that the host resolves, never values in the file.
+
+### Patch Changes
+
+- @buildanagent/agent-safety@0.1.0-alpha.45
+  - @buildanagent/gateway@0.1.0-alpha.45
+  - @buildanagent/protocol@0.1.0-alpha.45
+  - @buildanagent/sdk@0.1.0-alpha.45
+
 ## 0.1.0-alpha.44
 
 ### Patch Changes
