@@ -735,7 +735,7 @@ Round A closes when the triage agent passes its capstone offline, when the relea
 [sp33]: build-sdk.md#33-sdk-api
 [sp51]: build-sdk.md#51-the-scripted-test-model-is-the-default-seam-and-mock-transports-test-the-wire
 [sp54]: build-sdk.md#54-tests-run-offline-with-the-repos-safety-rules-built-in
-[sp62]: build-sdk.md#62-no-question-is-open-and-one-item-waits-for-a-later-round
+[sp62]: build-sdk.md#62-one-question-is-open-and-one-item-waits-for-a-later-round
 [sp-d2]: build-sdk.md#d2-anthropic-messages-and-openai-compatible-chat-completions-first-accepted
 [sp-d5]: build-sdk.md#d5-a-pluggable-signer-with-key-ids-an-ephemeral-default-and-no-unsigned-resume-accepted-with-hd5
 [sp-d9]: build-sdk.md#d9-the-usd-cap-is-checked-before-each-model-call-against-a-projected-cost

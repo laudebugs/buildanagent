@@ -36,12 +36,12 @@ Add `packages/gateway/examples/05-switch-or-stay.ts`, which prices a ten-turn se
 ## Tasks
 
 - [ ] Recompute the report's totals with a script before writing the test, and correct the report's numbers through its fact-check log if the arithmetic differs.
-- [ ] Write the pricing function over the catalog's rates and the five schedules.
+- [ ] Write the pricing function over the catalog's rates and the six schedules.
 - [ ] Write the expiry run and the assertions, then the regions.
 
 ## Acceptance criteria
 
-- [ ] The test reproduces the six totals from the catalog's rates, to the cent shown
+- [ ] The test reproduces the six totals from the catalog's rates, to the four decimals shown
 - [ ] The expiry run shows every model rewriting its whole prefix on every turn
 - [ ] The comment states the one-cache-per-model assumption
 - [ ] `pnpm check`, `pnpm typecheck` and `pnpm test` pass offline from the repo root
