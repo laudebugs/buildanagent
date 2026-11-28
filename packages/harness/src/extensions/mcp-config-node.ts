@@ -269,7 +269,7 @@ function optionTexts(text: string): string[] {
  * a glob or a path the code computes is not seen.
  */
 function wordsOf(code: string, depth = 0): string[] {
-  const text = code.replace(/"?\$PWD"?(?=\/)/g, ".");
+  const text = code.replace(/"\$PWD"(?=\/)/g, ".").replace(/\$PWD(?=\/)/g, ".");
   const found = new Set<string>(text.match(PATH_RUN) ?? []);
   for (const token of text.match(SHELL_WORD) ?? []) {
     const word = token.replace(/^(["'])([\s\S]*)\1$/, "$2");
@@ -355,7 +355,8 @@ const realOrNone = (path: string): Promise<string | undefined> =>
     throw error;
   });
 
-const MISSING = new Set(["ENOENT", "ENOTDIR", "ELOOP"]);
+// A name too long to exist names nothing, as when inline code after `-e` is read as a path.
+const MISSING = new Set(["ENOENT", "ENOTDIR", "ELOOP", "ENAMETOOLONG"]);
 
 /** Whether `path`, as written, is under the root as the caller gave it or under its real path. */
 const writtenInside = (roots: Roots, path: string): boolean =>

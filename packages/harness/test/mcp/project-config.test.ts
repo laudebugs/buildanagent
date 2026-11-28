@@ -694,11 +694,16 @@ describe("project MCP configs: what a program runs for a path the command line n
       ["sh", ["-c", "NODE_OPTIONS=--require=./server.js node x"]],
       ["sh", ["-c", "echo it\\'s; node server.js; echo 'x'"]],
       ["sh", ["-c", `sh -c "node server.js"`]],
+      ["sh", ["-c", `node "$PWD/my dir/server.js"`]],
+      ["node", ["-e", `console.log(${JSON.stringify("x".repeat(300))}); require("./server.js")`]],
     ];
     for (const [command, args] of forms) {
       const root = project(server({ command, args }));
       writeFileSync(join(root, "server.js"), "1");
-      assert.ok((await pinnedPaths(root)).includes("server.js"), `${command} ${args.join(" ")}`);
+      mkdirSync(join(root, "my dir"));
+      writeFileSync(join(root, "my dir", "server.js"), "2");
+      const want = args.some((arg) => arg.includes("my dir")) ? "my dir/server.js" : "server.js";
+      assert.ok((await pinnedPaths(root)).includes(want), `${command} ${args.join(" ")}`);
     }
   });
 
