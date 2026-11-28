@@ -281,10 +281,20 @@ importers:
         version: link:../sdk
 
   packages/evals:
-    devDependencies:
+    dependencies:
       '@buildanagent/gateway':
         specifier: workspace:*
         version: link:../gateway
+      '@buildanagent/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+    devDependencies:
+      '@buildanagent/harness':
+        specifier: workspace:*
+        version: link:../harness
+      '@buildanagent/sdk':
+        specifier: workspace:*
+        version: link:../sdk
 
   packages/gateway: {}
 

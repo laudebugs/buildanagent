@@ -2,7 +2,7 @@
   "start": [
     {
       "stamp": {
-        "sdkVersion": "0.1.0-alpha.36",
+        "sdkVersion": "0.1.0-alpha.43",
         "api": "scripted",
         "provider": "scripted",
         "model": "triage-priced",
@@ -147,7 +147,7 @@
     },
     {
       "stamp": {
-        "sdkVersion": "0.1.0-alpha.36",
+        "sdkVersion": "0.1.0-alpha.43",
         "api": "scripted",
         "provider": "scripted",
         "model": "triage-priced",
@@ -514,7 +514,7 @@
   "resume": [
     {
       "stamp": {
-        "sdkVersion": "0.1.0-alpha.36",
+        "sdkVersion": "0.1.0-alpha.43",
         "api": "scripted",
         "provider": "scripted",
         "model": "triage-priced",

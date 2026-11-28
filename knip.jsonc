@@ -43,9 +43,15 @@
     // trusts. Node can make neither.
     // The book examples are run by path (`tsx examples/01-session-two-runs.ts`) from the shared runner, so nothing
     // imports them.
-    // The AWS live run is run by path, by the owner only.
+    // The AWS live run is run by path, by the owner only. The project-config tests' fixture server is started by the
+    // project's own `.mcp.json`, so nothing imports it.
     "packages/harness": {
-      "entry": ["examples/*.ts", "scripts/readme-globals.ts", "scripts/aws-live.mjs"],
+      "entry": [
+        "examples/*.ts",
+        "scripts/readme-globals.ts",
+        "scripts/aws-live.mjs",
+        "test/fixtures/mcp-project/server.mjs"
+      ],
       "ignoreBinaries": ["mkfifo", "openssl"]
     }
   }

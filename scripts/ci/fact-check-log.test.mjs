@@ -88,7 +88,8 @@ test("a verdict cell must be exactly one of the three verdicts, and the message 
 
 test("an escaped pipe stays inside its cell, and an unescaped one is reported", () => {
   assert.deepEqual(cells(String.raw`| 1 | \`a \| b\` | x |`), ["1", String.raw`\`a \| b\``, "x"]);
-  const rows = [String.raw`| 1 | Both \|\| forms | BK1 | ✅ | A source |`, "| 2 | A `|| b` | BK1 | ✅ | A source |"];
+  // Plain strings, not String.raw, wherever a fixture holds ✅: Bun rewrites non-ASCII inside String.raw as \u escapes.
+  const rows = ["| 1 | Both \\|\\| forms | BK1 | ✅ | A source |", "| 2 | A `|| b` | BK1 | ✅ | A source |"];
   assert.deepEqual(messages(log(rows, null)), [
     String.raw`has 7 cells where its header has 5; escape a | inside a cell as \|`,
   ]);
@@ -99,7 +100,7 @@ test("a backslash escapes the character after it, as in GitHub, so \\\\| ends a 
   assert.deepEqual(cells(String.raw`| 1 | a \\\| b |`), ["1", String.raw`a \\\| b`]);
   assert.deepEqual(cells(String.raw`| 1 | ends in \\|`), ["1", String.raw`ends in \\`]);
   // Read as `\|`, the old reading, this row had four cells and failed; GitHub shows five.
-  const row = String.raw`| 1 | A path C:\\| BK1 | ✅ | A source |`;
+  const row = "| 1 | A path C:\\\\| BK1 | ✅ | A source |"; // A plain string for Bun, as in the first fixture.
   assert.deepEqual(messages(log([row], null)), []);
   assert.equal(readRows(log([row], null)).rows[0].verdict, "✅");
 });

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "fixture": {
+      "command": "node",
+      "args": ["server.mjs"],
+      "env": { "PROJECT_TOKEN": "${PROJECT_TOKEN}" }
+    }
+  }
+}

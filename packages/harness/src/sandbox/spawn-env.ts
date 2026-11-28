@@ -51,6 +51,62 @@ const LOADER_NAMES = new Set([
   "GIT_CONFIG_COUNT",
 ]);
 
+// Beyond `LOADER_NAMES`: variables that change which code, which configuration or which certificates a program, its
+// interpreter or its shell uses, kept from a project config. The prefixes cover whole families, such as every `DYLD_`
+// and `LD_` loader setting, every npm and git setting, and every `PYTHON`, `PERL`, `RUBY` and `JAVA` option.
+const PROJECT_REFUSED_PREFIXES = ["LD_", "DYLD_", "NPM_CONFIG_", "GIT_", "PYTHON", "PERL", "RUBY", "JAVA_", "_JAVA_"];
+const PROJECT_REFUSED_NAMES = new Set([
+  "JDK_JAVA_OPTIONS",
+  "CLASSPATH",
+  "NODE_REPL_EXTERNAL_MODULE",
+  "NODE_TLS_REJECT_UNAUTHORIZED",
+  "GEM_HOME",
+  "GEM_PATH",
+  "BUNDLE_GEMFILE",
+  "ZDOTDIR",
+  "PROMPT_COMMAND",
+  "SHELLOPTS",
+  "BASHOPTS",
+  "PS4",
+  "IFS",
+  "SHELL",
+  "EDITOR",
+  "VISUAL",
+  "PAGER",
+  "BROWSER",
+  "SSL_CERT_FILE",
+  "SSL_CERT_DIR",
+  "CURL_CA_BUNDLE",
+  "REQUESTS_CA_BUNDLE",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+  "XDG_CACHE_HOME",
+  "XDG_RUNTIME_DIR",
+]);
+
+/**
+ * Why a project's config may not set a variable in a child's environment, or `undefined` when it may. The host
+ * supplies every value, and the project picks only the name, so the risk is the name: a reserved one would replace the
+ * cleared `PATH`, `HOME`, `TMPDIR` or `LANG`, and a loader or configuration one, such as `NODE_OPTIONS`,
+ * `DYLD_INSERT_LIBRARIES`, `npm_config_registry` or `GIT_CONFIG_PARAMETERS`, would put a value the host meant for a
+ * token where a program reads code, settings or certificates from. A list of names to refuse rather than to allow,
+ * because the useful names are the server's own and no list could hold them; the cost is that a name the list misses
+ * passes. `extra` accepts all of these, because the host writes it.
+ */
+export function protectedNameReason(name: string): string | undefined {
+  if (!NAME.test(name)) return "it is not a valid variable name";
+  const upper = name.toUpperCase();
+  if (RESERVED.includes(upper)) return `${name} is set by spawnEnv() itself`;
+  if (
+    LOADER_NAMES.has(upper) ||
+    PROJECT_REFUSED_NAMES.has(upper) ||
+    PROJECT_REFUSED_PREFIXES.some((prefix) => upper.startsWith(prefix))
+  ) {
+    return `${name} changes what a program loads or how it is configured`;
+  }
+  return undefined;
+}
+
 function looksLikeCredential(name: string): boolean {
   const upper = name.toUpperCase();
   return (

@@ -1,6 +1,6 @@
 {
   "name": "@buildanagent/harness",
-  "version": "0.1.0-alpha.43",
+  "version": "0.1.0-alpha.44",
   "description": "The buildanagent harness: the session log, context policy, tools, permissions, sandbox and credentials around the SDK's loop.",
   "license": "Apache-2.0 OR MIT",
   "repository": {

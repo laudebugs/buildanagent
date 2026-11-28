@@ -18,7 +18,7 @@
       "name": "turn",
       "kind": 0,
       "error": false,
-      "durationMs": 12250,
+      "durationMs": 12500,
       "attributes": {
         "buildanagent.cost.basis": "catalog",
         "buildanagent.cost.usd": 0.006495,
@@ -56,7 +56,7 @@
           "name": "execute_tool lookup",
           "kind": 0,
           "error": false,
-          "durationMs": 2500,
+          "durationMs": 2750,
           "attributes": {
             "gen_ai.operation.name": "execute_tool",
             "gen_ai.tool.call.id": "c1",
@@ -69,7 +69,7 @@
           "name": "execute_tool refund",
           "kind": 0,
           "error": false,
-          "durationMs": 5250,
+          "durationMs": 5500,
           "attributes": {
             "gen_ai.operation.name": "execute_tool",
             "gen_ai.tool.call.id": "c2",
