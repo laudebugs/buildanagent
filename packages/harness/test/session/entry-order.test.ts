@@ -59,12 +59,12 @@ async function logOf(name: CaseName, run: Files): Promise<SessionEntry[]> {
 
 describe("a session's entries do not depend on its store's speed", () => {
   for (const name of Object.keys(CASES) as CaseName[]) {
-    test(`the ${name} case writes the JSONL run's log on the in-memory, DynamoDB and Postgres stores`, async () => {
-      const onFiles = await logOf(name, files());
-      for (const [label, make] of Object.entries(OTHER_STORES)) {
+    for (const [label, make] of Object.entries(OTHER_STORES)) {
+      test(`the ${name} case writes the JSONL run's log on the ${label} store`, async () => {
+        const onFiles = await logOf(name, files());
         const run = { ...files(), store: scrubbing(await make()) };
-        assert.deepEqual(await logOf(name, run), onFiles, `${name} on ${label}`);
-      }
-    });
+        assert.deepEqual(await logOf(name, run), onFiles);
+      });
+    }
   }
 });
